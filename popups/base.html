@@ -1,0 +1,38 @@
+<div id="js-popup" class="popup">
+
+  <div class="popup__header">
+    <h1 id="js-popup__title" class="popup__title">{{ title }}</h1>
+    <h2 id="js-popup__municipality" class="popup__municipality">{{ municipality }}</h2>
+  </div>
+
+  <div id="js-popup__key-values" class="popup__key-values">
+    {% block key_values %}
+      <span class="key-values__municipality">
+        {% for key, value in data.items %}
+          {% if "value" in key %}
+            <span class="key-values__{{ key }}">{{ value|default_if_none:""|floatformat }}</span>
+          {% else %}
+            <span class="key-values__{{ key }}">{{ value|default_if_none:"" }}</span>
+          {% endif %}
+        {% endfor %}
+      </span>
+    {% endblock %}
+  </div>
+
+  {% block chart %}{% endblock %}
+
+  <div id="js-popup__description" class="popup__description">{{ description }}</div>
+
+  {% if sources %}
+    <div id="js-popup__sources" class="popup__sources">
+      Quellen:
+      {% for source in sources %}
+        {% if forloop.first %}
+          <a href="{{ source.url }}">{{ source.name }}</a>
+        {% else %}
+          , <a href="{{ source.url }}">{{ source.name }}</a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>

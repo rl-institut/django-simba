@@ -1,0 +1,16 @@
+spice_ev@ git+https://github.com/rl-institut/spice_ev@51268c639a02f2a94c418d6215376f585dd14af0
+django
+celery
+django_plotly_dash
+psycopg2-binary
+pandas
+matplotlib
+django-environ
+colorbrewer@ git+https://github.com/henhuy/colorbrewer-python.git
+django-appconf >=1.0.5, <2.0.0
+django-environ >=0.10.0, <1.0.0
+djangorestframework >=^3.14.0, <4.0.0
+djangorestframework-mvt >=0.2.5, <1.0.0
+django_distill
+django-geojson
+range-key-dict

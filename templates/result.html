@@ -1,0 +1,100 @@
+{% extends 'base.html'%}
+{% block title %}Simulation Results{% endblock %}
+{% block header %}
+  <script>
+
+  var task_id = "{{ request.GET.task_id }}";
+  console.log(task_id);
+
+      function get_chart() {
+      console.log("getting chart");
+
+      el = $('#vehicle-form');
+      var vehiclesParams = {};
+      vehiclesParams["task_id"]=task_id;
+      if (el.length >0) {
+          var el = $('#id_vehicles').get(0);
+          vehicles=getSelectValues(el)
+          vehiclesParams["vehicles"] = vehicles;
+      }
+
+  <!--    set second argument of param to true, for proper serialization vehicles= [1,2] are put as -->
+  <!--vehicle=1&vehicle=2 and not vehicle%5B%5D=1&vehicle%5B%5D=2-->
+      var urlParams = $.param(vehiclesParams, true );
+      console.log(urlParams)
+      $.ajax({
+        url: '/get_chart/?' + urlParams,
+        type: 'GET',
+        dataType: 'html',
+        success: function(data) {
+          $('#chart').html(data);  // insert the loaded HTML into a div element
+          }
+        });
+  }
+
+  function getSelectValues(select) {
+    var result = [];
+    var options = select && select.options;
+    var opt;
+
+    for (var i=0, iLen=options.length; i<iLen; i++) {
+      opt = options[i];
+
+      if (opt.selected) {
+        result.push(opt.value || opt.text);
+      }
+    }
+    return result;
+  }
+
+  </script>
+{% endblock %}
+{% block content %}
+
+    <h1> Finished with id {{request.GET.task_id}}</h1>
+    {% load static %}
+
+  <div class="col-md-12">
+    <nav>
+      <div class="nav nav-tabs" id="tab" role="tablist">
+        <button class="nav-link active" id="nav-0-tab" data-bs-toggle="tab" data-bs-target="#nav-0" type="button" role="tab" aria-controls="nav-0" aria-selected="true">SimBA Plots</button>
+        <button class="nav-link" id="nav-1-tab" data-bs-toggle="tab" data-bs-target="#nav-1" type="button" role="tab" aria-controls="nav-1" aria-selected="false">SoC-Verlauf</button>
+        <button class="nav-link" id="nav-2-tab" data-bs-toggle="tab" data-bs-target="#nav-2" type="button" role="tab" aria-controls="nav-2" aria-selected="false">Karte</button>
+        <button class="nav-link" id="nav-3-tab" data-bs-toggle="tab" data-bs-target="#nav-3" type="button" role="tab" aria-controls="nav-3" aria-selected="false" disabled>4</button>
+        <button class="nav-link" id="nav-4-tab" data-bs-toggle="tab" data-bs-target="#nav-4" type="button" role="tab" aria-controls="nav-4" aria-selected="false" disabled>5</button>
+        <button class="nav-link" id="nav-5-tab" data-bs-toggle="tab" data-bs-target="#nav-5" type="button" role="tab" aria-controls="nav-5" aria-selected="false" disabled>6</button>
+      </div>
+    </nav>
+    <div class="tab-content"  id="tabContent">
+      <!-- Start Tab Content -->
+      <div class="tab-pane active" id="nav-0" role="tabpanel" aria-labelledby="nav-0-tab" tabindex="0">
+        {% with this_id=request.GET.task_id %}
+          {% with image_path='data/sim_outputs/'|add:this_id|add:'/sim/run_overview.png' %}
+              <img src="{% static image_path %}" alt="My Image">
+          {% endwith %}
+        {% endwith %}
+      </div>
+      <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
+        <div id="chart"></div>
+        {%load plotly_dash%}
+
+        <!--    Simple Dash app start-->
+        <!--            <div id="dash_app" style="height:580px">-->
+        <!--    {% plotly_app name='SimpleExampleApp' ratio=0.9 %}-->
+        <!--                </div>-->
+        <!--        Simple Dash app end-->
+      </div>
+      <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">
+        {% include 'minimal_mapengine.html'%}
+      </div>
+      <!-- End Tab Content -->
+    </div>
+
+  </div>
+
+
+
+    <!--<div id="task-status"></div>-->
+<script> get_chart();
+</script>
+{% endblock %}

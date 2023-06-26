@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        #box {
+            position: absolute;
+            top: 50px;
+            left: 50px;
+            width: 100px;
+            height: 100px;
+            background-color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <button onclick="moveBox()">Move Box</button>
+    <div id="box"></div>
+
+
+
+
+
+
+
+    <script>
+        function moveBox() {
+            var box = document.getElementById("box");
+            var pos = 50;
+            var direction = "right";
+            var id = setInterval(frame, 50);
+            function frame() {
+                if (pos == 350) {
+                    direction = "left";
+                } else if (pos == 50) {
+                    direction = "right";
+                }
+                if (direction == "right") {
+                    pos++;
+                    box.style.left = pos + "px";
+                } else {
+                    pos--;
+                    box.style.left = pos + "px";
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

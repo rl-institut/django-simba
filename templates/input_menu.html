@@ -1,0 +1,198 @@
+<form enctype="multipart/form-data" method="POST"> {% csrf_token %}
+  <div class="row">
+    <div class="col-md-3">
+      <nav class="nav flex-column nav-pills" id="tab-a"> <!-- alternative to pills: underline -->
+        <button class="nav-link active" id="1v" data-bs-toggle="tab" data-bs-target="#panel1v" type="button" role="tab" aria-controls="panel1v" aria-selected="true">Basics</button>
+        <button class="nav-link" id="2v" data-bs-toggle="tab" data-bs-target="#panel2v" type="button" role="tab" aria-controls="panel2v" aria-selected="false">Charging infrastructure</button>
+        <button class="nav-link" id="3v" data-bs-toggle="tab" data-bs-target="#panel3v" type="button" role="tab" aria-controls="panel3v" aria-selected="false">Charge settings</button>
+        <button class="nav-link" id="4v" data-bs-toggle="tab" data-bs-target="#panel4v" type="button" role="tab" aria-controls="panel4v" aria-selected="false">Files</button>
+        <button class="nav-link" id="5v" data-bs-toggle="tab" data-bs-target="#panel5v" type="button" role="tab" aria-controls="panel5v" aria-selected="false" disabled>Erweiterte Einstellungen</button>
+        <button class="nav-link" id="6v" data-bs-toggle="tab" data-bs-target="#panel6v" type="button" role="tab" aria-controls="panel6v" aria-selected="false" disabled>Depotsimulation</button>
+      </nav>
+      <div class="d-flex justify-content-center py-5">
+        <button type='submit' class="btn btn-primary">Submit</button>
+      </div>
+    </div>
+
+    <div class="col-md-9">
+      
+      <div class="tab-content vertical" id="tab-a-content">
+        <!-- Start Tab Content -->
+      
+        <div class="tab-pane active" id="panel1v" role="tabpanel" aria-labelledby="1v" tabindex="0">
+          <div class="card round scrollable-div h-100">
+            <div class="card-header bg-primary text-white">
+              <h4 class="card-title">Basics</h4>
+            </div>
+            <div class="card-body">
+              <!--
+              <p><strong>{{form.preferred_charging_type.label}}</strong></p>
+              <div class="col-md-9">
+                {{form.preferred_charging_type}}
+              </div>
+              -->
+              <p><strong>Konsistenz-Prüfung</strong></p>
+              <div class="form-check form-switch">
+                <input class="form-check-input" id="konsistenzSwitch" type="checkbox" checked name="testGroup">
+                <label class="form-check-label" for="konsistenzSwitch" data-bs-toggle="tooltip" data-bs-placement="top" title="Konsistenz Prüfung">
+                <a>Aktiv?</a>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane" id="panel2v" role="tabpanel" aria-labelledby="2v" tabindex="1">
+          <div class="card round scrollable-div h-100">
+            <div class="card-header bg-primary text-white">
+              <h4 class="card-title">Charging infrastructure</h4>
+            </div>
+            <div class="card-body">
+              <div class="form-group row">
+                <div class="col-md-4">
+                  <p><strong>{{form.gc_power_opps.label}}</strong></p>
+                </div>         
+                <div class="col-md-8">
+                  {{form.gc_power_opps}}
+                </div>
+              </div>
+              <div class="form-group row">
+                <div class="col-md-4">
+                  <p><strong>{{form.gc_power_deps.label}}</strong></p>
+                </div>
+                <div class="col-md-8">
+                  {{form.gc_power_deps}}
+                </div>
+              </div>
+              <div class="form-group row">
+                <div class="col-md-4">
+                  <p><strong>{{form.cs_power_opps.label}}</strong></p>
+                </div>
+                <div class="col-md-8">
+                  {{form.cs_power_opps}}
+                </div>
+              </div>
+              <div class="form-group row">
+                <div class="col-md-4">
+                  <p><strong>{{form.cs_power_deps_depb.label}}</strong></p>
+                </div>
+                <div class="col-md-8">
+                  {{form.cs_power_deps_depb}}
+                </div>
+              </div>
+              <div class="form-group row">
+                <div class="col-md-4">
+                  <p><strong>{{form.cs_power_deps_oppb.label}}</strong></p>
+                </div>
+                <div class="col-md-8">
+                  {{form.cs_power_deps_oppb}}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane" id="panel3v" role="tabpanel" aria-labelledby="3v" tabindex="2">
+          <div class="card round scrollable-div h-100">
+            <div class="card-header bg-primary text-white">
+              <h4 class="card-title">Charge settings</h4>
+            </div>
+            <div class="card-body">
+              <p><strong>{{form.desired_soc_deps.label}}</strong></p>
+              <div class="col-md-9">
+                {{form.desired_soc_deps}}
+              </div>
+              <p><strong>{{form.desired_soc_opps.label}}</strong></p>
+              <div class="col-md-9">
+                {{form.desired_soc_opps}}
+              </div>
+              <p><strong>{{form.min_recharge_deps_oppb.label}}</strong></p>
+              <div class="col-md-9">
+                {{form.min_recharge_deps_oppb}}
+              </div>
+              <p><strong>{{form.min_recharge_deps_depb.label}}</strong></p>
+              <div class="col-md-9">
+                {{form.min_recharge_deps_depb}}
+              </div>
+              <p><strong>{{form.min_charging_time.label}}</strong></p>
+              <div class="col-md-9">
+                {{form.min_charging_time}}
+              </div>
+              <p><strong>{{form.default_buffer_time_opps.label}}</strong></p>
+              <div class="col-md-9">
+                {{form.default_buffer_time_opps}}
+              </div>            
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane" id="panel4v" role="tabpanel" aria-labelledby="4v" tabindex="3">
+          <div class="card round scrollable-div h-100">
+            <div class="card-header bg-primary text-white">
+              <h4 class="card-title">Files</h4>
+            </div>
+            <div class="card-body">
+              <div class="form-group row">
+                <div class="col-md-4">
+                  <p><strong>{{form.input_schedule.label}}</strong></p>
+                </div>
+                <div class="col-md-8">
+                  {{form.input_schedule}}
+                </div>
+              </div>
+              <div class="form-group row">
+                <div class="col-md-4">
+                  <p><strong>{{form.electrified_stations.label}}</strong></p>
+                </div>
+                <div class="col-md-8">
+                  {{form.electrified_stations}}
+                </div>
+              </div>
+              <div class="form-group row">
+                <div class="col-md-4">
+                  <p><strong>{{form.vehicle_types.label}}</strong></p>
+                </div>
+                <div class="col-md-8">
+                  {{form.vehicle_types}}
+                </div>
+              </div>
+              <div class="form-group row">
+                <div class="col-md-4">
+                  <p><strong>{{form.station_data_path.label}}</strong></p>
+                </div>
+                <div class="col-md-8">
+                  {{form.station_data_path}}
+                </div>
+              </div>
+              <div class="form-group row">
+                <div class="col-md-4">
+                  <p><strong>{{form.outside_temperature_over_day_path.label}}</strong></p>
+                </div>
+                <div class="col-md-8">
+                  {{form.outside_temperature_over_day_path}}
+                </div>
+              </div>
+              <div class="form-group row">
+                <div class="col-md-4">
+                  <p><strong>{{form.level_of_loading_over_day_path.label}}</strong></p>
+                </div>
+                <div class="col-md-8">
+                  {{form.level_of_loading_over_day_path}}
+                </div>
+              </div>  
+              <div class="form-group row">
+                <div class="col-md-4">
+                  <p><strong>{{form.cost_parameters_file.label}}</strong></p>
+                </div>
+                <div class="col-md-8">
+                  {{form.cost_parameters_file}}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      <!-- End Tab Content -->
+      </div>
+    </div>
+  </div>
+</form>

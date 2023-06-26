@@ -1,0 +1,11 @@
+ebustoolbox/static/
+db.sqlite3
+*.bak
+**/__pycache__/
+.idea/
+.vscode/
+.DS_Store
+.python-version
+venv/
+**/node_modules/
+

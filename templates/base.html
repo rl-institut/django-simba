@@ -1,0 +1,32 @@
+<!-- base file for many pages -->
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SimBA Online{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href=  "{% static 'styles.css'%}">
+    <link rel="stylesheet" href="{% static 'mystyle.css'%}">
+    {% include 'imports.html'%}
+    {% block header %}
+    {%endblock %}
+  
+</head>
+
+<body>
+    {% include 'navbar.html'%}
+    <div class="container py-3 px-0 mx-auto">
+
+        {% block content %}
+
+        this will be replaced
+        {%endblock %}
+
+    </div>
+</body>
+
+
+</html>

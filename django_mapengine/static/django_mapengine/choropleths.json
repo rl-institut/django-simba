@@ -1,0 +1,39 @@
+{
+  "population": {
+    "color_palette": "YlGnBu",
+    "num_colors": 6
+  },
+  "population_density": {
+    "color_palette": "YlGnBu",
+    "num_colors": 6
+  },
+  "capacity": {
+    "color_palette": "YlGnBu",
+    "num_colors": 6
+  },
+  "capacity_square": {
+    "color_palette": "YlGnBu",
+    "num_colors": 6
+  },
+  "re_power": {
+    "color_palette": "YlGnBu",
+    "num_colors": 6
+  },
+  "re_power_percentage": {
+    "color_palette": "GnBu",
+    "values": [
+      0.3,
+      0.6,
+      0.8,
+      1.0
+    ]
+  },
+  "wind_turbines": {
+    "color_palette": "YlGnBu",
+    "num_colors": 6
+  },
+  "wind_turbines_square": {
+    "color_palette": "YlGnBu",
+    "num_colors": 6
+  }
+}

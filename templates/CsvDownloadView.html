@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>CSV file processed successfully!</h1>
+<p><a href="{% url 'download_csv' %}">Download the modified CSV file.</a></p>
+{% endblock %}
