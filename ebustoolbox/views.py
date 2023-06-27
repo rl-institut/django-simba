@@ -18,7 +18,7 @@ from django.http import JsonResponse
 from pathlib import Path
 from celery.result import AsyncResult
 from celery import uuid
-from .tasks import run_ebus_toolbox
+from .tasks import run_ebus_toolbox, generate_zipped_scenario
 from django.views.decorators.http import require_GET
 # Imaginary function to handle an uploaded file.
 # from somewhere import handle_uploaded_file
@@ -107,7 +107,7 @@ class SuccessView(TemplateView, django_mapengine.views.MapEngineMixin):
     template_name = "result.html"
     def get_context_data(self, **kwargs):
         context = super(SuccessView, self).get_context_data(**kwargs)
-        context["file_url"] = "data/sim_outputs/" + self.request.GET["task_id"] + "/sim/gc_overview.csv"
+        context["task_id"] = self.request.GET["task_id"]
         return context
 
 
@@ -118,10 +118,9 @@ def long_running_task_status_view(request):
     task_result = AsyncResult(task_id)
     if task_result.ready() or TaskRun.objects.get(task_id=task_id).finished:
         print("Task is finished")
-        return JsonResponse({'status': 'SUCCESS'})
-    else:
-        print('Task is pending')
-        return JsonResponse({'status': 'PENDING'})
+        return JsonResponse({'success': True})
+    print('Task is pending')
+    return JsonResponse({'success': True})
 
 
 def create_config(model_object):
@@ -196,10 +195,16 @@ def home_view(request, mode_list=["sim", "report"]):
     return render(request, "index.html", {"form": form, "mode_list": mode_list})
 
 def download_scenario(request, task_id):
-    file_path = os.path.join(settings.BASE_DIR, "ebustoolbox/static/data/sim_outputs/", task_id, "sim/gc_overview.csv")
+    task_id = str(task_id)
+    file_path = settings.BASE_DIR / "media" / (task_id+ ".zip")
     if os.path.exists(file_path):
         with open(file_path, 'rb') as fh:
             response = HttpResponse(fh.read(), content_type='application/octet-stream')
             response['Content-Disposition'] = 'attachment; filename=' + os.path.basename(file_path)
             return response
+    print( "Zip file not found")
     raise Http404
+
+def generate_zip(request, task_id):
+    result = generate_zipped_scenario.apply_async((task_id,), task_id=(task_id))
+    return HttpResponse("zip generated for ", task_id)

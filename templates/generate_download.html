@@ -1,0 +1,73 @@
+{#<div class="d-flex justify-content-center py-5">#}
+{#        <a href="{% url 'generate_zip' task_id=task_id %}" class="btn btn-primary">Generate Download as Zip</a>#}
+{#</div>#}
+<div id="zipButton">
+    <div class="d-flex justify-content-center py-5">
+<button id="buttonGenerateZip" class="btn btn-primary">Generate Download as Zip</button>
+    </div>
+</div>
+
+
+<!-- Include jQuery library -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+
+<!-- Script to handle ButtonA click event -->
+<script>
+    var clickedZipGeneration = false;
+    $(document).ready(function () {
+        $('#buttonGenerateZip').click(function () {
+            // Perform some action
+      buttonGenerateZip_function();
+      zipReady_function();
+    });
+  });
+
+  function buttonGenerateZip_function() {
+    // Make an AJAX request to your Django view or endpoint
+      if (!clickedZipGeneration){
+          console.log("once")
+              $.ajax({
+              url: '/generate_zip/' + task_id,
+              type: 'GET',
+              data: {
+              },
+      });
+      }
+      clickedZipGeneration = true
+  }
+  function zipReady_function() {
+    // Make an AJAX request to your Django view or endpoint
+    $.ajax({
+      url: '/long_running_task_status/',
+      type: 'GET',
+      data: {
+        task_id:task_id
+      },
+        success: function (response) {
+            console.log("success zip is rdy")
+            // Handle successful response
+            console.log(response)
+            if (response.success) {
+                console.log("creating button b")
+            const myDiv = document.getElementById('zipButton');
+            
+            // Set the HTML content of the div
+            myDiv.innerHTML =               '<div class="d-flex justify-content-center py-5"> <a href="{% url "download_scenario"  task_id=task_id %}" class="btn btn-primary">Download Zip-File</a></div>';
+
+        } else{
+            setTimeout(function() {
+                            zipReady_function(task_id);
+                        }, 100000);
+        }
+      },
+      error: function(xhr, textStatus, error) {
+        // Handle error
+      }
+    });
+  }
+
+</script>
+
+<!-- Container for ButtonB -->
+<div id="buttonContainer"></div>
