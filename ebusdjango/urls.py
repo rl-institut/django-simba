@@ -17,8 +17,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
+
 from ebustoolbox.views import result_view, long_running_task_status_view, \
-    get_chart, home_view
+    get_chart, home_view, download_scenario
 
 urlpatterns = [
     path('get_chart/', get_chart, name='get_chart'),
@@ -30,7 +31,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('django_plotly_dash/', include('django_plotly_dash.urls')),
     path("map/", include("django_mapengine.urls")),
-
+    path("/result/data/sim_outputs/<str:task_id>/sim/gc_overview.csv/", include("django_mapengine.urls")),
+    path('download/<str:task_id>', download_scenario, name='download_scenario'),
     # Map urls
     path('', include("ebus_map.urls")),
 ]

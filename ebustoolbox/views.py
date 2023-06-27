@@ -4,7 +4,9 @@ import warnings
 from celery.contrib.migrate import task_id_eq
 from django.contrib.gis.db import models
 from django.views.generic import TemplateView
-
+from django.http import FileResponse, Http404
+from django.conf import settings
+import os
 import django_mapengine
 from ebus_map.views import MinimalMapengineView
 # Unused import needed to register app
@@ -103,6 +105,11 @@ class resultView(TemplateView):
 
 class SuccessView(TemplateView, django_mapengine.views.MapEngineMixin):
     template_name = "result.html"
+    def get_context_data(self, **kwargs):
+        context = super(SuccessView, self).get_context_data(**kwargs)
+        context["file_url"] = "data/sim_outputs/" + self.request.GET["task_id"] + "/sim/gc_overview.csv"
+        return context
+
 
 
 @require_GET
@@ -187,3 +194,12 @@ def home_view(request, mode_list=["sim", "report"]):
     else:
         form = UploadFileForm()
     return render(request, "index.html", {"form": form, "mode_list": mode_list})
+
+def download_scenario(request, task_id):
+    file_path = os.path.join(settings.BASE_DIR, "ebustoolbox/static/data/sim_outputs/", task_id, "sim/gc_overview.csv")
+    if os.path.exists(file_path):
+        with open(file_path, 'rb') as fh:
+            response = HttpResponse(fh.read(), content_type='application/octet-stream')
+            response['Content-Disposition'] = 'attachment; filename=' + os.path.basename(file_path)
+            return response
+    raise Http404
