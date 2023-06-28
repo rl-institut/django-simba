@@ -7,7 +7,6 @@ MAP_ENGINE_ZOOM_AT_STARTUP = 8
 
 MAP_ENGINE_IMAGES = [setup.MapImage("busstop", "images/icons/bus_stop.png"),
                      setup.MapImage("busstop_red", "images/icons/bus_stop_red.png"),
-                     setup.MapImage("busstop_reffd", "images/icons/bus_stffop_red.png")
                      ]
 
 # MAP_ENGINE_API_MVTS = {}
