@@ -8,7 +8,7 @@
     <script>
       function check_status(task_id) {
              $.getJSON('/long_running_task_status/', {task_id: task_id}, function(data) {
-                    if (data.status === 'SUCCESS') {
+                    if (data.success) {
                         $('#task-status').text('Task completed successfully.');
                         get_success()
                     } else {
@@ -23,9 +23,6 @@
        const currentQueryString = window.location.search;
        window.location.href = '/result/' + currentQueryString;
 }
-
-
-
     </script>
 </head>
 <body>

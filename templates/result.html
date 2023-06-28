@@ -3,7 +3,7 @@
 {% block header %}
   <script>
 
-  var task_id = "{{ request.GET.task_id }}";
+  var task_id = "{{task_id }}";
   console.log(task_id);
 
       function get_chart() {
@@ -70,7 +70,7 @@
       <div class="tab-pane active" id="nav-0" role="tabpanel" aria-labelledby="nav-0-tab" tabindex="0">
         {% with this_id=request.GET.task_id %}
           {% with image_path='data/sim_outputs/'|add:this_id|add:'/sim/run_overview.png' %}
-              <img src="{% static image_path %}" alt="My Image">
+              <img src="{% static image_path %}" alt="Scenario Overview">
           {% endwith %}
         {% endwith %}
       </div>
@@ -90,7 +90,13 @@
       <!-- End Tab Content -->
     </div>
 
+
+        {% include 'generate_download.html'%}
+
+
   </div>
+
+
 
 
 

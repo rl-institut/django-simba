@@ -6,7 +6,7 @@ from pathlib import Path
 from celery import shared_task
 from django.contrib.gis.geos import GEOSGeometry
 from django.db.models import Max
-
+from django.conf import settings
 import ebusdjango.settings
 from ebustoolbox.models import Scenario, Vehicle, VehicleProperties, TaskRun, EbusToolbox, BusStop
 from django.utils.timezone import make_aware
@@ -14,6 +14,35 @@ from ebus_toolbox.simulate import simulate
 from ebus_toolbox.util import get_args
 import time
 import sys
+import zipfile
+import os
+@shared_task(bind=True)
+def generate_zipped_scenario(self, _task_id:str):
+    task, _ = TaskRun.objects.get_or_create(task_id=_task_id)
+    task.finished = False
+
+    # Example usage
+    folder_path = settings.BASE_DIR / 'ebustoolbox/static/data/sim_outputs' / _task_id  # Replace with the actual folder path
+    output_path =  settings.BASE_DIR / 'media' / (_task_id + ".zip")  # Replace with the desired output ZIP file path
+    my_file = Path(output_path)
+    if not Path(folder_path).exists():
+        print("input folder for zipping not found")
+        return
+    if my_file.is_file():
+        print("Zip already exists")
+        return
+    with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                zipf.write(file_path, arcname=os.path.relpath(file_path, folder_path))
+    task.finished = True
+
+
+
+
+
+
 @shared_task(bind=True)
 def run_ebus_toolbox(self, model_args_as_dict, form_id):
     # change system arguments so get_args does not crash
@@ -24,7 +53,7 @@ def run_ebus_toolbox(self, model_args_as_dict, form_id):
             setattr(args, key, model_args_as_dict[key])
 
     scenario_id = self.request.id
-    task, _ = TaskRun.objects.get_or_create(task_id=scenario_id)
+    task, _ = TaskRun.objects.get_or_create(task_id=scenario_id, finished=False)
 
     # The model which is used as input gets a reference to the scenario/ ouput
     # which is created
