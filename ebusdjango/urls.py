@@ -33,7 +33,7 @@ urlpatterns = [
     path("map/", include("django_mapengine.urls")),
     # ToDo move stuff to ebustoolbox app
     path('generate_zip/<str:task_id>', generate_zip, name='generate_zip'),
-    path("download_scenario/<str:task_id>/", download_scenario, name='download_scenario'),
+    path("download_scenario/<uuid:task_id>/", download_scenario, name='download_scenario'),
     # Map urls
     path('', include("ebus_map.urls")),
 

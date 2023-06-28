@@ -194,7 +194,8 @@ def home_view(request, mode_list=["sim", "report"]):
         form = UploadFileForm()
     return render(request, "index.html", {"form": form, "mode_list": mode_list})
 
-def download_scenario(request, task_id):
+def download_scenario(request, task_id:uuid):
+    # download scenario only allows for uuid as input te reduce danger of injection
     task_id = str(task_id)
     file_path = settings.BASE_DIR / "media" / (task_id+ ".zip")
     if os.path.exists(file_path):
