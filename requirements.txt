@@ -1,4 +1,5 @@
 spice_ev@ git+https://github.com/rl-institut/spice_ev@51268c639a02f2a94c418d6215376f585dd14af0
+ebus_toolbox@ git+ssh://git@github.com/rl-institut/eBus-Toolbox.git
 django
 celery
 django_plotly_dash
