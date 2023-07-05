@@ -29,4 +29,8 @@
 3. Set up django (inside the virtual environment)
     1. Set up the database: `python manage.py migrate`
     2. Create admin account: `python manage.py createsuperuser` **TODO: Is this necessary?**
-    3. Run the server: `python manage.py runserver`
+
+## Running
+1. Start a celery worker (in another terminal): `celery -A ebusdjango worker -l info`
+    - on macOS `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` before the command may be necessary 
+2. Run the server: `python manage.py runserver`
