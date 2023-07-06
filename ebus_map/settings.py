@@ -5,8 +5,8 @@ MAP_ENGINE_CENTER_AT_STARTUP = [13, 52]
 MAP_ENGINE_ZOOM_AT_STARTUP = 8
 # MAP_ENGINE_MAX_BOUNDS = [[0.280733017118229, 48.22918643452503], [0.616574868700604, 55.35515806663738]]
 
-MAP_ENGINE_IMAGES = [setup.MapImage("busstop", "images/icons/bus_stop.png"),
-                     setup.MapImage("busstop_red", "images/icons/bus_stop_red.png"),
+MAP_ENGINE_IMAGES = [setup.MapImage("busstop", "django_mapengine/images/icons/bus_stop.png"),
+                     setup.MapImage("busstop_red", "django_mapengine/images/icons/bus_stop_red.png"),
                      ]
 
 # MAP_ENGINE_API_MVTS = {}
