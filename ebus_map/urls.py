@@ -10,7 +10,7 @@ app_name = "map"
 urlpatterns = [
     # path("", views.MapGLView.as_view(), name="map"),
     # path("", views.MapGLView.as_view(), name="map"),
-    path("", views.MinimalMapengineView.as_view(), name="minimal"),
+    path("minimal", views.MinimalMapengineView.as_view(), name="minimal"),
 
     # path("choropleth/<str:lookup>/<str:scenario>", views.get_choropleth, name="choropleth"),
     # path("visualization", views.get_visualization, name="visualization"),

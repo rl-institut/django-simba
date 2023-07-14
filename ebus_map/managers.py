@@ -47,6 +47,7 @@ class MVTManager(models.Manager):
 
     def get_mvt_query(self, x, y, z, filters=None):
         filters = filters or {}
+        #TODO: Hier liste mit Busstops, polygons
         return self._build_mvt_query(x, y, z, filters)
 
     def get_columns(self):
@@ -56,8 +57,9 @@ class MVTManager(models.Manager):
     def _filter_query(self, query, x, y, z, filters):
         # ToDo Change
         try:
-            filters["scenario_id"] = filters["task_id"]
-            del filters["task_id"]
+            filters = {}
+            #filters["scenario_id"] = filters["task_id"]
+            #del filters["task_id"]
         except KeyError:
             filters={}
         return query.filter(**filters)
@@ -104,7 +106,12 @@ class MVTManager(models.Manager):
         except FieldError as error:
             raise ValidationError(str(error)) from error
         with connection.cursor() as cursor:
-            return cursor.mogrify(sql, params).decode("utf-8")
+            intermediate = cursor.mogrify(sql, params)
+            print(intermediate)
+            if isinstance(intermediate,str):
+                return intermediate
+            else:
+                return intermediate.decode("utf-8")
 
     def _get_non_geom_columns(self):
         """

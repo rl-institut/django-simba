@@ -13,7 +13,7 @@ class MyExampleMultiPolygon(models.Model):
     name = models.CharField(max_length=50)
 
     objects = models.Manager()
-    layer = "myexamplemultipolygon"
+    layer = "busstop"
     vector_tiles = MVTManager(columns=["id", "name"])
     # label_tiles = LabelMVTManager(geo_col="geom_label", columns=["id", "name"])
     mapping = {
@@ -110,13 +110,13 @@ a  = 2
 
 
 
-# from django.contrib.gis.geos import MultiPolygon, Polygon
-# p1 = Polygon(((0, 0), (0, 50), (50, 50), (0, 0)))
-# p2 = Polygon(((1, 1), (1, 2), (2, 2), (1, 1)))
-# mp = MultiPolygon(p1, p2)
-# # MyExampleMultiPolygon(geom=mp, name="My first Polygon")
+from django.contrib.gis.geos import MultiPolygon, Polygon
+p1 = Polygon(((0, 0), (0, 50), (50, 50), (0, 0)))
+p2 = Polygon(((1, 1), (1, 2), (2, 2), (1, 1)))
+mp = MultiPolygon(p1, p2)
+#MyExampleMultiPolygon(geom=mp, name="My first Polygon")
 # # region = Region.objects.create(layer_type="municipality")
-# MyExampleMultiPolygon.objects.create(geom=mp, name="agfjdgsf")
+MyExampleMultiPolygon.objects.create(geom=mp, name="agfjdgsf")
 # #
 # # #
 #
