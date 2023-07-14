@@ -10,4 +10,5 @@ media/
 .python-version
 venv/
 **/node_modules/
+.env
 
