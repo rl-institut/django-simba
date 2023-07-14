@@ -1,5 +1,7 @@
 ebustoolbox/static/
 db.sqlite3
+uploads/
+media/
 *.bak
 **/__pycache__/
 .idea/

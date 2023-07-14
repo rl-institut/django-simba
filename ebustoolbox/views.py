@@ -1,35 +1,40 @@
-import os
-import warnings
-
-from celery.contrib.migrate import task_id_eq
-from django.contrib.gis.db import models
-from django.views.generic import TemplateView
-from django.http import FileResponse, Http404
 from django.conf import settings
-import os
-import django_mapengine
-from ebus_map.views import MinimalMapengineView
-# Unused import needed to register app
-from . import dash_app
-from django.http import HttpResponseRedirect, FileResponse, HttpResponseNotFound, HttpResponse
+from django.core import signing
+from django.http import FileResponse, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
+from django.utils import timezone
+from django.views.decorators.http import require_GET
+from django.views.generic import TemplateView
+
+from celery.result import AsyncResult
+
+from decimal import Decimal
+from pathlib import Path
+import plotly.graph_objects as go
+from shutil import copy as file_copy
+import warnings
+from django_mapengine.views import MapEngineMixin
+# Unused import needed to register app
+from . import dash_app, tasks, util
 from .forms import UploadFileForm
 from django.http import JsonResponse
 from pathlib import Path
 from celery.result import AsyncResult
 from celery import uuid
-from .tasks import run_ebus_toolbox, generate_zipped_scenario
+# from .tasks import run_ebus_toolbox, generate_zipped_scenario
 from django.views.decorators.http import require_GET
 # Imaginary function to handle an uploaded file.
 # from somewhere import handle_uploaded_file
 from shutil import copy as file_copy
 import time
-from ebustoolbox.models import VehicleProperties, Vehicle, Scenario, TaskRun
+from ebustoolbox.models import VehicleProperties, Vehicle, Scenario, UploadedFile
 
 import plotly.express as px
 import plotly.graph_objects as go
 from ebustoolbox.forms import ChartForm
 from django.db.models import Q
+
+from .util import get_unique_task_id
 
 
 def get_map(request):
@@ -42,7 +47,7 @@ def get_chart(request):
     get_vehicles = request.GET.getlist("vehicles")
     print("vehicles  are :", get_vehicles)
 
-    scenario = Scenario.objects.get(id=task_id)
+    scenario = Scenario.objects.get(task_id=task_id)
     vehicles = Vehicle.objects.filter(scenario=scenario)
     if get_vehicles is None:
         pass
@@ -85,11 +90,12 @@ def show_uploads_view(request, filename):
 def result_view(request):
     task_id = request.GET['task_id']
     try:
-        if TaskRun.objects.get(task_id=task_id).finished:
+        print(task_id, Scenario.objects.filter(task_id=task_id).exists())
+        if Scenario.objects.get(task_id=task_id).finished:
             return SuccessView.as_view()(request)
         else:
             return wait_view(request)
-    except models.ObjectDoesNotExist:
+    except Scenario.DoesNotExist:
         html = "<html><body>task_id is not valid</body></html>"
         return HttpResponse(html)
 
@@ -103,7 +109,7 @@ class resultView(TemplateView):
     result_template = "result.html"
 
 
-class SuccessView(TemplateView, django_mapengine.views.MapEngineMixin):
+class SuccessView(TemplateView, MapEngineMixin):
     template_name = "result.html"
     def get_context_data(self, **kwargs):
         context = super(SuccessView, self).get_context_data(**kwargs)
@@ -116,96 +122,88 @@ class SuccessView(TemplateView, django_mapengine.views.MapEngineMixin):
 def long_running_task_status_view(request):
     task_id = request.GET.get('task_id')
     task_result = AsyncResult(task_id)
-    if task_result.ready() or TaskRun.objects.get(task_id=task_id).finished:
+    if task_result.ready() or Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists():
         print("Task is finished")
         return JsonResponse({'success': True})
     print('Task is pending')
     return JsonResponse({'success': True})
 
 
-def create_config(model_object):
-    warnings.warn("This function is deprecated")
-    default_config_path = "uploads/default_config.cfg"
-    destination = "uploads/spec_config.cfg"
-    file_copy(default_config_path, destination)
-    property_names = [field.name for field in model_object._meta.fields]
-    model_object.output_directory += str(model_object.id) + "/"
-
-    print(property_names)
-    with open(default_config_path, "r") as f:
-        with open(default_config_path, "r") as f:
-            text = ""
-            for line in f:
-                possible_variable = line.split(" ")[0]
-                print(possible_variable, end="")
-                if (possible_variable in property_names and
-                        str(model_object.__getattribute__(possible_variable))):
-                    line = possible_variable + " = " + \
-                           str(model_object.__getattribute__(possible_variable)) + "\n"
-                    print(str(model_object.__getattribute__(possible_variable)))
-                text += line
-
-    with open(destination, "w") as f:
-         f.write(text)
-
-    return destination
-
-def home_view(request, mode_list=["sim", "report"]):
+def home_view(request):
     # ToDo needs different implementation since it uses same list for
     # different users
 
     if request.method == "GET":
-        mode_list[:] = ["sim", "report"]
-    if request.method == "POST":
-        form = UploadFileForm(request.POST, request.FILES)
-        if (request.POST.get("add_mode")):
-            if request.POST.get("add_mode") == "remove":
-                if len(mode_list) > 1:
-                    mode_list.pop(-1)
-            else:
-                mode_list.append(request.POST.get("add_mode"))
-
-        print("Title is :", request.POST.get("title", "Nuffin"))
-        if form.is_valid():
-            print("valid")
-            form.modes = mode_list
-            object = form.save()
-            mode_list[:] = ["sim", "report"]
-
-            args = object.to_args()
-
-            task_id_not_unique=True
-            task_id = None
-            # Create unique ids for as long as needed, so no duplicate ids exist
-            while task_id_not_unique:
-                try:
-                    task_id = uuid()
-                    TaskRun.objects.get(task_id=task_id)
-                except models.ObjectDoesNotExist:
-                    task_id_not_unique=False
-            ebus_result = run_ebus_toolbox.apply_async((args, object.id), task_id=task_id)
-            task_id = ebus_result.id
-            task, _ = TaskRun.objects.get_or_create(task_id=task_id)
-            response = redirect('result')
-            # Add the scenario as get request
-            response['Location'] += '?task_id=' + task_id
-            return response
-    else:
         form = UploadFileForm()
-    return render(request, "index.html", {"form": form, "mode_list": mode_list})
+    elif request.method == "POST":
+        form = UploadFileForm(request.POST, request.FILES)
+        if not form.is_valid():
+            return render(request, "index.html", {"form": form})
 
-def download_scenario(request, task_id:uuid):
-    # download scenario only allows for uuid as input te reduce danger of injection
-    task_id = str(task_id)
-    file_path = settings.BASE_DIR / "media" / (task_id+ ".zip")
-    if os.path.exists(file_path):
-        with open(file_path, 'rb') as fh:
+        scenario = Scenario.objects.create(name=form.cleaned_data["title"])
+        args = dict(form.cleaned_data)
+        args["mode"] = list(map(lambda s: s.strip(), args["modes"].split(',')))
+        # decimal -> float
+        for k, v in args.items():
+            if type(v) == Decimal:
+                args[k] = float(v)
+        # set default files if not given
+        for k,v in {
+                "input_schedule": "trips_example.csv",
+                "electrified_stations": "electrified_stations.json",
+                "vehicle_types": "vehicle_types.json",
+                "station_data_path": "all_stations.csv",
+                "outside_temperature_over_day_path": "default_temp_summer.csv",
+                "level_of_loading_over_day_path": "default_level_of_loading_over_day.csv",
+                "cost_parameters_file": "cost_params.json",
+        }.items():
+            if args[k]:
+                # uploaded file: store in upload folder
+                f = UploadedFile.objects.create(scenario=scenario, file=request.FILES[k])
+                args[k] = f.file.path
+                continue
+            p = Path(settings.STATIC_URL, __package__, "examples", v)
+            if settings.DEBUG:
+                # use app static folder
+                if p.is_absolute():
+                    # remove first slash
+                    p = Path(str(p)[1:])
+                p = Path(settings.BASE_DIR, __package__, p)
+            if not p.exists():
+                print(f"FILE ERROR: {k} COULD NOT BE SET ({str(p)})")
+                continue
+            args[k] = str(p)
+
+        scenario.options = args
+        scenario.save()
+
+        response = redirect('result')
+        # start computation
+        task_id = get_unique_task_id()
+        scenario.task_id = task_id
+        scenario.save()
+        tasks.run_ebus_toolbox(args, task_id)
+
+        response['Location'] += '?task_id=' + task_id
+        return response
+    else:
+        return HttpResponse("Method not allowed", status=405)
+    return render(request, "index.html", {"form": form})
+
+
+def download_scenario(request, task_id):
+    file_path = settings.MEDIA_ROOT / (task_id + ".zip")
+    if file_path.exists():
+        with file_path.open('rb') as fh:
             response = HttpResponse(fh.read(), content_type='application/octet-stream')
-            response['Content-Disposition'] = 'attachment; filename=' + os.path.basename(file_path)
+            response['Content-Disposition'] = 'attachment; filename=' + file_path.name
             return response
-    print( "Zip file not found")
-    raise Http404
+    return HttpResponse("Zip not ready yet")
 
 def generate_zip(request, task_id):
-    result = generate_zipped_scenario.apply_async((task_id,), task_id=(task_id))
+    if settings.CELERY_BROKER_URL:
+        tasks.generate_zipped_scenario.apply_async((task_id,), task_id=(task_id))
+    else:
+        util.generate_zipped_scenario(task_id)
+        return download_scenario(request, task_id)
     return HttpResponse("zip generated for ", task_id)

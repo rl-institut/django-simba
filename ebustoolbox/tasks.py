@@ -2,83 +2,57 @@ import csv
 import traceback
 from datetime import datetime
 from pathlib import Path
-
+from django.utils import timezone
+import ebus_toolbox
 from celery import shared_task
 from django.contrib.gis.geos import GEOSGeometry
 from django.db.models import Max
 from django.conf import settings
 import ebusdjango.settings
-from ebustoolbox.models import Scenario, Vehicle, VehicleProperties, TaskRun, EbusToolbox, BusStop
+from ebustoolbox.models import Scenario, Vehicle, VehicleProperties, BusStop
+from .models import Scenario, BusStop
 from django.utils.timezone import make_aware
-from ebus_toolbox.simulate import simulate
+from ebus_toolbox import simulate as ebus_toolbox
 from ebus_toolbox.util import get_args
 import time
 import sys
 import zipfile
 import os
-@shared_task(bind=True)
-def generate_zipped_scenario(self, _task_id:str):
-    task, _ = TaskRun.objects.get_or_create(task_id=_task_id)
-    task.finished = False
+from argparse import Namespace
 
-    # Example usage
-    folder_path = settings.BASE_DIR / 'ebustoolbox/static/data/sim_outputs' / _task_id  # Replace with the actual folder path
-    output_path =  settings.BASE_DIR / 'media' / (_task_id + ".zip")  # Replace with the desired output ZIP file path
-    my_file = Path(output_path)
-    if not Path(folder_path).exists():
-        print("input folder for zipping not found")
-        return
-    if my_file.is_file():
-        print("Zip already exists")
-        return
-    with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, dirs, files in os.walk(folder_path):
-            for file in files:
-                file_path = os.path.join(root, file)
-                zipf.write(file_path, arcname=os.path.relpath(file_path, folder_path))
-    task.finished = True
-
-
-
-
+def run_ebus_toolbox(model_args_as_dict, task_id):
+    if settings.CELERY_BROKER_URL:
+        print("Using Celery")
+        _ = celery_run_ebus_toolbox_.apply_async((model_args_as_dict, str(task_id)), task_id=task_id)
+    else:
+        run_ebus_toolbox_(model_args_as_dict, task_id)
 
 
 @shared_task(bind=True)
-def run_ebus_toolbox(self, model_args_as_dict, form_id):
-    # change system arguments so get_args does not crash
-    sys.argv = [sys.argv[0], "--input-schedule", "foo/bar.csv", "--electrified-stations", "foo/bar.json"]
-    args = get_args()
-    for key in args.__dict__:
-        if key in model_args_as_dict:
-            setattr(args, key, model_args_as_dict[key])
+def celery_run_ebus_toolbox_(self, model_args_as_dict, task_id):
+    run_ebus_toolbox_(model_args_as_dict, task_id)
 
-    scenario_id = self.request.id
-    task, _ = TaskRun.objects.get_or_create(task_id=scenario_id, finished=False)
+def run_ebus_toolbox_(model_args_as_dict, task_id):
+    args = Namespace(**model_args_as_dict)
+    args.output_directory = Path(settings.UPLOAD_PATH) / task_id
+    # unmutable options, not read from form
+    args.margin = 1
+    args.ALLOW_NEGATIVE_SOC = True
+    args.PRICE_THRESHOLD = -100
+    args.rotation_filter_variable = None
+    args.show_plots = False
 
-    # The model which is used as input gets a reference to the scenario/ ouput
-    # which is created
-    form_model = EbusToolbox.objects.get(id=form_id)
-    form_model.task_id = scenario_id
-    form_model.save()
-    args.output_directory = Path(args.output_directory) / scenario_id
-    print("starting sim")
-    simulate(args)
-    print("sim finished")
-    # put the results into a model
-    # data
-    scenario, _ = Scenario.objects.get_or_create(id=scenario_id, name=scenario_id)
+    ebus_toolbox.simulate(args)
 
-    file_path = ebusdjango.settings.BASE_DIR / args.output_directory / "sim/rotation_socs.csv"
-    start = time.time()
+    # print(time.time() - start, " since start, after task")
+    scenarios = Scenario.objects.filter(task_id=task_id)
+    assert len(scenarios)==1
+    scenarios.update(finished=timezone.now())
+    file_path = settings.BASE_DIR / args.output_directory / "sim/rotation_socs.csv"
+    save_vehicle_properties_from_file(file_path, scenarios[0])
+    station_file_path = args.station_data_path
+    bus_stops_from_file(station_file_path, scenarios[0])
 
-    save_vehicle_properties_from_file(file_path, scenario)
-    toolbox_obj = EbusToolbox.objects.get(task_id=scenario_id)
-    print(Path(toolbox_obj.station_data_path.path))
-    file_path = toolbox_obj.station_data_path.path
-    bus_stops_from_file(file_path, scenario)
-    print(time.time() - start, " since start, after task")
-    task.finished = True
-    task.save()
 
 
 def save_vehicle_properties_from_file(file_path, scenario):
@@ -114,6 +88,8 @@ def bus_stops_from_file(file_path, scenario):
     object_list = []
     try:
         last_id = BusStop.objects.aggregate(Max('id'))['id__max']
+        if last_id == None:
+            last_id = -1
     except Exception:
         print(Exception)
         last_id = -1
