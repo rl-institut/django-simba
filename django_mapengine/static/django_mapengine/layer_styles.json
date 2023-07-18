@@ -1,7 +1,7 @@
 {  "myexamplemultipolygon": {
     "type": "fill",
     "paint": {
-      "fill-color": "rgb(10,1,2)",
+      "fill-color": "rgb(254,0,0)",
       "fill-opacity": [
         "case",
         [
@@ -69,7 +69,7 @@
   "region-line": {
     "type": "line",
     "paint": {
-      "line-color": "rgb(250, 250,250)",
+      "line-color": "rgb(250, 0,0)",
       "line-width": [
         "case",
         [
