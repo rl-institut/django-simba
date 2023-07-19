@@ -116,9 +116,9 @@ class Rotation(models.Model):
 
 class Trip(models.Model):
     rotation = models.ForeignKey(Rotation, on_delete=models.CASCADE)  # TODO do all ForeignKeys need cascade?
-    departure_stop = models.ForeignKey(BusStop, on_delete=models.CASCADE)
+    departure_stop = models.ForeignKey(BusStop, on_delete=models.CASCADE,  related_name="trip_departure_set")
     departure_time = models.DateTimeField(blank=False)
-    arrival_stop = models.ForeignKey(BusStop, on_delete=models.CASCADE)
+    arrival_stop = models.ForeignKey(BusStop, on_delete=models.CASCADE,  related_name="trip_arrival_set")
     arrival_time = models.DateTimeField(blank=False)
 
 
