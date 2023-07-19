@@ -94,6 +94,34 @@ class EbusToolboxTimeseries(models.Model):
     class Meta:
         ordering = ('date',)
 
+
+class VehicleClass(models.Model):
+    name = models.CharField(max_length=100, blank=False)
+    # TODO do vehicle classes need to be connected to a scenario?
+
+    @classmethod
+    def get_default_pk(cls):
+        vehicle_class, created = cls.objects.get_or_create(
+            name='oppb',  # TODO
+        )
+        return vehicle_class.pk
+
+
+class Rotation(models.Model):
+    name = models.CharField(max_length=100, blank=False)
+    # TODO on delete concept? also depends on if vehicle class is tied to scenario
+    vehicle_class = models.ForeignKey(VehicleClass, on_delete=models.SET_DEFAULT, default=VehicleClass.get_default_pk)
+    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+
+
+class Trip(models.Model):
+    rotation = models.ForeignKey(Rotation, on_delete=models.CASCADE)  # TODO do all ForeignKeys need cascade?
+    departure_stop = models.ForeignKey(BusStop, on_delete=models.CASCADE)
+    departure_time = models.DateTimeField(blank=False)
+    arrival_stop = models.ForeignKey(BusStop, on_delete=models.CASCADE)
+    arrival_time = models.DateTimeField(blank=False)
+
+
 #
 # # Create your models here.
 # class EbusToolbox(models.Model):
