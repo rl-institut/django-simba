@@ -2,6 +2,30 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
+<style>
+    .filter-ctrl {
+        position: absolute;
+        top: 54px;
+        right: 60px;
+        z-index: 1;
+    }
+
+    .filter-ctrl input[type='text'] {
+        font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+        width: 100%;
+        border: 0;
+        background-color: #fff;
+        margin: 0;
+        color: rgba(0, 0, 0, 0.5);
+        padding: 10px;
+        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+        border-radius: 3px;
+        width: 180px;
+    }
+</style>
+
+
   <head>
     <script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"></script>
     <link href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css" rel='stylesheet'/>
@@ -21,7 +45,23 @@
     <script>
       // This is needed, as otherwise map height is zero and therefore not visible (bug in mapengine!)
       document.getElementById("map").style = "height: 800px"
+      map.addControl(new maplibregl.FullscreenControl());
     </script>
+
+
+    <div class="filter-ctrl">
+    <input
+        id="filter-input"
+        type="text"
+        name="filter"
+        placeholder="Filter by name"
+    />
+</div>
+
+
+
+
+
   <div style="position: fixed;
      top: 50%; left: 70px; width: 50px; height: 50px;
       z-index: 900;
@@ -39,38 +79,136 @@
 
 
 <div style="position: fixed;
-     top: 80%; left: 100px; width: 50px; height: 50px;
+     top:800px; left: 100px; width: 50px; height: 50px;
       z-index: 900;
-     transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction()">
-<button onclick="myFunction(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">✎</button>
+     transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction2()">
+<button onclick="myFunction2(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">✎</button>
 </div>
 
 
+
+
+
 <script>
+    function myFunction2(step) {
+        map.setLayoutProperty("myexamplemultipolygon", "visibility", "none");
+    }
+
+</script>
+
+
+
+
+<script>
+    var popup = null;
     var currentCoordinateIndex = 0;
 
         function myFunction(step) {
-        console.log(document.getElementById("map"));
         map.flyTo({
     center: [13.331855527577858,52.50979501127969],
     zoom: 18,
     essential: true
   });
-        console.log(map);
+        //console.log(map);
         //document.getElementById("map").flyTo(0,0, 19);
 }
 
+        // When the user moves their mouse over the state-fill layer, we'll update the
+        // feature state for the feature under the mouse.
+    hoveredStateId = null;
+        map.on('mousemove', 'myexamplemultipolygon', (e) => {
+            console.log(e.features[0])
+            if (e.features.length > 0) {
+                if (hoveredStateId) {
+                    console.log("HERE", hoveredStateId)
+                    map.setFeatureState(
+                        {source: 'busstop', sourceLayer:'myexamplemultipolygon', id: hoveredStateId},
+                        {hover: false}
+                    );
+                }
+                hoveredStateId = e.features[0].id;
+                console.log("THERE");
+                map.setFeatureState(
+                    {source: 'busstop', sourceLayer:'myexamplemultipolygon', id: hoveredStateId},
+                    {hover: true}
+                );
+            }
+        });
+
+        // When the mouse leaves the state-fill layer, update the feature state of the
+        // previously hovered feature.
+        map.on('mouseleave', 'myexamplemultipolygon', () => {
+            if (hoveredStateId) {
+                map.setFeatureState(
+                    {source: 'busstop', sourceLayer:'myexamplemultipolygon', id: hoveredStateId},
+                    {hover: false}
+                );
+            }
+            hoveredStateId = null;
+        });
+
+
+
 //For future Edit-mode, registers where on the map a user clicks
-map.on("click", function (e) {
-        console.log(e)
+/*map.on("click", function (e) {
+        //console.log(e)
         let marker = new maplibregl.Marker({
     color: "#00FF00",
     draggable: true
-  }).setLngLat([13.332559834331278,52.5105594864701])
+  }).setLngLat([e["lngLat"]['lng'],e["lngLat"]['lat']])
   .addTo(map);
-      });
 
 
+
+      });*/
+
+
+    map.on('click', 'myexamplemultipolygon', (e) => {
+        var latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
+        if (true) {
+
+
+            var innerHTML = `
+                <div style="text-align: center;">
+                    Delete Bus with id: ${e.features[0].id} ?
+                </div>
+                <div>
+                    <button onclick="onYesClick(${e.features[0].id})">Yes</button>
+                    <button onclick="onNoClick()">No</button>
+                </div>
+            `;
+
+
+            console.log("Bus clicked!", e.features[0].id, latlon);
+            requestAnimationFrame(() => {
+                popup = new maplibregl.Popup({
+                    // https://maplibre.org/maplibre-gl-js-docs/api/markers/#popup-parameters
+                    maxWidth: "280px",
+                }).setLngLat(latlon).setHTML(innerHTML).addTo(map);
+            });
+        }
+        ;
+    });
+
+
+    function onYesClick(id) {
+    // Code to execute when the "Yes" button is clicked
+    console.log("Yes button clicked!", id);
+    console.log(map);
+    map.setFeatureState(
+                    {source: 'busstop', sourceLayer:'myexamplemultipolygon', id: id},
+                    {del: false}
+                );
+
+
+
+}
+
+function onNoClick() {
+    // Code to execute when the "No" button is clicked
+    console.log("No button clicked!");
+    popup.remove();
+}
 
 
 

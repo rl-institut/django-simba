@@ -1,20 +1,20 @@
 {  "myexamplemultipolygon": {
     "type": "fill",
     "paint": {
-      "fill-color": "rgb(254,0,0)",
+      "fill-color": [
+                    "case",
+                    ["boolean", ["feature-state", "del"], true],
+                    "#00FF00",
+                    "#FF0000"
+                ],
+
       "fill-opacity": [
-        "case",
-        [
-          "boolean",
-          [
-            "feature-state",
-            "hover"
-          ],
-          false
-        ],
-        1,
-        1
-      ]
+                    "case",
+                    ["boolean", ["feature-state", "hover"], false],
+                    0.8,
+                    0.4
+                ]
+
     }
   },
   "region-fill": {

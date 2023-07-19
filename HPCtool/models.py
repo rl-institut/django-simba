@@ -68,4 +68,4 @@ for p in p_list:
 #p1 = Polygon(((21, 40), (0, 50), (50, 50), (21, 40)))
     mp = MultiPolygon(p1)
 
-    BusOutline.objects.create(geom=mp, name="buzz", scenario="neu")
+    #BusOutline.objects.create(geom=mp, name="buzz", scenario="neu")
