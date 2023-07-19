@@ -72,8 +72,35 @@ class BusStop(models.Model):
         return data
 
 
+class VehicleClass(models.Model):
+    name = models.CharField(max_length=100, blank=False)
+    # TODO do vehicle classes need to be connected to a scenario?
+
+    @classmethod
+    def get_default_pk(cls):
+        vehicle_class, created = cls.objects.get_or_create(
+            name='oppb',  # TODO
+        )
+        return vehicle_class.pk
+
+
+class VehicleType(models.Model):
+    name = models.CharField(max_length=100, blank=False)
+    vehicle_class = models.ForeignKey(VehicleClass, on_delete=models.CASCADE)
+    flex_charging = models.BooleanField()
+    battery_capacity = models.FloatField()
+    charging_efficiency = models.FloatField()
+    minimum_charging_power = models.FloatField()
+    # TODO add charging curve & v2g curve
+    v2g = models.BooleanField()
+
+    consumption = models.FloatField(null=True)
+    length = models.FloatField()
+
+
 class Vehicle(models.Model):
     name = models.CharField(max_length=100, blank=False)
+    vehicle_type = models.ForeignKey(VehicleType, on_delete=models.CASCADE)
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -93,18 +120,6 @@ class EbusToolboxTimeseries(models.Model):
 
     class Meta:
         ordering = ('date',)
-
-
-class VehicleClass(models.Model):
-    name = models.CharField(max_length=100, blank=False)
-    # TODO do vehicle classes need to be connected to a scenario?
-
-    @classmethod
-    def get_default_pk(cls):
-        vehicle_class, created = cls.objects.get_or_create(
-            name='oppb',  # TODO
-        )
-        return vehicle_class.pk
 
 
 class Rotation(models.Model):
