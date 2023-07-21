@@ -90,10 +90,26 @@
 
 
 <script>
-    function myFunction2(step) {
-        map.setLayoutProperty("myexamplemultipolygon", "visibility", "none");
-    }
+   // function myFunction2(step) {
+   //     map.setLayoutProperty("myexamplemultipolygon", "visibility", "none");
+   //  }
 
+   deletedIDs = [];
+
+   document.addEventListener('keydown', function(event) {
+  if (event.ctrlKey && event.key === 'z') {
+    //alert('Undo!');
+      if (deletedIDs.length > 0){
+          undoID = deletedIDs.pop();
+          map.setFeatureState(
+                    {source: 'busstop', sourceLayer:'myexamplemultipolygon', id: undoID},
+                    {del: true}
+                );
+
+
+      }
+  }
+});
 </script>
 
 
@@ -195,10 +211,12 @@
     // Code to execute when the "Yes" button is clicked
     console.log("Yes button clicked!", id);
     console.log(map);
+    deletedIDs.push(id);
     map.setFeatureState(
                     {source: 'busstop', sourceLayer:'myexamplemultipolygon', id: id},
                     {del: false}
                 );
+    popup.remove();
 
 
 
