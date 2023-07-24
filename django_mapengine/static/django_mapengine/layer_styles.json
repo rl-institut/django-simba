@@ -1,19 +1,33 @@
 {  "myexamplemultipolygon": {
     "type": "fill",
     "paint": {
-      "fill-color": [
-                    "case",
-                    ["boolean", ["feature-state", "del"], true],
-                    "#00FF00",
-                    "#FF0000"
+
+    "fill-color":
+
+                ["case",
+					["boolean", ["feature-state", "del"], true],
+
+                ["step",
+                ["get", "quality"],
+                "#0000FF",
+                1,
+                "#00FF00",
+                2,
+                "#FF0000"
                 ],
+                        "#000000"
+              ],
+
+
 
       "fill-opacity": [
-                    "case",
-                    ["boolean", ["feature-state", "hover"], false],
-                    0.8,
-                    0.4
-                ]
+
+					"case",
+					["boolean", ["feature-state", "del"], true],
+					1.0,
+					0.4
+
+      ]
 
     }
   },
@@ -91,7 +105,8 @@
       "icon-image": ["step",
         ["get","title_length"],
         "busstop",
-        12,"busstop_red"],
+        12,
+        "busstop_red"],
       "icon-size":  ["interpolate", ["linear"], ["zoom"], 10,0.5, 17, 1],
       "icon-allow-overlap": true
     }

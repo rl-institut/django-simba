@@ -14,15 +14,24 @@ class BusOutline(models.Model):
     geom = models.MultiPolygonField(srid=4326)
     name = models.CharField(max_length=50)
     scenario = models.CharField(max_length=50)
+    quality = models.IntegerField(default=0)
 
     objects = models.Manager()
     layer = "busstop"
-    vector_tiles = MVTManager(columns=["id", "name"])
+    vector_tiles = MVTManager(columns=["id", "name", "quality"])
     # label_tiles = LabelMVTManager(geo_col="geom_label", columns=["id", "name"])
     mapping = {
         "geom": "MultiPolygon",
         "name": "name",
+        "quality": "quality",
     }
+
+    from django.db.models.functions import Length
+    from django.db.models import Value
+
+    annotations = {"center": models.functions.Centroid("geom"),
+                   "lat": X("center", output_field=models.DecimalField()),
+                   "lon": Y("center", output_field=models.DecimalField())}
 
 
 from django.contrib.gis.geos import MultiPolygon, Polygon
@@ -54,6 +63,8 @@ p_list = [
 
 ]
 
+import random
+
 
 for p in p_list:
     #print(*p)
@@ -68,4 +79,4 @@ for p in p_list:
 #p1 = Polygon(((21, 40), (0, 50), (50, 50), (21, 40)))
     mp = MultiPolygon(p1)
 
-    #BusOutline.objects.create(geom=mp, name="buzz", scenario="neu")
+    #BusOutline.objects.create(geom=mp, name="buzz", scenario="neu", quality=random.randint(0, 2))
