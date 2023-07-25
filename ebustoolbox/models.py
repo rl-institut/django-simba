@@ -79,7 +79,7 @@ class VehicleClass(models.Model):
     @classmethod
     def get_default_pk(cls):
         vehicle_class, created = cls.objects.get_or_create(
-            name='oppb',  # TODO
+            name='SB',  # TODO necessary? better default?
         )
         return vehicle_class.pk
 
@@ -89,11 +89,12 @@ class VehicleType(models.Model):
     vehicle_class = models.ForeignKey(VehicleClass, on_delete=models.CASCADE)
     flex_charging = models.BooleanField()
     battery_capacity = models.FloatField()
-    charging_efficiency = models.FloatField()
-    minimum_charging_power = models.FloatField()
+    charging_efficiency = models.FloatField(default=0.95)
+    minimum_charging_power = models.FloatField(default=0)
     # TODO add charging curve & v2g curve
-    v2g = models.BooleanField()
+    v2g = models.BooleanField(default=False)
 
+    # TODO link to consumption table if no value is given here?
     consumption = models.FloatField(null=True)
     length = models.FloatField()
 
@@ -135,6 +136,7 @@ class Trip(models.Model):
     departure_time = models.DateTimeField(blank=False)
     arrival_stop = models.ForeignKey(BusStop, on_delete=models.CASCADE,  related_name="trip_arrival_set")
     arrival_time = models.DateTimeField(blank=False)
+    distance = models.FloatField()
 
 
 #
