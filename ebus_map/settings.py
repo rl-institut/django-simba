@@ -14,9 +14,11 @@ MAP_ENGINE_IMAGES = [setup.MapImage("busstop", "images/icons/bus_stop.png"),
 MAP_ENGINE_API_MVTS = {
     "busstop":
         [
+setup.MVTAPI("flur", "HPCtool", "Flurstueck"),
             setup.MVTAPI("busstop", "ebustoolbox", "BusStop"),
            # setup.MVTAPI("myexamplemultipolygon", "ebus_map", "MyExampleMultiPolygon"),
             setup.MVTAPI("myexamplemultipolygon", "HPCtool", "BusOutline"),
+
         ],
     #layername, application, Modelname
 
@@ -27,7 +29,7 @@ MAP_ENGINE_API_CLUSTERS = [
 ]
 
 MAP_ENGINE_STYLES_FOLDER = "django_mapengine/static/django_mapengine/"
-MAP_ENGINE_LAYERS_AT_STARTUP = ["busstop", "myexamplemultipolygon","busoutline"]
+MAP_ENGINE_LAYERS_AT_STARTUP = ["busstop", "myexamplemultipolygon","busoutline","flur"]
 # These zoom levels define, where the specific features, e.g. points, lines choropleths (?) are visible
 MAP_ENGINE_MIN_ZOOM = 1
 MAP_ENGINE_ZOOM_LEVELS = {

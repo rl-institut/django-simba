@@ -78,5 +78,42 @@ for p in p_list:
 
 #p1 = Polygon(((21, 40), (0, 50), (50, 50), (21, 40)))
     mp = MultiPolygon(p1)
-
     #BusOutline.objects.create(geom=mp, name="buzz", scenario="neu", quality=random.randint(0, 2))
+
+class Flurstueck(models.Model):
+    geom = models.MultiPolygonField(srid=4326)
+    name = models.CharField(max_length=50)
+    scenario = models.CharField(max_length=50)
+
+
+    objects = models.Manager()
+    layer = "busstop"
+    vector_tiles = MVTManager(columns=["id", "name"])
+    # label_tiles = LabelMVTManager(geo_col="geom_label", columns=["id", "name"])
+    mapping = {
+        "geom": "MultiPolygon",
+        "name": "name",
+    }
+
+import geopandas as gpd
+from shapely.geometry import Point
+
+(lat, lon) = (52.509818902322095, 13.331913815793728)
+
+s = gpd.GeoSeries([ Point(lon, lat),Point(lon, lat)], crs= 4326)
+
+s = s.to_crs(25833)
+
+sbbox = (
+    float(s[1].x), float(s[1].y), float(s[0].x), float(s[0].y)
+)
+
+
+
+alkis = gpd.read_file("/home/patrick/Documents/HPC_Tool/SHP_BE_ALKIS_Merged/Flurstuecke_Flaechen.shp", bbox=sbbox).to_crs(4326)
+
+cdr = list(zip(*alkis.geometry.values[0].exterior.coords.xy))
+
+p2 = Polygon(cdr)
+mp = MultiPolygon(p2)
+#Flurstueck.objects.create(geom=mp, name="Herzallee", scenario="neu")

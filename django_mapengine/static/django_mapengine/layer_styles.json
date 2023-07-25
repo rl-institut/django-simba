@@ -9,11 +9,11 @@
 
                 ["step",
                 ["get", "quality"],
-                "#0000FF",
+                "#e61717",
                 1,
-                "#00FF00",
+                "#f5b240",
                 2,
-                "#FF0000"
+                "#17e655"
                 ],
                         "#000000"
               ],
@@ -28,6 +28,28 @@
 					0.4
 
       ]
+
+    }
+  },
+  "flur": {
+    "type": "fill",
+    "paint": {
+
+    "fill-color": "#0000FF",
+    "fill-opacity":  ["case",
+					["boolean", ["feature-state", "visible"], true],
+
+                [
+					"case",
+					["boolean", ["feature-state", "hover"], false],
+					0.55,
+					0.4
+				],
+          0.0
+              ]
+
+
+
 
     }
   },
