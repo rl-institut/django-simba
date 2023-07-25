@@ -41,11 +41,14 @@
       let eventTopics = {};
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.min.js"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.js"></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.css" type="text/css">
+
     {% include 'django_mapengine/map_js.html' %}
     <script>
       // This is needed, as otherwise map height is zero and therefore not visible (bug in mapengine!)
       document.getElementById("map").style = "height: 800px"
-      map.addControl(new maplibregl.FullscreenControl());
+      //map.addControl(new maplibregl.FullscreenControl());
     </script>
 
 
@@ -85,14 +88,50 @@
 <button onclick="myFunction2(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">✎</button>
 </div>
 
+<div style="position: fixed;
+     top:800px; left: 160px; width: 50px; height: 50px;
+      z-index: 900;
+     transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction()">
+<button onclick="myFunction3(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">🗑</button>
+</div>
 
-
+    <div style="position: fixed;
+     top:800px; left: 220px; width: 50px; height: 50px;
+      z-index: 900;
+     transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction()">
+<button onclick="myFunction3(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">🧮</button>
+</div>
 
 
 <script>
-   // function myFunction2(step) {
-   //     map.setLayoutProperty("myexamplemultipolygon", "visibility", "none");
-   //  }
+
+    const draw = new MapboxDraw({
+displayControlsDefault: false,
+// Select which mapbox-gl-draw control buttons to add to the map.
+controls: {
+polygon: true,
+trash: true
+},
+// Set mapbox-gl-draw to draw by default.
+// The user does not have to click the polygon control button first.
+defaultMode: 'simple_select'//'draw_polygon'
+});
+map.addControl(draw, 'top-left');
+
+
+
+
+</script>
+
+
+<script>
+    function myFunction2(step) {
+        draw.changeMode('draw_polygon');
+     }
+
+     function myFunction3(step) {
+        draw.trash();
+     }
 
    deletedIDs = [];
 
