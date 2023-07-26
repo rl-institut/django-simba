@@ -53,6 +53,13 @@
 
     }
   },
+   "trees": {
+    "type": "circle",
+    "paint": {
+      "circle-color": "#6A89CC",
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 10,1, 17, 15]
+    }
+  },
   "region-fill": {
     "type": "fill",
     "paint": {
