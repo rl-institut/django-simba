@@ -1,40 +1,23 @@
 from django.conf import settings
-from django.core import signing
 from django.http import FileResponse, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
-from django.utils import timezone
-from django.views.decorators.http import require_GET
 from django.views.generic import TemplateView
-
-from celery.result import AsyncResult
+from django.views.decorators.http import require_GET
+from django_mapengine.views import MapEngineMixin
+from django.db.models import Q
 
 from decimal import Decimal
 from pathlib import Path
-import plotly.graph_objects as go
-from shutil import copy as file_copy
-import warnings
-from django_mapengine.views import MapEngineMixin
-# Unused import needed to register app
-from . import dash_app, tasks, util
-from .forms import UploadFileForm
-from django.http import JsonResponse
-from pathlib import Path
 from celery.result import AsyncResult
-from celery import uuid
-# from .tasks import run_ebus_toolbox, generate_zipped_scenario
-from django.views.decorators.http import require_GET
-# Imaginary function to handle an uploaded file.
-# from somewhere import handle_uploaded_file
-from shutil import copy as file_copy
-import time
-from ebustoolbox.models import VehicleProperties, Vehicle, Scenario, UploadedFile
-
-import plotly.express as px
 import plotly.graph_objects as go
-from ebustoolbox.forms import ChartForm
-from django.db.models import Q
 
+# Unused import of dash_app needed to register app
+from . import dash_app, tasks
+from .forms import UploadFileForm
 from .util import get_unique_task_id
+
+from ebustoolbox.models import VehicleProperties, Vehicle, Scenario, UploadedFile
+from ebustoolbox.forms import ChartForm
 
 
 def get_map(request):
@@ -99,8 +82,10 @@ def result_view(request):
         html = "<html><body>task_id is not valid</body></html>"
         return HttpResponse(html)
 
+
 def wait_view(request):
-    """View while waiting for results. Will trigger success view as soon as long running task returns pending"""
+    """View while waiting for results. Will trigger success view as soon as long running task
+    returns pending"""
     print("Ebustoolbox is calculating. Showing wait view")
     return render(request, "wait.html")
 
@@ -111,18 +96,19 @@ class resultView(TemplateView):
 
 class SuccessView(TemplateView, MapEngineMixin):
     template_name = "result.html"
+
     def get_context_data(self, **kwargs):
         context = super(SuccessView, self).get_context_data(**kwargs)
         context["task_id"] = self.request.GET["task_id"]
         return context
 
 
-
 @require_GET
 def long_running_task_status_view(request):
     task_id = request.GET.get('task_id')
     task_result = AsyncResult(task_id)
-    if task_result.ready() or Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists():
+    if task_result.ready() or Scenario.objects.filter(task_id=task_id,
+                                                      finished__isnull=False).exists():
         print("Task is finished")
         return JsonResponse({'success': True})
     print('Task is pending')
@@ -148,14 +134,14 @@ def home_view(request):
             if type(v) == Decimal:
                 args[k] = float(v)
         # set default files if not given
-        for k,v in {
-                "input_schedule": "trips_example.csv",
-                "electrified_stations": "electrified_stations.json",
-                "vehicle_types": "vehicle_types.json",
-                "station_data_path": "all_stations.csv",
-                "outside_temperature_over_day_path": "default_temp_summer.csv",
-                "level_of_loading_over_day_path": "default_level_of_loading_over_day.csv",
-                "cost_parameters_file": "cost_params.json",
+        for k, v in {
+            "input_schedule": "trips_example.csv",
+            "electrified_stations": "electrified_stations.json",
+            "vehicle_types": "vehicle_types.json",
+            "station_data_path": "all_stations.csv",
+            "outside_temperature_over_day_path": "default_temp_summer.csv",
+            "level_of_loading_over_day_path": "default_level_of_loading_over_day.csv",
+            "cost_parameters_file": "cost_params.json",
         }.items():
             if args[k]:
                 # uploaded file: store in upload folder
@@ -177,7 +163,7 @@ def home_view(request):
         scenario.options = args
         scenario.save()
 
-        response = redirect('result')
+        response = redirect('simba:result')
         # start computation
         task_id = get_unique_task_id()
         scenario.task_id = task_id
@@ -192,7 +178,7 @@ def home_view(request):
 
 
 def download_scenario(request, task_id):
-    file_path = settings.MEDIA_ROOT / (task_id + ".zip")
+    file_path = settings.MEDIA_ROOT / (str(task_id) + ".zip")
     if file_path.exists():
         with file_path.open('rb') as fh:
             response = HttpResponse(fh.read(), content_type='application/octet-stream')
@@ -200,10 +186,7 @@ def download_scenario(request, task_id):
             return response
     return HttpResponse("Zip not ready yet")
 
+
 def generate_zip(request, task_id):
-    if settings.CELERY_BROKER_URL:
-        tasks.generate_zipped_scenario.apply_async((task_id,), task_id=(task_id))
-    else:
-        util.generate_zipped_scenario(task_id)
-        return download_scenario(request, task_id)
-    return HttpResponse("zip generated for ", task_id)
+    tasks.generate_zipped_scenario(task_id)
+    return download_scenario(request, task_id)

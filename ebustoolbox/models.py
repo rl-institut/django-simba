@@ -4,7 +4,7 @@ from django.dispatch import receiver
 
 from pathlib import Path
 
-from ebus_map.managers import MVTManager, LabelMVTManager, X, Y
+from ebus_map.managers import MVTManager, X, Y
 
 
 class Scenario(models.Model):
@@ -14,9 +14,11 @@ class Scenario(models.Model):
     finished = models.DateTimeField(default=None, null=True, blank=True)
     options = models.JSONField(default=dict)
 
+
 class UploadedFile(models.Model):
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
     file = models.FileField(upload_to=settings.UPLOAD_PATH)
+
 
 @receiver(models.signals.pre_delete, sender=UploadedFile)
 def auto_delete_file_on_delete(sender, instance, **kwargs):
@@ -25,21 +27,23 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
         if path.exists():
             path.unlink()
 
+
 class BusStop(models.Model):
-    geom = models.PointField(srid=4326) # with z elevation
+    # Map Engine models need geom and name as first columns
+    geom = models.PointField(srid=4326)  # with z elevation
     name = models.TextField()
     VOLTAGE_LEVEL_CHOICES = ["HV", "HV/MV", "MV", "MV/LV", "LV"]
-    CHARGE_TYPES =  (("oppb", "Opportunity"), ("depb", "Depot"))
+    CHARGE_TYPES = (("oppb", "Opportunity"), ("depb", "Depot"))
 
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
 
-
     charge_type = models.CharField(max_length=4, choices=CHARGE_TYPES, null=True)
-    voltage_level = models.CharField(max_length=5, choices=[(c,c) for c in VOLTAGE_LEVEL_CHOICES],null=True)
+    voltage_level = models.CharField(max_length=5, choices=[(c, c) for c in VOLTAGE_LEVEL_CHOICES],
+                                     null=True)
 
     # prior attributes, used for map (?)
     objects = models.Manager()
-    from django.db.models.functions import  Length
+    from django.db.models.functions import Length
 
     # Make sure all annotations are part of the columns below, if the data is supposed to be
     # delivered to the map
@@ -56,7 +60,7 @@ class BusStop(models.Model):
 
     layer = "busstop"
     mapping = {
-        "id":"id",
+        "id": "id",
         "geom": "POINT",
         "name": "name",
         "geom_label": "geom_label",

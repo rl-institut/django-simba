@@ -3,8 +3,6 @@ from django.contrib.gis.db.models.functions import Transform
 from django.contrib.gis.geos import Polygon
 from django.core.exceptions import FieldError
 from django.db import connection
-from django.db.models import Value, Func
-from django.forms import CharField
 from rest_framework.serializers import ValidationError
 from rest_framework_gis.tilenames import tile_edges
 
@@ -31,7 +29,6 @@ class MVTManager(models.Manager):
         self.geo_col = geo_col
         self.columns = columns
 
-
     def get_queryset(self):
         query = super().get_queryset()
         try:
@@ -40,10 +37,9 @@ class MVTManager(models.Manager):
             annotations = {}
 
         for key, func in annotations.items():
-            query=query.annotate(**{key:func})
+            query = query.annotate(**{key: func})
 
         return query
-
 
     def get_mvt_query(self, x, y, z, filters=None):
         filters = filters or {}
@@ -59,13 +55,15 @@ class MVTManager(models.Manager):
             filters["scenario__task_id"] = filters["task_id"]
             del filters["task_id"]
         except KeyError:
-            filters={}
+            filters = {}
         return query.filter(**filters)
 
     def _get_mvt_geom_query(self, x, y, z):
         bbox = Polygon.from_bbox(tile_edges(x, y, z))
         bbox.srid = 4326
-        query = self.annotate(mvt_geom=AsMVTGeom(Transform(self.geo_col, 3857), Transform(bbox, 3857), 4096, 0, False))
+        query = self.annotate(
+            mvt_geom=AsMVTGeom(Transform(self.geo_col, 3857), Transform(bbox, 3857), 4096, 0,
+                               False))
         intersect = {f"{self.geo_col}__intersects": bbox}
         return query.filter(**intersect)
 
@@ -122,6 +120,7 @@ class MVTManager(models.Manager):
                 if column_name != self.geo_col:
                     columns.append(column_name)
         return columns
+
 
 class LabelMVTManager(MVTManager):
     def get_queryset(self):

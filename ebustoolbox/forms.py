@@ -5,7 +5,8 @@ class UploadFileForm(forms.Form):
     # basics
     title = forms.CharField(max_length=50, initial="SimBA")
     # task_id = forms.CharField(widget=forms.HiddenInput, required=False)
-    preferred_charging_type = forms.CharField(widget=forms.RadioSelect(choices=BusStop.CHARGE_TYPES), initial=BusStop.CHARGE_TYPES[0][0])
+    preferred_charging_type = forms.CharField(
+        widget=forms.RadioSelect(choices=BusStop.CHARGE_TYPES), initial=BusStop.CHARGE_TYPES[0][0])
     modes = forms.CharField(widget=forms.HiddenInput, initial="sim,report")
 
     # charging infrastructure
@@ -14,7 +15,9 @@ class UploadFileForm(forms.Form):
     cs_power_opps = forms.DecimalField(max_digits=10, decimal_places=2, initial=300)
     cs_power_deps_depb = forms.DecimalField(max_digits=10, decimal_places=2, initial=150)
     cs_power_deps_oppb = forms.DecimalField(max_digits=10, decimal_places=2, initial=150)
-    default_voltage_level = forms.CharField(widget=forms.RadioSelect(choices=[(c,c) for c in BusStop.VOLTAGE_LEVEL_CHOICES]), initial="MV")
+    default_voltage_level = forms.CharField(
+        widget=forms.RadioSelect(choices=[(c, c) for c in BusStop.VOLTAGE_LEVEL_CHOICES]),
+        initial="MV")
 
     # charging settings
     desired_soc_deps = forms.DecimalField(min_value=0, max_value=1, initial=1)
@@ -34,7 +37,8 @@ class UploadFileForm(forms.Form):
     cost_parameters_file = forms.FileField(required=False)
 
     # extended options
-    strategy = forms.CharField(widget=forms.Select(choices=[('distributed', 'distributed')]), initial='distributed')
+    strategy = forms.CharField(widget=forms.Select(choices=[('distributed', 'distributed')]),
+                               initial='distributed')
     interval = forms.DecimalField(initial=15)
     signal_time_dif = forms.DecimalField(initial=10)
     days = forms.IntegerField(required=False)
@@ -68,7 +72,6 @@ class UploadFileForm(forms.Form):
 class EbusToolboxForm(forms.Form):
     title = forms.CharField(max_length=50)
     file = forms.FileField()
-
 
 
 class ChartForm(forms.Form):

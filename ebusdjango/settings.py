@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import environ
 from pathlib import Path
 import os
+
+from ebus_map.settings import *
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -46,6 +49,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # custom apps
+    'core',
     'ebustoolbox',
     'django_mapengine',
     'ebus_map',
@@ -140,7 +144,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # while the above line checks all the app folders for static folders the below one can be a list of
 # general static file folders
 STATICFILES_DIRS = [
-    BASE_DIR ,
+    BASE_DIR,
     BASE_DIR / "templates/js",
     BASE_DIR / "templates/css",
     BASE_DIR / UPLOAD_PATH,
@@ -151,4 +155,3 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
-from ebus_map.settings import *

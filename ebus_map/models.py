@@ -1,11 +1,9 @@
 """Only general data which is applicable for 'every' app should
 be part of models."""
 from django.contrib.gis.db import models
-from django.db.models import Sum
 from django.utils.translation import gettext_lazy as _
 
-from ebus_map.managers import MVTManager, LabelMVTManager
-
+from .managers import LabelMVTManager, MVTManager
 from ebustoolbox.models import *
 
 class MyExampleMultiPolygon(models.Model):
@@ -20,8 +18,6 @@ class MyExampleMultiPolygon(models.Model):
         "geom": "MultiPolygon",
         "name": "name",
     }
-
-
 
 
 class MyExampleLine(models.Model):
