@@ -2,7 +2,7 @@
 from django_plotly_dash import DjangoDash
 
 
-from dash import Dash, dcc, html, Input, Output
+from dash import dcc, html, Input, Output
 import plotly.express as px
 
 app = DjangoDash('SimpleExampleApp')   # replaces dash.Dash
@@ -23,13 +23,11 @@ app.layout = html.Div([
 ])
 
 
-
 @app.callback(
     Output("graph", "figure"),
     Input("dropdown", "value"))
 def update_bar_chart(dims):
-    df = px.data.iris() # replace with your own data source
+    df = px.data.iris()  # replace with your own data source
     fig = px.scatter_matrix(
         df, dimensions=dims, color="species")
     return fig
-

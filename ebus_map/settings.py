@@ -22,11 +22,12 @@ MAP_ENGINE_API_CLUSTERS = [
 ]
 
 MAP_ENGINE_STYLES_FOLDER = "django_mapengine/static/django_mapengine/"
-MAP_ENGINE_LAYERS_AT_STARTUP = ["busstop"] #"myexamplemultipolygon"]
-# These zoom levels define, where the specific features, e.g. points, lines choropleths (?) are visible
+MAP_ENGINE_LAYERS_AT_STARTUP = ["busstop"]   # "myexamplemultipolygon"]
+# These zoom levels define, where the specific features, e.g. points, lines choropleths (?) are
+# visible
 MAP_ENGINE_MIN_ZOOM = 1
 MAP_ENGINE_ZOOM_LEVELS = {
-     # "busstop": Zoom(0, 24),
+    # "busstop": Zoom(0, 24),
     # "myexamplemultipolygon": Zoom(0, 24),
 }
 # These layers will be plotted as region, i.e. use layer_styles of region with outline and fill

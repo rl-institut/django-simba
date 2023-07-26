@@ -17,24 +17,14 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
-
-from ebustoolbox.views import result_view, long_running_task_status_view, \
-    get_chart, home_view, download_scenario, generate_zip
-
 urlpatterns = [
-    path('get_chart/', get_chart, name='get_chart'),
-    path('long_running_task_status/', long_running_task_status_view, name='long_running_task_status_view'),
-
-
-    path('result/', result_view, name='result'),
-    path('', home_view, name='home'),
+    path('', include("ebustoolbox.urls")),
     path('admin/', admin.site.urls),
     path('django_plotly_dash/', include('django_plotly_dash.urls')),
     path("map/", include("django_mapengine.urls")),
-    # ToDo move stuff to ebustoolbox app
-    path('generate_zip/<str:task_id>', generate_zip, name='generate_zip'),
-    path("download_scenario/<uuid:task_id>/", download_scenario, name='download_scenario'),
     # Map urls
     path('', include("ebus_map.urls")),
 
 ]
+
+
