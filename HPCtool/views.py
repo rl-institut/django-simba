@@ -20,5 +20,3 @@ class HomePageView(TemplateView, views.MapEngineMixin):
                                  "message": "yeeeey"})
         response.status_code = 400 #oder 200 # To announce that the user isn't allowed to publish
         return response
-
-        #return HttpResponse("{'result': 'IS_PASS'}", content_type="application/json") #render(request, self.template_name)
