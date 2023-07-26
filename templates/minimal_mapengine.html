@@ -114,14 +114,14 @@
 <script>
 
     function myFunction33() {
-
+        dat = draw.getAll();
         $.ajax({
             url: 'minimal',
             type: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}'
             },
-            data: {"bla": 1},
+            data: dat,
             success: function(data){
                 alert(data.message);
             },
@@ -135,17 +135,13 @@
 
 }
 
-</script>
-
-
-<script>
 
     const draw = new MapboxDraw({
 displayControlsDefault: false,
 // Select which mapbox-gl-draw control buttons to add to the map.
 controls: {
-polygon: true,
-trash: true
+polygon: false,
+trash: false
 },
 // Set mapbox-gl-draw to draw by default.
 // The user does not have to click the polygon control button first.
@@ -155,8 +151,11 @@ map.addControl(draw, 'top-left');
 
 
 
-
     function myFunction2(step) {
+        draw.set({
+          type: 'FeatureCollection',
+          features: []
+        })
         draw.changeMode('draw_polygon');
      }
 
@@ -176,6 +175,7 @@ map.addControl(draw, 'top-left');
 
         geom= JSON.parse(decodeURIComponent(geom))
         popup.remove();
+        draw.trash();
         draw.changeMode('draw_polygon');
         draw.set({
           type: 'FeatureCollection',
