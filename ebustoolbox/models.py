@@ -1,6 +1,9 @@
+from datetime import datetime, timedelta
+
 from django.conf import settings
 from django.contrib.gis.db import models
 from django.dispatch import receiver
+from django.contrib.postgres.fields import ArrayField
 
 from pathlib import Path
 
@@ -9,6 +12,8 @@ from ebus_map.managers import MVTManager, X, Y
 
 class Scenario(models.Model):
     name = models.CharField(max_length=100, blank=False)
+    opp_charging_power = models.FloatField(default=None)
+    dep_charging_power = models.FloatField(default=None)
     created = models.DateTimeField(auto_now_add=True)
     task_id = models.TextField(default=None, null=True, blank=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
@@ -96,6 +101,11 @@ class VehicleType(models.Model):
     charging_efficiency = models.FloatField(default=0.95)
     minimum_charging_power = models.FloatField(default=0)
     # TODO add charging curve & v2g curve
+
+    # SOC, ChargingPower
+    charging_curve = ArrayField(ArrayField(models.FloatField(), size=2))
+    v2g_curve = ArrayField(ArrayField(models.FloatField(), size=2))
+
     v2g = models.BooleanField(default=False)
 
     # TODO link to consumption table if no value is given here?
@@ -141,6 +151,74 @@ class Trip(models.Model):
     arrival_stop = models.ForeignKey(BusStop, on_delete=models.CASCADE,  related_name="trip_arrival_set")
     arrival_time = models.DateTimeField(blank=False)
     distance = models.FloatField()
+    temperature = models.FloatField(default=None)
+    level_of_loading = models.FloatField(default=None)
+    # If time resolution is minutes, there might be trips with 0 minutes duration. To resolve
+    # division by 0, we use a minimal duration of 1 second
+    @property
+    def duration_in_seconds(self):
+        return min((self.arrival_time-self.departure_time).total_seconds(),1)
+    @property
+    def speed(self):
+        return self.distance/self.duration_in_seconds
+
+    @property
+    def incline(self):
+        return (self.departure_stop.geom.z-self.arrival_stop.geom.z)/min(self.distance,1)
+
+
+class Station(models.Model):
+    # Map Engine models need geom and name as first columns
+    geom = models.PointField(srid=4326)  # with z elevation
+    name = models.TextField()
+
+    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+
+    # prior attributes, used for map (?)
+    objects = models.Manager()
+    from django.db.models.functions import Length
+
+    # Make sure all annotations are part of the columns below, if the data is supposed to be
+    # delivered to the map
+    annotations = {
+        "center": models.functions.Centroid("geom"),
+        "lat": X("center", output_field=models.DecimalField()),
+        "lon": Y("center", output_field=models.DecimalField()),
+        "title_length": Length("name")
+    }
+
+    vector_tiles = MVTManager(
+        geo_col="geom", columns=["id", "geom", "name", "lat", "lon", "title_length"]
+    )
+
+    layer = "busstop"
+    mapping = {
+        "id": "id",
+        "geom": "POINT",
+        "name": "name",
+        "geom_label": "geom_label",
+    }
+
+    @classmethod
+    def get_popup_data(cls, id):
+        obj = cls.objects.get(id=id)
+        data = {}
+        data["title"] = obj.name
+        data["lat"] = obj.geom.x
+        data["lon"] = obj.geom.y
+        return data
+
+class ElectrifiedStation(Station):
+    VOLTAGE_LEVEL_CHOICES = ["HV", "HV/MV", "MV", "MV/LV", "LV"]
+    CHARGE_TYPES = (("oppb", "Opportunity"), ("depb", "Depot"))
+
+    charge_type = models.CharField(max_length=4, choices=CHARGE_TYPES, null=True)
+    voltage_level = models.CharField(max_length=5, choices=[(c, c) for c in VOLTAGE_LEVEL_CHOICES],
+                                     null=True)
+    amount_charging_places = models.IntegerField(default=0)
+    power_per_charger = models.FloatField(default = None)
+    total_power = models.FloatField()
+
 
 
 #
