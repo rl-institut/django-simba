@@ -125,51 +125,15 @@ def home_view(request):
         form = UploadFileForm(request.POST, request.FILES)
         if not form.is_valid():
             return render(request, "index.html", {"form": form})
+        scenario = tasks.fill_db_with_input_files(form.cleaned_data, request)
 
-        scenario = Scenario.objects.create(name=form.cleaned_data["title"])
-        args = dict(form.cleaned_data)
-        args["mode"] = list(map(lambda s: s.strip(), args["modes"].split(',')))
-        # decimal -> float
-        for k, v in args.items():
-            if type(v) == Decimal:
-                args[k] = float(v)
-        # set default files if not given
-        for k, v in {
-            "input_schedule": "trips_example.csv",
-            "electrified_stations": "electrified_stations.json",
-            "vehicle_types": "vehicle_types.json",
-            "station_data_path": "all_stations.csv",
-            "outside_temperature_over_day_path": "default_temp_summer.csv",
-            "level_of_loading_over_day_path": "default_level_of_loading_over_day.csv",
-            "cost_parameters_file": "cost_params.json",
-        }.items():
-            if args[k]:
-                # uploaded file: store in upload folder
-                f = UploadedFile.objects.create(scenario=scenario, file=request.FILES[k])
-                args[k] = f.file.path
-                continue
-            p = Path(settings.STATIC_URL, __package__, "examples", v)
-            if settings.DEBUG:
-                # use app static folder
-                if p.is_absolute():
-                    # remove first slash
-                    p = Path(str(p)[1:])
-                p = Path(settings.BASE_DIR, __package__, p)
-            if not p.exists():
-                print(f"FILE ERROR: {k} COULD NOT BE SET ({str(p)})")
-                continue
-            args[k] = str(p)
-
-        scenario.options = args
-        scenario.save()
-
-        response = redirect('simba:result')
         # start computation
         task_id = get_unique_task_id()
         scenario.task_id = task_id
         scenario.save()
-        tasks.run_ebus_toolbox(args, task_id)
+        tasks.run_ebus_toolbox(scenario.options, task_id)
 
+        response = redirect('simba:result')
         response['Location'] += '?task_id=' + task_id
         return response
     else:
