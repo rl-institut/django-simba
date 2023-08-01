@@ -1,19 +1,173 @@
+import json
+import warnings
+
+from django.utils import timezone
+from django.contrib.gis.geos import GEOSGeometry
+from django.db.models import Max
+from django.conf import settings
+from django.utils.timezone import make_aware
+
 import csv
 import shutil
 import traceback
 from datetime import datetime
 from pathlib import Path
-from django.utils import timezone
+from decimal import Decimal
 from celery import shared_task
-from django.contrib.gis.geos import GEOSGeometry
-from django.db.models import Max
-from django.conf import settings
-from ebustoolbox.models import Vehicle, VehicleProperties
+
+from .models import Vehicle, VehicleProperties, UploadedFile, Station, VehicleType, VehicleClass
 from .models import Scenario, BusStop
-from django.utils.timezone import make_aware
 from ebus_toolbox import simulate as ebus_toolbox
+from ebus_toolbox.util import uncomment_json_file
 
 from argparse import Namespace
+
+INTEGER_INF = 9999
+
+
+def fill_db_with_input_files(cleaned_data, request):
+    scenario = scenario_to_db(cleaned_data, request)
+
+    stations_to_db(scenario.options["station_data_path"], scenario.options["electrified_stations"],
+                   scenario)
+    vehicles_to_db(scenario.options["vehicle_types"])
+
+    schedule_to_db(scenario.options["input_schedule"])
+
+    return scenario
+
+
+def scenario_to_db(cleaned_data, request):
+    scenario = Scenario.objects.create(name=cleaned_data["title"])
+    args = dict(cleaned_data)
+    args["mode"] = list(map(lambda s: s.strip(), args["modes"].split(',')))
+    # decimal -> float
+    for k, v in args.items():
+        if type(v) == Decimal:
+            args[k] = float(v)
+    # set default files if not given
+    for k, v in {
+        "input_schedule": "trips_example.csv",
+        "electrified_stations": "electrified_stations.json",
+        "vehicle_types": "vehicle_types.json",
+        "station_data_path": "all_stations.csv",
+        "outside_temperature_over_day_path": "default_temp_summer.csv",
+        "level_of_loading_over_day_path": "default_level_of_loading_over_day.csv",
+        "cost_parameters_file": "cost_params.json",
+    }.items():
+        if args[k]:
+            # uploaded file: store in upload folder
+            f = UploadedFile.objects.create(scenario=scenario, file=request.FILES[k])
+            args[k] = f.file.path
+            continue
+        p = Path(settings.STATIC_URL, __package__, "examples", v)
+        if settings.DEBUG:
+            # use app static folder
+            if p.is_absolute():
+                # remove first slash
+                p = Path(str(p)[1:])
+            p = Path(settings.BASE_DIR, __package__, p)
+        if not p.exists():
+            print(f"FILE ERROR: {k} COULD NOT BE SET ({str(p)})")
+            continue
+        args[k] = str(p)
+    scenario.options = args
+
+    scenario.opps_charging_power = scenario.options["cs_power_opps"]
+    scenario.deps_charging_power = scenario.options["cs_power_deps_depb"]
+    scenario.save()
+    return scenario
+
+
+def schedule_to_db(file_path):
+    pass
+
+
+def vehicles_to_db(file_path, scenario):
+    VehicleClass.objects.get_or_create("oppb")
+    VehicleClass.objects.get_or_create("depb")
+
+    with open(file_path, 'r') as f:
+        vehicle_types = uncomment_json_file(f)
+
+    for name, v_type in vehicle_types.items():
+        for charge_name, charge_type in v_type.items():
+            vehicle_class = VehicleClass.objects.get(charge_name)
+            consumption=float(charge_type.get("mileage"))
+            params=dict(name=charge_type.name,
+                        vehicle_class = vehicle_class,
+                        scenario = scenario,
+                        flex_charging = (vehicle_class == "oppb"),
+                        battery_capacity = charge_type.capacity,
+                        charging_efficiency = charge_type.get("battery_efficiency", 0.95),
+                        minimum_charging_power = charge_type.get("min_charging_power"),
+                        charging_curve = charge_type.get("charging_curve"),
+                        v2g_curve = charge_type.get("v2g_curve", None),
+                        v2g = charge_type.get("v2g", False),
+                        consumption = consumption,
+                        length=float(charge_type.get("length", None)),
+                        )
+            VehicleType.objects.create(params)
+
+
+
+
+def stations_to_db(stations_path, electrified_stations_path, scenario):
+    object_list = []
+    try:
+        last_id = Station.objects.aggregate(Max('id'))['id__max']
+        if last_id is None:
+            last_id = -1
+    except Exception:
+        last_id = -1
+    has_necessary_columns = True
+    with open(stations_path, 'r') as csvfile:
+        reader = csv.DictReader(csvfile)
+        column_names = [name for name in reader.fieldnames]
+        must_contains = ["Endhaltestelle", "long", "lat", "elevation"]
+        for must_contain in must_contains:
+            if must_contain not in column_names:
+                warnings.warn(f"{stations_path} does not contain the right columns, but only "
+                              f"{column_names}")
+                has_necessary_columns = False
+                break
+        if has_necessary_columns:
+            for row in reader:
+                last_id += 1
+                try:
+                    long = float(row["long"])
+                    lat = float(row["lat"])
+                    elevation = float(row["elevation"])
+                    geom = GEOSGeometry(f"POINT({long} {lat} {elevation})")
+                    params = dict(id=last_id, scenario=scenario,
+                                  geom=geom, name=str(row["Endhaltestelle"]))
+                    object_list.append(Station(**params))
+                except Exception:
+                    print(traceback.format_exc())
+                    pass
+    Station.objects.bulk_create(object_list)
+
+    with open(electrified_stations_path, 'r') as f:
+        electrified_stations = uncomment_json_file(f)
+
+    for name, ele_station in electrified_stations.items():
+
+        station = Station.objects.get(name=name, scenario=scenario)
+        station.is_electrified = True
+        station.type = ele_station.get("type")
+
+        station.voltage_level = ele_station.get("voltage_level",
+                                        scenario.options.get("default_voltage_level"))
+        station.amount_charging_places = ele_station.get("n_charging_stations")
+        # ToDo how do we handle differences in charging power depending on oppb or depb
+        if station.type  == "opps":
+            power_per_charger = ele_station.get("cs_power_opps")
+        else:
+            power_per_charger = ele_station.get("cs_power_deps_oppb")
+        station.power_per_charger = power_per_charger
+        station.total_power = ele_station.get("gc_power", scenario.options.get(
+            "gc_power_" + station.type))
+        station.save()
 
 
 def generate_zipped_scenario(task_id):
