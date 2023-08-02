@@ -262,38 +262,3 @@ def save_vehicle_properties_from_file(file_path, scenario):
                 last_id += 1
     VehicleProperties.objects.bulk_create(object_list)
 
-#
-# def bus_stops_from_file(file_path, scenario):
-#     object_list = []
-#     try:
-#         last_id = BusStop.objects.aggregate(Max('id'))['id__max']
-#         if last_id is None:
-#             last_id = -1
-#     except Exception:
-#         print(Exception)
-#         last_id = -1
-#     print(last_id)
-#     with open(file_path, 'r') as csvfile:
-#         reader = csv.DictReader(csvfile)
-#         column_names = [name for name in reader.fieldnames]
-#         for row in reader:
-#             last_id += 1
-#             if ("Endhaltestelle" not in column_names or
-#                     "long" not in column_names or
-#                     "lat" not in column_names):
-#                 print("not the right columns")
-#                 print(column_names)
-#                 break
-#             try:
-#                 name = str(row["Endhaltestelle"])
-#                 long = float(row["long"])
-#                 lat = float(row["lat"])
-#                 geom = GEOSGeometry(f"POINT({long} {lat})")
-#                 params = dict(id=last_id, scenario=scenario,
-#                               geom=geom, name=name)
-#                 obj = BusStop(**params)
-#                 object_list.append(obj)
-#             except Exception:
-#                 print(traceback.format_exc())
-#                 pass
-#     BusStop.objects.bulk_create(object_list)
