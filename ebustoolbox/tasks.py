@@ -15,7 +15,8 @@ from pathlib import Path
 from decimal import Decimal
 from celery import shared_task
 
-from .models import Vehicle, VehicleProperties, UploadedFile, Station, VehicleType, VehicleClass
+from .models import Vehicle, VehicleProperties, UploadedFile, Station, VehicleType, VehicleClass, \
+    Rotation, Trip
 from .models import Scenario
 from ebus_toolbox import simulate as ebus_toolbox
 from ebus_toolbox.util import uncomment_json_file
@@ -33,7 +34,7 @@ def fill_db_with_input_files(cleaned_data, request):
                    scenario)
     vehicles_to_db(scenario.options["vehicle_types"], scenario)
 
-    schedule_to_db(scenario.options["input_schedule"])
+    schedule_to_db(scenario.options["input_schedule"], scenario)
 
     return scenario
 
@@ -80,25 +81,52 @@ def scenario_to_db(cleaned_data, request):
     return scenario
 
 
-def schedule_to_db(file_path):
+def schedule_to_db(schedule, scenario):
+    model_rotations = []
+    model_trips = []
+    rot_id = 1 if Rotation.objects.last() is None else Rotation.objects.last().id + 1
+    trip_id = 1 if Trip.objects.last() is None else Trip.objects.last().id + 1
+    for key, rot in schedule.rotations.items():
+        r = Rotation(name=key, vehicle_class=rot.vehicle_type, scenario=scenario)
+        r.id = rot_id
+        rot_id += 1
+        model_rotations.append(r)
+        for trip in rot:
+            t = Trip(
+                rotation=r,
+                departure_stop=Station.objects.get(scenario=scenario, name=trip.departure_name),
+                departure_time=datetime.fromisoformat(trip.departure_time),
+                arrival_stop=Station.objects.get(scenario=scenario, name=trip.arrival_name),
+                arrival_time=datetime.fromisoformat(trip.arrival_time),
+                distance = trip.distance,
+                line = trip.line,
+                temperature = trip.temperature,
+                level_of_loading=trip.level_of_loading)
+            t.id = trip_id
+            model_trips.append(t)
+            trip_id += 1
+    Rotation.objects.bulk_create(model_rotations)
+    Trip.objects.bulk_create(model_trips)
+
+
+
+
+
     pass
 
 
 def vehicles_to_db(file_path, scenario):
-    VehicleClass.objects.get_or_create(name="oppb")
-    VehicleClass.objects.get_or_create(name="depb")
-
     with open(file_path, 'r') as f:
         vehicle_types = uncomment_json_file(f)
 
     for name, v_type in vehicle_types.items():
+        vehicle_class = VehicleClass.objects.get_or_create(name=name)
         for charge_name, charge_type in v_type.items():
-            vehicle_class = VehicleClass.objects.get(name=charge_name)
             consumption=float(charge_type.get("mileage"))
             params=dict(name=charge_type.get("name", "unnamed bus"),
                         vehicle_class = vehicle_class,
                         scenario = scenario,
-                        flex_charging = (vehicle_class == "oppb"),
+                        flex_charging = (charge_name == "oppb"),
                         battery_capacity = charge_type["capacity"],
                         charging_efficiency = charge_type.get("battery_efficiency", 0.95),
                         minimum_charging_power = charge_type.get("min_charging_power"),
