@@ -14,6 +14,7 @@ class Scenario(models.Model):
     name = models.CharField(max_length=100, blank=False)
     opps_charging_power = models.FloatField(default=None, null=True, blank=True)
     deps_charging_power = models.FloatField(default=None, null=True, blank=True)
+
     created = models.DateTimeField(auto_now_add=True)
     task_id = models.TextField(default=None, null=True, blank=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
@@ -105,7 +106,7 @@ class VehicleType(models.Model):
 
     # SOC, ChargingPower
     charging_curve = ArrayField(ArrayField(models.FloatField(), size=2))
-    v2g_curve = ArrayField(ArrayField(models.FloatField(), size=2))
+    v2g_curve = ArrayField(ArrayField(models.FloatField(), size=2), null=True)
 
     v2g = models.BooleanField(default=False)
 

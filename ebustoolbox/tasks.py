@@ -22,6 +22,7 @@ from ebus_toolbox.util import uncomment_json_file
 
 from argparse import Namespace
 
+# ToDo: Any better solutions?
 INTEGER_INF = 9999
 
 
@@ -30,7 +31,7 @@ def fill_db_with_input_files(cleaned_data, request):
 
     stations_to_db(scenario.options["station_data_path"], scenario.options["electrified_stations"],
                    scenario)
-    vehicles_to_db(scenario.options["vehicle_types"])
+    vehicles_to_db(scenario.options["vehicle_types"], scenario)
 
     schedule_to_db(scenario.options["input_schedule"])
 
@@ -84,30 +85,30 @@ def schedule_to_db(file_path):
 
 
 def vehicles_to_db(file_path, scenario):
-    VehicleClass.objects.get_or_create("oppb")
-    VehicleClass.objects.get_or_create("depb")
+    VehicleClass.objects.get_or_create(name="oppb")
+    VehicleClass.objects.get_or_create(name="depb")
 
     with open(file_path, 'r') as f:
         vehicle_types = uncomment_json_file(f)
 
     for name, v_type in vehicle_types.items():
         for charge_name, charge_type in v_type.items():
-            vehicle_class = VehicleClass.objects.get(charge_name)
+            vehicle_class = VehicleClass.objects.get(name=charge_name)
             consumption=float(charge_type.get("mileage"))
-            params=dict(name=charge_type.name,
+            params=dict(name=charge_type.get("name", "unnamed bus"),
                         vehicle_class = vehicle_class,
                         scenario = scenario,
                         flex_charging = (vehicle_class == "oppb"),
-                        battery_capacity = charge_type.capacity,
+                        battery_capacity = charge_type["capacity"],
                         charging_efficiency = charge_type.get("battery_efficiency", 0.95),
                         minimum_charging_power = charge_type.get("min_charging_power"),
-                        charging_curve = charge_type.get("charging_curve"),
+                        charging_curve = charge_type["charging_curve"],
                         v2g_curve = charge_type.get("v2g_curve", None),
                         v2g = charge_type.get("v2g", False),
                         consumption = consumption,
-                        length=float(charge_type.get("length", None)),
+                        length=float(charge_type.get("length", 0)),
                         )
-            VehicleType.objects.create(params)
+            VehicleType.objects.create(**params)
 
 
 
@@ -151,7 +152,7 @@ def stations_to_db(stations_path, electrified_stations_path, scenario):
         electrified_stations = uncomment_json_file(f)
 
     for name, ele_station in electrified_stations.items():
-
+        a =1
         station = Station.objects.get(name=name, scenario=scenario)
         station.is_electrified = True
         station.type = ele_station.get("type")
