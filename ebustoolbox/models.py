@@ -7,7 +7,7 @@ from django.contrib.postgres.fields import ArrayField
 
 from pathlib import Path
 
-from ebus_map.managers import MVTManager, X, Y
+
 
 
 class Scenario(models.Model):
@@ -33,53 +33,6 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
         if path.exists():
             path.unlink()
 
-
-class BusStop(models.Model):
-    # Map Engine models need geom and name as first columns
-    geom = models.PointField(srid=4326)  # with z elevation
-    name = models.TextField()
-    VOLTAGE_LEVEL_CHOICES = ["HV", "HV/MV", "MV", "MV/LV", "LV"]
-    CHARGE_TYPES = (("oppb", "Opportunity"), ("depb", "Depot"))
-
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
-
-    charge_type = models.CharField(max_length=4, choices=CHARGE_TYPES, null=True)
-    voltage_level = models.CharField(max_length=5, choices=[(c, c) for c in VOLTAGE_LEVEL_CHOICES],
-                                     null=True)
-
-    # prior attributes, used for map (?)
-    objects = models.Manager()
-    from django.db.models.functions import Length
-
-    # Make sure all annotations are part of the columns below, if the data is supposed to be
-    # delivered to the map
-    annotations = {
-        "center": models.functions.Centroid("geom"),
-        "lat": X("center", output_field=models.DecimalField()),
-        "lon": Y("center", output_field=models.DecimalField()),
-        "title_length": Length("name")
-    }
-
-    vector_tiles = MVTManager(
-        geo_col="geom", columns=["id", "geom", "name", "lat", "lon", "title_length"]
-    )
-
-    layer = "busstop"
-    mapping = {
-        "id": "id",
-        "geom": "POINT",
-        "name": "name",
-        "geom_label": "geom_label",
-    }
-
-    @classmethod
-    def get_popup_data(cls, id):
-        obj = cls.objects.get(id=id)
-        data = {}
-        data["title"] = obj.name
-        data["lat"] = obj.geom.x
-        data["lon"] = obj.geom.y
-        return data
 
 
 class VehicleClass(models.Model):
@@ -151,32 +104,6 @@ class Rotation(models.Model):
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
 
 
-class Trip(models.Model):
-    rotation = models.ForeignKey(Rotation, on_delete=models.CASCADE)  # TODO do all ForeignKeys need cascade?
-    departure_stop = models.ForeignKey(BusStop, on_delete=models.CASCADE,  related_name="trip_departure_set")
-    departure_time = models.DateTimeField(blank=False)
-    arrival_stop = models.ForeignKey(BusStop, on_delete=models.CASCADE,  related_name="trip_arrival_set")
-    arrival_time = models.DateTimeField(blank=False)
-    distance = models.FloatField()
-
-    # ToDo do we want a line object?
-    line = models.CharField(max_length=100, blank=True, null=True)
-    temperature = models.FloatField(default=None, null = True)
-    level_of_loading = models.FloatField(default=None, null = True)
-    # If time resolution is minutes, there might be trips with 0 minutes duration. To resolve
-    # division by 0, we use a minimal duration of 1 second
-    @property
-    def duration_in_seconds(self):
-        return min((self.arrival_time-self.departure_time).total_seconds(),1)
-    @property
-    def speed(self):
-        return self.distance/self.duration_in_seconds
-
-    @property
-    def incline(self):
-        return (self.departure_stop.geom.z-self.arrival_stop.geom.z)/min(self.distance,1)
-
-
 class Station(models.Model):
     # Map Engine models need geom and name as first columns
     geom = models.PointField(dim=3, srid=4326)  # with z elevation
@@ -196,40 +123,30 @@ class Station(models.Model):
     total_power = models.FloatField(default = None, null = True)
 
 
+class Trip(models.Model):
+    rotation = models.ForeignKey(Rotation, on_delete=models.CASCADE)  # TODO do all ForeignKeys need cascade?
+    departure_stop = models.ForeignKey(Station, on_delete=models.CASCADE,  related_name="trip_departure_set")
+    departure_time = models.DateTimeField(blank=False)
+    arrival_stop = models.ForeignKey(Station, on_delete=models.CASCADE,  related_name="trip_arrival_set")
+    arrival_time = models.DateTimeField(blank=False)
+    distance = models.FloatField()
 
-    # prior attributes, used for map (?)
-    objects = models.Manager()
-    from django.db.models.functions import Length
+    # ToDo do we want a line object?
+    line = models.CharField(max_length=100, blank=True, null=True)
+    temperature = models.FloatField(default=None, null = True)
+    level_of_loading = models.FloatField(default=None, null = True)
+    # If time resolution is minutes, there might be trips with 0 minutes duration. To resolve
+    # division by 0, we use a minimal duration of 1 second
+    @property
+    def duration_in_seconds(self):
+        return min((self.arrival_time-self.departure_time).total_seconds(),1)
+    @property
+    def speed(self):
+        return self.distance/self.duration_in_seconds
 
-    # Make sure all annotations are part of the columns below, if the data is supposed to be
-    # delivered to the map
-    annotations = {
-        "center": models.functions.Centroid("geom"),
-        "lat": X("center", output_field=models.DecimalField()),
-        "lon": Y("center", output_field=models.DecimalField()),
-        "title_length": Length("name")
-    }
-
-    vector_tiles = MVTManager(
-        geo_col="geom", columns=["id", "geom", "name", "lat", "lon", "title_length"]
-    )
-
-    layer = "busstop"
-    mapping = {
-        "id": "id",
-        "geom": "POINT",
-        "name": "name",
-        "geom_label": "geom_label",
-    }
-
-    @classmethod
-    def get_popup_data(cls, id):
-        obj = cls.objects.get(id=id)
-        data = {}
-        data["title"] = obj.name
-        data["lat"] = obj.geom.x
-        data["lon"] = obj.geom.y
-        return data
+    @property
+    def incline(self):
+        return (self.departure_stop.geom.z-self.arrival_stop.geom.z)/min(self.distance,1)
 
 
 #

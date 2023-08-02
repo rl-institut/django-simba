@@ -16,7 +16,7 @@ from decimal import Decimal
 from celery import shared_task
 
 from .models import Vehicle, VehicleProperties, UploadedFile, Station, VehicleType, VehicleClass
-from .models import Scenario, BusStop
+from .models import Scenario
 from ebus_toolbox import simulate as ebus_toolbox
 from ebus_toolbox.util import uncomment_json_file
 
@@ -213,7 +213,7 @@ def _celery_run_ebus_toolbox(self, model_args_as_dict, task_id):
 def _run_ebus_toolbox(model_args_as_dict, task_id):
     args = Namespace(**model_args_as_dict)
     args.output_directory = Path(settings.UPLOAD_PATH) / task_id
-    # unmutable options, not read from form
+    # immutable options, not read from form
     args.margin = 1
     args.ALLOW_NEGATIVE_SOC = True
     args.PRICE_THRESHOLD = -100
@@ -228,8 +228,8 @@ def _run_ebus_toolbox(model_args_as_dict, task_id):
     scenarios.update(finished=timezone.now())
     file_path = settings.BASE_DIR / args.output_directory / "sim/rotation_socs.csv"
     save_vehicle_properties_from_file(file_path, scenarios[0])
-    station_file_path = args.station_data_path
-    bus_stops_from_file(station_file_path, scenarios[0])
+    # station_file_path = args.station_data_path
+    # bus_stops_from_file(station_file_path, scenarios[0])
 
 
 def save_vehicle_properties_from_file(file_path, scenario):
@@ -262,38 +262,38 @@ def save_vehicle_properties_from_file(file_path, scenario):
                 last_id += 1
     VehicleProperties.objects.bulk_create(object_list)
 
-
-def bus_stops_from_file(file_path, scenario):
-    object_list = []
-    try:
-        last_id = BusStop.objects.aggregate(Max('id'))['id__max']
-        if last_id is None:
-            last_id = -1
-    except Exception:
-        print(Exception)
-        last_id = -1
-    print(last_id)
-    with open(file_path, 'r') as csvfile:
-        reader = csv.DictReader(csvfile)
-        column_names = [name for name in reader.fieldnames]
-        for row in reader:
-            last_id += 1
-            if ("Endhaltestelle" not in column_names or
-                    "long" not in column_names or
-                    "lat" not in column_names):
-                print("not the right columns")
-                print(column_names)
-                break
-            try:
-                name = str(row["Endhaltestelle"])
-                long = float(row["long"])
-                lat = float(row["lat"])
-                geom = GEOSGeometry(f"POINT({long} {lat})")
-                params = dict(id=last_id, scenario=scenario,
-                              geom=geom, name=name)
-                obj = BusStop(**params)
-                object_list.append(obj)
-            except Exception:
-                print(traceback.format_exc())
-                pass
-    BusStop.objects.bulk_create(object_list)
+#
+# def bus_stops_from_file(file_path, scenario):
+#     object_list = []
+#     try:
+#         last_id = BusStop.objects.aggregate(Max('id'))['id__max']
+#         if last_id is None:
+#             last_id = -1
+#     except Exception:
+#         print(Exception)
+#         last_id = -1
+#     print(last_id)
+#     with open(file_path, 'r') as csvfile:
+#         reader = csv.DictReader(csvfile)
+#         column_names = [name for name in reader.fieldnames]
+#         for row in reader:
+#             last_id += 1
+#             if ("Endhaltestelle" not in column_names or
+#                     "long" not in column_names or
+#                     "lat" not in column_names):
+#                 print("not the right columns")
+#                 print(column_names)
+#                 break
+#             try:
+#                 name = str(row["Endhaltestelle"])
+#                 long = float(row["long"])
+#                 lat = float(row["lat"])
+#                 geom = GEOSGeometry(f"POINT({long} {lat})")
+#                 params = dict(id=last_id, scenario=scenario,
+#                               geom=geom, name=name)
+#                 obj = BusStop(**params)
+#                 object_list.append(obj)
+#             except Exception:
+#                 print(traceback.format_exc())
+#                 pass
+#     BusStop.objects.bulk_create(object_list)

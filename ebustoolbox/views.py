@@ -3,11 +3,10 @@ from django.http import FileResponse, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.views.generic import TemplateView
 from django.views.decorators.http import require_GET
+
 from django_mapengine.views import MapEngineMixin
 from django.db.models import Q
 
-from decimal import Decimal
-from pathlib import Path
 from celery.result import AsyncResult
 import plotly.graph_objects as go
 
@@ -16,8 +15,9 @@ from . import dash_app, tasks
 from .forms import UploadFileForm
 from .util import get_unique_task_id
 
-from ebustoolbox.models import VehicleProperties, Vehicle, Scenario, UploadedFile
+import ebustoolbox
 from ebustoolbox.forms import ChartForm
+from ebustoolbox.models import VehicleProperties, Vehicle, Scenario
 
 
 def get_map(request):
@@ -132,6 +132,15 @@ def home_view(request):
         scenario.task_id = task_id
         scenario.save()
         tasks.run_ebus_toolbox(scenario.options, task_id)
+        if "ebus_map" in settings.INSTALLED_APPS:
+            from ebus_map.models import Station as MapStation
+            stations = ebustoolbox.models.Station.objects.filter(scenario=scenario)
+            for station in stations:
+                map_stat = MapStation()
+                map_stat.__dict__.update(station.__dict__)
+                id = 1 if MapStation.objects.last() is None else MapStation.objects.last().id + 1
+                map_stat.id = id
+                map_stat.save()
 
         response = redirect('simba:result')
         response['Location'] += '?task_id=' + task_id

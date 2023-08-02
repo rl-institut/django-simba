@@ -1,12 +1,13 @@
 from django import forms
-from .models import Vehicle, BusStop
+from .models import Vehicle, Station
+
 
 class UploadFileForm(forms.Form):
     # basics
     title = forms.CharField(max_length=50, initial="SimBA")
     # task_id = forms.CharField(widget=forms.HiddenInput, required=False)
     preferred_charging_type = forms.CharField(
-        widget=forms.RadioSelect(choices=BusStop.CHARGE_TYPES), initial=BusStop.CHARGE_TYPES[0][0])
+        widget=forms.RadioSelect(choices=Station.CHARGE_TYPES), initial=Station.CHARGE_TYPES[0][0])
     modes = forms.CharField(widget=forms.HiddenInput, initial="sim,report")
 
     # charging infrastructure
@@ -16,7 +17,7 @@ class UploadFileForm(forms.Form):
     cs_power_deps_depb = forms.DecimalField(max_digits=10, decimal_places=2, initial=150)
     cs_power_deps_oppb = forms.DecimalField(max_digits=10, decimal_places=2, initial=150)
     default_voltage_level = forms.CharField(
-        widget=forms.RadioSelect(choices=[(c, c) for c in BusStop.VOLTAGE_LEVEL_CHOICES]),
+        widget=forms.RadioSelect(choices=[(c, c) for c in Station.VOLTAGE_LEVEL_CHOICES]),
         initial="MV")
 
     # charging settings
