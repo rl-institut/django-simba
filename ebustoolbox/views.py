@@ -135,12 +135,15 @@ def home_view(request):
         if "ebus_map" in settings.INSTALLED_APPS:
             from ebus_map.models import Station as MapStation
             stations = ebustoolbox.models.Station.objects.filter(scenario=scenario)
+            obj_id = 1 if MapStation.objects.last() is None else MapStation.objects.last().id + 1
+            map_stations = []
             for station in stations:
                 map_stat = MapStation()
                 map_stat.__dict__.update(station.__dict__)
-                id = 1 if MapStation.objects.last() is None else MapStation.objects.last().id + 1
-                map_stat.id = id
-                map_stat.save()
+                map_stat.id = obj_id
+                map_stations.append(map_stat)
+                obj_id += 1
+            MapStation.objects.bulk_create(map_stations)
 
         response = redirect('simba:result')
         response['Location'] += '?task_id=' + task_id
