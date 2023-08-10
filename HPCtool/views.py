@@ -8,8 +8,9 @@ from celery.result import AsyncResult
 from celery import uuid
 from .tasks import calculate_chargers
 
+import ast
 
-# Create your views here.
+
 class HomePageView(TemplateView, views.MapEngineMixin):
     template_name = "minimal_mapengine.html"
 
@@ -19,7 +20,12 @@ class HomePageView(TemplateView, views.MapEngineMixin):
     def post(self, request, **kwargs):
         print("POST POST PSOT", request.POST)
 
-        result = calculate_chargers.apply_async()
+        # change json object to list of lists:
+        PL = ast.literal_eval(list(request.POST.dict())[0])
+
+        print([PL])
+
+        result = calculate_chargers.apply_async(([PL]),polygon=[PL])
 
         response = JsonResponse({"error": "there was an error",
                                  "message": "Recalculating with new Polygon... Please wait" + result.get()})

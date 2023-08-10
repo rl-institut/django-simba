@@ -115,13 +115,14 @@
 
     function myFunction33() {
         dat = draw.getAll();
+        console.log(dat.features[0].geometry.coordinates[0])
         $.ajax({
             url: 'minimal',
             type: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}'
             },
-            data: dat,
+            data: JSON.stringify(dat.features[0].geometry.coordinates[0]),
             success: function(data){
                 alert(data.message);
             },
