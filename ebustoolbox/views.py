@@ -86,7 +86,7 @@ def result_view(request):
 def wait_view(request):
     """View while waiting for results. Will trigger success view as soon as long running task
     returns pending"""
-    print("Ebustoolbox is calculating. Showing wait view")
+    print("SimBA is calculating. Showing wait view")
     return render(request, "wait.html")
 
 
