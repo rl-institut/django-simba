@@ -125,25 +125,27 @@ def home_view(request):
         form = UploadFileForm(request.POST, request.FILES)
         if not form.is_valid():
             return render(request, "index.html", {"form": form})
-        scenario = tasks.fill_db_with_input_files(form.cleaned_data, request)
 
+        django_scenario, simba_schedule, args = \
+            tasks.fill_db_with_input_files(form.cleaned_data, request)
         # start computation
         task_id = get_unique_task_id()
-        scenario.task_id = task_id
-        scenario.save()
-        tasks.run_ebus_toolbox(scenario.options, task_id)
+        django_scenario.task_id = task_id
+        django_scenario.save()
+        tasks.run_ebus_toolbox(simba_schedule, args, task_id)
         if "ebus_map" in settings.INSTALLED_APPS:
             from ebus_map.models import Station as MapStation
-            stations = ebustoolbox.models.Station.objects.filter(scenario=scenario)
-            obj_id = 1 if MapStation.objects.last() is None else MapStation.objects.last().id + 1
+            stations = ebustoolbox.models.Station.objects.filter(scenario=django_scenario)
+            # obj_id = 1 if MapStation.objects.last() is None else MapStation.objects.last().id + 1
             map_stations = []
             for station in stations:
                 map_stat = MapStation()
                 map_stat.__dict__.update(station.__dict__)
-                map_stat.id = obj_id
+                # map_stat.id = obj_id
                 map_stations.append(map_stat)
-                obj_id += 1
-            MapStation.objects.bulk_create(map_stations)
+                map_stat.save()
+            # Bulk creation is more efficient but doe not work with multi tabled inherited models
+            # MapStation.objects.bulk_create(map_stations)
 
         response = redirect('simba:result')
         response['Location'] += '?task_id=' + task_id

@@ -18,25 +18,41 @@ from celery import shared_task
 from .models import Vehicle, VehicleProperties, UploadedFile, Station, VehicleType, VehicleClass, \
     Rotation, Trip
 from .models import Scenario
-from ebus_toolbox import simulate as ebus_toolbox
-from ebus_toolbox.util import uncomment_json_file
-
 from argparse import Namespace
+import simba.util
+import simba.simulate
+import simba.schedule
 
 # ToDo: Any better solutions?
 INTEGER_INF = 9999
 
 
 def fill_db_with_input_files(cleaned_data, request):
-    scenario = scenario_to_db(cleaned_data, request)
+    django_scenario = scenario_to_db(cleaned_data, request)
+    args = get_args(django_scenario)
+    simba_schedule = simba.simulate.pre_simulation(args)
 
-    stations_to_db(scenario.options["station_data_path"], scenario.options["electrified_stations"],
-                   scenario)
-    vehicles_to_db(scenario.options["vehicle_types"], scenario)
+    stations_to_db(django_scenario.options["station_data_path"], django_scenario.options["electrified_stations"],
+                   django_scenario)
+    vehicles_to_db(django_scenario.options["vehicle_types"], django_scenario)
 
-    schedule_to_db(scenario.options["input_schedule"], scenario)
+    schedule_to_db(simba_schedule, django_scenario)
 
-    return scenario
+    return django_scenario, simba_schedule, args
+
+
+def get_args(django_scenario):
+    # Get parser from SimBA
+    parser = simba.util.get_parser()
+    # Read the parse values, in this case the default values
+    args, _ = parser.parse_known_args()
+    # Overwrite args with scenario specific data
+    vars(args).update(vars(Namespace(**django_scenario.options)))
+    # arguments relevant to SpiceEV, setting automatically to reduce clutter in config
+    simba.util.mutate_args_for_spiceev(args)
+    # If a config is provided, the config will overwrite previously parsed arguments
+    simba.util.set_options_from_config(args, check=parser, verbose=False)
+    return args
 
 
 def scenario_to_db(cleaned_data, request):
@@ -87,17 +103,18 @@ def schedule_to_db(schedule, scenario):
     rot_id = 1 if Rotation.objects.last() is None else Rotation.objects.last().id + 1
     trip_id = 1 if Trip.objects.last() is None else Trip.objects.last().id + 1
     for key, rot in schedule.rotations.items():
-        r = Rotation(name=key, vehicle_class=rot.vehicle_type, scenario=scenario)
+        vehicle_class, _ = VehicleClass.objects.get_or_create(name=rot.vehicle_type)
+        r = Rotation(name=key, vehicle_class=vehicle_class, scenario=scenario)
         r.id = rot_id
         rot_id += 1
         model_rotations.append(r)
-        for trip in rot:
+        for trip in rot.trips:
             t = Trip(
                 rotation=r,
                 departure_stop=Station.objects.get(scenario=scenario, name=trip.departure_name),
-                departure_time=datetime.fromisoformat(trip.departure_time),
+                departure_time=make_aware(trip.departure_time),
                 arrival_stop=Station.objects.get(scenario=scenario, name=trip.arrival_name),
-                arrival_time=datetime.fromisoformat(trip.arrival_time),
+                arrival_time=make_aware(trip.arrival_time),
                 distance = trip.distance,
                 line = trip.line,
                 temperature = trip.temperature,
@@ -117,10 +134,10 @@ def schedule_to_db(schedule, scenario):
 
 def vehicles_to_db(file_path, scenario):
     with open(file_path, 'r') as f:
-        vehicle_types = uncomment_json_file(f)
+        vehicle_types = simba.util.uncomment_json_file(f)
 
     for name, v_type in vehicle_types.items():
-        vehicle_class = VehicleClass.objects.get_or_create(name=name)
+        vehicle_class, _ = VehicleClass.objects.get_or_create(name=name)
         for charge_name, charge_type in v_type.items():
             consumption=float(charge_type.get("mileage"))
             params=dict(name=charge_type.get("name", "unnamed bus"),
@@ -177,7 +194,7 @@ def stations_to_db(stations_path, electrified_stations_path, scenario):
     Station.objects.bulk_create(object_list)
 
     with open(electrified_stations_path, 'r') as f:
-        electrified_stations = uncomment_json_file(f)
+        electrified_stations = simba.util.uncomment_json_file(f)
 
     for name, ele_station in electrified_stations.items():
         a =1
@@ -224,37 +241,29 @@ def _celery_generate_zipped_scenario(self, task_id: str):
     _generate_zipped_scenario(task_id)
 
 
-def run_ebus_toolbox(model_args_as_dict, task_id):
+def run_ebus_toolbox(schedule, args, task_id):
     if settings.CELERY_BROKER_URL:
         print("Using Celery")
-        _ = _celery_run_ebus_toolbox.apply_async((model_args_as_dict, str(task_id)),
+        _ = _celery_run_ebus_toolbox.apply_async((schedule, args, str(task_id)),
                                                  task_id=task_id)
     else:
-        _run_ebus_toolbox(model_args_as_dict, task_id)
+        _run_ebus_toolbox(schedule, args, task_id)
 
 
 @shared_task(bind=True)
-def _celery_run_ebus_toolbox(self, model_args_as_dict, task_id):
-    _run_ebus_toolbox(model_args_as_dict, task_id)
+def _celery_run_ebus_toolbox(self, schedule, args, task_id):
+    _run_ebus_toolbox(schedule, args, task_id)
 
 
-def _run_ebus_toolbox(model_args_as_dict, task_id):
-    args = Namespace(**model_args_as_dict)
+def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
     args.output_directory = Path(settings.UPLOAD_PATH) / task_id
-    # immutable options, not read from form
-    args.margin = 1
-    args.ALLOW_NEGATIVE_SOC = True
-    args.PRICE_THRESHOLD = -100
-    args.rotation_filter_variable = None
-    args.show_plots = False
-
-    ebus_toolbox.simulate(args)
-
+    scenario = schedule.run(args)
+    schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
     # print(time.time() - start, " since start, after task")
     scenarios = Scenario.objects.filter(task_id=task_id)
     assert len(scenarios) == 1
     scenarios.update(finished=timezone.now())
-    file_path = settings.BASE_DIR / args.output_directory / "sim/rotation_socs.csv"
+    file_path = settings.BASE_DIR / args.output_directory / "report_1/rotation_socs.csv"
     save_vehicle_properties_from_file(file_path, scenarios[0])
     # station_file_path = args.station_data_path
     # bus_stops_from_file(station_file_path, scenarios[0])
