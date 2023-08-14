@@ -29,8 +29,8 @@ INTEGER_INF = 9999
 
 def fill_db_with_input_files(cleaned_data, request):
     django_scenario = scenario_to_db(cleaned_data, request)
-    args = get_args(django_scenario)
-    simba_schedule = get_schedule_from_args(args)
+    original_args = get_args(django_scenario)
+    simba_schedule, new_args = get_schedule_from_args(original_args)
 
     stations_to_db(django_scenario.options["station_data_path"], django_scenario.options["electrified_stations"],
                    django_scenario)
@@ -38,12 +38,12 @@ def fill_db_with_input_files(cleaned_data, request):
 
     schedule_to_db(simba_schedule, django_scenario)
 
-    return django_scenario, simba_schedule, args
+    return django_scenario, simba_schedule, original_args
 
 
-def get_schedule_from_args(args):
-    simba_schedule = simba.simulate.pre_simulation(args)
-    return simba_schedule
+def get_schedule_from_args(original_args):
+    simba_schedule, new_args = simba.simulate.pre_simulation(original_args)
+    return simba_schedule, new_args
 
 
 def get_args(django_scenario):
@@ -258,7 +258,7 @@ def run_ebus_toolbox(schedule: simba.schedule.Schedule, args, task_id):
 @shared_task(bind=True)
 def _celery_run_ebus_toolbox(self, args, task_id):
     args = Namespace(**args)
-    schedule = get_schedule_from_args(args)
+    schedule,args = get_schedule_from_args(args)
     _run_ebus_toolbox(schedule, args, task_id)
 
 
