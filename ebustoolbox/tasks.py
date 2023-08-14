@@ -1,3 +1,4 @@
+import collections
 import json
 import warnings
 
@@ -262,10 +263,44 @@ def _celery_run_ebus_toolbox(self, args, task_id):
     _run_ebus_toolbox(schedule, args, task_id)
 
 
+def vary_schedule(schedule) -> "collections.Iterable[simba.schedule.Schedule]":
+    depot_vehicle_types = {key: vehicle_type["depb"] for key, vehicle_type in schedule.vehicle_types.items()
+                           if "depb" in vehicle_type}
+    for key, vt in depot_vehicle_types.items():
+        for rot_id, rotation in schedule.rotations.items():
+            if rotation.charging_type == "depb":
+                rotation.vehicle_type = key
+        yield schedule, key
+
+
 def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
     args.output_directory = Path(settings.UPLOAD_PATH) / task_id
-    scenario = schedule.run(args)
-    schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
+    eflips_input = dict()
+    args.attach_vehicle_soc = True
+
+    # By setting charging power for depot buses to zero, we make sure every rotation will generate
+    # a new bus
+    args.cs_power_depbs_depb = 0
+    args.cs_power_deps_oppb = 0
+    for key, station in schedule.stations.items():
+        schedule.stations[key]["cs_power_deps_depb"] = 0
+        schedule.stations[key]["cs_power_deps_oppb"] = 0
+
+    eflips_input = dict()
+    for schedule, key in vary_schedule(schedule):
+        scenario = schedule.run(args)
+        eflips_input[key] = dict()
+        for rot_id, rotation in schedule.rotations.items():
+            v_soc, start, end = simba.optimizer_util.get_rotation_soc_util(rot_id=rot_id,
+                                                                           schedule=schedule,
+                                                                           scenario=scenario)
+            rot_soc = v_soc[start:end]
+            eflips_input[key][rot_id] = dict(departure_soc=rot_soc[0],
+                                             arrival_soc=rot_soc[-1],
+                                             minimal_soc=min(rot_soc),
+                                             charging_type = rotation.charging_type
+                                            )
+    # schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
     # print(time.time() - start, " since start, after task")
     scenarios = Scenario.objects.filter(task_id=task_id)
     assert len(scenarios) == 1
