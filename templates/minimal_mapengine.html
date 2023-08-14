@@ -61,15 +61,11 @@
     />
 </div>
 
-
-
-
-
-  <div style="position: fixed;
+    <div style="position: fixed;
      top: 50%; left: 70px; width: 50px; height: 50px;
       z-index: 900;
      transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction()">
-<button onclick="myFunction(-1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⇦</button>
+<button onclick="flyStep(-1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⇦</button>
 
 </div>
 
@@ -77,7 +73,7 @@
      top: 50%; right: 70px; width: 50px; height: 50px;
       z-index: 900;
      transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction()">
-<button onclick="myFunction(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⇨</button>
+<button onclick="flyStep(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⇨</button>
 </div>
 
 
@@ -85,35 +81,36 @@
      top:800px; left: 100px; width: 50px; height: 50px;
       z-index: 900;
      transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction2()">
-<button onclick="myFunction2(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">✎</button>
+<button onclick="enableDrawmode(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">✎</button>
 </div>
 
 <div style="position: fixed;
      top:800px; left: 160px; width: 50px; height: 50px;
       z-index: 900;
      transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction()">
-<button onclick="myFunction3(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">🗑</button>
+<button onclick="deleteDraw(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">🗑</button>
 </div>
 
     <div style="position: fixed;
      top:800px; left: 220px; width: 50px; height: 50px;
       z-index: 900;
      transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction()">
-<button onclick="myFunction3(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">🧮</button>
+<button onclick="recalculate()" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">🧮</button>
 </div>
 
 
 <div style="position: fixed;
- top:800px; left: 220px; width: 50px; height: 50px;
+ top:800px; left: 280px; width: 50px; height: 50px;
   z-index: 900;
  transform: translateY(-50%); display: flex; justify-content: center; align-items: center;">
-<button onclick="myFunction33()", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">Send</button>
+<button onclick="deleteBus()", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">💾</button>
 </div>
 
 
 <script>
 
-    function myFunction33() {
+    function recalculate() {
+
         dat = draw.getAll();
         console.log(dat.features[0].geometry.coordinates[0])
         $.ajax({
@@ -130,29 +127,48 @@
                alert(data.status); // the status code
                alert(data.responseJSON.error); // the message
             }
+        })
+    }
 
 
-})
+    function deleteBus() {
 
-}
+        console.log("Deleting the following Busses: " , deletedIDs)
+        $.ajax({
+            url: 'minimal/delete',
+            type: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            data: JSON.stringify(deletedIDs),
+            success: function(data){
+                deletedIDs = [];
+                alert(data.message);
+            },
+            error: function(data){
+               alert(data.status); // the status code
+               alert(data.responseJSON.error); // the message
+            }
+        })
+    }
 
 
     const draw = new MapboxDraw({
-displayControlsDefault: false,
-// Select which mapbox-gl-draw control buttons to add to the map.
-controls: {
-polygon: false,
-trash: false
-},
-// Set mapbox-gl-draw to draw by default.
-// The user does not have to click the polygon control button first.
-defaultMode: 'simple_select'//'draw_polygon'
-});
-map.addControl(draw, 'top-left');
+        displayControlsDefault: false,
+            // Select which mapbox-gl-draw control buttons to add to the map.
+            controls: {
+            polygon: false,
+            trash: false
+            },
+        // Set mapbox-gl-draw to draw by default.
+        // The user does not have to click the polygon control button first.
+        defaultMode: 'simple_select'//'draw_polygon'
+    });
+    map.addControl(draw, 'top-left');
 
 
 
-    function myFunction2(step) {
+    function enableDrawmode(step) {
         draw.set({
           type: 'FeatureCollection',
           features: []
@@ -160,19 +176,16 @@ map.addControl(draw, 'top-left');
         draw.changeMode('draw_polygon');
      }
 
-     function myFunction3(step) {
+    function deleteDraw(step) {
         draw.trash();
-     }
+    }
 
     function EditFlurstueck(geom, id){
-
         map.setLayoutProperty("flur", "visibility", "none");
-
         map.setFeatureState(
                     {source: 'busstop', sourceLayer:'flur', id: id},
                     {visible: false}
                 );
-
 
         geom= JSON.parse(decodeURIComponent(geom))
         popup.remove();
@@ -187,8 +200,6 @@ map.addControl(draw, 'top-left');
             geometry: geom
           }]
         });
-
-
     }
 
     map.on('draw.create', updateArea);
@@ -208,49 +219,39 @@ map.addControl(draw, 'top-left');
     }
 
 
+    deletedIDs = [];
+
+    document.addEventListener('keydown', function(event) {
+          if (event.ctrlKey && event.key === 'z') {
+            //alert('Undo!');
+              if (deletedIDs.length > 0){
+                  undoID = deletedIDs.pop();
+                  map.setFeatureState(
+                            {source: 'busstop', sourceLayer:'myexamplemultipolygon', id: undoID},
+                            {del: true}
+                        );
 
 
-
-
-
-
-
-
-
-
-   deletedIDs = [];
-
-   document.addEventListener('keydown', function(event) {
-  if (event.ctrlKey && event.key === 'z') {
-    //alert('Undo!');
-      if (deletedIDs.length > 0){
-          undoID = deletedIDs.pop();
-          map.setFeatureState(
-                    {source: 'busstop', sourceLayer:'myexamplemultipolygon', id: undoID},
-                    {del: true}
-                );
-
-
-      }
-  }
-});
+              }
+          }
+    });
 
     var popup = null;
     var currentCoordinateIndex = 0;
 
-        function myFunction(step) {
+    function flyStep(step) {
         map.flyTo({
-    center: [13.331855527577858,52.50979501127969],
-    zoom: 18,
-    essential: true
-  });
+            center: [13.331855527577858,52.50979501127969],
+            zoom: 18,
+            essential: true
+          });
         //console.log(map);
         //document.getElementById("map").flyTo(0,0, 19);
-}
+    }
 
         // When the user moves their mouse over the state-fill layer, we'll update the
         // feature state for the feature under the mouse.
-    hoveredStateId = null;
+        hoveredStateId = null;
         map.on('mousemove', 'flur', (e) => {
             if (e.features.length > 0) {
                 if (hoveredStateId) {
@@ -296,11 +297,13 @@ map.addControl(draw, 'top-left');
 
 
     map.on('click', 'myexamplemultipolygon', (e) => {
-        //https://stackoverflow.com/questions/47576527/how-to-manipulate-event-bubbling-when-registering-click-event-upon-a-layer-in-ma
-       e.originalEvent.preventDefault();
-        var latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
-        if (true) {
 
+        var latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
+        if (!deletedIDs.includes(e.features[0].id)) {
+
+            //https://stackoverflow.com/questions/47576527/how-to-manipulate-event-bubbling-when-registering-click-event-upon-a-layer-in-ma
+            //prevents that all layers are "clicked on", i.e. only top layer is clicked on
+            e.originalEvent.preventDefault();
 
             var innerHTML = `
                 <div style="text-align: center;">
@@ -356,25 +359,25 @@ map.addControl(draw, 'top-left');
 
 
     function onYesClick(id) {
-    // Code to execute when the "Yes" button is clicked
-    console.log("Yes button clicked!", id);
-    console.log(map);
-    deletedIDs.push(id);
-    map.setFeatureState(
-                    {source: 'busstop', sourceLayer:'myexamplemultipolygon', id: id},
-                    {del: false}
-                );
-    popup.remove();
+        // Code to execute when the "Yes" button is clicked
+        console.log("Yes button clicked!", id);
+        console.log(map);
+        deletedIDs.push(id);
+        map.setFeatureState(
+                        {source: 'busstop', sourceLayer:'myexamplemultipolygon', id: id},
+                        {del: false}
+                    );
+        popup.remove();
 
 
 
-}
+    }
 
-function onNoClick() {
-    // Code to execute when the "No" button is clicked
-    console.log("No button clicked!");
-    popup.remove();
-}
+    function onNoClick() {
+        // Code to execute when the "No" button is clicked
+        console.log("No button clicked!");
+        popup.remove();
+    }
 
 
 

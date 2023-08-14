@@ -152,7 +152,11 @@ def calculate_HPC(poly_list):
         layerdict[layer] = gpd.GeoDataFrame()
 
     straßen = getStreetsfromOSM(alkis.to_crs("WGS84").loc[0, 'geometry'], tags={"highway": True})
+
     joined_gdf = gpd.sjoin(straßen.to_crs(25833), alkis.to_crs(25833), op='within')
+    #straßen = joined_gdf.intersection(alkis.geometry[0]).to_crs(4326)
+
+
 
     flurstück_bounds = (
         alkis.geometry.bounds['minx'].min(), alkis.geometry.bounds['miny'].min(), alkis.geometry.bounds['maxx'].max(),
