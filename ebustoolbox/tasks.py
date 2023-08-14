@@ -30,7 +30,7 @@ INTEGER_INF = 9999
 def fill_db_with_input_files(cleaned_data, request):
     django_scenario = scenario_to_db(cleaned_data, request)
     args = get_args(django_scenario)
-    simba_schedule = simba.simulate.pre_simulation(args)
+    simba_schedule = get_schedule_from_args(args)
 
     stations_to_db(django_scenario.options["station_data_path"], django_scenario.options["electrified_stations"],
                    django_scenario)
@@ -39,6 +39,11 @@ def fill_db_with_input_files(cleaned_data, request):
     schedule_to_db(simba_schedule, django_scenario)
 
     return django_scenario, simba_schedule, args
+
+
+def get_schedule_from_args(args):
+    simba_schedule = simba.simulate.pre_simulation(args)
+    return simba_schedule
 
 
 def get_args(django_scenario):
@@ -241,17 +246,19 @@ def _celery_generate_zipped_scenario(self, task_id: str):
     _generate_zipped_scenario(task_id)
 
 
-def run_ebus_toolbox(schedule, args, task_id):
+def run_ebus_toolbox(schedule: simba.schedule.Schedule, args, task_id):
     if settings.CELERY_BROKER_URL:
         print("Using Celery")
-        _ = _celery_run_ebus_toolbox.apply_async((schedule, args, str(task_id)),
+        args_dict = vars(args)
+        _ = _celery_run_ebus_toolbox.apply_async((args_dict, str(task_id)),
                                                  task_id=task_id)
     else:
         _run_ebus_toolbox(schedule, args, task_id)
 
-
 @shared_task(bind=True)
-def _celery_run_ebus_toolbox(self, schedule, args, task_id):
+def _celery_run_ebus_toolbox(self, args, task_id):
+    args = Namespace(**args)
+    schedule = get_schedule_from_args(args)
     _run_ebus_toolbox(schedule, args, task_id)
 
 

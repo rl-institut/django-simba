@@ -112,7 +112,7 @@ def long_running_task_status_view(request):
         print("Task is finished")
         return JsonResponse({'success': True})
     print('Task is pending')
-    return JsonResponse({'success': True})
+    return JsonResponse({'success': False})
 
 
 def home_view(request):
