@@ -88,7 +88,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('geom', django.contrib.gis.db.models.fields.PointField(srid=4326)),
-                ('name', models.CharField(default='ImaBusStop')),
+                ('name', models.CharField(default='ImaBusStop', max_length=100)),
                 ('scenario', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='ebustoolbox.scenario')),
             ],
         ),

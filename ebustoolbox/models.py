@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.contrib.gis.db import models
+from django.db.models import JSONField
 from django.dispatch import receiver
 from django.contrib.postgres.fields import ArrayField
 
@@ -58,8 +59,8 @@ class VehicleType(models.Model):
     # TODO add charging curve & v2g curve
 
     # SOC, ChargingPower
-    charging_curve = ArrayField(ArrayField(models.FloatField(), size=2))
-    v2g_curve = ArrayField(ArrayField(models.FloatField(), size=2), null=True)
+    charging_curve = JSONField(ArrayField(models.FloatField(), size=2))
+    v2g_curve = JSONField(ArrayField(models.FloatField(), size=2), null=True)
 
     v2g = models.BooleanField(default=False)
 
