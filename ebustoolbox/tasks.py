@@ -291,7 +291,7 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
     eflips_input = dict()
     scenario = schedule.run(args)
 
-    inital_dict = dict(departure_soc=None,
+    initial_dict = dict(departure_soc=None,
                        vehicle_type=[],
                        delta_soc=[],
                        arrival_soc=None,
@@ -299,7 +299,7 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
                        charging_type=None,
                        )
     # initialize eflips input
-    eflips_input = {Rotation.objects.get(scenario=db_scenario, name=rot_id).id:inital_dict
+    eflips_input = {Rotation.objects.get(scenario=db_scenario, name=rot_id).id:initial_dict
                     for rot_id in schedule.rotations}
 
     for schedule, key in vary_schedule(schedule):
