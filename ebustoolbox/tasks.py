@@ -294,17 +294,25 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
             v_soc, start, end = simba.optimizer_util.get_rotation_soc_util(rot_id=rot_id,
                                                                            schedule=schedule,
                                                                            scenario=scenario)
-            rot_soc = v_soc[start:end]
+            # Start is the first index during the rotation, with a decreased soc already, therefore
+            # use the index before
+            start_idx = max(start, 0)
+            rot_soc = v_soc[start_idx:end]
             eflips_input[key][rot_id] = dict(departure_soc=rot_soc[0],
                                              arrival_soc=rot_soc[-1],
                                              minimal_soc=min(rot_soc),
                                              charging_type = rotation.charging_type
                                             )
-    # schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
+    schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
     # print(time.time() - start, " since start, after task")
+
     scenarios = Scenario.objects.filter(task_id=task_id)
     assert len(scenarios) == 1
     scenarios.update(finished=timezone.now())
+
+    with open(settings.BASE_DIR / args.output_directory / "report_1/eflips_input.json", "w") as f:
+        json.dump(eflips_input, f, indent=4)
+
     file_path = settings.BASE_DIR / args.output_directory / "report_1/rotation_socs.csv"
     save_vehicle_properties_from_file(file_path, scenarios[0])
     # station_file_path = args.station_data_path
