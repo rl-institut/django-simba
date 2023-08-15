@@ -81,14 +81,14 @@ class Vehicle(models.Model):
     def __str__(self):
         return self.name
 
-
+# ToDo Deprecated
 class VehicleProperties(models.Model):
     date = models.DateTimeField()
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
     soc = models.FloatField(null=True)
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
 
-
+# ToDo Deprecated
 class EbusToolboxTimeseries(models.Model):
     date = models.DateTimeField(default=None)
     soc = models.FloatField()
