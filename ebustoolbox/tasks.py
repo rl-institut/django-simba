@@ -30,7 +30,7 @@ INTEGER_INF = 9999
 def fill_db_with_input_files(cleaned_data, request):
     django_scenario = scenario_to_db(cleaned_data, request)
     original_args = get_args(django_scenario)
-    simba_schedule, new_args = get_schedule_from_args(original_args)
+    simba_schedule = get_schedule_from_args(original_args)
 
     stations_to_db(django_scenario.options["station_data_path"], django_scenario.options["electrified_stations"],
                    django_scenario)
@@ -42,8 +42,8 @@ def fill_db_with_input_files(cleaned_data, request):
 
 
 def get_schedule_from_args(original_args):
-    simba_schedule, new_args = simba.simulate.pre_simulation(original_args)
-    return simba_schedule, new_args
+    simba_schedule = simba.simulate.pre_simulation(original_args)
+    return simba_schedule
 
 
 def get_args(django_scenario):
