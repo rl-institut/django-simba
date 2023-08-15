@@ -289,23 +289,49 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
         schedule.stations[key]["cs_power_deps_oppb"] = 0
 
     eflips_input = dict()
+    scenario = schedule.run(args)
+
+    inital_dict = dict(departure_soc=None,
+                       vehicle_type=[],
+                       delta_soc=[],
+                       arrival_soc=None,
+                       minimal_soc=None,
+                       charging_type=None,
+                       )
+    # initialize eflips input
+    eflips_input = {Rotation.objects.get(scenario=db_scenario, name=rot_id).id:inital_dict
+                    for rot_id in schedule.rotations}
+
     for schedule, key in vary_schedule(schedule):
-        scenario = schedule.run(args)
-        eflips_input[key] = dict()
+        schedule.calculate_consumption()
         for rot_id, rotation in schedule.rotations.items():
-            v_soc, start, end = simba.optimizer_util.get_rotation_soc_util(rot_id=rot_id,
+            if rotation.charging_type != "depb":
+                continue
+            db_rotation = Rotation.objects.get(scenario=db_scenario, name=rot_id)
+            eflips_input[db_rotation.id].update(departure_soc=schedule.min_recharge_deps_depb,
+                                                charging_type=rotation.charging_type,
+                                                )
+            eflips_input[db_rotation.id]["vehicle_type"].append(rotation.vehicle_type)
+            vehicle = schedule.vehicle_types[rotation.vehicle_type]["depb"]
+            eflips_input[db_rotation.id]["delta_soc"].append(rotation.consumption / vehicle["capacity"])
+
+    for rot_id, rotation in schedule.rotations.items():
+        if rotation.charging_type != "oppb":
+            continue
+        db_rotation = Rotation.objects.get(scenario=db_scenario, name=rot_id)
+        v_soc, start, end = simba.optimizer_util.get_rotation_soc_util(rot_id=rot_id,
                                                                            schedule=schedule,
                                                                            scenario=scenario)
-            db_rotation = Rotation.objects.get(scenario =db_scenario , name=rot_id)
-            # Start is the first index during the rotation, with a decreased soc already, therefore
-            # use the index before
-            start_idx = max(start, 0)
-            rot_soc = v_soc[start_idx:end]
-            eflips_input[key][db_rotation.id] = dict(departure_soc=rot_soc[0],
-                                                     arrival_soc=rot_soc[-1],
-                                                     minimal_soc=min(rot_soc),
-                                                     charging_type=rotation.charging_type
-                                                     )
+        # Start is the first index during the rotation, with a decreased soc already, therefore
+        # use the index before
+        start_idx = max(start-1, 0)
+        rot_soc = v_soc[start_idx:end]
+        eflips_input[db_rotation.id] = dict(departure_soc=rot_soc[0],
+                                                 arrival_soc=rot_soc[-1],
+                                                 minimal_soc=min(rot_soc),
+                                                 charging_type=rotation.charging_type,
+                                                 vehicle_type=rotation.vehicle_type,
+                                                 )
     schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
 
     db_scenario.finished = timezone.now()
