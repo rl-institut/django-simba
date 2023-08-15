@@ -278,6 +278,8 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
     eflips_input = dict()
     args.attach_vehicle_soc = True
 
+    db_scenario = Scenario.objects.get(task_id=task_id)
+
     # By setting charging power for depot buses to zero, we make sure every rotation will generate
     # a new bus
     args.cs_power_depbs_depb = 0
@@ -294,29 +296,25 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
             v_soc, start, end = simba.optimizer_util.get_rotation_soc_util(rot_id=rot_id,
                                                                            schedule=schedule,
                                                                            scenario=scenario)
+            db_rotation = Rotation.objects.get(scenario =db_scenario , name=rot_id)
             # Start is the first index during the rotation, with a decreased soc already, therefore
             # use the index before
             start_idx = max(start, 0)
             rot_soc = v_soc[start_idx:end]
-            eflips_input[key][rot_id] = dict(departure_soc=rot_soc[0],
-                                             arrival_soc=rot_soc[-1],
-                                             minimal_soc=min(rot_soc),
-                                             charging_type = rotation.charging_type
-                                            )
+            eflips_input[key][db_rotation.id] = dict(departure_soc=rot_soc[0],
+                                                     arrival_soc=rot_soc[-1],
+                                                     minimal_soc=min(rot_soc),
+                                                     charging_type=rotation.charging_type
+                                                     )
     schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
-    # print(time.time() - start, " since start, after task")
 
-    scenarios = Scenario.objects.filter(task_id=task_id)
-    assert len(scenarios) == 1
-    scenarios.update(finished=timezone.now())
-
+    db_scenario.finished = timezone.now()
+    db_scenario.save()
     with open(settings.BASE_DIR / args.output_directory / "report_1/eflips_input.json", "w") as f:
         json.dump(eflips_input, f, indent=4)
 
     file_path = settings.BASE_DIR / args.output_directory / "report_1/rotation_socs.csv"
-    save_vehicle_properties_from_file(file_path, scenarios[0])
-    # station_file_path = args.station_data_path
-    # bus_stops_from_file(station_file_path, scenarios[0])
+    save_vehicle_properties_from_file(file_path, db_scenario)
 
 
 def save_vehicle_properties_from_file(file_path, scenario):
