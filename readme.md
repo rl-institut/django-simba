@@ -1,6 +1,6 @@
 ## Installation
 
-1. Clone this git repository (or [download a specific release](https://github.com/rl-institut/django-simba/releases)
+1. Clone this git repository (or [download a specific release](https://github.com/rl-institut/django-simba/releases))
     ```bash
     git clone git@github.com:rl-institut/django-simba.git
     ```
