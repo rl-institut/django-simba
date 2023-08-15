@@ -1,14 +1,20 @@
+from datetime import datetime, timedelta
+
 from django.conf import settings
 from django.contrib.gis.db import models
 from django.dispatch import receiver
+from django.contrib.postgres.fields import ArrayField
 
 from pathlib import Path
 
-from ebus_map.managers import MVTManager, X, Y
+
 
 
 class Scenario(models.Model):
     name = models.CharField(max_length=100, blank=False)
+    opps_charging_power = models.FloatField(default=None, null=True, blank=True)
+    deps_charging_power = models.FloatField(default=None, null=True, blank=True)
+
     created = models.DateTimeField(auto_now_add=True)
     task_id = models.TextField(default=None, null=True, blank=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
@@ -28,58 +34,50 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
             path.unlink()
 
 
-class BusStop(models.Model):
-    # Map Engine models need geom and name as first columns
-    geom = models.PointField(srid=4326)  # with z elevation
-    name = models.TextField()
-    VOLTAGE_LEVEL_CHOICES = ["HV", "HV/MV", "MV", "MV/LV", "LV"]
-    CHARGE_TYPES = (("oppb", "Opportunity"), ("depb", "Depot"))
 
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
-
-    charge_type = models.CharField(max_length=4, choices=CHARGE_TYPES, null=True)
-    voltage_level = models.CharField(max_length=5, choices=[(c, c) for c in VOLTAGE_LEVEL_CHOICES],
-                                     null=True)
-
-    # prior attributes, used for map (?)
-    objects = models.Manager()
-    from django.db.models.functions import Length
-
-    # Make sure all annotations are part of the columns below, if the data is supposed to be
-    # delivered to the map
-    annotations = {
-        "center": models.functions.Centroid("geom"),
-        "lat": X("center", output_field=models.DecimalField()),
-        "lon": Y("center", output_field=models.DecimalField()),
-        "title_length": Length("name")
-    }
-
-    vector_tiles = MVTManager(
-        geo_col="geom", columns=["id", "geom", "name", "lat", "lon", "title_length"]
-    )
-
-    layer = "busstop"
-    mapping = {
-        "id": "id",
-        "geom": "POINT",
-        "name": "name",
-        "geom_label": "geom_label",
-    }
+class VehicleClass(models.Model):
+    name = models.CharField(max_length=100, blank=False)
+    # TODO do vehicle classes need to be connected to a scenario?
 
     @classmethod
-    def get_popup_data(cls, id):
-        obj = cls.objects.get(id=id)
-        data = {}
-        data["title"] = obj.name
-        data["lat"] = obj.geom.x
-        data["lon"] = obj.geom.y
-        return data
+    def get_default_pk(cls):
+        vehicle_class, created = cls.objects.get_or_create(
+            name='SB',  # TODO necessary? better default?
+        )
+        return vehicle_class.pk
+
+
+class VehicleType(models.Model):
+    name = models.CharField(max_length=100, blank=False)
+    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+    vehicle_class = models.ForeignKey(VehicleClass, on_delete=models.CASCADE)
+    flex_charging = models.BooleanField()
+    battery_capacity = models.FloatField()
+    charging_efficiency = models.FloatField(default=0.95)
+    minimum_charging_power = models.FloatField(default=0)
+    # TODO add charging curve & v2g curve
+
+    # SOC, ChargingPower
+    charging_curve = ArrayField(ArrayField(models.FloatField(), size=2))
+    v2g_curve = ArrayField(ArrayField(models.FloatField(), size=2), null=True)
+
+    v2g = models.BooleanField(default=False)
+
+    # TODO link to consumption table if no value is given here?
+    consumption = models.FloatField(default=None, null=True)
+    length = models.FloatField(default=None, null = True)
 
 
 class Vehicle(models.Model):
     name = models.CharField(max_length=100, blank=False)
+    vehicle_type = models.ForeignKey(VehicleType, on_delete=models.CASCADE, null=True, blank=True)
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
 
+    # ToDo insert output here or create other Class "VehicleOutput" which also contains the
+    # simulation results regarding this vehicle
+
+    # date_time_stamps = ArrayField(models.DateTimeField( default = None, null=True))
+    # socs = ArrayField(models.FloatField( default = None, null=True))
     def __str__(self):
         return self.name
 
@@ -97,6 +95,59 @@ class EbusToolboxTimeseries(models.Model):
 
     class Meta:
         ordering = ('date',)
+
+
+class Rotation(models.Model):
+    name = models.CharField(max_length=100, blank=False)
+    # TODO on delete concept? also depends on if vehicle class is tied to scenario
+    vehicle_class = models.ForeignKey(VehicleClass, on_delete=models.SET_DEFAULT, default=VehicleClass.get_default_pk)
+    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+
+
+class Station(models.Model):
+    # Map Engine models need geom and name as first columns
+    geom = models.PointField(dim=3, srid=4326)  # with z elevation
+    name = models.TextField()
+
+    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+
+    VOLTAGE_LEVEL_CHOICES = ["HV", "HV/MV", "MV", "MV/LV", "LV"]
+    CHARGE_TYPES = (("oppb", "Opportunity"), ("depb", "Depot"))
+
+    is_electrified = models.BooleanField(default=False)
+    charge_type = models.CharField(max_length=4, choices=CHARGE_TYPES, null=True)
+    voltage_level = models.CharField(max_length=5, choices=[(c, c) for c in VOLTAGE_LEVEL_CHOICES],
+                                     null=True)
+    amount_charging_places = models.IntegerField(default=0, null=True)
+    power_per_charger = models.FloatField(default = None, null = True)
+    total_power = models.FloatField(default = None, null = True)
+
+
+class Trip(models.Model):
+    rotation = models.ForeignKey(Rotation, on_delete=models.CASCADE)  # TODO do all ForeignKeys need cascade?
+    departure_stop = models.ForeignKey(Station, on_delete=models.CASCADE,  related_name="trip_departure_set")
+    departure_time = models.DateTimeField(blank=False)
+    arrival_stop = models.ForeignKey(Station, on_delete=models.CASCADE,  related_name="trip_arrival_set")
+    arrival_time = models.DateTimeField(blank=False)
+    distance = models.FloatField()
+
+    # ToDo do we want a line object?
+    line = models.CharField(max_length=100, blank=True, null=True)
+    temperature = models.FloatField(default=None, null = True)
+    level_of_loading = models.FloatField(default=None, null = True)
+    # If time resolution is minutes, there might be trips with 0 minutes duration. To resolve
+    # division by 0, we use a minimal duration of 1 second
+    @property
+    def duration_in_seconds(self):
+        return min((self.arrival_time-self.departure_time).total_seconds(),1)
+    @property
+    def speed(self):
+        return self.distance/self.duration_in_seconds
+
+    @property
+    def incline(self):
+        return (self.departure_stop.geom.z-self.arrival_stop.geom.z)/min(self.distance,1)
+
 
 #
 # # Create your models here.

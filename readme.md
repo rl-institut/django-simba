@@ -1,102 +1,47 @@
-**To run the server, type from src:**
+## Installation
 
-`
-`
+1. Clone this git repository (or [download a specific release](https://github.com/rl-institut/django-simba/releases)
+    ```bash
+    git clone git@github.com:rl-institut/django-simba.git
+    ```
+2. Install prerequisites
+    1. The currently suggested Python version is 3.11.*, it may work with other versions, but this is not tested.
+    2. This software requires GDAL, which can be installed
+         - on Linux via the system's package manager (e.g. `apt install gdal-bin` on Ubuntu)
+         - on macOS via [Homebrew](https://brew.sh/) (`brew install gdal`)
+         - on Windows via [OSGeo4W](https://trac.osgeo.org/osgeo4w/) (select the `gdal` package)
+    3. The software requires a PostgreSQL database with the PostGIS package.
+         - The software is found [here](https://www.postgresql.org/download/) and [here](https://postgis.net/documentation/getting_started/) or via your system's (or server's) package manager (e.g. `apt install postgis`)
+         - The credentials for the database are set in `ebusdjango/settings.py` in the `DATABASES`variable. **SECURITY WARNING: Do not commit your passwords to GitHub!**
+         - In order to set up PostGIS, the user you created needs to have 'superuser' privileges.
+    4. The software can optionally use [backend for Celery](https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html) to be available. Its address is set in the `CELERY_BROKER_URL` in the `.env` file.
+         - [rabbitmq](https://www.rabbitmq.com/) can be installed on ubuntu using `apt install rabbitmq-server`
+         - A user can be added using the following commands (or the guest user can bs used):
+             1. `rabbitmqctl add_user $user $password`
+             2. `rabbitmqctl set_permissions -p / $user ".*" ".*" ".*"`
+    5. Using a [virtual environment](https://docs.python.org/3/library/venv.html) is recommended.
+    6. The dependencies are listed in the `requirements.txt` file. They can be installed via
+        ```bash
+        pip install -r requirements.txt
+        ```
+    7. Django uses an .env file to read user specific data. This file has to be created by the user and is not shared through GitHub to make uploads of sensitive data impossible. Create a file named `.env` with the following input`
+   ````text
+    DJANGO_SECRET_KEY=INSERT_YOUR_KEY_HERE
+    DJANGO_DEBUG=True
+    # Replace with your own database info
+    DATABASE_URL=postgis://YOUR_DB_USERNAME:YOUR_PASSWORD@localhost/YOUR_DB_NAME
+    # CELERY_BROKER_URL can be commented out to skip using celery
+    # CELERY_BROKER_URL=pyamqp://guest@localhost//
+    TILING_SERVICE_TOKEN=GET_YOUR_TOKEN_THROUGH_MAP_TILER
+    TILING_SERVICE_STYLE_ID=basic-v2
+    DJANGO_SETTINGS_MODULE=ebusdjango.settings
+    ````
 
-to migrate from src  
-`python manage.py migrate`
+3. Set up django (inside the virtual environment)
+    1. Set up the database: `python manage.py migrate`
+    2. Create admin account: `python manage.py createsuperuser` **TODO: Is this necessary?**
 
-create admin account via
-`python manage.py createsuperuser`
-
-to add an app called "myapp" type
-
-`python manage.py startapp myapp `
-
-implement the model in myapp similar to
-
-
-`# Create your models here.
-class myApp(models.Model):
-    description = models.TextField()`
-
-
-now you have to add the app name to list INSTALLED_APPS in the settings.py in ebusdjango 
-`INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    # custom apps
-    'myapp',
-]`
-
-now run 
-`python manage.py makemigrations`
-
-and
-`python manage.py migrate`
-
-these last 2 commands have to be run in conjunction whenever models.py is changed
-
-now register your app in admin.py of your "myapp" folder
-
-`# Register your models here.
-from .models import Calculator
-admin.site.register(myApp)`
-
-to get into the shell mode of you server type
-python manage.py shell
-
-import your model via
-from myapp.models import myApp
-
-check which data is in your database via
-myApp.objects.all()
-
-you can also create objects via you myApp constructor via and passing all the model attributes 
-myapp.objects.create(description="foo" ...)
-
-to create your own views/ pages go to
-create an app called pages. The order of things is important
-python manage.py startapp pages
-add pages to INSTALLED_APPS in settings.py
-
-go to views.py in your pages folder, that got created
-from django.shortcuts import render
-from django.http import HttpResponse
-# Create your views here.
-def home_view(*args, **kwargs):
-    return HttpResponse("<h1> Hello World </h1>")
-
-to reach this page it needs to  be added to urlpatterns in urls.py
-from pages.views import home_view
-
-urlpatterns = [
-    path('', home_view, name='home'),
-    path('admin/', admin.site.urls),
-
-]
-
-make sure to give the function and not the function_call (eg. function and not function())
-also make sure to have that python knows pages is part of your sources
-
-make use of django templating to get a proper view httpResponse 
-
-from django.shortcuts import render
-from django.http import HttpResponse
-# Create your views here.
-def home_view(request, *args, **kwargs):
-    print(request.user)
-    return render(request, "home.html", {})
-
-def contact_view(*args, **kwargs):
-    return HttpResponse("<h1> Contacts </h1>")
-
-create folder named templates and put your html templates inside
-add templates path to TEMPLATES in settings.py
-
-to start celery worker
-$ celery -A ebusdjango worker --loglevel=info
+## Running
+1. Only if `.env`has a celery broker listed, start a celery worker (in another terminal): `celery -A ebusdjango worker -l info`
+    - on macOS `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` before the command may be necessary 
+2. Run the server: `python manage.py runserver`

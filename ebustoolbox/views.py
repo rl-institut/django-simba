@@ -3,11 +3,10 @@ from django.http import FileResponse, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.views.generic import TemplateView
 from django.views.decorators.http import require_GET
+
 from django_mapengine.views import MapEngineMixin
 from django.db.models import Q
 
-from decimal import Decimal
-from pathlib import Path
 from celery.result import AsyncResult
 import plotly.graph_objects as go
 
@@ -16,8 +15,9 @@ from . import dash_app, tasks
 from .forms import UploadFileForm
 from .util import get_unique_task_id
 
-from ebustoolbox.models import VehicleProperties, Vehicle, Scenario, UploadedFile
+import ebustoolbox
 from ebustoolbox.forms import ChartForm
+from ebustoolbox.models import VehicleProperties, Vehicle, Scenario
 
 
 def get_map(request):
@@ -86,7 +86,7 @@ def result_view(request):
 def wait_view(request):
     """View while waiting for results. Will trigger success view as soon as long running task
     returns pending"""
-    print("Ebustoolbox is calculating. Showing wait view")
+    print("SimBA is calculating. Showing wait view")
     return render(request, "wait.html")
 
 
@@ -112,7 +112,7 @@ def long_running_task_status_view(request):
         print("Task is finished")
         return JsonResponse({'success': True})
     print('Task is pending')
-    return JsonResponse({'success': True})
+    return JsonResponse({'success': False})
 
 
 def home_view(request):
@@ -126,50 +126,28 @@ def home_view(request):
         if not form.is_valid():
             return render(request, "index.html", {"form": form})
 
-        scenario = Scenario.objects.create(name=form.cleaned_data["title"])
-        args = dict(form.cleaned_data)
-        args["mode"] = list(map(lambda s: s.strip(), args["modes"].split(',')))
-        # decimal -> float
-        for k, v in args.items():
-            if type(v) == Decimal:
-                args[k] = float(v)
-        # set default files if not given
-        for k, v in {
-            "input_schedule": "trips_example.csv",
-            "electrified_stations": "electrified_stations.json",
-            "vehicle_types": "vehicle_types.json",
-            "station_data_path": "all_stations.csv",
-            "outside_temperature_over_day_path": "default_temp_summer.csv",
-            "level_of_loading_over_day_path": "default_level_of_loading_over_day.csv",
-            "cost_parameters_file": "cost_params.json",
-        }.items():
-            if args[k]:
-                # uploaded file: store in upload folder
-                f = UploadedFile.objects.create(scenario=scenario, file=request.FILES[k])
-                args[k] = f.file.path
-                continue
-            p = Path(settings.STATIC_URL, __package__, "examples", v)
-            if settings.DEBUG:
-                # use app static folder
-                if p.is_absolute():
-                    # remove first slash
-                    p = Path(str(p)[1:])
-                p = Path(settings.BASE_DIR, __package__, p)
-            if not p.exists():
-                print(f"FILE ERROR: {k} COULD NOT BE SET ({str(p)})")
-                continue
-            args[k] = str(p)
-
-        scenario.options = args
-        scenario.save()
-
-        response = redirect('simba:result')
+        django_scenario, simba_schedule, args = \
+            tasks.fill_db_with_input_files(form.cleaned_data, request)
         # start computation
         task_id = get_unique_task_id()
-        scenario.task_id = task_id
-        scenario.save()
-        tasks.run_ebus_toolbox(args, task_id)
+        django_scenario.task_id = task_id
+        django_scenario.save()
+        tasks.run_ebus_toolbox(simba_schedule, args, task_id)
+        if "ebus_map" in settings.INSTALLED_APPS:
+            from ebus_map.models import Station as MapStation
+            stations = ebustoolbox.models.Station.objects.filter(scenario=django_scenario)
+            # obj_id = 1 if MapStation.objects.last() is None else MapStation.objects.last().id + 1
+            map_stations = []
+            for station in stations:
+                map_stat = MapStation()
+                map_stat.__dict__.update(station.__dict__)
+                # map_stat.id = obj_id
+                map_stations.append(map_stat)
+                map_stat.save()
+            # Bulk creation is more efficient but doe not work with multi tabled inherited models
+            # MapStation.objects.bulk_create(map_stations)
 
+        response = redirect('simba:result')
         response['Location'] += '?task_id=' + task_id
         return response
     else:
