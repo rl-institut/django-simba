@@ -147,4 +147,4 @@ class Trip(models.Model):
 
     @property
     def incline(self):
-        return (self.departure_stop.geom.z - self.arrival_stop.geom.z) / min(self.distance, 1)
+        return (self.arrival_stop.geom.z - self.departure_stop.geom.z) / max(self.distance, 1)
