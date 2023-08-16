@@ -139,7 +139,7 @@ class Trip(models.Model):
     # division by 0, we use a minimal duration of 1 second
     @property
     def duration_in_seconds(self):
-        return min((self.arrival_time - self.departure_time).total_seconds(), 1)
+        return max((self.arrival_time - self.departure_time).total_seconds(), 1)
 
     @property
     def speed(self):
