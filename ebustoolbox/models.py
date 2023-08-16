@@ -139,12 +139,22 @@ class Trip(models.Model):
     # division by 0, we use a minimal duration of 1 second
     @property
     def duration_in_seconds(self):
+        """duration of the trip in seconds
+
+        duration has a minimal value of 1 to avoid division by 0 errors"""
+
         return max((self.arrival_time - self.departure_time).total_seconds(), 1)
 
     @property
     def speed(self):
+        """speed in distance unit per second.
+
+        uses property of duration_in_seconds which has a minimal value of 1"""
         return self.distance / self.duration_in_seconds
 
     @property
     def incline(self):
+        """incline in z units per distance units
+
+        Minimal value for distance is set to 1 to avoid division by 0."""
         return (self.arrival_stop.geom.z - self.departure_stop.geom.z) / max(self.distance, 1)
