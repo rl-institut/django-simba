@@ -8,8 +8,6 @@ from django.dispatch import receiver
 
 class Scenario(models.Model):
     name = models.CharField(max_length=100, blank=False)
-    opps_charging_power = models.FloatField(default=None, null=True, blank=True)
-    deps_charging_power = models.FloatField(default=None, null=True, blank=True)
 
     created = models.DateTimeField(auto_now_add=True)
     task_id = models.TextField(default=None, null=True, blank=True)
@@ -51,7 +49,6 @@ class VehicleType(models.Model):
     battery_capacity = models.FloatField()
     charging_efficiency = models.FloatField(default=0.95)
     minimum_charging_power = models.FloatField(default=0)
-    # TODO add charging curve & v2g curve
 
     # SOC, ChargingPower
     charging_curve = ArrayField(ArrayField(models.FloatField(), size=2))
