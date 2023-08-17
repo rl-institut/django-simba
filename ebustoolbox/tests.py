@@ -1,5 +1,6 @@
 import time
 
+from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.test import TestCase, override_settings, LiveServerTestCase
 from django.utils.dateparse import parse_datetime
 from .forms import UploadFileForm
@@ -12,7 +13,7 @@ from django.urls import reverse
 from selenium import webdriver
 
 
-class MySeleniumTests(LiveServerTestCase):
+class MySeleniumTests(StaticLiveServerTestCase):
     """Note running this is debug does not seem to work"""
 
     # fixtures = ["user-data.json"]
