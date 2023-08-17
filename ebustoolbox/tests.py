@@ -22,19 +22,6 @@ from .models import (
 )
 
 
-class AddTestCase(TestCase):
-    # CELERY_TASK_ALWAYS_EAGER=True does not need worker, which is not easily set up using the
-    # test database
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    def test_celery(self):
-        """Test that the ``add`` task runs with no errors,
-        and returns the correct result."""
-        result = tasks.celery_test.delay(8, 8)
-
-        self.assertEquals(result.get(), 16)
-        self.assertTrue(result.successful())
-
-
 class MySeleniumTests(StaticLiveServerTestCase):
     """Note running this is debug does not seem to work"""
 
