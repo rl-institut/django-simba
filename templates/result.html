@@ -5,7 +5,7 @@
 
   var task_id = "{{task_id }}";
   console.log(task_id);
-
+  var ajaxChartUrl = "{% url 'simba:get_chart' %}";
       function get_chart() {
       console.log("getting chart");
 
@@ -23,7 +23,7 @@
       var urlParams = $.param(vehiclesParams, true );
       console.log(urlParams)
       $.ajax({
-        url: '/get_chart/?' + urlParams,
+        url: ajaxChartUrl +'?' + urlParams,
         type: 'GET',
         dataType: 'html',
         success: function(data) {
