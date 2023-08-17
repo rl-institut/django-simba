@@ -1,11 +1,94 @@
 import time
 
-from django.test import TestCase
+from django.test import TestCase, override_settings, LiveServerTestCase
 from django.utils.dateparse import parse_datetime
-
+from .forms import UploadFileForm
 # Create your tests here.
 from .models import Scenario, UploadedFile, VehicleClass, VehicleType, Vehicle, Rotation, Station, \
     Trip
+
+from django.urls import reverse
+
+from selenium import webdriver
+
+
+class MySeleniumTests(LiveServerTestCase):
+    """Note running this is debug does not seem to work"""
+
+    # fixtures = ["user-data.json"]
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.selenium = webdriver.Chrome()
+        cls.selenium.implicitly_wait(10)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.selenium.quit()
+        super().tearDownClass()
+
+    @override_settings(DEBUG=True)
+    def test_result_generation(self):
+        # Get the URL using reverse
+        url = reverse('simba:home')
+
+        # Simulate a GET request to the URL
+        response = self.client.get(url)
+
+        # Check response status code (200 OK)
+        self.assertEqual(response.status_code, 200)
+
+        # Check if the button is present in the response content
+        self.assertContains(response, 'simba_submit_button', html=False)
+        form = UploadFileForm()
+        # Use all the initial and set values from the form as post data
+        post_data = {f: form.fields[f].initial if form.fields[f].initial is not None
+                     else "" for f in form.fields}
+        # Simulate clicking the button (POST request)
+        response = self.client.post(url, post_data)
+
+        # Check response status code. Have you been redirected
+        self.assertEqual(response.status_code, 302)
+        url = response.url
+        response = self.client.get(url)
+
+        self.selenium.get(f"{self.live_server_url}{url}")
+        # Check for 404 requests
+        errors = self.selenium.get_log('browser')
+        self.assertEqual(len(errors), 0, f"404 errors detected: {errors}")
+
+
+class MyViewTest(TestCase):
+    @override_settings(DEBUG=True)
+    def test_button_click(self):
+        # Get the URL using reverse
+        url = reverse('simba:home')
+
+        # Simulate a GET request to the URL
+        response = self.client.get(url)
+
+        # Check response status code (200 OK)
+        self.assertEqual(response.status_code, 200)
+
+        # Check if the button is present in the response content
+        self.assertContains(response, 'simba_submit_button', html=False)
+        form = UploadFileForm()
+        # Use all the initial and set values from the form as post data
+        post_data = {f: form.fields[f].initial if form.fields[f].initial is not None
+                     else "" for f in form.fields}
+        # Simulate clicking the button (POST request)
+        response = self.client.post(url, post_data)
+
+        # Check response status code. Have you been redirected
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client.get(response.url)
+        self.assertEqual(response.status_code, 200)
+        # Check if the expected response content is present
+        self.assertContains(response, 'Button clicked successfully.')
+
+        # Ensure there are no 404 errors in the response
+        self.assertNotContains(response, '404 Not Found')
 
 
 class ModelTests(TestCase):
