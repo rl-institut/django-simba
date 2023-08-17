@@ -9,7 +9,6 @@ from .forms import UploadFileForm
 from django.urls import reverse
 from selenium import webdriver
 
-from ebustoolbox import tasks
 from .models import (
     Scenario,
     UploadedFile,
