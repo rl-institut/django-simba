@@ -110,6 +110,20 @@ Layers = {
     },
 }
 
+
+
+def extractWohngebiet(local_layerdict):
+    try:
+        wohngeb_gdf = local_layerdict["Tatsächliche Nutzung"]
+        rel = wohngeb_gdf[wohngeb_gdf["bezeich"] == "AX_Wohnbauflaeche"]
+    except:
+        rel = gpd.GeoDataFrame()
+    return rel
+
+
+
+
+
 criteria = {
     "Bäume": {
         "kind": "point",
@@ -119,7 +133,7 @@ criteria = {
     },
     "Wohngebäude": {
         "kind": "poly",
-        "layer_name": "extractWohngebiet",
+        "layer_name": extractWohngebiet,
         "dist_red": dist_wohn_red,
         "dist_green": dist_wohn_green
     },
@@ -133,16 +147,13 @@ criteria = {
 }
 
 
-
 def calculate_HPC(poly_list):
-
-
     print(type(poly_list))
     print("---------------------")
     print(poly_list)
 
     polygon_geom = Polygon(poly_list)
-    alkis = gpd.GeoDataFrame(index=[0], crs = 4326 , geometry=[polygon_geom])
+    alkis = gpd.GeoDataFrame(index=[0], crs=4326, geometry=[polygon_geom])
 
     print(alkis)
     json_dict = {}
@@ -154,9 +165,7 @@ def calculate_HPC(poly_list):
     straßen = getStreetsfromOSM(alkis.to_crs("WGS84").loc[0, 'geometry'], tags={"highway": True})
 
     joined_gdf = gpd.sjoin(straßen.to_crs(25833), alkis.to_crs(25833), op='within')
-    #straßen = joined_gdf.intersection(alkis.geometry[0]).to_crs(4326)
-
-
+    # straßen = joined_gdf.intersection(alkis.geometry[0]).to_crs(4326)
 
     flurstück_bounds = (
         alkis.geometry.bounds['minx'].min(), alkis.geometry.bounds['miny'].min(), alkis.geometry.bounds['maxx'].max(),
@@ -170,6 +179,12 @@ def calculate_HPC(poly_list):
     n2g = makeConnections(gdf)
 
     G = makeGraph(n2g)
+
+    for layer in Layers:
+        success, lgdf = generalizedLayerLoader(Layers[layer]['url'], Layers[layer]['typeNames'], flurstück_bounds)
+        if success > 0:
+            layerdict[layer] = pd.concat([layerdict[layer], lgdf], axis=0, ignore_index=True)
+            local_layerdict[layer] = pd.concat([layerdict[layer], lgdf], axis=0, ignore_index=True)
 
     charger_good, charger_medium, charger_bad = 0, 0, 0
 
@@ -224,13 +239,20 @@ def calculate_HPC(poly_list):
 
                     pantographs_list = place_bus_along(seg)
 
-                    print(pantographs_list)
+                    for pnt in pantographs_list:
+                        c_good, c_mid, c_bad = placeColoredPanthograph(pnt, local_layerdict, criteria)
+                        charger_good += c_good
+                        charger_medium += c_mid
+                        charger_bad += c_bad
 
-    return "HEEELLOOO WWOORRRLLLDDD"
+    return str(charger_bad) + " " + str(charger_medium) + " " + str(charger_good)
+
 
 def generalizedLayerLoader(wfs_url, type_names, sbbox, version='2.0.0', retries=3, timeout=30):
     """
     Retrieves data from a WFS service using the specified URL and parameters.
+
+    TODO: sBBOX is in 25833??
 
     Parameters:
     wfs_url (str): The URL of the WFS service.
@@ -242,14 +264,38 @@ def generalizedLayerLoader(wfs_url, type_names, sbbox, version='2.0.0', retries=
     Returns:
             Tuple, signifying the success of the request and the returned Geodataframe
     """
+
+
+    import pyproj
+
+
+
+
+    # Define the source and target coordinate systems
+    source_crs = 'EPSG:4326'
+    target_crs = 'EPSG:25833'
+
+    # Create a Proj object for the source and target coordinate systems
+    source_proj = pyproj.Proj(source_crs)
+    target_proj = pyproj.Proj(target_crs)
+
+    points_wgs84 = [
+        Point(sbbox[1], sbbox[0]),
+        Point(sbbox[3], sbbox[2]),
+    ]
+
+    # Perform the coordinate transformation for each point
+    sbbox_25833 = [pyproj.transform(source_proj, target_proj, point.x, point.y) for point in points_wgs84]
+
+
+
     gdf = gpd.GeoDataFrame()
     params = {
         "service": "WFS",
         "version": version,
         "request": "GetFeature",
         "typeNames": type_names,
-        "bbox": f'{sbbox[0]},{sbbox[1]},{sbbox[2]},{sbbox[3]},urn:ogc:def:crs:EPSG:25833'
-
+        "bbox": f'{sbbox_25833[0][0]},{sbbox_25833[0][1]},{sbbox_25833[1][0]},{sbbox_25833[1][1]}'
     }
 
     wfs_request_url = Request('GET', wfs_url, params=params).prepare().url
@@ -258,12 +304,18 @@ def generalizedLayerLoader(wfs_url, type_names, sbbox, version='2.0.0', retries=
         try:
 
             response = requests.get(wfs_request_url, timeout=timeout)
+            print(response)
             if response.status_code == 200:
                 try:
+                    print("here")
+                    print(wfs_request_url)
                     gdf = gpd.read_file(wfs_request_url)
+                    print('here2')
                     gdf.crs = 25833
+                    print("success??")
                     return (1, gdf)
                 except:
+                    print("deffo no success")
                     return (0, gdf)
         except requests.exceptions.RequestException as e:
             print("Error: Request failed with exception", e)
@@ -309,7 +361,6 @@ def calculate_curvature(nodes):
 
 
 def subsample_line(start_point, end_point, step_size):
-
     """
     Subsamples a line segment defined by the start and end points.
 
@@ -330,7 +381,8 @@ def subsample_line(start_point, end_point, step_size):
     line_length = line.length
 
     # Calculate the number of steps required
-    num_steps = int(line_length / step_size) #has almost guaranteed error, since distance is a root and most probably irrational
+    num_steps = int(
+        line_length / step_size)  # has almost guaranteed error, since distance is a root and most probably irrational
 
     # Create an empty list to store the new points
     new_points = []
@@ -409,7 +461,7 @@ def place_bus_along(nodes):
             # Move the rotated Busoutline and panthograph along the segment
             # Calculate the magnitude of the vector
             mag = math.sqrt((subs_node_list[end].x - subs_node_list[start].x) ** 2 + (
-                        subs_node_list[end].y - subs_node_list[start].y) ** 2)
+                    subs_node_list[end].y - subs_node_list[start].y) ** 2)
 
             # Calculate the unit vector in the direction of the vector
             unit_vec = ((subs_node_list[end].x - subs_node_list[start].x) / mag,
@@ -458,8 +510,9 @@ def place_bus_along(nodes):
 
     return pantographs
 
+
 def getStreetsfromOSM(geometry, tags):
-    straßen = ox.geometries_from_polygon(geometry,tags=tags)
+    straßen = ox.geometries_from_polygon(geometry, tags=tags)
     straßen = straßen[straßen['highway'] != 'footway']
     straßen = straßen[straßen['highway'] != 'track']
     straßen = straßen[straßen['highway'] != 'pedestrian']
@@ -575,14 +628,15 @@ def makeGraph(nodes2geo):
             else:
                 w = 0
                 colo = 'blue'
-            G.add_edge(row['ID'], neighbor, weight= w,color=colo, length = euclidean_distances([(nodes2geo.loc[neighbor]['x'], nodes2geo.loc[neighbor]['y']), (row['x'], row['y'])])[0][1])
-
+            G.add_edge(row['ID'], neighbor, weight=w, color=colo, length=
+            euclidean_distances([(nodes2geo.loc[neighbor]['x'], nodes2geo.loc[neighbor]['y']), (row['x'], row['y'])])[
+                0][1])
 
     return G
 
+
 # DFS traversal function to sum up the length of disjoint red segments
 def dfs_red_segments(graph, node, visited, red_segments):
-
     visited.add(node)
     for neighbor in graph.neighbors(node):
         edge_data = graph.get_edge_data(node, neighbor)
@@ -591,7 +645,8 @@ def dfs_red_segments(graph, node, visited, red_segments):
         if color == 'red':
             if not red_segments or red_segments[-1]['end'] != node:
                 # create a new red segment if there isn't one or if the last one doesn't end at this node
-                red_segments.append({'start': node, 'end': neighbor, 'length_total': weight, 'nodes': [node, neighbor], 'lengths': [weight]})
+                red_segments.append({'start': node, 'end': neighbor, 'length_total': weight, 'nodes': [node, neighbor],
+                                     'lengths': [weight]})
             else:
                 # add to the current red segment if it continues from the previous node
                 red_segments[-1]['end'] = neighbor
@@ -653,42 +708,40 @@ def calculate_path_angles(coords_list):
         angles.append(angle)
     return angles
 
-def distance(pt, points_df, searchradius = 30):
 
+def distance(pt, points_df, searchradius=30):
     # Define a maximum distance to limit the search
     max_distance = searchradius
 
-    pt = gpd.GeoDataFrame(geometry = [pt], crs = 4326).to_crs(25833)
+    pt = gpd.GeoDataFrame(geometry=[pt], crs=4326).to_crs(25833)
 
     pt = Point(pt.geometry.x, pt.geometry.y)
 
-    points_df =points_df.to_crs(25833)
+    points_df = points_df.to_crs(25833)
 
     # Build a spatial index for the points
     sindex = points_df.sindex
 
-
     # Query the spatial index for nearby points
     possible_matches_index = list(sindex.intersection(pt.buffer(max_distance).bounds))
 
-    if len(possible_matches_index)>0:
+    if len(possible_matches_index) > 0:
         # Filter the nearby points based on their actual distance to the point of interest
         possible_matches = points_df.iloc[possible_matches_index]
         distances = possible_matches.distance(pt)
         min_distance = distances.min()
     else:
-        min_distance = max_distance+1
+        min_distance = max_distance + 1
 
     return min_distance
 
-def distance_poly(pt, polygon, default = -1):
 
-    pt = gpd.GeoDataFrame(geometry = [pt], crs = 4326).to_crs(25833)
+def distance_poly(pt, polygon, default=-1):
+    pt = gpd.GeoDataFrame(geometry=[pt], crs=4326).to_crs(25833)
 
     pt = Point(pt.geometry.x, pt.geometry.y)
 
     distance = default
-
 
     if len(polygon.geometry.is_empty) > 0:
 
@@ -697,31 +750,21 @@ def distance_poly(pt, polygon, default = -1):
         poly = polygon
         point = pt
 
-
         # The points are returned in the same order as the input geometries:
         p1, _ = nearest_points(poly.geometry, point)
 
         ll = []
 
         for poi in p1:
-
             ll.append(poi.distance(pt))
 
-        distance =  min(ll)
+        distance = min(ll)
 
     return distance
 
 
-def extractWohngebiet(local_layerdict):
-    try:
-        wohngeb_gdf = local_layerdict["Tatsächliche Nutzung"]
-        rel = wohngeb_gdf[wohngeb_gdf["bezeich"] == "AX_Wohnbauflaeche"]
-    except:
-        rel = gpd.GeoDataFrame()
-    return rel
 
-
-def placeColoredPanthograph(pnt, local_layerdict, marker_cluster, criteria):
+def placeColoredPanthograph(pnt, local_layerdict, criteria):
     col = "green"  # TODO: enum?
 
     charger_good, charger_medium, charger_bad = 0, 0, 0
@@ -730,6 +773,9 @@ def placeColoredPanthograph(pnt, local_layerdict, marker_cluster, criteria):
 
     for crit in criteria:
         if criteria[crit]["kind"].lower() == "point":
+            print(crit)
+            print(criteria)
+            print(local_layerdict)
             dist = distance(Point(pnt), local_layerdict[criteria[crit]["layer_name"]],
                             criteria[crit]["dist_green"] * 1.5)
         elif isinstance(criteria[crit]["layer_name"], str):
@@ -752,8 +798,6 @@ def placeColoredPanthograph(pnt, local_layerdict, marker_cluster, criteria):
             col == color
 
         full_str += "Abstand " + crit + ": " + str(dist) + "\n"
-
-
 
     if col == "green":
         charger_good += 1
