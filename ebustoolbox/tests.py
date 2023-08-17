@@ -1,7 +1,7 @@
 import time
 
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
-from django.test import TestCase, override_settings, LiveServerTestCase
+from django.test import TestCase, override_settings
 from django.utils.dateparse import parse_datetime
 from .forms import UploadFileForm
 # Create your tests here.
@@ -11,7 +11,27 @@ from .models import Scenario, UploadedFile, VehicleClass, VehicleType, Vehicle, 
 from django.urls import reverse
 
 from selenium import webdriver
+# from celery.contrib.testing.worker import start_worker
+#
+# from django.test import TransactionTestCase
+from ebustoolbox import tasks
+# from celery.contrib.testing.worker import start_worker
+# from ebusdjango.my_celery import app
 
+
+class AddTestCase(TestCase):
+
+
+    # CELERY_TASK_ALWAYS_EAGER=True does not need worker, which is not easily set up using the
+    # test database
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    def test_celery(self):
+        """Test that the ``add`` task runs with no errors,
+        and returns the correct result."""
+        result = tasks.celery_test.delay(8, 8)
+
+        self.assertEquals(result.get(), 16)
+        self.assertTrue(result.successful())
 
 class MySeleniumTests(StaticLiveServerTestCase):
     """Note running this is debug does not seem to work"""
@@ -52,12 +72,10 @@ class MySeleniumTests(StaticLiveServerTestCase):
         self.assertEqual(response.status_code, 302)
         url = response.url
         response = self.client.get(url)
-
         self.selenium.get(f"{self.live_server_url}{url}")
         # Check for 404 requests
         errors = self.selenium.get_log('browser')
         self.assertEqual(len(errors), 0, f"404 errors detected: {errors}")
-
 
 class MyViewTest(TestCase):
     @override_settings(DEBUG=True)
