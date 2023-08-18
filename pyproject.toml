@@ -25,9 +25,11 @@ psycopg2-binary = "^2.9.7"
 matplotlib = "^3.7.2"
 colorbrewer = { git = "https://github.com/henhuy/colorbrewer-python.git" }
 
+
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"
 flake8 = "^6.1.0"
+selenium = "^4.11.2"
 
 [build-system]
 requires = ["poetry-core"]
