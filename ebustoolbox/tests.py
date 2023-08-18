@@ -1,9 +1,12 @@
+import shutil
 import time
+from pathlib import Path
 
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.test import TestCase, override_settings
 from django.utils.dateparse import parse_datetime
 from .forms import UploadFileForm
+from django.conf import settings
 
 # Create your tests here.
 from django.urls import reverse
@@ -20,20 +23,34 @@ from .models import (
     Trip,
 )
 
+TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
+TMP_STATICFILES_DIRS = settings.STATICFILES_DIRS + [settings.BASE_DIR / TMP_UPLOAD]
 
+
+@override_settings(STATICFILES_DIRS=TMP_STATICFILES_DIRS)
+@override_settings(UPLOAD_PATH=TMP_UPLOAD)
 class MySeleniumTests(StaticLiveServerTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls.selenium = webdriver.Chrome()
         cls.selenium.implicitly_wait(10)
+        Path(TMP_UPLOAD).mkdir(parents=True, exist_ok=True)
 
     @classmethod
     def tearDownClass(cls):
         cls.selenium.quit()
         super().tearDownClass()
+        shutil.rmtree(TMP_UPLOAD)
+
+    @override_settings(CELERY_USE=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(DEBUG=True)
+    def test_result_generation_w_celery(self):
+        self.simple_simba_call_in_selenium()
 
     @override_settings(CELERY_USE=False)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(DEBUG=True)
     def test_result_generation(self):
         self.simple_simba_call_in_selenium()
