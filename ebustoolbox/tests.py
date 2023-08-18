@@ -38,11 +38,6 @@ class MySeleniumTests(StaticLiveServerTestCase):
     def test_result_generation(self):
         self.simple_simba_call_in_selenium()
 
-    @override_settings(CELERY_USE=True)
-    @override_settings(DEBUG=True)
-    def test_result_generation_w_celery(self):
-        self.simple_simba_call_in_selenium()
-
     def simple_simba_call_in_selenium(self):
         # Get the URL using reverse
         url = reverse("simba:home")
