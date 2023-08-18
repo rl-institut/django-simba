@@ -8,14 +8,14 @@ packages = [{include = "django_simba"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-spice_ev = " git+https://github.com/rl-institut/spice_ev@51268c639a02f2a94c418d6215376f585dd14af0"
+spice_ev = { git = "https://github.com/rl-institut/spice_ev", rev = "51268c639a02f2a94c418d6215376f585dd14af0"}
 simba = {git = "https://github.com/rl-institut/SimBA", rev = "feature/django_simba"}
 Django = "^4.2.4"
 django-plotly-dash = "^2.2.1"
 pandas = "^2.0.3"
 django-environ = ">=0.10.0, <1.0.0"
 django-appconf = ">=1.0.5, <2.0.0"
-djangorestframework = ">=^3.14.0, <4.0.0"
+djangorestframework = ">=3.14.0, <4.0.0"
 djangorestframework-mvt = ">=0.2.5, <1.0.0"
 django-distill = "^3.1.3"
 django-geojson = "^4.0.0"
@@ -23,6 +23,7 @@ range-key-dict = "^1.1.0"
 celery = "^5.3.1"
 psycopg2-binary = "^2.9.7"
 matplotlib = "^3.7.2"
+colorbrewer = { git = "https://github.com/henhuy/colorbrewer-python.git" }
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"
@@ -38,7 +39,7 @@ target-version = ['py37']
 include = '^ebustoolbox/'
 exclude = '''
 /(
-    # Exclude all directories except foo
+    # Exclude all directories except ebustoolbox
     (?!ebustoolbox/)
 
     # Exclude hidden directories (starting with a dot)

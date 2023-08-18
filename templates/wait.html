@@ -7,7 +7,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
       function check_status(task_id) {
-             $.getJSON('/long_running_task_status/', {task_id: task_id}, function(data) {
+             $.getJSON("{% url 'simba:long_running_task_status_view' %}", {task_id: task_id}, function(data) {
                     if (data.success) {
                         $('#task-status').text('Task completed successfully.');
                         get_success()
@@ -21,7 +21,7 @@
 
     function get_success() {
        const currentQueryString = window.location.search;
-       window.location.href = '/result/' + currentQueryString;
+       window.location.href = "{% url 'simba:result' %}" + currentQueryString;
 }
     </script>
 </head>
