@@ -22,9 +22,6 @@ from .models import (
 
 
 class MySeleniumTests(StaticLiveServerTestCase):
-    """Note running this is debug does not seem to work"""
-
-    # fixtures = ["user-data.json"]
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -36,17 +33,23 @@ class MySeleniumTests(StaticLiveServerTestCase):
         cls.selenium.quit()
         super().tearDownClass()
 
+    @override_settings(CELERY_USE=False)
     @override_settings(DEBUG=True)
     def test_result_generation(self):
+        self.simple_simba_call_in_selenium()
+
+    @override_settings(CELERY_USE=True)
+    @override_settings(DEBUG=True)
+    def test_result_generation_w_celery(self):
+        self.simple_simba_call_in_selenium()
+
+    def simple_simba_call_in_selenium(self):
         # Get the URL using reverse
         url = reverse("simba:home")
-
         # Simulate a GET request to the URL
         response = self.client.get(url)
-
         # Check response status code (200 OK)
         self.assertEqual(response.status_code, 200)
-
         # Check if the button is present in the response content
         self.assertContains(response, "simba_submit_button", html=False)
         form = UploadFileForm()
@@ -57,25 +60,27 @@ class MySeleniumTests(StaticLiveServerTestCase):
         }
         # Simulate clicking the button (POST request)
         response = self.client.post(url, post_data)
-
         # Check response status code. Have you been redirected
         self.assertEqual(response.status_code, 302)
         url = response.url
         response = self.client.get(url)
         self.selenium.get(f"{self.live_server_url}{url}")
+        # give django some time to calculate
+        time.sleep(3)
         # Check for 404 requests
         errors = self.selenium.get_log("browser")
         self.assertEqual(len(errors), 0, f"404 errors detected: {errors}")
+        self.assertContains(response, "Finished")
 
 
 class MyViewTest(TestCase):
-    @override_settings(CELERY_BROKER_URL="pyamqp://guest@localhost//")
+    @override_settings(CELERY_USE=True)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(DEBUG=True)
     def test_submit_button_click_with_celery(self):
         self.submit_default_simulation()
 
-    @override_settings(CELERY_BROKER_URL=None)
+    @override_settings(CELERY_USE=False)
     @override_settings(DEBUG=True)
     def test_submit_button_click_without_celery(self):
         self.submit_default_simulation()

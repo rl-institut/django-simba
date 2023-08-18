@@ -215,7 +215,7 @@ def stations_to_db(stations_path, electrified_stations_path, scenario):
 
 
 def generate_zipped_scenario(task_id):
-    if settings.CELERY_BROKER_URL:
+    if settings.CELERY_USE:
         print("Using Celery")
         _celery_generate_zipped_scenario.apply_async((str(task_id),), task_id=task_id)
     else:
@@ -240,7 +240,7 @@ def _celery_generate_zipped_scenario(self, task_id: str):
 
 
 def run_ebus_toolbox(schedule: simba.schedule.Schedule, args, task_id):
-    if settings.CELERY_BROKER_URL:
+    if settings.CELERY_USE:
         print("Using Celery")
         args_dict = vars(args)
         _ = _celery_run_ebus_toolbox.apply_async((args_dict, str(task_id)),

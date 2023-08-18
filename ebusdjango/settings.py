@@ -100,6 +100,11 @@ WSGI_APPLICATION = 'ebusdjango.wsgi.application'
 DATABASES = {'default': env.db('DATABASE_URL')}
 
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default=None)
+CELERY_USE = env('CELERY_USE', default=None)
+# Make sure there is a celery broker url provided if celery should be used
+if CELERY_USE:
+    assert CELERY_BROKER_URL, "CELERY_BROKER_URL is missing from .env file. If celery should be" \
+                              "used this URL has to provided"
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
