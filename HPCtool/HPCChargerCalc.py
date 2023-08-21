@@ -2,19 +2,17 @@ import geopandas as gpd
 import pandas as pd
 import numpy as np
 
-from .models import BusOutline
+from .models import BusOutline, Tree, Flurstueck
 from django.contrib.gis.geos import MultiPolygon
 from django.contrib.gis.geos import Polygon as djangoPolygon
+from django.contrib.gis.geos import Point as djangoPoint
+
 
 from shapely.geometry import Point, Polygon, LineString
 import shapely
-from shapely.strtree import STRtree
-
-import matplotlib.pyplot as plt
 
 import osmnx as ox
 from requests import Request
-import base64
 
 import math
 import requests
@@ -57,59 +55,33 @@ Layers = {
     #    },
     "Bäume": {
         "url": """https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_wfs_baumbestand""",
-        "typeNames": "fis:s_wfs_baumbestand",
-        "color": "red",
-        "weight": 10,
-
-        "opacity": 1,
+        "typeNames": "fis:s_wfs_baumbestand"
     },
     "ATKIS Wohnbaufläche offen": {
         "url": """https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_atkis_AX_wohnbauflaeche_offen_f""",
-        "typeNames": "fis:s_atkis_AX_wohnbauflaeche_offen_f",
-        "color": "green",
-        "weight": 10,
-
-        "opacity": 1,
+        "typeNames": "fis:s_atkis_AX_wohnbauflaeche_offen_f"
     },
     "Bauwerke (Linien)": {
         "url": """https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_wfs_alkis_bauwerkelinien""",
-        "typeNames": "fis:s_wfs_alkis_bauwerkelinien",
-        "color": "black",
-        "weight": 1,
-
-        "opacity": 1,
+        "typeNames": "fis:s_wfs_alkis_bauwerkelinien"
     },
     "Tatsächliche Nutzung": {
         "url": """https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_wfs_alkis_tatsaechlichenutzungflaechen""",
-        "typeNames": "fis:s_wfs_alkis_tatsaechlichenutzungflaechen",
-        "color": "purple",
-        "weight": 5,
-
-        "opacity": 1,
+        "typeNames": "fis:s_wfs_alkis_tatsaechlichenutzungflaechen"
     },
     "Denkmalschutzrecht": {
         "url": """https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_atkis_AX_denkmalschutzrecht_f""",
-        "typeNames": "fis:s_atkis_AX_denkmalschutzrecht_f",
-        "color": "yellow",
-        "weight": 10,
-        "opacity": 0.3,
+        "typeNames": "fis:s_atkis_AX_denkmalschutzrecht_f"
     },
     "Denkmalschutzrecht2": {
         "url": """https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_atkis_AX_denkmalschutzrecht_p""",
-        "typeNames": "fis:s_atkis_AX_denkmalschutzrecht_p",
-        "color": "yellow",
-        "weight": 10,
-        "opacity": 1,
+        "typeNames": "fis:s_atkis_AX_denkmalschutzrecht_p"
     },
     "Radweg": {
         "url": """https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_Radweg""",
-        "typeNames": "fis:s_Radweg",
-        "color": "cyan",
-        "weight": 1,
-        "opacity": 1,
+        "typeNames": "fis:s_Radweg"
     },
 }
-
 
 
 def extractWohngebiet(local_layerdict):
@@ -119,9 +91,6 @@ def extractWohngebiet(local_layerdict):
     except:
         rel = gpd.GeoDataFrame()
     return rel
-
-
-
 
 
 criteria = {
@@ -185,6 +154,17 @@ def calculate_HPC(poly_list):
         if success > 0:
             layerdict[layer] = pd.concat([layerdict[layer], lgdf], axis=0, ignore_index=True)
             local_layerdict[layer] = pd.concat([layerdict[layer], lgdf], axis=0, ignore_index=True)
+            # TODO: Hier Baum und Flurstück ersetellen ...?
+
+            if layer == "Bäume":
+
+                gdf_4326 = lgdf.to_crs(4326)
+                print(gdf_4326)
+                for row in gdf_4326.geometry:
+                    print(list(zip(*row.xy)))
+                    p3 = djangoPoint(*list(zip(*row.xy)))
+                    print(p3)
+                    Tree.objects.create(geom=p3, name="Herzallee", scenario="neu")
 
     charger_good, charger_medium, charger_bad = 0, 0, 0
 
@@ -237,10 +217,18 @@ def calculate_HPC(poly_list):
             for idx, seg in enumerate(coord_sublists):
                 if len(seg) > 1:
 
-                    pantographs_list = place_bus_along(seg)
+                    buspoly, pantographs_list = place_bus_along(seg)
 
-                    for pnt in pantographs_list:
+                    for (polygon, pnt) in zip(buspoly, pantographs_list):
                         c_good, c_mid, c_bad = placeColoredPanthograph(pnt, local_layerdict, criteria)
+
+                        if c_good > 0:
+                            BusOutline.objects.create(geom=polygon, name="buzz", scenario="neu", quality=2)
+                        elif c_mid > 0:
+                            BusOutline.objects.create(geom=polygon, name="buzz", scenario="neu", quality=1)
+                        else:
+                            BusOutline.objects.create(geom=polygon, name="buzz", scenario="neu", quality=0)
+
                         charger_good += c_good
                         charger_medium += c_mid
                         charger_bad += c_bad
@@ -265,11 +253,7 @@ def generalizedLayerLoader(wfs_url, type_names, sbbox, version='2.0.0', retries=
             Tuple, signifying the success of the request and the returned Geodataframe
     """
 
-
     import pyproj
-
-
-
 
     # Define the source and target coordinate systems
     source_crs = 'EPSG:4326'
@@ -280,13 +264,22 @@ def generalizedLayerLoader(wfs_url, type_names, sbbox, version='2.0.0', retries=
     target_proj = pyproj.Proj(target_crs)
 
     points_wgs84 = [
-        Point(sbbox[1], sbbox[0]),
-        Point(sbbox[3], sbbox[2]),
+        Point(sbbox[0], sbbox[1]),
+        Point(sbbox[2], sbbox[3]),
     ]
 
-    # Perform the coordinate transformation for each point
-    sbbox_25833 = [pyproj.transform(source_proj, target_proj, point.x, point.y) for point in points_wgs84]
+    # Create a transformer
+    transformer = pyproj.Transformer.from_crs(source_crs, target_crs, always_xy=True)
 
+    # Transform the coordinates using the transformer
+    sbbox_25833 = [transformer.transform(point.x, point.y) for point in points_wgs84]
+
+    # Perform the coordinate transformation for each point
+    ##sbbox_25833 = [pyproj.transform(source_proj, target_proj, point.x, point.y) for point in points_wgs84]
+
+
+    print("\n\n\n\n")
+    print(sbbox_25833)
 
 
     gdf = gpd.GeoDataFrame()
@@ -302,20 +295,13 @@ def generalizedLayerLoader(wfs_url, type_names, sbbox, version='2.0.0', retries=
 
     for i in range(retries):
         try:
-
             response = requests.get(wfs_request_url, timeout=timeout)
-            print(response)
             if response.status_code == 200:
                 try:
-                    print("here")
-                    print(wfs_request_url)
                     gdf = gpd.read_file(wfs_request_url)
-                    print('here2')
                     gdf.crs = 25833
-                    print("success??")
                     return (1, gdf)
                 except:
-                    print("deffo no success")
                     return (0, gdf)
         except requests.exceptions.RequestException as e:
             print("Error: Request failed with exception", e)
@@ -433,6 +419,7 @@ def place_bus_along(nodes):
     start = 0
     end = 1
     pantographs = []
+    BusPoly = []
 
     for idx, _ in enumerate(subs_node_list[:-1]):
 
@@ -499,7 +486,9 @@ def place_bus_along(nodes):
 
             # p1 = Polygon(((21, 40), (0, 50), (50, 50), (21, 40)))
             mp = MultiPolygon(p1)
-            BusOutline.objects.create(geom=mp, name="buzz", scenario="neu", quality=0)
+            # BusOutline.objects.create(geom=mp, name="buzz", scenario="neu", quality=0)
+
+            BusPoly.append(mp)
 
             pantographs.append((panto_rot_trans2.geometry.x, panto_rot_trans2.geometry.y))
 
@@ -508,7 +497,7 @@ def place_bus_along(nodes):
 
         end = end + 1
 
-    return pantographs
+    return BusPoly, pantographs
 
 
 def getStreetsfromOSM(geometry, tags):
@@ -763,7 +752,6 @@ def distance_poly(pt, polygon, default=-1):
     return distance
 
 
-
 def placeColoredPanthograph(pnt, local_layerdict, criteria):
     col = "green"  # TODO: enum?
 
@@ -772,12 +760,17 @@ def placeColoredPanthograph(pnt, local_layerdict, criteria):
     full_str = ""
 
     for crit in criteria:
+
         if criteria[crit]["kind"].lower() == "point":
-            print(crit)
-            print(criteria)
-            print(local_layerdict)
-            dist = distance(Point(pnt), local_layerdict[criteria[crit]["layer_name"]],
-                            criteria[crit]["dist_green"] * 1.5)
+            if crit in local_layerdict.keys():
+                print(crit)
+                print(criteria)
+                print(local_layerdict.keys())
+                dist = distance(Point(pnt), local_layerdict[criteria[crit]["layer_name"]],
+                                criteria[crit]["dist_green"] * 1.5)
+            else:
+                dist = criteria[crit]["dist_green"] * 1.5
+
         elif isinstance(criteria[crit]["layer_name"], str):
             dist = distance_poly(Point(pnt), local_layerdict[criteria[crit]["layer_name"]],
                                  criteria[crit]["dist_green"] * 2)
