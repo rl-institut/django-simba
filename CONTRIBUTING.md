@@ -24,7 +24,7 @@ This is no development but can be considered a notable contribution.
 You add code and become an author of the repository. 
 You must follow the workflow!
 
-### D. Mantain and Release
+### D. Maintain and Release
 You contribute and take care of the repository. 
 You review and answer questions. 
 You coordinate and carry out the release.
