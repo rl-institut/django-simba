@@ -1,4 +1,7 @@
 <form enctype="multipart/form-data" method="POST"> {% csrf_token %}
+  <div>
+    {{form.errors}}
+  </div>
   <div class="row">
     <div class="col-md-2">
       <nav class="nav flex-column nav-pills" id="tab-a"> <!-- alternative to pills: underline -->
@@ -6,7 +9,7 @@
         <button class="nav-link" id="2v" data-bs-toggle="tab" data-bs-target="#panel2v" type="button" role="tab" aria-controls="panel2v" aria-selected="false">Charging infrastructure</button>
         <button class="nav-link" id="3v" data-bs-toggle="tab" data-bs-target="#panel3v" type="button" role="tab" aria-controls="panel3v" aria-selected="false">Charging settings</button>
         <button class="nav-link" id="4v" data-bs-toggle="tab" data-bs-target="#panel4v" type="button" role="tab" aria-controls="panel4v" aria-selected="false">Files</button>
-        <button class="nav-link" id="5v" data-bs-toggle="tab" data-bs-target="#panel5v" type="button" role="tab" aria-controls="panel5v" aria-selected="false" disabled>Erweiterte Einstellungen</button>
+        <button class="nav-link" id="5v" data-bs-toggle="tab" data-bs-target="#panel5v" type="button" role="tab" aria-controls="panel5v" aria-selected="false">Erweiterte Einstellungen</button>
         <button class="nav-link" id="6v" data-bs-toggle="tab" data-bs-target="#panel6v" type="button" role="tab" aria-controls="panel6v" aria-selected="false" disabled>Depotsimulation</button>
       </nav>
       <div class="d-flex justify-content-center py-5">
@@ -15,21 +18,24 @@
     </div>
 
     <div class="col-md-10">
-      
+
       <div class="tab-content vertical" id="tab-a-content">
         <!-- Start Tab Content -->
-      
+
         <div class="tab-pane active" id="panel1v" role="tabpanel" aria-labelledby="1v" tabindex="0">
           <div class="card round scrollable-div h-100">
             <div class="card-header bg-primary text-white">
               <h4 class="card-title">Basics</h4>
             </div>
             <div class="card-body">
-              <!--
+              <div>
+                <strong>{{form.title.label}}</strong>
+                {{form.title}}
+              </div>
               <strong>{{form.preferred_charging_type.label}}</strong>
               <div class="col-md-9">
                 {{form.preferred_charging_type}}
-              </div>-->
+              </div>
               <div class="form-group row py-1">
                 <div class="col-md-4"><strong>Konsistenz-Prüfung</strong>
                   <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="Überprüft die Eingangsdaten">
@@ -51,13 +57,14 @@
 
               <div class="form-group row py-1">
                 <div class="col-md-4">
-                  <strong>Modes</strong>
+                  <strong>{{form.modes.label}}</strong>
                 </div>
                 <div class="col-md-8">
                   <a>Wie wollen wir das hier lösen?</a>
                   {% for element in mode_list %}
                     {{element}}
                   {% endfor %}
+                  {{form.modes}}
                 </div>
               </div>
             </div>
@@ -140,6 +147,10 @@
                   {{form.cs_power_deps_oppb}}
                 </div>
               </div>
+              <div>
+              {{form.default_voltage_level.label}}
+              {{form.default_voltage_level}}
+              </div>
             </div>
           </div>
         </div>
@@ -159,7 +170,7 @@
                       <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
                     </svg>
                   </a>
-                </div>         
+                </div>
                 <div class="col-md-8">
                   {{form.desired_soc_deps}}
                 </div>
@@ -173,7 +184,7 @@
                       <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
                     </svg>
                   </a>
-                </div>         
+                </div>
                 <div class="col-md-8">
                   {{form.desired_soc_opps}}
                 </div>
@@ -187,7 +198,7 @@
                       <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
                     </svg>
                   </a>
-                </div>         
+                </div>
                 <div class="col-md-8">
                   {{form.min_recharge_deps_oppb}}
                 </div>
@@ -201,7 +212,7 @@
                       <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
                     </svg>
                   </a>
-                </div>         
+                </div>
                 <div class="col-md-8">
                   {{form.min_recharge_deps_depb}}
                 </div>
@@ -215,7 +226,7 @@
                       <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
                     </svg>
                   </a>
-                </div>         
+                </div>
                 <div class="col-md-8">
                   {{form.min_charging_time}}
                 </div>
@@ -229,7 +240,7 @@
                       <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
                     </svg>
                   </a>
-                </div>         
+                </div>
                 <div class="col-md-8">
                   {{form.default_buffer_time_opps}}
                 </div>
@@ -256,7 +267,6 @@
                 </div>
                 <div class="col-md-8">
                   {{form.input_schedule}}
-
                 </div>
               </div>
               <div class="form-group row py-1">
@@ -328,7 +338,7 @@
                 <div class="col-md-8">
                   {{form.level_of_loading_over_day_path}}
                 </div>
-              </div>  
+              </div>
               <div class="form-group row py-1">
                 <div class="col-md-4">
                   <strong>{{form.cost_parameters_file.label}}</strong>
@@ -341,6 +351,71 @@
                 </div>
                 <div class="col-md-8">
                   {{form.cost_parameters_file}}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-pane" id="panel5v" role="tabpanel" aria-labelledby="5v" tabindex="4">
+          <div class="card round scrollable-div h-100">
+            <div class="card-header bg-primary text-white">
+              <h4 class="card-title">Extended Options</h4>
+            </div>
+            <div class="card-body">
+              <div class="form-group row py-1">
+                <div class="col-md-4">
+                  <strong>{{form.strategy.label}}</strong>
+                </div>
+                <div class="col-md-8">
+                  {{form.strategy}}
+                </div>
+              </div>
+              <div class="form-group row py-1">
+                <div class="col-md-4">
+                  <strong>{{form.interval.label}}</strong>
+                </div>
+                <div class="col-md-8">
+                  {{form.interval}}
+                </div>
+              </div>
+              <div class="form-group row py-1">
+                <div class="col-md-4">
+                  <strong>{{form.signal_time_dif.label}}</strong>
+                </div>
+                <div class="col-md-8">
+                  {{form.signal_time_dif}}
+                </div>
+              </div>
+              <div class="form-group row py-1">
+                <div class="col-md-4">
+                  <strong>{{form.days.label}}</strong>
+                </div>
+                <div class="col-md-8">
+                  {{form.days}}
+                </div>
+              </div>
+              <div class="form-group row py-1">
+                <div class="col-md-4">
+                  <strong>{{form.include_price_csv.label}}</strong>
+                </div>
+                <div class="col-md-8">
+                  {{form.include_price_csv}}
+                </div>
+              </div>
+              <div class="form-group row py-1">
+                <div class="col-md-4">
+                  <strong>{{form.seed.label}}</strong>
+                </div>
+                <div class="col-md-8">
+                  {{form.seed}}
+                </div>
+              </div>
+              <div class="form-group row py-1">
+                <div class="col-md-4">
+                  <strong>{{form.cost_calculation.label}}</strong>
+                </div>
+                <div class="col-md-8">
+                  {{form.cost_calculation}}
                 </div>
               </div>
             </div>

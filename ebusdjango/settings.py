@@ -9,26 +9,34 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-
+import environ
 from pathlib import Path
 import os
+
+from ebus_map.settings import *
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Root dir is a parent directory
+ROOT_DIR = environ.Path(__file__) - 2
 
-CELERY_BROKER_URL = 'pyamqp://guest@localhost//'
+# Read environment variables
+env = environ.Env()
+
+# Read .env file
+# OS environment variables take precedence over variables from .env file
+env.read_env(str(ROOT_DIR.path('.env')))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-*&kt16t@dfhf^6(7d(6587ghjcq&2ev(9=66ns$e09q)^my7+'
+SECRET_KEY = env('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool('DJANGO_DEBUG', default=False)
 
-ALLOWED_HOSTS = ["127.0.0.1"]
-
+ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
 # Application definition
 
@@ -41,6 +49,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # custom apps
+    'core',
     'ebustoolbox',
     'django_mapengine',
     'ebus_map',
@@ -89,17 +98,9 @@ WSGI_APPLICATION = 'ebusdjango.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 # ToDo Set up your own postgis databank and fill in the needed
 #  data. Patrick wrote an HowTo for Linux users
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'mydb',
-        'USER': 'myprojectuser',
-        'PASSWORD': 'password',
-        'HOST': 'localhost',
-        'PORT': '',
-    }
-}
+DATABASES = {'default': env.db('DATABASE_URL')}
 
+CELERY_BROKER_URL = env('CELERY_BROKER_URL', default=None)
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -138,21 +139,20 @@ X_FRAME_OPTIONS = 'SAMEORIGIN'
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+UPLOAD_PATH = "uploads/"
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # while the above line checks all the app folders for static folders the below one can be a list of
 # general static file folders
 STATICFILES_DIRS = [
-    BASE_DIR / "static",
-    BASE_DIR ,
-    BASE_DIR / "templates/node_modules",
+    BASE_DIR,
     BASE_DIR / "templates/js",
     BASE_DIR / "templates/css",
-    BASE_DIR / "popups",
+    BASE_DIR / UPLOAD_PATH,
 
 ]
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
-from ebus_map.settings import *

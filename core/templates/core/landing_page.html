@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block content %}
+    {% load static %}
+
+    <div class="container mt-0">
+        <div class="col-md-12">
+            <h1 class="text-center mb-4">Willkommen bei E-Bus 2030+</h1>
+            <h3 class="text-center">Entwicklung und Analyse von Strategien zur vollständigen Dekarbonisierung des
+                Berliner Busverkehrs bis 2030</h3>
+        </div>
+
+        <div class="card text-center">
+            <a href="{% url 'home' %}">
+                <img src="{% static 'core/tool_chain.png' %}" alt="Tool Chain" class="card-img-top">
+            </a>
+            <div class="card-body">
+                <h5 class="card-title">TU und RLI Toolchain</h5>
+            </div>
+        </div>
+        <div class="row mt-5">
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <a href="{% url 'home' %}">
+                        <img src="https://user-images.githubusercontent.com/104760879/217226792-4297d3c8-8a7c-45ad-894f-5efd03031f49.png"
+                             class="card-img-top" alt="SimBa Tool">
+                    </a>
+                    <div class="card-body">
+                        <h5 class="card-title">SimBa Tool</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <a href="page-b.html">
+                        <img src="{% static 'core/eflips.png' %}" alt="eFlips Tool" class="card-img-top">
+                    </a>
+                    <div class="card-body">
+                        <h5 class="card-title">eFlips Tool</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <a href="page-c.html">
+                        <img src="{% static 'core/hpc_logo.png' %}" alt="HPC Tool" class="card-img-top">
+                    </a>
+                    <div class="card-body">
+                        <h5 class="card-title">HPC Tool</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

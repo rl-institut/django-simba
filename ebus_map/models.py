@@ -1,12 +1,50 @@
 """Only general data which is applicable for 'every' app should
 be part of models."""
 from django.contrib.gis.db import models
-from django.db.models import Sum
 from django.utils.translation import gettext_lazy as _
 
-from ebus_map.managers import MVTManager, LabelMVTManager
+from .managers import LabelMVTManager, MVTManager, X, Y
 
-from ebustoolbox.models import *
+import ebustoolbox.models
+
+
+
+class Station(ebustoolbox.models.Station):
+    # prior attributes, used for map (?)
+    objects = models.Manager()
+    from django.db.models.functions import Length
+
+    # Make sure all annotations are part of the columns below, if the data is supposed to be
+    # delivered to the map
+    annotations = {
+        "center": models.functions.Centroid("geom"),
+        "lat": X("center", output_field=models.DecimalField()),
+        "lon": Y("center", output_field=models.DecimalField()),
+        "title_length": Length("name")
+    }
+
+    vector_tiles = MVTManager(
+        geo_col="geom", columns=["id", "geom", "name", "lat", "lon", "title_length"]
+    )
+
+    layer = "busstop"
+    mapping = {
+        "id": "id",
+        "geom": "POINT",
+        "name": "name",
+        "geom_label": "geom_label",
+    }
+
+    @classmethod
+    def get_popup_data(cls, id):
+        obj = cls.objects.get(id=id)
+        data = {}
+        data["title"] = obj.name
+        data["lat"] = obj.geom.x
+        data["lon"] = obj.geom.y
+        return data
+
+
 
 class MyExampleMultiPolygon(models.Model):
     geom = models.MultiPolygonField(srid=4326)
@@ -20,8 +58,6 @@ class MyExampleMultiPolygon(models.Model):
         "geom": "MultiPolygon",
         "name": "name",
     }
-
-
 
 
 class MyExampleLine(models.Model):
