@@ -19,10 +19,10 @@
          - A user can be added using the following commands (or the guest user can bs used):
              1. `rabbitmqctl add_user $user $password`
              2. `rabbitmqctl set_permissions -p / $user ".*" ".*" ".*"`
-    5. Using a [virtual environment](https://docs.python.org/3/library/venv.html) is recommended.
-    6. The dependencies are listed in the `requirements.txt` file. They can be installed via
+    5. Install [poetry](https://python-poetry.org/docs/#installation) for environment and dependency management.
+    6. The dependencies can be installed via
         ```bash
-        pip install -r requirements.txt
+        poetry install
         ```
     7. Django uses an .env file to read user specific data. This file has to be created by the user and is not shared through GitHub to make uploads of sensitive data impossible. Create a file named `.env` with the following input`
    ````text
