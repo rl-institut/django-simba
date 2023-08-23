@@ -53,14 +53,8 @@ class MVTManager(models.Manager):
     def _filter_query(self, query, x, y, z, filters):
         # ToDo Change
         try:
-<<<<<<< HEAD
-            filters = {}
-            #filters["scenario_id"] = filters["task_id"]
-            #del filters["task_id"]
-=======
             filters["scenario__task_id"] = filters["task_id"]
             del filters["task_id"]
->>>>>>> dev
         except KeyError:
             filters = {}
         return query.filter(**filters)

@@ -82,9 +82,9 @@ class BusOutline(models.Model):
     from django.db.models.functions import Length
     from django.db.models import Value
 
-    annotations = {"center": models.functions.Centroid("geom"),
-                   "lat": X("center", output_field=models.DecimalField()),
-                   "lon": Y("center", output_field=models.DecimalField())}
+#    annotations = {"center": models.functions.Centroid("geom"),
+#                   "lat": X("center", output_field=models.DecimalField()),
+#                   "lon": Y("center", output_field=models.DecimalField())}
 
 
 from django.contrib.gis.geos import MultiPolygon, Polygon

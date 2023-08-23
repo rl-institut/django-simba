@@ -152,7 +152,7 @@ p2 = Polygon(((1, 1), (1, 2), (2, 2), (1, 1)))
 mp = MultiPolygon(p1, p2)
 #MyExampleMultiPolygon(geom=mp, name="My first Polygon")
 # # region = Region.objects.create(layer_type="municipality")
-MyExampleMultiPolygon.objects.create(geom=mp, name="agfjdgsf")
+#MyExampleMultiPolygon.objects.create(geom=mp, name="agfjdgsf")
 # #
 # # #
 #

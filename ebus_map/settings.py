@@ -15,7 +15,7 @@ MAP_ENGINE_API_MVTS = {
         [
             setup.MVTAPI("trees", "HPCtool", "Tree"),
             setup.MVTAPI("flur", "HPCtool", "Flurstueck"),
-            setup.MVTAPI("busstop", "ebustoolbox", "BusStop"),
+            #setup.MVTAPI("busstop", "ebustoolbox", "BusStop"),
            # setup.MVTAPI("myexamplemultipolygon", "ebus_map", "MyExampleMultiPolygon"),
             setup.MVTAPI("myexamplemultipolygon", "HPCtool", "BusOutline"),
 
