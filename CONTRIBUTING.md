@@ -53,7 +53,7 @@ git pull
 ```
 
 ##### Permanent branches
-* master - includes the current stable version
+* main - includes the current stable version
 * dev - includes all current developments
 
 #### 2.1. Create a new (local) branch
