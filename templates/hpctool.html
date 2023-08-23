@@ -1,0 +1,399 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<style>
+    .filter-ctrl {
+        position: absolute;
+        top: 54px;
+        right: 60px;
+        z-index: 1;
+    }
+
+    .filter-ctrl input[type='text'] {
+        font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+        width: 100%;
+        border: 0;
+        background-color: #fff;
+        margin: 0;
+        color: rgba(0, 0, 0, 0.5);
+        padding: 10px;
+        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+        border-radius: 3px;
+        width: 180px;
+    }
+</style>
+
+
+  <head>
+    <script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css" rel='stylesheet'/>
+  </head>
+
+  <body>
+    {% include 'django_mapengine/map.html' %}
+    {% include 'django_mapengine/map_json.html' %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pubsub-js/1.9.4/pubsub.js"></script>
+    <script>
+      // This is needed as mapengine checks for eventTopics value (bug in mapengine!)
+      let eventTopics = {};
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.min.js"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.js"></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.css" type="text/css">
+
+    {% include 'django_mapengine/map_js.html' %}
+    <script>
+      // This is needed, as otherwise map height is zero and therefore not visible (bug in mapengine!)
+      document.getElementById("map").style = "height: 800px"
+      //map.addControl(new maplibregl.FullscreenControl());
+    </script>
+
+
+    <div class="filter-ctrl">
+    <input
+        id="filter-input"
+        type="text"
+        name="filter"
+        placeholder="Filter by name"
+    />
+</div>
+
+    <div style="position: fixed;
+     top: 50%; left: 70px; width: 50px; height: 50px;
+      z-index: 900;
+     transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction()">
+<button onclick="flyStep(-1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⇦</button>
+
+</div>
+
+<div style="position: fixed;
+     top: 50%; right: 70px; width: 50px; height: 50px;
+      z-index: 900;
+     transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction()">
+<button onclick="flyStep(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⇨</button>
+</div>
+
+
+<div style="position: fixed;
+     top:800px; left: 100px; width: 50px; height: 50px;
+      z-index: 900;
+     transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction2()">
+<button onclick="enableDrawmode(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">✎</button>
+</div>
+
+<div style="position: fixed;
+     top:800px; left: 160px; width: 50px; height: 50px;
+      z-index: 900;
+     transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction()">
+<button onclick="deleteDraw(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">🗑</button>
+</div>
+
+    <div style="position: fixed;
+     top:800px; left: 220px; width: 50px; height: 50px;
+      z-index: 900;
+     transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction()">
+<button onclick="recalculate()" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">🧮</button>
+</div>
+
+
+<div style="position: fixed;
+ top:800px; left: 280px; width: 50px; height: 50px;
+  z-index: 900;
+ transform: translateY(-50%); display: flex; justify-content: center; align-items: center;">
+<button onclick="deleteBus()", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">💾</button>
+</div>
+
+
+<script>
+
+    function recalculate() {
+
+        dat = draw.getAll();
+        console.log(dat.features[0].geometry.coordinates[0])
+        $.ajax({
+            url: 'hpctool',
+            type: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            data: JSON.stringify(dat.features[0].geometry.coordinates[0]),
+            success: function(data){
+                alert(data.message);
+            },
+            error: function(data){
+               alert(data.status); // the status code
+               alert(data.responseJSON.error); // the message
+            }
+        })
+    }
+
+
+    function deleteBus() {
+
+        console.log("Deleting the following Busses: " , deletedIDs)
+        $.ajax({
+            url: 'hpctool/delete',
+            type: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            data: JSON.stringify(deletedIDs),
+            success: function(data){
+                deletedIDs = [];
+                alert(data.message);
+            },
+            error: function(data){
+               alert(data.status); // the status code
+               alert(data.responseJSON.error); // the message
+            }
+        })
+    }
+
+
+    const draw = new MapboxDraw({
+        displayControlsDefault: false,
+            // Select which mapbox-gl-draw control buttons to add to the map.
+            controls: {
+            polygon: false,
+            trash: false
+            },
+        // Set mapbox-gl-draw to draw by default.
+        // The user does not have to click the polygon control button first.
+        defaultMode: 'simple_select'//'draw_polygon'
+    });
+    map.addControl(draw, 'top-left');
+
+
+
+    function enableDrawmode(step) {
+        draw.set({
+          type: 'FeatureCollection',
+          features: []
+        })
+        draw.changeMode('draw_polygon');
+     }
+
+    function deleteDraw(step) {
+        draw.trash();
+    }
+
+    function EditFlurstueck(geom, id){
+        map.setLayoutProperty("flur", "visibility", "none");
+        map.setFeatureState(
+                    {source: 'busstop', sourceLayer:'flur', id: id},
+                    {visible: false}
+                );
+
+        geom= JSON.parse(decodeURIComponent(geom))
+        popup.remove();
+        draw.trash();
+        draw.changeMode('draw_polygon');
+        draw.set({
+          type: 'FeatureCollection',
+          features: [{
+            type: 'Feature',
+            properties: {},
+            id: 'example-id',
+            geometry: geom
+          }]
+        });
+    }
+
+    map.on('draw.create', updateArea);
+    map.on('draw.delete', updateArea);
+    map.on('draw.update', updateArea);
+
+    function updateArea(e) {
+        const data = draw.getAll();
+        console.log(data)
+        if (data.features.length > 0) {
+            console.log();
+        } else {
+            answer.innerHTML = '';
+            if (e.type !== 'draw.delete')
+            alert('Click the map to draw a polygon.');
+        }
+    }
+
+
+    deletedIDs = [];
+
+    document.addEventListener('keydown', function(event) {
+          if (event.ctrlKey && event.key === 'z') {
+            //alert('Undo!');
+              if (deletedIDs.length > 0){
+                  undoID = deletedIDs.pop();
+                  map.setFeatureState(
+                            {source: 'busstop', sourceLayer:'myexamplemultipolygon', id: undoID},
+                            {del: true}
+                        );
+
+
+              }
+          }
+    });
+
+    var popup = null;
+    var currentCoordinateIndex = 0;
+
+    function flyStep(step) {
+        map.flyTo({
+            center: [13.331855527577858,52.50979501127969],
+            zoom: 18,
+            essential: true
+          });
+        //console.log(map);
+        //document.getElementById("map").flyTo(0,0, 19);
+    }
+
+        // When the user moves their mouse over the state-fill layer, we'll update the
+        // feature state for the feature under the mouse.
+        hoveredStateId = null;
+        map.on('mousemove', 'flur', (e) => {
+            if (e.features.length > 0) {
+                if (hoveredStateId) {
+                    map.setFeatureState(
+                        {source: 'busstop', sourceLayer:'flur', id: hoveredStateId},
+                        {hover: false}
+                    );
+                }
+                hoveredStateId = e.features[0].id;
+                map.setFeatureState(
+                    {source: 'busstop', sourceLayer:'flur', id: hoveredStateId},
+                    {hover: true}
+                );
+            }
+        });
+
+        // When the mouse leaves the state-fill layer, update the feature state of the
+        // previously hovered feature.
+        map.on('mouseleave', 'flur', () => {
+            if (hoveredStateId) {
+                map.setFeatureState(
+                    {source: 'busstop', sourceLayer:'flur', id: hoveredStateId},
+                    {hover: false}
+                );
+            }
+            hoveredStateId = null;
+        });
+
+
+
+//For future Edit-mode, registers where on the map a user clicks
+/*map.on("click", function (e) {
+        //console.log(e)
+        let marker = new maplibregl.Marker({
+    color: "#00FF00",
+    draggable: true
+  }).setLngLat([e["lngLat"]['lng'],e["lngLat"]['lat']])
+  .addTo(map);
+
+
+
+      });*/
+
+
+    map.on('click', 'myexamplemultipolygon', (e) => {
+
+        var latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
+        if (!deletedIDs.includes(e.features[0].id)) {
+
+            //https://stackoverflow.com/questions/47576527/how-to-manipulate-event-bubbling-when-registering-click-event-upon-a-layer-in-ma
+            //prevents that all layers are "clicked on", i.e. only top layer is clicked on
+            e.originalEvent.preventDefault();
+
+            var innerHTML = `
+                <div style="text-align: center;">
+                    Delete Bus with id: ${e.features[0].id} and quality ${e.features[0].properties['quality']} ?
+                </div>
+                <div>
+                    <button onclick="onYesClick(${e.features[0].id})">Yes</button>
+                    <button onclick="onNoClick()">No</button>
+                </div>
+            `;
+
+
+            console.log("Bus clicked!", e, latlon);
+            requestAnimationFrame(() => {
+                popup = new maplibregl.Popup({
+                    // https://maplibre.org/maplibre-gl-js-docs/api/markers/#popup-parameters
+                    maxWidth: "280px",
+                }).setLngLat(latlon).setHTML(innerHTML).addTo(map);
+            });
+        }
+        ;
+    });
+
+
+    map.on('click', 'flur', (e) => {
+        var latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
+        //https://stackoverflow.com/questions/47576527/how-to-manipulate-event-bubbling-when-registering-click-event-upon-a-layer-in-ma
+        if(!e.originalEvent.defaultPrevented) {
+
+            var features = map.queryRenderedFeatures(e.point);
+            console.log("Flurstueck clicked!", features[0].geometry);
+
+            var innerHTML = `
+                <div style="text-align: center;">
+                    Edit Area with id: ${e.features[0].id} ?
+                </div>
+                <div>
+                    <button onclick="EditFlurstueck('${encodeURIComponent(JSON.stringify(features[0].geometry))}',${e.features[0].id} )">Yes</button>
+                    <button onclick="onNoClick()">No</button>
+                </div>
+            `;
+
+
+            requestAnimationFrame(() => {
+                popup = new maplibregl.Popup({
+                    // https://maplibre.org/maplibre-gl-js-docs/api/markers/#popup-parameters
+                    maxWidth: "280px",
+                }).setLngLat(latlon).setHTML(innerHTML).addTo(map);
+            });
+        }
+        ;
+    });
+
+
+    function onYesClick(id) {
+        // Code to execute when the "Yes" button is clicked
+        console.log("Yes button clicked!", id);
+        console.log(map);
+        deletedIDs.push(id);
+        map.setFeatureState(
+                        {source: 'busstop', sourceLayer:'myexamplemultipolygon', id: id},
+                        {del: false}
+                    );
+        popup.remove();
+
+
+
+    }
+
+    function onNoClick() {
+        // Code to execute when the "No" button is clicked
+        console.log("No button clicked!");
+        popup.remove();
+    }
+
+
+
+
+
+    </script>
+
+
+
+
+
+
+
+
+
+
+
+  </body>
+</html>

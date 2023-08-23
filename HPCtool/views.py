@@ -16,7 +16,7 @@ import ast
 
 
 class HomePageView(TemplateView, views.MapEngineMixin):
-    template_name = "minimal_mapengine.html"
+    template_name = "hpctool.html"
 
     # def get(self, request, **kwargs):
     #     return render(request, self.template_name)
