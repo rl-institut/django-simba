@@ -2,11 +2,12 @@ import geopandas as gpd
 import pandas as pd
 import numpy as np
 
+import pyproj
+
 from .models import BusOutline, Tree, Flurstueck
 from django.contrib.gis.geos import MultiPolygon
 from django.contrib.gis.geos import Polygon as djangoPolygon
 from django.contrib.gis.geos import Point as djangoPoint
-
 
 from shapely.geometry import Point, Polygon, LineString
 import shapely
@@ -20,7 +21,6 @@ import networkx as nx
 from sklearn.metrics.pairwise import euclidean_distances
 
 # Bounding box or "search radius" that will be added around a busstop's location. If selected large, miltiple parcels (Flurstücke) might be taken into consideration
-bb_size = 0  # meter
 bb_size = 0  # meter
 
 ### Bus Parameters ##
@@ -42,17 +42,6 @@ dist_radweg_red = 5
 dist_radweg_green = 10
 
 Layers = {
-    # "Öffentliche Ladepunkte": {
-    #    "url": """https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_lades_standort?""",
-    #    "typeNames": "fis:s_lades_standort"
-    # },
-    #    "Boden": {
-    #        "url": """https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_boden_wfs3_2015?""",
-    #        "typeNames": "fis:s_boden_wfs3_2015",
-    #        "color": "green",
-    #        "weight": 1,
-    #        "opacity": 0.4,
-    #    },
     "Bäume": {
         "url": """https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_wfs_baumbestand""",
         "typeNames": "fis:s_wfs_baumbestand"
@@ -117,15 +106,9 @@ criteria = {
 
 
 def calculate_HPC(poly_list):
-    print(type(poly_list))
-    print("---------------------")
-    print(poly_list)
-
     polygon_geom = Polygon(poly_list)
     alkis = gpd.GeoDataFrame(index=[0], crs=4326, geometry=[polygon_geom])
 
-    print(alkis)
-    json_dict = {}
     layerdict = {}
     local_layerdict = {}
     for layer in Layers:
@@ -133,41 +116,36 @@ def calculate_HPC(poly_list):
 
     straßen = getStreetsfromOSM(alkis.to_crs("WGS84").loc[0, 'geometry'], tags={"highway": True})
 
-    joined_gdf = gpd.sjoin(straßen.to_crs(25833), alkis.to_crs(25833), op='within')
-    # straßen = joined_gdf.intersection(alkis.geometry[0]).to_crs(4326)
-
     flurstück_bounds = (
         alkis.geometry.bounds['minx'].min(), alkis.geometry.bounds['miny'].min(), alkis.geometry.bounds['maxx'].max(),
         alkis.geometry.bounds['maxy'].max()
     )
 
+    alkis_4326 = alkis.to_crs(4326)
+    cdr = list(zip(*alkis_4326.geometry.values[0].exterior.coords.xy))
+    p2 = djangoPolygon(cdr)
+    mp = MultiPolygon(p2)
+    Flurstueck.objects.create(geom=mp, name="Herzallee", scenario="neu")
+
     gdf = straßen.to_crs(25833)
 
-    print(gdf)
-
     n2g = makeConnections(gdf)
-
-    G = makeGraph(n2g)
 
     for layer in Layers:
         success, lgdf = generalizedLayerLoader(Layers[layer]['url'], Layers[layer]['typeNames'], flurstück_bounds)
         if success > 0:
             layerdict[layer] = pd.concat([layerdict[layer], lgdf], axis=0, ignore_index=True)
             local_layerdict[layer] = pd.concat([layerdict[layer], lgdf], axis=0, ignore_index=True)
-            # TODO: Hier Baum und Flurstück ersetellen ...?
 
             if layer == "Bäume":
-
                 gdf_4326 = lgdf.to_crs(4326)
-                print(gdf_4326)
                 for row in gdf_4326.geometry:
-                    print(list(zip(*row.xy)))
                     p3 = djangoPoint(*list(zip(*row.xy)))
-                    print(p3)
-                    Tree.objects.create(geom=p3, name="Herzallee", scenario="neu")
+                    Tree.objects.create(geom=p3, name="Baum", scenario="neu")
 
     charger_good, charger_medium, charger_bad = 0, 0, 0
 
+    G = makeGraph(n2g)
     visited_nodes = set()
 
     for index, row in n2g[n2g.color == 'yellow'].iterrows():
@@ -212,26 +190,35 @@ def calculate_HPC(poly_list):
                     coord_sublists[sublist_elements].append(node_list[idx])
 
                 lengths[sublist_elements] += segment['lengths'][idx]
-            # laengen.append(segment['lengths'][idx])
 
             for idx, seg in enumerate(coord_sublists):
                 if len(seg) > 1:
 
-                    buspoly, pantographs_list = place_bus_along(seg)
+                    buspolylist, pantographs_list = place_bus_along(seg)
 
-                    for (polygon, pnt) in zip(buspoly, pantographs_list):
-                        c_good, c_mid, c_bad = placeColoredPanthograph(pnt, local_layerdict, criteria)
+                    for (polygon, pnt) in zip(buspolylist, pantographs_list):
 
-                        if c_good > 0:
-                            BusOutline.objects.create(geom=polygon, name="buzz", scenario="neu", quality=2)
-                        elif c_mid > 0:
-                            BusOutline.objects.create(geom=polygon, name="buzz", scenario="neu", quality=1)
-                        else:
-                            BusOutline.objects.create(geom=polygon, name="buzz", scenario="neu", quality=0)
+                        #to remove busses placed outside of the designated area
+                        # Create a GeoDataFrame with the point
+                        point_gdf = gpd.GeoDataFrame(geometry=[Point(pnt)])
 
-                        charger_good += c_good
-                        charger_medium += c_mid
-                        charger_bad += c_bad
+                        # Perform spatial join to check if point is inside polygon
+                        intersection = gpd.sjoin(point_gdf, alkis, how="inner", op="within")
+                        print(intersection)
+                        if not intersection.empty:
+
+                            c_good, c_mid, c_bad = placeColoredPanthograph(pnt, local_layerdict, criteria)
+
+                            if c_good > 0:
+                                BusOutline.objects.create(geom=polygon, name="buzz", scenario="neu", quality=2)
+                            elif c_mid > 0:
+                                BusOutline.objects.create(geom=polygon, name="buzz", scenario="neu", quality=1)
+                            else:
+                                BusOutline.objects.create(geom=polygon, name="buzz", scenario="neu", quality=0)
+
+                            charger_good += c_good
+                            charger_medium += c_mid
+                            charger_bad += c_bad
 
     return str(charger_bad) + " " + str(charger_medium) + " " + str(charger_good)
 
@@ -253,15 +240,9 @@ def generalizedLayerLoader(wfs_url, type_names, sbbox, version='2.0.0', retries=
             Tuple, signifying the success of the request and the returned Geodataframe
     """
 
-    import pyproj
-
     # Define the source and target coordinate systems
     source_crs = 'EPSG:4326'
     target_crs = 'EPSG:25833'
-
-    # Create a Proj object for the source and target coordinate systems
-    source_proj = pyproj.Proj(source_crs)
-    target_proj = pyproj.Proj(target_crs)
 
     points_wgs84 = [
         Point(sbbox[0], sbbox[1]),
@@ -274,21 +255,13 @@ def generalizedLayerLoader(wfs_url, type_names, sbbox, version='2.0.0', retries=
     # Transform the coordinates using the transformer
     sbbox_25833 = [transformer.transform(point.x, point.y) for point in points_wgs84]
 
-    # Perform the coordinate transformation for each point
-    ##sbbox_25833 = [pyproj.transform(source_proj, target_proj, point.x, point.y) for point in points_wgs84]
-
-
-    print("\n\n\n\n")
-    print(sbbox_25833)
-
-
     gdf = gpd.GeoDataFrame()
     params = {
         "service": "WFS",
         "version": version,
         "request": "GetFeature",
         "typeNames": type_names,
-        "bbox": f'{sbbox_25833[0][0]},{sbbox_25833[0][1]},{sbbox_25833[1][0]},{sbbox_25833[1][1]}'
+        "bbox": f'{sbbox_25833[0][0]-bb_size},{sbbox_25833[0][1]-bb_size},{sbbox_25833[1][0]+bb_size},{sbbox_25833[1][1]+bb_size}'
     }
 
     wfs_request_url = Request('GET', wfs_url, params=params).prepare().url
@@ -300,15 +273,15 @@ def generalizedLayerLoader(wfs_url, type_names, sbbox, version='2.0.0', retries=
                 try:
                     gdf = gpd.read_file(wfs_request_url)
                     gdf.crs = 25833
-                    return (1, gdf)
+                    return 1, gdf
                 except:
-                    return (0, gdf)
+                    return 0, gdf
         except requests.exceptions.RequestException as e:
             print("Error: Request failed with exception", e)
-            return (0, gdf)
+            return 0, gdf
 
     print("Error: Request failed after", retries, "retries")
-    return (0, gdf)
+    return 0, gdf
 
 
 def calculate_curvature(nodes):
@@ -327,11 +300,11 @@ def calculate_curvature(nodes):
     coords = np.array([(node[0], node[1]) for node in nodes])
     x, y = coords.T
 
-    # Calculate the derivatives of x and y with respect to t
+    # Calculate the derivatives of x and y
     dx_dt = np.gradient(x)
     dy_dt = np.gradient(y)
 
-    # Calculate the second derivatives of x and y with respect to t
+    # Calculate the second derivatives of x and y
     d2x_dt2 = np.gradient(dx_dt)
     d2y_dt2 = np.gradient(dy_dt)
 
@@ -419,7 +392,7 @@ def place_bus_along(nodes):
     start = 0
     end = 1
     pantographs = []
-    BusPoly = []
+    buspolygonlist = []
 
     for idx, _ in enumerate(subs_node_list[:-1]):
 
@@ -488,7 +461,7 @@ def place_bus_along(nodes):
             mp = MultiPolygon(p1)
             # BusOutline.objects.create(geom=mp, name="buzz", scenario="neu", quality=0)
 
-            BusPoly.append(mp)
+            buspolygonlist.append(mp)
 
             pantographs.append((panto_rot_trans2.geometry.x, panto_rot_trans2.geometry.y))
 
@@ -497,7 +470,7 @@ def place_bus_along(nodes):
 
         end = end + 1
 
-    return BusPoly, pantographs
+    return buspolygonlist, pantographs
 
 
 def getStreetsfromOSM(geometry, tags):
@@ -618,8 +591,8 @@ def makeGraph(nodes2geo):
                 w = 0
                 colo = 'blue'
             G.add_edge(row['ID'], neighbor, weight=w, color=colo, length=
-            euclidean_distances([(nodes2geo.loc[neighbor]['x'], nodes2geo.loc[neighbor]['y']), (row['x'], row['y'])])[
-                0][1])
+            euclidean_distances([(nodes2geo.loc[neighbor]['x'], nodes2geo.loc[neighbor]['y']),
+                                 (row['x'], row['y'])])[0][1])
 
     return G
 
