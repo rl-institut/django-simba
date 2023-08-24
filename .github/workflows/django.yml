@@ -40,4 +40,12 @@ jobs:
         poetry run python manage.py test
       env:
         DJANGO_SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        DJANGO_DEBUG: True
+        # Replace with your own database info
+        DATABASE_URL: postgis://SomeUser:SomePassword@localhost/DbName
+        CELERY_USE: False
+        CELERY_BROKER_URL: pyamqp://guerrst@localhost//
+        TILING_SERVICE_TOKEN: TilingSecret
+        TILING_SERVICE_STYLE_ID: basic-v2
+        DJANGO_SETTINGS_MODULE: ebusdjango.settings
 
