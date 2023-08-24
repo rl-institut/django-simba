@@ -34,6 +34,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install gdal-bin
         echo ogrinfo --version
+
     - name: Cache Poetry packages
       uses: actions/cache@v2
       with:
@@ -41,6 +42,7 @@ jobs:
         key: ${{ runner.os }}-poetry-${{ hashFiles('**/pyproject.toml') }}
         restore-keys: |
           ${{ runner.os }}-poetry-
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
@@ -51,6 +53,7 @@ jobs:
         pip install poetry
     - name: Install Dependency
       run: |
+        poetry config virtualenvs.in-project true
         poetry install --no-root
     - name: Run Tests
       run:
