@@ -13,7 +13,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.10, 3.11]
+        python-version: [3.7, 3.8, 3.9, 3.10]
 
     steps:
     - uses: actions/checkout@v3
@@ -35,10 +35,6 @@ jobs:
     - name: Install Dependency
       run: |
         poetry install --no-root
-    - name: Activate virtualenv
-      run: |
-        . .venv/bin/activate
-        echo PATH=$PATH >> $GITHUB_EN
     - name: Run Tests
       run: |
-        python manage.py test
+        poetry run python manage.py test
