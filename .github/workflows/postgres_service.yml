@@ -1,18 +1,13 @@
-name: PostgreSQL service example
+name: PostgreSQL Service Example
 on: push
 
 jobs:
-  container-job:
-    # Containers must run in Linux based operating systems
+  # Label of the runner job
+  runner-job:
+    # You must use a Linux environment when using service containers or container jobs
     runs-on: ubuntu-latest
-    # Docker Hub image that `container-job` executes in
-    container: node:10.18-jessie
-
-    # Service containers to run with `container-job`
+    # Service containers to run with `runner-job`
     services:
-      python:
-        #Docker Hub image
-        image: python:3.11
       # Label used to access the service container
       postgres:
         # Docker Hub image
@@ -26,10 +21,14 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
 
     steps:
-    - uses: actions/checkout@v3
+    # Downloads a copy of the code in your repository before running CI tests
+    - name: Check out repository code
+      uses: actions/checkout@v3
     - name: Cache Poetry packages
       uses: actions/cache@v2
       with:
@@ -64,4 +63,3 @@ jobs:
         POSTGRES_HOST: postgres
         # The default PostgreSQL port
         POSTGRES_PORT: 5432
-
