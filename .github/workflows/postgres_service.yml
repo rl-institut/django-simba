@@ -40,8 +40,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Set Up Gdal
       run: |
-        sudo apt-get update
-        sudo apt-get install gdal-bin
+        apt-get update
+        apt-get install gdal-bin
         echo ogrinfo --version
     - name: Install Poetry
       run: |
