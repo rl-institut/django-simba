@@ -2,7 +2,6 @@ name: PostgreSQL service example
 on: push
 
 jobs:
-  # Label of the container job
   container-job:
     # Containers must run in Linux based operating systems
     runs-on: ubuntu-latest
@@ -24,24 +23,48 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+    
 
     steps:
-      # Downloads a copy of the code in your repository before running CI tests
-      - name: Check out repository code
-        uses: actions/checkout@v3
+    - uses: actions/checkout@v3
+    - name: Cache Poetry packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pypoetry
+        key: ${{ runner.os }}-poetry-${{ hashFiles('**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-poetry-
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Set Up Gdal
+      run: |
+        sudo apt-get update
+        sudo apt-get install gdal-bin
+        echo ogrinfo --version
+    - name: Install Poetry
+      run: |
+        python -m pip install --upgrade pip
+        pip install poetry
+    - name: Install Dependency
+      run: |
+        poetry install --no-root
+    - name: Run Tests
+      run:
+        poetry run python manage.py test
+      env:
+        DJANGO_SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        DJANGO_DEBUG: True
+        # Replace with your own database info
+        DATABASE_URL: postgis://SomeUser:SomePassword@localhost/DbName
+        CELERY_USE: False
+        CELERY_BROKER_URL: pyamqp://guerrst@localhost//
+        TILING_SERVICE_TOKEN: TilingSecret
+        TILING_SERVICE_STYLE_ID: basic-v2
+        DJANGO_SETTINGS_MODULE: ebusdjango.settings
+        # The hostname used to communicate with the PostgreSQL service container
+        POSTGRES_HOST: postgres
+        # The default PostgreSQL port
+        POSTGRES_PORT: 5432
 
-      # Performs a clean installation of all dependencies in the `package.json` file
-      # For more information, see https://docs.npmjs.com/cli/ci.html
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Connect to PostgreSQL
-        # Runs a script that creates a PostgreSQL table, populates
-        # the table with data, and then retrieves the data.
-        run: node client.js
-        # Environment variables used by the `client.js` script to create a new PostgreSQL table.
-        env:
-          # The hostname used to communicate with the PostgreSQL service container
-          POSTGRES_HOST: postgres
-          # The default PostgreSQL port
-          POSTGRES_PORT: 5432
