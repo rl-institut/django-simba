@@ -11,7 +11,7 @@ from celery.result import AsyncResult
 import plotly.graph_objects as go
 
 # Unused import of dash_app needed to register app
-from . import dash_app, tasks
+from . import dash_app, tasks  # noqa: F401
 from .forms import UploadFileForm
 from .util import get_unique_task_id
 

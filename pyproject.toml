@@ -14,17 +14,17 @@ simba = { git = "https://github.com/rl-institut/SimBA", rev = "feature/django_si
 
 Django = "^4.2.3"
 django-environ = ">=0.10.0, <1.0.0"
-django_plotly_dash = "^2.2.1"
+django-plotly-dash = "^2.2.1"
 django-appconf = ">=1.0.5, <2.0.0"
 djangorestframework = ">=3.14.0, <4.0.0"
 djangorestframework-mvt = ">=0.2.5, <1.0.0"
-django_distill = "^3.1.3"
+django-distill = "^3.1.3"
 django-geojson = "^4.0.0"
 
 celery = "^5.3.1"
 psycopg2-binary = "^2.9.6"
 pandas = "^2.0.3"
-matplotlib = "^3.7.1"
+matplotlib = "^3.7.2"
 colorbrewer = { git = "https://github.com/henhuy/colorbrewer-python.git" }
 range-key-dict = "^1.1.0"
 
@@ -34,8 +34,25 @@ optional = true
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"
 flake8 = "^6.1.0"
-
+selenium = "^4.11.2"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ['py37']
+include = '^ebustoolbox/'
+exclude = '''
+/(
+    # Exclude all directories except ebustoolbox
+    (?!ebustoolbox/)
+
+    # Exclude hidden directories (starting with a dot)
+    (?!\\.[^/]+/)
+
+    # Exclude any directory starting with underscore
+    (?!_[^/]+/)
+)
+'''
