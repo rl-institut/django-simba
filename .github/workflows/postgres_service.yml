@@ -34,7 +34,10 @@ jobs:
         sudo apt-get update
         sudo apt-get install gdal-bin
         echo ogrinfo --version
+                    
 
+    - name: setup-chromedriver
+      uses: nanasess/setup-chromedriver@v2.2.0
     - name: Cache Poetry packages
       uses: actions/cache@v2
       with:
