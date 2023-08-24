@@ -38,11 +38,11 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Set Up Gdal
-      run: |
-        apt-get update
-        apt-get install gdal-bin
-        echo ogrinfo --version
+#    - name: Set Up Gdal
+#      run: |
+#        apt-get update
+#        apt-get install gdal-bin
+#        echo ogrinfo --version
     - name: Install Poetry
       run: |
         python -m pip install --upgrade pip
