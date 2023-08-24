@@ -36,5 +36,8 @@ jobs:
       run: |
         poetry install --no-root
     - name: Run Tests
-      run: |
+      run:
         poetry run python manage.py test
+      env:
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+
