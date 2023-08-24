@@ -68,10 +68,12 @@ jobs:
         DATABASE_URL: postgis://postgres:postgres@localhost/DbName
         CELERY_USE: False
         CELERY_BROKER_URL: pyamqp://guerrst@localhost//
-        TILING_SERVICE_TOKEN: TilingSecret
+        TILING_SERVICE_TOKEN: ${{ secrets.TILING_SERVICE_TOKEN }}
         TILING_SERVICE_STYLE_ID: basic-v2
         DJANGO_SETTINGS_MODULE: ebusdjango.settings
         # The hostname used to communicate with the PostgreSQL service container
         POSTGRES_HOST: localhost
         # The default PostgreSQL port
         POSTGRES_PORT: 5432
+
+
