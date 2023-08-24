@@ -30,7 +30,8 @@
     DJANGO_DEBUG=True
     # Replace with your own database info
     DATABASE_URL=postgis://YOUR_DB_USERNAME:YOUR_PASSWORD@localhost/YOUR_DB_NAME
-    # CELERY_BROKER_URL can be commented out to skip using celery
+    # Should celery be used? If so a CELERY_BROKER_URL has to be provided
+    CELERY_USE=False
     # CELERY_BROKER_URL=pyamqp://guest@localhost//
     TILING_SERVICE_TOKEN=GET_YOUR_TOKEN_THROUGH_MAP_TILER
     TILING_SERVICE_STYLE_ID=basic-v2
@@ -45,3 +46,11 @@
 1. Only if `.env`has a celery broker listed, start a celery worker (in another terminal): `celery -A ebusdjango worker -l info`
     - on macOS `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` before the command may be necessary 
 2. Run the server: `python manage.py runserver`
+
+
+## Development
+For development dependencies can be installed via
+```bash
+poetry install --with dev
+```
+To run tests your PostgreSQL user needs SUPERUSER rights to be able to create test databases and delete them. Furthermore, for testing with selenium chromedriver is needed. Resources can be found here [Latest Google Chrome and Chromedriver](https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json). Chromedriver has to be added to PATH.
