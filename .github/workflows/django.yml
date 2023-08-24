@@ -16,10 +16,6 @@ jobs:
         python-version: [3.10]
 
     steps:
-    - name: Activate virtualenv
-      run: |
-        . .venv/bin/activate
-        echo PATH=$PATH >> $GITHUB_EN
     - uses: actions/checkout@v3
     - name: Cache Poetry packages
       uses: actions/cache@v2
@@ -39,6 +35,10 @@ jobs:
     - name: Install Dependency
       run: |
         poetry install --no-root
+    - name: Activate virtualenv
+      run: |
+        . .venv/bin/activate
+        echo PATH=$PATH >> $GITHUB_EN
     - name: Run Tests
       run: |
         python manage.py test
