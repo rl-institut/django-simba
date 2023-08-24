@@ -6,6 +6,7 @@ env:
   POETRY_URL: https://install.python-poetry.org
 
 jobs:
+  # Label of the runner job
   Runner-job-of-Django-Tests-with-DB-Setup:
     # You must use a Linux environment when using service containers or container jobs
     runs-on: ubuntu-latest
@@ -57,7 +58,7 @@ jobs:
       with:
         path: ~/.cache/pypoetry
         key: poetry-cache-${{ runner.os }}-${{ steps.setup_python.outputs.python-version }}-${{ env.POETRY_VERSION }}
-    # virtualenv cache should depend on OS, Python version and `poetry.lock` (and optionally workflow files).
+    # virtualenv cache should depends on OS, Python version and `poetry.lock` (and optionally workflow files).
     - name: Cache Packages
       uses: actions/cache@v3
       with:
@@ -72,13 +73,14 @@ jobs:
       run: |
         poetry config virtualenvs.in-project true
         poetry install --no-root
-
+      #########
     - name: Run Tests
       run:
         poetry run python manage.py test
       env:
         DJANGO_SECRET_KEY: ${{ secrets.SECRET_KEY }}
         DJANGO_DEBUG: True
+        # Replace with your own database info
         DATABASE_URL: postgis://postgres:postgres@localhost/DbName
         CELERY_USE: False
         CELERY_BROKER_URL: pyamqp://guerrst@localhost//
