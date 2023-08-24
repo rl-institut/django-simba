@@ -57,7 +57,7 @@ jobs:
         DJANGO_SECRET_KEY: ${{ secrets.SECRET_KEY }}
         DJANGO_DEBUG: True
         # Replace with your own database info
-        DATABASE_URL: postgis://SomeUser:SomePassword@localhost/DbName
+        DATABASE_URL: postgis://SomeUser:SomePassword@postgres/DbName
         CELERY_USE: False
         CELERY_BROKER_URL: pyamqp://guerrst@localhost//
         TILING_SERVICE_TOKEN: TilingSecret
