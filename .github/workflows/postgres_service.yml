@@ -41,15 +41,9 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-#    - name: Set Up Gdal
-#      run: |
-#        apt-get update
-#        apt-get install gdal-bin
-#        echo ogrinfo --version
-    - name: Install Poetry
-      run: |
-        python -m ensurepip --upgrade
-        pip install poetry
+
+    - name: Python Poetry Action
+      uses: abatilo/actions-poetry@v2.1.6
     - name: Install Dependency
       run: |
         poetry install --no-root
