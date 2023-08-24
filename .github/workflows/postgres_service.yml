@@ -43,6 +43,8 @@ jobs:
 
     - name: Python Poetry Action
       uses: abatilo/actions-poetry@v2.1.6
+      with:
+        poetry-version: 1.2
     - name: Install Dependency
       run: |
         poetry install --no-root
