@@ -8,6 +8,7 @@ from django.utils.dateparse import parse_datetime
 from .forms import UploadFileForm
 from django.conf import settings
 
+
 # Create your tests here.
 from django.urls import reverse
 from selenium import webdriver
@@ -33,7 +34,9 @@ class MySeleniumTests(StaticLiveServerTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.selenium = webdriver.Chrome()
+        options_ = webdriver.chrome.options.Options()
+        options_.headless = True
+        cls.selenium = webdriver.Chrome(options=options_)
         cls.selenium.implicitly_wait(10)
         Path(TMP_UPLOAD).mkdir(parents=True, exist_ok=True)
 
