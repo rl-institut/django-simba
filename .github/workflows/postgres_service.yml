@@ -58,7 +58,7 @@ jobs:
           pip install poetry
       - name: Install Dependency
         run: |
-          poetry install --no-root
+          poetry install --no-root --with dev
       - name: Run Tests
         run:
           poetry run python manage.py test
@@ -76,3 +76,6 @@ jobs:
           POSTGRES_HOST: localhost
           # The default PostgreSQL port
           POSTGRES_PORT: 5432
+      - name: Run dev tools
+        run:
+          poetry run flake8 ebus_map ebusdjango ebustoolbox
