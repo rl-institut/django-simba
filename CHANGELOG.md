@@ -20,7 +20,7 @@ Template:
 ## [x.x.x] - Unreleased
 
 ### Added
-- [(#)]()
+- [(#26)](https://github.com/rl-institut/django-simba/pull/26) Added dev tools for consistent formatting
 ### Changed
 - [(#)]()
 ### Removed
