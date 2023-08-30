@@ -18,18 +18,11 @@ import ast
 class HomePageView(TemplateView, views.MapEngineMixin):
     template_name = "hpctool.html"
 
-    # def get(self, request, **kwargs):
-    #     return render(request, self.template_name)
-
     def post(self, request, **kwargs):
-        print("POST POST PSOT", request.POST)
-
         # change json object to list of lists:
         PL = ast.literal_eval(list(request.POST.dict())[0])
 
-        print([PL])
-
-        result = calculate_chargers.apply_async(([PL]),polygon=[PL])
+        result = calculate_chargers.apply_async(([PL]), polygon=[PL])
 
         response = JsonResponse({"error": "there was an error",
                                  "message": "Recalculating with new Polygon... Please wait" + result.get()})
@@ -39,26 +32,15 @@ class HomePageView(TemplateView, views.MapEngineMixin):
 
 
 def delete_bus(request: HttpRequest) -> response.JsonResponse:
-    print("Trying to delete this bus: ")
+    # print("Trying to delete this bus: ")
 
-    ToDelete = ast.literal_eval(list(request.POST.dict())[0])
+    to_delete = ast.literal_eval(list(request.POST.dict())[0])
+    #print(to_delete)
 
-    print(ToDelete)
-
-    for id in ToDelete:
-        print("Objects in Database before: ", BusOutline.objects.all().count())
-        print("Deleting ID ", int(id))
-
+    for id in to_delete:
+        # print("Objects in Database before: ", BusOutline.objects.all().count())
+        # print("Deleting ID ", int(id))
         BusOutline.objects.get(id=int(id)).delete()
-
-        print("Objects in Database after: ", BusOutline.objects.all().count(), "\n\n")
-
-
-
-
-    #data = apps.get_model(app_label="ebustoolbox", model_name=lookup).get_popup_data(id)
-    #try:
-    #    html = render_to_string(f"popups/{lookup}.html", context=data)
-    #except TemplateDoesNotExist:
-    #    html = render_to_string("popups/default.html", context=data)
-    return response.JsonResponse({"message": "Successfully deleted! I should implement something to remove the busses from view......"})  # , "chart": chart}
+        # ("Objects in Database after: ", BusOutline.objects.all().count(), "\n\n")
+    return response.JsonResponse({"message": "Successfully deleted! I should implement something "
+                                             "to remove the busses from view......"})  # , "chart": chart}
