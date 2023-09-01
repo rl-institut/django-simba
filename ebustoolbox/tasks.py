@@ -43,6 +43,34 @@ def fill_db_with_input_files(cleaned_data, request):
     return django_scenario, simba_schedule, original_args
 
 
+def foo(django_scenario):
+    from simba.trip import Trip  # noqa
+    from simba.rotation import Rotation  # noqa
+    from simba.schedule import Schedule
+    from .models import Station
+
+    # get SimBA stations from db
+    stations_dict = dict()
+    for station in Station.objects.filter(scenario=django_scenario):
+        if not station.is_electrified:
+            continue
+        stat_dict = {"type": station.charge_type,
+                     "n_charging_stations": station.amount_charging_places,
+                     }
+        stations_dict[station.name] = stat_dict
+
+    # get SimBA vehicle_types from db
+    for vehicle_type in VehicleType.objects.filter(scenario=django_scenario):
+        if not station.is_electrified:
+            continue
+        stat_dict = {"type": station.charge_type,
+                     "n_charging_stations": station.amount_charging_places,
+                     }
+        stations_dict[station.name] = stat_dict
+    vehicle_types = dict()
+    Schedule(stations=stations_dict, vehicle_types=vehicle_types)
+
+
 def get_schedule_from_args(original_args):
     simba_schedule, new_args = simba.simulate.pre_simulation(original_args)
     return simba_schedule, new_args
@@ -68,7 +96,7 @@ def scenario_to_db(cleaned_data, request):
     args["mode"] = list(map(lambda s: s.strip(), args["modes"].split(',')))
     # decimal -> float
     for k, v in args.items():
-        if type(v) == Decimal:
+        if type(v) is Decimal:
             args[k] = float(v)
     # set default files if not given
     for k, v in {
@@ -198,19 +226,19 @@ def stations_to_db(stations_path, electrified_stations_path, scenario):
     for name, ele_station in electrified_stations.items():
         station = Station.objects.get(name=name, scenario=scenario)
         station.is_electrified = True
-        station.type = ele_station.get("type")
+        station.charge_type = ele_station.get("type")
 
         station.voltage_level = ele_station.get("voltage_level",
                                                 scenario.options.get("default_voltage_level"))
         station.amount_charging_places = ele_station.get("n_charging_stations")
         # ToDo how do we handle differences in charging power depending on oppb or depb
-        if station.type == "opps":
+        if station.charge_type == "opps":
             power_per_charger = ele_station.get("cs_power_opps")
         else:
             power_per_charger = ele_station.get("cs_power_deps_oppb")
         station.power_per_charger = power_per_charger
         station.total_power = ele_station.get("gc_power", scenario.options.get(
-            "gc_power_" + station.type))
+            "gc_power_" + station.charge_type))
         station.save()
 
 

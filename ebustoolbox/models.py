@@ -108,7 +108,7 @@ class Station(models.Model):
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
 
     VOLTAGE_LEVEL_CHOICES = ["HV", "HV/MV", "MV", "MV/LV", "LV"]
-    CHARGE_TYPES = (("oppb", "Opportunity"), ("depb", "Depot"))
+    CHARGE_TYPES = (("opps", "Opportunity"), ("deps", "Depot"))
 
     is_electrified = models.BooleanField(default=False)
     charge_type = models.CharField(max_length=4, choices=CHARGE_TYPES, null=True)
