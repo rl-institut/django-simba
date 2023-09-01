@@ -8,7 +8,7 @@ readme = "README.md"
 packages = [{ include = "ebustoolbox" }]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.11"
 spice_ev = { git = "https://github.com/rl-institut/spice_ev", rev = "51268c639a02f2a94c418d6215376f585dd14af0" }
 simba = { git = "https://github.com/rl-institut/SimBA", rev = "feature/django_simba" }
 
@@ -27,6 +27,11 @@ pandas = "^2.0.3"
 matplotlib = "^3.7.2"
 colorbrewer = { git = "https://github.com/henhuy/colorbrewer-python.git" }
 range-key-dict = "^1.1.0"
+
+eflips-depot = { git = "https://github.com/mpm-tu-berlin/eflips-depot.git", rev = "feature/eflips-api" }
+
+
+pytest = "^7.4.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"
