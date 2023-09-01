@@ -43,6 +43,7 @@ class VehicleClass(models.Model):
 
 class VehicleType(models.Model):
     name = models.CharField(max_length=100, blank=False)
+    name_short = models.CharField(max_length=100, blank=False, default=name)
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
     vehicle_class = models.ForeignKey(VehicleClass, on_delete=models.CASCADE)
     flex_charging = models.BooleanField()
@@ -108,7 +109,7 @@ class Station(models.Model):
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
 
     VOLTAGE_LEVEL_CHOICES = ["HV", "HV/MV", "MV", "MV/LV", "LV"]
-    CHARGE_TYPES = (("opps", "Opportunity"), ("deps", "Depot"))
+    CHARGE_TYPES = (("oppb", "Opportunity"), ("depb", "Depot"))
 
     is_electrified = models.BooleanField(default=False)
     charge_type = models.CharField(max_length=4, choices=CHARGE_TYPES, null=True)

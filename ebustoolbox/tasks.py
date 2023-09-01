@@ -49,13 +49,20 @@ def foo(django_scenario):
     from simba.schedule import Schedule
     from .models import Station
 
-    # get SimBA stations from db
+    # get SimBa station_data
+    # ToDo
+
+    # get SimBA electrified stations from db
     stations_dict = dict()
     for station in Station.objects.filter(scenario=django_scenario):
         if not station.is_electrified:
             continue
-        stat_dict = {"type": station.charge_type,
+        charge_type = "opps" if station.charge_type.lower() == "oppb" else "deps"
+        stat_dict = {"type": charge_type,
                      "n_charging_stations": station.amount_charging_places,
+                     f"cs_power_{charge_type}": station.power_per_charger,
+                     "gc_power": station.total_power,
+                     "voltage_level": station.voltage_level,
                      }
         stations_dict[station.name] = stat_dict
 
@@ -69,6 +76,11 @@ def foo(django_scenario):
         stations_dict[station.name] = stat_dict
     vehicle_types = dict()
     Schedule(stations=stations_dict, vehicle_types=vehicle_types)
+    # ToDo create vehicle types
+
+    # ToDo create_schedule with options
+    # ToDo create rotations
+    # ToDo create trips
 
 
 def get_schedule_from_args(original_args):
@@ -170,9 +182,10 @@ def vehicles_to_db(file_path, scenario):
         for charge_name, charge_type in v_type.items():
             consumption = float(charge_type.get("mileage"))
             params = dict(name=charge_type.get("name", "unnamed bus"),
+                          name_short=name,
                           vehicle_class=vehicle_class,
                           scenario=scenario,
-                          flex_charging=(charge_name == "oppb"),
+                          flex_charging=(charge_name.lower() == "oppb"),
                           battery_capacity=charge_type["capacity"],
                           charging_efficiency=charge_type.get("battery_efficiency", 0.95),
                           minimum_charging_power=charge_type.get("min_charging_power"),
