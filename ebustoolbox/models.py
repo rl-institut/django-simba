@@ -41,6 +41,13 @@ class VehicleClass(models.Model):
         return vehicle_class.pk
 
 
+class AuxiliaryFloatTable(models.Model):
+    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100, blank=False)
+    columns = ArrayField(models.CharField(max_length=100))
+    data = ArrayField(ArrayField(models.FloatField()), null=True)
+
+
 class VehicleType(models.Model):
     name = models.CharField(max_length=100, blank=False)
     name_short = models.CharField(max_length=100, blank=False, default=name)

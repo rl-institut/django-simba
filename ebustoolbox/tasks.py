@@ -29,6 +29,7 @@ INTEGER_INF = 9999
 
 
 def fill_db_with_input_files(cleaned_data, request):
+    # todo create everything from schedule --> changing schedule --> change in db
     django_scenario = scenario_to_db(cleaned_data, request)
     original_args = get_args(django_scenario)
     simba_schedule, new_args = get_schedule_from_args(original_args)
@@ -40,19 +41,56 @@ def fill_db_with_input_files(cleaned_data, request):
 
     schedule_to_db(simba_schedule, django_scenario)
 
+    db_to_schedule(django_scenario)
+
     return django_scenario, simba_schedule, original_args
 
 
-def foo(django_scenario):
+def db_to_schedule(django_scenario):
     from simba.trip import Trip  # noqa
     from simba.rotation import Rotation  # noqa
     from simba.schedule import Schedule
-    from .models import Station
 
     # get SimBa station_data
-    # ToDo
+    station_data = get_station_data_from_db(django_scenario)
 
     # get SimBA electrified stations from db
+    stations_dict = get_electrified_stations_from_db(django_scenario)
+
+    # get SimBA vehicle_types from db
+    vehicle_types = dict()
+    for vehicle_type in VehicleType.objects.filter(scenario=django_scenario):
+        charge_type = "oppb" if vehicle_type.flex_charging else "depb"
+        try:
+            vehicle_types[vehicle_type.name_short]
+        except KeyError:
+            vehicle_types[vehicle_type.name_short] = dict()
+        vehicle_types[vehicle_type.name_short][charge_type] = {
+            "name": vehicle_type.name,
+            "capacity": vehicle_type.battery_capacity,
+            "charging_curve": vehicle_type.charging_curve,
+            "min_charging_power": vehicle_type.minimum_charging_power,
+            "v2g": vehicle_type.v2g,
+            # ToDo use vehicle to grid curve
+            # vehicle_to_grid_curve ....
+            "mileage": vehicle_type.consumption,
+            "battery_efficiency": vehicle_type.charging_efficiency,
+        }
+
+    options = django_scenario.options
+    del options["stations"]
+    del options["vehicle_types"]
+
+    schedule = Schedule(stations=stations_dict, vehicle_types=vehicle_types, **options)
+    _ = schedule
+    _ = station_data
+
+    # ToDo create_schedule with options
+    # ToDo create rotations
+    # ToDo create trips
+
+
+def get_electrified_stations_from_db(django_scenario):
     stations_dict = dict()
     for station in Station.objects.filter(scenario=django_scenario):
         if not station.is_electrified:
@@ -65,22 +103,19 @@ def foo(django_scenario):
                      "voltage_level": station.voltage_level,
                      }
         stations_dict[station.name] = stat_dict
+    return stations_dict
 
-    # get SimBA vehicle_types from db
-    for vehicle_type in VehicleType.objects.filter(scenario=django_scenario):
-        if not station.is_electrified:
-            continue
-        stat_dict = {"type": station.charge_type,
-                     "n_charging_stations": station.amount_charging_places,
-                     }
-        stations_dict[station.name] = stat_dict
-    vehicle_types = dict()
-    Schedule(stations=stations_dict, vehicle_types=vehicle_types)
-    # ToDo create vehicle types
 
-    # ToDo create_schedule with options
-    # ToDo create rotations
-    # ToDo create trips
+def get_station_data_from_db(django_scenario):
+    station_data = dict()
+    for station in Station.objects.filter(scenario=django_scenario):
+        station_data[station.name] = {
+            "long": station.geom.x,
+            "lat": station.geom.y,
+            "elevation": station.geom.z,
+        }
+
+    return station_data
 
 
 def get_schedule_from_args(original_args):
