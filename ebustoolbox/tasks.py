@@ -47,9 +47,9 @@ def fill_db_with_input_files(cleaned_data, request):
 
 
 def db_to_schedule(django_scenario):
-    from simba.trip import Trip  # noqa
-    from simba.rotation import Rotation  # noqa
-    from simba.schedule import Schedule
+    from simba.trip import Trip as SimbaTrip # noqa
+    from simba.rotation import Rotation as SimbaRotation # noqa
+    from simba.schedule import Schedule as SimbaSchedule
 
     # get SimBa station_data
     station_data = get_station_data_from_db(django_scenario)
@@ -78,15 +78,16 @@ def db_to_schedule(django_scenario):
         }
 
     options = django_scenario.options
-    del options["stations"]
+    del options["electrified_stations"]
     del options["vehicle_types"]
 
-    schedule = Schedule(stations=stations_dict, vehicle_types=vehicle_types, **options)
-    _ = schedule
-    _ = station_data
+    schedule = SimbaSchedule(stations=stations_dict, vehicle_types=vehicle_types, **options)
+    schedule.station_data = station_data
 
-    # ToDo create_schedule with options
-    # ToDo create rotations
+    rotations = {}
+    for rot in Rotation.objects.filter(scenario=django_scenario):
+        rotations[rot.name] = SimbaRotation(rot.name, rot.vehicle_class.name, schedule)
+
     # ToDo create trips
 
 
