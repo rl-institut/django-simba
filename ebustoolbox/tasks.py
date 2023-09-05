@@ -8,6 +8,7 @@ from django.contrib.gis.geos import GEOSGeometry
 from django.db.models import Max
 from django.conf import settings
 from django.utils.timezone import make_aware
+from django.http import HttpRequest
 
 import csv
 import shutil
@@ -20,15 +21,25 @@ from celery import shared_task
 from .models import Vehicle, VehicleProperties, UploadedFile, Station, VehicleType, VehicleClass, \
     Rotation, Trip
 from .models import Scenario
+
 import simba.util
+import simba.optimizer_util
 import simba.simulate
 import simba.schedule
+from simba.rotation import Rotation as SimbaRotation
+from simba.schedule import Schedule as SimbaSchedule
 
 # ToDo: Any better solutions?
 INTEGER_INF = 9999
 
 
-def fill_db_with_input_files(cleaned_data, request):
+def fill_db_with_input_files(cleaned_data: dict, request: HttpRequest):
+    """Fill the database with the inputs from the form
+
+    :param cleaned_data: cleaned data
+    :param request: Request with uploaded files
+    :return:
+    """
     # todo create everything from schedule --> changing schedule --> change in db
     django_scenario = scenario_to_db(cleaned_data, request)
     original_args = get_args(django_scenario)
@@ -53,16 +64,13 @@ def db_to_schedule(django_scenario: Scenario) -> tuple[simba.schedule.Schedule, 
     """Takes a django Scenario and returns the simba Schedule and arguments
 
     Can be used to run a previously stored Django Scenario again straight from the database without
-    using files
+    using files, by returning schedule and args.
+
     :param django_scenario: Scenario
     :type django_scenario: .models.Scenario
     :return: (simba Schedule, args)
     :rtype: (simba.schedule.Schedule, Namespace)
     """
-    from simba.trip import Trip as SimbaTrip # noqa
-    from simba.rotation import Rotation as SimbaRotation # noqa
-    from simba.schedule import Schedule as SimbaSchedule
-
     # get SimBa station_data
     station_data = get_station_data_from_db(django_scenario)
 
@@ -70,24 +78,7 @@ def db_to_schedule(django_scenario: Scenario) -> tuple[simba.schedule.Schedule, 
     stations_dict = get_electrified_stations_from_db(django_scenario)
 
     # get SimBA vehicle_types from db
-    vehicle_types = dict()
-    for vehicle_type in VehicleType.objects.filter(scenario=django_scenario):
-        charge_type = "oppb" if vehicle_type.flex_charging else "depb"
-        try:
-            vehicle_types[vehicle_type.name_short]
-        except KeyError:
-            vehicle_types[vehicle_type.name_short] = dict()
-        vehicle_types[vehicle_type.name_short][charge_type] = {
-            "name": vehicle_type.name,
-            "capacity": vehicle_type.battery_capacity,
-            "charging_curve": vehicle_type.charging_curve,
-            "min_charging_power": vehicle_type.minimum_charging_power,
-            "v2g": vehicle_type.v2g,
-            # ToDo use vehicle to grid curve
-            # vehicle_to_grid_curve ....
-            "mileage": vehicle_type.consumption,
-            "battery_efficiency": vehicle_type.charging_efficiency,
-        }
+    vehicle_types = get_vehicle_types_from_db(django_scenario)
 
     options = django_scenario.options
     del options["electrified_stations"]
@@ -96,6 +87,34 @@ def db_to_schedule(django_scenario: Scenario) -> tuple[simba.schedule.Schedule, 
     schedule = SimbaSchedule(stations=stations_dict, vehicle_types=vehicle_types, **options)
     schedule.station_data = station_data
 
+    # get SimBA rotations and trips from db
+    rotations = get_rotations_and_trips_from_db(django_scenario, schedule, station_data)
+
+    schedule.rotations = rotations
+    schedule.original_rotations = deepcopy(rotations)
+
+    args = get_args(django_scenario=django_scenario)
+    # filter rotations
+    schedule.rotation_filter(args)
+
+    # calculate consumption of all trips
+    schedule.calculate_consumption()
+
+    # Create soc dispatcher
+    schedule.init_soc_dispatcher(args)
+
+    return schedule, args
+
+
+def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> dict:
+    """Create simba rotations with trips from database with scenario as key
+
+    :param django_scenario: Django scenario
+    :param schedule: SimBA Schedule
+    :param station_data: dictionary with all stations and elevation
+    :return: rotations
+    :rtype: dict
+    """
     rotations = {}
     for rot in Rotation.objects.filter(scenario=django_scenario):
         vehicle_type = rot.vehicle_class.name.split("_")[0]
@@ -118,24 +137,44 @@ def db_to_schedule(django_scenario: Scenario) -> tuple[simba.schedule.Schedule, 
                 "mean_speed": trip.speed * 3.6,
             }
             simba_rotation.add_trip(simba_trip_dict)
-
-    schedule.rotations = rotations
-    schedule.original_rotations = deepcopy(rotations)
-
-    args = get_args(django_scenario=django_scenario)
-    # filter rotations
-    schedule.rotation_filter(args)
-
-    # calculate consumption of all trips
-    schedule.calculate_consumption()
-
-    # Create soc dispatcher
-    schedule.init_soc_dispatcher(args)
-
-    return schedule, args
+    return rotations
 
 
-def get_electrified_stations_from_db(django_scenario):
+def get_vehicle_types_from_db(django_scenario) -> dict:
+    """Create simba rotations with trips from database with scenario as key
+
+    :param django_scenario: Django scenario
+    :return: vehicle_types
+    :rtype: dict
+    """
+    vehicle_types = dict()
+    for vehicle_type in VehicleType.objects.filter(scenario=django_scenario):
+        charge_type = "oppb" if vehicle_type.flex_charging else "depb"
+        try:
+            vehicle_types[vehicle_type.name_short]
+        except KeyError:
+            vehicle_types[vehicle_type.name_short] = dict()
+        vehicle_types[vehicle_type.name_short][charge_type] = {
+            "name": vehicle_type.name,
+            "capacity": vehicle_type.battery_capacity,
+            "charging_curve": vehicle_type.charging_curve,
+            "min_charging_power": vehicle_type.minimum_charging_power,
+            "v2g": vehicle_type.v2g,
+            # ToDo use vehicle to grid curve
+            # vehicle_to_grid_curve ....
+            "mileage": vehicle_type.consumption,
+            "battery_efficiency": vehicle_type.charging_efficiency,
+        }
+    return vehicle_types
+
+
+def get_electrified_stations_from_db(django_scenario) -> dict:
+    """Create simba electrified stations from database with scenario as key
+
+    :param django_scenario: Django scenario
+    :return: electrified_stations
+    :rtype: dict
+    """
     stations_dict = dict()
     for station in Station.objects.filter(scenario=django_scenario):
         if not station.is_electrified:
@@ -152,7 +191,13 @@ def get_electrified_stations_from_db(django_scenario):
     return stations_dict
 
 
-def get_station_data_from_db(django_scenario):
+def get_station_data_from_db(django_scenario) -> dict:
+    """Create station_data from database with scenario as key
+
+    :param django_scenario: Django scenario
+    :return: station_data
+    :rtype: dict
+    """
     station_data = dict()
     for station in Station.objects.filter(scenario=django_scenario):
         station_data[station.name] = {
@@ -164,7 +209,15 @@ def get_station_data_from_db(django_scenario):
     return station_data
 
 
-def get_schedule_from_args(original_args):
+def get_schedule_from_args(original_args) -> tuple[simba.schedule.Schedule, Namespace]:
+    """Create SimBA Schedule from arguments with existing files and restrict features.
+
+    This creates a schedule object without making use of the database. Instead the passed arguments
+    and files are used.
+    :param django_scenario: Django scenario
+    :return: simba schedule and args
+    :rtype: simba.schedule.Schedule, Namespace
+    """
     simba_schedule, new_args = simba.simulate.pre_simulation(original_args)
     # Remove simba features which are not used
     remove_station_attributes = ["battery", "energy_feed_in", "distance_to_grid", "external_load"]
@@ -174,7 +227,9 @@ def get_schedule_from_args(original_args):
             if attribute in station:
                 del simba_schedule.stations[key][attribute]
 
-    # Mutate values according to models and make values explicit
+    # Mutate values according to models and make values explicit, i.e. dictionary contains all
+    # values, even if defaults would be used anyway. This makes sure the database contains all
+    # the needed information to recreate the exact scenario
     for station in simba_schedule.stations.values():
         if str(station["type"]).lower() != "opps":
             try:
@@ -205,7 +260,16 @@ def get_schedule_from_args(original_args):
     return simba_schedule, new_args
 
 
-def get_args(django_scenario):
+def get_args(django_scenario) -> Namespace:
+    """Creates arguments from django Scenario
+
+    Creates arguments for SimBA by getting default arguments from simba, updating them with
+    the options from the django_scenario and
+
+    :param django_scenario: Scenario in the django database
+    :type django_scenario: models.Scenario
+    :return:
+    """
     # Get parser from SimBA
     parser = simba.util.get_parser()
     # Read the parse values, in this case the default values
@@ -214,8 +278,7 @@ def get_args(django_scenario):
     vars(args).update(vars(Namespace(**django_scenario.options)))
     # arguments relevant to SpiceEV, setting automatically to reduce clutter in config
     simba.util.mutate_args_for_spiceev(args)
-    # If a config is provided, the config will overwrite previously parsed arguments
-    simba.util.set_options_from_config(args, check=parser, verbose=False)
+
     return args
 
 
@@ -415,14 +478,6 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
 
     db_scenario = Scenario.objects.get(task_id=task_id)
 
-    # By setting charging power for depot buses to zero, we make sure every rotation will generate
-    # # a new bus
-    # args.cs_power_depbs_depb = 0
-    # args.cs_power_deps_oppb = 0
-    # for key, station in schedule.stations.items():
-    #     schedule.stations[key]["cs_power_deps_depb"] = 0
-    #     schedule.stations[key]["cs_power_deps_oppb"] = 0
-
     eflips_input = dict()
     scenario = schedule.run(args)
 
@@ -433,6 +488,7 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
                         minimal_soc=None,
                         charging_type=None,
                         )
+
     # initialize eflips input
     eflips_input = {Rotation.objects.get(scenario=db_scenario, name=rot_id).id: initial_dict
                     for rot_id in schedule.rotations}
