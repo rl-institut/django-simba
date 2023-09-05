@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 from django.conf import settings
@@ -13,6 +14,23 @@ class Scenario(models.Model):
     task_id = models.TextField(default=None, null=True, blank=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
     options = models.JSONField(default=dict)
+
+
+@receiver(models.signals.pre_delete, sender=Scenario)
+def auto_delete_results_on_delete(sender, instance, **kwargs):
+    """Delete the scenario results folder if the scenario is deleted from the database
+
+    :param sender: Model which sends signal
+    :param instance: instance of model which gets deleted
+    :param kwargs: other arguments
+    :return:
+    """
+    if instance.task_id is not None:
+        try:
+            shutil.rmtree((Path(settings.UPLOAD_PATH) / instance.task_id))
+        except FileNotFoundError:
+            # Folder does not exist. That is not a problem
+            pass
 
 
 class UploadedFile(models.Model):
@@ -39,13 +57,6 @@ class VehicleClass(models.Model):
             name='SB',  # TODO necessary? better default?
         )
         return vehicle_class.pk
-
-
-class AuxiliaryFloatTable(models.Model):
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
-    name = models.CharField(max_length=100, blank=False)
-    columns = ArrayField(models.CharField(max_length=100))
-    data = ArrayField(ArrayField(models.FloatField()), null=True)
 
 
 class VehicleType(models.Model):
@@ -105,6 +116,7 @@ class Rotation(models.Model):
     # TODO on delete concept? also depends on if vehicle class is tied to scenario
     vehicle_class = models.ForeignKey(VehicleClass, on_delete=models.SET_DEFAULT,
                                       default=VehicleClass.get_default_pk)
+
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
 
 

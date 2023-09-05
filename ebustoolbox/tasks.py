@@ -1,6 +1,7 @@
 import collections
 import json
-import warnings
+from copy import deepcopy
+from argparse import Namespace
 
 from django.utils import timezone
 from django.contrib.gis.geos import GEOSGeometry
@@ -19,7 +20,6 @@ from celery import shared_task
 from .models import Vehicle, VehicleProperties, UploadedFile, Station, VehicleType, VehicleClass, \
     Rotation, Trip
 from .models import Scenario
-from argparse import Namespace
 import simba.util
 import simba.simulate
 import simba.schedule
@@ -32,21 +32,33 @@ def fill_db_with_input_files(cleaned_data, request):
     # todo create everything from schedule --> changing schedule --> change in db
     django_scenario = scenario_to_db(cleaned_data, request)
     original_args = get_args(django_scenario)
+    # Create the schedule from the args, and delete features which are not used in django
     simba_schedule, new_args = get_schedule_from_args(original_args)
 
-    stations_to_db(django_scenario.options["station_data_path"],
-                   django_scenario.options["electrified_stations"],
+    # Write the station geodata and electrified stations to DB
+    stations_to_db(simba_schedule.station_data,
+                   simba_schedule.stations,
                    django_scenario)
-    vehicles_to_db(django_scenario.options["vehicle_types"], django_scenario)
 
+    # Write the vehicle types to DB
+    vehicles_to_db(simba_schedule.vehicle_types, django_scenario)
+
+    # Write the schedule including rotations and trips to the DB
     schedule_to_db(simba_schedule, django_scenario)
-
-    db_to_schedule(django_scenario)
 
     return django_scenario, simba_schedule, original_args
 
 
-def db_to_schedule(django_scenario):
+def db_to_schedule(django_scenario: Scenario) -> tuple[simba.schedule.Schedule, Namespace]:
+    """Takes a django Scenario and returns the simba Schedule and arguments
+
+    Can be used to run a previously stored Django Scenario again straight from the database without
+    using files
+    :param django_scenario: Scenario
+    :type django_scenario: .models.Scenario
+    :return: (simba Schedule, args)
+    :rtype: (simba.schedule.Schedule, Namespace)
+    """
     from simba.trip import Trip as SimbaTrip # noqa
     from simba.rotation import Rotation as SimbaRotation # noqa
     from simba.schedule import Schedule as SimbaSchedule
@@ -86,9 +98,41 @@ def db_to_schedule(django_scenario):
 
     rotations = {}
     for rot in Rotation.objects.filter(scenario=django_scenario):
-        rotations[rot.name] = SimbaRotation(rot.name, rot.vehicle_class.name, schedule)
+        vehicle_type = rot.vehicle_class.name.split("_")[0]
+        charging_type = rot.vehicle_class.name.split("_")[1]
+        simba_rotation = SimbaRotation(rot.name, vehicle_type, schedule)
+        simba_rotation.charging_type = charging_type
+        rotations[rot.name] = simba_rotation
+        for trip in Trip.objects.filter(rotation=rot):
+            simba_trip_dict = {
+                "departure_time": str(trip.departure_time),
+                "departure_name": trip.departure_stop.name,
+                "arrival_time": str(trip.arrival_time),
+                "arrival_name": trip.arrival_stop.name,
+                "distance": trip.distance,
+                "line": trip.line,
+                "temperature": trip.temperature,
+                "height_diff": (station_data[trip.arrival_stop.name]["elevation"] -
+                                station_data[trip.departure_stop.name]["elevation"]),
+                "level_of_loading": trip.level_of_loading,
+                "mean_speed": trip.speed * 3.6,
+            }
+            simba_rotation.add_trip(simba_trip_dict)
 
-    # ToDo create trips
+    schedule.rotations = rotations
+    schedule.original_rotations = deepcopy(rotations)
+
+    args = get_args(django_scenario=django_scenario)
+    # filter rotations
+    schedule.rotation_filter(args)
+
+    # calculate consumption of all trips
+    schedule.calculate_consumption()
+
+    # Create soc dispatcher
+    schedule.init_soc_dispatcher(args)
+
+    return schedule, args
 
 
 def get_electrified_stations_from_db(django_scenario):
@@ -96,10 +140,11 @@ def get_electrified_stations_from_db(django_scenario):
     for station in Station.objects.filter(scenario=django_scenario):
         if not station.is_electrified:
             continue
-        charge_type = "opps" if station.charge_type.lower() == "oppb" else "deps"
-        stat_dict = {"type": charge_type,
+        stat_dict = {"type": station.charge_type.lower(),
                      "n_charging_stations": station.amount_charging_places,
-                     f"cs_power_{charge_type}": station.power_per_charger,
+                     "cs_power_deps_oppb": station.power_per_charger,
+                     "cs_power_deps_depb": station.power_per_charger,
+                     "cs_power_opps": station.power_per_charger,
                      "gc_power": station.total_power,
                      "voltage_level": station.voltage_level,
                      }
@@ -121,6 +166,42 @@ def get_station_data_from_db(django_scenario):
 
 def get_schedule_from_args(original_args):
     simba_schedule, new_args = simba.simulate.pre_simulation(original_args)
+    # Remove simba features which are not used
+    remove_station_attributes = ["battery", "energy_feed_in", "distance_to_grid", "external_load"]
+    for attribute in remove_station_attributes:
+        stations_copy = deepcopy(simba_schedule.stations)
+        for key, station in stations_copy.items():
+            if attribute in station:
+                del simba_schedule.stations[key][attribute]
+
+    # Mutate values according to models and make values explicit
+    for station in simba_schedule.stations.values():
+        if str(station["type"]).lower() != "opps":
+            try:
+                station["cs_power_deps_depb"] = station["cs_power_opps"] = station[
+                    "cs_power_deps_oppb"]
+            except KeyError:
+                station["cs_power_deps_depb"] = station["cs_power_opps"] = station[
+                    "cs_power_deps_oppb"] = original_args.cs_power_deps_oppb
+        else:
+            try:
+                station["cs_power_opps"] = station["cs_power_opps"]
+            except KeyError:
+                station["cs_power_opps"] = original_args.cs_power_opps
+                station["cs_power_deps_depb"] = station["cs_power_deps_oppb"] = station[
+                    "cs_power_opps"]
+
+        try:
+            station["voltage_level"] = station["voltage_level"]
+        except KeyError:
+            station["voltage_level"] = original_args.default_voltage_level
+
+        try:
+            station["gc_power"] = station["gc_power"]
+        except KeyError:
+            station["gc_power"] = vars(original_args).get(
+                "gc_power_" + str(station["type"]).lower())
+
     return simba_schedule, new_args
 
 
@@ -138,7 +219,7 @@ def get_args(django_scenario):
     return args
 
 
-def scenario_to_db(cleaned_data, request):
+def scenario_to_db(cleaned_data, request) -> Scenario:
     scenario = Scenario.objects.create(name=cleaned_data["title"])
     args = dict(cleaned_data)
     args["mode"] = list(map(lambda s: s.strip(), args["modes"].split(',')))
@@ -184,7 +265,8 @@ def schedule_to_db(schedule, scenario):
     rot_id = 1 if Rotation.objects.last() is None else Rotation.objects.last().id + 1
     trip_id = 1 if Trip.objects.last() is None else Trip.objects.last().id + 1
     for key, rot in schedule.rotations.items():
-        vehicle_class, _ = VehicleClass.objects.get_or_create(name=rot.vehicle_type)
+        vehicle_class, _ = VehicleClass.objects.get_or_create(
+            name=f"{rot.vehicle_type}_{rot.charging_type}")
         r = Rotation(name=key, vehicle_class=vehicle_class, scenario=scenario)
         r.id = rot_id
         rot_id += 1
@@ -209,10 +291,7 @@ def schedule_to_db(schedule, scenario):
     pass
 
 
-def vehicles_to_db(file_path, scenario):
-    with open(file_path, 'r') as f:
-        vehicle_types = simba.util.uncomment_json_file(f)
-
+def vehicles_to_db(vehicle_types, scenario):
     for name, v_type in vehicle_types.items():
         vehicle_class, _ = VehicleClass.objects.get_or_create(name=name)
         for charge_name, charge_type in v_type.items():
@@ -234,7 +313,7 @@ def vehicles_to_db(file_path, scenario):
             VehicleType.objects.create(**params)
 
 
-def stations_to_db(stations_path, electrified_stations_path, scenario):
+def stations_to_db(station_data, electrified_stations, scenario):
     object_list = []
     try:
         last_id = Station.objects.aggregate(Max('id'))['id__max']
@@ -242,35 +321,20 @@ def stations_to_db(stations_path, electrified_stations_path, scenario):
             last_id = -1
     except Exception:
         last_id = -1
-    has_necessary_columns = True
-    with open(stations_path, 'r') as csvfile:
-        reader = csv.DictReader(csvfile)
-        column_names = [name for name in reader.fieldnames]
-        must_contains = ["Endhaltestelle", "long", "lat", "elevation"]
-        for must_contain in must_contains:
-            if must_contain not in column_names:
-                warnings.warn(f"{stations_path} does not contain the right columns, but only "
-                              f"{column_names}")
-                has_necessary_columns = False
-                break
-        if has_necessary_columns:
-            for row in reader:
-                last_id += 1
-                try:
-                    long = float(row["long"])
-                    lat = float(row["lat"])
-                    elevation = float(row["elevation"])
-                    geom = GEOSGeometry(f"POINT({long} {lat} {elevation})")
-                    params = dict(id=last_id, scenario=scenario,
-                                  geom=geom, name=str(row["Endhaltestelle"]))
-                    object_list.append(Station(**params))
-                except Exception:
-                    print(traceback.format_exc())
-                    pass
+    for key, station in station_data.items():
+        last_id += 1
+        try:
+            long = float(station["long"])
+            lat = float(station["lat"])
+            elevation = float(station["elevation"])
+            geom = GEOSGeometry(f"POINT({long} {lat} {elevation})")
+            params = dict(id=last_id, scenario=scenario,
+                          geom=geom, name=str(key))
+            object_list.append(Station(**params))
+        except Exception:
+            print(traceback.format_exc())
+            pass
     Station.objects.bulk_create(object_list)
-
-    with open(electrified_stations_path, 'r') as f:
-        electrified_stations = simba.util.uncomment_json_file(f)
 
     for name, ele_station in electrified_stations.items():
         station = Station.objects.get(name=name, scenario=scenario)
@@ -352,12 +416,12 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
     db_scenario = Scenario.objects.get(task_id=task_id)
 
     # By setting charging power for depot buses to zero, we make sure every rotation will generate
-    # a new bus
-    args.cs_power_depbs_depb = 0
-    args.cs_power_deps_oppb = 0
-    for key, station in schedule.stations.items():
-        schedule.stations[key]["cs_power_deps_depb"] = 0
-        schedule.stations[key]["cs_power_deps_oppb"] = 0
+    # # a new bus
+    # args.cs_power_depbs_depb = 0
+    # args.cs_power_deps_oppb = 0
+    # for key, station in schedule.stations.items():
+    #     schedule.stations[key]["cs_power_deps_depb"] = 0
+    #     schedule.stations[key]["cs_power_deps_oppb"] = 0
 
     eflips_input = dict()
     scenario = schedule.run(args)
