@@ -24,6 +24,7 @@ urlpatterns = [
     path("map/", include("django_mapengine.urls")),
     # Map urls
     path('', include("ebus_map.urls")),
+    path('', include("HPCtool.urls")),
 
 ]
 

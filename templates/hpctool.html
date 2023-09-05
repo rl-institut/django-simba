@@ -323,6 +323,15 @@
 <button onclick="deleteBus()", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">💾</button>
 </div>
 
+<div style="position: fixed;
+ top:800px; left: 320px; width: 50px; height: 50px;
+  z-index: 900;
+ transform: translateY(-50%); display: flex; justify-content: center; align-items: center;">
+<button onclick="exportJson()", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">exp</button>
+</div>
+
+
+
 
 <script>
 
@@ -347,9 +356,6 @@
                 map.setLayoutProperty(layerId, 'visibility', 'visible');
             }
         }
-
-        // Create checkboxes for each layer
-        var layerControls = document.getElementById('layer-controls');
 
         // Create checkboxes for each layer
         var layerControls = document.getElementById('layer-controls');
@@ -473,9 +479,37 @@ listDrawnLayers();
         })
     }
 
+        function exportJson() {
+        $.ajax({
+            url: 'hpctool/export',
+            type: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            data: {},
+            success: function(data) {
+                    // Create a Blob containing the JSON data
+                    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+
+                    // Create a temporary anchor element to trigger the download
+                    const a = document.createElement("a");
+                    a.href = URL.createObjectURL(blob);
+                    a.download = "exported_data.json";
+
+                    // Trigger the click event to start the download
+                    a.click();
+
+                    // Clean up
+                    URL.revokeObjectURL(a.href);
+                },
+                error: function(error) {
+                    console.error("Error:", error);
+                }
+        })
+    }
+
 
     function deleteBus() {
-
         console.log("Deleting the following Busses: " , deletedIDs)
         $.ajax({
             url: 'hpctool/delete',
@@ -622,22 +656,6 @@ listDrawnLayers();
             }
             hoveredStateId = null;
         });
-
-
-
-//For future Edit-mode, registers where on the map a user clicks
-/*map.on("click", function (e) {
-        //console.log(e)
-        let marker = new maplibregl.Marker({
-    color: "#00FF00",
-    draggable: true
-  }).setLngLat([e["lngLat"]['lng'],e["lngLat"]['lat']])
-  .addTo(map);
-
-
-
-      });*/
-
 
     map.on('click', 'myexamplemultipolygon', (e) => {
 

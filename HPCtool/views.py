@@ -35,7 +35,7 @@ def delete_bus(request: HttpRequest) -> response.JsonResponse:
     # print("Trying to delete this bus: ")
 
     to_delete = ast.literal_eval(list(request.POST.dict())[0])
-    #print(to_delete)
+    # print(to_delete)
 
     for id in to_delete:
         # print("Objects in Database before: ", BusOutline.objects.all().count())
@@ -63,12 +63,35 @@ def get_station_popup(request: HttpRequest, id: int) -> response.JsonResponse:  
     JsonResponse
         containing HTML to render popup and chart options to be used in E-Chart.
     """
-    #data = apps.get_model(app_label="ebustoolbox", model_name=lookup).get_popup_data(id)
-    #try:
+    # data = apps.get_model(app_label="ebustoolbox", model_name=lookup).get_popup_data(id)
+    # try:
     #    html = #render_to_string(f"popups/{lookup}.html", context=data)
-    #except TemplateDoesNotExist:
+    # except TemplateDoesNotExist:
     #    html = render_to_string("popups/default.html", context=data)
 
     html = "<h1> LADELEISTUNG: 123 kW</h1> and ID is " + str(id)
 
     return response.JsonResponse({"html": html})  # , "chart": chart}
+
+
+import json
+
+
+def generate_json_data():
+    # Fetch and process your data here
+    data = [{'hello': 'world'}]  # Your data as a list of dictionaries
+
+    # Convert data to JSON
+    json_data = json.dumps(data)
+
+    return json_data
+
+
+def export_data(request):
+    json_data = generate_json_data()
+
+    # Create an HTTP response with the JSON data as a downloadable file
+    response_json = HttpResponse(json_data, content_type='application/json')
+    response_json['Content-Disposition'] = 'attachment; filename="exported_data.json"'
+
+    return response_json
