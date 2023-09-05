@@ -22,8 +22,8 @@ from .models import Vehicle, VehicleProperties, UploadedFile, Station, VehicleTy
     Rotation, Trip
 from .models import Scenario
 
-import simba.util
 import simba.optimizer_util
+import simba.util
 import simba.simulate
 import simba.schedule
 from simba.rotation import Rotation as SimbaRotation
@@ -478,9 +478,6 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
 
     db_scenario = Scenario.objects.get(task_id=task_id)
 
-    eflips_input = dict()
-    scenario = schedule.run(args)
-
     initial_dict = dict(departure_soc=None,
                         vehicle_type=[],
                         delta_soc=[],
@@ -493,6 +490,8 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
     eflips_input = {Rotation.objects.get(scenario=db_scenario, name=rot_id).id: initial_dict
                     for rot_id in schedule.rotations}
 
+    # Iterate over every depot rotation and calculate the consumption for different depot charger
+    # vehicles
     for schedule, key in vary_schedule(schedule):
         schedule.calculate_consumption()
         for rot_id, rotation in schedule.rotations.items():
@@ -506,6 +505,19 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
             vehicle = schedule.vehicle_types[rotation.vehicle_type]["depb"]
             eflips_input[db_rotation.id]["delta_soc"].append(
                 rotation.consumption / vehicle["capacity"])
+
+    # For the opportunity chargers a simulation needs to be run. But first a new vehicle is assigned
+    # for each rotation
+    vehicle_counts = {f"{vt}_{ct}": 0 for vt, value in schedule.vehicle_types.items() for ct in
+                      value}
+    for rot_id, rot in schedule.rotations.items():
+        vt = rot.vehicle_type
+        ct = rot.charging_type
+        key = f"{vt}_{ct}"
+        vehicle_counts[key] += 1
+        rot.vehicle_id = f"{vt}_{ct}_{vehicle_counts[key]}"
+    schedule.vehicle_type_counts = vehicle_counts
+    scenario = schedule._run(args)
 
     for rot_id, rotation in schedule.rotations.items():
         if rotation.charging_type != "oppb":
@@ -524,14 +536,20 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
                                             charging_type=rotation.charging_type,
                                             vehicle_type=rotation.vehicle_type,
                                             )
-    schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
+    # Simulate and create the output files
+    _, _ = simba.simulate.modes_simulation(schedule, scenario, args)
 
     db_scenario.finished = timezone.now()
     db_scenario.save()
+
+    # Create the file for eflips. This could be passed directly to eFlips
     with open(settings.BASE_DIR / args.output_directory / "report_1/eflips_input.json", "w") as f:
         json.dump(eflips_input, f, indent=4)
 
-    file_path = settings.BASE_DIR / args.output_directory / "report_1/rotation_socs.csv"
+    # Write some of the output in the database
+    # ToDo: Write in the database from the simba schedule and scenario object. Reading files
+    # is not needed anymore
+    file_path = settings.BASE_DIR / args.output_directory / "report_1/vehicle_socs.csv"
     save_vehicle_properties_from_file(file_path, db_scenario)
 
 
@@ -545,6 +563,7 @@ def save_vehicle_properties_from_file(file_path, scenario):
         reader = csv.DictReader(csvfile)
         vehicle_names = [name for name in reader.fieldnames]
         vehicle_names.remove("time")
+        vehicle_names.remove("timestep")
         vehicle_dict = dict()
 
         for vehicle_name in vehicle_names:
