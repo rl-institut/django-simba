@@ -128,7 +128,6 @@ def home_view(request):
 
         django_scenario, simba_schedule, args = \
             tasks.fill_db_with_input_files(form.cleaned_data, request)
-
         # start computation
         task_id = get_unique_task_id()
         django_scenario.task_id = task_id

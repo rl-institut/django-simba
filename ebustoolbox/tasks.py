@@ -40,7 +40,6 @@ def fill_db_with_input_files(cleaned_data: dict, request: HttpRequest):
     :param request: Request with uploaded files
     :return:
     """
-    # todo create everything from schedule --> changing schedule --> change in db
     django_scenario = scenario_to_db(cleaned_data, request)
     original_args = get_args(django_scenario)
     # Create the schedule from the args, and delete features which are not used in django
@@ -60,7 +59,7 @@ def fill_db_with_input_files(cleaned_data: dict, request: HttpRequest):
     return django_scenario, simba_schedule, original_args
 
 
-def db_to_schedule(django_scenario: Scenario) -> tuple[simba.schedule.Schedule, Namespace]:
+def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Schedule, Namespace]:
     """Takes a django Scenario and returns the simba Schedule and arguments
 
     Can be used to run a previously stored Django Scenario again straight from the database without

@@ -156,14 +156,14 @@ class Trip(models.Model):
     level_of_loading = models.FloatField(default=None, null=True)
 
     # If time resolution is minutes, there might be trips with 0 minutes duration. To resolve
-    # division by 0, we use a minimal duration of 1 second
+    # division by 0, we use a minimal duration of 60 seconds
     @property
     def duration_in_seconds(self):
         """duration of the trip in seconds
 
-        duration has a minimal value of 1 to avoid division by 0 errors"""
+        duration has a minimal value of 60 seconds to avoid division by 0 errors"""
 
-        return max((self.arrival_time - self.departure_time).total_seconds(), 1)
+        return max((self.arrival_time - self.departure_time).total_seconds(), 60)
 
     @property
     def speed(self):
