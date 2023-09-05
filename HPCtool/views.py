@@ -44,3 +44,31 @@ def delete_bus(request: HttpRequest) -> response.JsonResponse:
         # ("Objects in Database after: ", BusOutline.objects.all().count(), "\n\n")
     return response.JsonResponse({"message": "Successfully deleted! I should implement something "
                                              "to remove the busses from view......"})  # , "chart": chart}
+
+
+def get_station_popup(request: HttpRequest, id: int) -> response.JsonResponse:  # noqa: ARG001
+    """Return popup as html and chart options to render chart on popup.
+
+    Parameters
+    ----------
+    request : HttpRequest
+        Request from app, can hold option for different language
+    lookup: str
+        Name is used to lookup data and chart functions
+    id: int
+        ID of region selected on map. Data and chart for popup is calculated for related region.
+
+    Returns
+    -------
+    JsonResponse
+        containing HTML to render popup and chart options to be used in E-Chart.
+    """
+    #data = apps.get_model(app_label="ebustoolbox", model_name=lookup).get_popup_data(id)
+    #try:
+    #    html = #render_to_string(f"popups/{lookup}.html", context=data)
+    #except TemplateDoesNotExist:
+    #    html = render_to_string("popups/default.html", context=data)
+
+    html = "<h1> LADELEISTUNG: 123 kW</h1> and ID is " + str(id)
+
+    return response.JsonResponse({"html": html})  # , "chart": chart}

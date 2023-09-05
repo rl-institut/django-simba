@@ -11,7 +11,7 @@ from ebus_map.managers import MVTManager, LabelMVTManager
 class BusOutline(models.Model):
     geom = models.MultiPolygonField(srid=4326)
     name = models.CharField(max_length=50)
-    scenario = models.CharField(max_length=50)
+    scenario_ID = models.CharField(max_length=50)
     quality = models.IntegerField(default=0)
 
     objects = models.Manager()
@@ -27,7 +27,7 @@ class BusOutline(models.Model):
 class Flurstueck(models.Model):
     geom = models.MultiPolygonField(srid=4326)
     name = models.CharField(max_length=50)
-    scenario = models.CharField(max_length=50)
+    scenario_ID = models.CharField(max_length=50)
 
     objects = models.Manager()
     layer = "busstop"
@@ -40,7 +40,7 @@ class Flurstueck(models.Model):
 class Tree(models.Model):
     geom = models.PointField(srid=4326)
     name = models.CharField(max_length=50)
-    scenario = models.CharField(max_length=50)
+    scenario_ID = models.CharField(max_length=50)
 
     objects = models.Manager()
     layer = "busstop"
@@ -50,3 +50,28 @@ class Tree(models.Model):
         "geom": "MultiPolygon",
         "name": "name",
     }
+
+
+class Station(models.Model):
+    geom = models.PointField(srid=4326)
+    name = models.CharField(max_length=50)
+    scenario_ID = models.CharField(max_length=50)
+    charge_pwr = models.CharField(max_length=10)
+
+    busses = models.ManyToManyField(BusOutline)
+    flurstück = models.ManyToManyField(Flurstueck)
+    trees = models.ManyToManyField(Tree)
+
+    objects = models.Manager()
+    layer = "busstop"
+    vector_tiles = MVTManager(columns=["id", "name"])
+
+
+class Scenario(models.Model):
+    geom = models.PointField(srid=4326)
+    name = models.CharField(max_length=50)
+    scenario_ID = models.CharField(max_length=50)
+
+    stations = models.ManyToManyField(Station)
+
+
