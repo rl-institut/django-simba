@@ -56,7 +56,7 @@ class Station(models.Model):
     geom = models.PointField(srid=4326)
     name = models.CharField(max_length=50)
     scenario_ID = models.CharField(max_length=50)
-    charge_pwr = models.CharField(max_length=10)
+    charge_pwr = models.CharField(max_length=10, default="MV")
 
     busses = models.ManyToManyField(BusOutline)
     flurstück = models.ManyToManyField(Flurstueck)
@@ -68,10 +68,27 @@ class Station(models.Model):
 
 
 class Scenario(models.Model):
-    geom = models.PointField(srid=4326)
+    name = models.CharField(max_length=50)
+    scenario_ID = models.CharField(max_length=50)
+    stations = models.ManyToManyField(Station)
+class Cyclepath(models.Model):
+    geom = models.MultiPolygonField(srid=4326)
     name = models.CharField(max_length=50)
     scenario_ID = models.CharField(max_length=50)
 
-    stations = models.ManyToManyField(Station)
+    objects = models.Manager()
+    layer = "busstop"
+    vector_tiles = MVTManager(columns=["id", "name"])
 
+class ResidentialArea(models.Model):
+    geom = models.MultiPolygonField(srid=4326)
+    name = models.CharField(max_length=50)
+    scenario_ID = models.CharField(max_length=50)
 
+    objects = models.Manager()
+    layer = "busstop"
+    vector_tiles = MVTManager(columns=["id", "name"])
+    mapping = {
+        "geom": "MultiPolygon",
+        "name": "name",
+    }

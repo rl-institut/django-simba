@@ -53,6 +53,23 @@
 
     }
   },
+  "cyclepath": {
+    "type": "fill",
+    "paint": {
+
+    "fill-color": "#00FFFF",
+    "fill-opacity":  0.5
+    }
+  },
+"residentialarea": {
+    "type": "fill",
+    "paint": {
+
+    "fill-color": "#FF00FF",
+    "fill-opacity": 0.5
+    }
+  },
+
    "trees": {
     "type": "circle",
     "paint": {

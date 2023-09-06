@@ -4,8 +4,8 @@ import numpy as np
 
 import pyproj
 
-from .models import BusOutline, Tree, Flurstueck
-from django.contrib.gis.geos import MultiPolygon
+from .models import BusOutline, Tree, Flurstueck, Cyclepath, ResidentialArea
+from django.contrib.gis.geos import MultiPolygon, GEOSGeometry
 from django.contrib.gis.geos import Polygon as djangoPolygon
 from django.contrib.gis.geos import Point as djangoPoint
 
@@ -125,7 +125,7 @@ def calculate_HPC(poly_list):
     cdr = list(zip(*alkis_4326.geometry.values[0].exterior.coords.xy))
     p2 = djangoPolygon(cdr)
     mp = MultiPolygon(p2)
-    Flurstueck.objects.create(geom=mp, name="Herzallee", scenario="neu")
+    Flurstueck.objects.create(geom=mp, name="Herzallee", scenario_ID="neu")
 
     gdf = straßen.to_crs(25833)
 
@@ -136,12 +136,28 @@ def calculate_HPC(poly_list):
         if success > 0:
             layerdict[layer] = pd.concat([layerdict[layer], lgdf], axis=0, ignore_index=True)
             local_layerdict[layer] = pd.concat([layerdict[layer], lgdf], axis=0, ignore_index=True)
-
+            print(layer)
             if layer == "Bäume":
                 gdf_4326 = lgdf.to_crs(4326)
                 for row in gdf_4326.geometry:
                     p3 = djangoPoint(*list(zip(*row.xy)))
-                    Tree.objects.create(geom=p3, name="Baum", scenario="neu")
+                    Tree.objects.create(geom=p3, name="Baum", scenario_ID="neu")
+
+            if layer == "Radweg":
+                gdf_4326 = lgdf.to_crs(4326)
+                for multipoly in gdf_4326.geometry.values:
+                    django_multipolygon = GEOSGeometry(multipoly.wkt)
+                    Cyclepath.objects.create(geom=django_multipolygon, name="Radweg", scenario_ID="neu")
+
+            if layer == "Tatsächliche Nutzung":
+                WohnGDF = extractWohngebiet(lgdf)
+                if not WohnGDF.empty:
+                    gdf_4326 = WohnGDF.to_crs(4326)
+                    for multipoly in gdf_4326.geometry.values:
+                        django_multipolygon = GEOSGeometry(multipoly.wkt)
+                        ResidentialArea.objects.create(geom=django_multipolygon, name="Herzallee", scenario_ID="neu")
+                else:
+                    print("KEIN WOHNGEBIET")
 
     charger_good, charger_medium, charger_bad = 0, 0, 0
 
@@ -210,11 +226,11 @@ def calculate_HPC(poly_list):
                             c_good, c_mid, c_bad = placeColoredPanthograph(pnt, local_layerdict, criteria)
 
                             if c_good > 0:
-                                BusOutline.objects.create(geom=polygon, name="buzz", scenario="neu", quality=2)
+                                BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu", quality=2)
                             elif c_mid > 0:
-                                BusOutline.objects.create(geom=polygon, name="buzz", scenario="neu", quality=1)
+                                BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu", quality=1)
                             else:
-                                BusOutline.objects.create(geom=polygon, name="buzz", scenario="neu", quality=0)
+                                BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu", quality=0)
 
                             charger_good += c_good
                             charger_medium += c_mid

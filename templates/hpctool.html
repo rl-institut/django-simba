@@ -208,8 +208,10 @@
       let eventTopics = {};
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.min.js"></script>
+      <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
     <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.js"></script>
     <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.css" type="text/css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet">
 
     {% include 'django_mapengine/map_js.html' %}
 
@@ -274,7 +276,7 @@
     </div>
   </div>
 
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+
 
 
 
@@ -324,22 +326,150 @@
 </div>
 
 <div style="position: fixed;
- top:800px; left: 320px; width: 50px; height: 50px;
+ top:800px; left: 340px; width: 50px; height: 50px;
   z-index: 900;
  transform: translateY(-50%); display: flex; justify-content: center; align-items: center;">
 <button onclick="exportJson()", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">exp</button>
 </div>
 
+<div style="position: fixed;
+ top:800px; right: 320px; width: 100px; height: 50px;
+  z-index: 900; display: none;
+ transform: translateY(-50%); display: flex; justify-content: center; align-items: center;">
+<button id="DrawDone" onclick="exportJson()", style="display: none; border-radius: 10%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">Done</button>
+</div>
 
 
+<!-- Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+       <div class="modal-content">
+           <div class="modal-header">
+               <h5 class="modal-title" id="editModalLabel">Edit Item</h5>
+               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+           </div>
+           <div class="modal-body">
+               <form>
+                   <div class="mb-3">
+                       <label for="name" class="form-label">Name</label>
+                       <input type="text" class="form-control" id="name">
+                   </div>
+                   <div class="mb-3">
+                       <label for="power" class="form-label">Power</label>
+                       <input type="text" class="form-control" id="power">
+                   </div>
+                   <div class="mb-3">
+                       <label for="unit" class="form-label">Unit</label>
+                       <select class="form-select" id="unit">
+                           <option value="kW">kW</option>
+                           <option value="MW">MW</option>
+                       </select>
+                   </div>
+               </form>
+           </div>
+           <div class="modal-footer">
+               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+               <button type="button" class="btn btn-primary" id="fromALKIS">From ALKIS</button>
+               <button type="button" class="btn btn-primary" id="draw">Draw</button>
+               <button type="button" class="btn btn-primary" id="saveChanges" disabled>Save</button>
+           </div>
+       </div>
+   </div>
+</div>
 
 <script>
 
+    // MODAL AND RIGHT-CLICK FOR NEW STATION
+    var areaEndstop ="";
+    var lastRightClick =  [0,0];
+    var stationPopup;
+    // Get a reference to the button element
+    const button = document.getElementById("DrawDone");
 
+    // Function to hide the button
+    function hideButton() {
+        button.style.display = "none";
+    }
+
+    // Function to show the button
+    function showButton() {
+        button.style.display = "block";
+    }
+
+
+    // JavaScript code to enable the "Save" button when one of the options is clicked
+    document.getElementById("fromALKIS").addEventListener("click", function() {
+       document.getElementById("draw").disabled = true;
+       document.getElementById("saveChanges").disabled = false;
+       areaEndstop = "FromAlkis";
+    });
+
+    document.getElementById("draw").addEventListener("click", function() {
+       document.getElementById("fromALKIS").disabled = true;
+       document.getElementById("saveChanges").disabled = false;
+       stationPopup.remove();
+       $("#editModal").modal("hide");
+       map.flyTo({
+            center: lastRightClick,
+            zoom: 18,
+            essential: true
+          });
+       enableDrawmode(1);
+        showButton();
+       areaEndstop = "POLYGON";
+    });
+
+    $(document).ready(function() {
+        $("#saveChanges").click(function() {
+            const name = $("#name").val();
+            const power = $("#power").val();
+            const unit = $("#unit").val();
+
+            console.log(name,power,unit,areaEndstop);
+            // Handle the data (e.g., save it or update your UI)
+            // ...
+
+            // Close the modal
+            $("#editModal").modal("hide");
+
+        });
+    });
+
+
+        map.on("mousedown", (e) => {
+      if (e.originalEvent.button === 2) {
+          var latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
+          console.log("RIGHT")
+            listDrawnLayers();
+          try {
+              stationPopup.remove();
+          }catch{
+              console.log("No open dialog")
+          };
+
+          lastRightClick = latlon
+          var innerHTML ='<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editModal"> <i class="bi bi-pencil"></i> New Station Here </button>';
+            document.getElementById("fromALKIS").disabled = false;
+            document.getElementById("saveChanges").disabled = true;
+            document.getElementById("draw").disabled = false;
+
+
+        requestAnimationFrame(() => {
+            stationPopup = new maplibregl.Popup({
+                // https://maplibre.org/maplibre-gl-js-docs/api/markers/#popup-parameters
+                maxWidth: "280px",
+            }).setLngLat(latlon).setHTML(innerHTML).addTo(map);
+        });
+      }
+    });
+
+    // LAYER SELECTION
 
      // Define your list of layers
         var layers = [
             { id: 'flur', name: 'Flurstücke' },
+            { id: 'cyclepath', name: 'Radwege' },
+            { id: 'residentialarea', name: 'Wohngebiete' },
             { id: 'myexamplemultipolygon', name: 'Busse' },
             { id: 'trees', name: 'Bäume' }
             // Add more layers as needed
@@ -407,35 +537,7 @@
             console.log('Currently drawn layers:', drawnLayers);
         }
 
-    map.on("mousedown", (e) => {
-      if (e.originalEvent.button === 2) {
-          var latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
-          console.log("RIGHT")
-listDrawnLayers();
-          try {
-              popup.remove();
-          }catch{
-              console.log("No open dialog")
-          };
 
-          var innerHTML ='<div id="popup-content" class="fixed-div">' +
-                                '<div class="dropdown show">' + // Add the "show" class
-                                '    <div class="dropdown-menu show" aria-labelledby="dropdownMenuButton">' +
-                                '        <a class="dropdown-item" href="#">New Station</a>' +
-                                '        <a class="dropdown-item" href="#">Option 2</a>' +
-                                '        <a class="dropdown-item" href="#">Option 3</a>' +
-                                '    </div>' +
-                                '</div>' +
-                            '</div>';
-
-        requestAnimationFrame(() => {
-            popup = new maplibregl.Popup({
-                // https://maplibre.org/maplibre-gl-js-docs/api/markers/#popup-parameters
-                maxWidth: "280px",
-            }).setLngLat(latlon).setHTML(innerHTML).addTo(map);
-        });
-      }
-    });
 
     document.addEventListener("DOMContentLoaded", function () {
       const sidebar = document.querySelector(".sidebar");
@@ -494,7 +596,7 @@ listDrawnLayers();
                     // Create a temporary anchor element to trigger the download
                     const a = document.createElement("a");
                     a.href = URL.createObjectURL(blob);
-                    a.download = "exported_data.json";
+                    a.download = "electrified_stations.json";
 
                     // Trigger the click event to start the download
                     a.click();
@@ -703,12 +805,12 @@ listDrawnLayers();
 
             $.ajax({
                   type: "GET",
-                  url: `/stationpopup/${e.features[0].id}?lang=en`,
+                  url: `hpctool/stationpopup/${e.features[0].id}`,
                   dataType: 'json',
                   success: function (data) {
                     const popup = document.createElement('div');
                     const {html} = data;
-                    popup.innerHTML = html + '<br><button onclick="onNoClick()">Edit</button>'
+                    popup.innerHTML = html + '<br><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editModal" >Edit</button>'
 
                     map.easeTo({
                         center: latlon

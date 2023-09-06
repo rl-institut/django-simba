@@ -10,7 +10,7 @@ from celery.result import AsyncResult
 from celery import uuid
 from .tasks import calculate_chargers
 
-from .models import BusOutline
+from .models import *
 
 import ast
 
@@ -69,7 +69,10 @@ def get_station_popup(request: HttpRequest, id: int) -> response.JsonResponse:  
     # except TemplateDoesNotExist:
     #    html = render_to_string("popups/default.html", context=data)
 
-    html = "<h1> LADELEISTUNG: 123 kW</h1> and ID is " + str(id)
+    Area = Flurstueck.objects.get(id=int(id))
+    #Station = Area.Station.all()
+
+    html = "<h1> LADELEISTUNG: 123 kW</h1> and ID is " + str(id) + "  " + str(Area.scenario_ID)
 
     return response.JsonResponse({"html": html})  # , "chart": chart}
 
@@ -92,6 +95,6 @@ def export_data(request):
 
     # Create an HTTP response with the JSON data as a downloadable file
     response_json = HttpResponse(json_data, content_type='application/json')
-    response_json['Content-Disposition'] = 'attachment; filename="exported_data.json"'
+    response_json['Content-Disposition'] = 'attachment; filename="electrified_stations.json"'
 
     return response_json
