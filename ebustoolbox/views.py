@@ -27,8 +27,8 @@ def get_map(request):
 def get_chart(request):
     """Get a rendered chart of vehicle data
 
-    :param request:
-    :return:
+    :param request: django.http.HttpRequest
+    :return: django.http.HttpResponse
     """
     task_id = request.GET.get("task_id")
     print("get is :", task_id)
