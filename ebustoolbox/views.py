@@ -25,6 +25,11 @@ def get_map(request):
 
 
 def get_chart(request):
+    """Get a rendered chart of vehicle data
+
+    :param request:
+    :return:
+    """
     task_id = request.GET.get("task_id")
     print("get is :", task_id)
     get_vehicles = request.GET.getlist("vehicles")
@@ -32,6 +37,8 @@ def get_chart(request):
 
     scenario = Scenario.objects.get(task_id=task_id)
     vehicles = Vehicle.objects.filter(scenario=scenario)
+
+    # Does the request ask for specific vehicles? If not, don't filter and show all vehicles
     if get_vehicles is None:
         pass
     else:
@@ -40,12 +47,7 @@ def get_chart(request):
             my_filter_qs = my_filter_qs | Q(id=int(v))
         vehicles = vehicles.filter(my_filter_qs)
 
-    plot_vehicles = []
-    for search_vehicle in vehicles:
-        plot_data = VehicleProperties.objects.filter(vehicle=search_vehicle)
-        time_data = [c.date for c in plot_data]
-        y_data = [c.soc for c in plot_data]
-        plot_vehicles.append({'x': time_data, 'y': y_data, 'name': search_vehicle.name})
+    plot_vehicles = get_vehicle_plot_data(vehicles)
 
     fig = go.Figure()
     for v in plot_vehicles:
@@ -62,6 +64,16 @@ def get_chart(request):
     context = {'chart': chart, "form": ChartForm(scenario=scenario), 'result_id': task_id}
 
     return render(request, 'chart.html', context)
+
+
+def get_vehicle_plot_data(vehicles):
+    plot_vehicles = []
+    for search_vehicle in vehicles:
+        plot_data = VehicleProperties.objects.filter(vehicle=search_vehicle)
+        time_data = [c.date for c in plot_data]
+        y_data = [c.soc for c in plot_data]
+        plot_vehicles.append({'x': time_data, 'y': y_data, 'name': search_vehicle.name})
+    return plot_vehicles
 
 
 def show_uploads_view(request, filename):
@@ -116,9 +128,6 @@ def long_running_task_status_view(request):
 
 
 def home_view(request):
-    # ToDo needs different implementation since it uses same list for
-    # different users
-
     if request.method == "GET":
         form = UploadFileForm()
     elif request.method == "POST":

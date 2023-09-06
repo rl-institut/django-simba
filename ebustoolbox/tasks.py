@@ -1,6 +1,6 @@
 import collections
 import json
-from copy import deepcopy
+from copy import deepcopy, copy
 from argparse import Namespace
 
 from django.utils import timezone
@@ -18,6 +18,7 @@ from pathlib import Path
 from decimal import Decimal
 from celery import shared_task
 
+from simba.consumption import Consumption
 from .models import Vehicle, VehicleProperties, UploadedFile, Station, VehicleType, VehicleClass, \
     Rotation, Trip
 from .models import Scenario
@@ -79,7 +80,13 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
     # get SimBA vehicle_types from db
     vehicle_types = get_vehicle_types_from_db(django_scenario)
 
-    options = django_scenario.options
+    # ToDo this might need refactoring since binding consumption to Trip Class is not versatile
+    # in case of parallel schedules / scenarios, since both access the same Consumption
+    # setup consumption calculator that can be accessed by all trips
+    simba.trip.Trip.consumption = Consumption(vehicle_types)
+
+    options = copy(django_scenario.options)
+
     del options["electrified_stations"]
     del options["vehicle_types"]
 
@@ -228,7 +235,9 @@ def get_schedule_from_args(original_args) -> tuple[simba.schedule.Schedule, Name
 
     # Mutate values according to models and make values explicit, i.e. dictionary contains all
     # values, even if defaults would be used anyway. This makes sure the database contains all
-    # the needed information to recreate the exact scenario
+    # the needed information to recreate the exact scenario.
+    # ToDo: Another way could be to use properties in the models which look up scenario provided
+    # data if no specific data (e.g. station.cs_power) is provided.
     for station in simba_schedule.stations.values():
         if str(station["type"]).lower() != "opps":
             try:
@@ -321,7 +330,12 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
     return scenario
 
 
-def schedule_to_db(schedule, scenario):
+def schedule_to_db(schedule: simba.schedule.Schedule, scenario: Scenario) -> None:
+    """Takes a simba Schedule and writes it into the db with the scenario as handle
+    :param schedule: simba Schedule
+    :param scenario: django model Scenario
+    :return: None
+    """
     model_rotations = []
     model_trips = []
     rot_id = 1 if Rotation.objects.last() is None else Rotation.objects.last().id + 1
@@ -350,10 +364,13 @@ def schedule_to_db(schedule, scenario):
     Rotation.objects.bulk_create(model_rotations)
     Trip.objects.bulk_create(model_trips)
 
-    pass
 
-
-def vehicles_to_db(vehicle_types, scenario):
+def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
+    """Takes a dictionary of vehicle types and writes them into the db with the scenario as handle
+    :param schedule: simba Schedule
+    :param scenario: django model Scenario
+    :return: None
+    """
     for name, v_type in vehicle_types.items():
         vehicle_class, _ = VehicleClass.objects.get_or_create(name=name)
         for charge_name, charge_type in v_type.items():
@@ -376,6 +393,11 @@ def vehicles_to_db(vehicle_types, scenario):
 
 
 def stations_to_db(station_data, electrified_stations, scenario):
+    """Takes a dictionary of vehicle types and writes them into the db with the scenario as handle
+    :param schedule: simba Schedule
+    :param scenario: django model Scenario
+    :return: None
+    """
     object_list = []
     try:
         last_id = Station.objects.aggregate(Max('id'))['id__max']

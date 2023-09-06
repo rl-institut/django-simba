@@ -6,6 +6,8 @@ from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.dispatch import receiver
 
+MINIMAL_TRIP_DURATION_S = 60  # seconds
+
 
 class Scenario(models.Model):
     name = models.CharField(max_length=100, blank=False)
@@ -138,6 +140,13 @@ class Station(models.Model):
     power_per_charger = models.FloatField(default=None, null=True)
     total_power = models.FloatField(default=None, null=True)
 
+    def __str__(self):
+        if not self.is_electrified:
+            return f"{self.name} is not electrified. Location: {self.geom.x} {self.geom.y}"
+        return f"{self.name} with {self.amount_charging_places} chargers with " \
+               f"{self.power_per_charger} kW per charger and a total power of {self.total_power} " \
+               f"kW. \nLocation: {self.geom.x} {self.geom.y}"
+
 
 class Trip(models.Model):
     rotation = models.ForeignKey(Rotation,
@@ -163,7 +172,8 @@ class Trip(models.Model):
 
         duration has a minimal value of 60 seconds to avoid division by 0 errors"""
 
-        return max((self.arrival_time - self.departure_time).total_seconds(), 60)
+        return max((self.arrival_time - self.departure_time).total_seconds(),
+                   MINIMAL_TRIP_DURATION_S)
 
     @property
     def speed(self):
