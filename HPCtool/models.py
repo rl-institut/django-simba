@@ -37,6 +37,7 @@ class Flurstueck(models.Model):
         "name": "name",
     }
 
+
 class Tree(models.Model):
     geom = models.PointField(srid=4326)
     name = models.CharField(max_length=50)

@@ -336,7 +336,7 @@
  top:800px; right: 320px; width: 100px; height: 50px;
   z-index: 900; display: none;
  transform: translateY(-50%); display: flex; justify-content: center; align-items: center;">
-<button id="DrawDone" onclick="exportJson()", style="display: none; border-radius: 10%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">Done</button>
+<button id="DrawDone" onclick="endDraw()", style="display: none; border-radius: 10%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">Done</button>
 </div>
 
 
@@ -345,7 +345,7 @@
    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
        <div class="modal-content">
            <div class="modal-header">
-               <h5 class="modal-title" id="editModalLabel">Edit Item</h5>
+               <h5 class="modal-title" id="editModalLabel">edit Station</h5>
                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
            </div>
            <div class="modal-body">
@@ -378,6 +378,28 @@
 </div>
 
 <script>
+
+    // For jumping between Stations:
+
+    var all_station_coords = [];
+    var station_index = 0;
+
+    window.addEventListener("load", function() {
+        $.ajax({
+            url: 'hpctool/getstationlist',
+            type: 'GET',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(data){
+                all_station_coords = data.message
+                console.log(all_station_coords);
+            },
+            error: function(data){
+               console.log(data);
+            }
+        })
+    });
 
     // MODAL AND RIGHT-CLICK FOR NEW STATION
     var areaEndstop ="";
@@ -428,13 +450,44 @@
             console.log(name,power,unit,areaEndstop);
             // Handle the data (e.g., save it or update your UI)
             // ...
-
+            createStation(name,power,unit,areaEndstop)
             // Close the modal
             $("#editModal").modal("hide");
 
         });
     });
 
+    function endDraw(){
+        areaEndstop = draw.getAll();
+        $("#editModal").modal("show");
+    }
+
+    function createStation(name,power,unit,areaEndstop) {
+         var data_station = {
+                          "name": name,
+                          "power": unit,
+                          "area": areaEndstop,
+                          "latlon": lastRightClick
+                        };
+        console.log("Creating Station")
+        $.ajax({
+            url: 'hpctool/create',
+            type: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            data: JSON.stringify(data_station),
+            success: function(data){
+                $("#editModal").modal("hide");
+                hideButton();
+                alert(data.message);
+            },
+            error: function(data){
+               alert(data.status); // the status code
+               alert(data.responseJSON.error); // the message
+            }
+        })
+    }
 
         map.on("mousedown", (e) => {
       if (e.originalEvent.button === 2) {
@@ -632,6 +685,8 @@
     }
 
 
+
+
     const draw = new MapboxDraw({
         displayControlsDefault: false,
             // Select which mapbox-gl-draw control buttons to add to the map.
@@ -716,15 +771,16 @@
     });
 
     var popup = null;
-    var currentCoordinateIndex = 0;
 
     function flyStep(step) {
+
         map.flyTo({
-            center: [13.331855527577858,52.50979501127969],
+            center: all_station_coords[station_index],
             zoom: 18,
             essential: true
           });
         //console.log(map);
+        station_index+=step;
         //document.getElementById("map").flyTo(0,0, 19);
     }
 

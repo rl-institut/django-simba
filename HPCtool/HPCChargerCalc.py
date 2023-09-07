@@ -109,6 +109,8 @@ def calculate_HPC(poly_list):
     polygon_geom = Polygon(poly_list)
     alkis = gpd.GeoDataFrame(index=[0], crs=4326, geometry=[polygon_geom])
 
+    listbusses, listtrees = [], []
+
     layerdict = {}
     local_layerdict = {}
     for layer in Layers:
@@ -125,7 +127,7 @@ def calculate_HPC(poly_list):
     cdr = list(zip(*alkis_4326.geometry.values[0].exterior.coords.xy))
     p2 = djangoPolygon(cdr)
     mp = MultiPolygon(p2)
-    Flurstueck.objects.create(geom=mp, name="Herzallee", scenario_ID="neu")
+    flurstueck = Flurstueck.objects.create(geom=mp, name="Herzallee", scenario_ID="neu")
 
     gdf = straßen.to_crs(25833)
 
@@ -141,7 +143,8 @@ def calculate_HPC(poly_list):
                 gdf_4326 = lgdf.to_crs(4326)
                 for row in gdf_4326.geometry:
                     p3 = djangoPoint(*list(zip(*row.xy)))
-                    Tree.objects.create(geom=p3, name="Baum", scenario_ID="neu")
+                    tree = Tree.objects.create(geom=p3, name="Baum", scenario_ID="neu")
+                    listtrees.append(tree)
 
             if layer == "Radweg":
                 gdf_4326 = lgdf.to_crs(4326)
@@ -226,16 +229,16 @@ def calculate_HPC(poly_list):
                             c_good, c_mid, c_bad = placeColoredPanthograph(pnt, local_layerdict, criteria)
 
                             if c_good > 0:
-                                BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu", quality=2)
+                                new_instance = BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu", quality=2)
                             elif c_mid > 0:
-                                BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu", quality=1)
+                                new_instance = BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu", quality=1)
                             else:
-                                BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu", quality=0)
+                                new_instance = BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu", quality=0)
 
                             charger_good += c_good
                             charger_medium += c_mid
                             charger_bad += c_bad
-
+                            listbusses.append(new_instance)
     return str(charger_bad) + " " + str(charger_medium) + " " + str(charger_good)
 
 

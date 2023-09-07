@@ -1,8 +1,10 @@
+from django.contrib.gis.geos import Point
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.http import HttpRequest, response
 
 from django.views.generic import TemplateView
+from shapely import Polygon
 
 from django_mapengine import views
 
@@ -70,9 +72,15 @@ def get_station_popup(request: HttpRequest, id: int) -> response.JsonResponse:  
     #    html = render_to_string("popups/default.html", context=data)
 
     Area = Flurstueck.objects.get(id=int(id))
-    #Station = Area.Station.all()
+    # Get all books by the author
+    print(Area)
 
-    html = "<h1> LADELEISTUNG: 123 kW</h1> and ID is " + str(id) + "  " + str(Area.scenario_ID)
+    Station = Area.station_set.first()
+
+    print(Station)
+
+
+    html = "<h1> " + str(Station.name)+ "</h1> and ID is " + str(id) + " <br> LADELEISTUNG: 123 kW <br> " + str(Area.scenario_ID)
 
     return response.JsonResponse({"html": html})  # , "chart": chart}
 
@@ -81,6 +89,7 @@ import json
 
 
 def generate_json_data():
+    # TODO: Put this somewhere else
     # Fetch and process your data here
     data = [{'hello': 'world'}]  # Your data as a list of dictionaries
 
@@ -98,3 +107,43 @@ def export_data(request):
     response_json['Content-Disposition'] = 'attachment; filename="electrified_stations.json"'
 
     return response_json
+
+
+def create_station(request):
+    post_dict = request.POST.dict()
+    try:
+        # Use ast.literal_eval to evaluate the dictionary
+        result = ast.literal_eval(list(request.POST.dict())[0])
+
+        if not result["area"] == "fromAlkis":
+            PL = result["area"]['features'][0]['geometry']['coordinates'][0]
+
+            async_result = calculate_chargers.apply_async(([PL]), polygon=[PL])
+
+            stat = Station.objects.create(geom=Point(list(result['latlon'])), name=result['name'], scenario_ID="neu",
+                                   charge_pwr=result['power'])
+
+            result = async_result.get()
+
+            print(Flurstueck.objects.order_by('id').reverse()[0])
+
+
+            stat.flurstück.add(Flurstueck.objects.order_by('id').reverse()[0])
+        else:
+            print("NÜOT IMPLEMENTED YET :)")
+    except ValueError as e:
+        print(f"Error: {e}")
+        return response.JsonResponse({"message": "Upps, da lief was schief :("})
+    return response.JsonResponse({"message": "Jo is erstellt, " + result})
+
+
+def get_stationlist(request):
+    stations_with_geom = Station.objects.values_list('geom', flat=True)
+
+    # Convert the queryset to a list
+    geom_values_list = list(stations_with_geom)
+    coordinates_list = [(point.x, point.y) for point in geom_values_list]
+    print(coordinates_list)
+
+
+    return JsonResponse({'message': coordinates_list})
