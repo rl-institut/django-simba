@@ -24,19 +24,23 @@
         ```bash
         poetry install
         ```
+       For developers, use
+        ```bash
+        poetry install --with dev
+        ```
     7. Django uses an .env file to read user specific data. This file has to be created by the user and is not shared through GitHub to make uploads of sensitive data impossible. Create a file named `.env` with the following input`
    ````text
-    DJANGO_SECRET_KEY=INSERT_YOUR_KEY_HERE
-    DJANGO_DEBUG=True
-    # Replace with your own database info
-    DATABASE_URL=postgis://YOUR_DB_USERNAME:YOUR_PASSWORD@localhost/YOUR_DB_NAME
-    # Should celery be used? If so a CELERY_BROKER_URL has to be provided
-    CELERY_USE=False
-    # CELERY_BROKER_URL=pyamqp://guest@localhost//
-    TILING_SERVICE_TOKEN=GET_YOUR_TOKEN_THROUGH_MAP_TILER
-    TILING_SERVICE_STYLE_ID=basic-v2
-    DJANGO_SETTINGS_MODULE=ebusdjango.settings
-    ````
+     DJANGO_SECRET_KEY=INSERT_YOUR_KEY_HERE
+     DJANGO_DEBUG=True
+     # Replace with your own database info
+     DATABASE_URL=postgis://YOUR_DB_USERNAME:YOUR_PASSWORD@localhost/YOUR_DB_NAME
+     # Should celery be used? If so a CELERY_BROKER_URL has to be provided
+     CELERY_USE=False
+     # CELERY_BROKER_URL=pyamqp://guest@localhost//
+     TILING_SERVICE_TOKEN=GET_YOUR_TOKEN_THROUGH_MAP_TILER
+     TILING_SERVICE_STYLE_ID=basic-v2
+     DJANGO_SETTINGS_MODULE=ebusdjango.settings
+     ````
 
 3. Set up django (inside the virtual environment)
     1. Set up the database: `python manage.py migrate`
