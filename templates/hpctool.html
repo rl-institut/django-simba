@@ -217,9 +217,28 @@
 
 
     <script>
-      // This is needed, as otherwise map height is zero and therefore not visible (bug in mapengine!)
-      document.getElementById("map").style = "height: 800px"
-      //map.addControl(new maplibregl.FullscreenControl());
+        // This is needed, as otherwise map height is zero and therefore not visible (bug in mapengine!)
+        document.getElementById("map").style = "height: 800px"
+
+        // Get the query parameters from the current URL
+        var urlParams = new URLSearchParams(window.location.search);
+
+        // Get the value of the "zoom" parameter
+        var zoom = urlParams.get('zoom');
+
+        // Get the value of the "center" parameter
+
+
+        try{
+            var center = urlParams.get('center');
+            var cntr = center.slice(7).replace(")", "").split(",")
+
+            map.setCenter(cntr);
+            map.setZoom(zoom);
+        }catch{
+            console.log("Cant set to null")
+        };
+
     </script>
 
 
@@ -361,8 +380,9 @@
                    <div class="mb-3">
                        <label for="unit" class="form-label">Unit</label>
                        <select class="form-select" id="unit">
-                           <option value="kW">kW</option>
-                           <option value="MW">MW</option>
+                           <option value="MV">MV</option>
+                           <option value="HV">HV</option>
+                           <option value="LV">LV</option>
                        </select>
                    </div>
                </form>
@@ -382,7 +402,7 @@
     // For jumping between Stations:
 
     var all_station_coords = [];
-    var station_index = 0;
+    var station_index = -1;
 
     window.addEventListener("load", function() {
         $.ajax({
@@ -481,6 +501,29 @@
                 $("#editModal").modal("hide");
                 hideButton();
                 alert(data.message);
+
+                //TODO: Reload here
+                // Get the current center coordinates
+                var center = map.getCenter();
+
+                // Get the current zoom level
+                var zoom = map.getZoom();
+
+                // Get the current URL
+                var currentUrl = new URL(window.location.href);
+
+                // Update the "zoom" parameter to 14
+                currentUrl.searchParams.set('zoom', zoom);
+
+                // Update the "center" parameter to a new value
+                currentUrl.searchParams.set('center', center);
+
+                // Update the URL with the modified query parameters
+                window.history.replaceState({}, '', currentUrl);
+
+                // Set the URL to the modified URL
+                window.location.href = currentUrl.href;
+
             },
             error: function(data){
                alert(data.status); // the status code
@@ -774,13 +817,28 @@
 
     function flyStep(step) {
 
+
+        station_index+=step;
+        if (station_index >= all_station_coords.length-1){
+            station_index = 0;
+        };
+        if (station_index < 0 ){
+            station_index = all_station_coords.length-1;
+        };
+
+
+        console.log("Flying to: ", station_index, " of ", all_station_coords.length);
+
+        // TODO: increment/decrement BEFORE flying to location??
+        // otherwise "richtungswechsel" result in unexpected behavior
+
         map.flyTo({
             center: all_station_coords[station_index],
             zoom: 18,
             essential: true
           });
         //console.log(map);
-        station_index+=step;
+
         //document.getElementById("map").flyTo(0,0, 19);
     }
 

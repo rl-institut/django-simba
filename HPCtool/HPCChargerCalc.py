@@ -239,7 +239,7 @@ def calculate_HPC(poly_list):
                             charger_medium += c_mid
                             charger_bad += c_bad
                             listbusses.append(new_instance)
-    return str(charger_bad) + " " + str(charger_medium) + " " + str(charger_good)
+    return str(charger_bad) + " " + str(charger_medium) + " " + str(charger_good), [instance.id for instance in listbusses]
 
 
 def generalizedLayerLoader(wfs_url, type_names, sbbox, version='2.0.0', retries=3, timeout=30):
