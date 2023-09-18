@@ -83,7 +83,7 @@ def get_station_popup(request: HttpRequest, id: int) -> response.JsonResponse:  
 
     print(buslist)
 
-    html = "<h1> " + str(Station.name)+ "</h1> and ID is " + str(id) + " <br> LADELEISTUNG: 123 "+ str(Station.charge_pwr)+" <br> Number of busses: " + str(buslist)# + str(Area.scenario_ID) + "  "
+    html = "<h1> " + str(Station.name)+ "</h1> and ID is " + str(id) + " <br> LADELEISTUNG: "+ str(Station.charge_pwr)+" <br> Number of busses: " + str(buslist)# + str(Area.scenario_ID) + "  "
 
     return response.JsonResponse({"html": html})  # , "chart": chart}
 
@@ -138,7 +138,7 @@ def create_station(request):
             async_result = calculate_chargers.apply_async(([PL]), polygon=[PL])
 
             stat = Station.objects.create(geom=Point(list(result['latlon'])), name=result['name'], scenario_ID="neu",
-                                   charge_pwr=result['power'])
+                                   charge_pwr=result['power_station'])
 
             result, buslist = async_result.get()
 
