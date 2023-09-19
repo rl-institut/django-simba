@@ -326,7 +326,7 @@
      transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction()">
 <button onclick="recalculate()" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">🧮</button>
 </div>
--->
+
 
 <div style="position: fixed;
  top:800px; left: 280px; width: 50px; height: 50px;
@@ -334,7 +334,7 @@
  transform: translateY(-50%); display: flex; justify-content: center; align-items: center;">
 <button onclick="deleteBus()", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">💾</button>
 </div>
-
+-->
 <div style="position: fixed;
  top:800px; left: 340px; width: 50px; height: 50px;
   z-index: 900;
@@ -343,12 +343,19 @@
 </div>
 
 <div style="position: fixed;
+ top:800px; left: 400px; width: 50px; height: 50px;
+  z-index: 900;
+ transform: translateY(-50%); display: flex; justify-content: center; align-items: center;">
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#settingsModal" id="settingsButton", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⚙️</button>
+</div>
+
+
+<div style="position: fixed;
  top:800px; right: 320px; width: 100px; height: 50px;
   z-index: 900; display: none;
  transform: translateY(-50%); display: flex; justify-content: center; align-items: center;">
 <button id="DrawDone" onclick="endDraw()", style="display: none; border-radius: 10%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">Done</button>
 </div>
-
 
 <!-- Modal -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
@@ -409,6 +416,103 @@
    </div>
 </div>
 
+<!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="settingsModalLabel">Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label for="busLength" class="form-label">Bus Length [m]:</label>
+                            <input type="number" class="form-control" id="busLength" placeholder="Enter bus length">
+                        </div>
+                        <div class="mb-3">
+                            <label for="parkingDistance" class="form-label">Parking Distance [m]:</label>
+                            <input type="number" class="form-control" id="parkingDistance" placeholder="Enter parking distance">
+                        </div>
+                        <div class="mb-3">
+                            <label for="maxCurvature" class="form-label">Max. Curvature:</label>
+                            <input type="number" class="form-control" id="maxCurvature" placeholder="Enter max. curvature">
+                        </div>
+                    </form>
+                     <!-- Criteria Table -->
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Number 1</th>
+                                <th>Number 2</th>
+                                <th>Number 3</th>
+                                <th>Text</th>
+                            </tr>
+                        </thead>
+                        <tbody id="criteriaTableBody">
+                            <!-- Existing criteria rows can be added here -->
+                        </tbody>
+                    </table>
+
+                    <!-- Add Criteria Button -->
+                    <button type="button" class="btn btn-primary" id="addCriteriaBtn" data-bs-toggle="modal" data-bs-target="#addCriteriaModal">+ Add Criteria</button>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveSettings">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Criteria Modal -->
+    <div class="modal fade" id="addCriteriaModal" tabindex="-1" aria-labelledby="addCriteriaModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addCriteriaModalLabel">Add Criteria</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label for="criteriaName" class="form-label">Name:</label>
+                            <input type="text" class="form-control" id="criteriaName" placeholder="Enter name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="criteriaType" class="form-label">Type:</label>
+                            <input type="text" class="form-control" id="criteriaType" placeholder="Enter type">
+                        </div>
+                        <div class="mb-3">
+                            <label for="input1" class="form-label">Layername:</label>
+                            <input type="text" class="form-control" id="input1" placeholder="Enter input 1">
+                        </div>
+                        <div class="mb-3">
+                            <label for="input2" class="form-label">Link:</label>
+                            <input type="text" class="form-control" id="input2" placeholder="Enter input 2">
+                        </div>
+                        <div class="mb-3">
+                            <label for="input3" class="form-label">Distance red [m]:</label>
+                            <input type="text" class="form-control" id="input3" placeholder="Enter input 3">
+                        </div>
+                        <div class="mb-3">
+                            <label for="input4" class="form-label">Distance green [m]:</label>
+                            <input type="text" class="form-control" id="input4" placeholder="Enter input 4">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveCriteria">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
 <script>
 
     // For jumping between Stations:
@@ -432,6 +536,41 @@
             }
         })
     });
+
+
+        // Get a reference to the button element by its ID
+    var settingsbutton = document.getElementById("settingsButton");
+
+    // Attach a click event handler to the button
+    settingsbutton.addEventListener("click", function() {
+        $.ajax({
+            url: 'hpctool/settings',
+            type: 'GET',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(data){
+
+                console.log(data);
+                var textbox_l = document.getElementById("busLength");
+                var textbox_pd = document.getElementById("parkingDistance");
+                var textbox_curv = document.getElementById("maxCurvature");
+
+                // Set the text of the textbox using the "value" property
+                textbox_l.value = data.bus_length;
+                textbox_pd.value = data.parkdistance;
+                textbox_curv.value = data.maxcurvature;
+
+            },
+            error: function(data){
+               console.log(data);
+            }
+        })
+    });
+
+
+
+
 
     // MODAL AND RIGHT-CLICK FOR NEW STATION
     var areaEndstop ="";
@@ -732,7 +871,7 @@
             data: JSON.stringify(deletedIDs),
             success: function(data){
                 deletedIDs = [];
-                alert(data.message);
+                //alert(data.message);
             },
             error: function(data){
                alert(data.status); // the status code
@@ -968,7 +1107,7 @@
                         {del: false}
                     );
         popup.remove();
-
+        deleteBus();
 
 
     }

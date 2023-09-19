@@ -168,3 +168,28 @@ def get_stationlist(request):
 
 
     return JsonResponse({'message': coordinates_list})
+
+
+def get_settings(request):
+
+
+    if request.method == 'GET':
+        try:
+            settings_object = Settings.objects.get(scenario_ID="neu")
+        except Settings.DoesNotExist:
+            settings_object = Settings.objects.create(name="Settings", scenario_ID="neu", bus_length=18,
+                                                      park_distance=5, max_curvature=1)
+        except Settings.MultipleObjectsReturned:
+            print("Error")
+
+        print(settings_object)
+
+        return JsonResponse({"bus_length": 18,
+                             "parkdistance": 5,
+                             "maxcurvature": 1})
+
+    elif request.method == 'POST':
+        # Handle POST request here
+        data = request.POST.get('data')
+        #
+        return HttpResponse(f'This is a POST request with data: {data}')

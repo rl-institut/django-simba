@@ -8,6 +8,7 @@ from django.contrib.gis.db import models
 from django.utils.translation import gettext_lazy as _
 from ebus_map.managers import MVTManager, LabelMVTManager
 
+
 class BusOutline(models.Model):
     geom = models.MultiPolygonField(srid=4326)
     name = models.CharField(max_length=50)
@@ -23,6 +24,7 @@ class BusOutline(models.Model):
         "name": "name",
         "quality": "quality",
     }
+
 
 class Flurstueck(models.Model):
     geom = models.MultiPolygonField(srid=4326)
@@ -72,6 +74,8 @@ class Scenario(models.Model):
     name = models.CharField(max_length=50)
     scenario_ID = models.CharField(max_length=50)
     stations = models.ManyToManyField(Station)
+
+
 class Cyclepath(models.Model):
     geom = models.MultiPolygonField(srid=4326)
     name = models.CharField(max_length=50)
@@ -80,6 +84,7 @@ class Cyclepath(models.Model):
     objects = models.Manager()
     layer = "busstop"
     vector_tiles = MVTManager(columns=["id", "name"])
+
 
 class ResidentialArea(models.Model):
     geom = models.MultiPolygonField(srid=4326)
@@ -93,3 +98,28 @@ class ResidentialArea(models.Model):
         "geom": "MultiPolygon",
         "name": "name",
     }
+
+
+class Criterion(models.Model):
+    name = models.CharField(max_length=50)
+    scenario_ID = models.CharField(max_length=50)
+
+    geom_type = models.CharField(max_length=50)
+    link = models.CharField(max_length=150)
+    layer_name = models.CharField(max_length=50)
+
+    dist_red = models.FloatField()
+    dist_green = models.FloatField()
+
+
+class Settings(models.Model):
+    name = models.CharField(max_length=50)
+    scenario_ID = models.CharField(max_length=50)
+
+    bus_length = models.FloatField()
+    park_distance = models.FloatField()
+    max_curvature = models.FloatField()
+
+    criteria = models.ManyToManyField(Criterion)
+
+
