@@ -18,6 +18,8 @@ Template:
 ```
 
 ## [x.x.x] - Unreleased
+### Changed
+- [(#29)](https://github.com/rl-institut/django-simba/pull/29)The generated input for eflips gets the database ID of the vehicle_type instead of the simba specific name of the vehicle type
 
 ### Added
 - [(#26)](https://github.com/rl-institut/django-simba/pull/26) Added dev tools for consistent formatting

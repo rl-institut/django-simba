@@ -66,8 +66,7 @@ def create_chart(lookup: str, chart_data: Optional[Iterable[tuple[str, float]]] 
         Containing chart filled with data
 
     """
-    chart ={}
+    chart = {}
     if chart_data:
         chart["series"][0]["data"] = [{"key": key, "value": value} for key, value in chart_data]
     return chart
-

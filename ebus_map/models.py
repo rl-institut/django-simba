@@ -8,7 +8,6 @@ from .managers import LabelMVTManager, MVTManager, X, Y
 import ebustoolbox.models
 
 
-
 class Station(ebustoolbox.models.Station):
     # prior attributes, used for map (?)
     objects = models.Manager()
@@ -43,7 +42,6 @@ class Station(ebustoolbox.models.Station):
         data["lat"] = obj.geom.x
         data["lon"] = obj.geom.y
         return data
-
 
 
 class MyExampleMultiPolygon(models.Model):
@@ -109,9 +107,6 @@ class MyExamplePoint(models.Model):
     # def __str__(self):
     #     return self.name
 
-
-
-
 #
 # class LayerFilterType(Enum):
 #     Range = 0
@@ -128,14 +123,12 @@ class MyExamplePoint(models.Model):
 #
 
 
-
 # from django.contrib.gis.geos import LineString
 # line = LineString((0, 0), (0, 50), (50, 50), (50, 0), (0, 0))
 # MyExampleLine(geom=line, name="My first line")
 # MyExampleLine.objects.create(geom=LineString((0, 0), (0, 50), (50, 50), (50, 0), (0, 0), srid=4326))
 #
-#
-a  = 2
+
 # if len(MyExamplePoint.objects.all()) <= 100:
 #     MyExamplePoint.objects.create(geom=GEOSGeometry("POINT(5 55)"))
 #     MyExamplePoint.objects.create(geom=GEOSGeometry("POINT(8 50)"))
@@ -143,7 +136,6 @@ a  = 2
 #     print("foo")
 # #
 # print("foo")
-
 
 
 # from django.contrib.gis.geos import MultiPolygon, Polygon
