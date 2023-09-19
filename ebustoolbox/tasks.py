@@ -68,7 +68,7 @@ def scenario_to_db(cleaned_data, request):
     args["mode"] = list(map(lambda s: s.strip(), args["modes"].split(',')))
     # decimal -> float
     for k, v in args.items():
-        if type(v) == Decimal:
+        if type(v) is Decimal:
             args[k] = float(v)
     # set default files if not given
     for k, v in {
@@ -305,7 +305,14 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
             eflips_input[db_rotation.id].update(departure_soc=schedule.min_recharge_deps_depb,
                                                 charging_type=rotation.charging_type,
                                                 )
-            eflips_input[db_rotation.id]["vehicle_type"].append(rotation.vehicle_type)
+            # ToDo: VehicleType.name is not checked for uniqueness. In case of ambivalence
+            # ...objects.get() will throw an error. This will be fixed by using the name_short for
+            # the vehicle_type introduced in the branch feature/simba_read_from_db branch
+            vehicle_type_name = schedule.vehicle_types[rotation.vehicle_type]["depb"]["name"]
+            vehicle_type_db = VehicleType.objects.get(scenario=db_scenario,
+                                                      name=vehicle_type_name)
+
+            eflips_input[db_rotation.id]["vehicle_type"].append(vehicle_type_db.id)
             vehicle = schedule.vehicle_types[rotation.vehicle_type]["depb"]
             eflips_input[db_rotation.id]["delta_soc"].append(
                 rotation.consumption / vehicle["capacity"])
@@ -321,11 +328,17 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
         # use the index before
         start_idx = max(start - 1, 0)
         rot_soc = v_soc[start_idx:end]
+
+        # ToDo: Same as above, i.e. use name_short instead of name. See line 308
+        vehicle_type_name = schedule.vehicle_types[rotation.vehicle_type]["oppb"]["name"]
+        vehicle_type_db = VehicleType.objects.get(scenario=db_scenario,
+                                                  name=vehicle_type_name)
+
         eflips_input[db_rotation.id] = dict(departure_soc=rot_soc[0],
                                             arrival_soc=rot_soc[-1],
                                             minimal_soc=min(rot_soc),
                                             charging_type=rotation.charging_type,
-                                            vehicle_type=rotation.vehicle_type,
+                                            vehicle_type=vehicle_type_db.id,
                                             )
     schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
 
