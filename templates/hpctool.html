@@ -445,8 +445,8 @@
                             <tr>
                                 <th>Name</th>
                                 <th>Type</th>
-                                <th>Number 1</th>
-                                <th>Number 2</th>
+                                <th>dist_red</th>
+                                <th>dist_green</th>
                                 <th>Number 3</th>
                                 <th>Text</th>
                             </tr>
@@ -455,9 +455,6 @@
                             <!-- Existing criteria rows can be added here -->
                         </tbody>
                     </table>
-
-                    <!-- Add Criteria Button -->
-                    <button type="button" class="btn btn-primary" id="addCriteriaBtn" data-bs-toggle="modal" data-bs-target="#addCriteriaModal">+ Add Criteria</button>
 
                 </div>
                 <div class="modal-footer">
@@ -468,49 +465,6 @@
         </div>
     </div>
 
-    <!-- Add Criteria Modal -->
-    <div class="modal fade" id="addCriteriaModal" tabindex="-1" aria-labelledby="addCriteriaModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addCriteriaModalLabel">Add Criteria</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form>
-                        <div class="mb-3">
-                            <label for="criteriaName" class="form-label">Name:</label>
-                            <input type="text" class="form-control" id="criteriaName" placeholder="Enter name">
-                        </div>
-                        <div class="mb-3">
-                            <label for="criteriaType" class="form-label">Type:</label>
-                            <input type="text" class="form-control" id="criteriaType" placeholder="Enter type">
-                        </div>
-                        <div class="mb-3">
-                            <label for="input1" class="form-label">Layername:</label>
-                            <input type="text" class="form-control" id="input1" placeholder="Enter input 1">
-                        </div>
-                        <div class="mb-3">
-                            <label for="input2" class="form-label">Link:</label>
-                            <input type="text" class="form-control" id="input2" placeholder="Enter input 2">
-                        </div>
-                        <div class="mb-3">
-                            <label for="input3" class="form-label">Distance red [m]:</label>
-                            <input type="text" class="form-control" id="input3" placeholder="Enter input 3">
-                        </div>
-                        <div class="mb-3">
-                            <label for="input4" class="form-label">Distance green [m]:</label>
-                            <input type="text" class="form-control" id="input4" placeholder="Enter input 4">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveCriteria">Save</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
 
 <script>
@@ -561,6 +515,44 @@
                 textbox_pd.value = data.parkdistance;
                 textbox_curv.value = data.maxcurvature;
 
+            },
+            error: function(data){
+               console.log(data);
+            }
+        })
+        $.ajax({
+            url: 'hpctool/criteria',
+            type: 'GET',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(data){
+
+                console.log(data)
+
+                const tableBody = document.getElementById('criteriaTableBody');
+
+                const rows = tableBody.getElementsByTagName('tr'); // Get all table rows
+
+                // Start from the last row and work your way up to keep the header
+                for (let i = rows.length ; i > 0; i--) {
+                    const row = rows[i];
+                    row.remove();
+                }
+
+                for (const item in data) {
+                    const row = document.createElement('tr'); // Create a single row
+                    for (const element in data[item]) {
+                            if (data[item].hasOwnProperty(element)) {
+
+                                const valueCell = document.createElement('td');
+                                valueCell.textContent = data[item][element];
+                                row.appendChild(valueCell);
+
+                            }
+                    tableBody.appendChild(row);
+                    }
+                }
             },
             error: function(data){
                console.log(data);

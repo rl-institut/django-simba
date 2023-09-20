@@ -193,3 +193,45 @@ def get_settings(request):
         data = request.POST.get('data')
         #
         return HttpResponse(f'This is a POST request with data: {data}')
+
+
+def crit(request):
+
+    if request.method == 'GET':
+        settingse = Settings.objects.get(scenario_ID="neu")
+
+        all_crit = settingse.criteria.all()
+
+        if settingse.criteria.count() < 1:
+            crit = Criterion.objects.create(scenario_ID="neu", name="Bäume", layer_name="Bäume", geom_type="point", link="""https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_wfs_baumbestand""", dist_green=5, dist_red=10)
+            settingse.criteria.add(crit)
+            crit = Criterion.objects.create(scenario_ID="neu", name="Wohngebäude", layer_name='extractWohngebiet', geom_type="poly", link="""https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_wfs_alkis_tatsaechlichenutzungflaechen""", dist_green=30, dist_red=60)
+            settingse.criteria.add(crit)
+            crit = Criterion.objects.create(scenario_ID="neu", name="Radwege", layer_name="Radweg", geom_type="point", link="""https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_Radweg""", dist_green=5, dist_red=10)
+            settingse.criteria.add(crit)
+
+
+        criterialist = []
+
+        for criteria_obj in all_crit:
+            new_dict = {"name": criteria_obj.name,
+                        "layer_name": criteria_obj.layer_name,
+                        "geom_type": criteria_obj.geom_type,
+                        "link": criteria_obj.link,
+                        "dist_red": criteria_obj.dist_red,
+                        "dist_green": criteria_obj.dist_green,
+                        }
+            print(criteria_obj.name)
+            criterialist.append(new_dict)
+
+        return response.JsonResponse(criterialist, safe=False)
+
+    elif request.method == 'POST':
+        # Handle POST request here
+        data = request.POST.get('data')
+        #
+
+        #
+
+        return HttpResponse(f'This is a POST request with data: {data}')
+
