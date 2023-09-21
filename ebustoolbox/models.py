@@ -14,6 +14,13 @@ class Scenario(models.Model):
     finished = models.DateTimeField(default=None, null=True, blank=True)
     options = models.JSONField(default=dict)
 
+    @classmethod
+    def get_default_pk(cls):
+        scenario, created = cls.objects.get_or_create(
+            name='default_scenario',
+        )
+        return scenario.pk
+
 
 class UploadedFile(models.Model):
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
@@ -30,21 +37,22 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
 
 class VehicleClass(models.Model):
     name = models.CharField(max_length=100, blank=False)
-
-    # TODO do vehicle classes need to be connected to a scenario?
+    # Connect to scenario, so the class is deleted when the scenario is deleted
+    scenario = models.ForeignKey(Scenario, default=Scenario.get_default_pk(), on_delete=models.CASCADE)
 
     @classmethod
     def get_default_pk(cls):
         vehicle_class, created = cls.objects.get_or_create(
-            name='SB',  # TODO necessary? better default?
+            name='SB',
         )
         return vehicle_class.pk
 
 
 class VehicleType(models.Model):
     name = models.CharField(max_length=100, blank=False)
+    name_short = models.CharField(max_length=100, blank=False, default=name)
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
-    vehicle_class = models.ForeignKey(VehicleClass, on_delete=models.CASCADE)
+    vehicle_class = models.ManyToManyField(VehicleClass)
     flex_charging = models.BooleanField()
     battery_capacity = models.FloatField()
     charging_efficiency = models.FloatField(default=0.95)
