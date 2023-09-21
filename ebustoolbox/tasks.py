@@ -1,6 +1,7 @@
 import collections
 import json
 import warnings
+from copy import deepcopy
 
 from django.utils import timezone
 from django.contrib.gis.geos import GEOSGeometry
@@ -257,19 +258,29 @@ def _celery_run_ebus_toolbox(self, args, task_id):
 
 
 def vary_schedule(schedule) -> "collections.Iterable[simba.schedule.Schedule]":
-    depot_vehicle_types = {key: vehicle_type["depb"] for key, vehicle_type in
-                           schedule.vehicle_types.items()
-                           if "depb" in vehicle_type}
+    """Generator that creates schedules with varying vehicle types for """
+    # Keep original rotations to restore them later and keep track of depot rotations
+    original_rotations = deepcopy(schedule.rotations)
+    # Use all vehicle types even opportunity chargers
+    depot_vehicle_types = schedule.vehicle_types
     for key, vt in depot_vehicle_types.items():
-        for rot_id, rotation in schedule.rotations.items():
-            if rotation.charging_type == "depb":
-                rotation.vehicle_type = key
-        yield schedule, key
+        for charging_type in ["depb", "oppb"]:
+            for rot_id, rotation in schedule.rotations.items():
+                # in case of a depot rotation, the vehicle type is adjusted and both
+                # charging types are used, even the "oppb". This way calculate_consumption() also
+                # calculates the "non-charging" consumption of a depot rotation which is run with
+                # an opportunity bus.
+                if original_rotations[rot_id].charging_type == "depb":
+                    rotation.vehicle_type = key
+                    # Charging type is mutated, since this is used to determine the exact vehicle
+                    rotation.charging_type = charging_type
+            yield schedule, key
+    # Restore rotations before leaving generator
+    schedule.rotations = original_rotations
 
 
 def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
     args.output_directory = Path(settings.UPLOAD_PATH) / task_id
-    eflips_input = dict()
     args.attach_vehicle_soc = True
 
     db_scenario = Scenario.objects.get(task_id=task_id)
@@ -282,7 +293,6 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
         schedule.stations[key]["cs_power_deps_depb"] = 0
         schedule.stations[key]["cs_power_deps_oppb"] = 0
 
-    eflips_input = dict()
     scenario = schedule.run(args)
 
     initial_dict = dict(departure_soc=None,
@@ -296,24 +306,32 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
     eflips_input = {Rotation.objects.get(scenario=db_scenario, name=rot_id).id: initial_dict
                     for rot_id in schedule.rotations}
 
+    # These rotations need calculations of their consumption without opportunity_charging
+    orig_depot_rotations = {rot_id: rotation for rot_id, rotation in schedule.rotations.items()
+                            if rotation.charging_type == "depb"}
+
+    # Analyze schedules which are generated using different depot vehicles. I.e. every depot
+    # rotation is run with each vehicle to generate the consumption
     for schedule, key in vary_schedule(schedule):
         schedule.calculate_consumption()
-        for rot_id, rotation in schedule.rotations.items():
-            if rotation.charging_type != "depb":
-                continue
+        # Iterate over depot rotation keys
+        for rot_id, _ in orig_depot_rotations.items():
+            # But use the mutated rotation
+            rotation = schedule.rotations[rot_id]
             db_rotation = Rotation.objects.get(scenario=db_scenario, name=rot_id)
             eflips_input[db_rotation.id].update(departure_soc=schedule.min_recharge_deps_depb,
-                                                charging_type=rotation.charging_type,
+                                                charging_type="depb",
                                                 )
             # ToDo: VehicleType.name is not checked for uniqueness. In case of ambivalence
             # ...objects.get() will throw an error. This will be fixed by using the name_short for
             # the vehicle_type introduced in the branch feature/simba_read_from_db branch
-            vehicle_type_name = schedule.vehicle_types[rotation.vehicle_type]["depb"]["name"]
+            vehicle_type_name = \
+                schedule.vehicle_types[rotation.vehicle_type][rotation.charging_type]["name"]
             vehicle_type_db = VehicleType.objects.get(scenario=db_scenario,
                                                       name=vehicle_type_name)
 
             eflips_input[db_rotation.id]["vehicle_type"].append(vehicle_type_db.id)
-            vehicle = schedule.vehicle_types[rotation.vehicle_type]["depb"]
+            vehicle = schedule.vehicle_types[rotation.vehicle_type][rotation.charging_type]
             eflips_input[db_rotation.id]["delta_soc"].append(
                 rotation.consumption / vehicle["capacity"])
 
