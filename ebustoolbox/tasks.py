@@ -21,6 +21,7 @@ from .models import Vehicle, VehicleProperties, UploadedFile, Station, VehicleTy
     Rotation, Trip
 from .models import Scenario
 from argparse import Namespace
+import simba.optimizer_util
 import simba.util
 import simba.simulate
 import simba.schedule
@@ -260,23 +261,26 @@ def _celery_run_ebus_toolbox(self, args, task_id):
 def vary_schedule(schedule) -> "collections.Iterable[simba.schedule.Schedule]":
     """Generator that creates schedules with varying vehicle types for """
     # Keep original rotations to restore them later and keep track of depot rotations
-    original_rotations = deepcopy(schedule.rotations)
-    # Use all vehicle types even opportunity chargers
-    depot_vehicle_types = schedule.vehicle_types
-    for key, vt in depot_vehicle_types.items():
-        for charging_type in ["depb", "oppb"]:
-            for rot_id, rotation in schedule.rotations.items():
-                # in case of a depot rotation, the vehicle type is adjusted and both
-                # charging types are used, even the "oppb". This way calculate_consumption() also
-                # calculates the "non-charging" consumption of a depot rotation which is run with
-                # an opportunity bus.
-                if original_rotations[rot_id].charging_type == "depb":
-                    rotation.vehicle_type = key
-                    # Charging type is mutated, since this is used to determine the exact vehicle
-                    rotation.charging_type = charging_type
-            yield schedule, key
+    orig_rotations = deepcopy(schedule.rotations)
+    # depot rotations
+    depot_rotations = {r_id: rotation for r_id, rotation in orig_rotations.items()
+                       if rotation.charging_type == "depb"}
+    # ToDo Iterate over all vehicle_types of the vehicle class. Thus far no definition for
+    # vehicle_classes exist
+    # for vt in rotation.vehicle_class:
+    #   ...
+    for charging_type in ["depb", "oppb"]:
+        for rot_id, _ in depot_rotations.items():
+            # in case of a depot rotation, the vehicle type is adjusted and both
+            # charging types are used, even the "oppb". This way calculate_consumption() also
+            # calculates the "non-charging" consumption of a depot rotation which is run with
+            # an opportunity bus.
+            if orig_rotations[rot_id].charging_type == "depb":
+                # Charging type is mutated, since this is used to determine the exact vehicle
+                schedule.rotations[rot_id].charging_type = charging_type
+        yield schedule
     # Restore rotations before leaving generator
-    schedule.rotations = original_rotations
+    schedule.rotations = orig_rotations
 
 
 def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
@@ -312,7 +316,7 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
 
     # Analyze schedules which are generated using different depot vehicles. I.e. every depot
     # rotation is run with each vehicle to generate the consumption
-    for schedule, key in vary_schedule(schedule):
+    for schedule in vary_schedule(schedule):
         schedule.calculate_consumption()
         # Iterate over depot rotation keys
         for rot_id, _ in orig_depot_rotations.items():
