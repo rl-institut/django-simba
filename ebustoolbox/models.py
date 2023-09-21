@@ -38,7 +38,7 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
 class VehicleClass(models.Model):
     name = models.CharField(max_length=100, blank=False)
     # Connect to scenario, so the class is deleted when the scenario is deleted
-    scenario = models.ForeignKey(Scenario, default=Scenario.get_default_pk(), on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, default=Scenario.get_default_pk, on_delete=models.CASCADE)
 
     @classmethod
     def get_default_pk(cls):
