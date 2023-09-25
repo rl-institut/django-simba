@@ -16,6 +16,9 @@ from .models import *
 
 import ast
 
+import json
+
+
 
 class HomePageView(TemplateView, views.MapEngineMixin):
     template_name = "hpctool.html"
@@ -83,12 +86,25 @@ def get_station_popup(request: HttpRequest, id: int) -> response.JsonResponse:  
 
     print(buslist)
 
-    html = "<h1> " + str(Station.name)+ "</h1> and ID is " + str(id) + " <br> LADELEISTUNG: "+ str(Station.charge_pwr)+" <br> Number of busses: " + str(buslist)# + str(Area.scenario_ID) + "  "
+    dictresult = {"name": Station.name,
+                  "id": Station.id,
+                  "pwr": Station.charge_pwr,
+                  "buses": buslist}
 
-    return response.JsonResponse({"html": html})  # , "chart": chart}
+    return response.JsonResponse(dictresult)  # , "chart": chart}
 
+def edit_station(request):
 
-import json
+    edit_id = request.POST.get('data')["id"]
+
+    stat = Station.objects.get(id=int(edit_id))
+
+    stat.name = request.POST.get('data')["name"]
+    stat.charge_pwr = request.POST.get('data')["charge_pwr"]
+
+    stat.save()
+
+    return JsonResponse({"message":"Success=1"})
 
 
 def generate_json_data():
