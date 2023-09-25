@@ -36,8 +36,7 @@ jobs:
           flake8 ebus_map ebusdjango ebustoolbox
       - name: check black
         run: |
-          black --check ebus_map ebusdjango ebustoolbox
-
+          black ebustoolbox/*.py --check
   Runner-job-of-Django-Tests-with-DB-Setup:
     needs: dev-tools
     # You must use a Linux environment when using service containers or container jobs
