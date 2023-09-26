@@ -17,7 +17,7 @@ class Scenario(models.Model):
     @classmethod
     def get_default_pk(cls):
         scenario, created = cls.objects.get_or_create(
-            name='default_scenario',
+            name="default_scenario",
         )
         return scenario.pk
 
@@ -38,12 +38,14 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
 class VehicleClass(models.Model):
     name = models.CharField(max_length=100, blank=False)
     # Connect to scenario, so the class is deleted when the scenario is deleted
-    scenario = models.ForeignKey(Scenario, default=Scenario.get_default_pk, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(
+        Scenario, default=Scenario.get_default_pk, on_delete=models.CASCADE
+    )
 
     @classmethod
     def get_default_pk(cls):
         vehicle_class, created = cls.objects.get_or_create(
-            name='SB',
+            name="SB",
         )
         return vehicle_class.pk
 
@@ -97,14 +99,15 @@ class EbusToolboxTimeseries(models.Model):
     soc = models.FloatField()
 
     class Meta:
-        ordering = ('date',)
+        ordering = ("date",)
 
 
 class Rotation(models.Model):
     name = models.CharField(max_length=100, blank=False)
     # TODO on delete concept? also depends on if vehicle class is tied to scenario
-    vehicle_class = models.ForeignKey(VehicleClass, on_delete=models.SET_DEFAULT,
-                                      default=VehicleClass.get_default_pk)
+    vehicle_class = models.ForeignKey(
+        VehicleClass, on_delete=models.SET_DEFAULT, default=VehicleClass.get_default_pk
+    )
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
 
 
@@ -120,21 +123,25 @@ class Station(models.Model):
 
     is_electrified = models.BooleanField(default=False)
     charge_type = models.CharField(max_length=4, choices=CHARGE_TYPES, null=True)
-    voltage_level = models.CharField(max_length=5, choices=[(c, c) for c in VOLTAGE_LEVEL_CHOICES],
-                                     null=True)
+    voltage_level = models.CharField(
+        max_length=5, choices=[(c, c) for c in VOLTAGE_LEVEL_CHOICES], null=True
+    )
     amount_charging_places = models.IntegerField(default=0, null=True)
     power_per_charger = models.FloatField(default=None, null=True)
     total_power = models.FloatField(default=None, null=True)
 
 
 class Trip(models.Model):
-    rotation = models.ForeignKey(Rotation,
-                                 on_delete=models.CASCADE)  # TODO do all ForeignKeys need cascade?
-    departure_stop = models.ForeignKey(Station, on_delete=models.CASCADE,
-                                       related_name="trip_departure_set")
+    rotation = models.ForeignKey(
+        Rotation, on_delete=models.CASCADE
+    )  # TODO do all ForeignKeys need cascade?
+    departure_stop = models.ForeignKey(
+        Station, on_delete=models.CASCADE, related_name="trip_departure_set"
+    )
     departure_time = models.DateTimeField(blank=False)
-    arrival_stop = models.ForeignKey(Station, on_delete=models.CASCADE,
-                                     related_name="trip_arrival_set")
+    arrival_stop = models.ForeignKey(
+        Station, on_delete=models.CASCADE, related_name="trip_arrival_set"
+    )
     arrival_time = models.DateTimeField(blank=False)
     distance = models.FloatField()
 
