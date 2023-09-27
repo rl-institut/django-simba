@@ -290,7 +290,7 @@
 
 
 
-    <div style="position: fixed;
+<div style="position: fixed;
      top: 50%; left: 70px; width: 50px; height: 50px;
       z-index: 900;
      transform: translateY(-50%); display: flex; justify-content: center; align-items: center">
@@ -305,36 +305,7 @@
 <button onclick="flyStep(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⇨</button>
 </div>
 
-<!--
-<div style="position: fixed;
-     top:800px; left: 100px; width: 50px; height: 50px;
-      z-index: 900;
-     transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction2()">
-<button onclick="enableDrawmode(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">✎</button>
-</div>
 
-<div style="position: fixed;
-     top:800px; left: 160px; width: 50px; height: 50px;
-      z-index: 900;
-     transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction()">
-<button onclick="deleteDraw(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">🗑</button>
-</div>
-
-    <div style="position: fixed;
-     top:800px; left: 220px; width: 50px; height: 50px;
-      z-index: 900;
-     transform: translateY(-50%); display: flex; justify-content: center; align-items: center; onclick="myFunction()">
-<button onclick="recalculate()" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">🧮</button>
-</div>
-
-
-<div style="position: fixed;
- top:800px; left: 280px; width: 50px; height: 50px;
-  z-index: 900;
- transform: translateY(-50%); display: flex; justify-content: center; align-items: center;">
-<button onclick="deleteBus()", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">💾</button>
-</div>
--->
 <div style="position: fixed;
  top:800px; left: 340px; width: 50px; height: 50px;
   z-index: 900;
@@ -615,6 +586,38 @@
 
             // Close the modal
             $("#editModal").modal("hide");
+
+        });
+
+        $("#saveSettings").click(function() {
+            const buslength = $("#busLength").val();
+            const parkdistance = $("#parkingDistance").val();
+            //const unit = $("#power_charger").val();
+
+            var data_settings = {
+                          "buslength": buslength,
+                          "parkdistance": parkdistance,
+                        };
+
+            $.ajax({
+            url: 'hpctool/settings',
+            type: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            data: JSON.stringify(data_settings),
+            success: function(data){
+                // Close the modal
+                $("#settingsModal").modal("hide");
+
+            },
+            error: function(data){
+               alert(data.status); // the status code
+               alert(data.error); // the message
+            }
+        })
+
+
 
         });
     });

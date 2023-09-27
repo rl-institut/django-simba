@@ -24,13 +24,12 @@ from sklearn.metrics.pairwise import euclidean_distances
 bb_size = 0  # meter
 
 ### Bus Parameters ##
-bus_laenge = 18
+
 bus_breite = 3
-# Pantograph location, distance from front of the bus (centered laterally)
-panto_loc = 0.25 * bus_laenge
+
 #####################
 
-park_abstand = 5
+
 
 dist_tree_red = 5
 dist_tree_green = 10
@@ -105,7 +104,12 @@ criteria = {
 }
 
 
-def calculate_HPC(poly_list):
+def calculate_HPC(poly_list, buslength=18, parkingdistance=5):
+    bus_laenge = buslength
+    park_abstand = parkingdistance
+    # Pantograph location, distance from front of the bus (centered laterally)
+    panto_loc = 0.25 * bus_laenge
+
     polygon_geom = Polygon(poly_list)
     alkis = gpd.GeoDataFrame(index=[0], crs=4326, geometry=[polygon_geom])
 
@@ -213,7 +217,7 @@ def calculate_HPC(poly_list):
             for idx, seg in enumerate(coord_sublists):
                 if len(seg) > 1:
 
-                    buspolylist, pantographs_list = place_bus_along(seg)
+                    buspolylist, pantographs_list = place_bus_along(seg, bus_laenge, park_abstand, panto_loc)
 
                     for (polygon, pnt) in zip(buspolylist, pantographs_list):
 
@@ -379,7 +383,7 @@ def subsample_line(start_point, end_point, step_size):
     return new_points
 
 
-def place_bus_along(nodes):
+def place_bus_along(nodes, bus_laenge, park_abstand, panto_loc):
     """
     Place buses along a street segment defined by a list of nodes.
 

@@ -27,7 +27,11 @@ class HomePageView(TemplateView, views.MapEngineMixin):
         # change json object to list of lists:
         PL = ast.literal_eval(list(request.POST.dict())[0])
 
-        result = calculate_chargers.apply_async(([PL]), polygon=[PL])
+        settings_object = Settings.objects.get(scenario_ID="neu")
+        bl = settings_object.bus_length
+        pd = settings_object.park_distance
+
+        result = calculate_chargers.apply_async(polygon=[PL], buslength=bl, parkdistance=pd)
 
         response = JsonResponse({"error": "there was an error",
                                  "message": "Recalculating with new Polygon... Please wait" + result.get()[0]})
@@ -151,7 +155,11 @@ def create_station(request):
         if not result["area"] == "fromAlkis":
             PL = result["area"]['features'][0]['geometry']['coordinates'][0]
 
-            async_result = calculate_chargers.apply_async(([PL]), polygon=[PL])
+            settings_object = Settings.objects.get(scenario_ID="neu")
+            bl = settings_object.bus_length
+            pd = settings_object.park_distance
+
+            async_result = calculate_chargers.apply_async(([PL,bl,pd]), polygon=[PL], buslength=bl, parkdistance=pd)
 
             stat = Station.objects.create(geom=Point(list(result['latlon'])), name=result['name'], scenario_ID="neu",
                                    charge_pwr=result['power_station'])
@@ -200,13 +208,28 @@ def get_settings(request):
 
         print(settings_object)
 
-        return JsonResponse({"bus_length": 18,
-                             "parkdistance": 5,
+        return JsonResponse({"bus_length": settings_object.bus_length,
+                             "parkdistance": settings_object.park_distance,
                              "maxcurvature": 1})
 
     elif request.method == 'POST':
         # Handle POST request here
         data = request.POST.get('data')
+
+        key = next(iter(request.POST))
+        values_dict = json.loads(key)
+
+        # Access the values
+        bus_length = values_dict.get('buslength')
+        park_distance = values_dict.get('parkdistance')
+
+        settings_object = Settings.objects.get(scenario_ID="neu")
+        settings_object.bus_length = bus_length
+        settings_object.park_distance = park_distance
+        settings_object.max_curvature = 2
+
+        # Save the changes to the database
+        settings_object.save()
         #
         return HttpResponse(f'This is a POST request with data: {data}')
 
