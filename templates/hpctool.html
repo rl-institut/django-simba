@@ -1,5 +1,6 @@
+{% extends 'base.html'%}
 {% load static %}
-
+{% block content %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -187,6 +188,7 @@
 
 
 
+
 </style>
 
 
@@ -235,6 +237,8 @@
 
             map.setCenter(cntr);
             map.setZoom(zoom);
+
+            window.scrollTo(0, document.documentElement.scrollHeight || document.body.scrollHeight);
         }catch{
             console.log("Cant set to null");
         };
@@ -290,33 +294,25 @@
 
 
 
-<div style="position: fixed;
-     top: 50%; left: 70px; width: 50px; height: 50px;
-      z-index: 900;
-     transform: translateY(-50%); display: flex; justify-content: center; align-items: center">
-<button onclick="flyStep(-1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⇦</button>
-
-</div>
-
-<div style="position: fixed;
-     top: 50%; right: 70px; width: 50px; height: 50px;
-      z-index: 900;
-     transform: translateY(-50%); display: flex; justify-content: center; align-items: center">
-<button onclick="flyStep(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⇨</button>
+<div id="sidebarToggle" style="position: absolute; top:75%; left: 140px; width: 50px; height: 50px;
+      z-index: 900; justify-content: center; align-items: center">
+    <button onclick="flyStep(-1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 50px; height: 50px; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⇦</button>
 </div>
 
 
-<div style="position: fixed;
- top:800px; left: 340px; width: 50px; height: 50px;
-  z-index: 900;
- transform: translateY(-50%); display: flex; justify-content: center; align-items: center;">
+<div id="rightSidebarToggle" style="position: absolute; top:75%; right: 140px; width: 50px; height: 50px;
+      z-index: 900; justify-content: center; align-items: center">
+<button  onclick="flyStep(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⇨</button>
+</div>
+
+
+<div style="position: absolute; top:115%; left: 340px; width: 50px; height: 50px;
+      z-index: 900; justify-content: center; align-items: center">
 <button onclick="exportJson()", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">exp</button>
 </div>
 
-<div style="position: fixed;
- top:800px; left: 400px; width: 50px; height: 50px;
-  z-index: 900;
- transform: translateY(-50%); display: flex; justify-content: center; align-items: center;">
+<div style="position: absolute; top:115%; left: 400px; width: 50px; height: 50px;
+      z-index: 900; justify-content: center; align-items: center">
 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#settingsModal" id="settingsButton", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⚙️</button>
 </div>
 
@@ -561,6 +557,7 @@
        document.getElementById("saveChanges").disabled = false;
        stationPopup.remove();
        $("#editModal").modal("hide");
+       $('.modal-backdrop').remove();
        map.flyTo({
             center: lastRightClick,
             zoom: 18,
@@ -586,6 +583,7 @@
 
             // Close the modal
             $("#editModal").modal("hide");
+            $('.modal-backdrop').remove();
 
         });
 
@@ -609,6 +607,7 @@
             success: function(data){
                 // Close the modal
                 $("#settingsModal").modal("hide");
+                $('.modal-backdrop').remove();
 
             },
             error: function(data){
@@ -645,8 +644,9 @@
             data: JSON.stringify(data_station),
             success: function(data){
                 $("#editModal").modal("hide");
+                $('.modal-backdrop').remove();
                 hideButton();
-                alert(data.message);
+                //alert(data.message);
 
                 //TODO: Reload here
                 // Get the current center coordinates
@@ -788,7 +788,18 @@
 
       sidebar.addEventListener("click", function () {
         sidebar.classList.toggle("active");
-       // content.classList.toggle("active");
+
+          var sidebarButton = document.getElementById('sidebarToggle');
+        var buttonLeft = sidebar.classList.contains('active') ? '350px' : '80px';
+
+          // Set the left property of the button smoothly
+          sidebarButton.style.transition = 'left 0.3s'; // Apply transition
+          sidebarButton.style.left = buttonLeft;
+
+          // Remove the transition after a short delay to prevent it from affecting other style changes
+          setTimeout(function() {
+            sidebarButton.style.transition = 'none';
+          }, 300); // Wait for the transition to complete (0.3s)
       });
     });
 
@@ -798,7 +809,23 @@
 
       rightSidebar.addEventListener("click", function () {
         rightSidebar.classList.toggle("active");
-        //content.classList.toggle("active");
+
+        var rightSidebarButton = document.getElementById('rightSidebarToggle');
+
+
+          // Calculate the new right position for the button
+          var buttonRight = rightSidebar.classList.contains('active') ? '350px' : '80px';
+
+          // Set the right property of the button smoothly
+          rightSidebarButton.style.transition = 'right 0.3s'; // Apply transition
+          rightSidebarButton.style.right = buttonRight;
+
+          // Remove the transition after a short delay to prevent it from affecting other style changes
+          setTimeout(function() {
+            rightSidebarButton.style.transition = 'none';
+          }, 300); // Wait for the transition to complete (0.3s) and then remove it
+
+
       });
     });
 
@@ -1222,4 +1249,7 @@
 
 
   </body>
+
 </html>
+
+{% endblock %}
