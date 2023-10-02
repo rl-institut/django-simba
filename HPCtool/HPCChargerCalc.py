@@ -10,6 +10,7 @@ from django.contrib.gis.geos import Polygon as djangoPolygon
 from django.contrib.gis.geos import Point as djangoPoint
 
 from shapely.geometry import Point, Polygon, LineString
+from shapely.geometry.base import BaseGeometry
 import shapely
 
 import osmnx as ox
@@ -28,7 +29,6 @@ bb_size = 0  # meter
 bus_breite = 3
 
 #####################
-
 
 
 dist_tree_red = 5
@@ -110,8 +110,29 @@ def calculate_HPC(poly_list, buslength=18, parkingdistance=5):
     # Pantograph location, distance from front of the bus (centered laterally)
     panto_loc = 0.25 * bus_laenge
 
-    polygon_geom = Polygon(poly_list)
-    alkis = gpd.GeoDataFrame(index=[0], crs=4326, geometry=[polygon_geom])
+    if len(poly_list) > 1:
+
+        polygon_geom = Polygon(poly_list)
+        alkis = gpd.GeoDataFrame(index=[0], crs=4326, geometry=[polygon_geom])
+
+    else:
+        # Define the source and target coordinate systems
+        source_crs = 'EPSG:4326'
+        target_crs = 'EPSG:25833'
+
+        # Create a transformer
+        transformer = pyproj.Transformer.from_crs(source_crs, target_crs, always_xy=True)
+
+        # Transform the coordinates using the transformer
+        poly_list_25833 = [transformer.transform(pointx, pointy) for (pointx, pointy) in poly_list]
+
+        sbbox = (
+            float(poly_list_25833[0][0] - bb_size), float(poly_list_25833[0][1] - bb_size), float(poly_list_25833[0][0] + bb_size),
+            float(poly_list_25833[0][1] + bb_size)
+        )
+        alkis = gpd.read_file("SHP_BE_ALKIS_Merged/Flurstuecke_Flaechen.shp", bbox=sbbox)
+
+        alkis = alkis.to_crs(4326)
 
     listbusses, listtrees = [], []
 
@@ -120,15 +141,19 @@ def calculate_HPC(poly_list, buslength=18, parkingdistance=5):
     for layer in Layers:
         layerdict[layer] = gpd.GeoDataFrame()
 
-    straßen = getStreetsfromOSM(alkis.to_crs("WGS84").loc[0, 'geometry'], tags={"highway": True})
+
+
+
+
+    straßen = getStreetsfromOSM(alkis.loc[0, 'geometry'], tags={"highway": True})
 
     flurstück_bounds = (
         alkis.geometry.bounds['minx'].min(), alkis.geometry.bounds['miny'].min(), alkis.geometry.bounds['maxx'].max(),
         alkis.geometry.bounds['maxy'].max()
     )
 
-    alkis_4326 = alkis.to_crs(4326)
-    cdr = list(zip(*alkis_4326.geometry.values[0].exterior.coords.xy))
+
+    cdr = list(zip(*alkis.geometry.values[0].exterior.coords.xy))
     p2 = djangoPolygon(cdr)
     mp = MultiPolygon(p2)
     flurstueck = Flurstueck.objects.create(geom=mp, name="Herzallee", scenario_ID="neu")
@@ -142,7 +167,7 @@ def calculate_HPC(poly_list, buslength=18, parkingdistance=5):
         if success > 0:
             layerdict[layer] = pd.concat([layerdict[layer], lgdf], axis=0, ignore_index=True)
             local_layerdict[layer] = pd.concat([layerdict[layer], lgdf], axis=0, ignore_index=True)
-            print(layer)
+            #print(layer)
             if layer == "Bäume":
                 gdf_4326 = lgdf.to_crs(4326)
                 for row in gdf_4326.geometry:
@@ -221,29 +246,33 @@ def calculate_HPC(poly_list, buslength=18, parkingdistance=5):
 
                     for (polygon, pnt) in zip(buspolylist, pantographs_list):
 
-                        #to remove busses placed outside of the designated area
+                        # to remove busses placed outside of the designated area
                         # Create a GeoDataFrame with the point
                         point_gdf = gpd.GeoDataFrame(geometry=[Point(pnt)])
 
                         # Perform spatial join to check if point is inside polygon
                         intersection = gpd.sjoin(point_gdf, alkis, how="inner", op="within")
-                        print(intersection)
+                        #print(intersection)
                         if not intersection.empty:
 
                             c_good, c_mid, c_bad = placeColoredPanthograph(pnt, local_layerdict, criteria)
 
                             if c_good > 0:
-                                new_instance = BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu", quality=2)
+                                new_instance = BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu",
+                                                                         quality=2)
                             elif c_mid > 0:
-                                new_instance = BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu", quality=1)
+                                new_instance = BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu",
+                                                                         quality=1)
                             else:
-                                new_instance = BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu", quality=0)
+                                new_instance = BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu",
+                                                                         quality=0)
 
                             charger_good += c_good
                             charger_medium += c_mid
                             charger_bad += c_bad
                             listbusses.append(new_instance)
-    return str(charger_bad) + " " + str(charger_medium) + " " + str(charger_good), [instance.id for instance in listbusses]
+    return str(charger_bad) + " " + str(charger_medium) + " " + str(charger_good), [instance.id for instance in
+                                                                                    listbusses]
 
 
 def generalizedLayerLoader(wfs_url, type_names, sbbox, version='2.0.0', retries=3, timeout=30):
@@ -267,13 +296,15 @@ def generalizedLayerLoader(wfs_url, type_names, sbbox, version='2.0.0', retries=
     source_crs = 'EPSG:4326'
     target_crs = 'EPSG:25833'
 
+    # Create a transformer
+    transformer = pyproj.Transformer.from_crs(source_crs, target_crs, always_xy=True)
+
     points_wgs84 = [
         Point(sbbox[0], sbbox[1]),
         Point(sbbox[2], sbbox[3]),
     ]
 
-    # Create a transformer
-    transformer = pyproj.Transformer.from_crs(source_crs, target_crs, always_xy=True)
+
 
     # Transform the coordinates using the transformer
     sbbox_25833 = [transformer.transform(point.x, point.y) for point in points_wgs84]
@@ -284,7 +315,7 @@ def generalizedLayerLoader(wfs_url, type_names, sbbox, version='2.0.0', retries=
         "version": version,
         "request": "GetFeature",
         "typeNames": type_names,
-        "bbox": f'{sbbox_25833[0][0]-bb_size},{sbbox_25833[0][1]-bb_size},{sbbox_25833[1][0]+bb_size},{sbbox_25833[1][1]+bb_size}'
+        "bbox": f'{sbbox_25833[0][0] - bb_size},{sbbox_25833[0][1] - bb_size},{sbbox_25833[1][0] + bb_size},{sbbox_25833[1][1] + bb_size}'
     }
 
     wfs_request_url = Request('GET', wfs_url, params=params).prepare().url
@@ -475,7 +506,7 @@ def place_bus_along(nodes, bus_laenge, park_abstand, panto_loc):
                         (float(bus_poly[3].x), float(bus_poly[3].y)),
                         (float(bus_poly[0].x), float(bus_poly[0].y))]
 
-            print(bus_poly)
+            #print(bus_poly)
 
             p1 = djangoPolygon(bus_poly)
             # print(p1)
@@ -759,9 +790,9 @@ def placeColoredPanthograph(pnt, local_layerdict, criteria):
 
         if criteria[crit]["kind"].lower() == "point":
             if crit in local_layerdict.keys():
-                print(crit)
-                print(criteria)
-                print(local_layerdict.keys())
+                #print(crit)
+                #print(criteria)
+                #print(local_layerdict.keys())
                 dist = distance(Point(pnt), local_layerdict[criteria[crit]["layer_name"]],
                                 criteria[crit]["dist_green"] * 1.5)
             else:

@@ -152,34 +152,44 @@ def create_station(request):
         # Use ast.literal_eval to evaluate the dictionary
         result = ast.literal_eval(list(request.POST.dict())[0])
 
-        if not result["area"] == "fromAlkis":
+        settings_object = Settings.objects.get(scenario_ID="neu")
+        bl = settings_object.bus_length
+        pd = settings_object.park_distance
+
+        if not result["area"] == "FromAlkis":
+
             PL = result["area"]['features'][0]['geometry']['coordinates'][0]
 
-            settings_object = Settings.objects.get(scenario_ID="neu")
-            bl = settings_object.bus_length
-            pd = settings_object.park_distance
-
-            async_result = calculate_chargers.apply_async(([PL,bl,pd]), polygon=[PL], buslength=bl, parkdistance=pd)
-
-            stat = Station.objects.create(geom=Point(list(result['latlon'])), name=result['name'], scenario_ID="neu",
-                                   charge_pwr=result['power_station'])
-
-            result, buslist = async_result.get()
-
-            #print("BUUUUUUUUUUUUUSSSSSSSSSSSSSSSSSSSSSS", buslist)
-
-            for busid in buslist:
-                bus = BusOutline.objects.get(id=int(busid))
-                stat.busses.add(bus)
-
-
-            stat.flurstück.add(Flurstueck.objects.order_by('id').reverse()[0])
         else:
-            print("NÜOT IMPLEMENTED YET :)")
+            PL = [(result["latlon"][0], result["latlon"][1])]
+
+        print("HERE")
+
+        async_result = calculate_chargers.apply_async(([PL, bl, pd]), polygon=[PL], buslength=bl, parkdistance=pd)
+
+        _, buslist = async_result.get()
+
+        stat = Station.objects.create(geom=Point(list(result['latlon'])), name=result['name'], scenario_ID="neu",
+                                      charge_pwr=result['power_station'])
+
+        stat.flurstück.add(Flurstueck.objects.order_by('id').reverse()[0])
+
+        for busid in buslist:
+            bus = BusOutline.objects.get(id=int(busid))
+            stat.busses.add(bus)
+
+
+
+
+
+
+
+
+
     except ValueError as e:
         print(f"Error: {e}")
         return response.JsonResponse({"message": "Upps, da lief was schief :("})
-    return response.JsonResponse({"message": "Jo is erstellt, "+ result})
+    return response.JsonResponse({"message": "Jo is erstellt, "})
 
 
 def get_stationlist(request):
