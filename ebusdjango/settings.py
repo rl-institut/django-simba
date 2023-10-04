@@ -13,7 +13,7 @@ import environ
 from pathlib import Path
 import os
 
-from ebus_map.settings import *
+from ebus_map.settings import * # noqa
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -101,6 +101,11 @@ WSGI_APPLICATION = 'ebusdjango.wsgi.application'
 DATABASES = {'default': env.db('DATABASE_URL')}
 
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default=None)
+CELERY_USE = env('CELERY_USE', default=None)
+# Make sure there is a celery broker url provided if celery should be used
+if CELERY_USE:
+    assert CELERY_BROKER_URL, "CELERY_BROKER_URL is missing from .env file. If celery should be" \
+                              "used this URL has to provided"
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -155,4 +160,3 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
-
