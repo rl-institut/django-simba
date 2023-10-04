@@ -92,19 +92,28 @@ def get_station_popup(request: HttpRequest, id: int) -> response.JsonResponse:  
 
     dictresult = {"name": Station.name,
                   "id": Station.id,
-                  "pwr": Station.charge_pwr,
+                  "station_power": Station.station_power,
+                  "station_unit": Station.station_unit,
+                  "charge_power": Station.charge_power,
+                  "charge_unit": Station.charge_unit,
                   "buses": buslist}
 
     return response.JsonResponse(dictresult)  # , "chart": chart}
 
 def edit_station(request):
 
-    edit_id = request.POST.get('data')["id"]
+    data_dict = {key: value for key, value in request.POST.items()}
+    edit_id = data_dict["id"]
+
+    print(data_dict)
 
     stat = Station.objects.get(id=int(edit_id))
 
-    stat.name = request.POST.get('data')["name"]
-    stat.charge_pwr = request.POST.get('data')["charge_pwr"]
+    stat.name = data_dict["name"]
+    stat.station_power = data_dict["station_power"]
+    stat.station_unit = data_dict["station_unit"]
+    stat.charge_power = data_dict["charge_power"]
+    stat.charge_unit = data_dict["charge_unit"]
 
     stat.save()
 
@@ -177,13 +186,6 @@ def create_station(request):
         for busid in buslist:
             bus = BusOutline.objects.get(id=int(busid))
             stat.busses.add(bus)
-
-
-
-
-
-
-
 
 
     except ValueError as e:

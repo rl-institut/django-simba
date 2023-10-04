@@ -59,7 +59,10 @@ class Station(models.Model):
     geom = models.PointField(srid=4326)
     name = models.CharField(max_length=50)
     scenario_ID = models.CharField(max_length=50)
-    charge_pwr = models.CharField(max_length=10, default="MV")
+    charge_unit = models.CharField(max_length=10, default="kW")
+    station_unit = models.CharField(max_length=10, default="kW")
+    charge_power = models.FloatField(default=0.0)
+    station_power = models.FloatField(default=0.0)
 
     busses = models.ManyToManyField(BusOutline)
     flurstück = models.ManyToManyField(Flurstueck)

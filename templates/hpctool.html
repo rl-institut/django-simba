@@ -48,17 +48,19 @@
       margin-left: 250px;
     }
 
+
     /* Add your custom CSS styles here */
     .sidebar {
       position: fixed;
-      top: 0;
-      left: -250px;
-      width: 250px;
-      height: 100%;
-      background-color: #f8f9fa;
-      transition: left 0.3s;
-      z-index: 1000;
-      padding: 20px;
+    top: 110px; /* Adjust this value to match the height of your header */
+    left: -250px;
+    width: 250px;
+    height: 100%; /* Set a minimum height matching the header's height */
+    background-color: #f8f9fa;
+    transition: left 0.3s;
+    z-index: 1000; /* Lower z-index to keep the sidebar below the header */
+    padding: 20px;
+    overflow-y: auto;
     }
 
     .sidebar.active {
@@ -74,7 +76,7 @@
 
     .right-sidebar {
       position: fixed;
-      top: 0;
+      top: 110px;
       right: -250px;
       width: 250px;
       height: 100%;
@@ -436,6 +438,26 @@
 
 <script>
 
+    // for setting height of sidebars:
+    window.addEventListener('scroll', function() {
+    var headerHeight = 110; // Height of your header in pixels
+
+    if (window.scrollY >= headerHeight) {
+        // Once you've scrolled past the header's height, set sidebar height to 100%
+        document.querySelector('.sidebar').style.height = '100%';
+        document.querySelector('.sidebar').style.top = `0px`;
+        document.querySelector('.right-sidebar').style.height = '100%';
+        document.querySelector('.right-sidebar').style.top = `0px`;
+
+    } else {
+        // While still within the header's height, set sidebar height to (100% - scrollY)
+        document.querySelector('.sidebar').style.top = `${headerHeight - window.scrollY}px`;
+        document.querySelector('.sidebar').style.height = `calc(100% - ${window.scrollY}px)`;
+        document.querySelector('.right-sidebar').style.top = `${headerHeight - window.scrollY}px`;
+        document.querySelector('.right-sidebar').style.height = `calc(100% - ${window.scrollY}px)`;
+    }
+});
+
     // For jumping between Stations:
 
     var all_station_coords = [];
@@ -531,6 +553,7 @@
     var lastRightClick =  [0,0];
     var stationPopup;
     var createMode =1;
+    var editing_id = 0;
     // Get a reference to the button element
     const button = document.getElementById("DrawDone");
 
@@ -1102,7 +1125,7 @@
                       console.log(data)
 
                     const popup = document.createElement('div');
-                    const html = "<h1> " + data.name + "</h1> and ID is " + data.id + " <br> LADELEISTUNG: "+ data.pwr+" <br> Number of buses: " + data.buses
+                    const html = "<h1> " + data.name + "</h1> and ID is " + data.id + " <br> Station power: "+ data.station_power + " " + data.station_unit+" <br> Charger power: "+ data.charge_power + " " + data.charge_unit+"<br>Number of buses: " + data.buses
 
                     //TODO: Edit station Information here
                     popup.innerHTML = html + '<br><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editModal" id="editButton" >Edit</button>'
@@ -1138,8 +1161,7 @@
 
     function editStation(data) {
 
-        console.log("EDIT STATION RECIEVED FOLLOWING DATA:", data)
-        console.log(data.name, data.id, data.pwr)
+        console.log("EDIT STATION RECIEVED FOLLOWING DATA:", data);
 
         var textbox_name = document.getElementById("name");
         var textbox_ps = document.getElementById("power_station");
@@ -1148,10 +1170,13 @@
         const select_pc = document.getElementById('power-unit-charger');
         const select_ps = document.getElementById('power-unit-station');
 
-        textbox_name.value = "name";
-        textbox_ps.value = "1010101";
-        textbox_pc.value = "2020202";
-        createMode=0
+        textbox_name.value = data.name;
+        textbox_ps.value = data.station_power;
+        textbox_pc.value = data.charge_power;
+        select_ps.value = data.station_unit;
+        select_pc.value = data.charge_unit;
+        createMode=0;
+        editing_id = data.id;
 
         textbox_name.addEventListener('input', function () {
             save_button.disabled = false;
@@ -1185,9 +1210,11 @@
 
         var data_station = {
                           "name": textbox_name,
-                          "power_station": textbox_ps,
-                            "power_charger":textbox_pc,
-                            "id": "NONE",
+                          "station_power": textbox_ps,
+                            "charge_power":textbox_pc,
+                            "id": editing_id,
+                            "station_unit": select_ps ,
+                            "charge_unit":select_pc,
 
                         };
 
@@ -1199,7 +1226,7 @@
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}'
             },
-            data: JSON.stringify(data_station),
+            data: data_station,
             success: function(data){
                 alert(data.message);
             },
