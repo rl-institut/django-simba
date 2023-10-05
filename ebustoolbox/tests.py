@@ -142,12 +142,14 @@ class ModelTests(TestCase):
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
-            vehicle_class=vehicle_class,
             charging_curve=[[0, 0], [1, 3]],
             flex_charging=True,
             battery_capacity=100,
             charging_efficiency=0.95,
         )
+        vehicle_type.vehicle_class.add(vehicle_class)
+        vehicle_class = VehicleClass.objects.create(name="Other Class")
+        vehicle_type.vehicle_class.add(vehicle_class)
         self.assertEqual(str(vehicle_type.name), "Test Type")
 
     def test_vehicle_creation(self):
@@ -156,20 +158,20 @@ class ModelTests(TestCase):
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
-            vehicle_class=vehicle_class,
             charging_curve=[[0, 0], [1, 3]],
             flex_charging=True,
             battery_capacity=100,
             charging_efficiency=0.95,
         )
+        vehicle_type.vehicle_class.add(vehicle_class)
         vehicle = Vehicle.objects.create(
             name="Test Vehicle", vehicle_type=vehicle_type, scenario=scenario
         )
         self.assertEqual(str(vehicle), "Test Vehicle")
 
     def test_rotation_creation(self):
-        vehicle_class = VehicleClass.objects.create(name="Test Class")
         scenario = Scenario.objects.create(name="Test Scenario")
+        vehicle_class = VehicleClass.objects.create(name="Test Class", scenario=scenario)
         rotation = Rotation.objects.create(
             name="Test Rotation", vehicle_class=vehicle_class, scenario=scenario
         )
@@ -183,8 +185,8 @@ class ModelTests(TestCase):
         self.assertEqual(str(station.name), "Test Station")
 
     def test_trip_creation(self):
-        vehicle_class = VehicleClass.objects.create(name="Test Class")
         scenario = Scenario.objects.create(name="Test Scenario")
+        vehicle_class = VehicleClass.objects.create(name="Test Class", scenario=scenario)
         rotation = Rotation.objects.create(
             name="Test Rotation", vehicle_class=vehicle_class, scenario=scenario
         )

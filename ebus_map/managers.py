@@ -33,7 +33,7 @@ class MVTManager(models.Manager):
         query = super().get_queryset()
         try:
             annotations = self.model.annotations
-        except:
+        except AttributeError:
             annotations = {}
 
         for key, func in annotations.items():
