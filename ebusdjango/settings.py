@@ -13,7 +13,7 @@ import environ
 from pathlib import Path
 import os
 
-from ebus_map.settings import * # noqa
+from ebus_map.settings import *  # noqa
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,101 +26,109 @@ env = environ.Env()
 
 # Read .env file
 # OS environment variables take precedence over variables from .env file
-env.read_env(str(ROOT_DIR.path('.env')))
+env.read_env(str(ROOT_DIR.path(".env")))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-SECRET_KEY = env('DJANGO_SECRET_KEY')
+SECRET_KEY = env("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool('DJANGO_DEBUG', default=False)
+DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
-ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django_extensions",
     # custom apps
-    'core',
-    'ebustoolbox',
-    'django_mapengine',
-    'ebus_map',
-
+    "core",
+    "ebustoolbox",
+    "django_mapengine",
+    "ebus_map",
     # Django plotly dash
-    'django_plotly_dash.apps.DjangoPlotlyDashConfig',
+    "django_plotly_dash.apps.DjangoPlotlyDashConfig",
 ]
 
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # if the header and footer tags are in use this setting should be used. No problem if not in use
-    'django_plotly_dash.middleware.BaseMiddleware',
+    "django_plotly_dash.middleware.BaseMiddleware",
 ]
 
-ROOT_URLCONF = 'ebusdjango.urls'
+ROOT_URLCONF = "ebusdjango.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, "templates"),
-                 os.path.join(BASE_DIR, "ebus_map/static")],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [os.path.join(BASE_DIR, "templates"), os.path.join(BASE_DIR, "ebus_map/static")],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'ebusdjango.wsgi.application'
+WSGI_APPLICATION = "ebusdjango.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 # ToDo Set up your own postgis databank and fill in the needed
 #  data. Patrick wrote an HowTo for Linux users
-DATABASES = {'default': env.db('DATABASE_URL')}
+DATABASES = {"default": env.db("DATABASE_URL")}
 
-CELERY_BROKER_URL = env('CELERY_BROKER_URL', default=None)
-CELERY_USE = env('CELERY_USE', default="False").lower() == "true"
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
+CELERY_USE = env("CELERY_USE", default="False").lower() == "true"
 # Make sure there is a celery broker url provided if celery should be used
 if CELERY_USE:
-    assert CELERY_BROKER_URL, "CELERY_BROKER_URL is missing from .env file. If celery should be" \
-                              "used this URL has to provided"
+    assert CELERY_BROKER_URL, (
+        "CELERY_BROKER_URL is missing from .env file. If celery should be"
+        "used this URL has to provided"
+    )
+
+
+# For Database visualization
+GRAPH_MODELS = {
+    "all_applications": False,
+    "group_models": True,
+    "app_labels": ["ebustoolbox"],
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -128,23 +136,23 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
 USE_TZ = True
 
 # django_plotly_dash setting for use of frames within HTML documents
-X_FRAME_OPTIONS = 'SAMEORIGIN'
+X_FRAME_OPTIONS = "SAMEORIGIN"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "static/"
 UPLOAD_PATH = "uploads/"
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = BASE_DIR / "media"
 
 # while the above line checks all the app folders for static folders the below one can be a list of
 # general static file folders
@@ -153,9 +161,8 @@ STATICFILES_DIRS = [
     BASE_DIR / "templates/js",
     BASE_DIR / "templates/css",
     BASE_DIR / UPLOAD_PATH,
-
 ]
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"

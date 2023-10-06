@@ -1,9 +1,10 @@
 from .models import Scenario
 from celery import uuid
+
 # make matplotlib not use Tk, run on main thread
 import matplotlib
 
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 
 
 def get_unique_task_id():

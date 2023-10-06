@@ -137,11 +137,13 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='rotation',
             name='scenario',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='ebustoolbox.scenario'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE,
+                                    to='ebustoolbox.scenario'),
         ),
         migrations.AddField(
             model_name='rotation',
             name='vehicle_class',
-            field=models.ForeignKey(default=ebustoolbox.models.VehicleClass.get_default_pk, on_delete=django.db.models.deletion.SET_DEFAULT, to='ebustoolbox.vehicleclass'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.SET_DEFAULT,
+                                    to='ebustoolbox.vehicleclass'),
         ),
     ]

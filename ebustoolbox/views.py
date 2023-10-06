@@ -51,19 +51,14 @@ def get_chart(request):
 
     fig = go.Figure()
     for v in plot_vehicles:
-        fig.add_trace(go.Scatter(x=v["x"], y=v['y'], name=v["name"],
-                                 line=dict(width=4)))
+        fig.add_trace(go.Scatter(x=v["x"], y=v["y"], name=v["name"], line=dict(width=4)))
 
-    fig.update_layout(title={
-        'font_size': 22,
-        'xanchor': 'center',
-        'x': 0.5
-    })
+    fig.update_layout(title={"font_size": 22, "xanchor": "center", "x": 0.5})
     chart = fig.to_html()
 
-    context = {'chart': chart, "form": ChartForm(scenario=scenario), 'result_id': task_id}
+    context = {"chart": chart, "form": ChartForm(scenario=scenario), "result_id": task_id}
 
-    return render(request, 'chart.html', context)
+    return render(request, "chart.html", context)
 
 
 def get_vehicle_plot_data(vehicles):
@@ -72,18 +67,18 @@ def get_vehicle_plot_data(vehicles):
         plot_data = VehicleProperties.objects.filter(vehicle=search_vehicle)
         time_data = [c.date for c in plot_data]
         y_data = [c.soc for c in plot_data]
-        plot_vehicles.append({'x': time_data, 'y': y_data, 'name': search_vehicle.name})
+        plot_vehicles.append({"x": time_data, "y": y_data, "name": search_vehicle.name})
     return plot_vehicles
 
 
 def show_uploads_view(request, filename):
-    file = open("uploads/" + filename, 'rb')
+    file = open("uploads/" + filename, "rb")
     response = FileResponse(file)
     return response
 
 
 def result_view(request):
-    task_id = request.GET['task_id']
+    task_id = request.GET["task_id"]
     try:
         print(task_id, Scenario.objects.filter(task_id=task_id).exists())
         if Scenario.objects.get(task_id=task_id).finished:
@@ -117,17 +112,22 @@ class SuccessView(TemplateView, MapEngineMixin):
 
 @require_GET
 def long_running_task_status_view(request):
-    task_id = request.GET.get('task_id')
+    task_id = request.GET.get("task_id")
     task_result = AsyncResult(task_id)
-    if task_result.ready() or Scenario.objects.filter(task_id=task_id,
-                                                      finished__isnull=False).exists():
+    if (
+        task_result.ready()
+        or Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
+    ):
         print("Task is finished")
-        return JsonResponse({'success': True})
-    print('Task is pending')
-    return JsonResponse({'success': False})
+        return JsonResponse({"success": True})
+    print("Task is pending")
+    return JsonResponse({"success": False})
 
 
 def home_view(request):
+    # ToDo needs different implementation since it uses same list for
+    # different users
+
     if request.method == "GET":
         form = UploadFileForm()
     elif request.method == "POST":
@@ -135,17 +135,17 @@ def home_view(request):
         if not form.is_valid():
             return render(request, "index.html", {"form": form})
 
-        django_scenario, simba_schedule, args = \
-            tasks.fill_db_with_input_files(form.cleaned_data, request)
+        django_scenario, simba_schedule, args = tasks.fill_db_with_input_files(
+            form.cleaned_data, request
+        )
         # start computation
         task_id = get_unique_task_id()
         django_scenario.task_id = task_id
         django_scenario.save()
-
         tasks.run_ebus_toolbox(simba_schedule, args, task_id)
-
         if "ebus_map" in settings.INSTALLED_APPS:
             from ebus_map.models import Station as MapStation
+
             stations = ebustoolbox.models.Station.objects.filter(scenario=django_scenario)
             # obj_id = 1 if MapStation.objects.last() is None else MapStation.objects.last().id + 1
             map_stations = []
@@ -158,8 +158,8 @@ def home_view(request):
             # Bulk creation is more efficient but doe not work with multi tabled inherited models
             # MapStation.objects.bulk_create(map_stations)
 
-        response = redirect('simba:result')
-        response['Location'] += '?task_id=' + task_id
+        response = redirect("simba:result")
+        response["Location"] += "?task_id=" + task_id
         return response
     else:
         return HttpResponse("Method not allowed", status=405)
@@ -169,9 +169,9 @@ def home_view(request):
 def download_scenario(request, task_id):
     file_path = settings.MEDIA_ROOT / (str(task_id) + ".zip")
     if file_path.exists():
-        with file_path.open('rb') as fh:
-            response = HttpResponse(fh.read(), content_type='application/octet-stream')
-            response['Content-Disposition'] = 'attachment; filename=' + file_path.name
+        with file_path.open("rb") as fh:
+            response = HttpResponse(fh.read(), content_type="application/octet-stream")
+            response["Content-Disposition"] = "attachment; filename=" + file_path.name
             return response
     return HttpResponse("Zip not ready yet")
 

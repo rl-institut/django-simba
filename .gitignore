@@ -8,6 +8,7 @@ media/
 .vscode/
 .DS_Store
 .python-version
+.venv/
 venv/
 **/node_modules/
 .env

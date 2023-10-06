@@ -1,16 +1,16 @@
 [tool.poetry]
 name = "django-simba"
 version = "0.1.0"
-description = "Django website for runnin SimBA and eFLips together"
-authors = ["Your Name <you@example.com>"]
+description = "Django Integration of [simBA](https://github.com/rl-institut/SimBA) and [eFLips-Depot](https://github.com/mpm-tu-berlin/eflips-depot)"
+authors = ["Reiner Lemoine Institut <info@rl-institut.de>"]
 license = "AGPLv3"
 readme = "README.md"
-packages = [{ include = "ebustoolbox" }]
+packages = [{include = "ebustoolbox"}]
 
 [tool.poetry.dependencies]
-python = "^3.10"
-spice_ev = { git = "https://github.com/rl-institut/spice_ev", rev = "51268c639a02f2a94c418d6215376f585dd14af0" }
-simba = { git = "https://github.com/rl-institut/SimBA", rev = "feature/django_simba" }
+python = "^3.11"
+spice_ev = { git = "https://github.com/rl-institut/spice_ev", rev = "51268c639a02f2a94c418d6215376f585dd14af0"}
+simba = { git = "https://github.com/rl-institut/SimBA", rev = "feature/django_simba"}
 
 Django = "^4.2.3"
 django-environ = ">=0.10.0, <1.0.0"
@@ -27,6 +27,9 @@ pandas = "^2.0.3"
 matplotlib = "^3.7.2"
 colorbrewer = { git = "https://github.com/henhuy/colorbrewer-python.git" }
 range-key-dict = "^1.1.0"
+
+[tool.poetry.group.dev]
+optional = true
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"

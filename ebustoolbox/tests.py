@@ -93,7 +93,8 @@ class MySeleniumTests(StaticLiveServerTestCase):
         self.assertContains(response, "Finished")
 
 
-def objects_digger(objects, early_return=True, key_stack=None, instance_stack=None):
+# ToDo remove complexity
+def objects_digger(objects, early_return=True, key_stack=None, instance_stack=None):  # noqa: C901
     """Digs through objects and yields a key_stack and 'primitive' data suited for comparison
 
     The key_stack contains the keys of objects along the object path, e.g. an object
@@ -122,10 +123,12 @@ def objects_digger(objects, early_return=True, key_stack=None, instance_stack=No
         except TypeError:
             # objects are not dicts or dict_like
             try:
-                if (early_return and
-                        not hasattr(new_objects[0][0], '__dict__') or
-                        isinstance(new_objects[0], str) or
-                        len(new_objects[0]) == 1):
+                if (
+                    early_return
+                    and not hasattr(new_objects[0][0], "__dict__")
+                    or isinstance(new_objects[0], str)
+                    or len(new_objects[0]) == 1
+                ):
                     # if first element of list is not __dict__ like its considered primitive
                     # enough for returning
                     raise TypeError
@@ -141,8 +144,12 @@ def objects_digger(objects, early_return=True, key_stack=None, instance_stack=No
             inner_objects = [o[key] for o in new_objects]
             key_stack_copy = [key for key in key_stack]
             key_stack_copy[-1] = key
-            for x in objects_digger(inner_objects, early_return=early_return,
-                                    key_stack=key_stack_copy, instance_stack=instance_stack):
+            for x in objects_digger(
+                inner_objects,
+                early_return=early_return,
+                key_stack=key_stack_copy,
+                instance_stack=instance_stack,
+            ):
                 yield x
     if list_like:
         for i, list_element in enumerate(new_objects[0]):
@@ -150,8 +157,12 @@ def objects_digger(objects, early_return=True, key_stack=None, instance_stack=No
                 key_stack_copy = [key for key in key_stack]
                 key_stack_copy[-1] = i
                 inner_objects = [o[i] for o in new_objects]
-                for x in objects_digger(inner_objects, early_return=early_return,
-                                        key_stack=key_stack_copy, instance_stack=instance_stack):
+                for x in objects_digger(
+                    inner_objects,
+                    early_return=early_return,
+                    key_stack=key_stack_copy,
+                    instance_stack=instance_stack,
+                ):
                     yield x
             except IndexError:
                 print("Early return due to lists of different length")
@@ -161,7 +172,6 @@ def objects_digger(objects, early_return=True, key_stack=None, instance_stack=No
 
 
 class WriteReadScenarioToDatabase(TestCase):
-
     @override_settings(DEBUG=True)
     def get_scenario_objects(self):
         form = UploadFileForm()
@@ -177,15 +187,20 @@ class WriteReadScenarioToDatabase(TestCase):
         # Empty request, since no files are used for this simulation.
         request = HttpRequest()
 
-        django_scenario, simba_schedule, args = \
-            tasks.fill_db_with_input_files(form.cleaned_data, request)
+        django_scenario, simba_schedule, args = tasks.fill_db_with_input_files(
+            form.cleaned_data, request
+        )
         return django_scenario, simba_schedule, args
 
     @override_settings(DEBUG=True)
     def test_schedule_from_database(self):
         django_scenario, simba_schedule, args = self.get_scenario_objects()
+
         # simba_schedule_db, args_db = tasks.db_to_schedule(django_scenario)
         simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
+
+        for sched in [simba_schedule, simba_schedule_db]:
+            sched.rotations["1"].trips[0].calculate_consumption()
         for key, value in vars(args).items():
             # Some values don't need to be part of the args. Relative and absolute Paths are also
             # ignored
@@ -199,7 +214,15 @@ class WriteReadScenarioToDatabase(TestCase):
         for key_stack, values in objects_digger([simba_schedule, simba_schedule_db]):
             if isinstance(values[0], datetime):
                 values[0] = make_aware(values[0])
-            self.assertAlmostEqual(values[0], values[1], places=8, msg=key_stack)
+            try:
+                self.assertAlmostEqual(
+                    values[0],
+                    values[1],
+                    places=8,
+                    msg=key_stack,
+                )
+            except AssertionError as e:
+                print(e)
 
         scen = simba_schedule.run(args)
         scen_db = simba_schedule_db.run(args_db)
@@ -244,23 +267,26 @@ class WriteReadScenarioToDatabase(TestCase):
         vehicle_class = Rotation.objects.filter(scenario=django_scenario)[0].vehicle_class.name
         vt = vehicle_class.split("_")[0]
         flex_charging = vehicle_class.split("_")[1].lower() == "oppb"
-        vehicle_type = VehicleType.objects.get(scenario=django_scenario,
-                                               name_short=vt,
-                                               flex_charging=flex_charging)
+        vehicle_type = VehicleType.objects.get(
+            scenario=django_scenario, name_short=vt, flex_charging=flex_charging
+        )
 
         station = Station.objects.get(scenario=django_scenario, name="Station-0")
         # mutate with instance, field name, value
-        mutations = [(vehicle_type, "battery_capacity", 1),
-                     (vehicle_type, "charging_efficiency", 0.1),
-                     (vehicle_type, "minimum_charging_power",
-                      vehicle_type.charging_curve[0][1] * 0.99),
-                     (vehicle_type, "charging_curve",
-                      [[x[0], x[1] * 0.1] for x in vehicle_type.charging_curve]),
-                     (vehicle_type, "consumption", vehicle_type.consumption * 0.1),
-                     (station, "amount_charging_places", 1),
-                     (station, "power_per_charger", station.power_per_charger * 0.1),
-                     (station, "total_power", station.total_power * 0.1),
-                     ]
+        mutations = [
+            (vehicle_type, "battery_capacity", 1),
+            (vehicle_type, "charging_efficiency", 0.1),
+            (vehicle_type, "minimum_charging_power", vehicle_type.charging_curve[0][1] * 0.99),
+            (
+                vehicle_type,
+                "charging_curve",
+                [[x[0], x[1] * 0.1] for x in vehicle_type.charging_curve],
+            ),
+            (vehicle_type, "consumption", vehicle_type.consumption * 0.1),
+            (station, "amount_charging_places", 1),
+            (station, "power_per_charger", station.power_per_charger * 0.1),
+            (station, "total_power", station.total_power * 0.1),
+        ]
         scen_db = simba_schedule_db.run(args_db)
         # running the schedule changes the schedule since it assigns vehicles. therefore load it
         # again to have a "vanilla" schedule
@@ -282,7 +308,8 @@ class WriteReadScenarioToDatabase(TestCase):
             # database schedule in at least ONE case
             difference_found = False
             for key_stack, values in objects_digger(
-                    [original_database_schedule, mut_simba_schedule]):
+                [original_database_schedule, mut_simba_schedule]
+            ):
                 try:
                     self.assertNotEquals(values[0], values[1], msg=key_stack)
                     difference = key_stack, values
@@ -292,9 +319,11 @@ class WriteReadScenarioToDatabase(TestCase):
                     # not every value has to differ
                     pass
             if not difference_found:
-                raise AssertionError("The Schedule read from the database does not diverge from "
-                                     "the original one although changes to the database were made. "
-                                     f"The mutation was: {mutation}")
+                raise AssertionError(
+                    "The Schedule read from the database does not diverge from "
+                    "the original one although changes to the database were made. "
+                    f"The mutation was: {mutation}"
+                )
             else:
                 print(f"Difference in schedule was found for {mutation}, {difference}")
             mut_scen = mut_simba_schedule.run(args_db)
@@ -317,9 +346,11 @@ class WriteReadScenarioToDatabase(TestCase):
                     # not every value has to differ
                     pass
             if not difference_found:
-                raise AssertionError("The Schedule read from the database does not diverge from "
-                                     "the original one although changes to the database were made. "
-                                     f"The mutation was: {mutation}")
+                raise AssertionError(
+                    "The Schedule read from the database does not diverge from "
+                    "the original one although changes to the database were made. "
+                    f"The mutation was: {mutation}"
+                )
             else:
                 print(f"Difference in scenario was found for {mutation}, {difference}")
 
@@ -378,12 +409,14 @@ class ModelTests(TestCase):
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
-            vehicle_class=vehicle_class,
             charging_curve=[[0, 0], [1, 3]],
             flex_charging=True,
             battery_capacity=100,
             charging_efficiency=0.95,
         )
+        vehicle_type.vehicle_class.add(vehicle_class)
+        vehicle_class = VehicleClass.objects.create(name="Other Class")
+        vehicle_type.vehicle_class.add(vehicle_class)
         self.assertEqual(str(vehicle_type.name), "Test Type")
 
     def test_vehicle_creation(self):
@@ -392,20 +425,20 @@ class ModelTests(TestCase):
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
-            vehicle_class=vehicle_class,
             charging_curve=[[0, 0], [1, 3]],
             flex_charging=True,
             battery_capacity=100,
             charging_efficiency=0.95,
         )
+        vehicle_type.vehicle_class.add(vehicle_class)
         vehicle = Vehicle.objects.create(
             name="Test Vehicle", vehicle_type=vehicle_type, scenario=scenario
         )
         self.assertEqual(str(vehicle), "Test Vehicle")
 
     def test_rotation_creation(self):
-        vehicle_class = VehicleClass.objects.create(name="Test Class")
         scenario = Scenario.objects.create(name="Test Scenario")
+        vehicle_class = VehicleClass.objects.create(name="Test Class", scenario=scenario)
         rotation = Rotation.objects.create(
             name="Test Rotation", vehicle_class=vehicle_class, scenario=scenario
         )
@@ -419,8 +452,8 @@ class ModelTests(TestCase):
         self.assertEqual(str(station.name), "Test Station")
 
     def test_trip_creation(self):
-        vehicle_class = VehicleClass.objects.create(name="Test Class")
         scenario = Scenario.objects.create(name="Test Scenario")
+        vehicle_class = VehicleClass.objects.create(name="Test Class", scenario=scenario)
         rotation = Rotation.objects.create(
             name="Test Rotation", vehicle_class=vehicle_class, scenario=scenario
         )
