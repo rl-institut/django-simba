@@ -69,12 +69,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install gdal-bin
           echo ogrinfo --version
-
+      - name: Set Up Chrome
+        uses: browser-actions/setup-chrome@v1
+        run: chrome --version
       - name: setup-chromedriver
         uses: nanasess/setup-chromedriver@v2.2.0
         with:
-          # Optional: do not specify to match Chrome's version
-          chromedriver-version: '117.0.5938.149'
       - name: Set up Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@v3
         with:
