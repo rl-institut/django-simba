@@ -36,7 +36,7 @@ def get_chart(request):
     print("vehicles  are :", get_vehicles)
 
     scenario = Scenario.objects.get(task_id=task_id)
-    vehicles = Vehicle.objects.filter(scenario=scenario)
+    vehicles = Vehicle.objects.filter(vehicle_type__scenario=scenario)
 
     # Does the request ask for specific vehicles? If not, don't filter and show all vehicles
     if get_vehicles is None:
@@ -91,7 +91,7 @@ def result_view(request):
 
 
 def wait_view(request):
-    """View while waiting for results. Will trigger success view as soon as long running task
+    """View while waiting for results. Will trigger success view as soon as long-running task
     returns pending"""
     print("SimBA is calculating. Showing wait view")
     return render(request, "wait.html")
@@ -135,7 +135,7 @@ def home_view(request):
         if not form.is_valid():
             return render(request, "index.html", {"form": form})
 
-        django_scenario, simba_schedule, args = tasks.fill_db_with_input_files(
+        django_scenario, simba_schedule, args = tasks.input_files_to_database(
             form.cleaned_data, request
         )
         # start computation
