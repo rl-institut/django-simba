@@ -95,7 +95,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
 
 # ToDo remove complexity
 def objects_digger(objects, early_return=True, key_stack=None, instance_stack=None):  # noqa: C901
-    """Digs through objects and yields a key_stack and 'primitive' data suited for comparison
+    """Digs through objects and yields key_stack and 'primitive' data suited for comparison
 
     The key_stack contains the keys of objects along the object path, e.g. an object
     containing an object foo, which contains an attribute bar which is a string "Baz" would yield
@@ -173,7 +173,7 @@ def objects_digger(objects, early_return=True, key_stack=None, instance_stack=No
 
 class WriteReadScenarioToDatabase(TestCase):
     @override_settings(DEBUG=True)
-    def get_scenario_objects(self):
+    def get_scenario_objects_and_fill_db(self):
         form = UploadFileForm()
         # Use all the initial and set values from the form as post data
         post_data = {
@@ -187,14 +187,14 @@ class WriteReadScenarioToDatabase(TestCase):
         # Empty request, since no files are used for this simulation.
         request = HttpRequest()
 
-        django_scenario, simba_schedule, args = tasks.fill_db_with_input_files(
+        django_scenario, simba_schedule, args = tasks.input_files_to_database(
             form.cleaned_data, request
         )
         return django_scenario, simba_schedule, args
 
     @override_settings(DEBUG=True)
     def test_schedule_from_database(self):
-        django_scenario, simba_schedule, args = self.get_scenario_objects()
+        django_scenario, simba_schedule, args = self.get_scenario_objects_and_fill_db()
 
         # simba_schedule_db, args_db = tasks.db_to_schedule(django_scenario)
         simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
@@ -214,15 +214,12 @@ class WriteReadScenarioToDatabase(TestCase):
         for key_stack, values in objects_digger([simba_schedule, simba_schedule_db]):
             if isinstance(values[0], datetime):
                 values[0] = make_aware(values[0])
-            try:
-                self.assertAlmostEqual(
-                    values[0],
-                    values[1],
-                    places=8,
-                    msg=key_stack,
-                )
-            except AssertionError as e:
-                print(e)
+            self.assertAlmostEqual(
+                values[0],
+                values[1],
+                places=8,
+                msg=key_stack,
+            )
 
         scen = simba_schedule.run(args)
         scen_db = simba_schedule_db.run(args_db)
@@ -243,6 +240,7 @@ class WriteReadScenarioToDatabase(TestCase):
                 # assume it's a date. values[0] does not come from database, so it has to be made
                 # aware
                 values[0] = make_aware(datetime.fromisoformat(values[0]))
+                values[0] = make_aware(datetime.fromisoformat(values[0]))
                 values[1] = datetime.fromisoformat(values[1])
                 self.assertAlmostEquals(values[0], values[1], places=8, msg=key_stack)
 
@@ -259,17 +257,13 @@ class WriteReadScenarioToDatabase(TestCase):
         only for their occurrence.
         """
         # create a scenario from the form
-        django_scenario, simba_schedule, args = self.get_scenario_objects()
+        django_scenario, simba_schedule, args = self.get_scenario_objects_and_fill_db()
 
         # get the schedule and args from the db
         simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
         # get a vehicle_type which is "used"
-        vehicle_class = Rotation.objects.filter(scenario=django_scenario)[0].vehicle_class.name
-        vt = vehicle_class.split("_")[0]
-        flex_charging = vehicle_class.split("_")[1].lower() == "oppb"
-        vehicle_type = VehicleType.objects.get(
-            scenario=django_scenario, name_short=vt, flex_charging=flex_charging
-        )
+        vehicle = Rotation.objects.filter(scenario=django_scenario)[0].vehicle
+        vehicle_type = vehicle.vehicle_type
 
         station = Station.objects.get(scenario=django_scenario, name="Station-0")
         # mutate with instance, field name, value
@@ -292,9 +286,9 @@ class WriteReadScenarioToDatabase(TestCase):
         # again to have a "vanilla" schedule
         original_database_schedule, original_db_args = tasks.get_schedule_from_db(django_scenario)
 
-        # now the database is mutated in various ways. each mutation must lead to a difference in
-        # the resulting schedule and scenario. Both of these are checked against the original
-        # objects from above
+        # Now the database is mutated in various ways.
+        # Each mutation must lead to a difference in the resulting schedule and scenario.
+        # Both of these are checked against the original objects from above
         for mutation in mutations:
             instance = copy(mutation[0])
             vars(instance).update(dict(((mutation[1], mutation[2]),)))
@@ -307,6 +301,7 @@ class WriteReadScenarioToDatabase(TestCase):
             # Recursively search the schedule for primitive data which has to be not equal to the
             # database schedule in at least ONE case
             difference_found = False
+            difference = None
             for key_stack, values in objects_digger(
                 [original_database_schedule, mut_simba_schedule]
             ):
@@ -320,12 +315,11 @@ class WriteReadScenarioToDatabase(TestCase):
                     pass
             if not difference_found:
                 raise AssertionError(
-                    "The Schedule read from the database does not diverge from "
-                    "the original one although changes to the database were made. "
-                    f"The mutation was: {mutation}"
+                    f"The Schedule read from the database does not diverge from the original one, "
+                    f"although changes to the database were made. The mutation was: {mutation}"
                 )
             else:
-                print(f"Difference in schedule was found for {mutation}, {difference}")
+                print(f"Difference in schedule was successfully found for {mutation}, {difference}")
             mut_scen = mut_simba_schedule.run(args_db)
             # Recursively search the scenario for primitive data which has to be NOT equal to the
             # data created by the database schedule
@@ -431,9 +425,7 @@ class ModelTests(TestCase):
             charging_efficiency=0.95,
         )
         vehicle_type.vehicle_class.add(vehicle_class)
-        vehicle = Vehicle.objects.create(
-            name="Test Vehicle", vehicle_type=vehicle_type, scenario=scenario
-        )
+        vehicle = Vehicle.objects.create(name="Test Vehicle", vehicle_type=vehicle_type)
         self.assertEqual(str(vehicle), "Test Vehicle")
 
     def test_rotation_creation(self):
