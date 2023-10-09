@@ -40,7 +40,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
     def setUpClass(cls):
         super().setUpClass()
         options_ = webdriver.chrome.options.Options()
-        options_.headless = True
+        options_.add_argument("--headless=new")
         cls.selenium = webdriver.Chrome(options=options_)
         cls.selenium.implicitly_wait(10)
         Path(TMP_UPLOAD).mkdir(parents=True, exist_ok=True)
