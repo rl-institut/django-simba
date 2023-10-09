@@ -129,7 +129,7 @@ def generate_json_data():
 
     data_list = [{instance.name: {
             "type": "opps",
-            "voltage_level": instance.charge_pwr,
+            "voltage_level": instance.charge_unit,
             "n_charging_stations": instance.busses.count()}} for instance in all_instances]
 
     # Initialize an empty dictionary
