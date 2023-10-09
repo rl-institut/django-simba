@@ -1727,7 +1727,7 @@ develop = false
 type = "git"
 url = "https://github.com/rl-institut/SimBA"
 reference = "feature/django_simba"
-resolved_reference = "474f16d2641074ad4a3c816133ca13971fd62501"
+resolved_reference = "883479d70cfcfb338c297f82776d13eb0c7b1eb4"
 
 [[package]]
 name = "six"
