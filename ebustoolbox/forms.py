@@ -63,4 +63,6 @@ class ChartForm(forms.Form):
         scenario = kwargs.pop("scenario", None)
         super().__init__(*args, **kwargs)
         if scenario:
-            self.fields["vehicles"].queryset = Vehicle.objects.filter(scenario=scenario)
+            self.fields["vehicles"].queryset = Vehicle.objects.filter(
+                vehicle_type__scenario=scenario
+            )
