@@ -38,7 +38,7 @@ def auto_delete_results_on_delete(sender, instance, **kwargs):
         try:
             shutil.rmtree((Path(settings.UPLOAD_PATH) / instance.task_id))
         except FileNotFoundError:
-            # Folder does not exist. That is not a problem
+            # The Folder does not exist. That is not a problem
             pass
 
 
@@ -94,7 +94,6 @@ class VehicleType(models.Model):
 class Vehicle(models.Model):
     name = models.CharField(max_length=100, blank=False)
     vehicle_type = models.ForeignKey(VehicleType, on_delete=models.CASCADE, null=True, blank=True)
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
 
     # ToDo insert output here or create other Class "VehicleOutput" which also contains the
     # simulation results regarding this vehicle
