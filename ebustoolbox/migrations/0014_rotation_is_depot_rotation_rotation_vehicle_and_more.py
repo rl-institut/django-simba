@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
             field=models.BooleanField(default=None, null=True),
         ),
         migrations.AddField(
-            model_name="ro@tation",
+            model_name="rotation",
             name="vehicle",
             field=models.ForeignKey(
                 default=None,
