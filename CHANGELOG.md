@@ -18,7 +18,9 @@ Template:
 ```
 
 ## [x.x.x] - Unreleased
-- Added the feature to read the database and generate a SimBA Schedule.
+- Added the feature to read the database and generate a SimBA Schedule from the database.
+- Added tests to check that scenarios from the database are generating the same results as default simulations.
+- Added function save_and_simulate() with default behavior of running a simulation
 
 ### Changed
 - [(#29)](https://github.com/rl-institut/django-simba/pull/29)The generated input for eflips gets the database ID of the vehicle_type instead of the simba specific name of the vehicle type

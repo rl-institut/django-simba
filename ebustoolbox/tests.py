@@ -240,7 +240,6 @@ class WriteReadScenarioToDatabase(TestCase):
                 # assume it's a date. values[0] does not come from database, so it has to be made
                 # aware
                 values[0] = make_aware(datetime.fromisoformat(values[0]))
-                values[0] = make_aware(datetime.fromisoformat(values[0]))
                 values[1] = datetime.fromisoformat(values[1])
                 self.assertAlmostEquals(values[0], values[1], places=8, msg=key_stack)
 
