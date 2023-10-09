@@ -161,7 +161,6 @@ def create_stations_for_map(django_scenario: Scenario):
 def save_and_simulate(
     form: UploadFileForm | None = None, request: HttpRequest | None = None
 ) -> Scenario:
-
     if form is None:
         new_form = UploadFileForm()
         # If function is called without request and form use the initial values as cleaned data
