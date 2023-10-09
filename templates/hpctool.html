@@ -214,6 +214,9 @@
   <head>
     <script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"></script>
     <link href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css" rel='stylesheet'/>
+      <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+
   </head>
 
   <body>
@@ -240,14 +243,43 @@
     <div class="cursor" id="cursor"></div>
     <script>
 
+        document.addEventListener('DOMContentLoaded', function () {
+           console.log(turf)
+        });
+
         var zoom = 0;
         var cursorSize = 20;
 
         var features_old = [];
         var curr_angle = 0
 
+        var markers = []
         // Cursor representation element
         var cursor = document.getElementById('cursor');
+
+        // Function to calculate the closest point on a line to a given point
+        function closestPointOnLine(point, lineStart, lineEnd) {
+            var line = turf.lineString([lineStart, lineEnd]);
+            return turf.nearestPointOnLine(line, point).geometry.coordinates;
+        }
+
+        // Function to calculate the heading (angle) between two points
+        function calculateHeading(point1, point2) {
+            // Convert coordinates from WGS84 to UTM using Proj4js
+            const utmpoint1 = proj4("EPSG:4326", "EPSG:32633", point1);
+            const utmpoint2 = proj4("EPSG:4326", "EPSG:32633", point2);
+            console.log(utmpoint1,utmpoint2)
+            var angle = Math.atan2(utmpoint2[1] - utmpoint1[1], utmpoint2[0] - utmpoint1[0]);
+            return angle * (180 / Math.PI); // Convert to degrees
+        }
+
+
+         // Define source and target projections
+        proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs");
+        proj4.defs("EPSG:32633", "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs");
+
+
+
 
                 // Event listeners
         window.addEventListener('mousemove', function (e) {
@@ -262,112 +294,56 @@
 
             if (features.length > 0 && zoom > 16) {
                 // Get the nearest street feature to the cursor
-                latlng = map.unproject([e.clientX, e.clientY])
-                if (features != features_old || true) {
-                    var nearestStreet = findNearestStreet([latlng.lng, latlng.lat], features);
-                    console.log("features: ", features)
-
-                    for (let i = 0; i < features.length; i++) {
-                      var marker = new maplibregl.Marker()
-                        .setLngLat(features[i].geometry.coordinates[0]) // Set the marker's coordinates
-                        .addTo(map);
-                      var marker = new maplibregl.Marker()
-                        .setLngLat(features[i].geometry.coordinates[1]) // Set the marker's coordinates
-                        .addTo(map);
-                    }
-
+                if (features != features_old) {
+                    markers = []
+                    latlng = map.unproject([e.clientX-0.5*cursorSize, e.clientY-0.5*cursorSize])
                     features_old = features
 
-                    if (nearestStreet) {
-                        // Get the angle of the nearest street feature
-                        var angle = calculateAngle(nearestStreet.geometry.coordinates);
+                    var closestStreet = null;
+                    var closestPointOnStreet = null;
+                    var minDistance = Infinity;
 
-                        // Rotate the cursor to match the street's angle
-                        cursor.style.transform = `rotate(${angle}deg)`;
-                        curr_angle = angle;
-                    } else {
-                        // Reset cursor rotation if no street is nearby
-                        cursor.style.transform = 'rotate(0deg)';
-                        curr_angle = 0;
+                    // Iterate through the list of streets
+                    for (var i = 0; i < features.length; i++) {
+                        var street = features[i];
+                        var start = street.geometry.coordinates[0];
+                        var end = street.geometry.coordinates[1];
+
+                        // Calculate the closest point on the street to the cursor
+
+                        var closestPoint = closestPointOnLine([latlng.lng, latlng.lat], start, end);
+
+                        // Calculate the distance between the cursor and the closest point
+                        var distance = turf.distance([latlng.lng, latlng.lat], closestPoint);
+
+
+                        // Update the closest street if this one is closer
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            closestStreet = street;
+                            closestPointOnStreet = closestPoint;
+                        }
                     }
+                  //  markers += new maplibregl.Marker()
+                    //    .setLngLat(closestPointOnStreet) // Set the marker's coordinates
+                      //  .addTo(map);
+                    // Calculate the heading (angle) of the closest street
+                    var heading = calculateHeading(closestStreet.geometry.coordinates[0], closestStreet.geometry.coordinates[1]);
+
+                    // Rotate your cursor (rectangular box) to match the street's heading
+                    // Set the rotation value for your cursor here
+                    console.log("HEADING: ", heading)
+                    cursor.style.transform = `rotate(${-heading}deg)`;
+                    curr_angle = -heading
+                    // Now you can use 'heading' to rotate your cursor
                 }
+
             } else {
                 // Reset cursor rotation if no street is under the cursor
-                cursor.style.transform = 'rotate(0deg)';
+                //cursor.style.transform = 'rotate(0deg)';
             }
         });
 
-        // Function to calculate the angle of a LineString
-        function calculateAngle(coordinates) {
-            // Calculate angle from the first and last coordinates of the LineString
-            var start = coordinates[0];
-            var end = coordinates[coordinates.length - 1];
-            var angle = Math.atan2(end[1] - start[1], end[0] - start[0]) * (180 / Math.PI);
-            return -angle;
-        }
-
-        // Function to find the nearest street feature to a given point
-        function findNearestStreet(point, features) {
-            var nearestStreet = null;
-            var minDistance = 5;
-
-            for (var i = 0; i < features.length; i++) {
-                var feature = features[i];
-                var coordinates = feature.geometry.coordinates;
-
-                // Find the closest point on the street to the cursor
-                var closestPoint = findClosestPointOnLine(coordinates, point);
-
-                // Calculate the distance between the cursor and the closest point
-                var distance = getDistance(point, closestPoint);
-
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    nearestStreet = feature;
-                }
-            }
-
-            return nearestStreet;
-        }
-
-                // Function to find the closest point on a line to a given point
-        function findClosestPointOnLine(line, point) {
-            var closestPoint = null;
-            var minDistance = Number.MAX_VALUE;
-
-            for (var i = 0; i < line.length - 1; i++) {
-                var start = line[i];
-                var end = line[i + 1];
-                var projectedPoint = projectPointOnLine(start, end, point);
-
-                var distance = getDistance(point, projectedPoint);
-
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closestPoint = projectedPoint;
-                }
-            }
-
-            return closestPoint;
-        }
-
-        // Function to project a point onto a line segment
-        function projectPointOnLine(start, end, point) {
-            var lineVector = [end[0] - start[0], end[1] - start[1]];
-            var pointVector = [point[0] - start[0], point[1] - start[1]];
-            var lineLength = Math.sqrt(lineVector[0] * lineVector[0] + lineVector[1] * lineVector[1]);
-            var projectionLength = (pointVector[0] * lineVector[0] + pointVector[1] * lineVector[1]) / lineLength;
-            var scaleFactor = projectionLength / lineLength;
-
-            return [start[0] + lineVector[0] * scaleFactor, start[1] + lineVector[1] * scaleFactor];
-        }
-
-        // Function to calculate the distance between two points
-        function getDistance(point1, point2) {
-            var dx = point1[0] - point2[0];
-            var dy = point1[1] - point2[1];
-            return Math.sqrt(dx * dx + dy * dy);
-        }
 
         map.on('zoom', function () {
             // Adjust cursor size based on map zoom
@@ -377,19 +353,84 @@
             cursor.style.height = cursorSize/4 + 'px';
         });
 
+        var counter = 0;
+
         map.on('click', function (e) {
-            // Add a solar panel at the clicked position
-            var panelSize = cursorSize; // Example size
-            var panel = document.createElement('div');
-            panel.style.width = panelSize + 'px';
-            panel.style.height = panelSize/4 + 'px';
-            panel.style.backgroundColor = 'rgba(255, 165, 0, 0.8)'; // Example color
-            panel.style.position = 'absolute';
-            panel.style.left = (e.point.x - panelSize / 2) + 'px';
-            panel.style.top = e.point.y + 'px';
-            panel.style.transform = `rotate(${curr_angle}deg)`
-            map.getContainer().appendChild(panel);
+          // Get the clicked coordinates
+          var clickedCoordinates = e.lngLat;
+
+          // Generate unique source and layer names
+          var sourceName = 'rectangle-source-' + counter;
+          var layerName = 'rectangle-layer-' + counter;
+
+          // Call a function to add the rectangle at the clicked coordinates
+          addRectangle(clickedCoordinates, sourceName, layerName);
+
+          // Increment the counter for the next click
+          counter++;
         });
+
+            function addRectangle(coordinates, sourceName, layerName) {
+              // Convert the rotation angle from degrees to radians
+                            rotationAngle= -curr_angle;
+              var radians = (rotationAngle * Math.PI) / 180;
+
+              // Define the rectangle's initial coordinates
+              var initialCoordinates = [
+                [coordinates.lng - 0.0001, coordinates.lat - 0.000025],
+                [coordinates.lng + 0.0001, coordinates.lat - 0.000025],
+                [coordinates.lng + 0.0001, coordinates.lat + 0.000025],
+                [coordinates.lng - 0.0001, coordinates.lat + 0.000025],
+                [coordinates.lng - 0.0001, coordinates.lat - 0.000025]
+              ];
+
+              // Rotate the rectangle's coordinates
+              var rotatedCoordinates = initialCoordinates.map(function (point) {
+                var x = point[0] - coordinates.lng;
+                var y = point[1] - coordinates.lat;
+
+                // Apply rotation
+                var newX = x * Math.cos(radians) - y * Math.sin(radians);
+                var newY = x * Math.sin(radians) + y * Math.cos(radians);
+
+                return [newX + coordinates.lng, newY + coordinates.lat];
+              });
+
+              var rectangleGeoJSON = {
+                type: 'FeatureCollection',
+                features: [
+                  {
+                    type: 'Feature',
+                    geometry: {
+                      type: 'Polygon',
+                      coordinates: [rotatedCoordinates]
+                    }
+                  }
+                ]
+              };
+
+              // Add the rectangle GeoJSON as a source with the unique source name
+              map.addSource(sourceName, {
+                type: 'geojson',
+                data: rectangleGeoJSON
+              });
+
+              // Style the rectangle layer with the unique layer name
+              map.addLayer({
+                id: layerName,
+                type: 'fill',
+                source: sourceName,
+                paint: {
+                  'fill-color': 'blue',
+                  'fill-opacity': 0.5
+                }
+              });
+            }
+
+
+
+
+
     </script>
     <script>
         // This is needed, as otherwise map height is zero and therefore not visible (bug in mapengine!)
