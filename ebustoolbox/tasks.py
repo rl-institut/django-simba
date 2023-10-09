@@ -43,7 +43,8 @@ from simba.schedule import Schedule as SimbaSchedule
 INTEGER_INF = 9999
 
 
-def fill_db_with_input_files(cleaned_data: dict, request: HttpRequest):
+@atomic()
+def input_files_to_database(cleaned_data: dict, request: HttpRequest):
     """Fill the database with the inputs from the form
 
     :param cleaned_data: cleaned data
@@ -136,7 +137,7 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
 
 
 def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> dict:
-    """Create simba rotations with trips from database with scenario as key
+    """Create simba rotations with trips from a database with a scenario as a key
 
     :param django_scenario: Django scenario
     :param schedule: SimBA Schedule
@@ -146,10 +147,13 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
     """
     rotations = {}
     for rot in Rotation.objects.filter(scenario=django_scenario):
-        vehicle_type = rot.vehicle_class.vehicletype_set.first()
+        vehicle_type = rot.vehicle.vehicle_type.name_short
+        vehicle_class = {vt.name_short for vt in rot.vehicle_class.vehicletype_set.all()}
+        simba_rotation = SimbaRotation(
+            id=rot.name, vehicle_type=vehicle_type, schedule=schedule, vehicle_class=vehicle_class
+        )
+        simba_rotation.charging_type = "depb" if rot.is_depot_rotation else "oppb"
 
-        simba_rotation = SimbaRotation(rot.name, vehicle_type.name_short, schedule)
-        simba_rotation.charging_type = "oppb" if vehicle_type.flex_charging else "depb"
         rotations[rot.name] = simba_rotation
         for trip in Trip.objects.filter(rotation=rot):
             simba_trip_dict = {
@@ -374,7 +378,20 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
         vehicle_class, _ = VehicleClass.objects.get_or_create(
             name=",".join(rot.vehicle_class), scenario=django_scenario
         )
-        r = Rotation(name=key, vehicle_class=vehicle_class, scenario=django_scenario)
+
+        flex_charging = rot.charging_type == "oppb"
+        vehicletype = VehicleType.objects.get(
+            scenario=django_scenario, name_short=rot.vehicle_type, flex_charging=flex_charging
+        )
+        # ToDo Replace dummy vehicles with properly generated vehicles from SimBA or eFlips
+        vehicle = Vehicle.objects.create(vehicle_type=vehicletype, name="Placeholder Vehicle")
+        r = Rotation(
+            name=key,
+            vehicle_class=vehicle_class,
+            scenario=django_scenario,
+            is_depot_rotation=not flex_charging,
+            vehicle=vehicle,
+        )
         r.id = rot_id
         rot_id += 1
         model_rotations.append(r)
@@ -406,7 +423,6 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
     :return: None
     """
     for name, v_type in vehicle_types.items():
-        # vehicle_class, _ = VehicleClass.objects.get_or_create(name=name)
         for charge_name, charge_type in v_type.items():
             consumption = float(charge_type.get("mileage"))
             params = dict(
@@ -634,6 +650,8 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
 
 
 def save_vehicle_properties_from_file(file_path, scenario):
+    """Placeholder functionality to save data for plotting"""
+
     object_list = []
     try:
         last_id = VehicleProperties.objects.last().id
@@ -646,8 +664,14 @@ def save_vehicle_properties_from_file(file_path, scenario):
         vehicle_names.remove("timestep")
         vehicle_dict = dict()
 
-        for vehicle_name in vehicle_names:
-            vehicle, _ = Vehicle.objects.get_or_create(name=vehicle_name, scenario=scenario)
+        # ToDo: Vehicles are not properly assigned. Since this is only a "dummy" plotting feature
+        # that is ok.
+        vehicles = Vehicle.objects.filter(vehicle_type__scenario=scenario)
+
+        for i, vehicle_name in enumerate(vehicle_names):
+            vehicle = vehicles[i]
+            vehicle.name = vehicle_name
+            vehicle.save()
             vehicle_dict[vehicle_name] = vehicle
 
         for row in reader:
