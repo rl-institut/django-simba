@@ -720,7 +720,10 @@ def create_event_output(scenario):
         else:
             event_dict["event_type"] = "driving"
 
-        # TODO grab current vehicle SoC at timestep
+        # grab current vehicle SoC at timestep
+        event_dict["soc"] = scenario.vehicle_socs[event_dict["vehicle_id"]][timestep]
+
+        # TODO get the location. maybe via schedule? SpiceEV only tracks location if connected to a charger
 
         all_events_dict[vehicle_event["vehicle_id"]].append(event_dict)
 
@@ -730,3 +733,5 @@ def create_event_output(scenario):
 
     # TODO get timeseries here. start step of current event until start step of next event (last event extra)
     # cut timeseries to fit event time
+
+    # TODO link vehicle_id to vehicle in DB
