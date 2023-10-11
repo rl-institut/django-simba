@@ -1,58 +1,37 @@
 [tool.poetry]
 name = "django-simba"
 version = "0.1.0"
-description = "Django website for runnin SimBA and eFLips together"
-authors = ["Your Name <you@example.com>"]
+description = "Django Integration of [simBA](https://github.com/rl-institut/SimBA) and [eFLips-Depot](https://github.com/mpm-tu-berlin/eflips-depot)"
+authors = ["Reiner Lemoine Institut <info@rl-institut.de>"]
 license = "AGPLv3"
 readme = "README.md"
-packages = [{ include = "ebustoolbox" }]
+packages = [{include = "ebustoolbox"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-spice_ev = { git = "https://github.com/rl-institut/spice_ev", rev = "51268c639a02f2a94c418d6215376f585dd14af0" }
-simba = { git = "https://github.com/rl-institut/SimBA", rev = "feature/django_simba" }
+spice_ev = { git = "https://github.com/rl-institut/spice_ev", rev = "51268c639a02f2a94c418d6215376f585dd14af0"}
+simba = { git = "https://github.com/rl-institut/SimBA", rev = "feature/django_simba"}
 
 Django = "^4.2.3"
 django-environ = ">=0.10.0, <1.0.0"
-django-plotly-dash = "^2.2.1"
+django_plotly_dash = "^2.2.1"
 django-appconf = ">=1.0.5, <2.0.0"
 djangorestframework = ">=3.14.0, <4.0.0"
 djangorestframework-mvt = ">=0.2.5, <1.0.0"
-django-distill = "^3.1.3"
+django_distill = "^3.1.3"
 django-geojson = "^4.0.0"
 
 celery = "^5.3.1"
 psycopg2-binary = "^2.9.6"
 pandas = "^2.0.3"
-matplotlib = "^3.7.2"
+matplotlib = "^3.7.1"
 colorbrewer = { git = "https://github.com/henhuy/colorbrewer-python.git" }
 range-key-dict = "^1.1.0"
 geopandas = "^0.13.2"
 osmnx = "^1.6.0"
 scikit-learn = "^1.3.0"
 
-[tool.poetry.group.dev.dependencies]
-black = "^23.7.0"
-flake8 = "^6.1.0"
-selenium = "^4.11.2"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.black]
-line-length = 100
-target-version = ['py37']
-include = '^ebustoolbox/'
-exclude = '''
-/(
-    # Exclude all directories except ebustoolbox
-    (?!ebustoolbox/)
-
-    # Exclude hidden directories (starting with a dot)
-    (?!\\.[^/]+/)
-
-    # Exclude any directory starting with underscore
-    (?!_[^/]+/)
-)
-'''

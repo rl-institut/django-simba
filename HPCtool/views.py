@@ -179,7 +179,7 @@ def create_station(request):
         _, buslist = async_result.get()
 
         stat = Station.objects.create(geom=Point(list(result['latlon'])), name=result['name'], scenario_ID="neu",
-                                      charge_pwr=result['power_station'])
+                                      charge_power=result['power_station'])
 
         stat.flurstück.add(Flurstueck.objects.order_by('id').reverse()[0])
 

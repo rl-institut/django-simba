@@ -8,8 +8,8 @@
 
      /* Define the style for the cursor representation (square) */
         .cursor {
-            width: 20px;
-            height: 5px;
+            width: 40px;
+            height: 3px;
             background-color: rgba(255, 165, 0, 0.5); /* Example color */
             position: absolute;
             pointer-events: none;
@@ -248,7 +248,11 @@
         });
 
         var zoom = 0;
-        var cursorSize = 20;
+        //var cursorSize = 20;
+
+        var cursorwidth = 4000 * 0.40;
+        var cursorheight = 290;
+        var currentscale = 0;
 
         var features_old = [];
         var curr_angle = 0
@@ -284,8 +288,8 @@
                 // Event listeners
         window.addEventListener('mousemove', function (e) {
             // Update cursor position to follow the mouse
-            cursor.style.left = e.clientX-0.5*cursorSize + 'px';
-            cursor.style.top = e.clientY+ window.scrollY + 'px';
+            cursor.style.left = e.clientX-0.5 * (cursorwidth * currentScale)  + 'px';
+            cursor.style.top = e.clientY+ (window.scrollY)-0.5 * (cursorheight * currentScale) + 'px';
 
             // Query features at the cursor's position
             var features = map.queryRenderedFeatures(e.point, { layers: ['Road network'] });
@@ -296,7 +300,7 @@
                 // Get the nearest street feature to the cursor
                 if (features != features_old) {
                     markers = []
-                    latlng = map.unproject([e.clientX-0.5*cursorSize, e.clientY-0.5*cursorSize])
+                    latlng = map.unproject([e.clientX-75, e.clientY-50])
                     features_old = features
 
                     var closestStreet = null;
@@ -324,9 +328,9 @@
                             closestPointOnStreet = closestPoint;
                         }
                     }
-                  //  markers += new maplibregl.Marker()
+                    //markers += new maplibregl.Marker()
                     //    .setLngLat(closestPointOnStreet) // Set the marker's coordinates
-                      //  .addTo(map);
+                    //    .addTo(map);
                     // Calculate the heading (angle) of the closest street
                     var heading = calculateHeading(closestStreet.geometry.coordinates[0], closestStreet.geometry.coordinates[1]);
 
@@ -335,6 +339,7 @@
                     console.log("HEADING: ", heading)
                     cursor.style.transform = `rotate(${-heading}deg)`;
                     curr_angle = -heading
+
                     // Now you can use 'heading' to rotate your cursor
                 }
 
@@ -348,9 +353,16 @@
         map.on('zoom', function () {
             // Adjust cursor size based on map zoom
             zoom = map.getZoom();
-            cursorSize = 20 + (zoom - 10) * 5; // Adjust the formula as needed
-            cursor.style.width = cursorSize + 'px';
-            cursor.style.height = cursorSize/4 + 'px';
+
+
+            const referenceZoom = 22; // You can set this to your reference zoom level.
+            const referenceScale = 1; // Set your reference scale at the reference zoom level.
+            currentScale = referenceScale * Math.pow(2, zoom - referenceZoom);
+
+
+
+            cursor.style.width = cursorwidth * currentScale + 'px';
+            cursor.style.height = cursorheight * currentScale + 'px';
         });
 
         var counter = 0;
@@ -372,28 +384,39 @@
 
             function addRectangle(coordinates, sourceName, layerName) {
               // Convert the rotation angle from degrees to radians
-                            rotationAngle= -curr_angle;
+              rotationAngle= -curr_angle;
               var radians = (rotationAngle * Math.PI) / 180;
+              console.log("ORIGINAL: ", [coordinates.lng,coordinates.lat])
+
+              const pnt = proj4("EPSG:4326", "EPSG:32633", [coordinates.lng,coordinates.lat]);
+
+            //const utmpoint2 = proj4("EPSG:4326", "EPSG:32633", point2);
 
               // Define the rectangle's initial coordinates
               var initialCoordinates = [
-                [coordinates.lng - 0.0001, coordinates.lat - 0.000025],
-                [coordinates.lng + 0.0001, coordinates.lat - 0.000025],
-                [coordinates.lng + 0.0001, coordinates.lat + 0.000025],
-                [coordinates.lng - 0.0001, coordinates.lat + 0.000025],
-                [coordinates.lng - 0.0001, coordinates.lat - 0.000025]
+                [pnt[0] - 9, pnt[1] - 1.5],
+                [pnt[0] + 9, pnt[1] - 1.5],
+                [pnt[0] + 9, pnt[1] + 1.5],
+                [pnt[0] - 9, pnt[1] + 1.5],
+                [pnt[0] - 9, pnt[1] - 1.5]
               ];
 
               // Rotate the rectangle's coordinates
               var rotatedCoordinates = initialCoordinates.map(function (point) {
-                var x = point[0] - coordinates.lng;
-                var y = point[1] - coordinates.lat;
+
+
+                  console.log("PNT: ", pnt, point)
+                var x = point[0] - pnt[0];
+                var y = point[1] - pnt[1];
 
                 // Apply rotation
                 var newX = x * Math.cos(radians) - y * Math.sin(radians);
                 var newY = x * Math.sin(radians) + y * Math.cos(radians);
 
-                return [newX + coordinates.lng, newY + coordinates.lat];
+                var rot_coords = [newX + pnt[0], newY + pnt[1]];
+                var result = proj4("EPSG:32633","EPSG:4326",  rot_coords);
+                console.log("RESULT::: ", result)
+                return result
               });
 
               var rectangleGeoJSON = {
@@ -421,7 +444,7 @@
                 type: 'fill',
                 source: sourceName,
                 paint: {
-                  'fill-color': 'blue',
+                  'fill-color': 'orange',
                   'fill-opacity': 0.5
                 }
               });
@@ -520,12 +543,12 @@
 </div>
 
 
-<div style="position: absolute; top:100%; left: 340px; width: 50px; height: 50px;
+<div style="position: absolute; top:105%; left: 340px; width: 50px; height: 50px;
       z-index: 900; justify-content: center; align-items: center">
 <button onclick="exportJson()", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">exp</button>
 </div>
 
-<div style="position: absolute; top:100%; left: 400px; width: 50px; height: 50px;
+<div style="position: absolute; top:105%; left: 400px; width: 50px; height: 50px;
       z-index: 900; justify-content: center; align-items: center">
 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#settingsModal" id="settingsButton", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⚙️</button>
 </div>
