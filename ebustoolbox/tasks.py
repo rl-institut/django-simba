@@ -693,3 +693,40 @@ def save_vehicle_properties_from_file(file_path, scenario):
                 )
                 last_id += 1
     VehicleProperties.objects.bulk_create(object_list)
+
+
+def get_timestep_from_datetime(scenario, timestamp):
+    # calculate the corresponding time step
+    timedelta_into_scenario = timestamp - scenario.start_time
+    minutes_into_scenario = timedelta_into_scenario.total_seconds() / 60
+    return round(minutes_into_scenario * (scenario.stepsPerHour / 60))
+
+
+def create_event_output(scenario):
+    # TODO get scenario Id
+    all_events_dict = {vehicle_type: [] for vehicle_type in scenario.components["vehicle_types"]}
+    # collect info from vehicle_event
+    for vehicle_event in scenario.events["vehicle_events"]:
+        start_timestamp = vehicle_event["start_time"]
+        timestep = get_timestep_from_datetime(scenario, start_timestamp)
+        event_dict = {
+            "timestep": timestep,
+            "event_type": vehicle_event["event_type"],  # arrival or departure
+            "vehicle_id": vehicle_event["vehicle_id"]
+        }
+        if event_dict["event_type"] == "arrival":
+            event_dict["connected_charging_station"] = vehicle_event["update"]["connected_charging_station"]
+            event_dict["event_type"] = "parking" if event_dict["connected_charging_station"] is None else "charging"
+        else:
+            event_dict["event_type"] = "driving"
+
+        # TODO grab current vehicle SoC at timestep
+
+        all_events_dict[vehicle_event["vehicle_id"]].append(event_dict)
+
+    # sort the lists by timestep
+    for vehicle_type, event_list in all_events_dict.items():
+        all_events_dict[vehicle_type] = sorted(event_list, key=lambda x: x["timestep"])
+
+    # TODO get timeseries here. start step of current event until start step of next event (last event extra)
+    # cut timeseries to fit event time
