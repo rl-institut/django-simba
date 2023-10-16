@@ -272,7 +272,6 @@
             // Convert coordinates from WGS84 to UTM using Proj4js
             const utmpoint1 = proj4("EPSG:4326", "EPSG:32633", point1);
             const utmpoint2 = proj4("EPSG:4326", "EPSG:32633", point2);
-            console.log(utmpoint1,utmpoint2)
             var angle = Math.atan2(utmpoint2[1] - utmpoint1[1], utmpoint2[0] - utmpoint1[0]);
             return angle * (180 / Math.PI); // Convert to degrees
         }
@@ -281,7 +280,7 @@
          // Define source and target projections
         proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs");
         proj4.defs("EPSG:32633", "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs");
-
+        var cc = 0;
 
 
 
@@ -347,72 +346,66 @@
                     var overallMinDistance = Infinity;
                     // Iterate through the list of streets
                     for (var i = 0; i < features.length; i++) {
-  var street = features[i];
-  var minDistance = Infinity; // Initialize minimum distance to a high value
-  var closestPointOnStreet;
+                        var street = features[i];
+                        var minDistance = Infinity; // Initialize minimum distance to a high value
+                        var closestPointOnStreet;
 
-  // Loop through all segments of the street
-  for (var j = 0; j < street.geometry.length - 1; j++) {
-    var segmentStart = [street.geometry[j].lon, street.geometry[j].lat];
-    var segmentEnd = [street.geometry[j + 1].lon, street.geometry[j + 1].lat];
+                        if (street.geometry.type === 'LineString') {
+                          // For LineString
+                          var coordinates = street.geometry.coordinates;
+                          for (var j = 0; j < coordinates.length - 1; j++) {
+                            var segmentStart = coordinates[j];
+                            var segmentEnd = coordinates[j + 1];
 
-    // Convert segment start and end coordinates into GeoJSON features
-    var geojson = {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: [segmentStart, segmentEnd],
-          },
-        },
-      ],
-    };
+                            // Calculate the closest point on the segment to the cursor
+                            var closestPoint = closestPointOnLine([latlng.lng, latlng.lat], segmentStart, segmentEnd);
 
-    map.addSource('street_' + i + '-' + j + '-' + cc, {
-      type: 'geojson',
-      data: geojson,
-    });
+                            // Calculate the distance between the cursor and the closest point on this segment
+                            var distance = turf.distance([latlng.lng, latlng.lat], closestPoint)
 
-    map.addLayer({
-      id: 'street_' + i + '-' + j + '-' + cc,
-      type: 'line',
-      source: 'street_' + i + '-' + j + '-' + cc,
-      paint: {
-        'line-color': 'blue',
-        'line-width': 2,
-      },
-    });
+                            // Update the closest point on the street if this segment is closer
+                            if (distance < overallMinDistance) {
+                              overallMinDistance = distance;
+                              closestStreet = street;
+                              closestSegment = [segmentStart, segmentEnd]
+                              overallClosestPointOnStreet = closestPoint;
+                            }
+                          }
+                        } else if (street.geometry.type === 'MultiLineString') {
+                          // For MultiLineString
+                          var lines = street.geometry.coordinates;
+                          for (var j = 0; j < lines.length; j++) {
+                            var coordinates = lines[j];
+                            for (var k = 0; k < coordinates.length - 1; k++) {
+                              var segmentStart = coordinates[k];
+                              var segmentEnd = coordinates[k + 1];
 
-    // Calculate the closest point on the segment to the cursor
-    var closestPoint = closestPointOnLine([latlng.lng, latlng.lat], segmentStart, segmentEnd);
+                              // Calculate the closest point on the segment to the cursor
+                              // Calculate the closest point on the segment to the cursor
+                                var closestPoint = closestPointOnLine([latlng.lng, latlng.lat], segmentStart, segmentEnd);
 
-    // Calculate the distance between the cursor and the closest point on this segment
-    var distance = turf.distance([latlng.lng, latlng.lat], closestPoint);
+                                // Calculate the distance between the cursor and the closest point on this segment
+                                var distance = turf.distance([latlng.lng, latlng.lat], closestPoint)
 
-    // Update the closest point on the street if this segment is closer
-    if (distance < minDistance) {
-      minDistance = distance;
-      closestPointOnStreet = closestPoint;
-    }
-  }
+                              // Update the closest point on the street if this segment is closer
+                              if (distance < overallMinDistance) {
+                                overallMinDistance = distance;
+                                closestStreet = street;
+                                closestSegment = [segmentStart, segmentEnd]
+                                overallClosestPointOnStreet = closestPoint;
+                              }
+                            }
+                          }
+                        }
 
-  // Update the closest street if this street is closer than the previous closest one
-  if (minDistance < overallMinDistance) {
-    overallMinDistance = minDistance;
-    closestStreet = street;
-    overallClosestPointOnStreet = closestPointOnStreet;
-  }
-}
+                    }
                     cc+=1;
-                    markers += new maplibregl.Marker()
-                        .setLngLat(closestPointOnStreet) // Set the marker's coordinates
-                        .addTo(map);
+                    //markers += new maplibregl.Marker()
+                    //    .setLngLat(overallClosestPointOnStreet) // Set the marker's coordinates
+                    //    .addTo(map);
                     // Calculate the heading (angle) of the closest street
                     console.log(closestStreet)
-                    var heading = calculateHeading(closestStreet.geometry.coordinates[0], closestStreet.geometry.coordinates[1]);
+                    var heading = calculateHeading(closestSegment[0], closestSegment[1]);
 
                     // Rotate your cursor (rectangular box) to match the street's heading
                     // Set the rotation value for your cursor here
