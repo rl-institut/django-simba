@@ -283,56 +283,14 @@
         var cc = 0;
 
 
-
-                // Event listeners
-        let lastExecutionTime = 0;
-        let cc = 0;
         window.addEventListener('mousemove', function (e) {
             // Update cursor position to follow the mouse
             cursor.style.left = e.clientX-0.5 * (cursorwidth * currentScale)  + 'px';
             cursor.style.top = e.clientY+ (window.scrollY)-0.5 * (cursorheight * currentScale) + 'px';
 
-             const currentTime = Date.now();
-
-
-
+            var features = map.queryRenderedFeatures(e.point, { layers: ['Road network'] });
 
             if (zoom > 16) {
-
-                if (currentTime - lastExecutionTime >= 10000) {
-
-                        // Perform your operation here
-                        var bounds = map.getBounds(); // Get the current visible bounds
-                    var overpassQuery = `[out:json];
-                      (
-                        way["highway"](${bounds.getSouth()}, ${bounds.getWest()}, ${bounds.getNorth()}, ${bounds.getEast()});
-                      );
-                      out geom;`;
-
-                    fetch('https://overpass-api.de/api/interpreter?', {
-                      method: 'POST',
-                        headers: {
-                          'Accept': 'application/json',
-                          'Content-Type': 'application/json'
-                        },
-                      body: overpassQuery,
-                    })
-                      .then(response => response.json())
-                      .then(data => {
-                            console.log(data);
-                            features = data.elements
-                      })
-                      .catch(error => {
-                        console.error('Error querying Overpass API:', error);
-                      });
-
-
-
-                        // Update the last execution time
-                        lastExecutionTime = currentTime
-                      }
-
-
 
                 // Get the nearest street feature to the cursor
                 if (features != features_old) {
