@@ -286,17 +286,55 @@
 
 
                 // Event listeners
+        let lastExecutionTime = 0;
+        let cc = 0;
         window.addEventListener('mousemove', function (e) {
             // Update cursor position to follow the mouse
             cursor.style.left = e.clientX-0.5 * (cursorwidth * currentScale)  + 'px';
             cursor.style.top = e.clientY+ (window.scrollY)-0.5 * (cursorheight * currentScale) + 'px';
 
-            // Query features at the cursor's position
-            var features = map.queryRenderedFeatures(e.point, { layers: ['Road network'] });
+             const currentTime = Date.now();
 
 
 
-            if (features.length > 0 && zoom > 16) {
+
+            if (zoom > 16) {
+
+                if (currentTime - lastExecutionTime >= 10000) {
+
+                        // Perform your operation here
+                        var bounds = map.getBounds(); // Get the current visible bounds
+                    var overpassQuery = `[out:json];
+                      (
+                        way["highway"](${bounds.getSouth()}, ${bounds.getWest()}, ${bounds.getNorth()}, ${bounds.getEast()});
+                      );
+                      out geom;`;
+
+                    fetch('https://overpass-api.de/api/interpreter?', {
+                      method: 'POST',
+                        headers: {
+                          'Accept': 'application/json',
+                          'Content-Type': 'application/json'
+                        },
+                      body: overpassQuery,
+                    })
+                      .then(response => response.json())
+                      .then(data => {
+                            console.log(data);
+                            features = data.elements
+                      })
+                      .catch(error => {
+                        console.error('Error querying Overpass API:', error);
+                      });
+
+
+
+                        // Update the last execution time
+                        lastExecutionTime = currentTime
+                      }
+
+
+
                 // Get the nearest street feature to the cursor
                 if (features != features_old) {
                     markers = []
@@ -306,32 +344,74 @@
                     var closestStreet = null;
                     var closestPointOnStreet = null;
                     var minDistance = Infinity;
-
+                    var overallMinDistance = Infinity;
                     // Iterate through the list of streets
                     for (var i = 0; i < features.length; i++) {
-                        var street = features[i];
-                        var start = street.geometry.coordinates[0];
-                        var end = street.geometry.coordinates[1];
+  var street = features[i];
+  var minDistance = Infinity; // Initialize minimum distance to a high value
+  var closestPointOnStreet;
 
-                        // Calculate the closest point on the street to the cursor
+  // Loop through all segments of the street
+  for (var j = 0; j < street.geometry.length - 1; j++) {
+    var segmentStart = [street.geometry[j].lon, street.geometry[j].lat];
+    var segmentEnd = [street.geometry[j + 1].lon, street.geometry[j + 1].lat];
 
-                        var closestPoint = closestPointOnLine([latlng.lng, latlng.lat], start, end);
+    // Convert segment start and end coordinates into GeoJSON features
+    var geojson = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: [segmentStart, segmentEnd],
+          },
+        },
+      ],
+    };
 
-                        // Calculate the distance between the cursor and the closest point
-                        var distance = turf.distance([latlng.lng, latlng.lat], closestPoint);
+    map.addSource('street_' + i + '-' + j + '-' + cc, {
+      type: 'geojson',
+      data: geojson,
+    });
 
+    map.addLayer({
+      id: 'street_' + i + '-' + j + '-' + cc,
+      type: 'line',
+      source: 'street_' + i + '-' + j + '-' + cc,
+      paint: {
+        'line-color': 'blue',
+        'line-width': 2,
+      },
+    });
 
-                        // Update the closest street if this one is closer
-                        if (distance < minDistance) {
-                            minDistance = distance;
-                            closestStreet = street;
-                            closestPointOnStreet = closestPoint;
-                        }
-                    }
-                    //markers += new maplibregl.Marker()
-                    //    .setLngLat(closestPointOnStreet) // Set the marker's coordinates
-                    //    .addTo(map);
+    // Calculate the closest point on the segment to the cursor
+    var closestPoint = closestPointOnLine([latlng.lng, latlng.lat], segmentStart, segmentEnd);
+
+    // Calculate the distance between the cursor and the closest point on this segment
+    var distance = turf.distance([latlng.lng, latlng.lat], closestPoint);
+
+    // Update the closest point on the street if this segment is closer
+    if (distance < minDistance) {
+      minDistance = distance;
+      closestPointOnStreet = closestPoint;
+    }
+  }
+
+  // Update the closest street if this street is closer than the previous closest one
+  if (minDistance < overallMinDistance) {
+    overallMinDistance = minDistance;
+    closestStreet = street;
+    overallClosestPointOnStreet = closestPointOnStreet;
+  }
+}
+                    cc+=1;
+                    markers += new maplibregl.Marker()
+                        .setLngLat(closestPointOnStreet) // Set the marker's coordinates
+                        .addTo(map);
                     // Calculate the heading (angle) of the closest street
+                    console.log(closestStreet)
                     var heading = calculateHeading(closestStreet.geometry.coordinates[0], closestStreet.geometry.coordinates[1]);
 
                     // Rotate your cursor (rectangular box) to match the street's heading
