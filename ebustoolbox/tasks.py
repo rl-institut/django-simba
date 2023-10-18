@@ -707,10 +707,10 @@ def create_event_output(scenario):
     all_events_dict = {vehicle_type: [] for vehicle_type in scenario.components["vehicle_types"]}
     # collect info from vehicle_event
     for vehicle_event in scenario.events["vehicle_events"]:
-        start_timestamp = vehicle_event["start_time"]
-        timestep = get_timestep_from_datetime(scenario, start_timestamp)
+        timestep = get_timestep_from_datetime(scenario, vehicle_event["start_time"])
         event_dict = {
             "timestep": timestep,
+            "timestamp": vehicle_event["start_time"],
             "event_type": vehicle_event["event_type"],  # arrival or departure
             "vehicle_id": vehicle_event["vehicle_id"]
         }
@@ -731,7 +731,9 @@ def create_event_output(scenario):
     for vehicle_type, event_list in all_events_dict.items():
         all_events_dict[vehicle_type] = sorted(event_list, key=lambda x: x["timestep"])
 
-    # TODO get timeseries here. start step of current event until start step of next event (last event extra)
+    # TODO get timeseries here. start step of current event until start step of next event - 1 (last event extra)
+    # from vehicle_socs, timestamps?, is distance driven necessary? would be calculated linearly from total distance
+    # maybe save vehicle_socs extra and have implicit link via time step/stamp?
     # cut timeseries to fit event time
 
     # TODO link vehicle_id to vehicle in DB
