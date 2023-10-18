@@ -243,10 +243,6 @@
     <div class="cursor" id="cursor"></div>
     <script>
 
-        document.addEventListener('DOMContentLoaded', function () {
-           console.log(turf)
-        });
-
         var zoom = 0;
         //var cursorSize = 20;
 
@@ -295,7 +291,7 @@
                 // Get the nearest street feature to the cursor
                 if (features != features_old) {
                     markers = []
-                    latlng = map.unproject([e.clientX-75, e.clientY-50])
+                    latlng = map.unproject([e.clientX-300, e.clientY-50])
                     features_old = features
 
                     var closestStreet = null;
@@ -362,12 +358,10 @@
                     //    .setLngLat(overallClosestPointOnStreet) // Set the marker's coordinates
                     //    .addTo(map);
                     // Calculate the heading (angle) of the closest street
-                    console.log(closestStreet)
                     var heading = calculateHeading(closestSegment[0], closestSegment[1]);
 
                     // Rotate your cursor (rectangular box) to match the street's heading
                     // Set the rotation value for your cursor here
-                    console.log("HEADING: ", heading)
                     cursor.style.transform = `rotate(${-heading}deg)`;
                     curr_angle = -heading
 
@@ -417,7 +411,6 @@
               // Convert the rotation angle from degrees to radians
               rotationAngle= -curr_angle;
               var radians = (rotationAngle * Math.PI) / 180;
-              console.log("ORIGINAL: ", [coordinates.lng,coordinates.lat])
 
               const pnt = proj4("EPSG:4326", "EPSG:32633", [coordinates.lng,coordinates.lat]);
 
@@ -435,9 +428,7 @@
               // Rotate the rectangle's coordinates
               var rotatedCoordinates = initialCoordinates.map(function (point) {
 
-
-                  console.log("PNT: ", pnt, point)
-                var x = point[0] - pnt[0];
+                  var x = point[0] - pnt[0];
                 var y = point[1] - pnt[1];
 
                 // Apply rotation
@@ -607,7 +598,24 @@
 					   <input type="text" class="form-control" id="name">
 				   </div>
 				   <div class="col">
-						<label for="power" class="form-label">Station power:</label>
+						<label for="voltage" class="form-label">Voltage Level</label>
+
+					  </div>
+				   <div class="row mb-3">
+
+					  <div class="col">
+						<select id="voltage-level" name="voltage-level" class="form-select">
+						  <option value="LV">LV</option>
+						  <option value="MV">MV</option>
+						  <option value="HV">HV</option>
+						</select>
+					  </div>
+					</div>
+                   <div class="col">
+                       <span data-bs-toggle="tooltip" data-bs-placement="top" title="Nur relevant wenn abweichend vom Szenario">
+						<label for="power" class="form-label">Station power</label>
+                        <b>ℹ️:</b>
+                       </span>
 					  </div>
 				   <div class="row mb-3">
 
@@ -622,8 +630,11 @@
 						</select>
 					  </div>
 					</div>
-<div class="col">
+                    <div class="col">
+                    <span data-bs-toggle="tooltip" data-bs-placement="top" title="Nur relevant wenn abweichend vom Szenario">
 						<label for="power" class="form-label">Charger power:</label>
+                        <b>ℹ️:</b>
+                       </span>
 					  </div>
 				   <div class="row mb-3">
 
@@ -638,6 +649,7 @@
 						</select>
 					  </div>
 					</div>
+
 
 			   </form>
 		   </div>
@@ -704,6 +716,11 @@
 
 <script>
 
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
     // for setting height of sidebars:
     window.addEventListener('scroll', function() {
     var headerHeight = 125; // Height of your header in pixels
@@ -739,10 +756,10 @@
             },
             success: function(data){
                 all_station_coords = data.message
-                console.log(all_station_coords);
+                //console.log(all_station_coords);
             },
             error: function(data){
-               console.log(data);
+               //console.log(data);
             }
         })
     });
@@ -860,12 +877,9 @@
 
     $(document).ready(function() {
         $("#saveChanges").click(function() {
-            const name = $("#name").val();
-            const power = $("#power_station").val();
-            const unit = $("#power_charger").val();
 
             if (createMode == 1) {
-                createStation(name, power, unit, areaEndstop);
+                createStation();
             } else {
                 sendStationEdit();
             }
@@ -915,11 +929,21 @@
         $("#editModal").modal("show");
     }
 
-    function createStation(name,power,unit,areaEndstop) {
+    function createStation() {
+        var textbox_name = document.getElementById("name").value;
+        var textbox_ps = document.getElementById("power_station").value;
+        var textbox_pc = document.getElementById("power_charger").value;
+        const select_pc = document.getElementById('power-unit-charger').value;
+        const select_ps = document.getElementById('power-unit-station').value;
+        const select_vl = document.getElementById('voltage-level').value;
+        console.log(select_vl);
          var data_station = {
-                          "name": name,
-                          "power_station": power,
-                            "power_charger":unit,
+                          "name": textbox_name,
+                          "power_station": textbox_ps,
+                          "power_charger":textbox_pc,
+                         "station_unit":select_ps,
+                         "charge_unit":select_pc,
+                        "voltage_level":select_vl,
                           "area": areaEndstop,
                           "latlon": lastRightClick
                         };
@@ -937,7 +961,6 @@
                 hideButton();
                 //alert(data.message);
 
-                //TODO: Reload here
                 // Get the current center coordinates
                 var center = map.getCenter();
 
@@ -1247,9 +1270,9 @@
 
     function updateArea(e) {
         const data = draw.getAll();
-        console.log(data)
+        //console.log(data)
         if (data.features.length > 0) {
-            console.log();
+            //console.log();
         } else {
             answer.innerHTML = '';
             if (e.type !== 'draw.delete')
@@ -1367,13 +1390,13 @@
     });
 
 
-
+    /*
     map.on('moveend', function() {
         zoom = map.getZoom();
         var featuresInView = map.queryRenderedFeatures({ layers: ['flur'] });
         console.log(featuresInView, zoom)
 });
-
+*/
 
 
 
@@ -1391,7 +1414,7 @@
                       console.log(data)
 
                     const popup = document.createElement('div');
-                    const html = "<h1> " + data.name + "</h1> ID: " + data.id + " <br> Station power: "+ data.station_power + " " + data.station_unit+" <br> Charger power: "+ data.charge_power + " " + data.charge_unit+"<br>Number of buses: " + data.buses
+                    const html = "<h1> " + data.name + "</h1> ID: " + data.id + " <br> Station power: "+ data.station_power + " " + data.station_unit+" <br> Charger power: "+ data.charge_power + " " + data.charge_unit+ "<br> Voltage Level: "+ data.voltage_level +"<br>Number of buses: " + data.buses
 
                     //TODO: Edit station Information here
                     popup.innerHTML = html + '<br><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editModal" id="editButton" >Edit</button>'
@@ -1435,18 +1458,19 @@
         var save_button = document.getElementById("saveChanges");
         const select_pc = document.getElementById('power-unit-charger');
         const select_ps = document.getElementById('power-unit-station');
+        const select_vl = document.getElementById('voltage-level');
 
         textbox_name.value = data.name;
         textbox_ps.value = data.station_power;
         textbox_pc.value = data.charge_power;
         select_ps.value = data.station_unit;
         select_pc.value = data.charge_unit;
+        select_vl.value = data.voltage_level;
         createMode=0;
         editing_id = data.id;
 
         textbox_name.addEventListener('input', function () {
             save_button.disabled = false;
-
         });
 
         textbox_pc.addEventListener('input', function () {
@@ -1464,6 +1488,9 @@
         select_ps.addEventListener('change', function () {
             save_button.disabled = false;
         });
+        select_vl.addEventListener('change', function () {
+            save_button.disabled = false;
+        });
 
     }
 
@@ -1473,6 +1500,7 @@
         var textbox_pc = document.getElementById("power_charger").value;
         const select_pc = document.getElementById('power-unit-charger').value;
         const select_ps = document.getElementById('power-unit-station').value;
+        const select_vl = document.getElementById('voltage-level').value;
 
         var data_station = {
                           "name": textbox_name,
@@ -1481,7 +1509,7 @@
                             "id": editing_id,
                             "station_unit": select_ps ,
                             "charge_unit":select_pc,
-
+                            "voltage_level":select_vl
                         };
 
         createMode = 1

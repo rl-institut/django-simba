@@ -61,6 +61,7 @@ class Station(models.Model):
     scenario_ID = models.CharField(max_length=50)
     charge_unit = models.CharField(max_length=10, default="kW")
     station_unit = models.CharField(max_length=10, default="kW")
+    voltage_level = models.CharField(max_length=10, default="MV")
     charge_power = models.FloatField(default=0.0)
     station_power = models.FloatField(default=0.0)
 

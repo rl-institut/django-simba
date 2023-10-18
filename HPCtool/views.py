@@ -19,7 +19,6 @@ import ast
 import json
 
 
-
 class HomePageView(TemplateView, views.MapEngineMixin):
     template_name = "hpctool.html"
 
@@ -79,16 +78,10 @@ def get_station_popup(request: HttpRequest, id: int) -> response.JsonResponse:  
     #    html = render_to_string("popups/default.html", context=data)
 
     Area = Flurstueck.objects.get(id=int(id))
-    # Get all books by the author
-    print(Area)
 
     Station = Area.station_set.first()
 
-    print(Station)
-
     buslist = Station.busses.count()
-
-    print(buslist)
 
     dictresult = {"name": Station.name,
                   "id": Station.id,
@@ -96,12 +89,13 @@ def get_station_popup(request: HttpRequest, id: int) -> response.JsonResponse:  
                   "station_unit": Station.station_unit,
                   "charge_power": Station.charge_power,
                   "charge_unit": Station.charge_unit,
+                  "voltage_level": Station.voltage_level,
                   "buses": buslist}
 
     return response.JsonResponse(dictresult)  # , "chart": chart}
 
-def edit_station(request):
 
+def edit_station(request):
     data_dict = {key: value for key, value in request.POST.items()}
     edit_id = data_dict["id"]
 
@@ -114,30 +108,30 @@ def edit_station(request):
     stat.station_unit = data_dict["station_unit"]
     stat.charge_power = data_dict["charge_power"]
     stat.charge_unit = data_dict["charge_unit"]
+    stat.voltage_level = data_dict["voltage_level"]
 
     stat.save()
 
-    return JsonResponse({"message":"Success=1"})
+    return JsonResponse({"message": "Success=1"})
 
 
 def generate_json_data():
     # TODO: Put this somewhere else
     # Fetch and process your data here
-    #data = [{'hello': 'world'}]  # Your data as a list of dictionaries
+    # data = [{'hello': 'world'}]  # Your data as a list of dictionaries
 
     all_instances = Station.objects.all()
 
     data_list = [{instance.name: {
-            "type": "opps",
-            "voltage_level": instance.charge_unit,
-            "n_charging_stations": instance.busses.count()}} for instance in all_instances]
+        "type": "opps",
+        "voltage_level": instance.voltage_level,
+        "n_charging_stations": instance.busses.count()}} for instance in all_instances]
 
     # Initialize an empty dictionary
     dict_of_dicts = {}
 
     for d in data_list:
         dict_of_dicts.update(d)
-
 
     # Convert data to JSON
     json_data = json.dumps(dict_of_dicts)
@@ -178,8 +172,26 @@ def create_station(request):
 
         _, buslist = async_result.get()
 
-        stat = Station.objects.create(geom=Point(list(result['latlon'])), name=result['name'], scenario_ID="neu",
-                                      charge_power=result['power_station'])
+        print(result)
+
+        if result['power_charger'] != '':
+            cp = result['power_charger']
+        else:
+            cp = 0
+
+        if result['power_station'] != '':
+            sp = result['power_station']
+        else:
+            sp = 0
+
+        stat = Station.objects.create(geom=Point(list(result['latlon'])),
+                                      name=result['name'],
+                                      scenario_ID="neu",
+                                      charge_power=cp,
+                                      charge_unit=result['charge_unit'],
+                                      station_unit=result['station_unit'],
+                                      station_power=sp,
+                                      voltage_level=result['voltage_level'])
 
         stat.flurstück.add(Flurstueck.objects.order_by('id').reverse()[0])
 
@@ -202,13 +214,10 @@ def get_stationlist(request):
     coordinates_list = [(point.x, point.y) for point in geom_values_list]
     print(coordinates_list)
 
-
     return JsonResponse({'message': coordinates_list})
 
 
 def get_settings(request):
-
-
     if request.method == 'GET':
         try:
             settings_object = Settings.objects.get(scenario_ID="neu")
@@ -247,20 +256,25 @@ def get_settings(request):
 
 
 def crit(request):
-
     if request.method == 'GET':
         settingse = Settings.objects.get(scenario_ID="neu")
 
         all_crit = settingse.criteria.all()
 
         if settingse.criteria.count() < 1:
-            crit = Criterion.objects.create(scenario_ID="neu", name="Bäume", layer_name="Bäume", geom_type="point", link="""https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_wfs_baumbestand""", dist_green=5, dist_red=10)
+            crit = Criterion.objects.create(scenario_ID="neu", name="Bäume", layer_name="Bäume", geom_type="point",
+                                            link="""https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_wfs_baumbestand""",
+                                            dist_green=5, dist_red=10)
             settingse.criteria.add(crit)
-            crit = Criterion.objects.create(scenario_ID="neu", name="Wohngebäude", layer_name='extractWohngebiet', geom_type="poly", link="""https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_wfs_alkis_tatsaechlichenutzungflaechen""", dist_green=30, dist_red=60)
+            crit = Criterion.objects.create(scenario_ID="neu", name="Wohngebäude", layer_name='extractWohngebiet',
+                                            geom_type="poly",
+                                            link="""https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_wfs_alkis_tatsaechlichenutzungflaechen""",
+                                            dist_green=30, dist_red=60)
             settingse.criteria.add(crit)
-            crit = Criterion.objects.create(scenario_ID="neu", name="Radwege", layer_name="Radweg", geom_type="point", link="""https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_Radweg""", dist_green=5, dist_red=10)
+            crit = Criterion.objects.create(scenario_ID="neu", name="Radwege", layer_name="Radweg", geom_type="point",
+                                            link="""https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_Radweg""",
+                                            dist_green=5, dist_red=10)
             settingse.criteria.add(crit)
-
 
         criterialist = []
 
@@ -285,4 +299,3 @@ def crit(request):
         #
 
         return HttpResponse(f'This is a POST request with data: {data}')
-
