@@ -205,8 +205,17 @@
       top: 2px;
     }
 
-
-
+.table-container {
+    max-height: 300px; /* Set the maximum height as per your requirements */
+    overflow-y: auto; /* Enable vertical scroll when content overflows */
+    border: 1px solid #ccc; /* Optional: Add a border to the container for styling */
+}
+.toggle-label-wrapper {
+    display: flex;
+    flex-direction: column; /* Stack the elements vertically */
+    /* align-items: right; Center content horizontally */
+    margin-bottom: 10px; /* Add space between each layer */
+}
 
 </style>
 
@@ -240,243 +249,7 @@
     {% include 'django_mapengine/map_js.html' %}
 
 <!-- Cursor representation -->
-    <div class="cursor" id="cursor"></div>
-    <script>
-
-        var zoom = 0;
-        //var cursorSize = 20;
-
-        var cursorwidth = 4000 * 0.40;
-        var cursorheight = 290;
-        var currentscale = 0;
-
-        var features_old = [];
-        var curr_angle = 0
-
-        var markers = []
-        // Cursor representation element
-        var cursor = document.getElementById('cursor');
-
-        // Function to calculate the closest point on a line to a given point
-        function closestPointOnLine(point, lineStart, lineEnd) {
-            var line = turf.lineString([lineStart, lineEnd]);
-            return turf.nearestPointOnLine(line, point).geometry.coordinates;
-        }
-
-        // Function to calculate the heading (angle) between two points
-        function calculateHeading(point1, point2) {
-            // Convert coordinates from WGS84 to UTM using Proj4js
-            const utmpoint1 = proj4("EPSG:4326", "EPSG:32633", point1);
-            const utmpoint2 = proj4("EPSG:4326", "EPSG:32633", point2);
-            var angle = Math.atan2(utmpoint2[1] - utmpoint1[1], utmpoint2[0] - utmpoint1[0]);
-            return angle * (180 / Math.PI); // Convert to degrees
-        }
-
-
-         // Define source and target projections
-        proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs");
-        proj4.defs("EPSG:32633", "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs");
-        var cc = 0;
-
-
-        window.addEventListener('mousemove', function (e) {
-            // Update cursor position to follow the mouse
-            cursor.style.left = e.clientX-0.5 * (cursorwidth * currentScale)  + 'px';
-            cursor.style.top = e.clientY+ (window.scrollY)-0.5 * (cursorheight * currentScale) + 'px';
-
-            var features = map.queryRenderedFeatures(e.point, { layers: ['Road network'] });
-
-            if (zoom > 16) {
-
-                // Get the nearest street feature to the cursor
-                if (features != features_old) {
-                    markers = []
-                    latlng = map.unproject([e.clientX-300, e.clientY-50])
-                    features_old = features
-
-                    var closestStreet = null;
-                    var closestPointOnStreet = null;
-                    var minDistance = Infinity;
-                    var overallMinDistance = Infinity;
-                    // Iterate through the list of streets
-                    for (var i = 0; i < features.length; i++) {
-                        var street = features[i];
-                        var minDistance = Infinity; // Initialize minimum distance to a high value
-                        var closestPointOnStreet;
-
-                        if (street.geometry.type === 'LineString') {
-                          // For LineString
-                          var coordinates = street.geometry.coordinates;
-                          for (var j = 0; j < coordinates.length - 1; j++) {
-                            var segmentStart = coordinates[j];
-                            var segmentEnd = coordinates[j + 1];
-
-                            // Calculate the closest point on the segment to the cursor
-                            var closestPoint = closestPointOnLine([latlng.lng, latlng.lat], segmentStart, segmentEnd);
-
-                            // Calculate the distance between the cursor and the closest point on this segment
-                            var distance = turf.distance([latlng.lng, latlng.lat], closestPoint)
-
-                            // Update the closest point on the street if this segment is closer
-                            if (distance < overallMinDistance) {
-                              overallMinDistance = distance;
-                              closestStreet = street;
-                              closestSegment = [segmentStart, segmentEnd]
-                              overallClosestPointOnStreet = closestPoint;
-                            }
-                          }
-                        } else if (street.geometry.type === 'MultiLineString') {
-                          // For MultiLineString
-                          var lines = street.geometry.coordinates;
-                          for (var j = 0; j < lines.length; j++) {
-                            var coordinates = lines[j];
-                            for (var k = 0; k < coordinates.length - 1; k++) {
-                              var segmentStart = coordinates[k];
-                              var segmentEnd = coordinates[k + 1];
-
-                              // Calculate the closest point on the segment to the cursor
-                              // Calculate the closest point on the segment to the cursor
-                                var closestPoint = closestPointOnLine([latlng.lng, latlng.lat], segmentStart, segmentEnd);
-
-                                // Calculate the distance between the cursor and the closest point on this segment
-                                var distance = turf.distance([latlng.lng, latlng.lat], closestPoint)
-
-                              // Update the closest point on the street if this segment is closer
-                              if (distance < overallMinDistance) {
-                                overallMinDistance = distance;
-                                closestStreet = street;
-                                closestSegment = [segmentStart, segmentEnd]
-                                overallClosestPointOnStreet = closestPoint;
-                              }
-                            }
-                          }
-                        }
-
-                    }
-                    cc+=1;
-                    //markers += new maplibregl.Marker()
-                    //    .setLngLat(overallClosestPointOnStreet) // Set the marker's coordinates
-                    //    .addTo(map);
-                    // Calculate the heading (angle) of the closest street
-                    var heading = calculateHeading(closestSegment[0], closestSegment[1]);
-
-                    // Rotate your cursor (rectangular box) to match the street's heading
-                    // Set the rotation value for your cursor here
-                    cursor.style.transform = `rotate(${-heading}deg)`;
-                    curr_angle = -heading
-
-                    // Now you can use 'heading' to rotate your cursor
-                }
-
-            } else {
-                // Reset cursor rotation if no street is under the cursor
-                //cursor.style.transform = 'rotate(0deg)';
-            }
-        });
-
-
-        map.on('zoom', function () {
-            // Adjust cursor size based on map zoom
-            zoom = map.getZoom();
-
-
-            const referenceZoom = 22; // You can set this to your reference zoom level.
-            const referenceScale = 1; // Set your reference scale at the reference zoom level.
-            currentScale = referenceScale * Math.pow(2, zoom - referenceZoom);
-
-
-
-            cursor.style.width = cursorwidth * currentScale + 'px';
-            cursor.style.height = cursorheight * currentScale + 'px';
-        });
-
-        var counter = 0;
-
-        map.on('click', function (e) {
-          // Get the clicked coordinates
-          var clickedCoordinates = e.lngLat;
-
-          // Generate unique source and layer names
-          var sourceName = 'rectangle-source-' + counter;
-          var layerName = 'rectangle-layer-' + counter;
-
-          // Call a function to add the rectangle at the clicked coordinates
-          addRectangle(clickedCoordinates, sourceName, layerName);
-
-          // Increment the counter for the next click
-          counter++;
-        });
-
-            function addRectangle(coordinates, sourceName, layerName) {
-              // Convert the rotation angle from degrees to radians
-              rotationAngle= -curr_angle;
-              var radians = (rotationAngle * Math.PI) / 180;
-
-              const pnt = proj4("EPSG:4326", "EPSG:32633", [coordinates.lng,coordinates.lat]);
-
-            //const utmpoint2 = proj4("EPSG:4326", "EPSG:32633", point2);
-
-              // Define the rectangle's initial coordinates
-              var initialCoordinates = [
-                [pnt[0] - 9, pnt[1] - 1.5],
-                [pnt[0] + 9, pnt[1] - 1.5],
-                [pnt[0] + 9, pnt[1] + 1.5],
-                [pnt[0] - 9, pnt[1] + 1.5],
-                [pnt[0] - 9, pnt[1] - 1.5]
-              ];
-
-              // Rotate the rectangle's coordinates
-              var rotatedCoordinates = initialCoordinates.map(function (point) {
-
-                  var x = point[0] - pnt[0];
-                var y = point[1] - pnt[1];
-
-                // Apply rotation
-                var newX = x * Math.cos(radians) - y * Math.sin(radians);
-                var newY = x * Math.sin(radians) + y * Math.cos(radians);
-
-                var rot_coords = [newX + pnt[0], newY + pnt[1]];
-                var result = proj4("EPSG:32633","EPSG:4326",  rot_coords);
-                console.log("RESULT::: ", result)
-                return result
-              });
-
-              var rectangleGeoJSON = {
-                type: 'FeatureCollection',
-                features: [
-                  {
-                    type: 'Feature',
-                    geometry: {
-                      type: 'Polygon',
-                      coordinates: [rotatedCoordinates]
-                    }
-                  }
-                ]
-              };
-
-              // Add the rectangle GeoJSON as a source with the unique source name
-              map.addSource(sourceName, {
-                type: 'geojson',
-                data: rectangleGeoJSON
-              });
-
-              // Style the rectangle layer with the unique layer name
-              map.addLayer({
-                id: layerName,
-                type: 'fill',
-                source: sourceName,
-                paint: {
-                  'fill-color': 'orange',
-                  'fill-opacity': 0.5
-                }
-              });
-            }
-
-
-
-
-
-    </script>
+    <div class="cursor" id="cursor" ></div>
     <script>
         // This is needed, as otherwise map height is zero and therefore not visible (bug in mapengine!)
         document.getElementById("map").style = "height: 800px"
@@ -534,13 +307,13 @@
       <nav class="col-md-2 bg-light right-sidebar">
         <div class="position-sticky">
           <div class="d-flex flex-column align-items-center">
-            <button class="btn btn-light btn-square">
+            <button class="btn btn-light btn-square" id="enableButton">
               <img src="https://www.die-modelle.net/images/product_images/info_images/Rietze-76705-2-rechte-Seite.png" alt="Button 1">
             </button>
-            <button class="btn btn-light btn-square">
+            <button class="btn btn-light btn-square" id="enableButton">
               <img src="https://www.die-modelle.net/images/product_images/original_images/Rietze-69391-3-1.png" alt="Button 2">
             </button>
-            <button class="btn btn-light btn-square">
+            <button class="btn btn-light btn-square" id="enableButton">
               <img src="https://www.die-modelle.net/images/product_images/info_images/Rietze-67336-1-rechts.png" alt="Button 3">
             </button>
           </div>
@@ -565,12 +338,12 @@
 </div>
 
 
-<div style="position: absolute; top:105%; left: 340px; width: 50px; height: 50px;
+<div style="position: absolute; top:90%; left: 340px; width: 50px; height: 50px;
       z-index: 900; justify-content: center; align-items: center">
 <button onclick="exportJson()", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">exp</button>
 </div>
 
-<div style="position: absolute; top:105%; left: 400px; width: 50px; height: 50px;
+<div style="position: absolute; top:90%; left: 400px; width: 50px; height: 50px;
       z-index: 900; justify-content: center; align-items: center">
 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#settingsModal" id="settingsButton", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⚙️</button>
 </div>
@@ -687,22 +460,23 @@
                         </div>
                     </form>
                      <!-- Criteria Table -->
+                    <div class="table-container">
                     <table class="table table-bordered">
                         <thead>
                             <tr>
                                 <th>Name</th>
+                                <th>layername</th>
                                 <th>Type</th>
-                                <th>dist_red</th>
+                                <th>url</th>
                                 <th>dist_green</th>
-                                <th>Number 3</th>
-                                <th>Text</th>
+                                <th>dist_red</th>
                             </tr>
                         </thead>
                         <tbody id="criteriaTableBody">
                             <!-- Existing criteria rows can be added here -->
                         </tbody>
                     </table>
-
+                </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -715,6 +489,252 @@
 
 
 <script>
+
+
+        var zoom = 0;
+        //var cursorSize = 20;
+
+        var cursorwidth = 4000 * 0.40;
+        var cursorheight = 290;
+        var currentScale = 0;
+
+        var features_old = [];
+        var curr_angle = 0
+        // Cursor representation element
+        var cursor = document.getElementById('cursor');
+
+        let manualModeEnabled = false;
+
+         // Define source and target projections
+        proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs");
+        proj4.defs("EPSG:32633", "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs");
+        var cc = 0;
+
+        // Function to calculate the closest point on a line to a given point
+        function closestPointOnLine(point, lineStart, lineEnd) {
+            var line = turf.lineString([lineStart, lineEnd]);
+            return turf.nearestPointOnLine(line, point).geometry.coordinates;
+        }
+
+        // Function to calculate the heading (angle) between two points
+        function calculateHeading(point1, point2) {
+            // Convert coordinates from WGS84 to UTM using Proj4js
+            const utmpoint1 = proj4("EPSG:4326", "EPSG:32633", point1);
+            const utmpoint2 = proj4("EPSG:4326", "EPSG:32633", point2);
+            var angle = Math.atan2(utmpoint2[1] - utmpoint1[1], utmpoint2[0] - utmpoint1[0]);
+            return angle * (180 / Math.PI); // Convert to degrees
+        }
+
+
+
+
+
+        window.addEventListener('mousemove', function (e) {
+            if (manualModeEnabled) {
+                // Update cursor position to follow the mouse
+                cursor.style.left = e.clientX - 0.5 * (cursorwidth * currentScale) + 'px';
+                cursor.style.top = e.clientY + (window.scrollY) - 0.5 * (cursorheight * currentScale) + 'px';
+
+                var features = map.queryRenderedFeatures(e.point, {layers: ['Road network']});
+
+                if (zoom > 16) {
+
+                    // Get the nearest street feature to the cursor
+                    if (features != features_old) {
+                        markers = []
+                        latlng = map.unproject([e.clientX - 300, e.clientY - 50])
+                        features_old = features
+
+                        var closestStreet = null;
+                        var closestPointOnStreet = null;
+                        var minDistance = Infinity;
+                        var overallMinDistance = Infinity;
+                        // Iterate through the list of streets
+                        for (var i = 0; i < features.length; i++) {
+                            var street = features[i];
+                            var minDistance = Infinity; // Initialize minimum distance to a high value
+                            var closestPointOnStreet;
+
+                            if (street.geometry.type === 'LineString') {
+                                // For LineString
+                                var coordinates = street.geometry.coordinates;
+                                for (var j = 0; j < coordinates.length - 1; j++) {
+                                    var segmentStart = coordinates[j];
+                                    var segmentEnd = coordinates[j + 1];
+
+                                    // Calculate the closest point on the segment to the cursor
+                                    var closestPoint = closestPointOnLine([latlng.lng, latlng.lat], segmentStart, segmentEnd);
+
+                                    // Calculate the distance between the cursor and the closest point on this segment
+                                    var distance = turf.distance([latlng.lng, latlng.lat], closestPoint)
+
+                                    // Update the closest point on the street if this segment is closer
+                                    if (distance < overallMinDistance) {
+                                        overallMinDistance = distance;
+                                        closestStreet = street;
+                                        closestSegment = [segmentStart, segmentEnd]
+                                        overallClosestPointOnStreet = closestPoint;
+                                    }
+                                }
+                            } else if (street.geometry.type === 'MultiLineString') {
+                                // For MultiLineString
+                                var lines = street.geometry.coordinates;
+                                for (var j = 0; j < lines.length; j++) {
+                                    var coordinates = lines[j];
+                                    for (var k = 0; k < coordinates.length - 1; k++) {
+                                        var segmentStart = coordinates[k];
+                                        var segmentEnd = coordinates[k + 1];
+
+                                        // Calculate the closest point on the segment to the cursor
+                                        // Calculate the closest point on the segment to the cursor
+                                        var closestPoint = closestPointOnLine([latlng.lng, latlng.lat], segmentStart, segmentEnd);
+
+                                        // Calculate the distance between the cursor and the closest point on this segment
+                                        var distance = turf.distance([latlng.lng, latlng.lat], closestPoint)
+
+                                        // Update the closest point on the street if this segment is closer
+                                        if (distance < overallMinDistance) {
+                                            overallMinDistance = distance;
+                                            closestStreet = street;
+                                            closestSegment = [segmentStart, segmentEnd]
+                                            overallClosestPointOnStreet = closestPoint;
+                                        }
+                                    }
+                                }
+                            }
+
+                        }
+                        cc += 1;
+                        //markers += new maplibregl.Marker()
+                        //    .setLngLat(overallClosestPointOnStreet) // Set the marker's coordinates
+                        //    .addTo(map);
+                        // Calculate the heading (angle) of the closest street
+                        var heading = calculateHeading(closestSegment[0], closestSegment[1]);
+
+                        // Rotate your cursor (rectangular box) to match the street's heading
+                        // Set the rotation value for your cursor here
+                        cursor.style.transform = `rotate(${-heading}deg)`;
+                        curr_angle = -heading
+
+                        // Now you can use 'heading' to rotate your cursor
+                    }
+
+                } else {
+                    // Reset cursor rotation if no street is under the cursor
+                    //cursor.style.transform = 'rotate(0deg)';
+                }
+            }
+        });
+
+
+        map.on('zoom', function () {
+            if (manualModeEnabled) {
+                // Adjust cursor size based on map zoom
+                zoom = map.getZoom();
+
+
+                const referenceZoom = 22; // You can set this to your reference zoom level.
+                const referenceScale = 1; // Set your reference scale at the reference zoom level.
+                currentScale = referenceScale * Math.pow(2, zoom - referenceZoom);
+
+
+                cursor.style.width = cursorwidth * currentScale + 'px';
+                cursor.style.height = cursorheight * currentScale + 'px';
+            }
+        });
+
+        var counter = 0;
+
+        map.on('click', function (e) {
+            if (manualModeEnabled) {
+                // Get the clicked coordinates
+                var clickedCoordinates = e.lngLat;
+
+                // Generate unique source and layer names
+                var sourceName = 'rectangle-source-' + counter;
+                var layerName = 'rectangle-layer-' + counter;
+
+                // Call a function to add the rectangle at the clicked coordinates
+                addRectangle(clickedCoordinates, sourceName, layerName);
+
+                // Increment the counter for the next click
+                counter++;
+            }
+        });
+
+            function addRectangle(coordinates, sourceName, layerName) {
+              // Convert the rotation angle from degrees to radians
+              rotationAngle= -curr_angle;
+              var radians = (rotationAngle * Math.PI) / 180;
+
+              const pnt = proj4("EPSG:4326", "EPSG:32633", [coordinates.lng,coordinates.lat]);
+
+            //const utmpoint2 = proj4("EPSG:4326", "EPSG:32633", point2);
+
+              // Define the rectangle's initial coordinates
+              var initialCoordinates = [
+                [pnt[0] - 9, pnt[1] - 1.5],
+                [pnt[0] + 9, pnt[1] - 1.5],
+                [pnt[0] + 9, pnt[1] + 1.5],
+                [pnt[0] - 9, pnt[1] + 1.5],
+                [pnt[0] - 9, pnt[1] - 1.5]
+              ];
+
+              // Rotate the rectangle's coordinates
+              var rotatedCoordinates = initialCoordinates.map(function (point) {
+
+                  var x = point[0] - pnt[0];
+                var y = point[1] - pnt[1];
+
+                // Apply rotation
+                var newX = x * Math.cos(radians) - y * Math.sin(radians);
+                var newY = x * Math.sin(radians) + y * Math.cos(radians);
+
+                var rot_coords = [newX + pnt[0], newY + pnt[1]];
+                var result = proj4("EPSG:32633","EPSG:4326",  rot_coords);
+                console.log("RESULT::: ", result)
+                return result
+              });
+
+              var rectangleGeoJSON = {
+                type: 'FeatureCollection',
+                features: [
+                  {
+                    type: 'Feature',
+                    geometry: {
+                      type: 'Polygon',
+                      coordinates: [rotatedCoordinates]
+                    }
+                  }
+                ]
+              };
+
+              // Add the rectangle GeoJSON as a source with the unique source name
+              map.addSource(sourceName, {
+                type: 'geojson',
+                data: rectangleGeoJSON
+              });
+
+              // Style the rectangle layer with the unique layer name
+              map.addLayer({
+                id: layerName,
+                type: 'fill',
+                source: sourceName,
+                paint: {
+                  'fill-color': 'orange',
+                  'fill-opacity': 0.5
+                }
+              });
+            }
+
+// Add event listener to the "Enable" button
+const enableButton = document.getElementById('enableButton');
+enableButton.addEventListener('click', function () {
+  manualModeEnabled = !manualModeEnabled; // Toggle the state on button click
+
+});
+
+
 
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -1058,6 +1078,10 @@
                             toggleLayerVisibility(layer.id);
                         });
 
+            const toggleLabelWrapper = document.createElement("div"); // Create a wrapping div
+            toggleLabelWrapper.className = "toggle-label-wrapper"; // Apply a class for styling
+            toggleLabelWrapper.appendChild(toggleLabel);
+
             const toggleSwitch = document.createElement("div");
             toggleSwitch.className = "toggle-switch";
 
@@ -1070,7 +1094,8 @@
             toggleLabel.appendChild(toggleLabelText);
 
 
-            layerControls.appendChild(toggleLabel);
+            layerControls.appendChild(toggleLabelWrapper); // Add the wrapper div to the container;
+
         });
 
 
