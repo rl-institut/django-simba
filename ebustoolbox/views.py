@@ -1,5 +1,6 @@
 from django.conf import settings
-from django.http import FileResponse, HttpResponse, JsonResponse
+from django.db.transaction import atomic
+from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest
 from django.shortcuts import render, redirect
 from django.views.generic import TemplateView
 from django.views.decorators.http import require_GET
@@ -25,13 +26,20 @@ def get_map(request):
 
 
 def get_chart(request):
+    """Get a rendered chart of vehicle data
+
+    :param request: django.http.HttpRequest
+    :return: django.http.HttpResponse
+    """
     task_id = request.GET.get("task_id")
     print("get is :", task_id)
     get_vehicles = request.GET.getlist("vehicles")
     print("vehicles  are :", get_vehicles)
 
     scenario = Scenario.objects.get(task_id=task_id)
-    vehicles = Vehicle.objects.filter(scenario=scenario)
+    vehicles = Vehicle.objects.filter(vehicle_type__scenario=scenario)
+
+    # Does the request ask for specific vehicles? If not, don't filter and show all vehicles
     if get_vehicles is None:
         pass
     else:
@@ -40,12 +48,7 @@ def get_chart(request):
             my_filter_qs = my_filter_qs | Q(id=int(v))
         vehicles = vehicles.filter(my_filter_qs)
 
-    plot_vehicles = []
-    for search_vehicle in vehicles:
-        plot_data = VehicleProperties.objects.filter(vehicle=search_vehicle)
-        time_data = [c.date for c in plot_data]
-        y_data = [c.soc for c in plot_data]
-        plot_vehicles.append({"x": time_data, "y": y_data, "name": search_vehicle.name})
+    plot_vehicles = get_vehicle_plot_data(vehicles)
 
     fig = go.Figure()
     for v in plot_vehicles:
@@ -57,6 +60,16 @@ def get_chart(request):
     context = {"chart": chart, "form": ChartForm(scenario=scenario), "result_id": task_id}
 
     return render(request, "chart.html", context)
+
+
+def get_vehicle_plot_data(vehicles):
+    plot_vehicles = []
+    for search_vehicle in vehicles:
+        plot_data = VehicleProperties.objects.filter(vehicle=search_vehicle)
+        time_data = [c.date for c in plot_data]
+        y_data = [c.soc for c in plot_data]
+        plot_vehicles.append({"x": time_data, "y": y_data, "name": search_vehicle.name})
+    return plot_vehicles
 
 
 def show_uploads_view(request, filename):
@@ -79,7 +92,7 @@ def result_view(request):
 
 
 def wait_view(request):
-    """View while waiting for results. Will trigger success view as soon as long running task
+    """View while waiting for results. Will trigger success view as soon as long-running task
     returns pending"""
     print("SimBA is calculating. Showing wait view")
     return render(request, "wait.html")
@@ -112,10 +125,7 @@ def long_running_task_status_view(request):
     return JsonResponse({"success": False})
 
 
-def home_view(request):
-    # ToDo needs different implementation since it uses same list for
-    # different users
-
+def home_view(request: HttpRequest):
     if request.method == "GET":
         form = UploadFileForm()
     elif request.method == "POST":
@@ -123,38 +133,51 @@ def home_view(request):
         if not form.is_valid():
             return render(request, "index.html", {"form": form})
 
-        django_scenario, simba_schedule, args = tasks.fill_db_with_input_files(
-            form.cleaned_data, request
-        )
-        # start computation
-        task_id = get_unique_task_id()
-        django_scenario.task_id = task_id
-        django_scenario.save()
-        tasks.run_ebus_toolbox(simba_schedule, args, task_id)
+        django_scenario = save_and_simulate(form, request)
         if "ebus_map" in settings.INSTALLED_APPS:
-            from ebus_map.models import Station as MapStation
-
-            stations = ebustoolbox.models.Station.objects.filter(scenario=django_scenario)
-            # obj_id = 1 if MapStation.objects.last() is None else MapStation.objects.last().id + 1
-            map_stations = []
-            for station in stations:
-                map_stat = MapStation()
-                map_stat.__dict__.update(station.__dict__)
-                # map_stat.id = obj_id
-                map_stations.append(map_stat)
-                map_stat.save()
-            # Bulk creation is more efficient but doe not work with multi tabled inherited models
-            # MapStation.objects.bulk_create(map_stations)
+            create_stations_for_map(django_scenario)
 
         response = redirect("simba:result")
-        response["Location"] += "?task_id=" + task_id
+        response["Location"] += "?task_id=" + django_scenario.task_id
         return response
     else:
-        return HttpResponse("Method not allowed", status=405)
+        return HttpResponse("Method is not allowed", status=405)
     return render(request, "index.html", {"form": form})
 
 
-def download_scenario(request, task_id):
+@atomic()
+def create_stations_for_map(django_scenario: Scenario):
+    from ebus_map.models import Station as MapStation
+
+    stations = ebustoolbox.models.Station.objects.filter(scenario=django_scenario)
+    map_stations = []
+    for station in stations:
+        map_stat = MapStation()
+        map_stat.__dict__.update(station.__dict__)
+        map_stations.append(map_stat)
+        map_stat.save()
+
+
+def save_and_simulate(
+    form: UploadFileForm | None = None, request: HttpRequest | None = None
+) -> Scenario:
+    if form is None:
+        new_form = UploadFileForm()
+        # If function is called without request and form use the initial values as cleaned data
+        cleaned_data = {field: new_form[field].initial for field in new_form.fields}
+    else:
+        cleaned_data = form.cleaned_data
+
+    django_scenario, simba_schedule, args = tasks.input_files_to_database(cleaned_data, request)
+    # start computation
+    task_id = get_unique_task_id()
+    django_scenario.task_id = task_id
+    django_scenario.save()
+    tasks.run_ebus_toolbox(simba_schedule, args, task_id)
+    return django_scenario
+
+
+def download_scenario(request: HttpRequest, task_id: str):
     file_path = settings.MEDIA_ROOT / (str(task_id) + ".zip")
     if file_path.exists():
         with file_path.open("rb") as fh:
@@ -164,6 +187,6 @@ def download_scenario(request, task_id):
     return HttpResponse("Zip not ready yet")
 
 
-def generate_zip(request, task_id):
+def generate_zip(request: HttpRequest, task_id: str):
     tasks.generate_zipped_scenario(task_id)
     return download_scenario(request, task_id)

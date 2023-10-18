@@ -1,9 +1,12 @@
+import shutil
 from pathlib import Path
 
 from django.conf import settings
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.dispatch import receiver
+
+MINIMAL_TRIP_DURATION_S = 60  # seconds
 
 
 class Scenario(models.Model):
@@ -20,6 +23,23 @@ class Scenario(models.Model):
             name="default_scenario",
         )
         return scenario.pk
+
+
+@receiver(models.signals.pre_delete, sender=Scenario)
+def auto_delete_results_on_delete(sender, instance, **kwargs):
+    """Delete the scenario results folder if the scenario is deleted from the database
+
+    :param sender: Model which sends signal
+    :param instance: instance of model which gets deleted
+    :param kwargs: other arguments
+    :return:
+    """
+    if instance.task_id is not None:
+        try:
+            shutil.rmtree((Path(settings.UPLOAD_PATH) / instance.task_id))
+        except FileNotFoundError:
+            # The Folder does not exist. That is not a problem
+            pass
 
 
 class UploadedFile(models.Model):
@@ -74,7 +94,6 @@ class VehicleType(models.Model):
 class Vehicle(models.Model):
     name = models.CharField(max_length=100, blank=False)
     vehicle_type = models.ForeignKey(VehicleType, on_delete=models.CASCADE, null=True, blank=True)
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
 
     # ToDo insert output here or create other Class "VehicleOutput" which also contains the
     # simulation results regarding this vehicle
@@ -110,6 +129,11 @@ class Rotation(models.Model):
     )
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
 
+    # SimBA specific data to make SimBA simulations reproducible
+    #
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_DEFAULT, default=None, null=True)
+    is_depot_rotation = models.BooleanField(default=None, null=True)
+
 
 class Station(models.Model):
     # Map Engine models need geom and name as first columns
@@ -129,6 +153,15 @@ class Station(models.Model):
     amount_charging_places = models.IntegerField(default=0, null=True)
     power_per_charger = models.FloatField(default=None, null=True)
     total_power = models.FloatField(default=None, null=True)
+
+    def __str__(self):
+        if not self.is_electrified:
+            return f"{self.name} is not electrified. Location: {self.geom.x} {self.geom.y}"
+        return (
+            f"{self.name} with {self.amount_charging_places} chargers with "
+            f"{self.power_per_charger} kW per charger and a total power of {self.total_power} "
+            f"kW. \nLocation: {self.geom.x} {self.geom.y}"
+        )
 
 
 class Trip(models.Model):
@@ -151,14 +184,16 @@ class Trip(models.Model):
     level_of_loading = models.FloatField(default=None, null=True)
 
     # If time resolution is minutes, there might be trips with 0 minutes duration. To resolve
-    # division by 0, we use a minimal duration of 1 second
+    # division by 0, we use a minimal duration of 60 seconds
     @property
     def duration_in_seconds(self):
         """duration of the trip in seconds
 
-        duration has a minimal value of 1 to avoid division by 0 errors"""
+        duration has a minimal value of 60 seconds to avoid division by 0 errors"""
 
-        return max((self.arrival_time - self.departure_time).total_seconds(), 1)
+        return max(
+            (self.arrival_time - self.departure_time).total_seconds(), MINIMAL_TRIP_DURATION_S
+        )
 
     @property
     def speed(self):

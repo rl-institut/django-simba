@@ -1,13 +1,18 @@
 import shutil
 import time
+from datetime import datetime
 from pathlib import Path
+from copy import copy
 
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from django.http import HttpRequest
 from django.test import TestCase, override_settings
 from django.utils.dateparse import parse_datetime
+from django.utils.timezone import make_aware
+
+from . import tasks
 from .forms import UploadFileForm
 from django.conf import settings
-
 
 # Create your tests here.
 from django.urls import reverse
@@ -35,7 +40,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
     def setUpClass(cls):
         super().setUpClass()
         options_ = webdriver.chrome.options.Options()
-        options_.headless = True
+        options_.add_argument("--headless=new")
         cls.selenium = webdriver.Chrome(options=options_)
         cls.selenium.implicitly_wait(10)
         Path(TMP_UPLOAD).mkdir(parents=True, exist_ok=True)
@@ -88,7 +93,262 @@ class MySeleniumTests(StaticLiveServerTestCase):
         self.assertContains(response, "Finished")
 
 
-class MyViewTest(TestCase):
+# ToDo remove complexity
+def objects_digger(objects, early_return=True, key_stack=None, instance_stack=None):  # noqa: C901
+    """Digs through objects and yields key_stack and 'primitive' data suited for comparison
+
+    The key_stack contains the keys of objects along the object path, e.g. an object
+    containing an object foo, which contains an attribute bar which is a string "Baz" would yield
+    [foo, bar] "baz"
+    if multiple objects are passed all the values for foo.bar are yielded. Infinite recursion is
+    handled through an instance stack which keeps track of instances which were searched already.
+    each instance can only be searched once.
+    """
+    if key_stack is None:
+        key_stack = []
+    if instance_stack is None:
+        instance_stack = set()
+    new_objects = [o for o in objects]
+    dict_like = False
+    list_like = False
+    if id(new_objects[0]) in instance_stack:
+        return
+    instance_stack.add(id(new_objects[0]))
+    if isinstance(new_objects[0], dict):
+        dict_like = True
+    else:
+        try:
+            new_objects = [vars(o) for o in new_objects]
+            dict_like = True
+        except TypeError:
+            # objects are not dicts or dict_like
+            try:
+                if (
+                    early_return
+                    and not hasattr(new_objects[0][0], "__dict__")
+                    or isinstance(new_objects[0], str)
+                    or len(new_objects[0]) == 1
+                ):
+                    # if first element of list is not __dict__ like its considered primitive
+                    # enough for returning
+                    raise TypeError
+                new_objects = [list(o) for o in new_objects]
+                list_like = True
+            except TypeError:
+                # object is not iterable. yield values
+                yield key_stack, new_objects
+    # new_objects are
+    key_stack.append(None)
+    if dict_like:
+        for key, value in new_objects[0].items():
+            inner_objects = [o[key] for o in new_objects]
+            key_stack_copy = [key for key in key_stack]
+            key_stack_copy[-1] = key
+            for x in objects_digger(
+                inner_objects,
+                early_return=early_return,
+                key_stack=key_stack_copy,
+                instance_stack=instance_stack,
+            ):
+                yield x
+    if list_like:
+        for i, list_element in enumerate(new_objects[0]):
+            try:
+                key_stack_copy = [key for key in key_stack]
+                key_stack_copy[-1] = i
+                inner_objects = [o[i] for o in new_objects]
+                for x in objects_digger(
+                    inner_objects,
+                    early_return=early_return,
+                    key_stack=key_stack_copy,
+                    instance_stack=instance_stack,
+                ):
+                    yield x
+            except IndexError:
+                print("Early return due to lists of different length")
+                print(key_stack_copy)
+                yield key_stack_copy, new_objects
+                break
+
+
+class WriteReadScenarioToDatabase(TestCase):
+    @override_settings(DEBUG=True)
+    def get_scenario_objects_and_fill_db(self):
+        form = UploadFileForm()
+        # Use all the initial and set values from the form as post data
+        post_data = {
+            f: form.fields[f].initial if form.fields[f].initial is not None else ""
+            for f in form.fields
+        }
+        # create form with post data without extra files
+        form = UploadFileForm(data=post_data, files=None)
+        form.full_clean()
+
+        # Empty request, since no files are used for this simulation.
+        request = HttpRequest()
+
+        django_scenario, simba_schedule, args = tasks.input_files_to_database(
+            form.cleaned_data, request
+        )
+        return django_scenario, simba_schedule, args
+
+    @override_settings(DEBUG=True)
+    def test_schedule_from_database(self):
+        django_scenario, simba_schedule, args = self.get_scenario_objects_and_fill_db()
+
+        # simba_schedule_db, args_db = tasks.db_to_schedule(django_scenario)
+        simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
+
+        for sched in [simba_schedule, simba_schedule_db]:
+            sched.rotations["1"].trips[0].calculate_consumption()
+        for key, value in vars(args).items():
+            # Some values don't need to be part of the args. Relative and absolute Paths are also
+            # ignored
+            if key in ["electrified_stations", "vehicle_types"]:
+                continue
+            db_value = vars(args_db).get(key)
+            self.assertEqual(db_value, value)
+
+        # Recursively search the schedule for primitive data which has to be equal to the database
+        # schedule
+        for key_stack, values in objects_digger([simba_schedule, simba_schedule_db]):
+            if isinstance(values[0], datetime):
+                values[0] = make_aware(values[0])
+            self.assertAlmostEqual(
+                values[0],
+                values[1],
+                places=8,
+                msg=key_stack,
+            )
+
+        scen = simba_schedule.run(args)
+        scen_db = simba_schedule_db.run(args_db)
+        # Recursively search the scenario for primitive data which has to be equal to the data
+        # created by the database schedule
+        for key_stack, values in objects_digger([scen, scen_db], early_return=False):
+            ignore_key = False
+            for key in ["electrified_stations", "vehicle_types"]:
+                if key in key_stack:
+                    ignore_key = True
+            if ignore_key:
+                continue
+            if isinstance(values[0], datetime):
+                values[0] = make_aware(values[0])
+            try:
+                self.assertAlmostEquals(values[0], values[1], places=8, msg=key_stack)
+            except TypeError:
+                # assume it's a date. values[0] does not come from database, so it has to be made
+                # aware
+                values[0] = make_aware(datetime.fromisoformat(values[0]))
+                values[1] = datetime.fromisoformat(values[1])
+                self.assertAlmostEquals(values[0], values[1], places=8, msg=key_stack)
+
+    # Above code shows "normal" and database schedule seem to generate the same output.
+    # Test if the opposite is true by changing database values. Each change of a database
+    # value has to lead to differing outputs
+    def testDatabaseEffects(self):
+        """Test if a change in the database values results in changes in the schedule and scenario
+
+        The database could contain data which has no effect on the simulation. To make sure the data
+        is used in the simulation the database is changed and the resulting schedule and scenario
+        are compared to the original unchanged schedule and scenario. The test fails if the tested
+        variations do not lead to differences. The differences are not checked for plausibility but
+        only for their occurrence.
+        """
+        # create a scenario from the form
+        django_scenario, simba_schedule, args = self.get_scenario_objects_and_fill_db()
+
+        # get the schedule and args from the db
+        simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
+        # get a vehicle_type which is "used"
+        vehicle = Rotation.objects.filter(scenario=django_scenario)[0].vehicle
+        vehicle_type = vehicle.vehicle_type
+
+        station = Station.objects.get(scenario=django_scenario, name="Station-0")
+        # mutate with instance, field name, value
+        mutations = [
+            (vehicle_type, "battery_capacity", 1),
+            (vehicle_type, "charging_efficiency", 0.1),
+            (vehicle_type, "minimum_charging_power", vehicle_type.charging_curve[0][1] * 0.99),
+            (
+                vehicle_type,
+                "charging_curve",
+                [[x[0], x[1] * 0.1] for x in vehicle_type.charging_curve],
+            ),
+            (vehicle_type, "consumption", vehicle_type.consumption * 0.1),
+            (station, "amount_charging_places", 1),
+            (station, "power_per_charger", station.power_per_charger * 0.1),
+            (station, "total_power", station.total_power * 0.1),
+        ]
+        scen_db = simba_schedule_db.run(args_db)
+        # running the schedule changes the schedule since it assigns vehicles. therefore load it
+        # again to have a "vanilla" schedule
+        original_database_schedule, original_db_args = tasks.get_schedule_from_db(django_scenario)
+
+        # Now the database is mutated in various ways.
+        # Each mutation must lead to a difference in the resulting schedule and scenario.
+        # Both of these are checked against the original objects from above
+        for mutation in mutations:
+            instance = copy(mutation[0])
+            vars(instance).update(dict(((mutation[1], mutation[2]),)))
+            instance.save()
+            mut_simba_schedule, args_db = tasks.get_schedule_from_db(django_scenario)
+            # restore original value in case the instance changes
+            instance = copy(mutation[0])
+            instance.save()
+
+            # Recursively search the schedule for primitive data which has to be not equal to the
+            # database schedule in at least ONE case
+            difference_found = False
+            difference = None
+            for key_stack, values in objects_digger(
+                [original_database_schedule, mut_simba_schedule]
+            ):
+                try:
+                    self.assertNotEquals(values[0], values[1], msg=key_stack)
+                    difference = key_stack, values
+                    difference_found = True
+                    break
+                except AssertionError:
+                    # not every value has to differ
+                    pass
+            if not difference_found:
+                raise AssertionError(
+                    f"The Schedule read from the database does not diverge from the original one, "
+                    f"although changes to the database were made. The mutation was: {mutation}"
+                )
+            else:
+                print(f"Difference in schedule was successfully found for {mutation}, {difference}")
+            mut_scen = mut_simba_schedule.run(args_db)
+            # Recursively search the scenario for primitive data which has to be NOT equal to the
+            # data created by the database schedule
+            difference_found = False
+            for key_stack, values in objects_digger([mut_scen, scen_db], early_return=False):
+                ignore_key = False
+                for key in ["electrified_stations", "vehicle_types"]:
+                    if key in key_stack:
+                        ignore_key = True
+                if ignore_key:
+                    continue
+                try:
+                    self.assertNotEquals(values[0], values[1], msg=key_stack)
+                    difference = key_stack, values
+                    difference_found = True
+                    break
+                except AssertionError:
+                    # not every value has to differ
+                    pass
+            if not difference_found:
+                raise AssertionError(
+                    "The Schedule read from the database does not diverge from "
+                    "the original one although changes to the database were made. "
+                    f"The mutation was: {mutation}"
+                )
+            else:
+                print(f"Difference in scenario was found for {mutation}, {difference}")
+
+
+class RunSimulationTest(TestCase):
     @override_settings(CELERY_USE=True)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(DEBUG=True)
@@ -164,9 +424,7 @@ class ModelTests(TestCase):
             charging_efficiency=0.95,
         )
         vehicle_type.vehicle_class.add(vehicle_class)
-        vehicle = Vehicle.objects.create(
-            name="Test Vehicle", vehicle_type=vehicle_type, scenario=scenario
-        )
+        vehicle = Vehicle.objects.create(name="Test Vehicle", vehicle_type=vehicle_type)
         self.assertEqual(str(vehicle), "Test Vehicle")
 
     def test_rotation_creation(self):

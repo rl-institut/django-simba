@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 
-def get_unique_task_id():
+def get_unique_task_id() -> str:
     task_id_not_unique = True
     task_id = None
     # Create unique ids for as long as needed, so no duplicate ids exist
