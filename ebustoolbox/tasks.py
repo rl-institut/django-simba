@@ -1,4 +1,5 @@
 import collections
+import dataclasses
 import json
 from copy import deepcopy, copy
 from argparse import Namespace
@@ -12,6 +13,7 @@ from django.http import HttpRequest
 
 import csv
 import shutil
+import tqdm
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -38,6 +40,11 @@ import simba.simulate
 from django.db.transaction import atomic
 from simba.rotation import Rotation as SimbaRotation
 from simba.schedule import Schedule as SimbaSchedule
+
+import eflips.depot.api.django_simba.input as eflips_api
+from eflips.depot.simple_vehicle import VehicleType as EflipsVehicleType
+from eflips.depot.api import init_simulation, run_simulation
+from eflips.depot.api.django_simba.output import to_simba
 
 # ToDo: Any better solutions?
 INTEGER_INF = 9999
@@ -374,7 +381,10 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
     model_trips = []
     rot_id = 1 if Rotation.objects.last() is None else Rotation.objects.last().id + 1
     trip_id = 1 if Trip.objects.last() is None else Trip.objects.last().id + 1
-    for key, rot in schedule.rotations.items():
+
+    station_dict = Station.objects.filter(scenario=django_scenario)
+    station_dict = {station.name: station for station in station_dict}
+    for key, rot in tqdm.tqdm(schedule.rotations.items(), total=len(schedule.rotations)):
         vehicle_class, _ = VehicleClass.objects.get_or_create(
             name=",".join(rot.vehicle_class), scenario=django_scenario
         )
@@ -398,11 +408,9 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
         for trip in rot.trips:
             t = Trip(
                 rotation=r,
-                departure_stop=Station.objects.get(
-                    scenario=django_scenario, name=trip.departure_name
-                ),
+                departure_stop=station_dict[trip.departure_name],
                 departure_time=make_aware(trip.departure_time),
-                arrival_stop=Station.objects.get(scenario=django_scenario, name=trip.arrival_name),
+                arrival_stop=station_dict[trip.arrival_name],
                 arrival_time=make_aware(trip.arrival_time),
                 distance=trip.distance,
                 line=trip.line,
@@ -642,8 +650,31 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
     db_scenario.finished = timezone.now()
     db_scenario.save()
     # Create the file for eflips. This could be passed directly to eFlips
+    eflips_input_path = Path(settings.BASE_DIR, args.output_directory, "report_1", "eflips_input.json")
     with open(settings.BASE_DIR / args.output_directory / "report_1/eflips_input.json", "w") as f:
         json.dump(eflips_input, f, indent=4)
+
+    # START eFLIPS API CALL
+    vehicle_schedule_list = eflips_api.VehicleSchedule.from_rotations(eflips_input_path)
+
+    # Get the Vehicle Types
+    vehicle_types = []
+    for djangosimba_vehicle_type in eflips_api.DjangoSimbaVehicleType.objects.all():
+        vehicle_type = EflipsVehicleType(djangosimba_vehicle_type)
+        vehicle_types.append(vehicle_type)
+
+    # Initialize the simulation
+    simulation_host = init_simulation(vehicle_types, vehicle_schedule_list)
+
+    # Run the simulation
+    depot_evaluation = run_simulation(simulation_host)
+
+    # Save the results to a folder
+    output_for_simba = to_simba(depot_evaluation)
+    with open(eflips_input_path.parent / "output_for_simba.json", "w") as f:
+        json.dump([dataclasses.asdict(o) for o in output_for_simba], f, indent=4)
+
+    # TODO use assign_vehicles_for_django (simba.schedule) to adjust schedule and do another SimBA run
 
     file_path = settings.BASE_DIR / args.output_directory / "report_1/vehicle_socs.csv"
     save_vehicle_properties_from_file(file_path, db_scenario)
