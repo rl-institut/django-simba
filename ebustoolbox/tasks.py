@@ -571,6 +571,21 @@ def vary_depot_rotations(schedule) -> "collections.Iterable[simba.rotation.Rotat
 
 
 def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
+    """Run the tool chain"""
+    # set report dir for first iteration
+    report_dir = Path(settings.BASE_DIR, args.output_directory, "report_1")
+    # call simba and eflips
+    run_simba(schedule, args, task_id, report_dir=report_dir)
+    eflips_dataclass_list = run_eflips(Path(report_dir, "eflips_input.json"))
+
+    # set report dir for second iteration/final results
+    report_dir = Path(settings.BASE_DIR, args.output_directory, "report_2")
+    # call simba with eflips results
+    run_simba(schedule, args, task_id, report_dir=report_dir, eflips_input=eflips_dataclass_list)
+
+
+def run_simba(schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "report"), eflips_input=None):
+    # TODO don't overwrite output on multiple function calls
     args.output_directory = Path(settings.UPLOAD_PATH) / task_id
     args.attach_vehicle_soc = True
 
@@ -583,6 +598,9 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
     for key, station in schedule.stations.items():
         schedule.stations[key]["cs_power_deps_depb"] = 0
         schedule.stations[key]["cs_power_deps_oppb"] = 0
+
+    if eflips_input is not None:
+        schedule.assign_vehicles_for_django(eflips_input)
 
     scenario = schedule.run(args)
 
@@ -649,11 +667,15 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
 
     db_scenario.finished = timezone.now()
     db_scenario.save()
-    # Create the file for eflips. This could be passed directly to eFlips
-    eflips_input_path = Path(settings.BASE_DIR, args.output_directory, "report_1", "eflips_input.json")
-    with open(settings.BASE_DIR / args.output_directory / "report_1/eflips_input.json", "w") as f:
+    # Create the file for eflips. This could be passed directly to eFlips by returning eflips_input
+    with open(Path(report_dir, "eflips_input.json"), "w") as f:
         json.dump(eflips_input, f, indent=4)
 
+    file_path = Path(report_dir, "vehicle_socs.csv")
+    save_vehicle_properties_from_file(file_path, db_scenario)
+
+
+def run_eflips(eflips_input_path):
     # START eFLIPS API CALL
     vehicle_schedule_list = eflips_api.VehicleSchedule.from_rotations(eflips_input_path)
 
@@ -671,13 +693,9 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
 
     # Save the results to a folder
     output_for_simba = to_simba(depot_evaluation)
-    with open(eflips_input_path.parent / "output_for_simba.json", "w") as f:
-        json.dump([dataclasses.asdict(o) for o in output_for_simba], f, indent=4)
-
-    # TODO use assign_vehicles_for_django (simba.schedule) to adjust schedule and do another SimBA run
-
-    file_path = settings.BASE_DIR / args.output_directory / "report_1/vehicle_socs.csv"
-    save_vehicle_properties_from_file(file_path, db_scenario)
+    return output_for_simba
+    # with open(eflips_input_path.parent / "output_for_simba.json", "w") as f:
+    #     json.dump([dataclasses.asdict(o) for o in output_for_simba], f, indent=4)
 
 
 def save_vehicle_properties_from_file(file_path, scenario):
