@@ -4,439 +4,341 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<style>
-
-     /* Define the style for the cursor representation (square) */
+    <style>
+         /* Bus outline for manual placement */
         .cursor {
             width: 40px;
             height: 3px;
-            background-color: rgba(255, 165, 0, 0.5); /* Example color */
+            background-color: rgba(255, 165, 0, 0.5);
             position: absolute;
             pointer-events: none;
         }
 
-     /* Define the style for the solar panels */
-        .panel {
-            background-color: rgba(255, 165, 0, 0.8); /* Example color */
-            position: absolute;
-            border: 2px solid black; /* Example border */
+         .col-md-10 {
+          transition: margin-left 0.3s;
         }
 
-    .filter-ctrl {
-        position: absolute;
-        top: 54px;
-        right: 60px;
-        z-index: 1;
+         .sidebar {
+          position: fixed;
+        top: 125px; /* Adjust this value to match the height of your header */
+        left: -250px;
+        width: 250px;
+        height: 100%; /* Set a minimum height matching the header's height */
+        background-color: #f8f9fa;
+        transition: left 0.3s;
+        z-index: 1000; /* Lower z-index to keep the sidebar below the header */
+        padding: 20px;
+        overflow-y: auto;
+        }
+
+        .sidebar.active {
+          left: 0;
+        }
+
+        #sidebarToggle {
+          position: fixed;
+          top: 10px;
+          left: 10px;
+          z-index: 1100;
+        }
+
+        .right-sidebar {
+          position: fixed;
+          top: 125px;
+          right: -250px;
+          width: 250px;
+          height: 100%;
+          background-color: #f8f9fa;
+          transition: right 0.3s;
+          z-index: 1000;
+          padding: 20px;
+        }
+
+        .right-sidebar.active {
+          right: 0;
+        }
+
+        .btn-square {
+          width: 250px;
+          height: 250px;
+          margin: 10px 0;
+          border-radius: 0;
+        }
+
+        .btn-square img {
+          max-width: 100%;
+          max-height: 100%;
+        }
+
+        /* Apply box-sizing to all elements and pseudo-elements */
+        *,
+        *:before,
+        *:after {
+          box-sizing: border-box;
+        }
+
+        /* Define the body font family */
+        body {
+          font-family: -apple-system, ".SFNSText-Regular", "Helvetica Neue", "Roboto", "Segoe UI", sans-serif;
+        }
+
+        /* Styling for the toggle container */
+        .toggle {
+          cursor: pointer;
+          display: inline-block;
+        }
+
+        /* Styling for the toggle switch */
+        .toggle-switch {
+          display: inline-block;
+          background: #ccc;
+          border-radius: 16px;
+          width: 58px;
+          height: 32px;
+          position: relative;
+          vertical-align: middle;
+          transition: background 0.25s;
+        }
+
+        /* Styling for the switch's before and after pseudo-elements */
+        .toggle-switch:before,
+        .toggle-switch:after {
+          content: "";
+        }
+
+        /* Styling for the switch's before pseudo-element */
+        .toggle-switch:before {
+          display: block;
+          background: linear-gradient(to bottom, #fff 0%, #eee 100%);
+          border-radius: 50%;
+          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+          width: 24px;
+          height: 24px;
+          position: absolute;
+          top: 4px;
+          left: 4px;
+          transition: left 0.25s;
+        }
+
+        /* Change styles on hover */
+        .toggle:hover .toggle-switch:before {
+          background: linear-gradient(to bottom, #fff 0%, #fff 100%);
+          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Styling for the checkbox when checked */
+        .toggle-checkbox:checked + .toggle-switch {
+          background: #56c080;
+        }
+
+        /* Additional styling for the switch's before pseudo-element when checked */
+        .toggle-checkbox:checked + .toggle-switch:before {
+          left: 30px;
+        }
+
+        /* Styling for the toggle checkbox */
+        .toggle-checkbox {
+          position: absolute;
+          visibility: hidden;
+        }
+
+        /* Styling for the toggle label */
+        .toggle-label {
+          margin-left: 5px;
+          position: relative;
+          top: 2px;
+        }
+
+        .table-container {
+            max-height: 300px; /* Set the maximum height as per your requirements */
+            overflow-y: auto; /* Enable vertical scroll when content overflows */
+            border: 1px solid #ccc; /* Optional: Add a border to the container for styling */
+        }
+        .toggle-label-wrapper {
+            display: flex;
+            flex-direction: column; /* Stack the elements vertically */
+            /* align-items: right; Center content horizontally */
+            margin-bottom: 10px; /* Add space between each layer */
     }
-
-    .filter-ctrl input[type='text'] {
-        font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
-        width: 100%;
-        border: 0;
-        background-color: #fff;
-        margin: 0;
-        color: rgba(0, 0, 0, 0.5);
-        padding: 10px;
-        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
-        border-radius: 3px;
-        width: 180px;
-    }
-    #sidebar {
-      position: fixed;
-      top: 0;
-      left: -250px;
-      width: 250px;
-      height: 100%;
-      background-color: #f8f9fa;
-      transition: left 0.3s;
-      z-index: 1000;
-      padding: 20px;
-    }
-
-    #sidebar.active {
-      left: 0;
-    }
-
-    .col-md-10 {
-      transition: margin-left 0.3s;
-    }
-
-    .col-md-10.active {
-      margin-left: 250px;
-    }
+    </style>
 
 
-    /* Add your custom CSS styles here */
-    .sidebar {
-      position: fixed;
-    top: 125px; /* Adjust this value to match the height of your header */
-    left: -250px;
-    width: 250px;
-    height: 100%; /* Set a minimum height matching the header's height */
-    background-color: #f8f9fa;
-    transition: left 0.3s;
-    z-index: 1000; /* Lower z-index to keep the sidebar below the header */
-    padding: 20px;
-    overflow-y: auto;
-    }
+    <head>
+        <script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"></script>
+        <link href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css" rel='stylesheet'/>
+        <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pubsub-js/1.9.4/pubsub.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+        <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.js"></script>
+        <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.css" type="text/css">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet">
+        <title>HPC Tool</title>
+    </head>
 
-    .sidebar.active {
-      left: 0;
-    }
-
-    #sidebarToggle {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      z-index: 1100;
-    }
-
-    .right-sidebar {
-      position: fixed;
-      top: 125px;
-      right: -250px;
-      width: 250px;
-      height: 100%;
-      background-color: #f8f9fa;
-      transition: right 0.3s;
-      z-index: 1000;
-      padding: 20px;
-    }
-
-    .right-sidebar.active {
-      right: 0;
-    }
-
-    .btn-square {
-      width: 250px;
-      height: 250px;
-      margin: 10px 0;
-      border-radius: 0;
-    }
-
-    .btn-square img {
-      max-width: 100%;
-      max-height: 100%;
-    }
-
-    /* Define the fixed dimensions for the div */
-    .fixed-div {
-        width: 152px; /* Set the width to 200 pixels */
-        height: 102px; /* Set the height to 150 pixels */
-
-    };
-
-    /* Apply box-sizing to all elements and pseudo-elements */
-    *,
-    *:before,
-    *:after {
-      box-sizing: border-box;
-    }
-
-    /* Define the body font family */
-    body {
-      font-family: -apple-system, ".SFNSText-Regular", "Helvetica Neue", "Roboto", "Segoe UI", sans-serif;
-    }
-
-    /* Styling for the toggle container */
-    .toggle {
-      cursor: pointer;
-      display: inline-block;
-    }
-
-    /* Styling for the toggle switch */
-    .toggle-switch {
-      display: inline-block;
-      background: #ccc;
-      border-radius: 16px;
-      width: 58px;
-      height: 32px;
-      position: relative;
-      vertical-align: middle;
-      transition: background 0.25s;
-    }
-
-    /* Styling for the switch's before and after pseudo-elements */
-    .toggle-switch:before,
-    .toggle-switch:after {
-      content: "";
-    }
-
-    /* Styling for the switch's before pseudo-element */
-    .toggle-switch:before {
-      display: block;
-      background: linear-gradient(to bottom, #fff 0%, #eee 100%);
-      border-radius: 50%;
-      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
-      width: 24px;
-      height: 24px;
-      position: absolute;
-      top: 4px;
-      left: 4px;
-      transition: left 0.25s;
-    }
-
-    /* Change styles on hover */
-    .toggle:hover .toggle-switch:before {
-      background: linear-gradient(to bottom, #fff 0%, #fff 100%);
-      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
-    }
-
-    /* Styling for the checkbox when checked */
-    .toggle-checkbox:checked + .toggle-switch {
-      background: #56c080;
-    }
-
-    /* Additional styling for the switch's before pseudo-element when checked */
-    .toggle-checkbox:checked + .toggle-switch:before {
-      left: 30px;
-    }
-
-    /* Styling for the toggle checkbox */
-    .toggle-checkbox {
-      position: absolute;
-      visibility: hidden;
-    }
-
-    /* Styling for the toggle label */
-    .toggle-label {
-      margin-left: 5px;
-      position: relative;
-      top: 2px;
-    }
-
-.table-container {
-    max-height: 300px; /* Set the maximum height as per your requirements */
-    overflow-y: auto; /* Enable vertical scroll when content overflows */
-    border: 1px solid #ccc; /* Optional: Add a border to the container for styling */
-}
-.toggle-label-wrapper {
-    display: flex;
-    flex-direction: column; /* Stack the elements vertically */
-    /* align-items: right; Center content horizontally */
-    margin-bottom: 10px; /* Add space between each layer */
-}
-
-</style>
-
-
-  <head>
-    <script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"></script>
-    <link href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css" rel='stylesheet'/>
-      <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
-
-  </head>
-
-  <body>
+    <body>
     {% include 'django_mapengine/map.html' %}
     {% include 'django_mapengine/map_json.html' %}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pubsub-js/1.9.4/pubsub.js"></script>
-    <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"> -->
-
 
     <script>
       // This is needed as mapengine checks for eventTopics value (bug in mapengine!)
       let eventTopics = {};
+      // This is needed, as otherwise map height is zero and therefore not visible (bug in mapengine!)
+      document.getElementById("map").style = "height: 800px"
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.min.js"></script>
-      <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
-    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.js"></script>
-    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.css" type="text/css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet">
 
+    <!-- this line has to be loaded at this specific point!! -->
     {% include 'django_mapengine/map_js.html' %}
 
-<!-- Cursor representation -->
+    <!-- Cursor (busoutline) for manual placement -->
     <div class="cursor" id="cursor" ></div>
-    <script>
-        // This is needed, as otherwise map height is zero and therefore not visible (bug in mapengine!)
-        document.getElementById("map").style = "height: 800px"
 
-        // Get the query parameters from the current URL
-        var urlParams = new URLSearchParams(window.location.search);
-
-        // Get the value of the "zoom" parameter
-        var zoom = urlParams.get('zoom');
-
-        // Get the value of the "center" parameter
-
-
-        try{
-            var center = urlParams.get('center');
-            var cntr = center.slice(7).replace(")", "").split(",")
-
-            map.setCenter(cntr);
-            map.setZoom(zoom);
-
-            window.scrollTo(0, document.documentElement.scrollHeight || document.body.scrollHeight);
-        }catch{
-            console.log("Cant set to null");
-        };
-
-    </script>
-
-
-  <div class="container-fluid">
-    <div class="row">
-      <nav class="col-md-2 bg-light sidebar">
-        <div class="position-sticky">
-          <ul class="nav flex-column">
-
-
-              <div id="layer-controls"></div>
-
-            <!-- Add more sidebar items here -->
-          </ul>
+    <!-- Left sidebar -->
+    <div class="container-fluid">
+        <div class="row">
+            <nav class="col-md-2 bg-light sidebar">
+                <div class="position-sticky">
+                    <ul class="nav flex-column">
+                        <div id="layer-controls"></div>
+                    <!-- Add more sidebar items here -->
+                    </ul>
+                </div>
+            </nav>
+        <main class="col-md-10 ml-sm-auto">
+        </main>
         </div>
-      </nav>
-
-      <main class="col-md-10 ml-sm-auto">
-        <!-- Content goes here -->
-      </main>
     </div>
-  </div>
 
-  <div class="container-fluid">
-    <div class="row">
-      <main class="col-md-10">
-        <!-- Content goes here -->
-      </main>
-
-      <nav class="col-md-2 bg-light right-sidebar">
-        <div class="position-sticky">
-          <div class="d-flex flex-column align-items-center">
-            <button class="btn btn-light btn-square" id="enableButton">
-              <img src="https://www.die-modelle.net/images/product_images/info_images/Rietze-76705-2-rechte-Seite.png" alt="Button 1">
-            </button>
-            <button class="btn btn-light btn-square" id="enableButton">
-              <img src="https://www.die-modelle.net/images/product_images/original_images/Rietze-69391-3-1.png" alt="Button 2">
-            </button>
-            <button class="btn btn-light btn-square" id="enableButton">
-              <img src="https://www.die-modelle.net/images/product_images/info_images/Rietze-67336-1-rechts.png" alt="Button 3">
-            </button>
-          </div>
+    <!-- right sidebar -->
+    <div class="container-fluid">
+        <div class="row">
+            <main class="col-md-10">
+            </main>
+            <nav class="col-md-2 bg-light right-sidebar">
+                <div class="position-sticky">
+                    <div class="d-flex flex-column align-items-center">
+                        <button class="btn btn-light btn-square" id="enableButton">
+                            <img src="https://www.die-modelle.net/images/product_images/info_images/Rietze-76705-2-rechte-Seite.png" alt="Button 1">
+                        </button>
+                        <button class="btn btn-light btn-square" id="enableButton">
+                            <img src="https://www.die-modelle.net/images/product_images/original_images/Rietze-69391-3-1.png" alt="Button 2">
+                        </button>
+                        <button class="btn btn-light btn-square" id="enableButton">
+                            <img src="https://www.die-modelle.net/images/product_images/info_images/Rietze-67336-1-rechts.png" alt="Button 3">
+                        </button>
+                    </div>
+                </div>
+            </nav>
         </div>
-      </nav>
     </div>
-  </div>
 
+    <!-- Buttons move with sidebar -->
+    <div id="sidebarToggle" style="position: absolute; top:67.5%; left: 140px; width: 50px; height: 50px;
+          z-index: 900; justify-content: center; align-items: center">
+        <button onclick="flyStep(-1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 50px; height: 50px; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⇦</button>
+    </div>
+    <div id="rightSidebarToggle" style="position: absolute; top:67.5%; right: 140px; width: 50px; height: 50px;
+          z-index: 900; justify-content: center; align-items: center">
+        <button  onclick="flyStep(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⇨</button>
+    </div>
 
+    <!-- Export Json Button -->
+    <div style="position: absolute; top:90%; left: 340px; width: 50px; height: 50px;
+          z-index: 900; justify-content: center; align-items: center">
+        <button onclick="exportJson()", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">exp</button>
+    </div>
 
+    <!-- Trigger settings modal Button -->
+    <div style="position: absolute; top:90%; left: 400px; width: 50px; height: 50px;
+          z-index: 900; justify-content: center; align-items: center">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#settingsModal" id="settingsButton", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⚙️</button>
+    </div>
 
+    <!-- End Station drawing Button -->
+    <div style="position: fixed;
+     top:800px; right: 320px; width: 100px; height: 50px;
+      z-index: 900; display: none;
+     transform: translateY(-50%); display: flex; justify-content: center; align-items: center;">
+        <button id="DrawDone" onclick="endDraw()", style="display: none; border-radius: 10%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">Done</button>
+    </div>
 
-<div id="sidebarToggle" style="position: absolute; top:67.5%; left: 140px; width: 50px; height: 50px;
-      z-index: 900; justify-content: center; align-items: center">
-    <button onclick="flyStep(-1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 50px; height: 50px; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⇦</button>
-</div>
+    <!-- Station creation Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">edit Station</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name">
+                        </div>
+                        <div class="col">
+                            <label for="voltage" class="form-label">Voltage Level</label>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col">
+                                <select id="voltage-level" name="voltage-level" class="form-select">
+                                    <option value="LV">LV</option>
+                                    <option value="MV">MV</option>
+                                    <option value="HV">HV</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <span data-bs-toggle="tooltip" data-bs-placement="top" title="Nur relevant wenn abweichend vom Szenario">
+                                <label for="power" class="form-label">Station power</label>
+                                <b>ℹ️:</b>
+                            </span>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col">
+                                <input type="number" id="power_station" name="power_station" class="form-control" required min="0">
+                            </div>
+                            <div class="col-3">
+                                <select id="power-unit-station" name="power-unit" class="form-select">
+                                    <option value="kW">kW</option>
+                                    <option value="MW">MW</option>
+                                    <option value="GW">GW</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <span data-bs-toggle="tooltip" data-bs-placement="top" title="Nur relevant wenn abweichend vom Szenario">
+                                <label for="power" class="form-label">Charger power:</label>
+                                <b>ℹ️:</b>
+                            </span>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col">
+                                <input type="number" id="power_charger" name="power_charger" class="form-control" required min="0">
+                            </div>
+                            <div class="col-3">
+                                <select id="power-unit-charger" name="power-unit" class="form-select">
+                                    <option value="kW">kW</option>
+                                    <option value="MW">MW</option>
+                                    <option value="GW">GW</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="fromALKIS">From ALKIS</button>
+                    <button type="button" class="btn btn-primary" id="draw">Draw</button>
+                    <button type="button" class="btn btn-primary" id="saveChanges" disabled>Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-
-<div id="rightSidebarToggle" style="position: absolute; top:67.5%; right: 140px; width: 50px; height: 50px;
-      z-index: 900; justify-content: center; align-items: center">
-<button  onclick="flyStep(1)" style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⇨</button>
-</div>
-
-
-<div style="position: absolute; top:90%; left: 340px; width: 50px; height: 50px;
-      z-index: 900; justify-content: center; align-items: center">
-<button onclick="exportJson()", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">exp</button>
-</div>
-
-<div style="position: absolute; top:90%; left: 400px; width: 50px; height: 50px;
-      z-index: 900; justify-content: center; align-items: center">
-<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#settingsModal" id="settingsButton", style="border-radius: 50%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">⚙️</button>
-</div>
-
-
-<div style="position: fixed;
- top:800px; right: 320px; width: 100px; height: 50px;
-  z-index: 900; display: none;
- transform: translateY(-50%); display: flex; justify-content: center; align-items: center;">
-<button id="DrawDone" onclick="endDraw()", style="display: none; border-radius: 10%; background-color: blue; color: white; padding: 0; width: 100%; height: 100%; font-weight: bold; font-size: 1.5em; font-family: sans-serif;">Done</button>
-</div>
-
-<!-- Modal -->
-<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-	   <div class="modal-content">
-		   <div class="modal-header">
-			   <h5 class="modal-title" id="editModalLabel">edit Station</h5>
-			   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-		   </div>
-		   <div class="modal-body">
-			   <form>
-				   <div class="mb-3">
-					   <label for="name" class="form-label">Name</label>
-					   <input type="text" class="form-control" id="name">
-				   </div>
-				   <div class="col">
-						<label for="voltage" class="form-label">Voltage Level</label>
-
-					  </div>
-				   <div class="row mb-3">
-
-					  <div class="col">
-						<select id="voltage-level" name="voltage-level" class="form-select">
-						  <option value="LV">LV</option>
-						  <option value="MV">MV</option>
-						  <option value="HV">HV</option>
-						</select>
-					  </div>
-					</div>
-                   <div class="col">
-                       <span data-bs-toggle="tooltip" data-bs-placement="top" title="Nur relevant wenn abweichend vom Szenario">
-						<label for="power" class="form-label">Station power</label>
-                        <b>ℹ️:</b>
-                       </span>
-					  </div>
-				   <div class="row mb-3">
-
-					  <div class="col">
-						<input type="number" id="power_station" name="power_station" class="form-control" required min="0">
-					  </div>
-					  <div class="col-3">
-						<select id="power-unit-station" name="power-unit" class="form-select">
-						  <option value="kW">kW</option>
-						  <option value="MW">MW</option>
-						  <option value="GW">GW</option>
-						</select>
-					  </div>
-					</div>
-                    <div class="col">
-                    <span data-bs-toggle="tooltip" data-bs-placement="top" title="Nur relevant wenn abweichend vom Szenario">
-						<label for="power" class="form-label">Charger power:</label>
-                        <b>ℹ️:</b>
-                       </span>
-					  </div>
-				   <div class="row mb-3">
-
-					  <div class="col">
-						<input type="number" id="power_charger" name="power_charger" class="form-control" required min="0">
-					  </div>
-					  <div class="col-3">
-						<select id="power-unit-charger" name="power-unit" class="form-select">
-						  <option value="kW">kW</option>
-						  <option value="MW">MW</option>
-						  <option value="GW">GW</option>
-						</select>
-					  </div>
-					</div>
-
-
-			   </form>
-		   </div>
-		   <div class="modal-footer">
-			   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-			   <button type="button" class="btn btn-primary" id="fromALKIS">From ALKIS</button>
-			   <button type="button" class="btn btn-primary" id="draw">Draw</button>
-			   <button type="button" class="btn btn-primary" id="saveChanges" disabled>Save</button>
-		   </div>
-	   </div>
-   </div>
-</div>
-
-<!-- Settings Modal -->
+    <!-- Settings Modal -->
     <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -486,49 +388,116 @@
         </div>
     </div>
 
-
-
-<script>
-
-
+    <script>
+        // Manual Bus placement
         var zoom = 0;
-        //var cursorSize = 20;
-
-        var cursorwidth = 4000 * 0.40;
-        var cursorheight = 290;
-        var currentScale = 0;
-
-        var features_old = [];
-        var curr_angle = 0
-        // Cursor representation element
-        var cursor = document.getElementById('cursor');
-
+        // TODO: This is just manually sized to fit in Berlin.
+        //       Needs to be sized and Projected, to match everywhere on the globe!
+        const cursorwidth = 4000 * 0.40;
+        const cursorheight = 290;
+        let currentScale = 0;
+        let features_old = [];
+        let curr_angle = 0;
+        const cursor = document.getElementById('cursor');
         let manualModeEnabled = false;
-
-         // Define source and target projections
+        let counter = 0;
+        // Define source and target projections
         proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs");
         proj4.defs("EPSG:32633", "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs");
-        var cc = 0;
+        let cc = 0;
 
-        // Function to calculate the closest point on a line to a given point
-        function closestPointOnLine(point, lineStart, lineEnd) {
-            var line = turf.lineString([lineStart, lineEnd]);
-            return turf.nearestPointOnLine(line, point).geometry.coordinates;
-        }
+        // MODAL AND RIGHT-CLICK FOR NEW STATION
+        var areaEndstop ="";
+        var lastRightClick =  [0,0];
+        var stationPopup;
+        var createMode =1;
+        var editing_id = 0;
+        // Get a reference to the button element
+        const button = document.getElementById("DrawDone");
 
-        // Function to calculate the heading (angle) between two points
-        function calculateHeading(point1, point2) {
-            // Convert coordinates from WGS84 to UTM using Proj4js
-            const utmpoint1 = proj4("EPSG:4326", "EPSG:32633", point1);
-            const utmpoint2 = proj4("EPSG:4326", "EPSG:32633", point2);
-            var angle = Math.atan2(utmpoint2[1] - utmpoint1[1], utmpoint2[0] - utmpoint1[0]);
-            return angle * (180 / Math.PI); // Convert to degrees
-        }
+        // For jumping between Stations:
+        var all_station_coords = [];
+        var station_index = -1;
 
+        // Define your list of map layers
+        var layers = [
+            { id: 'flur', name: 'Flurstücke' },
+            { id: 'cyclepath', name: 'Radwege' },
+            { id: 'residentialarea', name: 'Wohngebiete' },
+            { id: 'myexamplemultipolygon', name: 'Busse' },
+            { id: 'trees', name: 'Bäume' }
+            // Add more layers as needed
+        ];
 
+        map.dragRotate.disable();
+        //needed for drawing stations
+        const draw = new MapboxDraw({
+        displayControlsDefault: false,
+            // Select which mapbox-gl-draw control buttons to add to the map.
+            controls: {
+            polygon: false,
+            trash: false
+            },
+        // Set mapbox-gl-draw to draw by default.
+        // The user does not have to click the polygon control button first.
+        defaultMode: 'simple_select'//'draw_polygon'
+    });
+        map.addControl(draw, 'top-left');
 
+        //Holds ID(s) for Busses to be deleted
+        deletedIDs = [];
+        var popup = null;
 
+        // This will set the view to URL's parameters, consisting of zoom and center
+        var urlParams = new URLSearchParams(window.location.search);
+        var zoom = urlParams.get('zoom');
+        try{
+            var center = urlParams.get('center');
+            var cntr = center.slice(7).replace(")", "").split(",")
 
+            map.setCenter(cntr);
+            map.setZoom(zoom);
+
+            window.scrollTo(0, document.documentElement.scrollHeight || document.body.scrollHeight);
+        }catch{
+            console.log("No URL parameters");
+        };
+
+        // for setting height of sidebars:
+        window.addEventListener('scroll', function() {
+    var headerHeight = 125; // Height of your header in pixels
+
+    if (window.scrollY >= headerHeight) {
+        // Once you've scrolled past the header's height, set sidebar height to 100%
+        document.querySelector('.sidebar').style.height = '100%';
+        document.querySelector('.sidebar').style.top = `0px`;
+        document.querySelector('.right-sidebar').style.height = '100%';
+        document.querySelector('.right-sidebar').style.top = `0px`;
+
+    } else {
+        // While still within the header's height, set sidebar height to (100% - scrollY)
+        document.querySelector('.sidebar').style.top = `${headerHeight - window.scrollY}px`;
+        document.querySelector('.sidebar').style.height = `calc(100% - ${window.scrollY}px)`;
+        document.querySelector('.right-sidebar').style.top = `${headerHeight - window.scrollY}px`;
+        document.querySelector('.right-sidebar').style.height = `calc(100% - ${window.scrollY}px)`;
+    }
+});
+        window.addEventListener("load", function() {
+        $.ajax({
+            url: 'hpctool/getstationlist',
+            type: 'GET',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(data){
+                all_station_coords = data.message
+                //console.log(all_station_coords);
+            },
+            error: function(data){
+               //console.log(data);
+            }
+        })
+    });
         window.addEventListener('mousemove', function (e) {
             if (manualModeEnabled) {
                 // Update cursor position to follow the mouse
@@ -607,7 +576,7 @@
                         cc += 1;
                         //markers += new maplibregl.Marker()
                         //    .setLngLat(overallClosestPointOnStreet) // Set the marker's coordinates
-                        //    .addTo(map);
+                        //   .addTo(map);
                         // Calculate the heading (angle) of the closest street
                         var heading = calculateHeading(closestSegment[0], closestSegment[1]);
 
@@ -621,172 +590,104 @@
 
                 } else {
                     // Reset cursor rotation if no street is under the cursor
-                    //cursor.style.transform = 'rotate(0deg)';
+                    cursor.style.transform = 'rotate(0deg)';
                 }
             }
         });
 
+        document.addEventListener("DOMContentLoaded", function () {
+          const sidebar = document.querySelector(".sidebar");
+          const content = document.querySelector(".col-md-9");
+          //const sidebarToggle = document.querySelector("#sidebarToggle");
 
-        map.on('zoom', function () {
-            if (manualModeEnabled) {
-                // Adjust cursor size based on map zoom
-                zoom = map.getZoom();
+          sidebar.addEventListener("click", function () {
+            sidebar.classList.toggle("active");
 
+              var sidebarButton = document.getElementById('sidebarToggle');
+            var buttonLeft = sidebar.classList.contains('active') ? '350px' : '80px';
 
-                const referenceZoom = 22; // You can set this to your reference zoom level.
-                const referenceScale = 1; // Set your reference scale at the reference zoom level.
-                currentScale = referenceScale * Math.pow(2, zoom - referenceZoom);
+              // Set the left property of the button smoothly
+              sidebarButton.style.transition = 'left 0.3s'; // Apply transition
+              sidebarButton.style.left = buttonLeft;
 
-
-                cursor.style.width = cursorwidth * currentScale + 'px';
-                cursor.style.height = cursorheight * currentScale + 'px';
-            }
+              // Remove the transition after a short delay to prevent it from affecting other style changes
+              setTimeout(function() {
+                sidebarButton.style.transition = 'none';
+              }, 300); // Wait for the transition to complete (0.3s)
+          });
         });
+        document.addEventListener("DOMContentLoaded", function () {
+          const rightSidebar = document.querySelector(".right-sidebar");
+          const content = document.querySelector(".col-md-10");
 
-        var counter = 0;
+          rightSidebar.addEventListener("click", function () {
+            rightSidebar.classList.toggle("active");
 
-        map.on('click', function (e) {
-            if (manualModeEnabled) {
-                // Get the clicked coordinates
-                var clickedCoordinates = e.lngLat;
+            var rightSidebarButton = document.getElementById('rightSidebarToggle');
 
-                // Generate unique source and layer names
-                var sourceName = 'rectangle-source-' + counter;
-                var layerName = 'rectangle-layer-' + counter;
 
-                // Call a function to add the rectangle at the clicked coordinates
-                addRectangle(clickedCoordinates, sourceName, layerName);
+              // Calculate the new right position for the button
+              var buttonRight = rightSidebar.classList.contains('active') ? '350px' : '80px';
 
-                // Increment the counter for the next click
-                counter++;
-            }
+              // Set the right property of the button smoothly
+              rightSidebarButton.style.transition = 'right 0.3s'; // Apply transition
+              rightSidebarButton.style.right = buttonRight;
+
+              // Remove the transition after a short delay to prevent it from affecting other style changes
+              setTimeout(function() {
+                rightSidebarButton.style.transition = 'none';
+              }, 300); // Wait for the transition to complete (0.3s) and then remove it
+
+
+          });
         });
+        document.addEventListener('keydown', function(event) {
+              if (event.ctrlKey && event.key === 'z') {
+                //alert('Undo!');
+                  if (deletedIDs.length > 0){
+                      undoID = deletedIDs.pop();
+                      map.setFeatureState(
+                                {source: 'busstop', sourceLayer:'myexamplemultipolygon', id: undoID},
+                                {del: true}
+                            );
 
-            function addRectangle(coordinates, sourceName, layerName) {
-              // Convert the rotation angle from degrees to radians
-              rotationAngle= -curr_angle;
-              var radians = (rotationAngle * Math.PI) / 180;
 
-              const pnt = proj4("EPSG:4326", "EPSG:32633", [coordinates.lng,coordinates.lat]);
-
-            //const utmpoint2 = proj4("EPSG:4326", "EPSG:32633", point2);
-
-              // Define the rectangle's initial coordinates
-              var initialCoordinates = [
-                [pnt[0] - 9, pnt[1] - 1.5],
-                [pnt[0] + 9, pnt[1] - 1.5],
-                [pnt[0] + 9, pnt[1] + 1.5],
-                [pnt[0] - 9, pnt[1] + 1.5],
-                [pnt[0] - 9, pnt[1] - 1.5]
-              ];
-
-              // Rotate the rectangle's coordinates
-              var rotatedCoordinates = initialCoordinates.map(function (point) {
-
-                  var x = point[0] - pnt[0];
-                var y = point[1] - pnt[1];
-
-                // Apply rotation
-                var newX = x * Math.cos(radians) - y * Math.sin(radians);
-                var newY = x * Math.sin(radians) + y * Math.cos(radians);
-
-                var rot_coords = [newX + pnt[0], newY + pnt[1]];
-                var result = proj4("EPSG:32633","EPSG:4326",  rot_coords);
-                console.log("RESULT::: ", result)
-                return result
-              });
-
-              var rectangleGeoJSON = {
-                type: 'FeatureCollection',
-                features: [
-                  {
-                    type: 'Feature',
-                    geometry: {
-                      type: 'Polygon',
-                      coordinates: [rotatedCoordinates]
-                    }
                   }
-                ]
-              };
+              }
+        });
 
-              // Add the rectangle GeoJSON as a source with the unique source name
-              map.addSource(sourceName, {
-                type: 'geojson',
-                data: rectangleGeoJSON
+        // enable the "Save" button when one of the options is clicked
+        document.getElementById("fromALKIS").addEventListener("click", function() {
+           document.getElementById("draw").disabled = true;
+           document.getElementById("saveChanges").disabled = false;
+           areaEndstop = "FromAlkis";
+        });
+        document.getElementById("draw").addEventListener("click", function() {
+           document.getElementById("fromALKIS").disabled = true;
+           document.getElementById("saveChanges").disabled = false;
+           stationPopup.remove();
+           $("#editModal").modal("hide");
+           $('.modal-backdrop').remove();
+           map.flyTo({
+                center: lastRightClick,
+                zoom: 18,
+                essential: true
               });
+           enableDrawmode(1);
+            showButton();
+           areaEndstop = "POLYGON";
+           map.getCanvas().style.cursor = 'crosshair';
+        });
 
-              // Style the rectangle layer with the unique layer name
-              map.addLayer({
-                id: layerName,
-                type: 'fill',
-                source: sourceName,
-                paint: {
-                  'fill-color': 'orange',
-                  'fill-opacity': 0.5
-                }
-              });
-            }
+        // Add event listener to the enable manual placement mode button
+        const enableButton = document.getElementById('enableButton');
+        enableButton.addEventListener('click', function () {
+          manualModeEnabled = !manualModeEnabled; // Toggle the state on button click
 
-// Add event listener to the "Enable" button
-const enableButton = document.getElementById('enableButton');
-enableButton.addEventListener('click', function () {
-  manualModeEnabled = !manualModeEnabled; // Toggle the state on button click
-
-});
-
-
-
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-      return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-
-    // for setting height of sidebars:
-    window.addEventListener('scroll', function() {
-    var headerHeight = 125; // Height of your header in pixels
-
-    if (window.scrollY >= headerHeight) {
-        // Once you've scrolled past the header's height, set sidebar height to 100%
-        document.querySelector('.sidebar').style.height = '100%';
-        document.querySelector('.sidebar').style.top = `0px`;
-        document.querySelector('.right-sidebar').style.height = '100%';
-        document.querySelector('.right-sidebar').style.top = `0px`;
-
-    } else {
-        // While still within the header's height, set sidebar height to (100% - scrollY)
-        document.querySelector('.sidebar').style.top = `${headerHeight - window.scrollY}px`;
-        document.querySelector('.sidebar').style.height = `calc(100% - ${window.scrollY}px)`;
-        document.querySelector('.right-sidebar').style.top = `${headerHeight - window.scrollY}px`;
-        document.querySelector('.right-sidebar').style.height = `calc(100% - ${window.scrollY}px)`;
-    }
-});
-
-    // For jumping between Stations:
-
-    var all_station_coords = [];
-    var station_index = -1;
-
-
-    window.addEventListener("load", function() {
-        $.ajax({
-            url: 'hpctool/getstationlist',
-            type: 'GET',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            success: function(data){
-                all_station_coords = data.message
-                //console.log(all_station_coords);
-            },
-            error: function(data){
-               //console.log(data);
-            }
-        })
-    });
-
-    var settingsbutton = document.getElementById("settingsButton");
-
-    settingsbutton.addEventListener("click", function() {
+        });
+        // Add event listener to the settings modal trigger button
+        var settingsbutton = document.getElementById("settingsButton");
+        settingsbutton.addEventListener("click", function() {
         $.ajax({
             url: 'hpctool/settings',
             type: 'GET',
@@ -850,205 +751,61 @@ enableButton.addEventListener('click', function () {
         })
     });
 
-
-    // MODAL AND RIGHT-CLICK FOR NEW STATION
-    var areaEndstop ="";
-    var lastRightClick =  [0,0];
-    var stationPopup;
-    var createMode =1;
-    var editing_id = 0;
-    // Get a reference to the button element
-    const button = document.getElementById("DrawDone");
-
-    // Function to hide the button
-    function hideButton() {
-        button.style.display = "none";
-    }
-
-    // Function to show the button
-    function showButton() {
-        button.style.display = "block";
-    }
-
-
-    // JavaScript code to enable the "Save" button when one of the options is clicked
-    document.getElementById("fromALKIS").addEventListener("click", function() {
-       document.getElementById("draw").disabled = true;
-       document.getElementById("saveChanges").disabled = false;
-       areaEndstop = "FromAlkis";
-    });
-
-    document.getElementById("draw").addEventListener("click", function() {
-       document.getElementById("fromALKIS").disabled = true;
-       document.getElementById("saveChanges").disabled = false;
-       stationPopup.remove();
-       $("#editModal").modal("hide");
-       $('.modal-backdrop').remove();
-       map.flyTo({
-            center: lastRightClick,
-            zoom: 18,
-            essential: true
-          });
-       enableDrawmode(1);
-        showButton();
-       areaEndstop = "POLYGON";
-       map.getCanvas().style.cursor = 'crosshair';
-    });
-
-    $(document).ready(function() {
-        $("#saveChanges").click(function() {
-
-            if (createMode == 1) {
-                createStation();
-            } else {
-                sendStationEdit();
-            }
-
-            // Close the modal
-            $("#editModal").modal("hide");
-            $('.modal-backdrop').remove();
-
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+          return new bootstrap.Tooltip(tooltipTriggerEl);
         });
 
-        $("#saveSettings").click(function() {
-            const buslength = $("#busLength").val();
-            const parkdistance = $("#parkingDistance").val();
-            //const unit = $("#power_charger").val();
+        $(document).ready(function() {
+            $("#saveChanges").click(function() {
 
-            var data_settings = {
-                          "buslength": buslength,
-                          "parkdistance": parkdistance,
-                        };
+                if (createMode == 1) {
+                    createStation();
+                } else {
+                    sendStationEdit();
+                }
 
-            $.ajax({
-            url: 'hpctool/settings',
-            type: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            data: JSON.stringify(data_settings),
-            success: function(data){
                 // Close the modal
-                $("#settingsModal").modal("hide");
-                $('.modal-backdrop').remove();
-
-            },
-            error: function(data){
-               alert(data.status); // the status code
-               alert(data.error); // the message
-            }
-        })
-
-
-
-        });
-    });
-
-    function endDraw(){
-        areaEndstop = draw.getAll();
-        $("#editModal").modal("show");
-    }
-
-    function createStation() {
-        var textbox_name = document.getElementById("name").value;
-        var textbox_ps = document.getElementById("power_station").value;
-        var textbox_pc = document.getElementById("power_charger").value;
-        const select_pc = document.getElementById('power-unit-charger').value;
-        const select_ps = document.getElementById('power-unit-station').value;
-        const select_vl = document.getElementById('voltage-level').value;
-        console.log(select_vl);
-         var data_station = {
-                          "name": textbox_name,
-                          "power_station": textbox_ps,
-                          "power_charger":textbox_pc,
-                         "station_unit":select_ps,
-                         "charge_unit":select_pc,
-                        "voltage_level":select_vl,
-                          "area": areaEndstop,
-                          "latlon": lastRightClick
-                        };
-        console.log("Creating Station")
-        $.ajax({
-            url: 'hpctool/create',
-            type: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            data: JSON.stringify(data_station),
-            success: function(data){
                 $("#editModal").modal("hide");
                 $('.modal-backdrop').remove();
-                hideButton();
-                //alert(data.message);
 
-                // Get the current center coordinates
-                var center = map.getCenter();
+            });
 
-                // Get the current zoom level
-                var zoom = map.getZoom();
+            $("#saveSettings").click(function() {
+                const buslength = $("#busLength").val();
+                const parkdistance = $("#parkingDistance").val();
+                //const unit = $("#power_charger").val();
 
-                // Get the current URL
-                var currentUrl = new URL(window.location.href);
+                var data_settings = {
+                              "buslength": buslength,
+                              "parkdistance": parkdistance,
+                            };
 
-                // Update the "zoom" parameter to 14
-                currentUrl.searchParams.set('zoom', zoom);
+                $.ajax({
+                url: 'hpctool/settings',
+                type: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                data: JSON.stringify(data_settings),
+                success: function(data){
+                    // Close the modal
+                    $("#settingsModal").modal("hide");
+                    $('.modal-backdrop').remove();
 
-                // Update the "center" parameter to a new value
-                currentUrl.searchParams.set('center', center);
-
-                // Update the URL with the modified query parameters
-                window.history.replaceState({}, '', currentUrl);
-
-                // Set the URL to the modified URL
-                window.location.href = currentUrl.href;
-
-            },
-            error: function(data){
-               alert(data.status); // the status code
-               alert(data.responseJSON.error); // the message
-            }
-        })
-    }
-
-        map.on("mousedown", (e) => {
-      if (e.originalEvent.button === 2) {
-          var latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
-          console.log("RIGHT")
-            listDrawnLayers();
-          try {
-              stationPopup.remove();
-          }catch{
-              console.log("No open dialog")
-          };
-
-          lastRightClick = latlon
-          var innerHTML ='<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editModal"> <i class="bi bi-pencil"></i> New Station Here </button>';
-            document.getElementById("fromALKIS").disabled = false;
-            document.getElementById("saveChanges").disabled = true;
-            document.getElementById("draw").disabled = false;
+                },
+                error: function(data){
+                   alert(data.status); // the status code
+                   alert(data.error); // the message
+                }
+            })
 
 
-        requestAnimationFrame(() => {
-            stationPopup = new maplibregl.Popup({
-                // https://maplibre.org/maplibre-gl-js-docs/api/markers/#popup-parameters
-                maxWidth: "280px",
-            }).setLngLat(latlon).setHTML(innerHTML).addTo(map);
+
+            });
         });
-      }
-    });
 
-    // LAYER SELECTION
-
-     // Define your list of layers
-        var layers = [
-            { id: 'flur', name: 'Flurstücke' },
-            { id: 'cyclepath', name: 'Radwege' },
-            { id: 'residentialarea', name: 'Wohngebiete' },
-            { id: 'myexamplemultipolygon', name: 'Busse' },
-            { id: 'trees', name: 'Bäume' }
-            // Add more layers as needed
-        ];
-
+        // Everything with layers in the Sidebar
         // Function to toggle layer visibility
         function toggleLayerVisibility(layerId) {
             var layer = map.getLayer(layerId);
@@ -1060,10 +817,8 @@ enableButton.addEventListener('click', function () {
                 map.setLayoutProperty(layerId, 'visibility', 'visible');
             }
         }
-
         // Create checkboxes for each layer
         var layerControls = document.getElementById('layer-controls');
-
         layers.forEach(function (layer) {
 
              const toggleLabel = document.createElement("label");
@@ -1098,75 +853,326 @@ enableButton.addEventListener('click', function () {
 
         });
 
-
-    map.dragRotate.disable();
-
-
-    // Function to list the currently drawn layers
-        function listDrawnLayers() {
-            var layers = map.getStyle().layers;
-            var drawnLayers = [];
-
-            layers.forEach(function (layer) {
-                if (map.getLayoutProperty(layer.id, 'visibility') === 'visible') {
-                    drawnLayers.push(layer.id);
+        // When the user moves their mouse over the state-fill layer, we'll update the
+        // feature state for the feature under the mouse.
+        hoveredStateId = null;
+        map.on('mousemove', 'flur', (e) => {
+            if (e.features.length > 0) {
+                if (hoveredStateId) {
+                    map.setFeatureState(
+                        {source: 'busstop', sourceLayer:'flur', id: hoveredStateId},
+                        {hover: false}
+                    );
                 }
-            });
+                hoveredStateId = e.features[0].id;
+                map.setFeatureState(
+                    {source: 'busstop', sourceLayer:'flur', id: hoveredStateId},
+                    {hover: true}
+                );
+            }
+        });
+        // When the mouse leaves the state-fill layer, update the feature state of the
+        // previously hovered feature.
+        map.on('mouseleave', 'flur', () => {
+            if (hoveredStateId) {
+                map.setFeatureState(
+                    {source: 'busstop', sourceLayer:'flur', id: hoveredStateId},
+                    {hover: false}
+                );
+            }
+            hoveredStateId = null;
+        });
+        map.on('click', 'myexamplemultipolygon', (e) => {
 
-            console.log('Currently drawn layers:', drawnLayers);
+        var latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
+        if (!deletedIDs.includes(e.features[0].id)) {
+
+            //https://stackoverflow.com/questions/47576527/how-to-manipulate-event-bubbling-when-registering-click-event-upon-a-layer-in-ma
+            //prevents that all layers are "clicked on", i.e. only top layer is clicked on
+            e.originalEvent.preventDefault();
+
+            var innerHTML = `
+                <div style="text-align: center;">
+                    Delete Bus with id: ${e.features[0].id} and quality ${e.features[0].properties['quality']} ?
+                </div>
+                <div>
+                    <button onclick="onYesClick(${e.features[0].id})">Yes</button>
+                    <button onclick="onNoClick()">No</button>
+                </div>
+            `;
+
+
+            console.log("Bus clicked!", e, latlon);
+            requestAnimationFrame(() => {
+                popup = new maplibregl.Popup({
+                    // https://maplibre.org/maplibre-gl-js-docs/api/markers/#popup-parameters
+                    maxWidth: "280px",
+                }).setLngLat(latlon).setHTML(innerHTML).addTo(map);
+            });
+        }
+        ;
+    });
+        map.on('click', 'flur', (e) => {
+        var latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
+        //https://stackoverflow.com/questions/47576527/how-to-manipulate-event-bubbling-when-registering-click-event-upon-a-layer-in-ma
+        if(!e.originalEvent.defaultPrevented) {
+
+            $.ajax({
+                  type: "GET",
+                  url: `hpctool/stationpopup/${e.features[0].id}`,
+                  dataType: 'json',
+                  success: function (data) {
+
+                      console.log(data)
+
+                    const popup = document.createElement('div');
+                    const html = "<h1> " + data.name + "</h1> ID: " + data.id + " <br> Station power: "+ data.station_power + " " + data.station_unit+" <br> Charger power: "+ data.charge_power + " " + data.charge_unit+ "<br> Voltage Level: "+ data.voltage_level +"<br>Number of buses: " + data.buses
+
+                    //TODO: Edit station Information here
+                    popup.innerHTML = html + '<br><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editModal" id="editButton" >Edit</button>'
+
+
+                    map.easeTo({
+                        center: latlon
+                        });
+
+                    requestAnimationFrame(() => {
+                        new maplibregl.Popup({
+                          // https://maplibre.org/maplibre-gl-js-docs/api/markers/#popup-parameters
+                          maxWidth: "560px",
+                        }).setLngLat(latlon).setHTML(popup.innerHTML).addTo(map);
+                        const editButton = document.getElementById("editButton");
+                        editButton.addEventListener('click', function () {
+                            editStation(data);
+                        });
+
+                      });
+
+
+
+
+
+
+                  }
+                });
+
+        }
+        ;
+    });
+        map.on('zoom', function () {
+            if (manualModeEnabled) {
+                // Adjust cursor size based on map zoom
+                zoom = map.getZoom();
+
+
+                const referenceZoom = 22; // You can set this to your reference zoom level.
+                const referenceScale = 1; // Set your reference scale at the reference zoom level.
+                currentScale = referenceScale * Math.pow(2, zoom - referenceZoom);
+
+
+                cursor.style.width = cursorwidth * currentScale + 'px';
+                cursor.style.height = cursorheight * currentScale + 'px';
+            }
+        });
+        map.on('click', function (e) {
+            if (manualModeEnabled) {
+                // Get the clicked coordinates
+                var clickedCoordinates = e.lngLat;
+
+                // Generate unique source and layer names
+                var sourceName = 'rectangle-source-' + counter;
+                var layerName = 'rectangle-layer-' + counter;
+
+                // Call a function to add the rectangle at the clicked coordinates
+                addRectangle(clickedCoordinates, sourceName, layerName);
+
+                // Increment the counter for the next click
+                counter++;
+            }
+        });
+        map.on("mousedown", (e) => {
+            if (e.originalEvent.button === 2) {
+                var latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
+                //console.log("RIGHT")
+                //listDrawnLayers();
+            try {
+                stationPopup.remove();
+            }catch{
+                console.log("No open dialog")
+            };
+
+                lastRightClick = latlon
+                var innerHTML ='<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editModal"> <i class="bi bi-pencil"></i> New Station Here </button>';
+                document.getElementById("fromALKIS").disabled = false;
+                document.getElementById("saveChanges").disabled = true;
+                document.getElementById("draw").disabled = false;
+
+                requestAnimationFrame(() => {
+                    stationPopup = new maplibregl.Popup({
+                    // https://maplibre.org/maplibre-gl-js-docs/api/markers/#popup-parameters
+                    maxWidth: "280px",
+                    }).setLngLat(latlon).setHTML(innerHTML).addTo(map);
+                });
+            }
+        });
+        map.on('draw.create', updateArea);
+        map.on('draw.delete', updateArea);
+        map.on('draw.update', updateArea);
+
+
+        function addRectangle(coordinates, sourceName, layerName) {
+              // Convert the rotation angle from degrees to radians
+              rotationAngle= -curr_angle;
+              var radians = (rotationAngle * Math.PI) / 180;
+
+              const pnt = proj4("EPSG:4326", "EPSG:32633", [coordinates.lng,coordinates.lat]);
+
+            //const utmpoint2 = proj4("EPSG:4326", "EPSG:32633", point2);
+
+              // Define the rectangle's initial coordinates
+              var initialCoordinates = [
+                [pnt[0] - 9, pnt[1] - 1.5],
+                [pnt[0] + 9, pnt[1] - 1.5],
+                [pnt[0] + 9, pnt[1] + 1.5],
+                [pnt[0] - 9, pnt[1] + 1.5],
+                [pnt[0] - 9, pnt[1] - 1.5]
+              ];
+
+              // Rotate the rectangle's coordinates
+              var rotatedCoordinates = initialCoordinates.map(function (point) {
+
+                  var x = point[0] - pnt[0];
+                var y = point[1] - pnt[1];
+
+                // Apply rotation
+                var newX = x * Math.cos(radians) - y * Math.sin(radians);
+                var newY = x * Math.sin(radians) + y * Math.cos(radians);
+
+                var rot_coords = [newX + pnt[0], newY + pnt[1]];
+                var result = proj4("EPSG:32633","EPSG:4326",  rot_coords);
+                console.log("RESULT::: ", result)
+                return result
+              });
+
+              var rectangleGeoJSON = {
+                type: 'FeatureCollection',
+                features: [
+                  {
+                    type: 'Feature',
+                    geometry: {
+                      type: 'Polygon',
+                      coordinates: [rotatedCoordinates]
+                    }
+                  }
+                ]
+              };
+
+              // Add the rectangle GeoJSON as a source with the unique source name
+              map.addSource(sourceName, {
+                type: 'geojson',
+                data: rectangleGeoJSON
+              });
+
+              // Style the rectangle layer with the unique layer name
+              map.addLayer({
+                id: layerName,
+                type: 'fill',
+                source: sourceName,
+                paint: {
+                  'fill-color': 'orange',
+                  'fill-opacity': 0.5
+                }
+              });
+            }
+        // Function to calculate the closest point on a line to a given point
+        function closestPointOnLine(point, lineStart, lineEnd) {
+            var line = turf.lineString([lineStart, lineEnd]);
+            return turf.nearestPointOnLine(line, point).geometry.coordinates;
+        }
+        // Function to calculate the heading (angle) between two points
+        function calculateHeading(point1, point2) {
+            // Convert coordinates from WGS84 to UTM using Proj4js
+            const utmpoint1 = proj4("EPSG:4326", "EPSG:32633", point1);
+            const utmpoint2 = proj4("EPSG:4326", "EPSG:32633", point2);
+            var angle = Math.atan2(utmpoint2[1] - utmpoint1[1], utmpoint2[0] - utmpoint1[0]);
+            return angle * (180 / Math.PI); // Convert to degrees
         }
 
+        function endDraw(){
+            areaEndstop = draw.getAll();
+            $("#editModal").modal("show");
+        }
 
+        function createStation() {
+            var textbox_name = document.getElementById("name").value;
+            var textbox_ps = document.getElementById("power_station").value;
+            var textbox_pc = document.getElementById("power_charger").value;
+            const select_pc = document.getElementById('power-unit-charger').value;
+            const select_ps = document.getElementById('power-unit-station').value;
+            const select_vl = document.getElementById('voltage-level').value;
+            console.log(select_vl);
+             var data_station = {
+                              "name": textbox_name,
+                              "power_station": textbox_ps,
+                              "power_charger":textbox_pc,
+                             "station_unit":select_ps,
+                             "charge_unit":select_pc,
+                            "voltage_level":select_vl,
+                              "area": areaEndstop,
+                              "latlon": lastRightClick
+                            };
+            console.log("Creating Station")
+            $.ajax({
+                url: 'hpctool/create',
+                type: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                data: JSON.stringify(data_station),
+                success: function(data){
+                    $("#editModal").modal("hide");
+                    $('.modal-backdrop').remove();
+                    hideButton();
+                    //alert(data.message);
 
-    document.addEventListener("DOMContentLoaded", function () {
-      const sidebar = document.querySelector(".sidebar");
-      const content = document.querySelector(".col-md-9");
-      //const sidebarToggle = document.querySelector("#sidebarToggle");
+                    // Get the current center coordinates
+                    var center = map.getCenter();
 
-      sidebar.addEventListener("click", function () {
-        sidebar.classList.toggle("active");
+                    // Get the current zoom level
+                    var zoom = map.getZoom();
 
-          var sidebarButton = document.getElementById('sidebarToggle');
-        var buttonLeft = sidebar.classList.contains('active') ? '350px' : '80px';
+                    // Get the current URL
+                    var currentUrl = new URL(window.location.href);
 
-          // Set the left property of the button smoothly
-          sidebarButton.style.transition = 'left 0.3s'; // Apply transition
-          sidebarButton.style.left = buttonLeft;
+                    // Update the "zoom" parameter to 14
+                    currentUrl.searchParams.set('zoom', zoom);
 
-          // Remove the transition after a short delay to prevent it from affecting other style changes
-          setTimeout(function() {
-            sidebarButton.style.transition = 'none';
-          }, 300); // Wait for the transition to complete (0.3s)
-      });
-    });
+                    // Update the "center" parameter to a new value
+                    currentUrl.searchParams.set('center', center);
 
-    document.addEventListener("DOMContentLoaded", function () {
-      const rightSidebar = document.querySelector(".right-sidebar");
-      const content = document.querySelector(".col-md-10");
+                    // Update the URL with the modified query parameters
+                    window.history.replaceState({}, '', currentUrl);
 
-      rightSidebar.addEventListener("click", function () {
-        rightSidebar.classList.toggle("active");
+                    // Set the URL to the modified URL
+                    window.location.href = currentUrl.href;
 
-        var rightSidebarButton = document.getElementById('rightSidebarToggle');
+                },
+                error: function(data){
+                   alert(data.status); // the status code
+                   alert(data.responseJSON.error); // the message
+                }
+            })
+        }
+        // Function to hide the draw-"done" button
+        function hideButton() {
+            button.style.display = "none";
+        }
+        // Function to show the draw-"done" button
+        function showButton() {
+            button.style.display = "block";
+        }
 
-
-          // Calculate the new right position for the button
-          var buttonRight = rightSidebar.classList.contains('active') ? '350px' : '80px';
-
-          // Set the right property of the button smoothly
-          rightSidebarButton.style.transition = 'right 0.3s'; // Apply transition
-          rightSidebarButton.style.right = buttonRight;
-
-          // Remove the transition after a short delay to prevent it from affecting other style changes
-          setTimeout(function() {
-            rightSidebarButton.style.transition = 'none';
-          }, 300); // Wait for the transition to complete (0.3s) and then remove it
-
-
-      });
-    });
-
-    function recalculate() {
+        function recalculate() {
 
         dat = draw.getAll();
         console.log(dat.features[0].geometry.coordinates[0])
@@ -1216,8 +1222,7 @@ enableButton.addEventListener('click', function () {
         })
     }
 
-
-    function deleteBus() {
+        function deleteBus() {
         console.log("Deleting the following Busses: " , deletedIDs)
         $.ajax({
             url: 'hpctool/delete',
@@ -1237,95 +1242,157 @@ enableButton.addEventListener('click', function () {
         })
     }
 
+        function enableDrawmode(step) {
+            draw.set({
+              type: 'FeatureCollection',
+              features: []
+            })
+            draw.changeMode('draw_polygon');
+         }
 
-
-
-    const draw = new MapboxDraw({
-        displayControlsDefault: false,
-            // Select which mapbox-gl-draw control buttons to add to the map.
-            controls: {
-            polygon: false,
-            trash: false
-            },
-        // Set mapbox-gl-draw to draw by default.
-        // The user does not have to click the polygon control button first.
-        defaultMode: 'simple_select'//'draw_polygon'
-    });
-    map.addControl(draw, 'top-left');
-
-
-
-    function enableDrawmode(step) {
-        draw.set({
-          type: 'FeatureCollection',
-          features: []
-        })
-        draw.changeMode('draw_polygon');
-     }
-
-    function deleteDraw(step) {
-        draw.trash();
-    }
-
-    function EditFlurstueck(geom, id){
-        map.setLayoutProperty("flur", "visibility", "none");
-        map.setFeatureState(
-                    {source: 'busstop', sourceLayer:'flur', id: id},
-                    {visible: false}
-                );
-
-        geom= JSON.parse(decodeURIComponent(geom))
-        popup.remove();
-        draw.trash();
-        draw.changeMode('draw_polygon');
-        draw.set({
-          type: 'FeatureCollection',
-          features: [{
-            type: 'Feature',
-            properties: {},
-            id: 'example-id',
-            geometry: geom
-          }]
-        });
-    }
-
-    map.on('draw.create', updateArea);
-    map.on('draw.delete', updateArea);
-    map.on('draw.update', updateArea);
-
-    function updateArea(e) {
-        const data = draw.getAll();
-        //console.log(data)
-        if (data.features.length > 0) {
-            //console.log();
-        } else {
-            answer.innerHTML = '';
-            if (e.type !== 'draw.delete')
-            alert('Click the map to draw a polygon.');
+        function deleteDraw(step) {
+            draw.trash();
         }
-    }
 
+        function EditFlurstueck(geom, id){
+            map.setLayoutProperty("flur", "visibility", "none");
+            map.setFeatureState(
+                        {source: 'busstop', sourceLayer:'flur', id: id},
+                        {visible: false}
+                    );
 
-    deletedIDs = [];
+            geom= JSON.parse(decodeURIComponent(geom))
+            popup.remove();
+            draw.trash();
+            draw.changeMode('draw_polygon');
+            draw.set({
+              type: 'FeatureCollection',
+              features: [{
+                type: 'Feature',
+                properties: {},
+                id: 'example-id',
+                geometry: geom
+              }]
+            });
+        }
 
-    document.addEventListener('keydown', function(event) {
-          if (event.ctrlKey && event.key === 'z') {
-            //alert('Undo!');
-              if (deletedIDs.length > 0){
-                  undoID = deletedIDs.pop();
-                  map.setFeatureState(
-                            {source: 'busstop', sourceLayer:'myexamplemultipolygon', id: undoID},
-                            {del: true}
+        function updateArea(e) {
+            const data = draw.getAll();
+            //console.log(data)
+            if (data.features.length > 0) {
+                //console.log();
+            } else {
+                answer.innerHTML = '';
+                if (e.type !== 'draw.delete')
+                alert('Click the map to draw a polygon.');
+            }
+        }
+
+        function editStation(data) {
+
+            console.log("EDIT STATION RECIEVED FOLLOWING DATA:", data);
+
+            var textbox_name = document.getElementById("name");
+            var textbox_ps = document.getElementById("power_station");
+            var textbox_pc = document.getElementById("power_charger");
+            var save_button = document.getElementById("saveChanges");
+            const select_pc = document.getElementById('power-unit-charger');
+            const select_ps = document.getElementById('power-unit-station');
+            const select_vl = document.getElementById('voltage-level');
+
+            textbox_name.value = data.name;
+            textbox_ps.value = data.station_power;
+            textbox_pc.value = data.charge_power;
+            select_ps.value = data.station_unit;
+            select_pc.value = data.charge_unit;
+            select_vl.value = data.voltage_level;
+            createMode=0;
+            editing_id = data.id;
+
+            textbox_name.addEventListener('input', function () {
+                save_button.disabled = false;
+            });
+
+            textbox_pc.addEventListener('input', function () {
+                save_button.disabled = false;
+            });
+
+            textbox_ps.addEventListener('input', function () {
+                save_button.disabled = false;
+            });
+
+            select_pc.addEventListener('change', function () {
+                save_button.disabled = false;
+            });
+
+            select_ps.addEventListener('change', function () {
+                save_button.disabled = false;
+            });
+            select_vl.addEventListener('change', function () {
+                save_button.disabled = false;
+            });
+
+        }
+
+        function sendStationEdit(){
+            var textbox_name = document.getElementById("name").value;
+            var textbox_ps = document.getElementById("power_station").value;
+            var textbox_pc = document.getElementById("power_charger").value;
+            const select_pc = document.getElementById('power-unit-charger').value;
+            const select_ps = document.getElementById('power-unit-station').value;
+            const select_vl = document.getElementById('voltage-level').value;
+
+            var data_station = {
+                              "name": textbox_name,
+                              "station_power": textbox_ps,
+                                "charge_power":textbox_pc,
+                                "id": editing_id,
+                                "station_unit": select_ps ,
+                                "charge_unit":select_pc,
+                                "voltage_level":select_vl
+                            };
+
+            createMode = 1
+
+            $.ajax({
+                url: 'hpctool/edit',
+                type: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                data: data_station,
+                success: function(data){
+                    alert(data.message);
+                },
+                error: function(data){
+                   alert(data.status); // the status code
+                   alert(data.responseJSON.error); // the message
+                }
+            })
+        }
+
+        function onYesClick(id) {
+            // Code to execute when the "Yes" button is clicked
+            console.log("Yes button clicked!", id);
+            console.log(map);
+            deletedIDs.push(id);
+            map.setFeatureState(
+                            {source: 'busstop', sourceLayer:'myexamplemultipolygon', id: id},
+                            {del: false}
                         );
+            popup.remove();
+            deleteBus();
 
 
-              }
-          }
-    });
+        }
 
-    var popup = null;
+        function onNoClick() {
+            // Code to execute when the "No" button is clicked
+            console.log("No button clicked!");
+            popup.remove();
+        }
 
-    function flyStep(step) {
+        function flyStep(step) {
 
 
         station_index+=step;
@@ -1350,232 +1417,6 @@ enableButton.addEventListener('click', function () {
         //console.log(map);
 
         //document.getElementById("map").flyTo(0,0, 19);
-    }
-
-        // When the user moves their mouse over the state-fill layer, we'll update the
-        // feature state for the feature under the mouse.
-        hoveredStateId = null;
-        map.on('mousemove', 'flur', (e) => {
-            if (e.features.length > 0) {
-                if (hoveredStateId) {
-                    map.setFeatureState(
-                        {source: 'busstop', sourceLayer:'flur', id: hoveredStateId},
-                        {hover: false}
-                    );
-                }
-                hoveredStateId = e.features[0].id;
-                map.setFeatureState(
-                    {source: 'busstop', sourceLayer:'flur', id: hoveredStateId},
-                    {hover: true}
-                );
-            }
-        });
-
-        // When the mouse leaves the state-fill layer, update the feature state of the
-        // previously hovered feature.
-        map.on('mouseleave', 'flur', () => {
-            if (hoveredStateId) {
-                map.setFeatureState(
-                    {source: 'busstop', sourceLayer:'flur', id: hoveredStateId},
-                    {hover: false}
-                );
-            }
-            hoveredStateId = null;
-        });
-
-    map.on('click', 'myexamplemultipolygon', (e) => {
-
-        var latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
-        if (!deletedIDs.includes(e.features[0].id)) {
-
-            //https://stackoverflow.com/questions/47576527/how-to-manipulate-event-bubbling-when-registering-click-event-upon-a-layer-in-ma
-            //prevents that all layers are "clicked on", i.e. only top layer is clicked on
-            e.originalEvent.preventDefault();
-
-            var innerHTML = `
-                <div style="text-align: center;">
-                    Delete Bus with id: ${e.features[0].id} and quality ${e.features[0].properties['quality']} ?
-                </div>
-                <div>
-                    <button onclick="onYesClick(${e.features[0].id})">Yes</button>
-                    <button onclick="onNoClick()">No</button>
-                </div>
-            `;
-
-
-            console.log("Bus clicked!", e, latlon);
-            requestAnimationFrame(() => {
-                popup = new maplibregl.Popup({
-                    // https://maplibre.org/maplibre-gl-js-docs/api/markers/#popup-parameters
-                    maxWidth: "280px",
-                }).setLngLat(latlon).setHTML(innerHTML).addTo(map);
-            });
-        }
-        ;
-    });
-
-
-    /*
-    map.on('moveend', function() {
-        zoom = map.getZoom();
-        var featuresInView = map.queryRenderedFeatures({ layers: ['flur'] });
-        console.log(featuresInView, zoom)
-});
-*/
-
-
-
-    map.on('click', 'flur', (e) => {
-        var latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
-        //https://stackoverflow.com/questions/47576527/how-to-manipulate-event-bubbling-when-registering-click-event-upon-a-layer-in-ma
-        if(!e.originalEvent.defaultPrevented) {
-
-            $.ajax({
-                  type: "GET",
-                  url: `hpctool/stationpopup/${e.features[0].id}`,
-                  dataType: 'json',
-                  success: function (data) {
-
-                      console.log(data)
-
-                    const popup = document.createElement('div');
-                    const html = "<h1> " + data.name + "</h1> ID: " + data.id + " <br> Station power: "+ data.station_power + " " + data.station_unit+" <br> Charger power: "+ data.charge_power + " " + data.charge_unit+ "<br> Voltage Level: "+ data.voltage_level +"<br>Number of buses: " + data.buses
-
-                    //TODO: Edit station Information here
-                    popup.innerHTML = html + '<br><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editModal" id="editButton" >Edit</button>'
-
-
-                    map.easeTo({
-                        center: latlon
-                        });
-
-                    requestAnimationFrame(() => {
-                        new maplibregl.Popup({
-                          // https://maplibre.org/maplibre-gl-js-docs/api/markers/#popup-parameters
-                          maxWidth: "560px",
-                        }).setLngLat(latlon).setHTML(popup.innerHTML).addTo(map);
-                        const editButton = document.getElementById("editButton");
-                        editButton.addEventListener('click', function () {
-                            editStation(data);
-                        });
-
-                      });
-
-
-
-
-
-
-                  }
-                });
-
-        }
-        ;
-    });
-
-    function editStation(data) {
-
-        console.log("EDIT STATION RECIEVED FOLLOWING DATA:", data);
-
-        var textbox_name = document.getElementById("name");
-        var textbox_ps = document.getElementById("power_station");
-        var textbox_pc = document.getElementById("power_charger");
-        var save_button = document.getElementById("saveChanges");
-        const select_pc = document.getElementById('power-unit-charger');
-        const select_ps = document.getElementById('power-unit-station');
-        const select_vl = document.getElementById('voltage-level');
-
-        textbox_name.value = data.name;
-        textbox_ps.value = data.station_power;
-        textbox_pc.value = data.charge_power;
-        select_ps.value = data.station_unit;
-        select_pc.value = data.charge_unit;
-        select_vl.value = data.voltage_level;
-        createMode=0;
-        editing_id = data.id;
-
-        textbox_name.addEventListener('input', function () {
-            save_button.disabled = false;
-        });
-
-        textbox_pc.addEventListener('input', function () {
-            save_button.disabled = false;
-        });
-
-        textbox_ps.addEventListener('input', function () {
-            save_button.disabled = false;
-        });
-
-        select_pc.addEventListener('change', function () {
-            save_button.disabled = false;
-        });
-
-        select_ps.addEventListener('change', function () {
-            save_button.disabled = false;
-        });
-        select_vl.addEventListener('change', function () {
-            save_button.disabled = false;
-        });
-
-    }
-
-    function sendStationEdit(){
-        var textbox_name = document.getElementById("name").value;
-        var textbox_ps = document.getElementById("power_station").value;
-        var textbox_pc = document.getElementById("power_charger").value;
-        const select_pc = document.getElementById('power-unit-charger').value;
-        const select_ps = document.getElementById('power-unit-station').value;
-        const select_vl = document.getElementById('voltage-level').value;
-
-        var data_station = {
-                          "name": textbox_name,
-                          "station_power": textbox_ps,
-                            "charge_power":textbox_pc,
-                            "id": editing_id,
-                            "station_unit": select_ps ,
-                            "charge_unit":select_pc,
-                            "voltage_level":select_vl
-                        };
-
-        createMode = 1
-
-        $.ajax({
-            url: 'hpctool/edit',
-            type: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            data: data_station,
-            success: function(data){
-                alert(data.message);
-            },
-            error: function(data){
-               alert(data.status); // the status code
-               alert(data.responseJSON.error); // the message
-            }
-        })
-    }
-
-
-    function onYesClick(id) {
-        // Code to execute when the "Yes" button is clicked
-        console.log("Yes button clicked!", id);
-        console.log(map);
-        deletedIDs.push(id);
-        map.setFeatureState(
-                        {source: 'busstop', sourceLayer:'myexamplemultipolygon', id: id},
-                        {del: false}
-                    );
-        popup.remove();
-        deleteBus();
-
-
-    }
-
-    function onNoClick() {
-        // Code to execute when the "No" button is clicked
-        console.log("No button clicked!");
-        popup.remove();
     }
 
     </script>
