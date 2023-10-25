@@ -573,6 +573,7 @@ def vary_depot_rotations(schedule) -> "collections.Iterable[simba.rotation.Rotat
 def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
     """Run the tool chain"""
     # set report dir for first iteration
+    args.output_directory = Path(settings.UPLOAD_PATH) / task_id
     report_dir = Path(settings.BASE_DIR, args.output_directory, "report_1")
     # call simba and eflips
     run_simba(schedule, args, task_id, report_dir=report_dir)
@@ -586,7 +587,6 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
 
 def run_simba(schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "report"), eflips_input=None):
     # TODO don't overwrite output on multiple function calls
-    args.output_directory = Path(settings.UPLOAD_PATH) / task_id
     args.attach_vehicle_soc = True
 
     db_scenario = Scenario.objects.get(task_id=task_id)
