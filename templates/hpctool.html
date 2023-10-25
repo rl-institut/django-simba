@@ -175,7 +175,7 @@
         <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.js"></script>
         <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.css" type="text/css">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet">
-        <title>HPC Tool</title>
+        <title>(not relevant, because set by base.html)</title>
     </head>
 
     <body>
@@ -390,7 +390,7 @@
 
     <script>
         // Manual Bus placement
-        var zoom = 0;
+        let zoom = 0;
         // TODO: This is just manually sized to fit in Berlin.
         //       Needs to be sized and Projected, to match everywhere on the globe!
         const cursorwidth = 4000 * 0.40;
@@ -404,44 +404,43 @@
         // Define source and target projections
         proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs");
         proj4.defs("EPSG:32633", "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs");
-        let cc = 0;
 
         // MODAL AND RIGHT-CLICK FOR NEW STATION
-        var areaEndstop ="";
-        var lastRightClick =  [0,0];
-        var stationPopup;
-        var createMode =1;
-        var editing_id = 0;
+        let areaEndstop = "";
+        let lastRightClick = [0, 0];
+        let stationPopup;
+        let createMode = 1;
+        let editing_id = 0;
         // Get a reference to the button element
         const button = document.getElementById("DrawDone");
 
         // For jumping between Stations:
-        var all_station_coords = [];
-        var station_index = -1;
+        let all_station_coords = [];
+        let station_index = -1;
 
         // Define your list of map layers
-        var layers = [
-            { id: 'flur', name: 'Flurstücke' },
-            { id: 'cyclepath', name: 'Radwege' },
-            { id: 'residentialarea', name: 'Wohngebiete' },
-            { id: 'myexamplemultipolygon', name: 'Busse' },
-            { id: 'trees', name: 'Bäume' }
+        const layers = [
+            {id: 'flur', name: 'Flurstücke'},
+            {id: 'cyclepath', name: 'Radwege'},
+            {id: 'residentialarea', name: 'Wohngebiete'},
+            {id: 'myexamplemultipolygon', name: 'Busse'},
+            {id: 'trees', name: 'Bäume'}
             // Add more layers as needed
         ];
 
         map.dragRotate.disable();
         //needed for drawing stations
         const draw = new MapboxDraw({
-        displayControlsDefault: false,
+            displayControlsDefault: false,
             // Select which mapbox-gl-draw control buttons to add to the map.
             controls: {
-            polygon: false,
-            trash: false
-            },
-        // Set mapbox-gl-draw to draw by default.
-        // The user does not have to click the polygon control button first.
-        defaultMode: 'simple_select'//'draw_polygon'
-    });
+                polygon: false,
+                trash: false
+                },
+            // Set mapbox-gl-draw to draw by default.
+            // The user does not have to click the polygon control button first.
+            defaultMode: 'simple_select'//'draw_polygon'
+        });
         map.addControl(draw, 'top-left');
 
         //Holds ID(s) for Busses to be deleted
@@ -449,8 +448,8 @@
         var popup = null;
 
         // This will set the view to URL's parameters, consisting of zoom and center
-        var urlParams = new URLSearchParams(window.location.search);
-        var zoom = urlParams.get('zoom');
+        const urlParams = new URLSearchParams(window.location.search);
+        zoom = urlParams.get('zoom');
         try{
             var center = urlParams.get('center');
             var cntr = center.slice(7).replace(")", "").split(",")
@@ -461,81 +460,91 @@
             window.scrollTo(0, document.documentElement.scrollHeight || document.body.scrollHeight);
         }catch{
             console.log("No URL parameters");
-        };
+        }
 
         // for setting height of sidebars:
         window.addEventListener('scroll', function() {
-    var headerHeight = 125; // Height of your header in pixels
+            var headerHeight = 125; // Height of your header in pixels
 
-    if (window.scrollY >= headerHeight) {
-        // Once you've scrolled past the header's height, set sidebar height to 100%
-        document.querySelector('.sidebar').style.height = '100%';
-        document.querySelector('.sidebar').style.top = `0px`;
-        document.querySelector('.right-sidebar').style.height = '100%';
-        document.querySelector('.right-sidebar').style.top = `0px`;
-
-    } else {
-        // While still within the header's height, set sidebar height to (100% - scrollY)
-        document.querySelector('.sidebar').style.top = `${headerHeight - window.scrollY}px`;
-        document.querySelector('.sidebar').style.height = `calc(100% - ${window.scrollY}px)`;
-        document.querySelector('.right-sidebar').style.top = `${headerHeight - window.scrollY}px`;
-        document.querySelector('.right-sidebar').style.height = `calc(100% - ${window.scrollY}px)`;
-    }
-});
-        window.addEventListener("load", function() {
-        $.ajax({
-            url: 'hpctool/getstationlist',
-            type: 'GET',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            success: function(data){
-                all_station_coords = data.message
-                //console.log(all_station_coords);
-            },
-            error: function(data){
-               //console.log(data);
+            if (window.scrollY >= headerHeight) {
+                // Once you've scrolled past the header's height, set sidebar height to 100%
+                document.querySelector('.sidebar').style.height = '100%';
+                document.querySelector('.sidebar').style.top = `0px`;
+                document.querySelector('.right-sidebar').style.height = '100%';
+                document.querySelector('.right-sidebar').style.top = `0px`;
+            } else {
+                // While still within the header's height, set sidebar height to (100% - scrollY)
+                document.querySelector('.sidebar').style.top = `${headerHeight - window.scrollY}px`;
+                document.querySelector('.sidebar').style.height = `calc(100% - ${window.scrollY}px)`;
+                document.querySelector('.right-sidebar').style.top = `${headerHeight - window.scrollY}px`;
+                document.querySelector('.right-sidebar').style.height = `calc(100% - ${window.scrollY}px)`;
             }
-        })
-    });
+        });
+
+        window.addEventListener("load", function() {
+            $.ajax({
+                url: 'hpctool/getstationlist',
+                type: 'GET',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                success: function(data){
+                    all_station_coords = data.message
+                    //console.log(all_station_coords);
+                },
+                error: function(data){
+                   //console.log(data);
+                }
+            })
+        });
+
         window.addEventListener('mousemove', function (e) {
+            let j;
+            let closestPointOnStreet;
+            let minDistance;
+            let coordinates;
+            let distance;
+            let closestPoint;
+            let segmentEnd;
+            let segmentStart;
+            let latlng;
+            let closestSegment;
+            let overallClosestPointOnStreet;
             if (manualModeEnabled) {
                 // Update cursor position to follow the mouse
                 cursor.style.left = e.clientX - 0.5 * (cursorwidth * currentScale) + 'px';
                 cursor.style.top = e.clientY + (window.scrollY) - 0.5 * (cursorheight * currentScale) + 'px';
 
-                var features = map.queryRenderedFeatures(e.point, {layers: ['Road network']});
+                const features = map.queryRenderedFeatures(e.point, {layers: ['Road network']});
 
                 if (zoom > 16) {
 
                     // Get the nearest street feature to the cursor
-                    if (features != features_old) {
-                        markers = []
+                    if (features !== features_old) {
                         latlng = map.unproject([e.clientX - 300, e.clientY - 50])
                         features_old = features
 
-                        var closestStreet = null;
-                        var closestPointOnStreet = null;
-                        var minDistance = Infinity;
-                        var overallMinDistance = Infinity;
+                        let closestStreet = null;
+                        closestPointOnStreet = null;
+                        minDistance = Infinity;
+                        let overallMinDistance = Infinity;
                         // Iterate through the list of streets
-                        for (var i = 0; i < features.length; i++) {
-                            var street = features[i];
-                            var minDistance = Infinity; // Initialize minimum distance to a high value
-                            var closestPointOnStreet;
+                        for (let i = 0; i < features.length; i++) {
+                            const street = features[i];
+                            minDistance = Infinity;
 
                             if (street.geometry.type === 'LineString') {
                                 // For LineString
-                                var coordinates = street.geometry.coordinates;
-                                for (var j = 0; j < coordinates.length - 1; j++) {
-                                    var segmentStart = coordinates[j];
-                                    var segmentEnd = coordinates[j + 1];
+                                coordinates = street.geometry.coordinates;
+                                for (j = 0; j < coordinates.length - 1; j++) {
+                                    segmentStart = coordinates[j];
+                                    segmentEnd = coordinates[j + 1];
 
                                     // Calculate the closest point on the segment to the cursor
-                                    var closestPoint = closestPointOnLine([latlng.lng, latlng.lat], segmentStart, segmentEnd);
+                                    closestPoint = closestPointOnLine([latlng.lng, latlng.lat], segmentStart, segmentEnd);
 
                                     // Calculate the distance between the cursor and the closest point on this segment
-                                    var distance = turf.distance([latlng.lng, latlng.lat], closestPoint)
+                                    distance = turf.distance([latlng.lng, latlng.lat], closestPoint);
 
                                     // Update the closest point on the street if this segment is closer
                                     if (distance < overallMinDistance) {
@@ -547,19 +556,19 @@
                                 }
                             } else if (street.geometry.type === 'MultiLineString') {
                                 // For MultiLineString
-                                var lines = street.geometry.coordinates;
-                                for (var j = 0; j < lines.length; j++) {
-                                    var coordinates = lines[j];
-                                    for (var k = 0; k < coordinates.length - 1; k++) {
-                                        var segmentStart = coordinates[k];
-                                        var segmentEnd = coordinates[k + 1];
+                                const lines = street.geometry.coordinates;
+                                for (j = 0; j < lines.length; j++) {
+                                    coordinates = lines[j];
+                                    for (let k = 0; k < coordinates.length - 1; k++) {
+                                        segmentStart = coordinates[k];
+                                        segmentEnd = coordinates[k + 1];
 
                                         // Calculate the closest point on the segment to the cursor
                                         // Calculate the closest point on the segment to the cursor
-                                        var closestPoint = closestPointOnLine([latlng.lng, latlng.lat], segmentStart, segmentEnd);
+                                        closestPoint = closestPointOnLine([latlng.lng, latlng.lat], segmentStart, segmentEnd);
 
                                         // Calculate the distance between the cursor and the closest point on this segment
-                                        var distance = turf.distance([latlng.lng, latlng.lat], closestPoint)
+                                        distance = turf.distance([latlng.lng, latlng.lat], closestPoint);
 
                                         // Update the closest point on the street if this segment is closer
                                         if (distance < overallMinDistance) {
@@ -571,14 +580,9 @@
                                     }
                                 }
                             }
-
                         }
-                        cc += 1;
-                        //markers += new maplibregl.Marker()
-                        //    .setLngLat(overallClosestPointOnStreet) // Set the marker's coordinates
-                        //   .addTo(map);
                         // Calculate the heading (angle) of the closest street
-                        var heading = calculateHeading(closestSegment[0], closestSegment[1]);
+                        const heading = calculateHeading(closestSegment[0], closestSegment[1]);
 
                         // Rotate your cursor (rectangular box) to match the street's heading
                         // Set the rotation value for your cursor here
@@ -616,6 +620,7 @@
               }, 300); // Wait for the transition to complete (0.3s)
           });
         });
+
         document.addEventListener("DOMContentLoaded", function () {
           const rightSidebar = document.querySelector(".right-sidebar");
           const content = document.querySelector(".col-md-10");
@@ -624,7 +629,6 @@
             rightSidebar.classList.toggle("active");
 
             var rightSidebarButton = document.getElementById('rightSidebarToggle');
-
 
               // Calculate the new right position for the button
               var buttonRight = rightSidebar.classList.contains('active') ? '350px' : '80px';
@@ -637,8 +641,6 @@
               setTimeout(function() {
                 rightSidebarButton.style.transition = 'none';
               }, 300); // Wait for the transition to complete (0.3s) and then remove it
-
-
           });
         });
         document.addEventListener('keydown', function(event) {
@@ -650,33 +652,32 @@
                                 {source: 'busstop', sourceLayer:'myexamplemultipolygon', id: undoID},
                                 {del: true}
                             );
-
-
                   }
               }
         });
 
         // enable the "Save" button when one of the options is clicked
         document.getElementById("fromALKIS").addEventListener("click", function() {
-           document.getElementById("draw").disabled = true;
-           document.getElementById("saveChanges").disabled = false;
-           areaEndstop = "FromAlkis";
+            document.getElementById("draw").disabled = true;
+            document.getElementById("saveChanges").disabled = false;
+            areaEndstop = "FromAlkis";
         });
+
         document.getElementById("draw").addEventListener("click", function() {
-           document.getElementById("fromALKIS").disabled = true;
-           document.getElementById("saveChanges").disabled = false;
-           stationPopup.remove();
-           $("#editModal").modal("hide");
-           $('.modal-backdrop').remove();
-           map.flyTo({
+            document.getElementById("fromALKIS").disabled = true;
+            document.getElementById("saveChanges").disabled = false;
+            stationPopup.remove();
+            $("#editModal").modal("hide");
+            $('.modal-backdrop').remove();
+            map.flyTo({
                 center: lastRightClick,
                 zoom: 18,
                 essential: true
-              });
-           enableDrawmode(1);
+            });
+            enableDrawmode(1);
             showButton();
-           areaEndstop = "POLYGON";
-           map.getCanvas().style.cursor = 'crosshair';
+            areaEndstop = "POLYGON";
+            map.getCanvas().style.cursor = 'crosshair';
         });
 
         // Add event listener to the enable manual placement mode button
@@ -688,87 +689,85 @@
         // Add event listener to the settings modal trigger button
         var settingsbutton = document.getElementById("settingsButton");
         settingsbutton.addEventListener("click", function() {
-        $.ajax({
-            url: 'hpctool/settings',
-            type: 'GET',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            success: function(data){
+            $.ajax({
+                url: 'hpctool/settings',
+                type: 'GET',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                success: function(data){
 
-                console.log(data);
-                var textbox_l = document.getElementById("busLength");
-                var textbox_pd = document.getElementById("parkingDistance");
-                var textbox_curv = document.getElementById("maxCurvature");
+                    console.log(data);
+                    var textbox_l = document.getElementById("busLength");
+                    var textbox_pd = document.getElementById("parkingDistance");
+                    var textbox_curv = document.getElementById("maxCurvature");
 
-                // Set the text of the textbox using the "value" property
-                textbox_l.value = data.bus_length;
-                textbox_pd.value = data.parkdistance;
-                textbox_curv.value = data.maxcurvature;
+                    // Set the text of the textbox using the "value" property
+                    textbox_l.value = data.bus_length;
+                    textbox_pd.value = data.parkdistance;
+                    textbox_curv.value = data.maxcurvature;
 
-            },
-            error: function(data){
-               console.log(data);
-            }
-        })
-        $.ajax({
-            url: 'hpctool/criteria',
-            type: 'GET',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            success: function(data){
-
-                console.log(data)
-
-                const tableBody = document.getElementById('criteriaTableBody');
-
-                const rows = tableBody.getElementsByTagName('tr'); // Get all table rows
-
-                // Start from the last row and work your way up to keep the header
-                for (let i = rows.length ; i > 0; i--) {
-                    const row = rows[i];
-                    row.remove();
+                },
+                error: function(data){
+                   console.log(data);
                 }
+            })
+            $.ajax({
+                url: 'hpctool/criteria',
+                type: 'GET',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                success: function(data){
 
-                for (const item in data) {
-                    const row = document.createElement('tr'); // Create a single row
-                    for (const element in data[item]) {
-                            if (data[item].hasOwnProperty(element)) {
+                    console.log(data)
 
-                                const valueCell = document.createElement('td');
-                                valueCell.textContent = data[item][element];
-                                row.appendChild(valueCell);
+                    const tableBody = document.getElementById('criteriaTableBody');
 
-                            }
-                    tableBody.appendChild(row);
+                    const rows = tableBody.getElementsByTagName('tr'); // Get all table rows
+
+                    // Start from the last row and work your way up to keep the header
+                    for (let i = rows.length ; i > 0; i--) {
+                        const row = rows[i];
+                        row.remove();
                     }
-                }
-            },
-            error: function(data){
-               console.log(data);
-            }
-        })
-    });
 
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-          return new bootstrap.Tooltip(tooltipTriggerEl);
+                    for (const item in data) {
+                        const row = document.createElement('tr'); // Create a single row
+                        for (const element in data[item]) {
+                                if (data[item].hasOwnProperty(element)) {
+
+                                    const valueCell = document.createElement('td');
+                                    valueCell.textContent = data[item][element];
+                                    row.appendChild(valueCell);
+
+                                }
+                        tableBody.appendChild(row);
+                        }
+                    }
+                },
+                error: function(data){
+                   console.log(data);
+                }
+            })
+        });
+
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
         });
 
         $(document).ready(function() {
             $("#saveChanges").click(function() {
 
-                if (createMode == 1) {
+                if (createMode === 1) {
                     createStation();
                 } else {
                     sendStationEdit();
                 }
-
                 // Close the modal
                 $("#editModal").modal("hide");
                 $('.modal-backdrop').remove();
-
             });
 
             $("#saveSettings").click(function() {
@@ -776,10 +775,10 @@
                 const parkdistance = $("#parkingDistance").val();
                 //const unit = $("#power_charger").val();
 
-                var data_settings = {
-                              "buslength": buslength,
-                              "parkdistance": parkdistance,
-                            };
+                const data_settings = {
+                    "buslength": buslength,
+                    "parkdistance": parkdistance,
+                };
 
                 $.ajax({
                 url: 'hpctool/settings',
@@ -808,8 +807,8 @@
         // Everything with layers in the Sidebar
         // Function to toggle layer visibility
         function toggleLayerVisibility(layerId) {
-            var layer = map.getLayer(layerId);
-            var visibility = map.getLayoutProperty(layerId, 'visibility');
+            const layer = map.getLayer(layerId);
+            const visibility = map.getLayoutProperty(layerId, 'visibility');
 
             if (visibility === 'visible') {
                 map.setLayoutProperty(layerId, 'visibility', 'none');
@@ -818,10 +817,10 @@
             }
         }
         // Create checkboxes for each layer
-        var layerControls = document.getElementById('layer-controls');
+        const layerControls = document.getElementById('layer-controls');
         layers.forEach(function (layer) {
 
-             const toggleLabel = document.createElement("label");
+            const toggleLabel = document.createElement("label");
             toggleLabel.className = "toggle";
 
             const toggleCheckbox = document.createElement("input");
@@ -884,16 +883,16 @@
         });
         map.on('click', 'myexamplemultipolygon', (e) => {
 
-        var latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
-        if (!deletedIDs.includes(e.features[0].id)) {
+            const latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
+            if (!deletedIDs.includes(e.features[0].id)) {
 
             //https://stackoverflow.com/questions/47576527/how-to-manipulate-event-bubbling-when-registering-click-event-upon-a-layer-in-ma
             //prevents that all layers are "clicked on", i.e. only top layer is clicked on
             e.originalEvent.preventDefault();
 
-            var innerHTML = `
+                const innerHTML = `
                 <div style="text-align: center;">
-                    Delete Bus with id: ${e.features[0].id} and quality ${e.features[0].properties['quality']} ?
+                    Delete Bus?
                 </div>
                 <div>
                     <button onclick="onYesClick(${e.features[0].id})">Yes</button>
@@ -902,62 +901,52 @@
             `;
 
 
-            console.log("Bus clicked!", e, latlon);
-            requestAnimationFrame(() => {
+                console.log("Bus clicked!", e, latlon);
+                requestAnimationFrame(() => {
                 popup = new maplibregl.Popup({
                     // https://maplibre.org/maplibre-gl-js-docs/api/markers/#popup-parameters
                     maxWidth: "280px",
                 }).setLngLat(latlon).setHTML(innerHTML).addTo(map);
             });
         }
-        ;
     });
         map.on('click', 'flur', (e) => {
-        var latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
-        //https://stackoverflow.com/questions/47576527/how-to-manipulate-event-bubbling-when-registering-click-event-upon-a-layer-in-ma
-        if(!e.originalEvent.defaultPrevented) {
+            const latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
+            //https://stackoverflow.com/questions/47576527/how-to-manipulate-event-bubbling-when-registering-click-event-upon-a-layer-in-ma
+            if(!e.originalEvent.defaultPrevented) {
 
-            $.ajax({
-                  type: "GET",
-                  url: `hpctool/stationpopup/${e.features[0].id}`,
-                  dataType: 'json',
-                  success: function (data) {
+                $.ajax({
+                      type: "GET",
+                      url: `hpctool/stationpopup/${e.features[0].id}`,
+                      dataType: 'json',
+                      success: function (data) {
 
-                      console.log(data)
+                          console.log(data)
 
-                    const popup = document.createElement('div');
-                    const html = "<h1> " + data.name + "</h1> ID: " + data.id + " <br> Station power: "+ data.station_power + " " + data.station_unit+" <br> Charger power: "+ data.charge_power + " " + data.charge_unit+ "<br> Voltage Level: "+ data.voltage_level +"<br>Number of buses: " + data.buses
+                        const popup = document.createElement('div');
+                        const html = "<h1> " + data.name + "</h1> ID: " + data.id + " <br> Station power: "+ data.station_power + " " + data.station_unit+" <br> Charger power: "+ data.charge_power + " " + data.charge_unit+ "<br> Voltage Level: "+ data.voltage_level +"<br>Number of buses: " + data.buses
 
-                    //TODO: Edit station Information here
-                    popup.innerHTML = html + '<br><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editModal" id="editButton" >Edit</button>'
-
-
-                    map.easeTo({
-                        center: latlon
-                        });
-
-                    requestAnimationFrame(() => {
-                        new maplibregl.Popup({
-                          // https://maplibre.org/maplibre-gl-js-docs/api/markers/#popup-parameters
-                          maxWidth: "560px",
-                        }).setLngLat(latlon).setHTML(popup.innerHTML).addTo(map);
-                        const editButton = document.getElementById("editButton");
-                        editButton.addEventListener('click', function () {
-                            editStation(data);
-                        });
-
-                      });
+                        //TODO: Edit station Information here
+                        popup.innerHTML = html + '<br><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editModal" id="editButton" >Edit</button>'
 
 
+                        map.easeTo({
+                            center: latlon
+                            });
 
-
-
-
-                  }
-                });
-
-        }
-        ;
+                        requestAnimationFrame(() => {
+                            new maplibregl.Popup({
+                              // https://maplibre.org/maplibre-gl-js-docs/api/markers/#popup-parameters
+                              maxWidth: "560px",
+                            }).setLngLat(latlon).setHTML(popup.innerHTML).addTo(map);
+                            const editButton = document.getElementById("editButton");
+                            editButton.addEventListener('click', function () {
+                                editStation(data);
+                            });
+                          });
+                      }
+                    });
+            }
     });
         map.on('zoom', function () {
             if (manualModeEnabled) {
@@ -977,11 +966,11 @@
         map.on('click', function (e) {
             if (manualModeEnabled) {
                 // Get the clicked coordinates
-                var clickedCoordinates = e.lngLat;
+                const clickedCoordinates = e.lngLat;
 
                 // Generate unique source and layer names
-                var sourceName = 'rectangle-source-' + counter;
-                var layerName = 'rectangle-layer-' + counter;
+                const sourceName = 'rectangle-source-' + counter;
+                const layerName = 'rectangle-layer-' + counter;
 
                 // Call a function to add the rectangle at the clicked coordinates
                 addRectangle(clickedCoordinates, sourceName, layerName);
@@ -992,7 +981,7 @@
         });
         map.on("mousedown", (e) => {
             if (e.originalEvent.button === 2) {
-                var latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
+                const latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];
                 //console.log("RIGHT")
                 //listDrawnLayers();
             try {
@@ -1002,7 +991,7 @@
             };
 
                 lastRightClick = latlon
-                var innerHTML ='<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editModal"> <i class="bi bi-pencil"></i> New Station Here </button>';
+                const innerHTML = '<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editModal"> <i class="bi bi-pencil"></i> New Station Here </button>';
                 document.getElementById("fromALKIS").disabled = false;
                 document.getElementById("saveChanges").disabled = true;
                 document.getElementById("draw").disabled = false;
@@ -1022,52 +1011,51 @@
 
         function addRectangle(coordinates, sourceName, layerName) {
               // Convert the rotation angle from degrees to radians
-              rotationAngle= -curr_angle;
-              var radians = (rotationAngle * Math.PI) / 180;
+            const rotationAngle = -curr_angle;
+            const radians = (rotationAngle * Math.PI) / 180;
 
-              const pnt = proj4("EPSG:4326", "EPSG:32633", [coordinates.lng,coordinates.lat]);
+            const pnt = proj4("EPSG:4326", "EPSG:32633", [coordinates.lng,coordinates.lat]);
 
             //const utmpoint2 = proj4("EPSG:4326", "EPSG:32633", point2);
 
-              // Define the rectangle's initial coordinates
-              var initialCoordinates = [
+            // Define the rectangle's initial coordinates
+            const initialCoordinates = [
                 [pnt[0] - 9, pnt[1] - 1.5],
                 [pnt[0] + 9, pnt[1] - 1.5],
                 [pnt[0] + 9, pnt[1] + 1.5],
                 [pnt[0] - 9, pnt[1] + 1.5],
                 [pnt[0] - 9, pnt[1] - 1.5]
-              ];
+            ];
 
-              // Rotate the rectangle's coordinates
-              var rotatedCoordinates = initialCoordinates.map(function (point) {
+            // Rotate the rectangle's coordinates
+            const rotatedCoordinates = initialCoordinates.map(function (point) {
 
-                  var x = point[0] - pnt[0];
-                var y = point[1] - pnt[1];
+                const x = point[0] - pnt[0];
+                const y = point[1] - pnt[1];
 
                 // Apply rotation
-                var newX = x * Math.cos(radians) - y * Math.sin(radians);
-                var newY = x * Math.sin(radians) + y * Math.cos(radians);
+                const newX = x * Math.cos(radians) - y * Math.sin(radians);
+                const newY = x * Math.sin(radians) + y * Math.cos(radians);
 
-                var rot_coords = [newX + pnt[0], newY + pnt[1]];
-                var result = proj4("EPSG:32633","EPSG:4326",  rot_coords);
-                console.log("RESULT::: ", result)
+                const rot_coords = [newX + pnt[0], newY + pnt[1]];
+                const result = proj4("EPSG:32633", "EPSG:4326", rot_coords);
                 return result
-              });
+            });
 
-              var rectangleGeoJSON = {
+            const rectangleGeoJSON = {
                 type: 'FeatureCollection',
                 features: [
-                  {
-                    type: 'Feature',
-                    geometry: {
-                      type: 'Polygon',
-                      coordinates: [rotatedCoordinates]
+                    {
+                        type: 'Feature',
+                        geometry: {
+                            type: 'Polygon',
+                            coordinates: [rotatedCoordinates]
+                        }
                     }
-                  }
                 ]
-              };
+            };
 
-              // Add the rectangle GeoJSON as a source with the unique source name
+            // Add the rectangle GeoJSON as a source with the unique source name
               map.addSource(sourceName, {
                 type: 'geojson',
                 data: rectangleGeoJSON
@@ -1086,7 +1074,7 @@
             }
         // Function to calculate the closest point on a line to a given point
         function closestPointOnLine(point, lineStart, lineEnd) {
-            var line = turf.lineString([lineStart, lineEnd]);
+            const line = turf.lineString([lineStart, lineEnd]);
             return turf.nearestPointOnLine(line, point).geometry.coordinates;
         }
         // Function to calculate the heading (angle) between two points
@@ -1094,7 +1082,7 @@
             // Convert coordinates from WGS84 to UTM using Proj4js
             const utmpoint1 = proj4("EPSG:4326", "EPSG:32633", point1);
             const utmpoint2 = proj4("EPSG:4326", "EPSG:32633", point2);
-            var angle = Math.atan2(utmpoint2[1] - utmpoint1[1], utmpoint2[0] - utmpoint1[0]);
+            const angle = Math.atan2(utmpoint2[1] - utmpoint1[1], utmpoint2[0] - utmpoint1[0]);
             return angle * (180 / Math.PI); // Convert to degrees
         }
 
@@ -1104,23 +1092,23 @@
         }
 
         function createStation() {
-            var textbox_name = document.getElementById("name").value;
-            var textbox_ps = document.getElementById("power_station").value;
-            var textbox_pc = document.getElementById("power_charger").value;
+            const textbox_name = document.getElementById("name").value;
+            const textbox_ps = document.getElementById("power_station").value;
+            const textbox_pc = document.getElementById("power_charger").value;
             const select_pc = document.getElementById('power-unit-charger').value;
             const select_ps = document.getElementById('power-unit-station').value;
             const select_vl = document.getElementById('voltage-level').value;
-            console.log(select_vl);
-             var data_station = {
-                              "name": textbox_name,
-                              "power_station": textbox_ps,
-                              "power_charger":textbox_pc,
-                             "station_unit":select_ps,
-                             "charge_unit":select_pc,
-                            "voltage_level":select_vl,
-                              "area": areaEndstop,
-                              "latlon": lastRightClick
-                            };
+
+            const data_station = {
+                "name": textbox_name,
+                "power_station": textbox_ps,
+                "power_charger": textbox_pc,
+                "station_unit": select_ps,
+                "charge_unit": select_pc,
+                "voltage_level": select_vl,
+                "area": areaEndstop,
+                "latlon": lastRightClick
+            };
             console.log("Creating Station")
             $.ajax({
                 url: 'hpctool/create',
@@ -1133,16 +1121,15 @@
                     $("#editModal").modal("hide");
                     $('.modal-backdrop').remove();
                     hideButton();
-                    //alert(data.message);
 
                     // Get the current center coordinates
-                    var center = map.getCenter();
+                    const center = map.getCenter();
 
                     // Get the current zoom level
-                    var zoom = map.getZoom();
+                    const zoom = map.getZoom();
 
                     // Get the current URL
-                    var currentUrl = new URL(window.location.href);
+                    const currentUrl = new URL(window.location.href);
 
                     // Update the "zoom" parameter to 14
                     currentUrl.searchParams.set('zoom', zoom);
@@ -1174,73 +1161,71 @@
 
         function recalculate() {
 
-        dat = draw.getAll();
-        console.log(dat.features[0].geometry.coordinates[0])
-        $.ajax({
-            url: 'hpctool',
-            type: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            data: JSON.stringify(dat.features[0].geometry.coordinates[0]),
-            success: function(data){
-                alert(data.message);
-            },
-            error: function(data){
-               alert(data.status); // the status code
-               alert(data.responseJSON.error); // the message
-            }
-        })
-    }
+            var dat = draw.getAll();
+            console.log(dat.features[0].geometry.coordinates[0])
+            $.ajax({
+                url: 'hpctool',
+                type: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                data: JSON.stringify(dat.features[0].geometry.coordinates[0]),
+                success: function(data){
+                    alert(data.message);
+                },
+                error: function(data){
+                   alert(data.status); // the status code
+                   alert(data.responseJSON.error); // the message
+                }
+            })
+        }
 
         function exportJson() {
-        $.ajax({
-            url: 'hpctool/export',
-            type: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            data: {},
-            success: function(data) {
-                    // Create a Blob containing the JSON data
-                    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-
-                    // Create a temporary anchor element to trigger the download
-                    const a = document.createElement("a");
-                    a.href = URL.createObjectURL(blob);
-                    a.download = "electrified_stations.json";
-
-                    // Trigger the click event to start the download
-                    a.click();
-
-                    // Clean up
-                    URL.revokeObjectURL(a.href);
+            $.ajax({
+                url: 'hpctool/export',
+                type: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
                 },
-                error: function(error) {
-                    console.error("Error:", error);
-                }
-        })
-    }
+                data: {},
+                success: function(data) {
+                        // Create a Blob containing the JSON data
+                        const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+
+                        // Create a temporary anchor element to trigger the download
+                        const a = document.createElement("a");
+                        a.href = URL.createObjectURL(blob);
+                        a.download = "electrified_stations.json";
+
+                        // Trigger the click event to start the download
+                        a.click();
+
+                        // Clean up
+                        URL.revokeObjectURL(a.href);
+                    },
+                    error: function(error) {
+                        console.error("Error:", error);
+                    }
+            })
+        }
 
         function deleteBus() {
-        console.log("Deleting the following Busses: " , deletedIDs)
-        $.ajax({
-            url: 'hpctool/delete',
-            type: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            data: JSON.stringify(deletedIDs),
-            success: function(data){
-                deletedIDs = [];
-                //alert(data.message);
-            },
-            error: function(data){
-               alert(data.status); // the status code
-               alert(data.responseJSON.error); // the message
-            }
-        })
-    }
+            console.log("Deleting the following Busses: " , deletedIDs)
+            $.ajax({
+                url: 'hpctool/delete',
+                type: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                data: JSON.stringify(deletedIDs),
+                success: function(data){
+                    deletedIDs = [];
+                },
+                error: function(data){
+                   alert(data.status); // the status code
+                }
+            })
+        }
 
         function enableDrawmode(step) {
             draw.set({
@@ -1249,10 +1234,6 @@
             })
             draw.changeMode('draw_polygon');
          }
-
-        function deleteDraw(step) {
-            draw.trash();
-        }
 
         function EditFlurstueck(geom, id){
             map.setLayoutProperty("flur", "visibility", "none");
@@ -1290,12 +1271,12 @@
 
         function editStation(data) {
 
-            console.log("EDIT STATION RECIEVED FOLLOWING DATA:", data);
+            //console.log("EDIT STATION RECIEVED FOLLOWING DATA:", data);
 
-            var textbox_name = document.getElementById("name");
-            var textbox_ps = document.getElementById("power_station");
-            var textbox_pc = document.getElementById("power_charger");
-            var save_button = document.getElementById("saveChanges");
+            const textbox_name = document.getElementById("name");
+            const textbox_ps = document.getElementById("power_station");
+            const textbox_pc = document.getElementById("power_charger");
+            const save_button = document.getElementById("saveChanges");
             const select_pc = document.getElementById('power-unit-charger');
             const select_ps = document.getElementById('power-unit-station');
             const select_vl = document.getElementById('voltage-level');
@@ -1335,22 +1316,22 @@
         }
 
         function sendStationEdit(){
-            var textbox_name = document.getElementById("name").value;
-            var textbox_ps = document.getElementById("power_station").value;
-            var textbox_pc = document.getElementById("power_charger").value;
+            const textbox_name = document.getElementById("name").value;
+            const textbox_ps = document.getElementById("power_station").value;
+            const textbox_pc = document.getElementById("power_charger").value;
             const select_pc = document.getElementById('power-unit-charger').value;
             const select_ps = document.getElementById('power-unit-station').value;
             const select_vl = document.getElementById('voltage-level').value;
 
-            var data_station = {
-                              "name": textbox_name,
-                              "station_power": textbox_ps,
-                                "charge_power":textbox_pc,
-                                "id": editing_id,
-                                "station_unit": select_ps ,
-                                "charge_unit":select_pc,
-                                "voltage_level":select_vl
-                            };
+            const data_station = {
+                "name": textbox_name,
+                "station_power": textbox_ps,
+                "charge_power": textbox_pc,
+                "id": editing_id,
+                "station_unit": select_ps,
+                "charge_unit": select_pc,
+                "voltage_level": select_vl
+            };
 
             createMode = 1
 
@@ -1398,25 +1379,20 @@
         station_index+=step;
         if (station_index >= all_station_coords.length-1){
             station_index = 0;
-        };
+        }
         if (station_index < 0 ){
             station_index = all_station_coords.length-1;
-        };
+        }
 
 
-        console.log("Flying to: ", station_index, " of ", all_station_coords.length);
+        //console.log("Flying to: ", station_index, " of ", all_station_coords.length);
 
-        // TODO: increment/decrement BEFORE flying to location??
-        // otherwise "richtungswechsel" result in unexpected behavior
 
         map.flyTo({
             center: all_station_coords[station_index],
             zoom: 18,
             essential: true
           });
-        //console.log(map);
-
-        //document.getElementById("map").flyTo(0,0, 19);
     }
 
     </script>
