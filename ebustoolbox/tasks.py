@@ -42,7 +42,7 @@ from simba.rotation import Rotation as SimbaRotation
 from simba.schedule import Schedule as SimbaSchedule
 
 import eflips.depot.api.django_simba.input as eflips_api
-from eflips.depot.simple_vehicle import VehicleType as EflipsVehicleType
+from eflips.depot.api.django_simba.input import VehicleType as EflipsVehicleType
 from eflips.depot.api import init_simulation, run_simulation
 from eflips.depot.api.django_simba.output import to_simba
 
@@ -577,7 +577,7 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
     report_dir = Path(settings.BASE_DIR, args.output_directory, "report_1")
     # call simba and eflips
     run_simba(schedule, args, task_id, report_dir=report_dir)
-    eflips_dataclass_list = run_eflips(Path(report_dir, "eflips_input.json"))
+    eflips_dataclass_list = run_eflips(Path(report_dir, "eflips_input.json"), task_id)
 
     # set report dir for second iteration/final results
     report_dir = Path(settings.BASE_DIR, args.output_directory, "report_2")
@@ -675,13 +675,14 @@ def run_simba(schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "re
     save_vehicle_properties_from_file(file_path, db_scenario)
 
 
-def run_eflips(eflips_input_path):
+def run_eflips(eflips_input_path, task_id):
+    db_scenario = Scenario.objects.get(task_id=task_id)
     # START eFLIPS API CALL
     vehicle_schedule_list = eflips_api.VehicleSchedule.from_rotations(eflips_input_path)
 
     # Get the Vehicle Types
     vehicle_types = []
-    for djangosimba_vehicle_type in eflips_api.DjangoSimbaVehicleType.objects.all():
+    for djangosimba_vehicle_type in VehicleType.objects.filter(scenario=db_scenario):
         vehicle_type = EflipsVehicleType(djangosimba_vehicle_type)
         vehicle_types.append(vehicle_type)
 
