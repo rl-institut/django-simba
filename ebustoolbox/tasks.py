@@ -647,6 +647,7 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
 
     file_path = settings.BASE_DIR / args.output_directory / "report_1/vehicle_socs.csv"
     save_vehicle_properties_from_file(file_path, db_scenario)
+    create_event_output(scenario, task_id)
 
 
 def save_vehicle_properties_from_file(file_path, scenario):
@@ -702,30 +703,34 @@ def get_timestep_from_datetime(scenario, timestamp):
     return round(minutes_into_scenario * (scenario.stepsPerHour / 60))
 
 
-def create_event_output(scenario):
-    # TODO get scenario Id
-    all_events_dict = {vehicle_type: [] for vehicle_type in scenario.components["vehicle_types"]}
+def create_event_output(simba_scenario, task_id):
+    all_events_dict = {vehicle_name: [] for vehicle_name in simba_scenario.components.vehicles}
+    # collect data from DB
+    db_scenario = Scenario.objects.get(task_id=task_id)
+    vehicle_dict = Vehicle.objects.filter(vehicle_type__scenario=db_scenario)
+    vehicle_dict = {vehicle.name: vehicle for vehicle in vehicle_dict}
     # collect info from vehicle_event
-    for vehicle_event in scenario.events["vehicle_events"]:
-        timestep = get_timestep_from_datetime(scenario, vehicle_event["start_time"])
+    for vehicle_event in simba_scenario.events.vehicle_events:
+        timestep = get_timestep_from_datetime(simba_scenario, vehicle_event.start_time)
         event_dict = {
+            "scenario": db_scenario,
             "timestep": timestep,
-            "timestamp": vehicle_event["start_time"],
-            "event_type": vehicle_event["event_type"],  # arrival or departure
-            "vehicle_id": vehicle_event["vehicle_id"]
+            "timestamp": vehicle_event.start_time,
+            "event_type": vehicle_event.event_type,  # arrival or departure
+            "vehicle": vehicle_dict[vehicle_event.vehicle_id]
         }
         if event_dict["event_type"] == "arrival":
-            event_dict["connected_charging_station"] = vehicle_event["update"]["connected_charging_station"]
+            event_dict["connected_charging_station"] = vehicle_event.update["connected_charging_station"]
             event_dict["event_type"] = "parking" if event_dict["connected_charging_station"] is None else "charging"
         else:
             event_dict["event_type"] = "driving"
 
         # grab current vehicle SoC at timestep
-        event_dict["soc"] = scenario.vehicle_socs[event_dict["vehicle_id"]][timestep]
+        event_dict["soc"] = simba_scenario.vehicle_socs[event_dict["vehicle"].name][timestep]
 
         # TODO get the location. maybe via schedule? SpiceEV only tracks location if connected to a charger
 
-        all_events_dict[vehicle_event["vehicle_id"]].append(event_dict)
+        all_events_dict[vehicle_event.vehicle_id].append(event_dict)
 
     # sort the lists by timestep
     for vehicle_type, event_list in all_events_dict.items():
