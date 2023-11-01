@@ -43,7 +43,7 @@ class UploadFileForm(forms.Form):
     strategy = forms.CharField(
         widget=forms.Select(choices=[("distributed", "distributed")]), initial="distributed"
     )
-    interval = forms.DecimalField(initial=15)
+    interval = forms.DecimalField(initial=1)
     signal_time_dif = forms.DecimalField(initial=10)
     days = forms.IntegerField(required=False)
     include_price_csv = forms.FileField(required=False)
