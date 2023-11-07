@@ -1,5 +1,4 @@
 import collections
-import dataclasses
 import json
 from copy import deepcopy, copy
 from argparse import Namespace
@@ -587,7 +586,9 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
     run_simba(schedule, args, task_id, report_dir=report_dir, eflips_input=eflips_dataclass_list)
 
 
-def run_simba(schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "report"), eflips_input=None):
+def run_simba(
+    schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "report"), eflips_input=None
+):
     # TODO don't overwrite output on multiple function calls
     args.attach_vehicle_soc = True
 
@@ -649,7 +650,9 @@ def run_simba(schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "re
         )
         input_for_eflips[db_rotation.id]["vehicle_type"].append(vehicle_type_db.id)
         vehicle = schedule.vehicle_types[rotation.vehicle_type][rotation.charging_type]
-        input_for_eflips[db_rotation.id]["delta_soc"].append(rotation.consumption / vehicle["capacity"])
+        input_for_eflips[db_rotation.id]["delta_soc"].append(
+            rotation.consumption / vehicle["capacity"]
+        )
 
     for rot_id, rotation in schedule.rotations.items():
         if rotation.charging_type != "oppb":
