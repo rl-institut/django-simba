@@ -600,6 +600,10 @@ def run_simba(schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "re
         schedule.stations[key]["cs_power_deps_oppb"] = 0
 
     if eflips_input is not None:
+        # TODO same for vehicle types (use short name)
+        for obj in eflips_input:
+            rotation = Rotation.objects.get(id=obj.rotation_id)
+            obj.rotation_id = rotation.name
         schedule.assign_vehicles_for_django(eflips_input)
 
     scenario = schedule.run(args)
