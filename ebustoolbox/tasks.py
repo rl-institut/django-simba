@@ -580,7 +580,9 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
     eflips_dataclass_list = run_eflips(Path(report_dir, "eflips_input.json"), task_id)
 
     # set report dir for second iteration/final results
-    report_dir = Path(settings.BASE_DIR, args.output_directory, "report_2")
+    # report_dir = Path(settings.BASE_DIR, args.output_directory, "report_2")
+    # TODO: currently report_directory is set in simba internally and is always report_1 for current purposes
+    # (number changes by the amount of reports in the same fun of SimBA)
     # call simba with eflips results
     run_simba(schedule, args, task_id, report_dir=report_dir, eflips_input=eflips_dataclass_list)
 
@@ -602,8 +604,15 @@ def run_simba(schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "re
     if eflips_input is not None:
         # TODO same for vehicle types (use short name)
         for obj in eflips_input:
+            # SimBA doesn't work with the DB IDs, instead it needs the object names
             rotation = Rotation.objects.get(id=obj.rotation_id)
             obj.rotation_id = rotation.name
+            vehicle_type = VehicleType.objects.get(id=obj.vehicle_type_id)
+            obj.vehicle_type_id = vehicle_type.name_short
+            obj.vehicle_type_id += "_oppb" if vehicle_type.flex_charging else "_depb"
+            v_id = obj.vehicle_id.split(" ")[1]
+            obj.vehicle_id = f"{obj.vehicle_type_id}_{v_id}"
+
         schedule.assign_vehicles_for_django(eflips_input)
 
     scenario = schedule.run(args)
@@ -619,7 +628,7 @@ def run_simba(schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "re
         )
 
     # initialize eflips input
-    eflips_input = {
+    input_for_eflips = {
         Rotation.objects.get(scenario=db_scenario, name=rot_id).id: dict_creator()
         for rot_id in schedule.rotations
     }
@@ -629,7 +638,7 @@ def run_simba(schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "re
     for rotation in vary_depot_rotations(schedule):
         rotation.calculate_consumption()
         db_rotation = Rotation.objects.get(scenario=db_scenario, name=rotation.id)
-        eflips_input[db_rotation.id].update(
+        input_for_eflips[db_rotation.id].update(
             departure_soc=schedule.min_recharge_deps_depb,
             charging_type="depb",
         )
@@ -638,9 +647,9 @@ def run_simba(schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "re
             name_short=rotation.vehicle_type,
             flex_charging=(rotation.charging_type == "oppb"),
         )
-        eflips_input[db_rotation.id]["vehicle_type"].append(vehicle_type_db.id)
+        input_for_eflips[db_rotation.id]["vehicle_type"].append(vehicle_type_db.id)
         vehicle = schedule.vehicle_types[rotation.vehicle_type][rotation.charging_type]
-        eflips_input[db_rotation.id]["delta_soc"].append(rotation.consumption / vehicle["capacity"])
+        input_for_eflips[db_rotation.id]["delta_soc"].append(rotation.consumption / vehicle["capacity"])
 
     for rot_id, rotation in schedule.rotations.items():
         if rotation.charging_type != "oppb":
@@ -660,7 +669,7 @@ def run_simba(schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "re
             flex_charging=True,
         )
 
-        eflips_input[db_rotation.id] = dict(
+        input_for_eflips[db_rotation.id] = dict(
             departure_soc=rot_soc[0],
             arrival_soc=rot_soc[-1],
             minimal_soc=min(rot_soc),
@@ -673,7 +682,7 @@ def run_simba(schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "re
     db_scenario.save()
     # Create the file for eflips. This could be passed directly to eFlips by returning eflips_input
     with open(Path(report_dir, "eflips_input.json"), "w") as f:
-        json.dump(eflips_input, f, indent=4)
+        json.dump(input_for_eflips, f, indent=4)
 
     file_path = Path(report_dir, "vehicle_socs.csv")
     save_vehicle_properties_from_file(file_path, db_scenario)
