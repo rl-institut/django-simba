@@ -2,6 +2,7 @@ import collections
 import json
 from copy import deepcopy, copy
 from argparse import Namespace
+from typing import List
 
 from django.utils import timezone
 from django.contrib.gis.geos import GEOSGeometry
@@ -43,7 +44,7 @@ from simba.schedule import Schedule as SimbaSchedule
 import eflips.depot.api.django_simba.input as eflips_api
 from eflips.depot.api.django_simba.input import VehicleType as EflipsVehicleType
 from eflips.depot.api import init_simulation, run_simulation
-from eflips.depot.api.django_simba.output import to_simba
+from eflips.depot.api.django_simba.output import to_simba, InputForSimba
 
 # ToDo: Any better solutions?
 INTEGER_INF = 9999
@@ -576,7 +577,7 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
     report_dir = Path(settings.BASE_DIR, args.output_directory, "report_1")
     # call simba and eflips
     run_simba(schedule, args, task_id, report_dir=report_dir)
-    eflips_dataclass_list = run_eflips(Path(report_dir, "eflips_input.json"), task_id)
+    eflips_dataclass_list: List[InputForSimba] = run_eflips(Path(report_dir, "eflips_input.json"), task_id)
 
     # set report dir for second iteration/final results
     # report_dir = Path(settings.BASE_DIR, args.output_directory, "report_2")
@@ -587,7 +588,7 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
 
 
 def run_simba(
-    schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "report"), eflips_input=None
+    schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "report"), eflips_input: List[InputForSimba] | None = None
 ):
     # TODO don't overwrite output on multiple function calls
     args.attach_vehicle_soc = True
