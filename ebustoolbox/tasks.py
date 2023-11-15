@@ -577,7 +577,7 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
     report_dir = Path(settings.BASE_DIR, args.output_directory, "report_1")
     # call simba and eflips
     run_simba(schedule, args, task_id, report_dir=report_dir)
-    eflips_dataclass_list: List[InputForSimba] = run_eflips(Path(report_dir, "eflips_input.json"), task_id)
+    eflips_dataclass_list: List[InputForSimba] = run_eflips(report_dir, task_id)
 
     # set report dir for second iteration/final results
     # report_dir = Path(settings.BASE_DIR, args.output_directory, "report_2")
@@ -692,7 +692,8 @@ def run_simba(
     save_vehicle_properties_from_file(file_path, db_scenario)
 
 
-def run_eflips(eflips_input_path, task_id):
+def run_eflips(report_dir, task_id):
+    eflips_input_path = Path(report_dir, "eflips_input.json")
     db_scenario = Scenario.objects.get(task_id=task_id)
     # START eFLIPS API CALL
     vehicle_schedule_list = eflips_api.VehicleSchedule.from_rotations(eflips_input_path)
@@ -708,6 +709,28 @@ def run_eflips(eflips_input_path, task_id):
 
     # Run the simulation
     depot_evaluation = run_simulation(simulation_host)
+
+    # Save a plot to the report_dir
+    depot_evaluation.path_results = report_dir
+
+    depot_evaluation.vehicle_periods(
+        periods={
+                "depot general": "darkgray",
+                "park": "lightgray",
+                "Arrival Cleaning": "steelblue",
+                "Charging": "forestgreen",
+                "Standby Pre-departure": "darkblue",
+                "precondition": "black",
+                "trip": "wheat",
+        },
+        save=True,
+        show=False,
+        formats=(
+            "png",
+        ),
+        show_total_power=True,
+        show_annotates=True,
+    )
 
     # Save the results to a folder
     output_for_simba = to_simba(depot_evaluation)
