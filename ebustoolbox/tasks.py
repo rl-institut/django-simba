@@ -707,7 +707,12 @@ def run_eflips(report_dir, task_id):
     # Initialize the simulation
     simulation_host = init_simulation(vehicle_types, vehicle_schedule_list)
 
-    # Run the simulation
+    # Run the simulation the first time to find exact vehicle counts
+    depot_evaluation = run_simulation(simulation_host)
+
+    # Run the simulation the second time to get the results
+    vehicle_counts = depot_evaluation.nvehicles_used_calculation()
+    simulation_host = init_simulation(vehicle_types, vehicle_schedule_list, vehicle_counts)
     depot_evaluation = run_simulation(simulation_host)
 
     # Save a plot to the report_dir
