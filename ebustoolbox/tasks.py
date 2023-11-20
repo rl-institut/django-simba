@@ -181,7 +181,7 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
             "capacity": vehicle_type.battery_capacity,
             "charging_curve": vehicle_type.charging_curve,
             "min_charging_power": vehicle_type.minimum_charging_power,
-            "v2g": vehicle_type.v2g,
+            "v2g": (vehicle_type.v2g_curve is not None),
             # ToDo use vehicle to grid curve
             # vehicle_to_grid_curve ....
             "mileage": vehicle_type.consumption,
@@ -421,7 +421,6 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
                 minimum_charging_power=charge_type.get("min_charging_power"),
                 charging_curve=charge_type["charging_curve"],
                 v2g_curve=charge_type.get("v2g_curve", None),
-                v2g=charge_type.get("v2g", False),
                 consumption=consumption,
                 length=float(charge_type.get("length", 0)),
             )
