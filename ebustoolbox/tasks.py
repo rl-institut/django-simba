@@ -139,7 +139,7 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
     for rot in Rotation.objects.filter(scenario=django_scenario):
         vehicle_type = rot.vehicle.vehicle_type.name_short
         simba_rotation = SimbaRotation(id=rot.name, vehicle_type=vehicle_type, schedule=schedule)
-        simba_rotation.charging_type = "depb" if rot.is_depot_rotation else "oppb"
+        simba_rotation.charging_type = "oppb" if rot.allow_opportunity_charging else "depb"
 
         rotations[rot.name] = simba_rotation
         for trip in Trip.objects.filter(rotation=rot):
@@ -374,7 +374,7 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
         r = Rotation(
             name=key,
             scenario=django_scenario,
-            is_depot_rotation=not flex_charging,
+            allow_opportunity_charging=flex_charging,
             vehicle=vehicle,
         )
         r.id = rot_id
