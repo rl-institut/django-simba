@@ -109,7 +109,7 @@ class Rotation(models.Model):
     # SimBA specific data to make SimBA simulations reproducible
     #
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_DEFAULT, default=None, null=True)
-    is_depot_rotation = models.BooleanField(default=None, null=True)
+    allow_opportunity_charging = models.BooleanField(default=None, null=True)
 
 
 class Station(models.Model):
@@ -156,6 +156,9 @@ class Trip(models.Model):
     )
     arrival_time = models.DateTimeField(blank=False)
     distance = models.FloatField()
+
+    # Is the Trip empty, i.e., without passengers
+    empty = models.BooleanField(default=False)
 
     # ToDo do we want a line object?
     line = models.CharField(max_length=100, blank=True, null=True)
