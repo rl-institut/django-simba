@@ -21,7 +21,6 @@ from selenium import webdriver
 from .models import (
     Scenario,
     UploadedFile,
-    VehicleClass,
     VehicleType,
     Vehicle,
     Rotation,
@@ -393,12 +392,8 @@ class ModelTests(TestCase):
         uploaded_file = UploadedFile.objects.create(scenario=scenario, file="test.txt")
         self.assertEqual(str(uploaded_file.file), "test.txt")
 
-    def test_vehicle_class_creation(self):
-        _ = VehicleClass.objects.create(name="Test Class")
-
     def test_vehicle_type_creation(self):
         scenario = Scenario.objects.create(name="Test Scenario")
-        vehicle_class = VehicleClass.objects.create(name="Test Class")
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
@@ -407,14 +402,10 @@ class ModelTests(TestCase):
             battery_capacity=100,
             charging_efficiency=0.95,
         )
-        vehicle_type.vehicle_class.add(vehicle_class)
-        vehicle_class = VehicleClass.objects.create(name="Other Class")
-        vehicle_type.vehicle_class.add(vehicle_class)
         self.assertEqual(str(vehicle_type.name), "Test Type")
 
     def test_vehicle_creation(self):
         scenario = Scenario.objects.create(name="Test Scenario")
-        vehicle_class = VehicleClass.objects.create(name="Test Class")
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
@@ -423,16 +414,12 @@ class ModelTests(TestCase):
             battery_capacity=100,
             charging_efficiency=0.95,
         )
-        vehicle_type.vehicle_class.add(vehicle_class)
         vehicle = Vehicle.objects.create(name="Test Vehicle", vehicle_type=vehicle_type)
         self.assertEqual(str(vehicle), "Test Vehicle")
 
     def test_rotation_creation(self):
         scenario = Scenario.objects.create(name="Test Scenario")
-        vehicle_class = VehicleClass.objects.create(name="Test Class", scenario=scenario)
-        rotation = Rotation.objects.create(
-            name="Test Rotation", vehicle_class=vehicle_class, scenario=scenario
-        )
+        rotation = Rotation.objects.create(name="Test Rotation", scenario=scenario)
         self.assertEqual(str(rotation.name), "Test Rotation")
 
     def test_station_creation(self):
@@ -444,10 +431,7 @@ class ModelTests(TestCase):
 
     def test_trip_creation(self):
         scenario = Scenario.objects.create(name="Test Scenario")
-        vehicle_class = VehicleClass.objects.create(name="Test Class", scenario=scenario)
-        rotation = Rotation.objects.create(
-            name="Test Rotation", vehicle_class=vehicle_class, scenario=scenario
-        )
+        rotation = Rotation.objects.create(name="Test Rotation", scenario=scenario)
         departure_station = Station.objects.create(
             geom="POINT(0 0 0)", name="Departure Station", scenario=scenario
         )
