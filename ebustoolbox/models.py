@@ -61,16 +61,15 @@ class VehicleType(models.Model):
 
     name = models.CharField(max_length=100, blank=False)
     name_short = models.CharField(max_length=100, blank=False, default=name)
-    flex_charging = models.BooleanField()
+    opportunity_charging_capable = models.BooleanField()
     battery_capacity = models.FloatField()
+    battery_reserve_capacity = models.FloatField(default=0)
     charging_efficiency = models.FloatField(default=0.95)
     minimum_charging_power = models.FloatField(default=0)
 
     # SOC, ChargingPower
     charging_curve = ArrayField(ArrayField(models.FloatField(), size=2))
     v2g_curve = ArrayField(ArrayField(models.FloatField(), size=2), null=True)
-
-    v2g = models.BooleanField(default=False)
 
     # TODO link to consumption table if no value is given here?
     consumption = models.FloatField(default=None, null=True)
