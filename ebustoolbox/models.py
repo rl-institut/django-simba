@@ -141,8 +141,22 @@ class Station(models.Model):
         )
 
 
+class Route(models.Model):
+    # Shape of the route with height data
+    geom = models.LineStringField(dim=3, srid=4326, null=True)
+
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+
+
+class Line(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    route = models.ForeignKey(Route, null=True, on_delete=models.CASCADE)
+    name = models.TextField(default=None, null=True, blank=True)
+
+
 class Trip(models.Model):
     scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    route = models.ForeignKey(Route, null=True, on_delete=models.CASCADE)
 
     rotation = models.ForeignKey(
         Rotation, on_delete=models.CASCADE
