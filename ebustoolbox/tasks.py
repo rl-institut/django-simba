@@ -71,23 +71,7 @@ def input_files_to_database(cleaned_data: dict, request: HttpRequest):
     # Write the schedule including rotations and trips to the DB
     schedule_to_db(simba_schedule, django_scenario)
 
-    add_classes_to_vehicle_types(django_scenario)
-
     return django_scenario, simba_schedule, original_args
-
-
-@atomic()
-def add_classes_to_vehicle_types(django_scenario):
-    for c_class in VehicleClass.objects.filter(scenario=django_scenario):
-        short_names = c_class.name.split(",")
-        v_types = [
-            v_type
-            for name in short_names
-            for v_type in VehicleType.objects.filter(scenario=django_scenario, name_short=name)
-        ]
-        for v_type in v_types:
-            v_type.vehicle_class.add(c_class)
-            v_type.save()
 
 
 def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Schedule, Namespace]:
