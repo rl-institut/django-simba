@@ -103,7 +103,7 @@ CELERY_USE = env("CELERY_USE", default="False").lower() == "true"
 if CELERY_USE:
     assert CELERY_BROKER_URL, (
         "CELERY_BROKER_URL is missing from .env file. If celery should be"
-        "used this URL has to provided"
+        "used, this URL has to be provided"
     )
 
 
