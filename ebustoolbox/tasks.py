@@ -26,7 +26,6 @@ from .models import (
     UploadedFile,
     Station,
     VehicleType,
-    VehicleClass,
     Rotation,
     Trip,
     Scenario,
@@ -138,10 +137,7 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
     rotations = {}
     for rot in Rotation.objects.filter(scenario=django_scenario):
         vehicle_type = rot.vehicle.vehicle_type.name_short
-        vehicle_class = {vt.name_short for vt in rot.vehicle_class.vehicletype_set.all()}
-        simba_rotation = SimbaRotation(
-            id=rot.name, vehicle_type=vehicle_type, schedule=schedule, vehicle_class=vehicle_class
-        )
+        simba_rotation = SimbaRotation(id=rot.name, vehicle_type=vehicle_type, schedule=schedule)
         simba_rotation.charging_type = "depb" if rot.is_depot_rotation else "oppb"
 
         rotations[rot.name] = simba_rotation
@@ -368,10 +364,6 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
     station_dict = Station.objects.filter(scenario=django_scenario)
     station_dict = {station.name: station for station in station_dict}
     for key, rot in tqdm.tqdm(schedule.rotations.items(), total=len(schedule.rotations)):
-        vehicle_class, _ = VehicleClass.objects.get_or_create(
-            name=",".join(rot.vehicle_class), scenario=django_scenario
-        )
-
         flex_charging = rot.charging_type == "oppb"
         vehicletype = VehicleType.objects.get(
             scenario=django_scenario, name_short=rot.vehicle_type, flex_charging=flex_charging
@@ -380,7 +372,6 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
         vehicle = Vehicle.objects.create(vehicle_type=vehicletype, name="Placeholder Vehicle")
         r = Rotation(
             name=key,
-            vehicle_class=vehicle_class,
             scenario=django_scenario,
             is_depot_rotation=not flex_charging,
             vehicle=vehicle,
