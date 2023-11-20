@@ -538,7 +538,7 @@ def _celery_run_ebus_toolbox(self, args, task_id):
     _run_ebus_toolbox(schedule, args, task_id)
 
 
-def vary_depot_rotations(schedule) -> "collections.Iterable[simba.rotation.Rotation]":
+def vary_depot_rotations(schedule) -> "collections.Iterable[SimbaRotation]":
     """Generator that creates schedules with varying vehicle types for"""
     # Keep original rotations to restore them later and keep track of depot rotations
     orig_rotations = deepcopy(schedule.rotations)
@@ -549,22 +549,22 @@ def vary_depot_rotations(schedule) -> "collections.Iterable[simba.rotation.Rotat
         if rotation.charging_type == "depb"
     }
     for rot_id, rotation in depot_rotations.items():
-        for vt in rotation.vehicle_class:
-            for charging_type in ["depb", "oppb"]:
-                # Skip rotation with combination of charging type of this vehicle exists
-                try:
-                    schedule.vehicle_types[vt][charging_type]
-                except KeyError:
-                    continue
-                # in case of a depot rotation, the vehicle type is adjusted and both
-                # charging types are used, even the "oppb". This way calculate_consumption() also
-                # calculates the "non-charging" consumption of a depot rotation which is run with
-                # an opportunity bus.
-                if orig_rotations[rot_id].charging_type == "depb":
-                    # Charging type is mutated, since this is used to determine the exact vehicle
-                    schedule.rotations[rot_id].charging_type = charging_type
-                    schedule.rotations[rot_id].vehicle_type = vt
-                    yield schedule.rotations[rot_id]
+        vt = rotation.vehicle_type
+        for charging_type in ["depb", "oppb"]:
+            # Skip rotation with a vehicle type / charging type combination, if it does not exist
+            try:
+                schedule.vehicle_types[vt][charging_type]
+            except KeyError:
+                continue
+            # in case of a depot rotation, the vehicle type is adjusted and both
+            # charging types are used, even the "oppb". This way calculate_consumption() also
+            # calculates the "non-charging" consumption of a depot rotation which is run with
+            # an opportunity bus.
+            if orig_rotations[rot_id].charging_type == "depb":
+                # Charging type is mutated, since this is used to determine the exact vehicle
+                schedule.rotations[rot_id].charging_type = charging_type
+                schedule.rotations[rot_id].vehicle_type = vt
+                yield schedule.rotations[rot_id]
     # Restore rotations before leaving generator
     schedule.rotations = orig_rotations
 
