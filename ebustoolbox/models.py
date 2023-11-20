@@ -56,7 +56,7 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
 
 
 class VehicleType(models.Model):
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
 
     name = models.CharField(max_length=100, blank=False)
     name_short = models.CharField(max_length=100, blank=False, default=name)
@@ -77,7 +77,7 @@ class VehicleType(models.Model):
 
 
 class Vehicle(models.Model):
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
 
     name = models.CharField(max_length=100, blank=False)
     vehicle_type = models.ForeignKey(VehicleType, on_delete=models.CASCADE, null=True, blank=True)
@@ -93,7 +93,7 @@ class Vehicle(models.Model):
 
 # ToDo Deprecated
 class VehicleProperties(models.Model):
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
 
     date = models.DateTimeField()
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
@@ -110,10 +110,10 @@ class EbusToolboxTimeseries(models.Model):
 
 
 class Rotation(models.Model):
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
 
     name = models.CharField(max_length=100, blank=False)
-    vehicle_type = models.ForeignKey(VehicleType, on_delete=models.CASCADE)
+    vehicle_type = models.ForeignKey(VehicleType, null=True, blank=True, on_delete=models.CASCADE)
 
     # SimBA specific data to make SimBA simulations reproducible
     #
@@ -126,7 +126,7 @@ class Station(models.Model):
     geom = models.PointField(dim=3, srid=4326)  # with z elevation
     name = models.TextField()
 
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
 
     VOLTAGE_LEVEL_CHOICES = ["HV", "HV/MV", "MV", "MV/LV", "LV"]
     CHARGE_TYPES = (("oppb", "Opportunity"), ("depb", "Depot"))
@@ -151,7 +151,7 @@ class Station(models.Model):
 
 
 class Trip(models.Model):
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
 
     rotation = models.ForeignKey(
         Rotation, on_delete=models.CASCADE
