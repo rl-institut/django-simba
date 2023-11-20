@@ -199,7 +199,8 @@ class WriteReadScenarioToDatabase(TestCase):
         simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
 
         for sched in [simba_schedule, simba_schedule_db]:
-            sched.rotations["1"].trips[0].calculate_consumption()
+            for rot in sched.rotations.values():
+                rot.calculate_consumption()
         for key, value in vars(args).items():
             # Some values don't need to be part of the args. Relative and absolute Paths are also
             # ignored
