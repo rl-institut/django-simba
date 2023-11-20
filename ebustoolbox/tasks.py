@@ -370,7 +370,9 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
             scenario=django_scenario, name_short=rot.vehicle_type, flex_charging=flex_charging
         )
         # ToDo Replace dummy vehicles with properly generated vehicles from SimBA or eFlips
-        vehicle = Vehicle.objects.create(vehicle_type=vehicletype, name="Placeholder Vehicle")
+        vehicle = Vehicle.objects.create(
+            vehicle_type=vehicletype, scenario=django_scenario, name="Placeholder Vehicle"
+        )
         r = Rotation(
             name=key,
             scenario=django_scenario,
@@ -383,6 +385,7 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
         for trip in rot.trips:
             t = Trip(
                 rotation=r,
+                scenario=django_scenario,
                 departure_stop=station_dict[trip.departure_name],
                 departure_time=make_aware(trip.departure_time),
                 arrival_stop=station_dict[trip.arrival_name],
