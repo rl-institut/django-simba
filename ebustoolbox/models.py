@@ -55,26 +55,11 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
             path.unlink()
 
 
-class VehicleClass(models.Model):
-    name = models.CharField(max_length=100, blank=False)
-    # Connect to scenario, so the class is deleted when the scenario is deleted
-    scenario = models.ForeignKey(
-        Scenario, default=Scenario.get_default_pk, on_delete=models.CASCADE
-    )
-
-    @classmethod
-    def get_default_pk(cls):
-        vehicle_class, created = cls.objects.get_or_create(
-            name="SB",
-        )
-        return vehicle_class.pk
-
-
 class VehicleType(models.Model):
+    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+
     name = models.CharField(max_length=100, blank=False)
     name_short = models.CharField(max_length=100, blank=False, default=name)
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
-    vehicle_class = models.ManyToManyField(VehicleClass)
     flex_charging = models.BooleanField()
     battery_capacity = models.FloatField()
     charging_efficiency = models.FloatField(default=0.95)
@@ -92,6 +77,8 @@ class VehicleType(models.Model):
 
 
 class Vehicle(models.Model):
+    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+
     name = models.CharField(max_length=100, blank=False)
     vehicle_type = models.ForeignKey(VehicleType, on_delete=models.CASCADE, null=True, blank=True)
 
@@ -106,10 +93,11 @@ class Vehicle(models.Model):
 
 # ToDo Deprecated
 class VehicleProperties(models.Model):
+    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+
     date = models.DateTimeField()
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
     soc = models.FloatField(null=True)
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
 
 
 # ToDo Deprecated
@@ -122,12 +110,10 @@ class EbusToolboxTimeseries(models.Model):
 
 
 class Rotation(models.Model):
-    name = models.CharField(max_length=100, blank=False)
-    # TODO on delete concept? also depends on if vehicle class is tied to scenario
-    vehicle_class = models.ForeignKey(
-        VehicleClass, on_delete=models.SET_DEFAULT, default=VehicleClass.get_default_pk
-    )
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+
+    name = models.CharField(max_length=100, blank=False)
+    vehicle_type = models.ForeignKey(VehicleType, on_delete=models.CASCADE)
 
     # SimBA specific data to make SimBA simulations reproducible
     #
@@ -165,6 +151,8 @@ class Station(models.Model):
 
 
 class Trip(models.Model):
+    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+
     rotation = models.ForeignKey(
         Rotation, on_delete=models.CASCADE
     )  # TODO do all ForeignKeys need cascade?
