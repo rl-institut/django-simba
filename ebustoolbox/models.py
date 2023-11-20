@@ -204,3 +204,19 @@ class Trip(models.Model):
 
         Minimal value for distance is set to 1 to avoid division by 0."""
         return (self.arrival_stop.geom.z - self.departure_stop.geom.z) / max(self.distance, 1)
+
+
+class StopTime(models.Model):
+    """Intermediate stops of trips,
+    which are not described by the arrival or departure of the trip"""
+
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+
+    # When does the trip arrive at this station
+    arrival_time = models.DateTimeField()
+
+    # How long does the trip stop at this station
+    duration = models.DurationField()
+
+    trip = models.ForeignKey(Trip, on_delete=models.CASCADE)
+    station = models.ForeignKey(Station, on_delete=models.CASCADE)
