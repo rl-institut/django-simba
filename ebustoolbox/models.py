@@ -30,7 +30,7 @@ def auto_delete_results_on_delete(sender, instance, **kwargs):
     """Delete the scenario results folder if the scenario is deleted from the database
 
     :param sender: Model which sends signal
-    :param instance: instance of model which gets deleted
+    :param instance: instance of a model which gets deleted
     :param kwargs: other arguments
     :return:
     """
@@ -98,15 +98,6 @@ class VehicleProperties(models.Model):
     date = models.DateTimeField()
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
     soc = models.FloatField(null=True)
-
-
-# ToDo Deprecated
-class EbusToolboxTimeseries(models.Model):
-    date = models.DateTimeField(default=None)
-    soc = models.FloatField()
-
-    class Meta:
-        ordering = ("date",)
 
 
 class Rotation(models.Model):
