@@ -273,3 +273,50 @@ class StopTime(models.Model):
 
     trip = models.ForeignKey(Trip, on_delete=models.CASCADE)
     station = models.ForeignKey(Station, on_delete=models.CASCADE)
+
+
+class Area(models.Model):
+    pass
+
+
+class Event(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    vehicle_type = models.ForeignKey(VehicleType, null=True, on_delete=models.CASCADE)
+    vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE)
+
+    #
+    station = models.ForeignKey(Station, null=True, on_delete=models.CASCADE)
+    trip = models.ForeignKey(Trip, null=True, on_delete=models.CASCADE)
+    area = models.ForeignKey(Area, null=True, on_delete=models.CASCADE)
+
+    subloc_no = models.IntegerField(null=True, blank=True)
+    time_start = models.DateTimeField()
+    time_end = models.DateTimeField()
+
+    soc_start = models.FloatField()
+    soc_end = models.FloatField()
+
+    timeseries = models.JSONField(default=dict)
+
+    def save(self, *args, **kwargs):
+        # Exactly one of the following has to be non-null
+        if (self.station is not None) + (self.trip is not None) + (self.area is not None) != 1:
+            raise AttributeError(
+                "An Event can only have ONE of the following Attributes.\n" "Station\nTrip\nArea"
+            )
+        mandatory_fields = ["time", "soc"]
+        for f in mandatory_fields:
+            if f not in self.timeseries.keys():
+                raise AttributeError(
+                    f"A dictionary key of {f} with values of {f} has to be "
+                    f"provided to the json field timeseries."
+                )
+
+        data_length = len(self.timeseries[mandatory_fields[0]])
+        for f in mandatory_fields:
+            if len(self.timeseries[f]) != data_length:
+                raise AttributeError(
+                    f"The timeseries of {mandatory_fields[0]} and {f} have "
+                    f"different lengths which is not allowed"
+                )
+        super().save(*args, **kwargs)
