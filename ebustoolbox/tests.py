@@ -109,7 +109,7 @@ def cast_to_dict(objects: Iterable):
     return [vars(obj) for obj in objects]
 
 
-def objects_digger(objects, early_return=True, key_stack=None, instance_stack=None):  # noqa: C901
+def objects_digger(objects, early_return=True, key_stack=None, instance_stack=None):
     """Digs through objects and yields key_stack and 'primitive' data suited for comparison
 
     The key_stack contains the keys of objects along the object path, e.g. an object
@@ -275,7 +275,7 @@ class WriteReadScenarioToDatabase(TestCase):
         """Test if a change in the database values results in changes in the schedule and scenario
 
         The database could contain data which has no effect on the simulation. To make sure the data
-        is used in the simulation the database is changed and the resulting schedule and scenario
+        is used in the simulation, the database is changed and the resulting schedule and scenario
         are compared to the original unchanged schedule and scenario. The test fails if the tested
         variations do not lead to differences. The differences are not checked for plausibility but
         only for their occurrence.
