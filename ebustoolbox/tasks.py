@@ -588,8 +588,11 @@ def _run_ebus_toolchain(schedule: "simba.schedule.Schedule", args, task_id):
 
 
 def run_simba(
-    schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "report"),
-    eflips_input: List[InputForSimba] | None = None
+    schedule: "SimbaSchedule",
+    args,
+    task_id,
+    report_dir=Path(".", "report"),
+    eflips_input: List[InputForSimba] | None = None,
 ):
     # TODO don't overwrite output on multiple function calls
     args.attach_vehicle_soc = True
@@ -721,19 +724,17 @@ def run_eflips(report_dir, task_id):
 
     depot_evaluation.vehicle_periods(
         periods={
-                "depot general": "darkgray",
-                "park": "lightgray",
-                "Arrival Cleaning": "steelblue",
-                "Charging": "forestgreen",
-                "Standby Pre-departure": "darkblue",
-                "precondition": "black",
-                "trip": "wheat",
+            "depot general": "darkgray",
+            "park": "lightgray",
+            "Arrival Cleaning": "steelblue",
+            "Charging": "forestgreen",
+            "Standby Pre-departure": "darkblue",
+            "precondition": "black",
+            "trip": "wheat",
         },
         save=True,
         show=False,
-        formats=(
-            "png",
-        ),
+        formats=("png",),
         show_total_power=True,
         show_annotates=True,
     )
