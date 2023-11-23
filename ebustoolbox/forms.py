@@ -7,7 +7,8 @@ class UploadFileForm(forms.Form):
     title = forms.CharField(max_length=50, initial="SimBA")
     # task_id = forms.CharField(widget=forms.HiddenInput, required=False)
     preferred_charging_type = forms.CharField(
-        widget=forms.RadioSelect(choices=EnumChargeType.choices), initial=EnumChargeType.choices[0]
+        widget=forms.RadioSelect(choices=EnumChargeType.choices),
+        initial=EnumChargeType.choices[0][0],
     )
     modes = forms.CharField(widget=forms.HiddenInput, initial="sim,report")
 
