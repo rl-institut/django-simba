@@ -2,6 +2,7 @@ import collections
 import json
 from copy import deepcopy, copy
 from argparse import Namespace
+from typing import List
 
 from django.utils import timezone
 from django.contrib.gis.geos import GEOSGeometry
@@ -43,7 +44,7 @@ from simba.schedule import Schedule as SimbaSchedule
 import eflips.depot.api.django_simba.input as eflips_api
 from eflips.depot.api.django_simba.input import VehicleType as EflipsVehicleType
 from eflips.depot.api import init_simulation, run_simulation
-from eflips.depot.api.django_simba.output import to_simba
+from eflips.depot.api.django_simba.output import to_simba, InputForSimba
 
 # ToDo: Any better solutions?
 INTEGER_INF = 9999
@@ -576,7 +577,7 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
     report_dir = Path(settings.BASE_DIR, args.output_directory, "report_1")
     # call simba and eflips
     run_simba(schedule, args, task_id, report_dir=report_dir)
-    eflips_dataclass_list = run_eflips(Path(report_dir, "eflips_input.json"), task_id)
+    eflips_dataclass_list: List[InputForSimba] = run_eflips(report_dir, task_id)
 
     # set report dir for second iteration/final results
     # report_dir = Path(settings.BASE_DIR, args.output_directory, "report_2")
@@ -587,7 +588,7 @@ def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
 
 
 def run_simba(
-    schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "report"), eflips_input=None
+    schedule: "SimbaSchedule", args, task_id, report_dir=Path(".", "report"), eflips_input: List[InputForSimba] | None = None
 ):
     # TODO don't overwrite output on multiple function calls
     args.attach_vehicle_soc = True
@@ -691,7 +692,8 @@ def run_simba(
     save_vehicle_properties_from_file(file_path, db_scenario)
 
 
-def run_eflips(eflips_input_path, task_id):
+def run_eflips(report_dir, task_id):
+    eflips_input_path = Path(report_dir, "eflips_input.json")
     db_scenario = Scenario.objects.get(task_id=task_id)
     # START eFLIPS API CALL
     vehicle_schedule_list = eflips_api.VehicleSchedule.from_rotations(eflips_input_path)
@@ -705,8 +707,35 @@ def run_eflips(eflips_input_path, task_id):
     # Initialize the simulation
     simulation_host = init_simulation(vehicle_types, vehicle_schedule_list)
 
-    # Run the simulation
+    # Run the simulation the first time to find exact vehicle counts
     depot_evaluation = run_simulation(simulation_host)
+
+    # Run the simulation the second time to get the results
+    vehicle_counts = depot_evaluation.nvehicles_used_calculation()
+    simulation_host = init_simulation(vehicle_types, vehicle_schedule_list, vehicle_counts)
+    depot_evaluation = run_simulation(simulation_host)
+
+    # Save a plot to the report_dir
+    depot_evaluation.path_results = report_dir
+
+    depot_evaluation.vehicle_periods(
+        periods={
+                "depot general": "darkgray",
+                "park": "lightgray",
+                "Arrival Cleaning": "steelblue",
+                "Charging": "forestgreen",
+                "Standby Pre-departure": "darkblue",
+                "precondition": "black",
+                "trip": "wheat",
+        },
+        save=True,
+        show=False,
+        formats=(
+            "png",
+        ),
+        show_total_power=True,
+        show_annotates=True,
+    )
 
     # Save the results to a folder
     output_for_simba = to_simba(depot_evaluation)
