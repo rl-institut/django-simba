@@ -99,7 +99,7 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
     # setup consumption calculator that can be accessed by all trips
     simba.trip.Trip.consumption = Consumption(vehicle_types)
 
-    options = copy(django_scenario.options)
+    options = copy(django_scenario.simba_options)
 
     del options["electrified_stations"]
     del options["vehicle_types"]
@@ -145,15 +145,15 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
         for trip in Trip.objects.filter(rotation=rot):
             simba_trip_dict = {
                 "departure_time": str(trip.departure_time),
-                "departure_name": trip.departure_stop.name,
+                "departure_name": trip.departure_station.name,
                 "arrival_time": str(trip.arrival_time),
-                "arrival_name": trip.arrival_stop.name,
+                "arrival_name": trip.arrival_station.name,
                 "distance": trip.distance,
                 "line": trip.line,
                 "temperature": trip.temperature,
                 "height_diff": (
-                    station_data[trip.arrival_stop.name]["elevation"]
-                    - station_data[trip.departure_stop.name]["elevation"]
+                    station_data[trip.arrival_station.name]["elevation"]
+                    - station_data[trip.departure_station.name]["elevation"]
                 ),
                 "level_of_loading": trip.level_of_loading,
                 "mean_speed": trip.speed * 3.6,
@@ -171,7 +171,7 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
     """
     vehicle_types = dict()
     for vehicle_type in VehicleType.objects.filter(scenario=django_scenario):
-        charge_type = "oppb" if vehicle_type.flex_charging else "depb"
+        charge_type = "oppb" if vehicle_type.opportunity_charging_capable else "depb"
         try:
             vehicle_types[vehicle_type.name_short]
         except KeyError:
@@ -207,7 +207,7 @@ def get_electrified_stations_from_db(django_scenario) -> dict:
             "cs_power_deps_oppb": station.power_per_charger,
             "cs_power_deps_depb": station.power_per_charger,
             "cs_power_opps": station.power_per_charger,
-            "gc_power": station.total_power,
+            "gc_power": station.power_total,
             "voltage_level": station.voltage_level,
         }
         stations_dict[station.name] = stat_dict
@@ -304,7 +304,7 @@ def get_args(django_scenario) -> Namespace:
     # Read the parse values, in this case the default values
     args, _ = parser.parse_known_args()
     # Overwrite args with scenario specific data
-    vars(args).update(vars(Namespace(**django_scenario.options)))
+    vars(args).update(vars(Namespace(**django_scenario.simba_options)))
     # arguments relevant to SpiceEV, setting automatically to reduce clutter in config
     simba.util.mutate_args_for_spiceev(args)
 
@@ -345,7 +345,7 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
             print(f"FILE ERROR: {k} COULD NOT BE SET ({str(p)})")
             continue
         args[k] = str(p)
-    scenario.options = args
+    scenario.simba_options = args
     scenario.save()
 
     return scenario
@@ -365,9 +365,11 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
     station_dict = Station.objects.filter(scenario=django_scenario)
     station_dict = {station.name: station for station in station_dict}
     for key, rot in tqdm.tqdm(schedule.rotations.items(), total=len(schedule.rotations)):
-        flex_charging = rot.charging_type == "oppb"
+        opportunity_charging_capable = rot.charging_type == "oppb"
         vehicletype = VehicleType.objects.get(
-            scenario=django_scenario, name_short=rot.vehicle_type, flex_charging=flex_charging
+            scenario=django_scenario,
+            name_short=rot.vehicle_type,
+            opportunity_charging_capable=opportunity_charging_capable,
         )
         # ToDo Replace dummy vehicles with properly generated vehicles from SimBA or eFlips
         vehicle = Vehicle.objects.create(
@@ -376,7 +378,7 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
         r = Rotation(
             name=key,
             scenario=django_scenario,
-            allow_opportunity_charging=flex_charging,
+            allow_opportunity_charging=opportunity_charging_capable,
             vehicle=vehicle,
         )
         r.id = rot_id
@@ -386,9 +388,9 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
             t = Trip(
                 rotation=r,
                 scenario=django_scenario,
-                departure_stop=station_dict[trip.departure_name],
+                departure_station=station_dict[trip.departure_name],
                 departure_time=make_aware(trip.departure_time),
-                arrival_stop=station_dict[trip.arrival_name],
+                arrival_station=station_dict[trip.arrival_name],
                 arrival_time=make_aware(trip.arrival_time),
                 distance=trip.distance,
                 line=trip.line,
@@ -415,14 +417,14 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
                 name=charge_type.get("name", "unnamed bus"),
                 name_short=name,
                 scenario=scenario,
-                flex_charging=(charge_name.lower() == "oppb"),
+                opportunity_charging_capable=(charge_name.lower() == "oppb"),
                 battery_capacity=charge_type["capacity"],
                 charging_efficiency=charge_type.get("battery_efficiency", 0.95),
                 minimum_charging_power=charge_type.get("min_charging_power"),
                 charging_curve=charge_type["charging_curve"],
                 v2g_curve=charge_type.get("v2g_curve", None),
                 consumption=consumption,
-                length=float(charge_type.get("length", 0)),
+                length_m=float(charge_type.get("length", 0)),
             )
             VehicleType.objects.create(**params)
 
@@ -460,7 +462,7 @@ def stations_to_db(station_data, electrified_stations, scenario):
         station.charge_type = ele_station.get("type")
 
         station.voltage_level = ele_station.get(
-            "voltage_level", scenario.options.get("default_voltage_level")
+            "voltage_level", scenario.simba_options.get("default_voltage_level")
         )
         station.amount_charging_places = ele_station.get("n_charging_stations")
         # ToDo how do we handle differences in charging power depending on oppb or depb
@@ -469,8 +471,8 @@ def stations_to_db(station_data, electrified_stations, scenario):
         else:
             power_per_charger = ele_station.get("cs_power_deps_oppb")
         station.power_per_charger = power_per_charger
-        station.total_power = ele_station.get(
-            "gc_power", scenario.options.get("gc_power_" + station.charge_type)
+        station.power_total = ele_station.get(
+            "gc_power", scenario.simba_options.get("gc_power_" + station.charge_type)
         )
         station.save()
 
@@ -592,7 +594,7 @@ def run_simba(
             obj.rotation_id = rotation.name
             vehicle_type = VehicleType.objects.get(id=obj.vehicle_type_id)
             obj.vehicle_type_id = vehicle_type.name_short
-            obj.vehicle_type_id += "_oppb" if vehicle_type.flex_charging else "_depb"
+            obj.vehicle_type_id += "_oppb" if vehicle_type.opportunity_charging_capable else "_depb"
             v_id = obj.vehicle_id.split(" ")[1]
             obj.vehicle_id = f"{obj.vehicle_type_id}_{v_id}"
 
@@ -628,7 +630,7 @@ def run_simba(
         vehicle_type_db = VehicleType.objects.get(
             scenario=db_scenario,
             name_short=rotation.vehicle_type,
-            flex_charging=(rotation.charging_type == "oppb"),
+            opportunity_charging_capable=(rotation.charging_type == "oppb"),
         )
         input_for_eflips[db_rotation.id]["vehicle_type"].append(vehicle_type_db.id)
         vehicle = schedule.vehicle_types[rotation.vehicle_type][rotation.charging_type]
@@ -651,7 +653,7 @@ def run_simba(
         vehicle_type_db = VehicleType.objects.get(
             scenario=db_scenario,
             name_short=rotation.vehicle_type,
-            flex_charging=True,
+            opportunity_charging_capable=True,
         )
 
         input_for_eflips[db_rotation.id] = dict(
