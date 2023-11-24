@@ -162,11 +162,14 @@ def objects_digger(objects, early_return=True, key_stack=None, instance_stack=No
 
 def list_digger(early_return, instance_stack, key_stack, new_objects):
     key_stack_copy = key_stack.copy()
-    for i, list_element in enumerate(new_objects[0]):
+    list_objects = []
+    for obj in new_objects:
+        list_objects.append(list(obj))
+    for i, list_element in enumerate(list_objects[0]):
         try:
             key_stack_copy = [key for key in key_stack]
             key_stack_copy[-1] = i
-            inner_objects = [o[i] for o in new_objects]
+            inner_objects = [o[i] for o in list_objects]
             for x in objects_digger(
                 inner_objects,
                 early_return=early_return,

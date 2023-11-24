@@ -31,6 +31,7 @@ from .models import (
     Trip,
     Scenario,
     EnumChargeType,
+    Line,
 )
 
 from simba.consumption import Consumption
@@ -137,6 +138,8 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
     :rtype: dict
     """
     rotations = {}
+    lines_dict = {line.id: line for line in Line.objects.filter(scenario=django_scenario)}
+
     for rot in Rotation.objects.filter(scenario=django_scenario):
         vehicle_type = rot.vehicle.vehicle_type.name_short
         simba_rotation = SimbaRotation(id=rot.name, vehicle_type=vehicle_type, schedule=schedule)
@@ -152,7 +155,7 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
                 "arrival_time": str(trip.arrival_time),
                 "arrival_name": trip.arrival_station.name,
                 "distance": trip.distance,
-                "line": trip.line,
+                "line": lines_dict[trip.line.id].name,
                 "temperature": trip.temperature,
                 "height_diff": (
                     station_data[trip.arrival_station.name]["elevation"]
@@ -366,11 +369,13 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
     """
     model_rotations = []
     model_trips = []
+    model_lines = []
     rot_id = 1 if Rotation.objects.last() is None else Rotation.objects.last().id + 1
     trip_id = 1 if Trip.objects.last() is None else Trip.objects.last().id + 1
 
     station_dict = Station.objects.filter(scenario=django_scenario)
     station_dict = {station.name: station for station in station_dict}
+    line_dict = {}
     for key, rot in tqdm.tqdm(schedule.rotations.items(), total=len(schedule.rotations)):
         opportunity_charging_capable = rot.charging_type == "oppb"
         vehicletype = VehicleType.objects.get(
@@ -392,6 +397,13 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
         rot_id += 1
         model_rotations.append(r)
         for trip in rot.trips:
+            # Get the proper Line
+            if trip.line in line_dict:
+                line = line_dict[trip.line]
+            else:
+                line = Line(scenario=django_scenario, name=trip.line)
+                line_dict[trip.line] = line
+                model_lines.append(line)
             t = Trip(
                 rotation=r,
                 scenario=django_scenario,
@@ -400,13 +412,14 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
                 arrival_station=station_dict[trip.arrival_name],
                 arrival_time=make_aware(trip.arrival_time),
                 distance=trip.distance,
-                line=trip.line,
+                line=line,
                 temperature=trip.temperature,
                 level_of_loading=trip.level_of_loading,
             )
             t.id = trip_id
             model_trips.append(t)
             trip_id += 1
+    Line.objects.bulk_create(model_lines)
     Rotation.objects.bulk_create(model_rotations)
     Trip.objects.bulk_create(model_trips)
 
@@ -538,7 +551,7 @@ def vary_depot_rotations(schedule) -> "collections.Iterable[SimbaRotation]":
     for rot_id, rotation in depot_rotations.items():
         vt = rotation.vehicle_type
         # Iterate over both charging types of this vehicle type, e.g., depot and opp bus.
-        for charging_type in [EnumChargeType.values]:
+        for charging_type in EnumChargeType.values:
             # Skip rotation with a vehicle type / charging type combination, if it does not exist
             try:
                 schedule.vehicle_types[vt][charging_type]
