@@ -23,7 +23,7 @@ Template:
 - Added function save_and_simulate() with default behavior of running a simulation.
 -
 ### Changed
-- [(#XX)](URL)
+- [(#38)](https://github.com/rl-institut/django-simba/pull/38)
 - Expands the database according to discussed specifications.
 - Removes VehicleClass from SIMBA algorithm, meaning, only a single VehicleType will be run per rotation.
 - Adjusts tests accordingly
