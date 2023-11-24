@@ -221,8 +221,7 @@ class Trip(models.Model):
         max_length=10, choices=EnumTripType.choices, default=EnumTripType.PASSENGER_TRIP
     )
 
-    # ToDo do we want a line object?
-    line = models.CharField(max_length=100, blank=True, null=True)
+    line = models.ForeignKey(Line, null=True, on_delete=models.CASCADE)
     temperature = models.FloatField(default=None, null=True)
     level_of_loading = models.FloatField(default=None, null=True)
 
