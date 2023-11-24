@@ -21,6 +21,13 @@ Template:
 - Added the feature to read the database and generate a SimBA Schedule from the database.
 - Added tests to check that scenarios from the database are generating the same results as default simulations.
 - Added function save_and_simulate() with default behavior of running a simulation.
+-
+### Changed
+- [(#XX)](URL)
+- Expands the database according to discussed specifications.
+- Removes VehicleClass from SIMBA algorithm, meaning, only a single VehicleType will be run per rotation.
+- Adjusts tests accordingly
+- Refactoring of the objects_digger used to compare complex objects using their primitive base / leaf types
 
 ### Changed
 - [(#29)](https://github.com/rl-institut/django-simba/pull/29)The generated input for eflips gets the database ID of the vehicle_type instead of the simba specific name of the vehicle type
