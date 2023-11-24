@@ -60,7 +60,7 @@
         <button class="nav-link active" id="nav-0-tab" data-bs-toggle="tab" data-bs-target="#nav-0" type="button" role="tab" aria-controls="nav-0" aria-selected="true">SimBA Plots</button>
         <button class="nav-link" id="nav-1-tab" data-bs-toggle="tab" data-bs-target="#nav-1" type="button" role="tab" aria-controls="nav-1" aria-selected="false">SoC-Verlauf</button>
         <button class="nav-link" id="nav-2-tab" data-bs-toggle="tab" data-bs-target="#nav-2" type="button" role="tab" aria-controls="nav-2" aria-selected="false">Karte</button>
-        <button class="nav-link" id="nav-3-tab" data-bs-toggle="tab" data-bs-target="#nav-3" type="button" role="tab" aria-controls="nav-3" aria-selected="false" disabled>4</button>
+        <button class="nav-link" id="nav-3-tab" data-bs-toggle="tab" data-bs-target="#nav-3" type="button" role="tab" aria-controls="nav-3" aria-selected="false">Depot-Verhalten</button>
         <button class="nav-link" id="nav-4-tab" data-bs-toggle="tab" data-bs-target="#nav-4" type="button" role="tab" aria-controls="nav-4" aria-selected="false" disabled>5</button>
         <button class="nav-link" id="nav-5-tab" data-bs-toggle="tab" data-bs-target="#nav-5" type="button" role="tab" aria-controls="nav-5" aria-selected="false" disabled>6</button>
       </div>
@@ -86,6 +86,13 @@
       </div>
       <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">
         {% include 'minimal_mapengine.html'%}
+      </div>
+      <div class="tab-pane" id="nav-3" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="3">
+        {% with this_id=request.GET.task_id %}
+          {% with image_path=this_id|add:'/report_1/vehicle_periods.png' %}
+              <img src="{% static image_path %}" alt="Depot Overview" style="max-width: 100%">
+          {% endwith %}
+        {% endwith %}
       </div>
       <!-- End Tab Content -->
     </div>

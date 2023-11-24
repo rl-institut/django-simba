@@ -502,20 +502,20 @@ def _celery_generate_zipped_scenario(self, task_id: str):
     _generate_zipped_scenario(task_id)
 
 
-def run_ebus_toolbox(schedule: simba.schedule.Schedule, args, task_id):
+def run_ebus_toolchain(schedule: simba.schedule.Schedule, args, task_id):
     if settings.CELERY_USE:
         print("Using Celery")
         args_dict = vars(args)
-        _ = _celery_run_ebus_toolbox.apply_async((args_dict, str(task_id)), task_id=task_id)
+        _ = _celery_run_ebus_toolchain.apply_async((args_dict, str(task_id)), task_id=task_id)
     else:
-        _run_ebus_toolbox(schedule, args, task_id)
+        _run_ebus_toolchain(schedule, args, task_id)
 
 
 @shared_task(bind=True)
-def _celery_run_ebus_toolbox(self, args, task_id):
+def _celery_run_ebus_toolchain(self, args, task_id):
     args = Namespace(**args)
     schedule, args = get_schedule_from_args(args)
-    _run_ebus_toolbox(schedule, args, task_id)
+    _run_ebus_toolchain(schedule, args, task_id)
 
 
 def vary_depot_rotations(schedule) -> "collections.Iterable[SimbaRotation]":
@@ -549,7 +549,7 @@ def vary_depot_rotations(schedule) -> "collections.Iterable[SimbaRotation]":
     schedule.rotations = orig_rotations
 
 
-def _run_ebus_toolbox(schedule: "simba.schedule.Schedule", args, task_id):
+def _run_ebus_toolchain(schedule: "simba.schedule.Schedule", args, task_id):
     """Run the tool chain"""
     # set report dir for first iteration
     args.output_directory = Path(settings.UPLOAD_PATH) / task_id

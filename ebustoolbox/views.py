@@ -181,7 +181,7 @@ def save_and_simulate(
     task_id = get_unique_task_id()
     django_scenario.task_id = task_id
     django_scenario.save()
-    tasks.run_ebus_toolbox(simba_schedule, args, task_id)
+    tasks.run_ebus_toolchain(simba_schedule, args, task_id)
     return django_scenario
 
 
