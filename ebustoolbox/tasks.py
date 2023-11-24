@@ -30,6 +30,7 @@ from .models import (
     Rotation,
     Trip,
     Scenario,
+    EnumChargeType,
 )
 
 from simba.consumption import Consumption
@@ -139,7 +140,9 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
     for rot in Rotation.objects.filter(scenario=django_scenario):
         vehicle_type = rot.vehicle.vehicle_type.name_short
         simba_rotation = SimbaRotation(id=rot.name, vehicle_type=vehicle_type, schedule=schedule)
-        simba_rotation.charging_type = "oppb" if rot.allow_opportunity_charging else "depb"
+        simba_rotation.charging_type = (
+            EnumChargeType.OPPORTUNITY if rot.allow_opportunity_charging else EnumChargeType.DEPOT
+        )
 
         rotations[rot.name] = simba_rotation
         for trip in Trip.objects.filter(rotation=rot):
@@ -171,7 +174,11 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
     """
     vehicle_types = dict()
     for vehicle_type in VehicleType.objects.filter(scenario=django_scenario):
-        charge_type = "oppb" if vehicle_type.opportunity_charging_capable else "depb"
+        charge_type = (
+            EnumChargeType.OPPORTUNITY
+            if vehicle_type.opportunity_charging_capable
+            else EnumChargeType.DEPOT
+        )
         try:
             vehicle_types[vehicle_type.name_short]
         except KeyError:
@@ -530,7 +537,8 @@ def vary_depot_rotations(schedule) -> "collections.Iterable[SimbaRotation]":
     }
     for rot_id, rotation in depot_rotations.items():
         vt = rotation.vehicle_type
-        for charging_type in ["depb", "oppb"]:
+        # Iterate over both charging types of this vehicle type, e.g., depot and opp bus.
+        for charging_type in [EnumChargeType.values]:
             # Skip rotation with a vehicle type / charging type combination, if it does not exist
             try:
                 schedule.vehicle_types[vt][charging_type]
@@ -540,7 +548,7 @@ def vary_depot_rotations(schedule) -> "collections.Iterable[SimbaRotation]":
             # charging types are used, even the "oppb". This way calculate_consumption() also
             # calculates the "non-charging" consumption of a depot rotation which is run with
             # an opportunity bus.
-            if orig_rotations[rot_id].charging_type == "depb":
+            if orig_rotations[rot_id].charging_type == EnumChargeType.DEPOT:
                 # Charging type is mutated, since this is used to determine the exact vehicle
                 schedule.rotations[rot_id].charging_type = charging_type
                 schedule.rotations[rot_id].vehicle_type = vt
