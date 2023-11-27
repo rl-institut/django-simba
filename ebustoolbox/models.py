@@ -189,6 +189,8 @@ class Route(models.Model):
     # Shape of the route with height data
     geom = models.LineStringField(dim=3, srid=4326, null=True)
 
+    name = models.TextField(default=None, null=True, blank=True)
+    name_short = models.TextField(default=None, null=True, blank=True)
     scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
     line = models.ForeignKey(Line, null=True, on_delete=models.CASCADE)
     headsign = models.TextField(default=None, null=True, blank=True)
