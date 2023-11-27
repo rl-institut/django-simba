@@ -8,7 +8,7 @@
             "v2g": false,
             "mileage": 1
         },
-             "depb": {
+            "depb": {
             "name": "articulated bus - opportunity charging",
             "capacity": 150,
             "charging_curve": [[0, 250], [0.8, 250], [1, 25]],
