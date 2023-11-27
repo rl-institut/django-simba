@@ -11,7 +11,7 @@ MINIMAL_TRIP_DURATION_S = 60  # seconds
 
 class Scenario(models.Model):
     name = models.CharField(max_length=100, blank=False)
-    parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True)
+    parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
 
     created = models.DateTimeField(auto_now_add=True)
     task_id = models.TextField(default=None, null=True, blank=True)
