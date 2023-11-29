@@ -18,7 +18,7 @@ class Scenario(models.Model):
     finished = models.DateTimeField(default=None, null=True, blank=True)
     options = models.JSONField(default=dict)
     manager = models.ForeignKey(
-        User, on_delete=models.SET_NULL, default=None, null=True, blank=True, related_name='+'
+        User, on_delete=models.SET_NULL, default=None, null=True, blank=True, related_name="+"
     )
     users = models.ManyToManyField(User)
 
