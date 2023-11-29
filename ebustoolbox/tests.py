@@ -126,16 +126,16 @@ def objects_digger(objects, early_return=True, key_stack=None, instance_stack=No
 
     new_objects = [o for o in objects]
 
-    if id(new_objects[0]) in instance_stack:
-        return
-    instance_stack.add(id(new_objects[0]))
-
     first_object = new_objects[0]
-    comparable_types = (float, int, str, bool)
+    comparable_types = (float, int, str, bool, type(None))
 
     if isinstance(first_object, comparable_types):
         yield key_stack, new_objects
         return
+
+    if id(first_object) in instance_stack:
+        return
+    instance_stack.add(id(new_objects[0]))
 
     # new_objects are
     key_stack.append(None)

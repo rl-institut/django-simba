@@ -114,7 +114,10 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
     rotations = get_rotations_and_trips_from_db(django_scenario, schedule, station_data)
 
     schedule.rotations = rotations
-    schedule.original_rotations = deepcopy(rotations)
+
+    # schedule.original_rotations = deepcopy(rotations)
+    # Database does not store information about "original rotations yet"
+    schedule.original_rotations = None
 
     args = get_args(django_scenario=django_scenario)
     # filter rotations
@@ -597,7 +600,7 @@ def run_simba(
     args,
     task_id,
     report_dir=Path(".", "report"),
-    eflips_input: List[InputForSimba] | None = None,
+    eflips_input: List["InputForSimba"] | None = None,
 ):
     # TODO don't overwrite output on multiple function calls
     args.attach_vehicle_soc = True
