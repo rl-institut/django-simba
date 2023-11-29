@@ -42,10 +42,11 @@ from django.db.transaction import atomic
 from simba.rotation import Rotation as SimbaRotation
 from simba.schedule import Schedule as SimbaSchedule
 
-import eflips.depot.api.django_simba.input as eflips_api
-from eflips.depot.api.django_simba.input import VehicleType as EflipsVehicleType
-from eflips.depot.api import init_simulation, run_simulation
-from eflips.depot.api.django_simba.output import to_simba, InputForSimba
+if settings.EFLIPS_USE:
+    import eflips.depot.api.django_simba.input as eflips_api
+    from eflips.depot.api.django_simba.input import VehicleType as EflipsVehicleType
+    from eflips.depot.api import init_simulation, run_simulation
+    from eflips.depot.api.django_simba.output import to_simba, InputForSimba
 
 # ToDo: Any better solutions?
 INTEGER_INF = 9999
