@@ -17,7 +17,9 @@ class Scenario(models.Model):
     task_id = models.TextField(default=None, null=True, blank=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
     options = models.JSONField(default=dict)
-    manager = models.ForeignKey(User, on_delete=models.SET_NULL, default=None, null=True, blank=True, related_name='+')
+    manager = models.ForeignKey(
+        User, on_delete=models.SET_NULL, default=None, null=True, blank=True, related_name='+'
+    )
     users = models.ManyToManyField(User)
 
     @classmethod
