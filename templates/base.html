@@ -15,18 +15,22 @@
     {% include 'imports.html'%}
     {% block header %}
     {%endblock %}
-  
+
 </head>
 
 <body>
     {% include 'navbar.html'%}
+
+    <!--
+    {% for message in messages %}
+      {{ message }}
+    {% endfor %}
+    -->
+
     <div class="container py-3 px-0 mx-auto">
-
         {% block content %}
-
-        this will be replaced
+        {# this will be replaced #}
         {%endblock %}
-
     </div>
 </body>
 

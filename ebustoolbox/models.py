@@ -2,6 +2,7 @@ import shutil
 from pathlib import Path
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.dispatch import receiver
@@ -16,6 +17,8 @@ class Scenario(models.Model):
     task_id = models.TextField(default=None, null=True, blank=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
     options = models.JSONField(default=dict)
+    manager = models.ForeignKey(User, on_delete=models.SET_NULL, default=None, null=True, blank=True, related_name='+')
+    users = models.ManyToManyField(User)
 
     @classmethod
     def get_default_pk(cls):
