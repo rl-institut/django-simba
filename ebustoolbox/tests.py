@@ -3,6 +3,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from copy import copy
+from typing import Iterable
 
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.http import HttpRequest
@@ -21,7 +22,6 @@ from selenium import webdriver
 from .models import (
     Scenario,
     UploadedFile,
-    VehicleClass,
     VehicleType,
     Vehicle,
     Rotation,
@@ -93,8 +93,23 @@ class MySeleniumTests(StaticLiveServerTestCase):
         self.assertContains(response, "Finished")
 
 
-# ToDo remove complexity
-def objects_digger(objects, early_return=True, key_stack=None, instance_stack=None):  # noqa: C901
+def castable_to_dict(objects: Iterable):
+    if isinstance(next(iter(objects)), dict):
+        return True
+    try:
+        [vars(o) for o in objects]
+    except TypeError:
+        return False
+    return True
+
+
+def cast_to_dict(objects: Iterable):
+    if isinstance(next(iter(objects)), dict):
+        return objects
+    return [vars(obj) for obj in objects]
+
+
+def objects_digger(objects, early_return=True, key_stack=None, instance_stack=None):
     """Digs through objects and yields key_stack and 'primitive' data suited for comparison
 
     The key_stack contains the keys of objects along the object path, e.g. an object
@@ -108,42 +123,53 @@ def objects_digger(objects, early_return=True, key_stack=None, instance_stack=No
         key_stack = []
     if instance_stack is None:
         instance_stack = set()
+
     new_objects = [o for o in objects]
-    dict_like = False
-    list_like = False
-    if id(new_objects[0]) in instance_stack:
+
+    first_object = new_objects[0]
+    comparable_types = (float, int, str, bool, type(None))
+
+    if isinstance(first_object, comparable_types):
+        yield key_stack, new_objects
+        return
+
+    if id(first_object) in instance_stack:
         return
     instance_stack.add(id(new_objects[0]))
-    if isinstance(new_objects[0], dict):
-        dict_like = True
-    else:
-        try:
-            new_objects = [vars(o) for o in new_objects]
-            dict_like = True
-        except TypeError:
-            # objects are not dicts or dict_like
-            try:
-                if (
-                    early_return
-                    and not hasattr(new_objects[0][0], "__dict__")
-                    or isinstance(new_objects[0], str)
-                    or len(new_objects[0]) == 1
-                ):
-                    # if first element of list is not __dict__ like its considered primitive
-                    # enough for returning
-                    raise TypeError
-                new_objects = [list(o) for o in new_objects]
-                list_like = True
-            except TypeError:
-                # object is not iterable. yield values
-                yield key_stack, new_objects
+
     # new_objects are
     key_stack.append(None)
+
+    dict_like = castable_to_dict(new_objects)
     if dict_like:
-        for key, value in new_objects[0].items():
-            inner_objects = [o[key] for o in new_objects]
+        dict_objects = cast_to_dict(new_objects)
+        yield from dict_digger(early_return, instance_stack, key_stack, dict_objects)
+        return
+
+    list_like = isinstance(first_object, Iterable) and not dict_like
+    if list_like:
+        if early_return and isinstance(next(iter(first_object)), comparable_types):
+            yield key_stack, new_objects
+        else:
+            yield from list_digger(early_return, instance_stack, key_stack, new_objects)
+        return
+
+    # if the new object is neither dict_like nor iterabl, it is some kind of leaf type, which was
+    # not recognized as comparable_type. It is yielded here, and has to be handled.
+    if not dict_like and not list_like:
+        yield key_stack, new_objects
+
+
+def list_digger(early_return, instance_stack, key_stack, new_objects):
+    key_stack_copy = key_stack.copy()
+    list_objects = []
+    for obj in new_objects:
+        list_objects.append(list(obj))
+    for i, list_element in enumerate(list_objects[0]):
+        try:
             key_stack_copy = [key for key in key_stack]
-            key_stack_copy[-1] = key
+            key_stack_copy[-1] = i
+            inner_objects = [o[i] for o in list_objects]
             for x in objects_digger(
                 inner_objects,
                 early_return=early_return,
@@ -151,24 +177,25 @@ def objects_digger(objects, early_return=True, key_stack=None, instance_stack=No
                 instance_stack=instance_stack,
             ):
                 yield x
-    if list_like:
-        for i, list_element in enumerate(new_objects[0]):
-            try:
-                key_stack_copy = [key for key in key_stack]
-                key_stack_copy[-1] = i
-                inner_objects = [o[i] for o in new_objects]
-                for x in objects_digger(
-                    inner_objects,
-                    early_return=early_return,
-                    key_stack=key_stack_copy,
-                    instance_stack=instance_stack,
-                ):
-                    yield x
-            except IndexError:
-                print("Early return due to lists of different length")
-                print(key_stack_copy)
-                yield key_stack_copy, new_objects
-                break
+        except IndexError:
+            print("Early return due to lists of different length")
+            print(key_stack_copy)
+            yield key_stack_copy, new_objects
+            break
+
+
+def dict_digger(early_return, instance_stack, key_stack, new_objects):
+    for key, value in new_objects[0].items():
+        inner_objects = [o[key] for o in new_objects]
+        key_stack_copy = [key for key in key_stack]
+        key_stack_copy[-1] = key
+        for x in objects_digger(
+            inner_objects,
+            early_return=early_return,
+            key_stack=key_stack_copy,
+            instance_stack=instance_stack,
+        ):
+            yield x
 
 
 class WriteReadScenarioToDatabase(TestCase):
@@ -200,7 +227,8 @@ class WriteReadScenarioToDatabase(TestCase):
         simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
 
         for sched in [simba_schedule, simba_schedule_db]:
-            sched.rotations["1"].trips[0].calculate_consumption()
+            for rot in sched.rotations.values():
+                rot.calculate_consumption()
         for key, value in vars(args).items():
             # Some values don't need to be part of the args. Relative and absolute Paths are also
             # ignored
@@ -250,7 +278,7 @@ class WriteReadScenarioToDatabase(TestCase):
         """Test if a change in the database values results in changes in the schedule and scenario
 
         The database could contain data which has no effect on the simulation. To make sure the data
-        is used in the simulation the database is changed and the resulting schedule and scenario
+        is used in the simulation, the database is changed and the resulting schedule and scenario
         are compared to the original unchanged schedule and scenario. The test fails if the tested
         variations do not lead to differences. The differences are not checked for plausibility but
         only for their occurrence.
@@ -278,7 +306,7 @@ class WriteReadScenarioToDatabase(TestCase):
             (vehicle_type, "consumption", vehicle_type.consumption * 0.1),
             (station, "amount_charging_places", 1),
             (station, "power_per_charger", station.power_per_charger * 0.1),
-            (station, "total_power", station.total_power * 0.1),
+            (station, "power_total", station.power_total * 0.1),
         ]
         scen_db = simba_schedule_db.run(args_db)
         # running the schedule changes the schedule since it assigns vehicles. therefore load it
@@ -393,46 +421,34 @@ class ModelTests(TestCase):
         uploaded_file = UploadedFile.objects.create(scenario=scenario, file="test.txt")
         self.assertEqual(str(uploaded_file.file), "test.txt")
 
-    def test_vehicle_class_creation(self):
-        _ = VehicleClass.objects.create(name="Test Class")
-
     def test_vehicle_type_creation(self):
         scenario = Scenario.objects.create(name="Test Scenario")
-        vehicle_class = VehicleClass.objects.create(name="Test Class")
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
             charging_curve=[[0, 0], [1, 3]],
-            flex_charging=True,
+            opportunity_charging_capable=True,
             battery_capacity=100,
             charging_efficiency=0.95,
         )
-        vehicle_type.vehicle_class.add(vehicle_class)
-        vehicle_class = VehicleClass.objects.create(name="Other Class")
-        vehicle_type.vehicle_class.add(vehicle_class)
         self.assertEqual(str(vehicle_type.name), "Test Type")
 
     def test_vehicle_creation(self):
         scenario = Scenario.objects.create(name="Test Scenario")
-        vehicle_class = VehicleClass.objects.create(name="Test Class")
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
             charging_curve=[[0, 0], [1, 3]],
-            flex_charging=True,
+            opportunity_charging_capable=True,
             battery_capacity=100,
             charging_efficiency=0.95,
         )
-        vehicle_type.vehicle_class.add(vehicle_class)
         vehicle = Vehicle.objects.create(name="Test Vehicle", vehicle_type=vehicle_type)
         self.assertEqual(str(vehicle), "Test Vehicle")
 
     def test_rotation_creation(self):
         scenario = Scenario.objects.create(name="Test Scenario")
-        vehicle_class = VehicleClass.objects.create(name="Test Class", scenario=scenario)
-        rotation = Rotation.objects.create(
-            name="Test Rotation", vehicle_class=vehicle_class, scenario=scenario
-        )
+        rotation = Rotation.objects.create(name="Test Rotation", scenario=scenario)
         self.assertEqual(str(rotation.name), "Test Rotation")
 
     def test_station_creation(self):
@@ -444,10 +460,7 @@ class ModelTests(TestCase):
 
     def test_trip_creation(self):
         scenario = Scenario.objects.create(name="Test Scenario")
-        vehicle_class = VehicleClass.objects.create(name="Test Class", scenario=scenario)
-        rotation = Rotation.objects.create(
-            name="Test Rotation", vehicle_class=vehicle_class, scenario=scenario
-        )
+        rotation = Rotation.objects.create(name="Test Rotation", scenario=scenario)
         departure_station = Station.objects.create(
             geom="POINT(0 0 0)", name="Departure Station", scenario=scenario
         )
@@ -456,9 +469,9 @@ class ModelTests(TestCase):
         )
         trip = Trip.objects.create(
             rotation=rotation,
-            departure_stop=departure_station,
+            departure_station=departure_station,
             departure_time=parse_datetime("2023-08-14 10:00:00"),
-            arrival_stop=arrival_station,
+            arrival_station=arrival_station,
             arrival_time=parse_datetime("2023-08-14 11:00:00"),
             distance=100,
         )
@@ -479,5 +492,5 @@ class ScenarioTestCase(TestCase):
         instance_2 = Scenario.objects.get(name="Instance 2")
         self.assertGreater(instance_2.created, instance_1.created)
         self.assertIsNone(instance_1.finished)
-        self.assertIsInstance(instance_1.options, dict)
+        self.assertIsInstance(instance_1.simba_options, dict)
         self.assertIsNone(instance_1.task_id)

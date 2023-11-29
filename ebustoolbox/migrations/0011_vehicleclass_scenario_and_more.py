@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
             model_name="vehicleclass",
             name="scenario",
             field=models.ForeignKey(
-                default=ebustoolbox.models.Scenario.get_default_pk, on_delete=django.db.models.deletion.CASCADE, to="ebustoolbox.scenario"
+                default=None, on_delete=django.db.models.deletion.CASCADE, to="ebustoolbox.scenario"
             ),
         ),
         migrations.RemoveField(

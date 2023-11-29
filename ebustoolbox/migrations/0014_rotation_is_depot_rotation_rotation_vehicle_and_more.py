@@ -26,13 +26,4 @@ class Migration(migrations.Migration):
                 to="ebustoolbox.vehicle",
             ),
         ),
-        migrations.AlterField(
-            model_name="rotation",
-            name="vehicle_class",
-            field=models.ForeignKey(
-                default=ebustoolbox.models.VehicleClass.get_default_pk,
-                on_delete=django.db.models.deletion.SET_DEFAULT,
-                to="ebustoolbox.vehicleclass",
-            ),
-        ),
     ]
