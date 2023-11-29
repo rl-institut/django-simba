@@ -577,14 +577,18 @@ def _run_ebus_toolchain(schedule: "simba.schedule.Schedule", args, task_id):
     report_dir = Path(settings.BASE_DIR, args.output_directory, "report_1")
     # call simba and eflips
     run_simba(schedule, args, task_id, report_dir=report_dir)
-    eflips_dataclass_list: List[InputForSimba] = run_eflips(report_dir, task_id)
 
-    # set report dir for second iteration/final results
-    # report_dir = Path(settings.BASE_DIR, args.output_directory, "report_2")
-    # TODO: currently report_directory is set in simba internally and is always report_1 for current purposes
-    # (number changes by the amount of reports in the same fun of SimBA)
-    # call simba with eflips results
-    run_simba(schedule, args, task_id, report_dir=report_dir, eflips_input=eflips_dataclass_list)
+    if settings.EFLIPS_USE:
+        eflips_dataclass_list: List[InputForSimba] = run_eflips(report_dir, task_id)
+
+        # set report dir for second iteration/final results
+        # report_dir = Path(settings.BASE_DIR, args.output_directory, "report_2")
+        # TODO: currently report_directory is set in simba internally and is always report_1 for current purposes
+        # (number changes by the amount of reports in the same fun of SimBA)
+        # call simba with eflips results
+        run_simba(
+            schedule, args, task_id, report_dir=report_dir, eflips_input=eflips_dataclass_list
+        )
 
 
 def run_simba(
