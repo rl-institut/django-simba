@@ -1,15 +1,11 @@
 import shutil
 from datetime import timedelta
 from pathlib import Path
-from django.contrib.gis.db.models.functions import Distance, Length
+
 from django.conf import settings
 from django.contrib.gis.db import models
-from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.postgres.fields import ArrayField
-from django.db.models import CheckConstraint
 from django.dispatch import receiver
-
-from django.db.models import CheckConstraint, Q, F
 
 MINIMAL_TRIP_DURATION_S = 60  # seconds
 
