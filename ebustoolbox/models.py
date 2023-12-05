@@ -183,8 +183,8 @@ class EnumVoltageLevel(models.TextChoices):
 
 
 class EnumChargeType(models.TextChoices):
-    DEPOT = "DEPOT"
-    OPPORTUNITY = "OPPORTUNITY"
+    DEPOT = "depb"
+    OPPORTUNITY = "oppb"
 
 
 class Station(models.Model):
@@ -199,7 +199,7 @@ class Station(models.Model):
 
     is_electrified = models.BooleanField(default=False)
     charge_type = models.CharField(
-        max_length=11, choices=EnumChargeType.choices, null=True, default=None
+        max_length=4, choices=EnumChargeType.choices, null=True, default=None
     )
     voltage_level = models.CharField(
         max_length=5, choices=EnumVoltageLevel.choices, null=True, default=None
