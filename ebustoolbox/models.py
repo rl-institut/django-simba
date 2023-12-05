@@ -23,7 +23,7 @@ class Scenario(models.Model):
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
 
     created = models.DateTimeField(auto_now_add=True)
-    task_id = models.UUIDField(default=None, null=True, blank=True)
+    task_id = models.UUIDField(default=None, null=True, unique=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
     simba_options = models.JSONField(default=dict, null=True)
     eflips_depot_options = models.JSONField(default=dict, null=True)
