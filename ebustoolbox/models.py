@@ -16,7 +16,7 @@ MINIMAL_TRIP_DURATION_S = 60  # seconds
 
 class Scenario(models.Model):
     class Meta:
-        db_table = 'Scenario'
+        db_table = "Scenario"
 
     name = models.TextField(blank=False)
     name_short = models.TextField(blank=True, null=True)
@@ -68,7 +68,7 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
 
 class BatteryType(models.Model):
     class Meta:
-        db_table = 'BatteryType'
+        db_table = "BatteryType"
 
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
@@ -77,19 +77,22 @@ class BatteryType(models.Model):
     # defined in eFLIPS-LCA
     chemistry = models.JSONField(default=dict)
 
+
 class AssocVehicleTypeVehicleClass(models.Model):
     """
     This model is used to store the many-to-many relationship between VehicleType and VehicleClass.
     """
+
     class Meta:
-        db_table = 'AssocVehicleTypeVehicleClass'
+        db_table = "AssocVehicleTypeVehicleClass"
 
     vehicle_type = models.ForeignKey("VehicleType", on_delete=models.CASCADE)
     vehicle_class = models.ForeignKey("VehicleClass", on_delete=models.CASCADE)
 
+
 class VehicleType(models.Model):
     class Meta:
-        db_table = 'VehicleType'
+        db_table = "VehicleType"
 
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     battery_type = models.ForeignKey(BatteryType, null=True, on_delete=models.CASCADE)
@@ -120,7 +123,7 @@ class VehicleType(models.Model):
 
 class VehicleClass(models.Model):
     class Meta:
-        db_table = 'VehicleClass'
+        db_table = "VehicleClass"
 
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     name = models.TextField(null=False, blank=False)
@@ -132,7 +135,7 @@ class VehicleClass(models.Model):
 
 class Vehicle(models.Model):
     class Meta:
-        db_table = 'Vehicle'
+        db_table = "Vehicle"
 
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
@@ -161,7 +164,7 @@ class VehicleProperties(models.Model):
 
 class Rotation(models.Model):
     class Meta:
-        db_table = 'Rotation'
+        db_table = "Rotation"
 
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
@@ -189,7 +192,7 @@ class EnumChargeType(models.TextChoices):
 
 class Station(models.Model):
     class Meta:
-        db_table = 'Station'
+        db_table = "Station"
 
     # Map Engine models need geom and name as first columns
     geom = models.PointField(dim=3, srid=4326)  # without z elevation
@@ -208,7 +211,7 @@ class Station(models.Model):
     power_per_charger = models.FloatField(default=None, null=True)
     power_total = models.FloatField(default=None, null=True)
 
-    stations = models.ManyToManyField("Route", through='AssocRouteStation')
+    stations = models.ManyToManyField("Route", through="AssocRouteStation")
     """Stations along this route. Ordered by `elapsed_distance`."""
 
     def save(self, *args, **kwargs):
@@ -233,7 +236,7 @@ class Station(models.Model):
 
 class Line(models.Model):
     class Meta:
-        db_table = 'Line'
+        db_table = "Line"
 
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     name = models.TextField(default=None, null=False, blank=True)
@@ -242,7 +245,7 @@ class Line(models.Model):
 
 class Route(models.Model):
     class Meta:
-        db_table = 'Route'
+        db_table = "Route"
         # TODO: We should do a check here to make sure that if a geometry is provided, it's length
         # matches the distance field. In raw SQL: "ST_Length(geom) = distance". Not sure how to
         # do this in Django though.
@@ -265,7 +268,7 @@ class Route(models.Model):
         Station, on_delete=models.CASCADE, related_name="route_arrival_set"
     )
 
-    stations = models.ManyToManyField(Station, through='AssocRouteStation')
+    stations = models.ManyToManyField(Station, through="AssocRouteStation")
     """Stations along this route. Ordered by `elapsed_distance`."""
 
 
@@ -277,8 +280,8 @@ class AssocRouteStation(models.Model):
     """
 
     class Meta:
-        db_table = 'AssocRouteStation'
-        ordering = ['elapsed_distance']
+        db_table = "AssocRouteStation"
+        ordering = ["elapsed_distance"]
 
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
@@ -299,7 +302,7 @@ class EnumTripType(models.TextChoices):
 
 class Trip(models.Model):
     class Meta:
-        db_table = 'Trip'
+        db_table = "Trip"
 
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     route = models.ForeignKey(Route, null=False, on_delete=models.CASCADE)
@@ -343,19 +346,19 @@ class Trip(models.Model):
         """incline in z units per distance units
 
         Minimal value for distance is set to 1 to avoid division by 0."""
-        return (self.route.arrival_station.geom.z - self.route.departure_station.geom.z) / max(self.route.distance, 1)
+        return (self.route.arrival_station.geom.z - self.route.departure_station.geom.z) / max(
+            self.route.distance, 1
+        )
 
 
 class StopTime(models.Model):
     class Meta:
-        db_table = 'StopTime'
+        db_table = "StopTime"
 
     """Intermediate stops of trips,
     which are not described by the arrival or departure of the trip"""
 
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
-
-
 
     # When does the trip arrive at this station
     arrival_time = models.DateTimeField()
@@ -369,14 +372,14 @@ class StopTime(models.Model):
 
 class Area(models.Model):
     class Meta:
-        db_table = 'Area'
+        db_table = "Area"
 
     pass
 
 
 class Event(models.Model):
     class Meta:
-        db_table = 'Event'
+        db_table = "Event"
 
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     vehicle_type = models.ForeignKey(VehicleType, null=False, on_delete=models.CASCADE)

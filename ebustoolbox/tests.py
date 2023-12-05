@@ -20,7 +20,8 @@ from django.urls import reverse
 from selenium import webdriver
 
 from .models import (
-    Route, Scenario,
+    Route,
+    Scenario,
     UploadedFile,
     VehicleType,
     Vehicle,
@@ -446,7 +447,9 @@ class ModelTests(TestCase):
             battery_capacity=100,
             charging_efficiency=0.95,
         )
-        vehicle = Vehicle.objects.create(name="Test Vehicle", vehicle_type=vehicle_type, scenario=scenario)
+        vehicle = Vehicle.objects.create(
+            name="Test Vehicle", vehicle_type=vehicle_type, scenario=scenario
+        )
         self.assertEqual(str(vehicle), "Test Vehicle")
 
     def test_rotation_creation(self):
@@ -459,7 +462,12 @@ class ModelTests(TestCase):
             battery_capacity=100,
             charging_efficiency=0.95,
         )
-        rotation = Rotation.objects.create(name="Test Rotation", scenario=scenario, allow_opportunity_charging=True, vehicle_type=vehicle_type)
+        rotation = Rotation.objects.create(
+            name="Test Rotation",
+            scenario=scenario,
+            allow_opportunity_charging=True,
+            vehicle_type=vehicle_type,
+        )
         self.assertEqual(str(rotation.name), "Test Rotation")
 
     def test_station_creation(self):
@@ -479,7 +487,12 @@ class ModelTests(TestCase):
             battery_capacity=100,
             charging_efficiency=0.95,
         )
-        rotation = Rotation.objects.create(name="Test Rotation", scenario=scenario, allow_opportunity_charging=True, vehicle_type=vehicle_type)
+        rotation = Rotation.objects.create(
+            name="Test Rotation",
+            scenario=scenario,
+            allow_opportunity_charging=True,
+            vehicle_type=vehicle_type,
+        )
         departure_station = Station.objects.create(
             geom="POINT(0 0 0)", name="Departure Station", scenario=scenario
         )
