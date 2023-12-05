@@ -239,16 +239,16 @@ class Route(models.Model):
     )
 
 class EnumTripType(models.TextChoices):
-    EMPTY_TRIP = "empty"
-    PASSENGER_TRIP = "passenger"
+    EMPTY_TRIP = "EMPTY"
+    PASSENGER_TRIP = "PASSENGER"
 
 
 class Trip(models.Model):
     class Meta:
         db_table = 'Trip'
 
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
-    route = models.ForeignKey(Route, null=True, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    route = models.ForeignKey(Route, null=False, on_delete=models.CASCADE)
 
     rotation = models.ForeignKey(
         Rotation, on_delete=models.CASCADE
@@ -257,15 +257,12 @@ class Trip(models.Model):
     departure_time = models.DateTimeField(blank=False)
 
     arrival_time = models.DateTimeField(blank=False)
-    distance = models.FloatField()
 
     # Is the Trip empty, i.e., without passengers
     type = models.CharField(
-        max_length=10, choices=EnumTripType.choices, default=EnumTripType.PASSENGER_TRIP
+        max_length=9, choices=EnumTripType.choices, default=EnumTripType.PASSENGER_TRIP
     )
 
-    line = models.ForeignKey(Line, null=True, on_delete=models.CASCADE)
-    temperature = models.FloatField(default=None, null=True)
     level_of_loading = models.FloatField(default=None, null=True)
 
     # If time resolution is minutes, there might be trips with 0 minutes duration. To resolve
