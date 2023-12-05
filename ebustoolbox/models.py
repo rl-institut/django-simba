@@ -1,10 +1,14 @@
 import shutil
 from pathlib import Path
-
+from django.contrib.gis.db.models.functions import Distance, Length
 from django.conf import settings
 from django.contrib.gis.db import models
+from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.postgres.fields import ArrayField
+from django.db.models import CheckConstraint
 from django.dispatch import receiver
+
+from django.db.models import CheckConstraint, Q, F
 
 MINIMAL_TRIP_DURATION_S = 60  # seconds
 
@@ -209,16 +213,27 @@ class Line(models.Model):
 class Route(models.Model):
     class Meta:
         db_table = 'Route'
+        # TODO: We should do a check here to make sure that if a geometry is provided, it's length
+        # matches the distance field. In raw SQL: "ST_Length(geom) = distance". Not sure how to
+        # do this in Django though.
 
     # Shape of the route with height data
     geom = models.LineStringField(dim=3, srid=4326, null=True)
+    distance = models.FloatField(default=None, null=False)
 
-    name = models.TextField(default=None, null=True, blank=True)
+    name = models.TextField(default=None, null=False, blank=True)
     name_short = models.TextField(default=None, null=True, blank=True)
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     line = models.ForeignKey(Line, null=True, on_delete=models.CASCADE)
     headsign = models.TextField(default=None, null=True, blank=True)
 
+    departure_station = models.ForeignKey(
+        Station, on_delete=models.CASCADE, related_name="route_departure_set"
+    )
+
+    arrival_station = models.ForeignKey(
+        Station, on_delete=models.CASCADE, related_name="route_arrival_set"
+    )
 
 class EnumTripType(models.TextChoices):
     EMPTY_TRIP = "empty"
@@ -235,13 +250,9 @@ class Trip(models.Model):
     rotation = models.ForeignKey(
         Rotation, on_delete=models.CASCADE
     )  # TODO do all ForeignKeys need cascade?
-    departure_station = models.ForeignKey(
-        Station, on_delete=models.CASCADE, related_name="trip_departure_set"
-    )
+
     departure_time = models.DateTimeField(blank=False)
-    arrival_station = models.ForeignKey(
-        Station, on_delete=models.CASCADE, related_name="trip_arrival_set"
-    )
+
     arrival_time = models.DateTimeField(blank=False)
     distance = models.FloatField()
 
