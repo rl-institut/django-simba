@@ -208,6 +208,9 @@ class Station(models.Model):
     power_per_charger = models.FloatField(default=None, null=True)
     power_total = models.FloatField(default=None, null=True)
 
+    stations = models.ManyToManyField("Route", through='AssocRouteStation')
+    """Stations along this route. Ordered by `elapsed_distance`."""
+
     def save(self, *args, **kwargs):
         # Override save to make certain name_short exists
         if not self.name_short:
@@ -261,6 +264,33 @@ class Route(models.Model):
     arrival_station = models.ForeignKey(
         Station, on_delete=models.CASCADE, related_name="route_arrival_set"
     )
+
+    stations = models.ManyToManyField(Station, through='AssocRouteStation')
+    """Stations along this route. Ordered by `elapsed_distance`."""
+
+
+class AssocRouteStation(models.Model):
+    """
+    This model is used to store the many-to-many relationship between Route and Station. It also contains metadata
+    about the elapsed distance between the stations, which is also used to order the stations along the route on the
+    `route` side of the relationship.
+    """
+
+    class Meta:
+        db_table = 'AssocRouteStation'
+        ordering = ['elapsed_distance']
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+
+    route = models.ForeignKey(Route, on_delete=models.CASCADE)
+    station = models.ForeignKey(Station, on_delete=models.CASCADE)
+
+    elapsed_distance = models.FloatField(null=False)
+    """The distance in m that the bus has traveled when it reached this stop."""
+
+    location = models.PointField(dim=2, srid=4326, null=True)
+    """An optional precise location of the this route's stop at the station. Use WGS84 coordinates (EPSG:4326)."""
+
 
 class EnumTripType(models.TextChoices):
     EMPTY_TRIP = "EMPTY"
