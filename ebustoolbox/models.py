@@ -78,6 +78,9 @@ class BatteryType(models.Model):
     chemistry = models.JSONField(default=dict)
 
 class AssocVehicleTypeVehicleClass(models.Model):
+    """
+    This model is used to store the many-to-many relationship between VehicleType and VehicleClass.
+    """
     class Meta:
         db_table = 'AssocVehicleTypeVehicleClass'
 
@@ -112,6 +115,8 @@ class VehicleType(models.Model):
     allowed_mass_kg = models.FloatField(default=None, null=True)
 
     vehicle_classes = models.ManyToManyField("VehicleClass", through="AssocVehicleTypeVehicleClass")
+    """Vehicle classes this vehicle type belongs to."""
+
 
 class VehicleClass(models.Model):
     class Meta:
@@ -122,6 +127,7 @@ class VehicleClass(models.Model):
     name_short = models.TextField(null=True, blank=True)
 
     vehicle_types = models.ManyToManyField(VehicleType, through="AssocVehicleTypeVehicleClass")
+    """Vehicle types that belong to this vehicle class."""
 
 
 class Vehicle(models.Model):
