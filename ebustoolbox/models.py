@@ -366,12 +366,6 @@ class StopTime(models.Model):
     station = models.ForeignKey(Station, on_delete=models.CASCADE)
 
 
-class Area(models.Model):
-    class Meta:
-        db_table = "Area"
-
-    pass
-
 
 class Event(models.Model):
     class Meta:
@@ -384,7 +378,7 @@ class Event(models.Model):
     #
     station = models.ForeignKey(Station, null=True, on_delete=models.CASCADE)
     trip = models.ForeignKey(Trip, null=True, on_delete=models.CASCADE)
-    area = models.ForeignKey(Area, null=True, on_delete=models.CASCADE)
+    area = models.ForeignKey("Area", null=True, on_delete=models.CASCADE)
 
     subloc_no = models.IntegerField(null=True, blank=True)
     time_start = models.DateTimeField()
@@ -417,3 +411,90 @@ class Event(models.Model):
                     f"different lengths which is not allowed"
                 )
         super().save(*args, **kwargs)
+
+class Depot(models.Model):
+    """
+    The Depot represents a place where vehicles not engaged in a schedule are parked,
+    processed and dispatched.
+    """
+    class Meta:
+        db_table = "Depot"
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    name = models.TextField(null=False, blank=False)
+    name_short = models.TextField(null=True, blank=True)
+
+    default_plan = models.OneToOneField("Plan", null=False, on_delete=models.CASCADE)
+
+class Plan(models.Model):
+    """
+    The Plan represents a certain order of processes, which are executed on vehicles in a depot.
+    """
+    class Meta:
+        db_table = "Plan"
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    name = models.TextField(null=False, blank=False)
+    processes = models.ManyToManyField("Process", through="AssocPlanProcess")
+
+class Process(models.Model):
+    """
+    The Process represents a certain action, which is executed on vehicles in a depot.
+    """
+    class Meta:
+        db_table = "Process"
+
+    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+    name = models.TextField(null=False)
+    name_short = models.TextField(null=True)
+    duration = models.DurationField(null=True)
+    electric_power = models.FloatField(null=True)
+    dispatchable = models.BooleanField(null=False)
+    availability = models.JSONField(default=dict, null=True)
+    plans = models.ManyToManyField(Plan, through="AssocPlanProcess")
+
+class AreaType(models.TextChoices):
+    """
+    The AreaType represents a certain type of area, which is used to define the location of a process.
+    """
+    DIRECT_ONESIDE = "DIRECT_ONESIDE"
+    DIRECT_TWOSIDE = "DIRECT_TWOSIDE"
+    LINEAR = "LINE"
+
+class Area(models.Model):
+    """
+    The Area represents a certain location, which is used to define the location of a process.
+    """
+    class Meta:
+        db_table = "Area"
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    depot = models.ForeignKey(Depot, null=False, on_delete=models.CASCADE)
+    vehicle_type = models.ForeignKey(VehicleType, null=False, on_delete=models.CASCADE)
+    name = models.TextField(null=False)
+    area_type = models.CharField(
+        max_length=15, choices=AreaType.choices, null=True, default=None
+    )
+    row_count = models.IntegerField(null=True)
+    capacity = models.IntegerField(null=False)
+    processes = models.ManyToManyField(Process, through="AssocAreaProcess")
+
+class AssocPlanProcess(models.Model):
+    """
+    This model is used to store the many-to-many relationship between Plan and Process.
+    """
+    class Meta:
+        db_table = "AssocPlanProcess"
+
+    plan = models.ForeignKey(Plan, on_delete=models.CASCADE)
+    process = models.ForeignKey(Process, on_delete=models.CASCADE)
+
+class AssocAreaProcess(models.Model):
+    """
+    This model is used to store the many-to-many relationship between Area and Process.
+    """
+    class Meta:
+        db_table = "AssocAreaProcess"
+
+    area = models.ForeignKey(Area, on_delete=models.CASCADE)
+    process = models.ForeignKey(Process, on_delete=models.CASCADE)
