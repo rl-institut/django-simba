@@ -201,8 +201,8 @@ class Line(models.Model):
     class Meta:
         db_table = 'Line'
 
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
-    name = models.TextField(default=None, null=True, blank=True)
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    name = models.TextField(default=None, null=False, blank=True)
     name_short = models.TextField(default=None, null=True, blank=True)
 
 
