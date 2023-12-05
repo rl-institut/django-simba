@@ -17,13 +17,15 @@ class Scenario(models.Model):
     class Meta:
         db_table = 'Scenario'
 
-    name = models.CharField(max_length=100, blank=False)
+    name = models.TextField(blank=False)
+    name_short = models.TextField(blank=True, null=True)
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
 
     created = models.DateTimeField(auto_now_add=True)
-    task_id = models.TextField(default=None, null=True, blank=True)
+    task_id = models.UUIDField(default=None, null=True, blank=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
-    simba_options = models.JSONField(default=dict)
+    simba_options = models.JSONField(default=dict, null=True)
+    eflips_depot_options = models.JSONField(default=dict, null=True)
 
     @classmethod
     def get_default_pk(cls):
