@@ -20,7 +20,7 @@ from django.urls import reverse
 from selenium import webdriver
 
 from .models import (
-    Scenario,
+    Route, Scenario,
     UploadedFile,
     VehicleType,
     Vehicle,
@@ -240,6 +240,9 @@ class WriteReadScenarioToDatabase(TestCase):
         # Recursively search the schedule for primitive data which has to be equal to the database
         # schedule
         for key_stack, values in objects_digger([simba_schedule, simba_schedule_db]):
+            # Skip the temperature data, since it is not part of the database schedule
+            if "temperature" in key_stack:
+                continue
             if isinstance(values[0], datetime):
                 values[0] = make_aware(values[0])
             self.assertAlmostEqual(
@@ -443,12 +446,20 @@ class ModelTests(TestCase):
             battery_capacity=100,
             charging_efficiency=0.95,
         )
-        vehicle = Vehicle.objects.create(name="Test Vehicle", vehicle_type=vehicle_type)
+        vehicle = Vehicle.objects.create(name="Test Vehicle", vehicle_type=vehicle_type, scenario=scenario)
         self.assertEqual(str(vehicle), "Test Vehicle")
 
     def test_rotation_creation(self):
         scenario = Scenario.objects.create(name="Test Scenario")
-        rotation = Rotation.objects.create(name="Test Rotation", scenario=scenario)
+        vehicle_type = VehicleType.objects.create(
+            name="Test Type",
+            scenario=scenario,
+            charging_curve=[[0.0, 150], [1.0, 150]],
+            opportunity_charging_capable=True,
+            battery_capacity=100,
+            charging_efficiency=0.95,
+        )
+        rotation = Rotation.objects.create(name="Test Rotation", scenario=scenario, allow_opportunity_charging=True, vehicle_type=vehicle_type)
         self.assertEqual(str(rotation.name), "Test Rotation")
 
     def test_station_creation(self):
@@ -460,20 +471,35 @@ class ModelTests(TestCase):
 
     def test_trip_creation(self):
         scenario = Scenario.objects.create(name="Test Scenario")
-        rotation = Rotation.objects.create(name="Test Rotation", scenario=scenario)
+        vehicle_type = VehicleType.objects.create(
+            name="Test Type",
+            scenario=scenario,
+            charging_curve=[[0.0, 150], [1.0, 150]],
+            opportunity_charging_capable=True,
+            battery_capacity=100,
+            charging_efficiency=0.95,
+        )
+        rotation = Rotation.objects.create(name="Test Rotation", scenario=scenario, allow_opportunity_charging=True, vehicle_type=vehicle_type)
         departure_station = Station.objects.create(
             geom="POINT(0 0 0)", name="Departure Station", scenario=scenario
         )
         arrival_station = Station.objects.create(
             geom="POINT(1 1 1)", name="Arrival Station", scenario=scenario
         )
-        trip = Trip.objects.create(
-            rotation=rotation,
+        route = Route(
+            name="Test Route",
+            scenario=scenario,
             departure_station=departure_station,
-            departure_time=parse_datetime("2023-08-14 10:00:00"),
             arrival_station=arrival_station,
-            arrival_time=parse_datetime("2023-08-14 11:00:00"),
             distance=100,
+        )
+        route.save()
+        trip = Trip.objects.create(
+            scenario=scenario,
+            rotation=rotation,
+            route=route,
+            departure_time=parse_datetime("2023-08-14 10:00:00"),
+            arrival_time=parse_datetime("2023-08-14 11:00:00"),
         )
         self.assertEqual(trip.duration_in_seconds, 3600)
         self.assertEqual(trip.incline, 0.01)
