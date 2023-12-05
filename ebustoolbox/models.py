@@ -63,10 +63,10 @@ class BatteryType(models.Model):
     class Meta:
         db_table = 'BatteryType'
 
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
     # relative to gross capacity
-    specific_mass_kg_per_kwh = models.FloatField(null=True, blank=True)
+    specific_mass_kg_per_kwh = models.FloatField(null=False, blank=True)
     # defined in eFLIPS-LCA
     chemistry = models.JSONField(default=dict)
 
