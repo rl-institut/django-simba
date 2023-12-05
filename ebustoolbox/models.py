@@ -132,15 +132,15 @@ class Rotation(models.Model):
     class Meta:
         db_table = 'Rotation'
 
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
-    name = models.CharField(max_length=100, blank=False)
-    vehicle_type = models.ForeignKey(VehicleType, null=True, blank=True, on_delete=models.CASCADE)
+    name = models.TextField(blank=False, null=True)
+    vehicle_type = models.ForeignKey(VehicleType, null=False, blank=True, on_delete=models.CASCADE)
 
     # SimBA specific data to make SimBA simulations reproducible
     #
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_DEFAULT, default=None, null=True)
-    allow_opportunity_charging = models.BooleanField(default=None, null=True)
+    allow_opportunity_charging = models.BooleanField(default=None, null=False)
 
 
 class EnumVoltageLevel(models.TextChoices):
