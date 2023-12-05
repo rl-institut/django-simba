@@ -1,4 +1,5 @@
 import shutil
+from datetime import timedelta
 from pathlib import Path
 from django.contrib.gis.db.models.functions import Distance, Length
 from django.conf import settings
@@ -168,9 +169,9 @@ class Station(models.Model):
 
     # Map Engine models need geom and name as first columns
     geom = models.PointField(dim=2, srid=4326)  # without z elevation
-    name = models.TextField()
-    name_short = models.TextField(blank=True)
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    name = models.TextField(null=False)
+    name_short = models.TextField(null=True, blank=True)
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
     is_electrified = models.BooleanField(default=False)
     charge_type = models.CharField(
@@ -301,19 +302,15 @@ class StopTime(models.Model):
     """Intermediate stops of trips,
     which are not described by the arrival or departure of the trip"""
 
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
-    # Index of the stop
-    ordinal = models.IntegerField()
 
-    # Elapsed distance until this stop
-    elapsed_distance_m = models.FloatField()
 
     # When does the trip arrive at this station
     arrival_time = models.DateTimeField()
 
     # How long does the trip stop at this station
-    dwell_duration = models.DurationField()
+    dwell_duration = models.DurationField(null=False, default=timedelta(seconds=0))
 
     trip = models.ForeignKey(Trip, on_delete=models.CASCADE)
     station = models.ForeignKey(Station, on_delete=models.CASCADE)
