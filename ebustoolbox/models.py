@@ -110,11 +110,11 @@ class Vehicle(models.Model):
     class Meta:
         db_table = 'Vehicle'
 
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
-    name = models.CharField(max_length=100, blank=False)
-    name_short = models.CharField(blank=True)
-    vehicle_type = models.ForeignKey(VehicleType, on_delete=models.CASCADE, null=True, blank=True)
+    name = models.TextField(null=False, blank=False)
+    name_short = models.TextField(null=True, blank=True)
+    vehicle_type = models.ForeignKey(VehicleType, on_delete=models.CASCADE, null=False, blank=True)
 
     def save(self, *args, **kwargs):
         # Override save to make certain name_short exists
