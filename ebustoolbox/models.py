@@ -88,14 +88,14 @@ class VehicleType(models.Model):
     class Meta:
         db_table = 'VehicleType'
 
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     battery_type = models.ForeignKey(BatteryType, null=True, on_delete=models.CASCADE)
 
-    name = models.CharField(max_length=100, blank=False)
-    name_short = models.CharField(max_length=100, blank=False, default=name)
+    name = models.TextField(null=False, blank=False)
+    name_short = models.TextField(null=True, blank=False, default=name)
     opportunity_charging_capable = models.BooleanField()
     battery_capacity = models.FloatField()
-    battery_reserve_capacity = models.FloatField(default=0)
+    battery_capacity_reserve = models.FloatField(default=0)
     charging_efficiency = models.FloatField(default=0.95)
     minimum_charging_power = models.FloatField(default=0)
 
@@ -105,8 +105,8 @@ class VehicleType(models.Model):
 
     # TODO link to consumption table if no value is given here?
     consumption = models.FloatField(default=None, null=True)
-    length_m = models.FloatField(default=None, null=True)
-    width_m = models.FloatField(default=None, null=True)
+    shape = ArrayField(ArrayField(models.FloatField(), size=1), null=True)
+    """Shape of the vehicle in the form of length, width, height."""
     # Including battery and driver, no passengers
     empty_mass_kg = models.FloatField(default=None, null=True)
     allowed_mass_kg = models.FloatField(default=None, null=True)
