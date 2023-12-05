@@ -317,8 +317,8 @@ class Event(models.Model):
     class Meta:
         db_table = 'Event'
 
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
-    vehicle_type = models.ForeignKey(VehicleType, null=True, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    vehicle_type = models.ForeignKey(VehicleType, null=False, on_delete=models.CASCADE)
     vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE)
 
     #
@@ -333,7 +333,7 @@ class Event(models.Model):
     soc_start = models.FloatField()
     soc_end = models.FloatField()
 
-    timeseries = models.JSONField(default=dict)
+    timeseries = models.JSONField(default=dict, null=True)
 
     def save(self, *args, **kwargs):
         # Exactly one of the following has to be non-null
