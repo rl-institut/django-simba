@@ -192,7 +192,7 @@ class Station(models.Model):
         db_table = 'Station'
 
     # Map Engine models need geom and name as first columns
-    geom = models.PointField(dim=2, srid=4326)  # without z elevation
+    geom = models.PointField(dim=3, srid=4326)  # without z elevation
     name = models.TextField(null=False)
     name_short = models.TextField(null=True, blank=True)
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
@@ -288,7 +288,7 @@ class AssocRouteStation(models.Model):
     elapsed_distance = models.FloatField(null=False)
     """The distance in m that the bus has traveled when it reached this stop."""
 
-    location = models.PointField(dim=2, srid=4326, null=True)
+    location = models.PointField(dim=3, srid=4326, null=True)
     """An optional precise location of the this route's stop at the station. Use WGS84 coordinates (EPSG:4326)."""
 
 
