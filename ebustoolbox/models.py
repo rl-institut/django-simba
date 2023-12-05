@@ -10,6 +10,9 @@ MINIMAL_TRIP_DURATION_S = 60  # seconds
 
 
 class Scenario(models.Model):
+    class Meta:
+        db_table = 'Scenario'
+
     name = models.CharField(max_length=100, blank=False)
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
 
@@ -57,6 +60,9 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
 
 
 class BatteryType(models.Model):
+    class Meta:
+        db_table = 'BatteryType'
+
     scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
 
     # relative to gross capacity
@@ -66,6 +72,9 @@ class BatteryType(models.Model):
 
 
 class VehicleType(models.Model):
+    class Meta:
+        db_table = 'VehicleType'
+
     scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
     battery_type = models.ForeignKey(BatteryType, null=True, on_delete=models.CASCADE)
 
@@ -91,6 +100,9 @@ class VehicleType(models.Model):
 
 
 class Vehicle(models.Model):
+    class Meta:
+        db_table = 'Vehicle'
+
     scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
 
     name = models.CharField(max_length=100, blank=False)
@@ -117,6 +129,9 @@ class VehicleProperties(models.Model):
 
 
 class Rotation(models.Model):
+    class Meta:
+        db_table = 'Rotation'
+
     scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
 
     name = models.CharField(max_length=100, blank=False)
@@ -142,6 +157,9 @@ class EnumChargeType(models.TextChoices):
 
 
 class Station(models.Model):
+    class Meta:
+        db_table = 'Station'
+
     # Map Engine models need geom and name as first columns
     geom = models.PointField(dim=3, srid=4326)  # with z elevation
     name = models.TextField()
@@ -180,12 +198,18 @@ class Station(models.Model):
 
 
 class Line(models.Model):
+    class Meta:
+        db_table = 'Line'
+
     scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
     name = models.TextField(default=None, null=True, blank=True)
     name_short = models.TextField(default=None, null=True, blank=True)
 
 
 class Route(models.Model):
+    class Meta:
+        db_table = 'Route'
+
     # Shape of the route with height data
     geom = models.LineStringField(dim=3, srid=4326, null=True)
 
@@ -202,6 +226,9 @@ class EnumTripType(models.TextChoices):
 
 
 class Trip(models.Model):
+    class Meta:
+        db_table = 'Trip'
+
     scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
     route = models.ForeignKey(Route, null=True, on_delete=models.CASCADE)
 
@@ -255,6 +282,9 @@ class Trip(models.Model):
 
 
 class StopTime(models.Model):
+    class Meta:
+        db_table = 'StopTime'
+
     """Intermediate stops of trips,
     which are not described by the arrival or departure of the trip"""
 
@@ -277,10 +307,16 @@ class StopTime(models.Model):
 
 
 class Area(models.Model):
+    class Meta:
+        db_table = 'Area'
+
     pass
 
 
 class Event(models.Model):
+    class Meta:
+        db_table = 'Event'
+
     scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
     vehicle_type = models.ForeignKey(VehicleType, null=True, on_delete=models.CASCADE)
     vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE)
