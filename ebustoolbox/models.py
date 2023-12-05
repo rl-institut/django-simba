@@ -151,15 +151,15 @@ class Rotation(models.Model):
 
 class EnumVoltageLevel(models.TextChoices):
     VOLTAGE_HV = "HV"
-    VOLTAGE_HV_MV = "HV/MV"
+    VOLTAGE_HV_MV = "HV_MV"
     VOLTAGE_MV = "MV"
-    VOLTAGE_MV_LV = "MV/LV"
+    VOLTAGE_MV_LV = "MV_LV"
     VOLTAGE_LV = "LV"
 
 
 class EnumChargeType(models.TextChoices):
-    DEPOT = "depb"
-    OPPORTUNITY = "oppb"
+    DEPOT = "DEPOT"
+    OPPORTUNITY = "OPPORTUNITY"
 
 
 class Station(models.Model):
@@ -167,14 +167,14 @@ class Station(models.Model):
         db_table = 'Station'
 
     # Map Engine models need geom and name as first columns
-    geom = models.PointField(dim=3, srid=4326)  # with z elevation
+    geom = models.PointField(dim=2, srid=4326)  # without z elevation
     name = models.TextField()
     name_short = models.TextField(blank=True)
     scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
 
     is_electrified = models.BooleanField(default=False)
     charge_type = models.CharField(
-        max_length=4, choices=EnumChargeType.choices, null=True, default=None
+        max_length=11, choices=EnumChargeType.choices, null=True, default=None
     )
     voltage_level = models.CharField(
         max_length=5, choices=EnumVoltageLevel.choices, null=True, default=None
