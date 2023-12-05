@@ -77,6 +77,12 @@ class BatteryType(models.Model):
     # defined in eFLIPS-LCA
     chemistry = models.JSONField(default=dict)
 
+class AssocVehicleTypeVehicleClass(models.Model):
+    class Meta:
+        db_table = 'AssocVehicleTypeVehicleClass'
+
+    vehicle_type = models.ForeignKey("VehicleType", on_delete=models.CASCADE)
+    vehicle_class = models.ForeignKey("VehicleClass", on_delete=models.CASCADE)
 
 class VehicleType(models.Model):
     class Meta:
@@ -104,6 +110,18 @@ class VehicleType(models.Model):
     # Including battery and driver, no passengers
     empty_mass_kg = models.FloatField(default=None, null=True)
     allowed_mass_kg = models.FloatField(default=None, null=True)
+
+    vehicle_classes = models.ManyToManyField("VehicleClass", through="AssocVehicleTypeVehicleClass")
+
+class VehicleClass(models.Model):
+    class Meta:
+        db_table = 'VehicleClass'
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    name = models.TextField(null=False, blank=False)
+    name_short = models.TextField(null=True, blank=True)
+
+    vehicle_types = models.ManyToManyField(VehicleType, through="AssocVehicleTypeVehicleClass")
 
 
 class Vehicle(models.Model):
