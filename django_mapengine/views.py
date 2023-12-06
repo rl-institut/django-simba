@@ -64,7 +64,7 @@ class MapEngineMixin(ContextMixin):
             "zoom_levels": settings.MAP_ENGINE_ZOOM_LEVELS,
             # "choropleths": {choropleth.name: choropleth.as_dict() for choropleth in settings.MAP_ENGINE_CHOROPLETHS},
         }
-        store["clickable_layers"]=list(store["popups"].keys())
+        store["clickable_layers"] = list(store["popups"].keys())
 
         context["mapengine_store_cold_init"] = store
 

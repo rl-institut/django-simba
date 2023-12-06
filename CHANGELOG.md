@@ -16,11 +16,22 @@ Template:
 ### Removed
 - [(#)]()
 ```
+### Changed
+- [(#38)](https://github.com/rl-institut/django-simba/pull/38)
+- Expands the database according to discussed specifications.
+- Removes VehicleClass from SIMBA algorithm, meaning, only a single VehicleType will be run per rotation.
+- Adjusts tests accordingly
+- Refactoring of the objects_digger used to compare complex objects using their primitive base / leaf types
+- Added functionality to turn of eflips in the basic toolchain
+  - .env file now makes use of an optional setting EFLIPS_USE=False. The default value for this setting is True, so the standard behavior does not change
+
+
 
 ## [x.x.x] - Unreleased
 - Added the feature to read the database and generate a SimBA Schedule from the database.
 - Added tests to check that scenarios from the database are generating the same results as default simulations.
-- Added function save_and_simulate() with default behavior of running a simulation
+- Added function save_and_simulate() with default behavior of running a simulation.
+-
 
 ### Changed
 - [(#29)](https://github.com/rl-institut/django-simba/pull/29)The generated input for eflips gets the database ID of the vehicle_type instead of the simba specific name of the vehicle type
@@ -32,6 +43,7 @@ Template:
 
 ### Added
 - [(#26)](https://github.com/rl-institut/django-simba/pull/26) Added dev tools for consistent formatting
+- [(#35)](https://github.com/rl-institut/django-simba/pull/35) Basic toolchain implements eflips and SimBA communication
 ### Changed
 - [(#)]()
 ### Removed

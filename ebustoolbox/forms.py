@@ -1,5 +1,5 @@
 from django import forms
-from .models import Vehicle, Station
+from .models import Vehicle, EnumChargeType, EnumVoltageLevel
 
 
 class UploadFileForm(forms.Form):
@@ -7,7 +7,8 @@ class UploadFileForm(forms.Form):
     title = forms.CharField(max_length=50, initial="SimBA")
     # task_id = forms.CharField(widget=forms.HiddenInput, required=False)
     preferred_charging_type = forms.CharField(
-        widget=forms.RadioSelect(choices=Station.CHARGE_TYPES), initial=Station.CHARGE_TYPES[0][0]
+        widget=forms.RadioSelect(choices=EnumChargeType.choices),
+        initial=EnumChargeType.choices[0][0],
     )
     modes = forms.CharField(widget=forms.HiddenInput, initial="sim,report")
 
@@ -18,7 +19,7 @@ class UploadFileForm(forms.Form):
     cs_power_deps_depb = forms.DecimalField(max_digits=10, decimal_places=2, initial=150)
     cs_power_deps_oppb = forms.DecimalField(max_digits=10, decimal_places=2, initial=150)
     default_voltage_level = forms.CharField(
-        widget=forms.RadioSelect(choices=[(c, c) for c in Station.VOLTAGE_LEVEL_CHOICES]),
+        widget=forms.RadioSelect(choices=EnumVoltageLevel.choices),
         initial="MV",
     )
 
@@ -43,7 +44,7 @@ class UploadFileForm(forms.Form):
     strategy = forms.CharField(
         widget=forms.Select(choices=[("distributed", "distributed")]), initial="distributed"
     )
-    interval = forms.DecimalField(initial=15)
+    interval = forms.DecimalField(initial=1)
     signal_time_dif = forms.DecimalField(initial=10)
     days = forms.IntegerField(required=False)
     include_price_csv = forms.FileField(required=False)
