@@ -365,7 +365,16 @@ class StopTime(models.Model):
     trip = models.ForeignKey(Trip, on_delete=models.CASCADE)
     station = models.ForeignKey(Station, on_delete=models.CASCADE)
 
-
+class EventType(models.TextChoices):
+    """
+    The EventType represents a certain type of event, which is used to define the type of an event.
+    """
+    DRIVING = "DRIVING"
+    CHARGING_OPPORTUNITY = "CHARGING_OPPORTUNITY"
+    CHARGING_DEPOT = "CHARGING_DEPOT"
+    SERCVICE = "SERVICE"
+    STANDBY_DEPARTURE = "STANDBY_DEPARTURE"
+    PRECONDITIONING = "PRECONDITIONING"
 
 class Event(models.Model):
     class Meta:
@@ -386,6 +395,11 @@ class Event(models.Model):
 
     soc_start = models.FloatField()
     soc_end = models.FloatField()
+
+    event_type = models.CharField(
+        max_length=20, choices=EventType.choices, null=False, default=None
+    )
+    description = models.TextField(null=True, blank=True)
 
     timeseries = models.JSONField(default=dict, null=True)
 
@@ -471,7 +485,8 @@ class Area(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     depot = models.ForeignKey(Depot, null=False, on_delete=models.CASCADE)
     vehicle_type = models.ForeignKey(VehicleType, null=False, on_delete=models.CASCADE)
-    name = models.TextField(null=False)
+    name = models.TextField(null=True)
+    name_short = models.TextField(null=True)
     area_type = models.CharField(
         max_length=15, choices=AreaType.choices, null=True, default=None
     )
@@ -486,8 +501,12 @@ class AssocPlanProcess(models.Model):
     class Meta:
         db_table = "AssocPlanProcess"
 
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+
     plan = models.ForeignKey(Plan, on_delete=models.CASCADE)
     process = models.ForeignKey(Process, on_delete=models.CASCADE)
+
+    ordinal = models.IntegerField(null=False)
 
 class AssocAreaProcess(models.Model):
     """
