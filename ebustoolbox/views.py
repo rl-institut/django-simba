@@ -72,13 +72,14 @@ def get_vehicle_plot_data(vehicles):
     return plot_vehicles
 
 
-def show_uploads_view(request, filename):
+def show_uploads_view(request: HttpRequest, filename):
     file = open("uploads/" + filename, "rb")
     response = FileResponse(file)
     return response
 
 
-def result_view(request):
+def result_view(request: HttpRequest):
+    """View controlling if the wait or success view should be shown"""
     task_id = request.GET["task_id"]
     try:
         print(task_id, Scenario.objects.filter(task_id=task_id).exists())
@@ -103,6 +104,8 @@ class resultView(TemplateView):
 
 
 class SuccessView(TemplateView, MapEngineMixin):
+    """View which generates the page containing simulation results"""
+
     template_name = "result.html"
 
     def get_context_data(self, **kwargs):
@@ -113,6 +116,8 @@ class SuccessView(TemplateView, MapEngineMixin):
 
 @require_GET
 def long_running_task_status_view(request):
+    """Returns a Json with a success field. The field is True if the task has finished and
+    False if it is still pending"""
     task_id = request.GET.get("task_id")
     task_result = AsyncResult(task_id)
     if (
@@ -126,6 +131,8 @@ def long_running_task_status_view(request):
 
 
 def home_view(request: HttpRequest):
+    """Generate the home view of the tool chain with input forms"""
+
     if request.method == "GET":
         form = UploadFileForm()
     elif request.method == "POST":
@@ -163,7 +170,8 @@ def save_and_simulate(
 ) -> Scenario:
     if form is None:
         new_form = UploadFileForm()
-        # If function is called without request and form use the initial values as cleaned data
+        # If this function is called without a request and a form,  use the initial values as
+        # cleaned data
         cleaned_data = {field: new_form[field].initial for field in new_form.fields}
     else:
         cleaned_data = form.cleaned_data

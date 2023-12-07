@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('ebustoolbox', '0015_remove_vehicle_scenario'),
+        ('ebustoolbox', '0028_route_name_route_name_short'),
     ]
 
     operations = [

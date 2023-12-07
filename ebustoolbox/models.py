@@ -12,11 +12,12 @@ MINIMAL_TRIP_DURATION_S = 60  # seconds
 
 class Scenario(models.Model):
     name = models.CharField(max_length=100, blank=False)
+    parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
 
     created = models.DateTimeField(auto_now_add=True)
     task_id = models.TextField(default=None, null=True, blank=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
-    options = models.JSONField(default=dict)
+    simba_options = models.JSONField(default=dict)
     manager = models.ForeignKey(
         User, on_delete=models.SET_NULL, default=None, null=True, blank=True, related_name="+"
     )
@@ -35,7 +36,7 @@ def auto_delete_results_on_delete(sender, instance, **kwargs):
     """Delete the scenario results folder if the scenario is deleted from the database
 
     :param sender: Model which sends signal
-    :param instance: instance of model which gets deleted
+    :param instance: instance of a model which gets deleted
     :param kwargs: other arguments
     :return:
     """
@@ -60,28 +61,24 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
             path.unlink()
 
 
-class VehicleClass(models.Model):
-    name = models.CharField(max_length=100, blank=False)
-    # Connect to scenario, so the class is deleted when the scenario is deleted
-    scenario = models.ForeignKey(
-        Scenario, default=Scenario.get_default_pk, on_delete=models.CASCADE
-    )
+class BatteryType(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
 
-    @classmethod
-    def get_default_pk(cls):
-        vehicle_class, created = cls.objects.get_or_create(
-            name="SB",
-        )
-        return vehicle_class.pk
+    # relative to gross capacity
+    specific_mass_kg_per_kwh = models.FloatField(null=True, blank=True)
+    # defined in eFLIPS-LCA
+    chemistry = models.JSONField(default=dict)
 
 
 class VehicleType(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    battery_type = models.ForeignKey(BatteryType, null=True, on_delete=models.CASCADE)
+
     name = models.CharField(max_length=100, blank=False)
     name_short = models.CharField(max_length=100, blank=False, default=name)
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
-    vehicle_class = models.ManyToManyField(VehicleClass)
-    flex_charging = models.BooleanField()
+    opportunity_charging_capable = models.BooleanField()
     battery_capacity = models.FloatField()
+    battery_reserve_capacity = models.FloatField(default=0)
     charging_efficiency = models.FloatField(default=0.95)
     minimum_charging_power = models.FloatField(default=0)
 
@@ -89,102 +86,149 @@ class VehicleType(models.Model):
     charging_curve = ArrayField(ArrayField(models.FloatField(), size=2))
     v2g_curve = ArrayField(ArrayField(models.FloatField(), size=2), null=True)
 
-    v2g = models.BooleanField(default=False)
-
     # TODO link to consumption table if no value is given here?
     consumption = models.FloatField(default=None, null=True)
-    length = models.FloatField(default=None, null=True)
+    length_m = models.FloatField(default=None, null=True)
+    width_m = models.FloatField(default=None, null=True)
+    # Including battery and driver, no passengers
+    empty_mass_kg = models.FloatField(default=None, null=True)
+    allowed_mass_kg = models.FloatField(default=None, null=True)
 
 
 class Vehicle(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+
     name = models.CharField(max_length=100, blank=False)
+    name_short = models.CharField(blank=True)
     vehicle_type = models.ForeignKey(VehicleType, on_delete=models.CASCADE, null=True, blank=True)
 
-    # ToDo insert output here or create other Class "VehicleOutput" which also contains the
-    # simulation results regarding this vehicle
+    def save(self, *args, **kwargs):
+        # Override save to make certain name_short exists
+        if not self.name_short:
+            self.name_short = self.name
+        super().save(*args, **kwargs)
 
-    # date_time_stamps = ArrayField(models.DateTimeField( default = None, null=True))
-    # socs = ArrayField(models.FloatField( default = None, null=True))
     def __str__(self):
         return self.name
 
 
 # ToDo Deprecated
 class VehicleProperties(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+
     date = models.DateTimeField()
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
     soc = models.FloatField(null=True)
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
-
-
-# ToDo Deprecated
-class EbusToolboxTimeseries(models.Model):
-    date = models.DateTimeField(default=None)
-    soc = models.FloatField()
-
-    class Meta:
-        ordering = ("date",)
 
 
 class Rotation(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+
     name = models.CharField(max_length=100, blank=False)
-    # TODO on delete concept? also depends on if vehicle class is tied to scenario
-    vehicle_class = models.ForeignKey(
-        VehicleClass, on_delete=models.SET_DEFAULT, default=VehicleClass.get_default_pk
-    )
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+    vehicle_type = models.ForeignKey(VehicleType, null=True, blank=True, on_delete=models.CASCADE)
 
     # SimBA specific data to make SimBA simulations reproducible
     #
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_DEFAULT, default=None, null=True)
-    is_depot_rotation = models.BooleanField(default=None, null=True)
+    allow_opportunity_charging = models.BooleanField(default=None, null=True)
+
+
+class EnumVoltageLevel(models.TextChoices):
+    VOLTAGE_HV = "HV"
+    VOLTAGE_HV_MV = "HV/MV"
+    VOLTAGE_MV = "MV"
+    VOLTAGE_MV_LV = "MV/LV"
+    VOLTAGE_LV = "LV"
+
+
+class EnumChargeType(models.TextChoices):
+    DEPOT = "depb"
+    OPPORTUNITY = "oppb"
 
 
 class Station(models.Model):
     # Map Engine models need geom and name as first columns
     geom = models.PointField(dim=3, srid=4326)  # with z elevation
     name = models.TextField()
-
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
-
-    VOLTAGE_LEVEL_CHOICES = ["HV", "HV/MV", "MV", "MV/LV", "LV"]
-    CHARGE_TYPES = (("oppb", "Opportunity"), ("depb", "Depot"))
+    name_short = models.TextField(blank=True)
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
 
     is_electrified = models.BooleanField(default=False)
-    charge_type = models.CharField(max_length=4, choices=CHARGE_TYPES, null=True)
+    charge_type = models.CharField(
+        max_length=4, choices=EnumChargeType.choices, null=True, default=None
+    )
     voltage_level = models.CharField(
-        max_length=5, choices=[(c, c) for c in VOLTAGE_LEVEL_CHOICES], null=True
+        max_length=5, choices=EnumVoltageLevel.choices, null=True, default=None
     )
     amount_charging_places = models.IntegerField(default=0, null=True)
     power_per_charger = models.FloatField(default=None, null=True)
-    total_power = models.FloatField(default=None, null=True)
+    power_total = models.FloatField(default=None, null=True)
+
+    def save(self, *args, **kwargs):
+        # Override save to make certain name_short exists
+        if not self.name_short:
+            self.name_short = self.name
+        if self.is_electrified:
+            if self.voltage_level is None or self.charge_type is None:
+                error_text = "An electrified station needs a voltage level and a charge type"
+                raise AttributeError(error_text)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         if not self.is_electrified:
             return f"{self.name} is not electrified. Location: {self.geom.x} {self.geom.y}"
         return (
             f"{self.name} with {self.amount_charging_places} chargers with "
-            f"{self.power_per_charger} kW per charger and a total power of {self.total_power} "
+            f"{self.power_per_charger} kW per charger and a total power of {self.power_total} "
             f"kW. \nLocation: {self.geom.x} {self.geom.y}"
         )
 
 
+class Line(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    name = models.TextField(default=None, null=True, blank=True)
+    name_short = models.TextField(default=None, null=True, blank=True)
+
+
+class Route(models.Model):
+    # Shape of the route with height data
+    geom = models.LineStringField(dim=3, srid=4326, null=True)
+
+    name = models.TextField(default=None, null=True, blank=True)
+    name_short = models.TextField(default=None, null=True, blank=True)
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    line = models.ForeignKey(Line, null=True, on_delete=models.CASCADE)
+    headsign = models.TextField(default=None, null=True, blank=True)
+
+
+class EnumTripType(models.TextChoices):
+    EMPTY_TRIP = "empty"
+    PASSENGER_TRIP = "passenger"
+
+
 class Trip(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    route = models.ForeignKey(Route, null=True, on_delete=models.CASCADE)
+
     rotation = models.ForeignKey(
         Rotation, on_delete=models.CASCADE
     )  # TODO do all ForeignKeys need cascade?
-    departure_stop = models.ForeignKey(
+    departure_station = models.ForeignKey(
         Station, on_delete=models.CASCADE, related_name="trip_departure_set"
     )
     departure_time = models.DateTimeField(blank=False)
-    arrival_stop = models.ForeignKey(
+    arrival_station = models.ForeignKey(
         Station, on_delete=models.CASCADE, related_name="trip_arrival_set"
     )
     arrival_time = models.DateTimeField(blank=False)
     distance = models.FloatField()
 
-    # ToDo do we want a line object?
-    line = models.CharField(max_length=100, blank=True, null=True)
+    # Is the Trip empty, i.e., without passengers
+    type = models.CharField(
+        max_length=10, choices=EnumTripType.choices, default=EnumTripType.PASSENGER_TRIP
+    )
+
+    line = models.ForeignKey(Line, null=True, on_delete=models.CASCADE)
     temperature = models.FloatField(default=None, null=True)
     level_of_loading = models.FloatField(default=None, null=True)
 
@@ -212,4 +256,73 @@ class Trip(models.Model):
         """incline in z units per distance units
 
         Minimal value for distance is set to 1 to avoid division by 0."""
-        return (self.arrival_stop.geom.z - self.departure_stop.geom.z) / max(self.distance, 1)
+        return (self.arrival_station.geom.z - self.departure_station.geom.z) / max(self.distance, 1)
+
+
+class StopTime(models.Model):
+    """Intermediate stops of trips,
+    which are not described by the arrival or departure of the trip"""
+
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+
+    # Index of the stop
+    ordinal = models.IntegerField()
+
+    # Elapsed distance until this stop
+    elapsed_distance_m = models.FloatField()
+
+    # When does the trip arrive at this station
+    arrival_time = models.DateTimeField()
+
+    # How long does the trip stop at this station
+    dwell_duration = models.DurationField()
+
+    trip = models.ForeignKey(Trip, on_delete=models.CASCADE)
+    station = models.ForeignKey(Station, on_delete=models.CASCADE)
+
+
+class Area(models.Model):
+    pass
+
+
+class Event(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    vehicle_type = models.ForeignKey(VehicleType, null=True, on_delete=models.CASCADE)
+    vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE)
+
+    #
+    station = models.ForeignKey(Station, null=True, on_delete=models.CASCADE)
+    trip = models.ForeignKey(Trip, null=True, on_delete=models.CASCADE)
+    area = models.ForeignKey(Area, null=True, on_delete=models.CASCADE)
+
+    subloc_no = models.IntegerField(null=True, blank=True)
+    time_start = models.DateTimeField()
+    time_end = models.DateTimeField()
+
+    soc_start = models.FloatField()
+    soc_end = models.FloatField()
+
+    timeseries = models.JSONField(default=dict)
+
+    def save(self, *args, **kwargs):
+        # Exactly one of the following has to be non-null
+        if (self.station is not None) + (self.trip is not None) + (self.area is not None) != 1:
+            raise AttributeError(
+                "An Event can only have ONE of the following Attributes.\n" "Station\nTrip\nArea"
+            )
+        mandatory_fields = ["time", "soc"]
+        for f in mandatory_fields:
+            if f not in self.timeseries.keys():
+                raise AttributeError(
+                    f"A dictionary key of {f} with values of {f} has to be "
+                    f"provided to the json field timeseries."
+                )
+
+        data_length = len(self.timeseries[mandatory_fields[0]])
+        for f in mandatory_fields:
+            if len(self.timeseries[f]) != data_length:
+                raise AttributeError(
+                    f"The timeseries of {mandatory_fields[0]} and {f} have "
+                    f"different lengths which is not allowed"
+                )
+        super().save(*args, **kwargs)
