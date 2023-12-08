@@ -15,7 +15,7 @@ import csv
 import shutil
 import tqdm
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from decimal import Decimal
 from celery import shared_task
@@ -809,6 +809,12 @@ def get_timestep_from_datetime(scenario, timestamp):
     return round(minutes_into_scenario * (scenario.stepsPerHour / 60))
 
 
+def get_datetime_from_timestep(scenario, timestep):
+    # calculate the corresponding datetime
+    minutes = timestep * (60 / scenario.stepsPerHour)
+    return scenario.start_time + timedelta(minutes=minutes)
+
+
 def create_event_output(simba_scenario, task_id):
     # collect data from DB
     db_scenario = Scenario.objects.get(task_id=task_id)
@@ -823,10 +829,11 @@ def create_event_output(simba_scenario, task_id):
     for counter, vehicle_event in enumerate(sorted_vehicle_events):
         start_timestep = get_timestep_from_datetime(simba_scenario, vehicle_event.start_time)
         try:
+            # TODO figure out timezones
             end_time = sorted_vehicle_events[counter + 1].start_time
         except IndexError:
-            end_time = vehicle_event.start_time  # TODO get actual last datetime here
-        end_timestep = get_timestep_from_datetime(simba_scenario, end_time)
+            end_time = simba_scenario.stop_time
+        end_timestep = min(get_timestep_from_datetime(simba_scenario, end_time), simba_scenario.step_i - 1)
         try:
             vehicle = vehicle_dict[vehicle_event.vehicle_id]
         except KeyError:
@@ -838,10 +845,15 @@ def create_event_output(simba_scenario, task_id):
         try:
             vehicle_type = vehicle_type_dict[simba_vehicle_type]
         except KeyError:
+            # TODO do we want to except this, or is this just an error?
+            vehicle_type_params = simba_scenario.components.vehicle_types[
+                "_".join(vehicle_event.vehicle_id.split("_")[:2])
+            ]
+            opp_capable = vehicle_event.vehicle_id.split("_")[1] == "oppb"
             vehicle_type = VehicleType.objects.create(
                 scenario=db_scenario, name=simba_vehicle_type, name_short=simba_vehicle_type,
-                opportunity_charging_capable=True, battery_capacity=120,
-                charging_curve=[[0, 250], [0.8, 250], [1, 25]]  # TODO get values from SimBA?
+                opportunity_charging_capable=opp_capable, battery_capacity=vehicle_type_params.capacity,
+                charging_curve=vehicle_type_params.charging_curve.points
             )
             vehicle_type_dict[simba_vehicle_type] = vehicle_type
 
@@ -851,7 +863,7 @@ def create_event_output(simba_scenario, task_id):
         if vehicle_event.event_type == "arrival":
             # TODO set EventType here once implemented
             simba_location = vehicle_event.update["connected_charging_station"]
-            # event_type = EventType.STANBY_DEPARTURE if event_dict["connected_charging_station"] is None else
+            # event_type = EventType.STANBY_DEPARTURE if simba_location is None else
             # EventType.CHARGING_OPPORTUNITY
             # TODO get Station via schedule?
             station = stations[0]
@@ -861,20 +873,18 @@ def create_event_output(simba_scenario, task_id):
             # TODO set Trip here
             trip = trips[0]
             # event_type = EventType.DRIVING
-
-        timeseries = {  # TODO implement time series values
-            "time": [],
-            "soc": []
+        # timestamp_list = [get_datetime_from_timestep(simba_scenario, t) for t in
+        #                   range(start_timestep, end_timestep + 1, int(60 / simba_scenario.stepsPerHour))]
+        timeseries = {
+            # TODO change to timestamp_list or other options once Issue 41 is resolved
+            "time": list(range(start_timestep, end_timestep + 1, int(60 / simba_scenario.stepsPerHour))),
+            "soc": simba_scenario.vehicle_socs[vehicle.name][start_timestep:end_timestep + 1]
         }
 
         # grab current vehicle SoC at timestep
         soc_start = simba_scenario.vehicle_socs[vehicle.name][start_timestep]
         soc_end = simba_scenario.vehicle_socs[vehicle.name][end_timestep]
 
-        # TODO get timeseries here. start step of current event until start step of next event - 1 (last event extra)
-        # from vehicle_socs, timestamps?, is distance driven necessary? would be calculated linearly from total distance
-        # maybe save vehicle_socs extra and have implicit link via time step/stamp?
-        # cut timeseries to fit event time
         event = Event(
             scenario=db_scenario,
             vehicle=vehicle,
