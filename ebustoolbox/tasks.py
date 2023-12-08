@@ -32,6 +32,7 @@ from .models import (
     Scenario,
     EnumChargeType,
     Line,
+    Event,
 )
 
 from simba.consumption import Consumption
@@ -809,41 +810,83 @@ def get_timestep_from_datetime(scenario, timestamp):
 
 
 def create_event_output(simba_scenario, task_id):
-    all_events_dict = {vehicle_name: [] for vehicle_name in simba_scenario.components.vehicles}
     # collect data from DB
     db_scenario = Scenario.objects.get(task_id=task_id)
-    vehicle_dict = Vehicle.objects.filter(vehicle_type__scenario=db_scenario)
+    vehicle_dict = Vehicle.objects.filter(scenario=db_scenario)
     vehicle_dict = {vehicle.name: vehicle for vehicle in vehicle_dict}
+    vehicle_type_dict = VehicleType.objects.filter(scenario=db_scenario)
+    vehicle_type_dict = {vehicle_type.name_short: vehicle_type for vehicle_type in vehicle_type_dict}
+    stations = Station.objects.filter(scenario=db_scenario)
+    trips = Trip.objects.filter(scenario=db_scenario)
     # collect info from vehicle_event
-    for vehicle_event in simba_scenario.events.vehicle_events:
-        timestep = get_timestep_from_datetime(simba_scenario, vehicle_event.start_time)
-        event_dict = {
-            "scenario": db_scenario,
-            "timestep": timestep,
-            "timestamp": vehicle_event.start_time,
-            "event_type": vehicle_event.event_type,  # arrival or departure
-            "vehicle": vehicle_dict[vehicle_event.vehicle_id]
-        }
-        if event_dict["event_type"] == "arrival":
-            event_dict["connected_charging_station"] = vehicle_event.update["connected_charging_station"]
-            event_dict["event_type"] = "parking" if event_dict["connected_charging_station"] is None else "charging"
+    sorted_vehicle_events = sorted(simba_scenario.events.vehicle_events, key=lambda d: d.start_time)
+    for counter, vehicle_event in enumerate(sorted_vehicle_events):
+        start_timestep = get_timestep_from_datetime(simba_scenario, vehicle_event.start_time)
+        try:
+            end_time = sorted_vehicle_events[counter + 1].start_time
+        except IndexError:
+            end_time = vehicle_event.start_time  # TODO get actual last datetime here
+        end_timestep = get_timestep_from_datetime(simba_scenario, end_time)
+        try:
+            vehicle = vehicle_dict[vehicle_event.vehicle_id]
+        except KeyError:
+            vehicle = Vehicle.objects.create(
+                scenario=db_scenario, name=vehicle_event.vehicle_id
+            )
+            vehicle_dict[vehicle_event.vehicle_id] = vehicle
+        simba_vehicle_type = vehicle_event.vehicle_id.split("_")[0]
+        try:
+            vehicle_type = vehicle_type_dict[simba_vehicle_type]
+        except KeyError:
+            vehicle_type = VehicleType.objects.create(
+                scenario=db_scenario, name=simba_vehicle_type, name_short=simba_vehicle_type,
+                opportunity_charging_capable=True, battery_capacity=120,
+                charging_curve=[[0, 250], [0.8, 250], [1, 25]]  # TODO get values from SimBA?
+            )
+            vehicle_type_dict[simba_vehicle_type] = vehicle_type
+
+        # figure out the location of the event
+        station = None
+        trip = None
+        if vehicle_event.event_type == "arrival":
+            # TODO set EventType here once implemented
+            simba_location = vehicle_event.update["connected_charging_station"]
+            # event_type = EventType.STANBY_DEPARTURE if event_dict["connected_charging_station"] is None else
+            # EventType.CHARGING_OPPORTUNITY
+            # TODO get Station via schedule?
+            station = stations[0]
         else:
-            event_dict["event_type"] = "driving"
+            pass
+            # TODO set EventType here once implemented
+            # TODO set Trip here
+            trip = trips[0]
+            # event_type = EventType.DRIVING
+
+        timeseries = {  # TODO implement time series values
+            "time": [],
+            "soc": []
+        }
 
         # grab current vehicle SoC at timestep
-        event_dict["soc"] = simba_scenario.vehicle_socs[event_dict["vehicle"].name][timestep]
+        soc_start = simba_scenario.vehicle_socs[vehicle.name][start_timestep]
+        soc_end = simba_scenario.vehicle_socs[vehicle.name][end_timestep]
 
-        # TODO get the location. maybe via schedule? SpiceEV only tracks location if connected to a charger
-
-        all_events_dict[vehicle_event.vehicle_id].append(event_dict)
-
-    # sort the lists by timestep
-    for vehicle_type, event_list in all_events_dict.items():
-        all_events_dict[vehicle_type] = sorted(event_list, key=lambda x: x["timestep"])
-
-    # TODO get timeseries here. start step of current event until start step of next event - 1 (last event extra)
-    # from vehicle_socs, timestamps?, is distance driven necessary? would be calculated linearly from total distance
-    # maybe save vehicle_socs extra and have implicit link via time step/stamp?
-    # cut timeseries to fit event time
-
-    # TODO link vehicle_id to vehicle in DB
+        # TODO get timeseries here. start step of current event until start step of next event - 1 (last event extra)
+        # from vehicle_socs, timestamps?, is distance driven necessary? would be calculated linearly from total distance
+        # maybe save vehicle_socs extra and have implicit link via time step/stamp?
+        # cut timeseries to fit event time
+        event = Event(
+            scenario=db_scenario,
+            vehicle=vehicle,
+            vehicle_type=vehicle_type,
+            station=station,
+            trip=trip,
+            soc_start=soc_start,
+            soc_end=soc_end,
+            time_start=vehicle_event.start_time,
+            time_end=end_time,
+            timeseries=timeseries,
+            # event_type = vehicle_event.event_type, TODO transform to EventType
+        )
+        event.save()
+    # Event.objects.bulk_create(events)
