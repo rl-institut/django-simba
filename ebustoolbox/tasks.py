@@ -873,11 +873,11 @@ def create_event_output(simba_scenario, task_id):
             # TODO set Trip here
             trip = trips[0]
             # event_type = EventType.DRIVING
-        # timestamp_list = [get_datetime_from_timestep(simba_scenario, t) for t in
-        #                   range(start_timestep, end_timestep + 1, int(60 / simba_scenario.stepsPerHour))]
+        timestamp_list = [get_datetime_from_timestep(simba_scenario, t).astimezone().isoformat() for t in
+                          range(start_timestep, end_timestep + 1, int(60 / simba_scenario.stepsPerHour))]
         timeseries = {
             # TODO change to timestamp_list or other options once Issue 41 is resolved
-            "time": list(range(start_timestep, end_timestep + 1, int(60 / simba_scenario.stepsPerHour))),
+            "time": timestamp_list,
             "soc": simba_scenario.vehicle_socs[vehicle.name][start_timestep:end_timestep + 1]
         }
 
@@ -893,8 +893,8 @@ def create_event_output(simba_scenario, task_id):
             trip=trip,
             soc_start=soc_start,
             soc_end=soc_end,
-            time_start=vehicle_event.start_time,
-            time_end=end_time,
+            time_start=vehicle_event.start_time.astimezone(),
+            time_end=end_time.astimezone(),
             timeseries=timeseries,
             # event_type = vehicle_event.event_type, TODO transform to EventType
         )
