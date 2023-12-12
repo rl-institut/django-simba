@@ -5,7 +5,7 @@ from django.core.exceptions import FieldError
 from django.db import connection
 from rest_framework.serializers import ValidationError
 from rest_framework_gis.tilenames import tile_edges
-
+import ebustoolbox.models as ebusmodels
 
 # pylint: disable=W0223
 class AsMVTGeom(models.functions.GeomOutputGeoFunc):
@@ -51,11 +51,24 @@ class MVTManager(models.Manager):
     # pylint: disable=W0613,R0913
     def _filter_query(self, query, x, y, z, filters):
         # ToDo Change
+
+        print("!!!HERE!!!")
+        print(query)
+        print(len(query))
+        print(filters)
+
+        scenarios_with_task_id = ebusmodels.Scenario.objects.filter(task_id=filters["task_id"])
+
+        print("Scenario_id from task_id: ", scenarios_with_task_id[0].id)
+
         try:
-            filters["scenario__task_id"] = filters["task_id"]
+
+            filters["scenario_id"] = scenarios_with_task_id[0].id
             del filters["task_id"]
         except KeyError:
             filters = {}
+
+
         return query.filter(**filters)
 
     def _get_mvt_geom_query(self, x, y, z):

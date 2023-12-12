@@ -6,6 +6,10 @@ from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.dispatch import receiver
 
+from django.db.models import Case, When, Value, CharField
+from django.db.models.functions import Length
+from ebus_map.managers import LabelMVTManager, MVTManager, X, Y
+
 MINIMAL_TRIP_DURATION_S = 60  # seconds
 
 
@@ -159,6 +163,44 @@ class Station(models.Model):
     power_per_charger = models.FloatField(default=None, null=True)
     power_total = models.FloatField(default=None, null=True)
 
+    objects = models.Manager()
+
+    # Make sure all annotations are part of the columns below, if the data is supposed to be
+    # delivered to the map
+    annotations = {
+        "center": models.functions.Centroid("geom"),
+        "lat": X("center", output_field=models.DecimalField()),
+        "lon": Y("center", output_field=models.DecimalField()),
+        "title_length": Length("name"),
+        "electrified": Case(
+            When(is_electrified=True, then=Value(10)),
+            default=Value(0),
+            output_field=models.IntegerField(),
+        )
+    }
+
+    vector_tiles = MVTManager(
+        geo_col="geom", columns=["id", "geom", "name", "lat", "lon", "title_length", "electrified"]
+    )
+
+    layer = "busstop"
+    mapping = {
+        "id": "id",
+        "geom": "POINT",
+        "name": "name",
+        "geom_label": "geom_label",
+    }
+
+    @classmethod
+    def get_popup_data(cls, id):
+        obj = cls.objects.get(id=id)
+        data = {}
+        data["title"] = obj.name + " " +str(id)
+        data["municipality"] = obj.is_electrified
+        data["lat"] = obj.geom.x
+        data["lon"] = obj.geom.y
+        return data
+
     def save(self, *args, **kwargs):
         # Override save to make certain name_short exists
         if not self.name_short:
@@ -171,7 +213,7 @@ class Station(models.Model):
 
     def __str__(self):
         if not self.is_electrified:
-            return f"{self.name} is not electrified. Location: {self.geom.x} {self.geom.y}"
+            return f"{self.name} and id {self.id} is not electrified. Location: {self.geom.x} {self.geom.y}"
         return (
             f"{self.name} with {self.amount_charging_places} chargers with "
             f"{self.power_per_charger} kW per charger and a total power of {self.power_total} "

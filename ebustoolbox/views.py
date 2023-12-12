@@ -20,6 +20,12 @@ import ebustoolbox
 from ebustoolbox.forms import ChartForm
 from ebustoolbox.models import VehicleProperties, Vehicle, Scenario
 
+from django.apps import apps
+
+from django.http import HttpRequest, response
+from django.template.exceptions import TemplateDoesNotExist
+from django.template.loader import render_to_string
+from django.views.generic import TemplateView
 
 def get_map(request):
     pass
@@ -198,3 +204,31 @@ def download_scenario(request: HttpRequest, task_id: str):
 def generate_zip(request: HttpRequest, task_id: str):
     tasks.generate_zipped_scenario(task_id)
     return download_scenario(request, task_id)
+
+
+def get_popup(request: HttpRequest, lookup: str, id: int) -> response.JsonResponse:  # noqa: ARG001
+    """Return popup as html and chart options to render chart on popup.
+
+    Parameters
+    ----------
+    request : HttpRequest
+        Request from app, can hold option for different language
+    lookup: str
+        Name is used to lookup data and chart functions
+    id: int
+        ID of region selected on map. Data and chart for popup is calculated for related region.
+
+    Returns
+    -------
+    JsonResponse
+        containing HTML to render popup and chart options to be used in E-Chart.
+    """
+
+    print("POPUP-", lookup)
+
+    data = apps.get_model(app_label="ebustoolbox", model_name=lookup).get_popup_data(id)
+    try:
+        html = render_to_string(f"popups/busstop.html", context=data)
+    except TemplateDoesNotExist:
+        html = render_to_string("popups/default.html", context=data)
+    return response.JsonResponse({"html": html})  # , "chart": chart}
