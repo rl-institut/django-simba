@@ -69,7 +69,7 @@ class BatteryType(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
     # relative to gross capacity
-    specific_mass_kg_per_kwh = models.FloatField(null=False, blank=True)
+    specific_mass = models.FloatField(null=False, blank=True)
     # defined in eFLIPS-LCA
     chemistry = models.JSONField(default=dict)
 
@@ -107,8 +107,11 @@ class VehicleType(models.Model):
 
     # TODO link to consumption table if no value is given here?
     consumption = models.FloatField(default=None, null=True)
-    shape = ArrayField(ArrayField(models.FloatField(), size=1), null=True)
-    """Shape of the vehicle in the form of length, width, height."""
+    #"Shape of the vehicle in the form of length, width, height.
+    length = models.FloatField(default=None, null=True)
+    width = models.FloatField(default=None, null=True)
+    height = models.FloatField(default=None, null=True)
+
     # Including battery and driver, no passengers
     empty_mass_kg = models.FloatField(default=None, null=True)
     allowed_mass_kg = models.FloatField(default=None, null=True)
