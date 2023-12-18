@@ -887,7 +887,6 @@ def create_event_output(simba_scenario, task_id):
         timestamp_list = [get_datetime_from_timestep(simba_scenario, t).astimezone().isoformat() for t in
                           range(start_timestep, end_timestep + 1, int(60 / simba_scenario.stepsPerHour))]
         timeseries = {
-            # TODO change to timestamp_list or other options once Issue 41 is resolved
             "time": timestamp_list,
             "soc": simba_scenario.vehicle_socs[vehicle.name][start_timestep:end_timestep + 1]
         }
