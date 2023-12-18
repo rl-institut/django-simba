@@ -237,6 +237,9 @@ class Route(models.Model):
     line = models.ForeignKey(Line, null=True, on_delete=models.CASCADE)
     headsign = models.TextField(default=None, null=True, blank=True)
 
+    vector_tiles = MVTManager(
+            geo_col="geom", columns=["id", "geom", "name"]
+        )
 
 class EnumTripType(models.TextChoices):
     EMPTY_TRIP = "empty"

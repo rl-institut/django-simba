@@ -85,6 +85,13 @@
       ]
     }
   },
+  "routes": {
+    "type": "line",
+    "paint": {
+      "line-color": "#00FF00",
+      "line-width": 10
+    }
+  },
   "station": {
     "type": "symbol",
     "layout": {

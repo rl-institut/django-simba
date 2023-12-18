@@ -99,7 +99,7 @@ DATABASES = {"default": env.db("DATABASE_URL")}
 
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
 CELERY_USE = env("CELERY_USE", default="False").lower() == "true"
-EFLIPS_USE = env("CELERY_USE", default="True").lower() == "true"
+EFLIPS_USE = env("EFLIPS_USE", default="False").lower() == "true"
 # Make sure there is a celery broker url provided if celery should be used
 if CELERY_USE:
     assert CELERY_BROKER_URL, (

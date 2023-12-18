@@ -57,17 +57,18 @@ class MVTManager(models.Manager):
         print(len(query))
         print(filters)
 
-        scenarios_with_task_id = ebusmodels.Scenario.objects.filter(task_id=filters["task_id"])
+        if "scenario_id" in filters:
+            pass
+        else:
+            scenarios_with_task_id = ebusmodels.Scenario.objects.filter(task_id=filters["task_id"])
+            print("Scenario_id from task_id: ", scenarios_with_task_id[0].id)
 
-        print("Scenario_id from task_id: ", scenarios_with_task_id[0].id)
+            try:
 
-        try:
-
-            filters["scenario_id"] = scenarios_with_task_id[0].id
-            del filters["task_id"]
-        except KeyError:
-            filters = {}
-
+                filters["scenario_id"] = scenarios_with_task_id[0].id
+                del filters["task_id"]
+            except KeyError:
+                filters = {}
 
         return query.filter(**filters)
 
