@@ -62,8 +62,8 @@ class MVTManager(models.Manager):
         bbox = Polygon.from_bbox(tile_edges(x, y, z))
         bbox.srid = 4326
         query = self.annotate(
-            mvt_geom=AsMVTGeom(Transform(self.geo_col, 3857), Transform(bbox, 3857), 4096, 0,
-                               False))
+            mvt_geom=AsMVTGeom(Transform(self.geo_col, 3857), Transform(bbox, 3857), 4096, 0, False)
+        )
         intersect = {f"{self.geo_col}__intersects": bbox}
         return query.filter(**intersect)
 

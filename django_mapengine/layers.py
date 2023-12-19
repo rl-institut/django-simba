@@ -96,7 +96,11 @@ class StaticModelLayer(ModelLayer):
         int
             Maximal zoom
         """
-        return settings.MAP_ENGINE_MAX_ZOOM if not distill else settings.MAP_ENGINE_MAX_DISTILLED_ZOOM + 1
+        return (
+            settings.MAP_ENGINE_MAX_ZOOM
+            if not distill
+            else settings.MAP_ENGINE_MAX_DISTILLED_ZOOM + 1
+        )
 
     def get_map_layers(self) -> Iterable[MapLayer]:
         """
