@@ -1,4 +1,5 @@
 import shutil
+from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
@@ -10,13 +11,18 @@ MINIMAL_TRIP_DURATION_S = 60  # seconds
 
 
 class Scenario(models.Model):
-    name = models.CharField(max_length=100, blank=False)
+    class Meta:
+        db_table = "Scenario"
+
+    name = models.TextField(blank=False)
+    name_short = models.TextField(blank=True, null=True)
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
 
     created = models.DateTimeField(auto_now_add=True)
-    task_id = models.TextField(default=None, null=True, blank=True)
+    task_id = models.UUIDField(default=None, null=True, unique=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
-    simba_options = models.JSONField(default=dict)
+    simba_options = models.JSONField(default=dict, null=True)
+    eflips_depot_options = models.JSONField(default=dict, null=True)
 
     @classmethod
     def get_default_pk(cls):
@@ -57,23 +63,41 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
 
 
 class BatteryType(models.Model):
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    class Meta:
+        db_table = "BatteryType"
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
     # relative to gross capacity
-    specific_mass_kg_per_kwh = models.FloatField(null=True, blank=True)
+    specific_mass = models.FloatField(null=False, blank=True)
     # defined in eFLIPS-LCA
     chemistry = models.JSONField(default=dict)
 
 
+class AssocVehicleTypeVehicleClass(models.Model):
+    """
+    This model is used to store the many-to-many relationship between VehicleType and VehicleClass.
+    """
+
+    class Meta:
+        db_table = "AssocVehicleTypeVehicleClass"
+
+    vehicle_type = models.ForeignKey("VehicleType", on_delete=models.CASCADE)
+    vehicle_class = models.ForeignKey("VehicleClass", on_delete=models.CASCADE)
+
+
 class VehicleType(models.Model):
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    class Meta:
+        db_table = "VehicleType"
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     battery_type = models.ForeignKey(BatteryType, null=True, on_delete=models.CASCADE)
 
-    name = models.CharField(max_length=100, blank=False)
-    name_short = models.CharField(max_length=100, blank=False, default=name)
+    name = models.TextField(null=False, blank=False)
+    name_short = models.TextField(null=True, blank=False, default=name)
     opportunity_charging_capable = models.BooleanField()
     battery_capacity = models.FloatField()
-    battery_reserve_capacity = models.FloatField(default=0)
+    battery_capacity_reserve = models.FloatField(default=0)
     charging_efficiency = models.FloatField(default=0.95)
     minimum_charging_power = models.FloatField(default=0)
 
@@ -83,19 +107,40 @@ class VehicleType(models.Model):
 
     # TODO link to consumption table if no value is given here?
     consumption = models.FloatField(default=None, null=True)
-    length_m = models.FloatField(default=None, null=True)
-    width_m = models.FloatField(default=None, null=True)
+    #"Shape of the vehicle in the form of length, width, height.
+    length = models.FloatField(default=None, null=True)
+    width = models.FloatField(default=None, null=True)
+    height = models.FloatField(default=None, null=True)
+
     # Including battery and driver, no passengers
     empty_mass_kg = models.FloatField(default=None, null=True)
     allowed_mass_kg = models.FloatField(default=None, null=True)
 
+    vehicle_classes = models.ManyToManyField("VehicleClass", through="AssocVehicleTypeVehicleClass")
+    """Vehicle classes this vehicle type belongs to."""
+
+
+class VehicleClass(models.Model):
+    class Meta:
+        db_table = "VehicleClass"
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    name = models.TextField(null=False, blank=False)
+    name_short = models.TextField(null=True, blank=True)
+
+    vehicle_types = models.ManyToManyField(VehicleType, through="AssocVehicleTypeVehicleClass")
+    """Vehicle types that belong to this vehicle class."""
+
 
 class Vehicle(models.Model):
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    class Meta:
+        db_table = "Vehicle"
 
-    name = models.CharField(max_length=100, blank=False)
-    name_short = models.CharField(blank=True)
-    vehicle_type = models.ForeignKey(VehicleType, on_delete=models.CASCADE, null=True, blank=True)
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+
+    name = models.TextField(null=False, blank=False)
+    name_short = models.TextField(null=True, blank=True)
+    vehicle_type = models.ForeignKey(VehicleType, on_delete=models.CASCADE, null=False, blank=True)
 
     def save(self, *args, **kwargs):
         # Override save to make certain name_short exists
@@ -117,22 +162,25 @@ class VehicleProperties(models.Model):
 
 
 class Rotation(models.Model):
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    class Meta:
+        db_table = "Rotation"
 
-    name = models.CharField(max_length=100, blank=False)
-    vehicle_type = models.ForeignKey(VehicleType, null=True, blank=True, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+
+    name = models.TextField(blank=False, null=True)
+    vehicle_type = models.ForeignKey(VehicleType, null=False, blank=True, on_delete=models.CASCADE)
 
     # SimBA specific data to make SimBA simulations reproducible
     #
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_DEFAULT, default=None, null=True)
-    allow_opportunity_charging = models.BooleanField(default=None, null=True)
+    allow_opportunity_charging = models.BooleanField(default=None, null=False)
 
 
 class EnumVoltageLevel(models.TextChoices):
     VOLTAGE_HV = "HV"
-    VOLTAGE_HV_MV = "HV/MV"
+    VOLTAGE_HV_MV = "HV_MV"
     VOLTAGE_MV = "MV"
-    VOLTAGE_MV_LV = "MV/LV"
+    VOLTAGE_MV_LV = "MV_LV"
     VOLTAGE_LV = "LV"
 
 
@@ -142,11 +190,14 @@ class EnumChargeType(models.TextChoices):
 
 
 class Station(models.Model):
+    class Meta:
+        db_table = "Station"
+
     # Map Engine models need geom and name as first columns
-    geom = models.PointField(dim=3, srid=4326)  # with z elevation
-    name = models.TextField()
-    name_short = models.TextField(blank=True)
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    geom = models.PointField(dim=3, srid=4326)  # without z elevation
+    name = models.TextField(null=False)
+    name_short = models.TextField(null=True, blank=True)
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
     is_electrified = models.BooleanField(default=False)
     charge_type = models.CharField(
@@ -158,6 +209,9 @@ class Station(models.Model):
     amount_charging_places = models.IntegerField(default=0, null=True)
     power_per_charger = models.FloatField(default=None, null=True)
     power_total = models.FloatField(default=None, null=True)
+
+    stations = models.ManyToManyField("Route", through="AssocRouteStation")
+    """Stations along this route. Ordered by `elapsed_distance`."""
 
     def save(self, *args, **kwargs):
         # Override save to make certain name_short exists
@@ -180,51 +234,91 @@ class Station(models.Model):
 
 
 class Line(models.Model):
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
-    name = models.TextField(default=None, null=True, blank=True)
+    class Meta:
+        db_table = "Line"
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    name = models.TextField(default=None, null=False, blank=True)
     name_short = models.TextField(default=None, null=True, blank=True)
 
 
 class Route(models.Model):
+    class Meta:
+        db_table = "Route"
+        # TODO: We should do a check here to make sure that if a geometry is provided, it's length
+        # matches the distance field. In raw SQL: "ST_Length(geom) = distance". Not sure how to
+        # do this in Django though.
+
     # Shape of the route with height data
     geom = models.LineStringField(dim=3, srid=4326, null=True)
+    distance = models.FloatField(default=None, null=False)
 
-    name = models.TextField(default=None, null=True, blank=True)
+    name = models.TextField(default=None, null=False, blank=True)
     name_short = models.TextField(default=None, null=True, blank=True)
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     line = models.ForeignKey(Line, null=True, on_delete=models.CASCADE)
     headsign = models.TextField(default=None, null=True, blank=True)
 
+    departure_station = models.ForeignKey(
+        Station, on_delete=models.CASCADE, related_name="route_departure_set"
+    )
+
+    arrival_station = models.ForeignKey(
+        Station, on_delete=models.CASCADE, related_name="route_arrival_set"
+    )
+
+    stations = models.ManyToManyField(Station, through="AssocRouteStation")
+    """Stations along this route. Ordered by `elapsed_distance`."""
+
+
+class AssocRouteStation(models.Model):
+    """
+    This model is used to store the many-to-many relationship between Route and Station. It also contains metadata
+    about the elapsed distance between the stations, which is also used to order the stations along the route on the
+    `route` side of the relationship.
+    """
+
+    class Meta:
+        db_table = "AssocRouteStation"
+        ordering = ["elapsed_distance"]
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+
+    route = models.ForeignKey(Route, on_delete=models.CASCADE)
+    station = models.ForeignKey(Station, on_delete=models.CASCADE)
+
+    elapsed_distance = models.FloatField(null=False)
+    """The distance in m that the bus has traveled when it reached this stop."""
+
+    location = models.PointField(dim=3, srid=4326, null=True)
+    """An optional precise location of the this route's stop at the station. Use WGS84 coordinates (EPSG:4326)."""
+
 
 class EnumTripType(models.TextChoices):
-    EMPTY_TRIP = "empty"
-    PASSENGER_TRIP = "passenger"
+    EMPTY_TRIP = "EMPTY"
+    PASSENGER_TRIP = "PASSENGER"
 
 
 class Trip(models.Model):
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
-    route = models.ForeignKey(Route, null=True, on_delete=models.CASCADE)
+    class Meta:
+        db_table = "Trip"
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    route = models.ForeignKey(Route, null=False, on_delete=models.CASCADE)
 
     rotation = models.ForeignKey(
         Rotation, on_delete=models.CASCADE
     )  # TODO do all ForeignKeys need cascade?
-    departure_station = models.ForeignKey(
-        Station, on_delete=models.CASCADE, related_name="trip_departure_set"
-    )
+
     departure_time = models.DateTimeField(blank=False)
-    arrival_station = models.ForeignKey(
-        Station, on_delete=models.CASCADE, related_name="trip_arrival_set"
-    )
+
     arrival_time = models.DateTimeField(blank=False)
-    distance = models.FloatField()
 
     # Is the Trip empty, i.e., without passengers
     type = models.CharField(
-        max_length=10, choices=EnumTripType.choices, default=EnumTripType.PASSENGER_TRIP
+        max_length=9, choices=EnumTripType.choices, default=EnumTripType.PASSENGER_TRIP
     )
 
-    line = models.ForeignKey(Line, null=True, on_delete=models.CASCADE)
-    temperature = models.FloatField(default=None, null=True)
     level_of_loading = models.FloatField(default=None, null=True)
 
     # If time resolution is minutes, there might be trips with 0 minutes duration. To resolve
@@ -244,51 +338,59 @@ class Trip(models.Model):
         """speed in distance unit per second.
 
         uses property of duration_in_seconds which has a minimal value of 1"""
-        return self.distance / self.duration_in_seconds
+        return self.route.distance / self.duration_in_seconds
 
     @property
     def incline(self):
         """incline in z units per distance units
 
         Minimal value for distance is set to 1 to avoid division by 0."""
-        return (self.arrival_station.geom.z - self.departure_station.geom.z) / max(self.distance, 1)
+        return (self.route.arrival_station.geom.z - self.route.departure_station.geom.z) / max(
+            self.route.distance, 1
+        )
 
 
 class StopTime(models.Model):
+    class Meta:
+        db_table = "StopTime"
+
     """Intermediate stops of trips,
     which are not described by the arrival or departure of the trip"""
 
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
-
-    # Index of the stop
-    ordinal = models.IntegerField()
-
-    # Elapsed distance until this stop
-    elapsed_distance_m = models.FloatField()
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
     # When does the trip arrive at this station
     arrival_time = models.DateTimeField()
 
     # How long does the trip stop at this station
-    dwell_duration = models.DurationField()
+    dwell_duration = models.DurationField(null=False, default=timedelta(seconds=0))
 
     trip = models.ForeignKey(Trip, on_delete=models.CASCADE)
     station = models.ForeignKey(Station, on_delete=models.CASCADE)
 
-
-class Area(models.Model):
-    pass
-
+class EventType(models.TextChoices):
+    """
+    The EventType represents a certain type of event, which is used to define the type of an event.
+    """
+    DRIVING = "DRIVING"
+    CHARGING_OPPORTUNITY = "CHARGING_OPPORTUNITY"
+    CHARGING_DEPOT = "CHARGING_DEPOT"
+    SERCVICE = "SERVICE"
+    STANDBY_DEPARTURE = "STANDBY_DEPARTURE"
+    PRECONDITIONING = "PRECONDITIONING"
 
 class Event(models.Model):
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
-    vehicle_type = models.ForeignKey(VehicleType, null=True, on_delete=models.CASCADE)
+    class Meta:
+        db_table = "Event"
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    vehicle_type = models.ForeignKey(VehicleType, null=False, on_delete=models.CASCADE)
     vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE)
 
     #
     station = models.ForeignKey(Station, null=True, on_delete=models.CASCADE)
     trip = models.ForeignKey(Trip, null=True, on_delete=models.CASCADE)
-    area = models.ForeignKey(Area, null=True, on_delete=models.CASCADE)
+    area = models.ForeignKey("Area", null=True, on_delete=models.CASCADE)
 
     subloc_no = models.IntegerField(null=True, blank=True)
     time_start = models.DateTimeField()
@@ -297,7 +399,12 @@ class Event(models.Model):
     soc_start = models.FloatField()
     soc_end = models.FloatField()
 
-    timeseries = models.JSONField(default=dict)
+    event_type = models.CharField(
+        max_length=20, choices=EventType.choices, null=False, default=None
+    )
+    description = models.TextField(null=True, blank=True)
+
+    timeseries = models.JSONField(default=dict, null=True)
 
     def save(self, *args, **kwargs):
         # Exactly one of the following has to be non-null
@@ -321,3 +428,95 @@ class Event(models.Model):
                     f"different lengths which is not allowed"
                 )
         super().save(*args, **kwargs)
+
+class Depot(models.Model):
+    """
+    The Depot represents a place where vehicles not engaged in a schedule are parked,
+    processed and dispatched.
+    """
+    class Meta:
+        db_table = "Depot"
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    name = models.TextField(null=False, blank=False)
+    name_short = models.TextField(null=True, blank=True)
+
+    default_plan = models.OneToOneField("Plan", null=False, on_delete=models.CASCADE)
+
+class Plan(models.Model):
+    """
+    The Plan represents a certain order of processes, which are executed on vehicles in a depot.
+    """
+    class Meta:
+        db_table = "Plan"
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    name = models.TextField(null=False, blank=False)
+    processes = models.ManyToManyField("Process", through="AssocPlanProcess")
+
+class Process(models.Model):
+    """
+    The Process represents a certain action, which is executed on vehicles in a depot.
+    """
+    class Meta:
+        db_table = "Process"
+
+    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+    name = models.TextField(null=False)
+    name_short = models.TextField(null=True)
+    duration = models.DurationField(null=True)
+    electric_power = models.FloatField(null=True)
+    dispatchable = models.BooleanField(null=False)
+    availability = models.JSONField(default=dict, null=True)
+    plans = models.ManyToManyField(Plan, through="AssocPlanProcess")
+
+class AreaType(models.TextChoices):
+    """
+    The AreaType represents a certain type of area, which is used to define the location of a process.
+    """
+    DIRECT_ONESIDE = "DIRECT_ONESIDE"
+    DIRECT_TWOSIDE = "DIRECT_TWOSIDE"
+    LINEAR = "LINE"
+
+class Area(models.Model):
+    """
+    The Area represents a certain location, which is used to define the location of a process.
+    """
+    class Meta:
+        db_table = "Area"
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    depot = models.ForeignKey(Depot, null=False, on_delete=models.CASCADE)
+    vehicle_type = models.ForeignKey(VehicleType, null=False, on_delete=models.CASCADE)
+    name = models.TextField(null=True)
+    name_short = models.TextField(null=True)
+    area_type = models.CharField(
+        max_length=15, choices=AreaType.choices, null=True, default=None
+    )
+    row_count = models.IntegerField(null=True)
+    capacity = models.IntegerField(null=False)
+    processes = models.ManyToManyField(Process, through="AssocAreaProcess")
+
+class AssocPlanProcess(models.Model):
+    """
+    This model is used to store the many-to-many relationship between Plan and Process.
+    """
+    class Meta:
+        db_table = "AssocPlanProcess"
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+
+    plan = models.ForeignKey(Plan, on_delete=models.CASCADE)
+    process = models.ForeignKey(Process, on_delete=models.CASCADE)
+
+    ordinal = models.IntegerField(null=False)
+
+class AssocAreaProcess(models.Model):
+    """
+    This model is used to store the many-to-many relationship between Area and Process.
+    """
+    class Meta:
+        db_table = "AssocAreaProcess"
+
+    area = models.ForeignKey(Area, on_delete=models.CASCADE)
+    process = models.ForeignKey(Process, on_delete=models.CASCADE)

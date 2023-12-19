@@ -22,6 +22,7 @@ from celery import shared_task
 
 
 from .models import (
+    Route,
     Vehicle,
     VehicleProperties,
     UploadedFile,
@@ -155,18 +156,18 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
         for trip in Trip.objects.filter(rotation=rot):
             simba_trip_dict = {
                 "departure_time": str(trip.departure_time),
-                "departure_name": trip.departure_station.name,
+                "departure_name": trip.route.departure_station.name,
                 "arrival_time": str(trip.arrival_time),
-                "arrival_name": trip.arrival_station.name,
-                "distance": trip.distance,
-                "line": lines_dict[trip.line.id].name,
-                "temperature": trip.temperature,
+                "arrival_name": trip.route.arrival_station.name,
+                "distance": trip.route.distance,
+                "line": lines_dict[trip.route.line.id].name,
                 "height_diff": (
-                    station_data[trip.arrival_station.name]["elevation"]
-                    - station_data[trip.departure_station.name]["elevation"]
+                    station_data[trip.route.arrival_station.name]["elevation"]
+                    - station_data[trip.route.departure_station.name]["elevation"]
                 ),
                 "level_of_loading": trip.level_of_loading,
                 "mean_speed": trip.speed * 3.6,
+                "temperature": 20.0,
             }
             simba_rotation.add_trip(simba_trip_dict)
     return rotations
@@ -374,6 +375,7 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
     model_rotations = []
     model_trips = []
     model_lines = []
+    model_routes = []
     rot_id = 1 if Rotation.objects.last() is None else Rotation.objects.last().id + 1
     trip_id = 1 if Trip.objects.last() is None else Trip.objects.last().id + 1
 
@@ -393,6 +395,7 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
         )
         r = Rotation(
             name=key,
+            vehicle_type=vehicletype,
             scenario=django_scenario,
             allow_opportunity_charging=opportunity_charging_capable,
             vehicle=vehicle,
@@ -408,22 +411,28 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
                 line = Line(scenario=django_scenario, name=trip.line)
                 line_dict[trip.line] = line
                 model_lines.append(line)
-            t = Trip(
-                rotation=r,
+            route = Route(
+                name=trip.departure_name + " - " + trip.arrival_name,
                 scenario=django_scenario,
                 departure_station=station_dict[trip.departure_name],
-                departure_time=make_aware(trip.departure_time),
                 arrival_station=station_dict[trip.arrival_name],
-                arrival_time=make_aware(trip.arrival_time),
                 distance=trip.distance,
                 line=line,
-                temperature=trip.temperature,
+            )
+            model_routes.append(route)
+            t = Trip(
+                rotation=r,
+                route=route,
+                scenario=django_scenario,
+                departure_time=make_aware(trip.departure_time),
+                arrival_time=make_aware(trip.arrival_time),
                 level_of_loading=trip.level_of_loading,
             )
             t.id = trip_id
             model_trips.append(t)
             trip_id += 1
     Line.objects.bulk_create(model_lines)
+    Route.objects.bulk_create(model_routes)
     Rotation.objects.bulk_create(model_rotations)
     Trip.objects.bulk_create(model_trips)
 
@@ -448,7 +457,7 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
                 charging_curve=charge_type["charging_curve"],
                 v2g_curve=charge_type.get("v2g_curve", None),
                 consumption=consumption,
-                length_m=float(charge_type.get("length", 0)),
+                shape=[float(charge_type.get("length", 0)), 2.54, 3.375],
             )
             VehicleType.objects.create(**params)
 
