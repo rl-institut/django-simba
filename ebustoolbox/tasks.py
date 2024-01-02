@@ -860,8 +860,10 @@ def create_event_output(simba_scenario, task_id):
         # figure out the location of the event
         station = None
         trip = None
+        # # TODO the following code block can replace the following nested if-else once DB integration exists in SimBA
         # # this assumes that the schedule will always be followed and all vehicles are assigned
         # # will only work if everything is done through the db (no more files/objects passed)
+        # # needs to add stations from schedule/trips and event_type implicitly
         # vehicle_rotations = rotations.filter(vehicle=vehicle)
         # if not len(vehicle_rotations):
         #     raise RuntimeError(
