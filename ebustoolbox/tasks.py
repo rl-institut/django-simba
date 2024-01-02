@@ -821,10 +821,12 @@ def create_event_output(simba_scenario, task_id):
     vehicle_dict = Vehicle.objects.filter(scenario=db_scenario)
     vehicle_dict = {vehicle.name: vehicle for vehicle in vehicle_dict}
     vehicle_type_dict = VehicleType.objects.filter(scenario=db_scenario)
-    vehicle_type_dict = {vehicle_type.name_short: vehicle_type for vehicle_type in vehicle_type_dict}
+    vehicle_type_dict = {
+        vehicle_type.name_short: vehicle_type for vehicle_type in vehicle_type_dict
+    }
     stations = Station.objects.filter(scenario=db_scenario)
     trips = Trip.objects.filter(scenario=db_scenario)
-    rotations = Rotation.objects.filter(scenario=db_scenario)
+    # rotations = Rotation.objects.filter(scenario=db_scenario)
     # collect info from vehicle_event
     sorted_vehicle_events = sorted(simba_scenario.events.vehicle_events, key=lambda d: d.start_time)
     for counter, vehicle_event in enumerate(sorted_vehicle_events):
@@ -833,13 +835,13 @@ def create_event_output(simba_scenario, task_id):
             end_time = sorted_vehicle_events[counter + 1].start_time
         except IndexError:
             end_time = simba_scenario.stop_time
-        end_timestep = min(get_timestep_from_datetime(simba_scenario, end_time), simba_scenario.step_i - 1)
+        end_timestep = min(
+            get_timestep_from_datetime(simba_scenario, end_time), simba_scenario.step_i - 1
+        )
         try:
             vehicle = vehicle_dict[vehicle_event.vehicle_id]
         except KeyError:
-            vehicle = Vehicle.objects.create(
-                scenario=db_scenario, name=vehicle_event.vehicle_id
-            )
+            vehicle = Vehicle.objects.create(scenario=db_scenario, name=vehicle_event.vehicle_id)
             vehicle_dict[vehicle_event.vehicle_id] = vehicle
         simba_vehicle_type = vehicle_event.vehicle_id.split("_")[0]
         try:
@@ -851,9 +853,12 @@ def create_event_output(simba_scenario, task_id):
             ]
             opp_capable = vehicle_event.vehicle_id.split("_")[1] == "oppb"
             vehicle_type = VehicleType.objects.create(
-                scenario=db_scenario, name=simba_vehicle_type, name_short=simba_vehicle_type,
-                opportunity_charging_capable=opp_capable, battery_capacity=vehicle_type_params.capacity,
-                charging_curve=vehicle_type_params.charging_curve.points
+                scenario=db_scenario,
+                name=simba_vehicle_type,
+                name_short=simba_vehicle_type,
+                opportunity_charging_capable=opp_capable,
+                battery_capacity=vehicle_type_params.capacity,
+                charging_curve=vehicle_type_params.charging_curve.points,
             )
             vehicle_type_dict[simba_vehicle_type] = vehicle_type
 
@@ -886,11 +891,13 @@ def create_event_output(simba_scenario, task_id):
             # TODO set Trip here
             trip = trips[0]
             # event_type = EventType.DRIVING
-        timestamp_list = [get_datetime_from_timestep(simba_scenario, t).astimezone().isoformat() for t in
-                          range(start_timestep, end_timestep + 1, int(60 / simba_scenario.stepsPerHour))]
+        timestamp_list = [
+            get_datetime_from_timestep(simba_scenario, t).astimezone().isoformat()
+            for t in range(start_timestep, end_timestep + 1, int(60 / simba_scenario.stepsPerHour))
+        ]
         timeseries = {
             "time": timestamp_list,
-            "soc": simba_scenario.vehicle_socs[vehicle.name][start_timestep:end_timestep + 1]
+            "soc": simba_scenario.vehicle_socs[vehicle.name][start_timestep : end_timestep + 1],
         }
 
         # grab current vehicle SoC at timestep
