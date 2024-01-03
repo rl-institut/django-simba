@@ -113,8 +113,8 @@ class VehicleType(models.Model):
     height = models.FloatField(default=None, null=True)
 
     # Including battery and driver, no passengers
-    empty_mass_kg = models.FloatField(default=None, null=True)
-    allowed_mass_kg = models.FloatField(default=None, null=True)
+    empty_mass = models.FloatField(default=None, null=True)
+    allowed_mass = models.FloatField(default=None, null=True)
 
     vehicle_classes = models.ManyToManyField("VehicleClass", through="AssocVehicleTypeVehicleClass")
     """Vehicle classes this vehicle type belongs to."""
