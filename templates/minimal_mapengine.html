@@ -22,6 +22,47 @@
     <script>
       // This is needed, as otherwise map height is zero and therefore not visible (bug in mapengine!)
       document.getElementById("map").style = "height: 800px"
+
+        function filterBy(id) {
+            var filters = [
+                'all',
+                ["==", 'id', id]
+            ];
+            map.setFilter('routes', filters);
+        }
+
+
+
+// Function to log layers after the map has fully loaded
+function logMapLayers() {
+  // Access the style object from the map
+  const style = map.getStyle();
+
+  // Log information about each layer in the style
+  if (style && style.layers) {
+    style.layers.forEach(layer => {
+      console.log(layer.id, layer.type, layer.source);
+      // You can log more properties or specific information about each layer if needed
+    });
+  } else {
+    console.error('No layers found in the map style.');
+  }
+}
+
+// Event listener for the "load" event of the map
+map.on('load', () => {
+  // Call the function to log layers after the map has fully loaded
+  logMapLayers();
+
+});
+
+      map.on("click", () => {
+filterBy(2);
+    });
+
+
+
+
     </script>
   </body>
 </html>
