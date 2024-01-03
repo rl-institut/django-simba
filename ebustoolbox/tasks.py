@@ -420,14 +420,17 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
                 line=line,
             )
             model_routes.append(route)
+            # ToDo: loaded_mass is level_of_loading * vehicle_capacity[kg]
+            # needs changing
             t = Trip(
                 rotation=r,
                 route=route,
                 scenario=django_scenario,
                 departure_time=make_aware(trip.departure_time),
                 arrival_time=make_aware(trip.arrival_time),
-                level_of_loading=trip.level_of_loading,
+                loaded_mass=trip.level_of_loading,
             )
+
             t.id = trip_id
             model_trips.append(t)
             trip_id += 1
@@ -443,6 +446,11 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
     :param scenario: django model Scenario
     :return: None
     """
+
+    # ToDo: Get real data
+    DEFAULT_WIDTH = 2.54
+    DEFAULT_HEIGHT = 3.375
+
     for name, v_type in vehicle_types.items():
         for charge_name, charge_type in v_type.items():
             consumption = float(charge_type.get("mileage"))
@@ -457,7 +465,9 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
                 charging_curve=charge_type["charging_curve"],
                 v2g_curve=charge_type.get("v2g_curve", None),
                 consumption=consumption,
-                shape=[float(charge_type.get("length", 0)), 2.54, 3.375],
+                length=charge_type.get("length", 0),
+                width=DEFAULT_WIDTH,
+                height=DEFAULT_HEIGHT,
             )
             VehicleType.objects.create(**params)
 
