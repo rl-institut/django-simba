@@ -3,6 +3,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.dispatch import receiver
@@ -48,6 +49,11 @@ class Scenario(models.Model):
     finished = models.DateTimeField(default=None, null=True, blank=True)
     simba_options = models.JSONField(default=dict, null=True)
     eflips_depot_options = models.JSONField(default=dict, null=True)
+
+    manager = models.ForeignKey(
+        User, on_delete=models.SET_NULL, default=None, null=True, blank=True, related_name="+"
+    )
+    users = models.ManyToManyField(User)
 
     @classmethod
     def get_default_pk(cls):
@@ -218,7 +224,7 @@ class VehicleType(models.Model):
 
     # TODO link to consumption table if no value is given here?
     consumption = models.FloatField(default=None, null=True)
-    # "Shape of the vehicle in the form of length, width, height.
+    # Shape of the vehicle in the form of length, width, height.
     length = models.FloatField(default=None, null=True)
     width = models.FloatField(default=None, null=True)
     height = models.FloatField(default=None, null=True)

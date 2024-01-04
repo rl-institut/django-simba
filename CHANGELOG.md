@@ -17,6 +17,16 @@ Template:
 - [(#)]()
 ```
 ### Changed
+- [(#40)](https://github.com/rl-institut/django-simba/pull/40)
+- Expands the database according to discussed specifications.
+- Add VehicleClass for Eflips Depot Simulations.
+- Update task functions with new database models
+- Added functionality to turn of eflips in the basic toolchain
+  - .env file now makes use of an optional setting EFLIPS_USE=False. The default value for this setting is True, so the standard behavior does not change
+
+
+
+### Changed
 - [(#38)](https://github.com/rl-institut/django-simba/pull/38)
 - Expands the database according to discussed specifications.
 - Removes VehicleClass from SIMBA algorithm, meaning, only a single VehicleType will be run per rotation.

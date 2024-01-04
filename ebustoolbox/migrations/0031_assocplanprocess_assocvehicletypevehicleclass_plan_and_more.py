@@ -8,7 +8,7 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("ebustoolbox", "0028_route_name_route_name_short"),
+        ("ebustoolbox", "0030_alter_scenario_parent"),
     ]
 
     operations = [
