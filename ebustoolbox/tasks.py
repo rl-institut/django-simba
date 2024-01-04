@@ -694,6 +694,7 @@ def run_simba(
             rotation.consumption / vehicle["capacity"]
         )
 
+    # Analyze the simulated opportunity rotations
     for rot_id, rotation in schedule.rotations.items():
         if rotation.charging_type != "oppb":
             continue
