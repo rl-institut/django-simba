@@ -48,7 +48,7 @@
 
 ## Running
 1. Only if `.env`has a celery broker listed, start a celery worker (in another terminal): `celery -A ebusdjango worker -l info`
-    - on macOS `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` before the command may be necessary 
+    - on macOS `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` before the command may be necessary
 2. Run the server: `python manage.py runserver`
 
 
@@ -58,3 +58,35 @@ For development dependencies can be installed via
 poetry install --with dev
 ```
 To run tests your PostgreSQL user needs SUPERUSER rights to be able to create test databases and delete them. Furthermore, for testing with selenium chromedriver is needed. Resources can be found here [Latest Google Chrome and Chromedriver](https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json). Chromedriver has to be added to PATH.
+
+## Setup and Recreation of Database
+During development, it might be necessary to delete the database and recreate it. The following instructions seem to work for Linux/Ubuntu
+go into terminal and log in as postgres superuser
+```bash
+sudo -i -u postgres
+```
+Get into sql
+```bash
+psql -U postgres
+```
+Drop the old database
+```bash
+DROP DATABASE your_database;
+```
+Create new database
+```bash
+CREATE DATABASE your_database;
+```
+go into database via
+```bash
+\c mydb
+```
+or exit with \q and connect directly from normal terminal
+```bash
+psql -U postgres -d mydb
+```
+Define settings and install postgis and show installation worked
+```bash
+CREATE EXTENSION IF NOT EXISTS postgis;
+SELECT PostGIS_version();
+```
