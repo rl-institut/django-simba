@@ -385,6 +385,25 @@ class EnumChargeType(models.TextChoices):
     OPPORTUNITY = "oppb"
 
 
+def charge_type_from_simba_to_db(charge_type: str) -> str:
+    if charge_type[:3].lower() == "dep":
+        return EnumChargeType.DEPOT.value
+    if charge_type[:3].lower() == "opp":
+        return EnumChargeType.OPPORTUNITY.value
+    raise Exception(f"{charge_type=} not found in EnumChargeTypes")
+
+
+def charge_type_from_db_to_station(charge_type: str, is_station: bool) -> str:
+    suffix = "b"
+    if is_station:
+        suffix = "s"
+    if charge_type == EnumChargeType.DEPOT.value:
+        return "dep" + suffix
+    if charge_type == EnumChargeType.OPPORTUNITY.value:
+        return "opp" + suffix
+    raise Exception(f"{charge_type=} not found in EnumChargeTypes")
+
+
 class Station(models.Model):
     """
     Model representing a station associated with a scenario.
