@@ -53,12 +53,14 @@ class MySeleniumTests(StaticLiveServerTestCase):
         shutil.rmtree(TMP_UPLOAD)
 
     @override_settings(CELERY_USE=True)
+    @override_settings(EFLIPS_USE=False)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(DEBUG=True)
     def test_result_generation_w_celery(self):
         self.simple_simba_call_in_selenium()
 
     @override_settings(CELERY_USE=False)
+    @override_settings(EFLIPS_USE=False)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(DEBUG=True)
     def test_result_generation(self):
