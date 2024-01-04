@@ -33,6 +33,8 @@ from .models import (
     Scenario,
     EnumChargeType,
     Line,
+    charge_type_from_simba_to_db,
+    charge_type_from_db_to_station,
 )
 
 from simba.consumption import Consumption
@@ -149,7 +151,9 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
         vehicle_type = rot.vehicle.vehicle_type.name_short
         simba_rotation = SimbaRotation(id=rot.name, vehicle_type=vehicle_type, schedule=schedule)
         simba_rotation.charging_type = (
-            EnumChargeType.OPPORTUNITY if rot.allow_opportunity_charging else EnumChargeType.DEPOT
+            EnumChargeType.OPPORTUNITY.value
+            if rot.allow_opportunity_charging
+            else EnumChargeType.DEPOT.value
         )
 
         rotations[rot.name] = simba_rotation
@@ -165,7 +169,7 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
                     station_data[trip.route.arrival_station.name]["elevation"]
                     - station_data[trip.route.departure_station.name]["elevation"]
                 ),
-                "level_of_loading": trip.level_of_loading,
+                "level_of_loading": trip.loaded_mass,
                 "mean_speed": trip.speed * 3.6,
                 "temperature": 20.0,
             }
@@ -217,7 +221,7 @@ def get_electrified_stations_from_db(django_scenario) -> dict:
         if not station.is_electrified:
             continue
         stat_dict = {
-            "type": station.charge_type.lower(),
+            "type": charge_type_from_db_to_station(station.charge_type.lower(), is_station=True),
             "n_charging_stations": station.amount_charging_places,
             "cs_power_deps_oppb": station.power_per_charger,
             "cs_power_deps_depb": station.power_per_charger,
@@ -502,14 +506,18 @@ def stations_to_db(station_data, electrified_stations, scenario):
     for name, ele_station in electrified_stations.items():
         station = Station.objects.get(name=name, scenario=scenario)
         station.is_electrified = True
-        station.charge_type = ele_station.get("type")
+
+        charge_type = ele_station.get("type")
+        # SimBA calls station types opps and deps which is not the same as
+        # EnumChargeTypes. This needs a translation.
+        station.charge_type = charge_type_from_simba_to_db(charge_type)
 
         station.voltage_level = ele_station.get(
             "voltage_level", scenario.simba_options.get("default_voltage_level")
         )
         station.amount_charging_places = ele_station.get("n_charging_stations")
         # ToDo how do we handle differences in charging power depending on oppb or depb
-        if station.charge_type == "opps":
+        if station.charge_type == EnumChargeType.OPPORTUNITY.value:
             power_per_charger = ele_station.get("cs_power_opps")
         else:
             power_per_charger = ele_station.get("cs_power_deps_oppb")
