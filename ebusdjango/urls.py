@@ -17,12 +17,14 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
+
 urlpatterns = [
     path('simba/', include("ebustoolbox.urls")),
-    path('', include("core.urls")),
     path('admin/', admin.site.urls),
     path('django_plotly_dash/', include('django_plotly_dash.urls')),
     path("map/", include("django_mapengine.urls")),
+    path('', include("core.urls")),
+    path('', include('django.contrib.auth.urls')),
     # Map urls
     path('', include("ebus_map.urls")),
 
