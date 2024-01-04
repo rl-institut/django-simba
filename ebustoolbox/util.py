@@ -1,5 +1,9 @@
 from .models import Scenario
 from celery import uuid
+import matplotlib
+
+# Explicitly call backend. Put into env? Without simba does not always properly generate plots
+matplotlib.use("TkAgg")
 
 
 def get_unique_task_id() -> str:
