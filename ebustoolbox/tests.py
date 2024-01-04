@@ -382,14 +382,29 @@ class WriteReadScenarioToDatabase(TestCase):
 
 class RunSimulationTest(TestCase):
     @override_settings(CELERY_USE=True)
+    @override_settings(EFLIPS_USE=False)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(DEBUG=True)
-    def test_submit_button_click_with_celery(self):
+    def test_submit_button_click_with_celery_wo_eflips(self):
         self.submit_default_simulation()
 
     @override_settings(CELERY_USE=False)
+    @override_settings(EFLIPS_USE=False)
     @override_settings(DEBUG=True)
-    def test_submit_button_click_without_celery(self):
+    def test_submit_button_click_without_celery_wo_eflips(self):
+        self.submit_default_simulation()
+
+    @override_settings(CELERY_USE=True)
+    @override_settings(EFLIPS_USE=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(DEBUG=True)
+    def test_submit_button_click_with_celery_with_eflips(self):
+        self.submit_default_simulation()
+
+    @override_settings(CELERY_USE=False)
+    @override_settings(EFLIPS_USE=True)
+    @override_settings(DEBUG=True)
+    def test_submit_button_click_without_celery_with_eflips(self):
         self.submit_default_simulation()
 
     def submit_default_simulation(self):
