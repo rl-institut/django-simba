@@ -457,7 +457,21 @@ class Station(models.Model):
         if self.is_electrified:
             if self.voltage_level is None or self.charge_type is None:
                 error_text = "An electrified station needs a voltage level and a charge type"
-                raise AttributeError(error_text)
+                raise AttributeError(f"Station {self.name}:" + error_text)
+            if self.voltage_level not in EnumVoltageLevel.values:
+                error_text = (
+                    "An electrified station needs a voltage level with one of these "
+                    "values:\n" + "\n".join(EnumChargeType.values)
+                )
+                raise AttributeError(
+                    f"Station {self.name} with {self.voltage_level}: " + error_text
+                )
+            if self.charge_type not in EnumChargeType.values:
+                error_text = (
+                    "An electrified station needs a charge type with one of these "
+                    "values :\n" + "\n".join(EnumChargeType.values)
+                )
+                raise AttributeError(f"Station {self.name} with {self.charge_type}:" + error_text)
         super().save(*args, **kwargs)
 
     def __str__(self):
