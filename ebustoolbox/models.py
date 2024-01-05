@@ -472,8 +472,8 @@ class Temperatures(models.Model):
     use_only_time = models.BooleanField(null=False, default=True)
     # two list with datetimes and data. Storing as dict does not seem easily possible, since
     # serialization of keys as datetime fails but not as values
-    datetimes = models.JSONField(default=list, null=True, encoder=DjangoJSONEncoder)
-    data = models.JSONField(default=list, null=True)
+    datetimes = models.JSONField(default=list, null=False, encoder=DjangoJSONEncoder)
+    data = models.JSONField(default=list, null=False)
     temperature_interpolation = None
 
     def save(self, *args, **kwargs):
