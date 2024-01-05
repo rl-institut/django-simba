@@ -21,9 +21,10 @@ Template:
 - Expands the database according to discussed specifications.
 - Add VehicleClass for Eflips Depot Simulations.
 - Update task functions with new database models
-- Added functionality to turn of eflips in the basic toolchain
-  - .env file now makes use of an optional setting EFLIPS_USE=False. The default value for this setting is True, so the standard behavior does not change
-
+- Add Temperatures Model to store temperatures
+  - Add tests
+- Add functionality to interpolate between datetimes
+- Expand tests, so version with and without eflips are included
 
 
 ### Changed

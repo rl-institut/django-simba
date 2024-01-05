@@ -1,6 +1,6 @@
 import shutil
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from copy import copy
 from typing import Iterable
@@ -28,6 +28,7 @@ from .models import (
     Rotation,
     Station,
     Trip,
+    Temperatures,
 )
 
 TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
@@ -550,3 +551,56 @@ class ScenarioTestCase(TestCase):
         self.assertIsNone(instance_1.finished)
         self.assertIsInstance(instance_1.simba_options, dict)
         self.assertIsNone(instance_1.task_id)
+
+
+class TemperaturesTestCase(TestCase):
+    def test_model_creation(self):
+        date1 = datetime(year=2024, month=1, day=1)
+        dt = timedelta(hours=5)
+        date2 = date1 + dt
+        date3 = date1 - timedelta(days=5)
+        temp1 = 25
+        temp2 = 0
+        temp3 = 100
+        temperature_instance = Temperatures(
+            scenario=Scenario.objects.get(pk=Scenario.get_default_pk()),
+            name="First Temperatures",
+            use_only_time=False,
+            datetimes=[date1, date2, date3],
+            data=[temp1, temp2, temp3],
+        )
+        temperature_instance.save()
+        pk = temperature_instance.pk
+        assert temperature_instance.get_temperature(date1) == temp1
+        assert temperature_instance.get_temperature(date2) == temp2
+        assert temperature_instance.get_temperature(date3) == temp3
+        assert temperature_instance.get_temperature(date1 + dt / 2) == (temp1 + temp2) / 2
+
+        # Use only time works if only datetimes from a single date are passed
+        temperature_instance = Temperatures(
+            scenario=Scenario.objects.get(pk=Scenario.get_default_pk()),
+            name="Second Temperatures",
+            use_only_time=True,
+            datetimes=[date1, date2],
+            data=[temp1, temp2],
+        )
+        temperature_instance.save()
+        assert temperature_instance.get_temperature(date1) == temp1
+        assert temperature_instance.get_temperature(date1 + timedelta(days=1)) == temp1
+        assert temperature_instance.get_temperature(date1 + timedelta(days=1) + dt) == temp2
+
+        # Previous dates get the last possible value
+        assert temperature_instance.get_temperature(date3) == temp1
+
+        t = Temperatures.objects.get(pk=pk)
+        assert t.get_temperature(date3) == temp3
+
+        temperature_instance = Temperatures(
+            scenario=Scenario.objects.get(pk=Scenario.get_default_pk()),
+            name="Max. Temperatures Berlin",
+            use_only_time=True,
+            datetimes=[date1, date2, date3],
+            data=[temp1, temp2, temp3],
+        )
+        # Different dates raise an attribute error
+        self.assertRaises(AttributeError, temperature_instance.save)

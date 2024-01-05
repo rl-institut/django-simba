@@ -1,11 +1,14 @@
 import shutil
-from datetime import timedelta
+from datetime import timedelta, datetime
 from pathlib import Path
+import numpy as np
+from functools import partial
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
+from django.core.serializers.json import DjangoJSONEncoder
 from django.dispatch import receiver
 
 MINIMAL_TRIP_DURATION_S = 60  # seconds
@@ -408,6 +411,154 @@ def charge_type_from_db_to_station(charge_type: str, is_station: bool) -> str:
     if charge_type == EnumChargeType.OPPORTUNITY.value:
         return "opp" + suffix
     raise Exception(f"{charge_type=} not found in EnumChargeTypes")
+
+
+class Temperatures(models.Model):
+    """
+    Model representing temperature data associated with a specific scenario, allowing for datetime interpolation.
+
+    Attributes:
+        scenario (Scenario): The scenario to which the temperature data is associated. Foreign key
+                             to the Scenario model.
+        name (str): The name of the temperature data, indicating its source or intention
+                    (e.g., 'Max. Temperatures Berlin'). Cannot be blank.
+        use_only_time (bool): Determines whether the datetime should be interpreted as both date
+                              and time or only time.
+                              Defaults to True, indicating only time is considered.
+        datetimes (list): A list of datetimes associated with temperature data. Can be null.
+        data (list): A list of temperature values corresponding to the datetimes. Can be null.
+        temperature_interpolation (function): Internal function for temperature interpolation.
+
+    Methods:
+        save(self, *args, **kwargs): Overrides the save method to perform data validation and
+                                     initialize the interpolation function.
+        get_temperature(self, datetime: datetime) -> float: Retrieves the interpolated temperature
+                                                            for a given datetime.
+
+    Functions:
+        get_datetime_interpolation_function(datetimes: list, data: list) -> function:
+            Generates a datetime interpolation function based on input datetimes and corresponding
+            temperature data.
+
+        assert_is_type(obj, check_type: type): Raises an AttributeError if the given object is not
+                                               of the specified type.
+
+    Meta:
+        db_table (str): The name of the database table for this model (set to "Temperatures").
+
+    Usage Example:
+        To create a new Temperatures instance and associate it with a scenario, providing
+        temperature data:
+        >>> scenario_instance = Scenario.objects.get(id=1)
+        >>> temperatures_instance = Temperatures(
+        ...     scenario=scenario_instance,
+        ...     name="Max. Temperatures Berlin",
+        ...     use_only_time=True,
+        ...     datetimes=[datetime1, datetime2],
+        ...     data=[temperature1, temperature2],
+        ... )
+        >>> temperatures_instance.save()
+        >>> interpolated_temperature = temperatures_instance.get_temperature(datetime3)
+    """
+
+    class Meta:
+        db_table = "Temperatures"
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    # Name of Temperature data, to indicate a source or intention, e.g. 'Max. Temperatures Berlin'
+    name = models.TextField(blank=False)
+
+    # Should the datetime be interpreted as datetime or only time.
+    use_only_time = models.BooleanField(null=False, default=True)
+    # two list with datetimes and data. Storing as dict does not seem easily possible, since
+    # serialization of keys as datetime fails but not as values
+    datetimes = models.JSONField(default=list, null=True, encoder=DjangoJSONEncoder)
+    data = models.JSONField(default=list, null=True)
+    temperature_interpolation = None
+
+    def save(self, *args, **kwargs):
+        """
+        Overrides the save method to perform data validation and initialize the
+        interpolation function.
+        """
+        # Check proper formatting of the data field
+        assert_is_type(self.data, list)
+        if not all([isinstance(obj, datetime) for obj in self.datetimes]):
+            raise AttributeError(f"Data of {self} contains keys, which are not of type Datetime")
+        if self.use_only_time:
+            dates = {(date.year, date.month, date.day) for date in self.datetimes}
+            if len(dates) != 1:
+                raise AttributeError(
+                    f"Data of {self} contains multiple dates. This is not "
+                    "allowed when use_only_time=True"
+                )
+        self.temperature_interpolation = get_datetime_interpolation_function(
+            self.datetimes, self.data
+        )
+        super().save(*args, **kwargs)
+
+    def get_temperature(self, datetime: datetime):
+        """
+        Retrieves the interpolated temperature for a given datetime.
+        """
+        if self.temperature_interpolation is None:
+            self.temperature_interpolation = get_datetime_interpolation_function(
+                self.datetimes, self.data
+            )
+        if self.use_only_time:
+            date = next(iter(self.datetimes))
+            datetime = datetime.replace(year=date.year, month=date.month, day=date.day)
+        return self.temperature_interpolation(datetime)
+
+
+def get_datetime_interpolation_function(datetimes: list, data: list):
+    """
+    Generates a datetime interpolation function based on input datetimes and corresponding data.
+
+    Args:
+        datetimes (list): A list of datetime objects.
+        data (list): A list of values corresponding to the datetimes.
+
+    Returns:
+        function: A datetime interpolation function.
+    """
+
+    # cast datetimes, which are possibly strings to datetimes
+    datetimes = [datetime.fromisoformat(str(x)) for x in datetimes]
+    # sort by key
+    sort_index = np.argsort(np.array(datetimes), axis=0)
+    sorted_data = (np.array([datetimes, data]).T)[sort_index]
+    first_time = sorted_data[0, 0]
+    # create the timedelta
+    xp = sorted_data[:, 0] - first_time
+    # cast the timedelta to seconds as int64
+    xp = xp.astype("timedelta64[s]").view("int64")
+    # cast the data to floats
+    fp = sorted_data[:, 1].astype(float)
+    # create the interpolation function
+    partial_interp = partial(np.interp, xp=xp, fp=fp)
+
+    def partial_interpolation_function(date_time: datetime) -> float:
+        delta_time_as_int = (
+            (np.array([date_time]) - first_time).astype("timedelta64[s]").view("int64")
+        )
+        if len(delta_time_as_int) == 1:
+            return partial_interp(*delta_time_as_int)
+        return partial_interp(delta_time_as_int)
+
+    return partial_interpolation_function
+
+
+def assert_is_type(obj, check_type: type):
+    """
+    Raises an AttributeError if the given object is not of the specified type.
+
+    Args:
+        obj: The object to check.
+        check_type (type):
+    """
+    if not isinstance(obj, check_type):
+        raise AttributeError(f"{obj} is not of type {check_type}")
 
 
 class Station(models.Model):
