@@ -87,7 +87,6 @@
       </div>
       <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">
         {% include 'minimal_mapengine.html'%}
-          <button onclick="logMap()">Click me</button>
             <div id="buttonContainer"></div>
       </div>
       <div class="tab-pane" id="nav-3" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">
@@ -111,56 +110,26 @@
 <script>
 
     let routesIDList = [];
-    // Function to simulate tab click and trigger an alert with the page ID
-    function logMap() {
-       console.log(document.getElementById("map"))
-        console.log(map)
-            getNumberOfFeaturesInLayer();
-               createButtons();
-
-    }
-
-
-    function getNumberOfFeaturesInLayer() {
-        const layerId = 'routes';
-    const features = map.queryRenderedFeatures({ layers: [layerId] });
-    const numberOfFeatures = features.length;
-    console.log(features)
-    console.log(`Number of features in layer '${layerId}': ${numberOfFeatures}`);
-}
-
-   //       map.on("click", () => {
-//filterBy(2);
-//logMapLayers();
-  //  });
-
 
     function addIdToList(id, idList) {
-    // Check if the ID is not already in the list
-    if (!idList.includes(id)) {
-        // Add the ID to the list
-        idList.push(id);
-        console.log(`ID ${id} added to the list.`);
-    } else {
-        console.log(`ID ${id} is already in the list.`);
+        // Check if the ID is not already in the list
+        if (!idList.includes(id)) {
+            // Add the ID to the list
+            idList.push(id);
+        }
     }
-}
 
     function getRouteIds() {
         const layerId = 'routes';
         const features = map.queryRenderedFeatures({layers: [layerId]});
         const numberOfFeatures = features.length;
-        console.log(features)
         for (let i = 0; i < numberOfFeatures; i++) {
-            console.log(i)
             addIdToList(features[i].id, routesIDList)
         }
     }
 
     function filterBy(id) {
             id = parseInt(id);
-            console.log("only showing ID == ", id)
-            console.log(`Type of ${id}: ${typeof id}`);
             var filters = [
                 'all',
                 ["==", 'id', id]
@@ -199,26 +168,16 @@
 
             buttonContainer.appendChild(button);
         };
-
-
     }
-
 
     // Function to show route based on data-id
     function showRoute(dataId) {
-        console.log("-------------------------");
         filterBy(dataId);
-        console.log(`Show route for data-id: ${dataId}`);
-        // Add your logic to show the route here
     }
 
-
-       map.on('sourcedata', function () {
-            console.log("Creating buttonz")
-            getRouteIds()
-            // Example: Create buttons based on an integer (change this number as needed)
-            createButtons();
-
+    map.on('sourcedata', function () {
+        getRouteIds()
+        createButtons();
     });
 
 
