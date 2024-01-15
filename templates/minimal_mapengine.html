@@ -23,13 +23,7 @@
       // This is needed, as otherwise map height is zero and therefore not visible (bug in mapengine!)
       document.getElementById("map").style = "height: 800px"
 
-        function filterBy(id) {
-            var filters = [
-                'all',
-                ["==", 'id', id]
-            ];
-            map.setFilter('routes', filters);
-        }
+
 
 
 
@@ -56,9 +50,7 @@ map.on('load', () => {
 
 });
 
-      map.on("click", () => {
-filterBy(2);
-    });
+
 
 
 
