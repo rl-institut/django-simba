@@ -19,7 +19,7 @@ from datetime import datetime
 from pathlib import Path
 from decimal import Decimal
 from celery import shared_task
-
+from matplotlib import pyplot as plt
 
 from .models import (
     Route,
@@ -608,6 +608,9 @@ def _run_ebus_toolchain(schedule: "simba.schedule.Schedule", args, task_id):
     report_dir = Path(settings.BASE_DIR, args.output_directory, "report_1")
     # call simba and eflips
     run_simba(schedule, args, task_id, report_dir=report_dir)
+    # Currently some plots are generated and but not closed.
+    # ToDo: Do this inside simba or spice ev
+    plt.close()
 
     if settings.EFLIPS_USE:
         eflips_dataclass_list: List[InputForSimba] = run_eflips(report_dir, task_id)
