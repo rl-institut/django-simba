@@ -900,25 +900,6 @@ files = [
     {file = "dpd_components-0.1.0.tar.gz", hash = "sha256:613a6b17d3d7dd449be060e739e4ce36692b46fa012c3a86ee947f6337d09548"},
 ]
 
-[[package]]
-name = "eflips"
-version = "1.0.0"
-description = "eFLIPS: Electric Fleet and Infrastructure Planning/Simulation"
-optional = false
-python-versions = "^3.11"
-files = []
-develop = false
-
-[package.dependencies]
-matplotlib = "^3.7.1"
-openpyxl = "^3.1.2"
-simpy = "^4.0.1"
-
-[package.source]
-type = "git"
-url = "git@github.com:mpm-tu-berlin/eflips.git"
-reference = "eflips-depot-compatibility"
-resolved_reference = "e7a23e9f1e68202f8332b6432e3804f7983f73da"
 
 [[package]]
 name = "eflips-depot"
