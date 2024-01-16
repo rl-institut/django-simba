@@ -77,7 +77,7 @@ def auto_delete_results_on_delete(sender, instance, **kwargs):
     """
     if instance.task_id is not None:
         try:
-            shutil.rmtree((Path(settings.UPLOAD_PATH) / instance.task_id))
+            shutil.rmtree((Path(settings.UPLOAD_PATH) / str(instance.task_id)))
         except FileNotFoundError:
             # The Folder does not exist. That is not a problem
             pass
