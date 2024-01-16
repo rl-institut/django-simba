@@ -12,7 +12,6 @@ packages = [{include = "ebustoolbox"},
 python = "^3.11"
 spice_ev = { git = "https://github.com/rl-institut/spice_ev", rev = "51268c639a02f2a94c418d6215376f585dd14af0"}
 simba = { git = "https://github.com/rl-institut/SimBA", rev = "feature/django_simba"}
-eflips-depot = { git = "git@github.com:mpm-tu-berlin/eflips-depot.git"}
 
 Django = "^4.2.3"
 django-environ = ">=0.10.0, <1.0.0"
