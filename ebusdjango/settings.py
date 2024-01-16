@@ -52,8 +52,10 @@ INSTALLED_APPS = [
     "ebustoolbox",
     "django_mapengine",
     "ebus_map",
+    "dash_app",
     # Django plotly dash
     "django_plotly_dash.apps.DjangoPlotlyDashConfig",
+    "bootstrap4",
 ]
 
 

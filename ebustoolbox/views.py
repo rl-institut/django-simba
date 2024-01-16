@@ -12,7 +12,8 @@ from celery.result import AsyncResult
 import plotly.graph_objects as go
 
 # Unused import of dash_app needed to register app
-from . import dash_app, tasks  # noqa: F401
+from dash_app import dash_app, ids  # noqa: F401
+from . import tasks
 from .forms import UploadFileForm
 from .util import get_unique_task_id
 
@@ -111,6 +112,12 @@ class SuccessView(TemplateView, MapEngineMixin):
     def get_context_data(self, **kwargs):
         context = super(SuccessView, self).get_context_data(**kwargs)
         context["task_id"] = self.request.GET["task_id"]
+        context["dash_app"] = {ids.HIDDEN_DIV_FOR_SLUG: {"children": self.request.GET["task_id"]}}
+
+        session = self.request.session
+
+        session["django_plotly_dash"] = {"task_id": self.request.GET["task_id"]}
+
         return context
 
 
