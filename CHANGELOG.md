@@ -25,6 +25,7 @@ Template:
   - Add tests
 - Add functionality to interpolate between datetimes
 - Expand tests, so version with and without eflips are included
+- SimBA only calculates the consumption of a single vehicle type, i.e. one type per rotation.
 
 
 ### Changed
