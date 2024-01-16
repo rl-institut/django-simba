@@ -676,52 +676,20 @@ def run_simba(
 
     # Analyze schedules which are generated using different depot vehicles. I.e. every depot
     # rotation is run with each vehicle to generate the consumption
-    for rotation in vary_depot_rotations(schedule):
+    for rot_id, rotation in schedule.rotations.items():
         rotation.calculate_consumption()
         db_rotation = Rotation.objects.get(scenario=db_scenario, name=rotation.id)
-        input_for_eflips[db_rotation.id].update(
-            departure_soc=schedule.min_recharge_deps_depb,
-            charging_type="depb",
-        )
-        vehicle_type_db = VehicleType.objects.get(
-            scenario=db_scenario,
-            name_short=rotation.vehicle_type,
-            opportunity_charging_capable=(rotation.charging_type == "oppb"),
-        )
-        input_for_eflips[db_rotation.id]["vehicle_type"].append(vehicle_type_db.id)
-        vehicle = schedule.vehicle_types[rotation.vehicle_type][rotation.charging_type]
-        input_for_eflips[db_rotation.id]["delta_soc"].append(
-            rotation.consumption / vehicle["capacity"]
-        )
+        if rotation.charging_type == EnumChargeType.DEPOT:
+            input_for_eflips = depot_rotation_to_eflips_input(
+                db_rotation, db_scenario, input_for_eflips, rotation, schedule
+            )
+        else:
+            assert rotation.charging_type == EnumChargeType.OPPORTUNITY
+            input_for_eflips = opportunity_rotation_to_eflips_input(
+                db_rotation, db_scenario, input_for_eflips, rot_id, rotation, scenario, schedule
+            )
 
-    # Analyze the simulated opportunity rotations
-    for rot_id, rotation in schedule.rotations.items():
-        if rotation.charging_type != "oppb":
-            continue
-        db_rotation = Rotation.objects.get(scenario=db_scenario, name=rot_id)
-        v_soc, start, end = simba.optimizer_util.get_rotation_soc_util(
-            rot_id=rot_id, schedule=schedule, scenario=scenario
-        )
-        # Start is the first index during the rotation, with a decreased soc already, therefore
-        # use the index before
-        start_idx = max(start - 1, 0)
-        rot_soc = v_soc[start_idx:end]
-
-        vehicle_type_db = VehicleType.objects.get(
-            scenario=db_scenario,
-            name_short=rotation.vehicle_type,
-            opportunity_charging_capable=True,
-        )
-
-        input_for_eflips[db_rotation.id] = dict(
-            departure_soc=rot_soc[0],
-            arrival_soc=rot_soc[-1],
-            minimal_soc=min(rot_soc),
-            charging_type=rotation.charging_type,
-            vehicle_type=vehicle_type_db.id,
-        )
     schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
-
     db_scenario.finished = timezone.now()
     db_scenario.save()
     # Create the file for eflips. This could be passed directly to eFlips by returning eflips_input
@@ -730,6 +698,49 @@ def run_simba(
 
     file_path = Path(report_dir, "vehicle_socs.csv")
     save_vehicle_properties_from_file(file_path, db_scenario)
+
+
+def opportunity_rotation_to_eflips_input(
+    db_rotation, db_scenario, input_for_eflips, rot_id, rotation, scenario, schedule
+):
+    input_for_eflips = copy(input_for_eflips)
+    v_soc, start, end = simba.optimizer_util.get_rotation_soc_util(
+        rot_id=rot_id, schedule=schedule, scenario=scenario
+    )
+    # Start is the first index during the rotation, with a decreased soc already, therefore
+    # use the index before
+    start_idx = max(start - 1, 0)
+    rot_soc = v_soc[start_idx:end]
+    vehicle_type_db = VehicleType.objects.get(
+        scenario=db_scenario,
+        name_short=rotation.vehicle_type,
+        opportunity_charging_capable=True,
+    )
+    input_for_eflips[db_rotation.id] = dict(
+        departure_soc=rot_soc[0],
+        arrival_soc=rot_soc[-1],
+        minimal_soc=min(rot_soc),
+        charging_type=rotation.charging_type,
+        vehicle_type=vehicle_type_db.id,
+    )
+    return input_for_eflips
+
+
+def depot_rotation_to_eflips_input(db_rotation, db_scenario, input_for_eflips, rotation, schedule):
+    input_for_eflips = copy(input_for_eflips)
+    input_for_eflips[db_rotation.id].update(
+        departure_soc=schedule.min_recharge_deps_depb,
+        charging_type="depb",
+    )
+    vehicle_type_db = VehicleType.objects.get(
+        scenario=db_scenario,
+        name_short=rotation.vehicle_type,
+        opportunity_charging_capable=(rotation.charging_type == "oppb"),
+    )
+    input_for_eflips[db_rotation.id]["vehicle_type"].append(vehicle_type_db.id)
+    vehicle = schedule.vehicle_types[rotation.vehicle_type][rotation.charging_type]
+    input_for_eflips[db_rotation.id]["delta_soc"].append(rotation.consumption / vehicle["capacity"])
+    return input_for_eflips
 
 
 def run_eflips(report_dir, task_id):
