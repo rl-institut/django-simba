@@ -1,53 +1,7 @@
 {% extends 'base.html'%}
 {% block title %}Simulation Results{% endblock %}
 {% block header %}
-  <script>
 
-  var task_id = "{{task_id }}";
-  console.log(task_id);
-  var ajaxChartUrl = "{% url 'simba:get_chart' %}";
-      function get_chart() {
-      console.log("getting chart");
-
-      el = $('#vehicle-form');
-      var vehiclesParams = {};
-      vehiclesParams["task_id"]=task_id;
-      if (el.length >0) {
-          var el = $('#id_vehicles').get(0);
-          vehicles=getSelectValues(el)
-          vehiclesParams["vehicles"] = vehicles;
-      }
-
-  <!--    set second argument of param to true, for proper serialization vehicles= [1,2] are put as -->
-  <!--vehicle=1&vehicle=2 and not vehicle%5B%5D=1&vehicle%5B%5D=2-->
-      var urlParams = $.param(vehiclesParams, true );
-      console.log(urlParams)
-      $.ajax({
-        url: ajaxChartUrl +'?' + urlParams,
-        type: 'GET',
-        dataType: 'html',
-        success: function(data) {
-          $('#chart').html(data);  // insert the loaded HTML into a div element
-          }
-        });
-  }
-
-  function getSelectValues(select) {
-    var result = [];
-    var options = select && select.options;
-    var opt;
-
-    for (var i=0, iLen=options.length; i<iLen; i++) {
-      opt = options[i];
-
-      if (opt.selected) {
-        result.push(opt.value || opt.text);
-      }
-    }
-    return result;
-  }
-
-  </script>
 {% endblock %}
 {% block content %}
 
@@ -76,15 +30,9 @@
         {% endwith %}
       </div>
       <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
-        <div id="chart"></div>
-        {%load plotly_dash%}
-
-        <!--    Simple Dash app start-->
-        <!--            <div id="dash_app" style="height:580px">-->
-        <!--    {% plotly_app name='SimpleExampleApp' ratio=0.9 %}-->
-        <!--                </div>-->
-        <!--        Simple Dash app end-->
-      </div>
+            {%load plotly_dash%}
+            {% plotly_app "MyDashApp" ratio=1 initial_arguments=dash_context %}
+        </div>
       <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">
         {% include 'minimal_mapengine.html'%}
             <div id="buttonContainer"></div>
@@ -108,7 +56,6 @@
 
   </div>
 <script>
-
     let routesIDList = [];
 
     function addIdToList(id, idList) {
@@ -183,7 +130,4 @@
 
 </script>
 
-    <!--<div id="task-status"></div>-->
-<script> get_chart();
-</script>
 {% endblock %}

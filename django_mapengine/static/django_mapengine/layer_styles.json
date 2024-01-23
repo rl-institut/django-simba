@@ -87,9 +87,20 @@
   },
   "routes": {
     "type": "line",
-    "paint": {
-      "line-color": "#00FF00",
-      "line-width": 10
+   "paint": {
+      "line-color": [
+        "interpolate",
+        ["linear"],
+        ["slice", ["get","geom"], 2],
+        0, "blue",
+        10, "green",
+        20, "red"
+      ],
+      "line-width": 5
+    },
+    "layout": {
+        "line-cap": "round",
+        "line-join": "round"
     }
   },
   "station": {

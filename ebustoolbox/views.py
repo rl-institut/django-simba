@@ -67,7 +67,6 @@ def get_chart(request):
 
     return render(request, "chart.html", context)
 
-
 def get_vehicle_plot_data(vehicles):
     plot_vehicles = []
     for search_vehicle in vehicles:
@@ -117,6 +116,8 @@ class SuccessView(TemplateView, MapEngineMixin):
     def get_context_data(self, **kwargs):
         context = super(SuccessView, self).get_context_data(**kwargs)
         context["task_id"] = self.request.GET["task_id"]
+        ##Dash context here????
+        context["dash_context"] = {"userid": {"value": "123"}}
         return context
 
 

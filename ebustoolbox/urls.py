@@ -3,11 +3,11 @@
 from django.urls import path
 
 from . import views
+from .dash_app import app
 
 app_name = "simba"
 
 urlpatterns = [
-    path("get_chart/", views.get_chart, name="get_chart"),
     path(
         "long_running_task_status/",
         views.long_running_task_status_view,
