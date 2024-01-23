@@ -27,7 +27,9 @@ from .models import (
     Rotation,
     Station,
     Trip,
+    Event,
 )
+from . import util
 
 TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
 TMP_STATICFILES_DIRS = settings.STATICFILES_DIRS + [settings.BASE_DIR / TMP_UPLOAD]
@@ -494,3 +496,131 @@ class ScenarioTestCase(TestCase):
         self.assertIsNone(instance_1.finished)
         self.assertIsInstance(instance_1.simba_options, dict)
         self.assertIsNone(instance_1.task_id)
+
+
+class TestUtil(TestCase):
+    def setUp(self):
+        # simple scenario with some events
+        scenario = Scenario.objects.create(name="Test")
+        vehicle_type = VehicleType.objects.create(
+            name="Test Type",
+            scenario=scenario,
+            charging_curve=[[0, 0], [1, 3]],
+            opportunity_charging_capable=False,
+            battery_capacity=100,
+        )
+        vehicle = Vehicle.objects.create(name="Test Vehicle", vehicle_type=vehicle_type)
+        r1 = Rotation.objects.create(name="Test Rotation 1", scenario=scenario)
+        r2 = Rotation.objects.create(name="Test Rotation 2", scenario=scenario)
+        st = Station.objects.create(geom="POINT(0 0 0)", name="Test Station", scenario=scenario)
+        t1 = Trip.objects.create(
+            scenario=scenario,
+            rotation=r1,
+            departure_station=st,
+            departure_time=parse_datetime("2023-01-01 10:00:00+01:00"),
+            arrival_station=st,
+            arrival_time=parse_datetime("2023-01-01 11:00:00+01:00"),
+            distance=100,
+        )
+        t2 = Trip.objects.create(
+            scenario=scenario,
+            rotation=r2,
+            departure_station=st,
+            departure_time=parse_datetime("2023-01-01 12:00:00+01:00"),
+            arrival_station=st,
+            arrival_time=parse_datetime("2023-01-01 13:00:00+01:00"),
+            distance=100,
+        )
+        Event.objects.create(
+            scenario=scenario,
+            vehicle=vehicle,
+            station=st,
+            time_start=parse_datetime("2023-01-01 09:00:00+01:00"),
+            time_end=parse_datetime("2023-01-01 10:00:00+01:00"),
+            soc_start=0.5,
+            soc_end=0.8,
+            timeseries={
+                "time": [
+                    "2023-01-01 09:00:00+01:00",
+                    "2023-01-01 09:15:00+01:00",
+                    "2023-01-01 09:30:00+01:00",
+                    "2023-01-01 09:45:00+01:00",
+                    "2023-01-01 10:00:00+01:00",
+                ],
+                "soc": [0.5, 0.6, 0.7, 0.8, 0.8]
+            }
+        )
+        Event.objects.create(
+            scenario=scenario,
+            vehicle=vehicle,
+            trip=t1,
+            time_start=parse_datetime("2023-01-01 10:00:00+01:00"),
+            time_end=parse_datetime("2023-01-01 11:00:00+01:00"),
+            soc_start=0.8,
+            soc_end=-0.1,
+            timeseries={
+                "time": [
+                    "2023-01-01 10:00:00+01:00",
+                    "2023-01-01 10:15:00+01:00",
+                    "2023-01-01 10:30:00+01:00",
+                    "2023-01-01 10:45:00+01:00",
+                ],
+                "soc": [0.8, 0.5, 0.2, -0.1]
+            }
+        )
+        Event.objects.create(
+            scenario=scenario,
+            vehicle=vehicle,
+            station=st,
+            time_start=parse_datetime("2023-01-01 11:00:00+01:00"),
+            time_end=parse_datetime("2023-01-01 12:00:00+01:00"),
+            soc_start=-0.1,
+            soc_end=0.8,
+            timeseries={
+                "time": [
+                    "2023-01-01 11:00:00+01:00",
+                    "2023-01-01 11:15:00+01:00",
+                    "2023-01-01 11:30:00+01:00",
+                    "2023-01-01 11:45:00+01:00",
+                ],
+                "soc": [-0.1, 0.2, 0.5, 0.8]
+            }
+        )
+        Event.objects.create(
+            scenario=scenario,
+            vehicle=vehicle,
+            trip=t2,
+            time_start=parse_datetime("2023-01-01 12:00:00+01:00"),
+            time_end=parse_datetime("2023-01-01 13:00:00+01:00"),
+            soc_start=0.8,
+            soc_end=0.2,
+            timeseries={
+                "time": [
+                    "2023-01-01 12:00:00+01:00",
+                    "2023-01-01 12:15:00+01:00",
+                    "2023-01-01 12:30:00+01:00",
+                    "2023-01-01 12:45:00+01:00",
+                ],
+                "soc": [0.8, 0.6, 0.4, 0.2]
+            }
+        )
+
+    def test_get_soc(self):
+        scenario_id = Scenario.objects.get(name="Test").id
+        socs = util.get_soc(scenario_id)
+        vehicle_id = Vehicle.objects.get(name="Test Vehicle").id
+        assert len(socs) == 1  # one vehicle
+        assert len(socs[vehicle_id]) == 2  # two times at station
+
+    def test_get_stations(self):
+        scenario_id = Scenario.objects.get(name="Test").id
+        stations = util.get_stations(scenario_id)
+        # nothing to test yet
+
+    def test_rotation_filter(self):
+        scenario_id = Scenario.objects.get(name="Test").id
+        rotations = util.rotation_filter(scenario_id)
+        r1_id = Rotation.objects.get(name="Test Rotation 1").id
+        r2_id = Rotation.objects.get(name="Test Rotation 2").id
+        assert r1_id not in rotations  # trip became negative
+        assert r2_id in rotations  # all trips positive

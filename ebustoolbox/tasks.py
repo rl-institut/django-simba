@@ -821,25 +821,27 @@ def create_event_output(simba_scenario, task_id):
     vehicle_dict = Vehicle.objects.filter(scenario=db_scenario)
     vehicle_dict = {vehicle.name: vehicle for vehicle in vehicle_dict}
     vehicle_type_dict = VehicleType.objects.filter(scenario=db_scenario)
-    vehicle_type_dict = {vehicle_type.name_short: vehicle_type for vehicle_type in vehicle_type_dict}
+    vehicle_type_dict = {
+        vehicle_type.name_short: vehicle_type for vehicle_type in vehicle_type_dict
+    }
     stations = Station.objects.filter(scenario=db_scenario)
     trips = Trip.objects.filter(scenario=db_scenario)
+    # rotations = Rotation.objects.filter(scenario=db_scenario)
     # collect info from vehicle_event
     sorted_vehicle_events = sorted(simba_scenario.events.vehicle_events, key=lambda d: d.start_time)
     for counter, vehicle_event in enumerate(sorted_vehicle_events):
         start_timestep = get_timestep_from_datetime(simba_scenario, vehicle_event.start_time)
         try:
-            # TODO figure out timezones
             end_time = sorted_vehicle_events[counter + 1].start_time
         except IndexError:
             end_time = simba_scenario.stop_time
-        end_timestep = min(get_timestep_from_datetime(simba_scenario, end_time), simba_scenario.step_i - 1)
+        end_timestep = min(
+            get_timestep_from_datetime(simba_scenario, end_time), simba_scenario.step_i - 1
+        )
         try:
             vehicle = vehicle_dict[vehicle_event.vehicle_id]
         except KeyError:
-            vehicle = Vehicle.objects.create(
-                scenario=db_scenario, name=vehicle_event.vehicle_id
-            )
+            vehicle = Vehicle.objects.create(scenario=db_scenario, name=vehicle_event.vehicle_id)
             vehicle_dict[vehicle_event.vehicle_id] = vehicle
         simba_vehicle_type = vehicle_event.vehicle_id.split("_")[0]
         try:
@@ -851,34 +853,51 @@ def create_event_output(simba_scenario, task_id):
             ]
             opp_capable = vehicle_event.vehicle_id.split("_")[1] == "oppb"
             vehicle_type = VehicleType.objects.create(
-                scenario=db_scenario, name=simba_vehicle_type, name_short=simba_vehicle_type,
-                opportunity_charging_capable=opp_capable, battery_capacity=vehicle_type_params.capacity,
-                charging_curve=vehicle_type_params.charging_curve.points
+                scenario=db_scenario,
+                name=simba_vehicle_type,
+                name_short=simba_vehicle_type,
+                opportunity_charging_capable=opp_capable,
+                battery_capacity=vehicle_type_params.capacity,
+                charging_curve=vehicle_type_params.charging_curve.points,
             )
             vehicle_type_dict[simba_vehicle_type] = vehicle_type
 
         # figure out the location of the event
         station = None
         trip = None
+        # # TODO the following code block can replace the following nested if-else once DB integration exists in SimBA
+        # # this assumes that the schedule will always be followed and all vehicles are assigned
+        # # will only work if everything is done through the db (no more files/objects passed)
+        # # needs to add stations from schedule/trips and event_type implicitly
+        # vehicle_rotations = rotations.filter(vehicle=vehicle)
+        # if not len(vehicle_rotations):
+        #     raise RuntimeError(
+        #         f"Vehicle {vehicle} has an event but is not assigned any rotations according to the database")
+        # vehicle_trips = trips.filter(rotation__in=vehicle_rotations)
         if vehicle_event.event_type == "arrival":
             # TODO set EventType here once implemented
             simba_location = vehicle_event.update["connected_charging_station"]
-            # event_type = EventType.STANBY_DEPARTURE if simba_location is None else
+            if simba_location is not None:
+                station_name = simba_location.split("_")[-2]
+                station = stations.get(name=station_name)
+                # TODO above only works for charging, needs either methodology to get all stations or allow None place
+            else:
+                # TODO figure out correct station
+                station = stations[0]
+            # event_type = EventType.STANDBY_DEPARTURE if simba_location is None else
             # EventType.CHARGING_OPPORTUNITY
-            # TODO get Station via schedule?
-            station = stations[0]
         else:
-            pass
             # TODO set EventType here once implemented
             # TODO set Trip here
             trip = trips[0]
             # event_type = EventType.DRIVING
-        timestamp_list = [get_datetime_from_timestep(simba_scenario, t).astimezone().isoformat() for t in
-                          range(start_timestep, end_timestep + 1, int(60 / simba_scenario.stepsPerHour))]
+        timestamp_list = [
+            get_datetime_from_timestep(simba_scenario, t).astimezone().isoformat()
+            for t in range(start_timestep, end_timestep + 1, int(60 / simba_scenario.stepsPerHour))
+        ]
         timeseries = {
-            # TODO change to timestamp_list or other options once Issue 41 is resolved
             "time": timestamp_list,
-            "soc": simba_scenario.vehicle_socs[vehicle.name][start_timestep:end_timestep + 1]
+            "soc": simba_scenario.vehicle_socs[vehicle.name][start_timestep : end_timestep + 1],
         }
 
         # grab current vehicle SoC at timestep
@@ -896,7 +915,7 @@ def create_event_output(simba_scenario, task_id):
             time_start=vehicle_event.start_time.astimezone(),
             time_end=end_time.astimezone(),
             timeseries=timeseries,
-            # event_type = vehicle_event.event_type, TODO transform to EventType
+            # event_type = vehicle_event.event_type, TODO replace with event_type
         )
         event.save()
     # Event.objects.bulk_create(events)
