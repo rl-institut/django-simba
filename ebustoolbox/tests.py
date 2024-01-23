@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from copy import copy
 from typing import Iterable
+from selenium import webdriver
 
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.http import HttpRequest
@@ -17,7 +18,6 @@ from django.conf import settings
 
 # Create your tests here.
 from django.urls import reverse
-from selenium import webdriver
 
 from .models import (
     Route,
