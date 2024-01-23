@@ -19,9 +19,10 @@ from datetime import datetime
 from pathlib import Path
 from decimal import Decimal
 from celery import shared_task
-
+from matplotlib import pyplot as plt
 
 from .models import (
+    Route,
     Vehicle,
     VehicleProperties,
     UploadedFile,
@@ -32,6 +33,8 @@ from .models import (
     Scenario,
     EnumChargeType,
     Line,
+    charge_type_from_simba_to_db,
+    charge_type_from_db_to_station,
 )
 
 from simba.consumption import Consumption
@@ -148,25 +151,27 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
         vehicle_type = rot.vehicle.vehicle_type.name_short
         simba_rotation = SimbaRotation(id=rot.name, vehicle_type=vehicle_type, schedule=schedule)
         simba_rotation.charging_type = (
-            EnumChargeType.OPPORTUNITY if rot.allow_opportunity_charging else EnumChargeType.DEPOT
+            EnumChargeType.OPPORTUNITY.value
+            if rot.allow_opportunity_charging
+            else EnumChargeType.DEPOT.value
         )
 
         rotations[rot.name] = simba_rotation
         for trip in Trip.objects.filter(rotation=rot):
             simba_trip_dict = {
                 "departure_time": str(trip.departure_time),
-                "departure_name": trip.departure_station.name,
+                "departure_name": trip.route.departure_station.name,
                 "arrival_time": str(trip.arrival_time),
-                "arrival_name": trip.arrival_station.name,
-                "distance": trip.distance,
-                "line": lines_dict[trip.line.id].name,
-                "temperature": trip.temperature,
+                "arrival_name": trip.route.arrival_station.name,
+                "distance": trip.route.distance,
+                "line": lines_dict[trip.route.line.id].name,
                 "height_diff": (
-                    station_data[trip.arrival_station.name]["elevation"]
-                    - station_data[trip.departure_station.name]["elevation"]
+                    station_data[trip.route.arrival_station.name]["elevation"]
+                    - station_data[trip.route.departure_station.name]["elevation"]
                 ),
-                "level_of_loading": trip.level_of_loading,
+                "level_of_loading": trip.loaded_mass,
                 "mean_speed": trip.speed * 3.6,
+                "temperature": 20.0,
             }
             simba_rotation.add_trip(simba_trip_dict)
     return rotations
@@ -216,7 +221,7 @@ def get_electrified_stations_from_db(django_scenario) -> dict:
         if not station.is_electrified:
             continue
         stat_dict = {
-            "type": station.charge_type.lower(),
+            "type": charge_type_from_db_to_station(station.charge_type.lower(), is_station=True),
             "n_charging_stations": station.amount_charging_places,
             "cs_power_deps_oppb": station.power_per_charger,
             "cs_power_deps_depb": station.power_per_charger,
@@ -374,6 +379,7 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
     model_rotations = []
     model_trips = []
     model_lines = []
+    model_routes = []
     rot_id = 1 if Rotation.objects.last() is None else Rotation.objects.last().id + 1
     trip_id = 1 if Trip.objects.last() is None else Trip.objects.last().id + 1
 
@@ -393,6 +399,7 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
         )
         r = Rotation(
             name=key,
+            vehicle_type=vehicletype,
             scenario=django_scenario,
             allow_opportunity_charging=opportunity_charging_capable,
             vehicle=vehicle,
@@ -408,22 +415,31 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
                 line = Line(scenario=django_scenario, name=trip.line)
                 line_dict[trip.line] = line
                 model_lines.append(line)
-            t = Trip(
-                rotation=r,
+            route = Route(
+                name=trip.departure_name + " - " + trip.arrival_name,
                 scenario=django_scenario,
                 departure_station=station_dict[trip.departure_name],
-                departure_time=make_aware(trip.departure_time),
                 arrival_station=station_dict[trip.arrival_name],
-                arrival_time=make_aware(trip.arrival_time),
                 distance=trip.distance,
                 line=line,
-                temperature=trip.temperature,
-                level_of_loading=trip.level_of_loading,
             )
+            model_routes.append(route)
+            # ToDo: loaded_mass is level_of_loading * vehicle_capacity[kg]
+            # needs changing
+            t = Trip(
+                rotation=r,
+                route=route,
+                scenario=django_scenario,
+                departure_time=make_aware(trip.departure_time),
+                arrival_time=make_aware(trip.arrival_time),
+                loaded_mass=trip.level_of_loading,
+            )
+
             t.id = trip_id
             model_trips.append(t)
             trip_id += 1
     Line.objects.bulk_create(model_lines)
+    Route.objects.bulk_create(model_routes)
     Rotation.objects.bulk_create(model_rotations)
     Trip.objects.bulk_create(model_trips)
 
@@ -434,6 +450,11 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
     :param scenario: django model Scenario
     :return: None
     """
+
+    # ToDo: Get real data
+    DEFAULT_WIDTH = 2.54
+    DEFAULT_HEIGHT = 3.375
+
     for name, v_type in vehicle_types.items():
         for charge_name, charge_type in v_type.items():
             consumption = float(charge_type.get("mileage"))
@@ -448,7 +469,9 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
                 charging_curve=charge_type["charging_curve"],
                 v2g_curve=charge_type.get("v2g_curve", None),
                 consumption=consumption,
-                length_m=float(charge_type.get("length", 0)),
+                length=charge_type.get("length", 0),
+                width=DEFAULT_WIDTH,
+                height=DEFAULT_HEIGHT,
             )
             VehicleType.objects.create(**params)
 
@@ -483,14 +506,18 @@ def stations_to_db(station_data, electrified_stations, scenario):
     for name, ele_station in electrified_stations.items():
         station = Station.objects.get(name=name, scenario=scenario)
         station.is_electrified = True
-        station.charge_type = ele_station.get("type")
+
+        charge_type = ele_station.get("type")
+        # SimBA calls station types opps and deps which is not the same as
+        # EnumChargeTypes. This needs a translation.
+        station.charge_type = charge_type_from_simba_to_db(charge_type)
 
         station.voltage_level = ele_station.get(
             "voltage_level", scenario.simba_options.get("default_voltage_level")
         )
         station.amount_charging_places = ele_station.get("n_charging_stations")
         # ToDo how do we handle differences in charging power depending on oppb or depb
-        if station.charge_type == "opps":
+        if station.charge_type == EnumChargeType.OPPORTUNITY.value:
             power_per_charger = ele_station.get("cs_power_opps")
         else:
             power_per_charger = ele_station.get("cs_power_deps_oppb")
@@ -581,6 +608,9 @@ def _run_ebus_toolchain(schedule: "simba.schedule.Schedule", args, task_id):
     report_dir = Path(settings.BASE_DIR, args.output_directory, "report_1")
     # call simba and eflips
     run_simba(schedule, args, task_id, report_dir=report_dir)
+    # Currently some plots are generated and but not closed.
+    # ToDo: Do this inside simba or spice ev
+    plt.close()
 
     if settings.EFLIPS_USE:
         eflips_dataclass_list: List[InputForSimba] = run_eflips(report_dir, task_id)
@@ -649,51 +679,20 @@ def run_simba(
 
     # Analyze schedules which are generated using different depot vehicles. I.e. every depot
     # rotation is run with each vehicle to generate the consumption
-    for rotation in vary_depot_rotations(schedule):
+    for rot_id, rotation in schedule.rotations.items():
         rotation.calculate_consumption()
         db_rotation = Rotation.objects.get(scenario=db_scenario, name=rotation.id)
-        input_for_eflips[db_rotation.id].update(
-            departure_soc=schedule.min_recharge_deps_depb,
-            charging_type="depb",
-        )
-        vehicle_type_db = VehicleType.objects.get(
-            scenario=db_scenario,
-            name_short=rotation.vehicle_type,
-            opportunity_charging_capable=(rotation.charging_type == "oppb"),
-        )
-        input_for_eflips[db_rotation.id]["vehicle_type"].append(vehicle_type_db.id)
-        vehicle = schedule.vehicle_types[rotation.vehicle_type][rotation.charging_type]
-        input_for_eflips[db_rotation.id]["delta_soc"].append(
-            rotation.consumption / vehicle["capacity"]
-        )
+        if rotation.charging_type == EnumChargeType.DEPOT:
+            input_for_eflips = depot_rotation_to_eflips_input(
+                db_rotation, db_scenario, input_for_eflips, rotation, schedule
+            )
+        else:
+            assert rotation.charging_type == EnumChargeType.OPPORTUNITY
+            input_for_eflips = opportunity_rotation_to_eflips_input(
+                db_rotation, db_scenario, input_for_eflips, rot_id, rotation, scenario, schedule
+            )
 
-    for rot_id, rotation in schedule.rotations.items():
-        if rotation.charging_type != "oppb":
-            continue
-        db_rotation = Rotation.objects.get(scenario=db_scenario, name=rot_id)
-        v_soc, start, end = simba.optimizer_util.get_rotation_soc_util(
-            rot_id=rot_id, schedule=schedule, scenario=scenario
-        )
-        # Start is the first index during the rotation, with a decreased soc already, therefore
-        # use the index before
-        start_idx = max(start - 1, 0)
-        rot_soc = v_soc[start_idx:end]
-
-        vehicle_type_db = VehicleType.objects.get(
-            scenario=db_scenario,
-            name_short=rotation.vehicle_type,
-            opportunity_charging_capable=True,
-        )
-
-        input_for_eflips[db_rotation.id] = dict(
-            departure_soc=rot_soc[0],
-            arrival_soc=rot_soc[-1],
-            minimal_soc=min(rot_soc),
-            charging_type=rotation.charging_type,
-            vehicle_type=vehicle_type_db.id,
-        )
     schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
-
     db_scenario.finished = timezone.now()
     db_scenario.save()
     # Create the file for eflips. This could be passed directly to eFlips by returning eflips_input
@@ -702,6 +701,49 @@ def run_simba(
 
     file_path = Path(report_dir, "vehicle_socs.csv")
     save_vehicle_properties_from_file(file_path, db_scenario)
+
+
+def opportunity_rotation_to_eflips_input(
+    db_rotation, db_scenario, input_for_eflips, rot_id, rotation, scenario, schedule
+):
+    input_for_eflips = copy(input_for_eflips)
+    v_soc, start, end = simba.optimizer_util.get_rotation_soc_util(
+        rot_id=rot_id, schedule=schedule, scenario=scenario
+    )
+    # Start is the first index during the rotation, with a decreased soc already, therefore
+    # use the index before
+    start_idx = max(start - 1, 0)
+    rot_soc = v_soc[start_idx:end]
+    vehicle_type_db = VehicleType.objects.get(
+        scenario=db_scenario,
+        name_short=rotation.vehicle_type,
+        opportunity_charging_capable=True,
+    )
+    input_for_eflips[db_rotation.id] = dict(
+        departure_soc=rot_soc[0],
+        arrival_soc=rot_soc[-1],
+        minimal_soc=min(rot_soc),
+        charging_type=rotation.charging_type,
+        vehicle_type=vehicle_type_db.id,
+    )
+    return input_for_eflips
+
+
+def depot_rotation_to_eflips_input(db_rotation, db_scenario, input_for_eflips, rotation, schedule):
+    input_for_eflips = copy(input_for_eflips)
+    input_for_eflips[db_rotation.id].update(
+        departure_soc=schedule.min_recharge_deps_depb,
+        charging_type="depb",
+    )
+    vehicle_type_db = VehicleType.objects.get(
+        scenario=db_scenario,
+        name_short=rotation.vehicle_type,
+        opportunity_charging_capable=(rotation.charging_type == "oppb"),
+    )
+    input_for_eflips[db_rotation.id]["vehicle_type"].append(vehicle_type_db.id)
+    vehicle = schedule.vehicle_types[rotation.vehicle_type][rotation.charging_type]
+    input_for_eflips[db_rotation.id]["delta_soc"].append(rotation.consumption / vehicle["capacity"])
+    return input_for_eflips
 
 
 def run_eflips(report_dir, task_id):

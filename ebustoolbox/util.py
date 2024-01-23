@@ -1,5 +1,12 @@
 from .models import Scenario
 from celery import uuid
+import matplotlib
+import sys
+
+if not any(["selenium" in str(x) for x in sys.modules.values()]):
+    # do not use tkagg during testing since it does not work with headless selenium
+    # Explicitly call backend. Put into env? Without simba does not always properly generate plots
+    matplotlib.use("TkAgg")
 
 
 def get_unique_task_id() -> str:
