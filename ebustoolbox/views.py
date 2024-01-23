@@ -117,7 +117,7 @@ class SuccessView(TemplateView, MapEngineMixin):
         context = super(SuccessView, self).get_context_data(**kwargs)
         context["task_id"] = self.request.GET["task_id"]
         ##Dash context here????
-        context["dash_context"] = {"userid": {"value": "123"}}
+        context["dash_context"] = {"userid": {"value": self.request.GET["task_id"]}}
         return context
 
 
