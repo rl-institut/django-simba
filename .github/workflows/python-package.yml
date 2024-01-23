@@ -88,7 +88,7 @@ jobs:
           poetry config experimental.system-git-client true
       - name: Install Dependency
         run: |
-          poetry install --no-root --with dev
+          poetry install --no-root --with dev --verbose
       - name: Run Tests
         run:
           poetry run python manage.py test
