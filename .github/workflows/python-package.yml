@@ -22,6 +22,11 @@ jobs:
         python-version: [ "3.11" ]
 
     steps:
+      - name: Give GH Actions access to django-simba repo
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.EFLIPS_DEPOT_KEY }}
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v3
