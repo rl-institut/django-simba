@@ -29,7 +29,7 @@
           {% endwith %}
         {% endwith %}
       </div>
-      <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
+      <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1" style="display: block">
             {%load plotly_dash%}
             {% plotly_app "MyDashApp" ratio=1 initial_arguments=dash_context %}
         </div>
