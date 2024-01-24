@@ -1,9 +1,26 @@
 {% extends 'base.html'%}
 {% block title %}Simulation Results{% endblock %}
 {% block header %}
-
 {% endblock %}
 {% block content %}
+    <style>
+    /*
+
+    Bootstrap hides inactive Tabs via display:none. This gives it a zero witdh, making plotly unable to determine
+    the position of the legend, and the legends width.
+    https://community.plotly.com/t/legend-cut-off-when-plot-wrapped-in-details-html-tag/13232/3
+
+    Thus this hack is needed. If a tab is just declared as display:Block, it will appear on all pages.
+    https://stackoverflow.com/questions/17206631/why-are-bootstrap-tabs-displaying-tab-pane-divs-with-incorrect-widths-when-using */
+    /* bootstrap hack: fix content width inside hidden tabs */
+.tab-content > .tab-pane:not(.active) /* , .pill-content > .pill-pane:not(.active) */ {
+    display: block;
+    height: 0;
+    overflow-y: hidden;
+}
+/* bootstrap hack end */
+
+    </style>
 
     <h1> Finished with id {{request.GET.task_id}}</h1>
     {% load static %}
@@ -29,9 +46,12 @@
           {% endwith %}
         {% endwith %}
       </div>
-      <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1" style="display: block">
+      <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
+
+          <!-- https://community.plotly.com/t/legend-cut-off-when-plot-wrapped-in-details-html-tag/13232/3 -->
             {%load plotly_dash%}
             {% plotly_app "MyDashApp" ratio=1 initial_arguments=dash_context %}
+
         </div>
       <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">
         {% include 'minimal_mapengine.html'%}
