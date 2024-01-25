@@ -16,6 +16,14 @@ Template:
 ### Removed
 - [(#)]()
 ```
+
+### Changed
+- put PR here
+- Changed the type of datetimes and data to arrayfields
+- Temperatures or other
+- Generate vehicles with the same name as SimBA
+- Fix Popups of map stations
+-
 ### Changed
 - [(#40)](https://github.com/rl-institut/django-simba/pull/40)
 - Expands the database according to discussed specifications.

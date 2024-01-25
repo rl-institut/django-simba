@@ -7,14 +7,14 @@ MAP_ENGINE_ZOOM_AT_STARTUP = 8
 # [0.616574868700604, 55.35515806663738]]
 
 MAP_ENGINE_IMAGES = [
-    setup.MapImage("busstop", "django_mapengine/images/icons/bus_stop.png"),
-    setup.MapImage("busstop_red", "django_mapengine/images/icons/bus_stop_red.png"),
+    setup.MapImage("station", "django_mapengine/images/icons/bus_stop.png"),
+    setup.MapImage("station_red", "django_mapengine/images/icons/bus_stop_red.png"),
 ]
 
 # MAP_ENGINE_API_MVTS = {}
 MAP_ENGINE_API_MVTS = {
-    "busstop": [
-        setup.MVTAPI("busstop", "ebus_map", "Station"),
+    "station": [
+        setup.MVTAPI("station", "ebus_map", "Station"),
     ],
 }
 
@@ -23,7 +23,7 @@ MAP_ENGINE_API_CLUSTERS = [
 ]
 
 MAP_ENGINE_STYLES_FOLDER = "django_mapengine/static/django_mapengine/"
-MAP_ENGINE_LAYERS_AT_STARTUP = ["busstop"]  # "myexamplemultipolygon"]
+MAP_ENGINE_LAYERS_AT_STARTUP = ["station"]  # "myexamplemultipolygon"]
 # These zoom levels define, where the specific features, e.g. points, lines choropleths (?) are
 # visible
 MAP_ENGINE_MIN_ZOOM = 1
@@ -34,7 +34,7 @@ MAP_ENGINE_ZOOM_LEVELS = {
 # These layers will be plotted as region, i.e. use layer_styles of region with outline and fill
 REGIONS = []
 MAP_ENGINE_POPUPS = [
-    setup.Popup("busstop", True),
+    setup.Popup("station", True),
     # setup.Popup(
     #     "myexamplemultipolygon",
     #     True,

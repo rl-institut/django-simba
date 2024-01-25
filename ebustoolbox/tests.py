@@ -555,47 +555,60 @@ class ScenarioTestCase(TestCase):
 
 class TemperaturesTestCase(TestCase):
     def test_model_creation(self):
-        date1 = datetime(year=2024, month=1, day=1)
+        date1 = make_aware(datetime(year=2024, month=1, day=1))
         dt = timedelta(hours=5)
         date2 = date1 + dt
         date3 = date1 - timedelta(days=5)
         temp1 = 25
         temp2 = 0
         temp3 = 100
-        temperature_instance = Temperatures(
+        t_instance = Temperatures(
             scenario=Scenario.objects.get(pk=Scenario.get_default_pk()),
             name="First Temperatures",
             use_only_time=False,
             datetimes=[date1, date2, date3],
             data=[temp1, temp2, temp3],
         )
-        temperature_instance.save()
-        pk = temperature_instance.pk
-        assert temperature_instance.get_temperature(date1) == temp1
-        assert temperature_instance.get_temperature(date2) == temp2
-        assert temperature_instance.get_temperature(date3) == temp3
-        assert temperature_instance.get_temperature(date1 + dt / 2) == (temp1 + temp2) / 2
+        t_instance.save()
+        pk = t_instance.pk
+
+        # look up of temperatures using the look up functions
+        assert t_instance.get_interpolated_temperature(date1) == temp1
+        assert t_instance.get_closest_temperature(date1) == temp1
+        assert t_instance.get_interpolated_temperature(date2) == temp2
+        assert t_instance.get_closest_temperature(date2) == temp2
+        assert t_instance.get_interpolated_temperature(date3) == temp3
+        assert t_instance.get_closest_temperature(date3) == temp3
+        assert t_instance.get_interpolated_temperature(date1 + dt / 2) == (temp1 + temp2) / 2
+
+        assert t_instance.get_closest_temperature(date1 + dt / 2.01) == temp1
+        assert t_instance.get_closest_temperature(date1 + dt / 1.99) == temp2
 
         # Use only time works if only datetimes from a single date are passed
-        temperature_instance = Temperatures(
+        t_instance = Temperatures(
             scenario=Scenario.objects.get(pk=Scenario.get_default_pk()),
             name="Second Temperatures",
             use_only_time=True,
             datetimes=[date1, date2],
             data=[temp1, temp2],
         )
-        temperature_instance.save()
-        assert temperature_instance.get_temperature(date1) == temp1
-        assert temperature_instance.get_temperature(date1 + timedelta(days=1)) == temp1
-        assert temperature_instance.get_temperature(date1 + timedelta(days=1) + dt) == temp2
+        t_instance.save()
+        assert t_instance.get_interpolated_temperature(date1) == temp1
+        assert t_instance.get_interpolated_temperature(date1 + timedelta(days=1)) == temp1
+        assert t_instance.get_interpolated_temperature(date1 + timedelta(days=1) + dt) == temp2
+
+        assert t_instance.get_closest_temperature(date1) == temp1
+        assert t_instance.get_closest_temperature(date1 + timedelta(days=1)) == temp1
+        assert t_instance.get_closest_temperature(date1 + timedelta(days=1) + dt) == temp2
 
         # Previous dates get the last possible value
-        assert temperature_instance.get_temperature(date3) == temp1
+        assert t_instance.get_interpolated_temperature(date3) == temp1
 
+        # new temperature instance will use its own function
         t = Temperatures.objects.get(pk=pk)
-        assert t.get_temperature(date3) == temp3
+        assert t.get_interpolated_temperature(date3) == temp3
 
-        temperature_instance = Temperatures(
+        t_instance = Temperatures(
             scenario=Scenario.objects.get(pk=Scenario.get_default_pk()),
             name="Max. Temperatures Berlin",
             use_only_time=True,
@@ -603,4 +616,7 @@ class TemperaturesTestCase(TestCase):
             data=[temp1, temp2, temp3],
         )
         # Different dates raise an attribute error
-        self.assertRaises(AttributeError, temperature_instance.save)
+        self.assertRaises(AttributeError, t_instance.save)
+
+    def test_temperatures_from_csv(self):
+        pass

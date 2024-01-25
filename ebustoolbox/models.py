@@ -8,7 +8,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
-from django.core.serializers.json import DjangoJSONEncoder
+from django.utils.timezone import make_aware
 from django.dispatch import receiver
 
 MINIMAL_TRIP_DURATION_S = 60  # seconds
@@ -458,7 +458,7 @@ class Temperatures(models.Model):
         ...     data=[temperature1, temperature2],
         ... )
         >>> temperatures_instance.save()
-        >>> interpolated_temperature = temperatures_instance.get_temperature(datetime3)
+        >>> interpolated_temperature = temperatures_instance.get_interpolated_temperature(datetime3)
     """
 
     class Meta:
@@ -470,21 +470,24 @@ class Temperatures(models.Model):
 
     # Should the datetime be interpreted as datetime or only time.
     use_only_time = models.BooleanField(null=False, default=True)
-    # two list with datetimes and data. Storing as dict does not seem easily possible, since
-    # serialization of keys as datetime fails but not as values
-    datetimes = models.JSONField(default=list, null=False, encoder=DjangoJSONEncoder)
-    data = models.JSONField(default=list, null=False)
+    # datetimes and associated data
+    datetimes = ArrayField(models.DateTimeField(), default=list)
+    data = ArrayField(models.FloatField(), default=list)
+
     temperature_interpolation = None
+    temperature_closest_function = None
+
+    def make_aware(self):
+        aware_datetimes = []
+        for date_time in self.datetimes:
+            aware_datetimes.append(make_aware(date_time))
+        self.datetimes = aware_datetimes
 
     def save(self, *args, **kwargs):
         """
         Overrides the save method to perform data validation and initialize the
         interpolation function.
         """
-        # Check proper formatting of the data field
-        assert_is_type(self.data, list)
-        if not all([isinstance(obj, datetime) for obj in self.datetimes]):
-            raise AttributeError(f"Data of {self} contains keys, which are not of type Datetime")
         if self.use_only_time:
             dates = {(date.year, date.month, date.day) for date in self.datetimes}
             if len(dates) != 1:
@@ -495,9 +498,10 @@ class Temperatures(models.Model):
         self.temperature_interpolation = get_datetime_interpolation_function(
             self.datetimes, self.data
         )
+        self.temperature_closest_function = get_datetime_closest_function(self.datetimes, self.data)
         super().save(*args, **kwargs)
 
-    def get_temperature(self, datetime: datetime):
+    def get_interpolated_temperature(self, date_time: datetime):
         """
         Retrieves the interpolated temperature for a given datetime.
         """
@@ -506,12 +510,64 @@ class Temperatures(models.Model):
                 self.datetimes, self.data
             )
         if self.use_only_time:
-            date = next(iter(self.datetimes))
-            datetime = datetime.replace(year=date.year, month=date.month, day=date.day)
-        return self.temperature_interpolation(datetime)
+            date = date_time.fromisoformat(str(next(iter(self.datetimes))))
+            date_time = date_time.replace(year=date.year, month=date.month, day=date.day)
+        return self.temperature_interpolation(date_time)
+
+    def get_closest_temperature(self, date_time: datetime):
+        """
+        Retrieves the interpolated temperature for a given datetime.
+        """
+        if self.temperature_closest_function is None:
+            self.temperature_closest_function = get_datetime_closest_function(
+                self.datetimes, self.data
+            )
+        if self.use_only_time:
+            date = date_time.fromisoformat(str(next(iter(self.datetimes))))
+            date_time = date_time.replace(year=date.year, month=date.month, day=date.day)
+        return self.temperature_closest_function(date_time)
 
 
-def get_datetime_interpolation_function(datetimes: list, data: list):
+def get_datetime_closest_function(datetimes: list[datetime], data: list):
+    """
+    Generates a function which returns the closest value based on input datetimes and corresponding data.
+
+    Args:
+        datetimes (list): A list of datetime objects.
+        data (list): A list of values corresponding to the datetimes.
+
+    Returns:
+        function: A datetime interpolation function.
+    """
+    # sort by key
+    sort_index = np.argsort(np.array(datetimes), axis=0)
+    sorted_data = (np.array([datetimes, data]).T)[sort_index]
+    first_time = sorted_data[0, 0]
+    # create the timedelta
+    xp = sorted_data[:, 0] - first_time
+    # cast the timedelta to seconds as int64
+    xp = xp.astype("timedelta64[s]").view("int64")
+    # cast the data to floats
+    fp = sorted_data[:, 1].astype(float)
+    # create the interpolation function
+    partial_closest = partial(np.searchsorted, a=xp, side="left")
+
+    def partial_closest_function(date_time: datetime) -> float:
+        delta_time_as_int = (
+            (np.array([date_time]) - first_time).astype("timedelta64[s]").view("int64")
+        )
+        # idx 1 is the index of xp, where xp[i-1] < delta_time_as_int <= xp[i]
+        idx1 = partial_closest(v=delta_time_as_int)
+        x1 = xp[idx1]
+        idx0 = np.max((idx1 - 1, np.zeros(len(idx1))), axis=0).astype(int)
+        x0 = xp[idx0]
+        indicies = idx1 - (x1 - delta_time_as_int >= delta_time_as_int - x0)
+        return fp[np.max((indicies, np.zeros(len(idx1))), axis=0).astype(int)].squeeze()
+
+    return partial_closest_function
+
+
+def get_datetime_interpolation_function(datetimes: list[datetime], data: list):
     """
     Generates a datetime interpolation function based on input datetimes and corresponding data.
 
@@ -522,9 +578,6 @@ def get_datetime_interpolation_function(datetimes: list, data: list):
     Returns:
         function: A datetime interpolation function.
     """
-
-    # cast datetimes, which are possibly strings to datetimes
-    datetimes = [datetime.fromisoformat(str(x)) for x in datetimes]
     # sort by key
     sort_index = np.argsort(np.array(datetimes), axis=0)
     sorted_data = (np.array([datetimes, data]).T)[sort_index]
@@ -542,8 +595,7 @@ def get_datetime_interpolation_function(datetimes: list, data: list):
         delta_time_as_int = (
             (np.array([date_time]) - first_time).astype("timedelta64[s]").view("int64")
         )
-        if len(delta_time_as_int) == 1:
-            return partial_interp(*delta_time_as_int)
+        delta_time_as_int = delta_time_as_int.squeeze()
         return partial_interp(delta_time_as_int)
 
     return partial_interpolation_function

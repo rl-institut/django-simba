@@ -35,10 +35,12 @@ from .models import (
     Line,
     charge_type_from_simba_to_db,
     charge_type_from_db_to_station,
+    Temperatures,
 )
 
 from simba.consumption import Consumption
 import simba.optimizer_util
+import simba.trip
 import simba.util
 import simba.simulate
 from django.db.transaction import atomic
@@ -53,6 +55,7 @@ if settings.EFLIPS_USE:
 
 # ToDo: Any better solutions?
 INTEGER_INF = 9999
+MAX_AMOUNT_VEHICLES = 10000
 
 
 @atomic()
@@ -65,8 +68,16 @@ def input_files_to_database(cleaned_data: dict, request: HttpRequest):
     """
     django_scenario = scenario_to_db(cleaned_data, request)
     original_args = get_args(django_scenario)
+
+    # Write the Temperatures to the DB
+    temperature_path = Path(django_scenario.simba_options["temperature_time_series_path"])
+    use_only_time = django_scenario.simba_options["use_only_time"]
+    temperatures_to_db(temperature_path, django_scenario, use_only_time=use_only_time)
+
     # Create the schedule from the args, and delete features which are not used in django
-    simba_schedule, new_args = get_schedule_from_args(original_args)
+    simba_schedule, new_args = get_schedule_from_args(
+        original_args, django_scenario=django_scenario
+    )
 
     # Write the station geodata and electrified stations to DB
     stations_to_db(simba_schedule.station_data, simba_schedule.stations, django_scenario)
@@ -78,6 +89,31 @@ def input_files_to_database(cleaned_data: dict, request: HttpRequest):
     schedule_to_db(simba_schedule, django_scenario)
 
     return django_scenario, simba_schedule, original_args
+
+
+def temperatures_to_db(
+    temperature_file_path: Path,
+    django_scenario: Scenario,
+    use_only_time: bool,
+) -> None:
+    """Writes the temperatures to the database and connects it with the scenario"""
+    with open(temperature_file_path, encoding="utf-8") as f:
+        delim = simba.util.get_csv_delim(temperature_file_path)
+        reader = csv.DictReader(f, delimiter=delim)
+        times = []
+        temperatures = []
+        for row in reader:
+            times.append(datetime.fromisoformat(row["time"]))
+            temperatures.append(row["temperature"])
+        temperatures_instance = Temperatures(
+            scenario=django_scenario,
+            name=temperature_file_path.name,
+            use_only_time=use_only_time,
+            datetimes=times,
+            data=temperatures,
+        )
+        temperatures_instance.make_aware()
+        temperatures_instance.save()
 
 
 def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Schedule, Namespace]:
@@ -131,6 +167,8 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
 
     # Create soc dispatcher
     schedule.init_soc_dispatcher(args)
+
+    schedule.assign_vehicles()
 
     return schedule, args
 
@@ -251,7 +289,9 @@ def get_station_data_from_db(django_scenario) -> dict:
     return station_data
 
 
-def get_schedule_from_args(original_args) -> tuple[simba.schedule.Schedule, Namespace]:
+def get_schedule_from_args(
+    original_args, django_scenario
+) -> tuple[simba.schedule.Schedule, Namespace]:
     """Create SimBA Schedule from arguments with existing files and restrict features.
 
     This creates a schedule object without making use of the database. Instead the passed arguments
@@ -261,6 +301,9 @@ def get_schedule_from_args(original_args) -> tuple[simba.schedule.Schedule, Name
     :rtype: simba.schedule.Schedule, Namespace
     """
     simba_schedule, new_args = simba.simulate.pre_simulation(original_args)
+
+    add_temperatures_to_trips(django_scenario, simba_schedule)
+
     # Remove simba features which are not used
     remove_station_attributes = ["battery", "energy_feed_in", "distance_to_grid", "external_load"]
     for attribute in remove_station_attributes:
@@ -308,6 +351,17 @@ def get_schedule_from_args(original_args) -> tuple[simba.schedule.Schedule, Name
     return simba_schedule, new_args
 
 
+def add_temperatures_to_trips(django_scenario, simba_schedule):
+    temperatures = Temperatures.objects.get(scenario=django_scenario)
+    # set temperatures according to temperature file
+    for rot in simba_schedule.rotations.values():
+        for trip in rot.trips:
+            middle_time = make_aware(
+                trip.departure_time + 0.5 * (trip.arrival_time - trip.departure_time)
+            )
+            trip.temperature = temperatures.get_interpolated_temperature(middle_time)
+
+
 def get_args(django_scenario) -> Namespace:
     """Creates arguments from django Scenario
 
@@ -345,6 +399,7 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
         "vehicle_types": "vehicle_types.json",
         "station_data_path": "all_stations.csv",
         "outside_temperature_over_day_path": "default_temp_summer.csv",
+        "temperature_time_series_path": "temperature_time_series.csv",
         "level_of_loading_over_day_path": "default_level_of_loading_over_day.csv",
         "cost_parameters_file": "cost_params.json",
     }.items():
@@ -387,15 +442,17 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
     station_dict = {station.name: station for station in station_dict}
     line_dict = {}
     for key, rot in tqdm.tqdm(schedule.rotations.items(), total=len(schedule.rotations)):
-        opportunity_charging_capable = rot.charging_type == "oppb"
+        assert rot.charging_type in EnumChargeType.values
+        assert rot.vehicle_id is not None
+        opportunity_charging_capable = rot.charging_type == EnumChargeType.OPPORTUNITY.value
         vehicletype = VehicleType.objects.get(
             scenario=django_scenario,
             name_short=rot.vehicle_type,
             opportunity_charging_capable=opportunity_charging_capable,
         )
-        # ToDo Replace dummy vehicles with properly generated vehicles from SimBA or eFlips
+
         vehicle = Vehicle.objects.create(
-            vehicle_type=vehicletype, scenario=django_scenario, name="Placeholder Vehicle"
+            vehicle_type=vehicletype, scenario=django_scenario, name=rot.vehicle_id
         )
         r = Rotation(
             name=key,
@@ -565,7 +622,8 @@ def run_ebus_toolchain(schedule: simba.schedule.Schedule, args, task_id):
 @shared_task(bind=True)
 def _celery_run_ebus_toolchain(self, args, task_id):
     args = Namespace(**args)
-    schedule, args = get_schedule_from_args(args)
+    django_scenario = Scenario.objects.get(task_id=task_id)
+    schedule, args = get_schedule_from_args(args, django_scenario)
     _run_ebus_toolchain(schedule, args, task_id)
 
 
@@ -646,7 +704,6 @@ def run_simba(
         schedule.stations[key]["cs_power_deps_oppb"] = 0
 
     if eflips_input is not None:
-        # TODO same for vehicle types (use short name)
         for obj in eflips_input:
             # SimBA doesn't work with the DB IDs, instead it needs the object names
             rotation = Rotation.objects.get(id=obj.rotation_id)
