@@ -585,7 +585,7 @@ def stations_to_db(station_data, electrified_stations, scenario):
         station.save()
 
 
-def generate_zipped_scenario(task_id):
+def generate_zipped_scenario(task_id: str):
     if settings.CELERY_USE:
         print("Using Celery")
         _celery_generate_zipped_scenario.apply_async((str(task_id),), task_id=task_id)
@@ -594,6 +594,7 @@ def generate_zipped_scenario(task_id):
 
 
 def _generate_zipped_scenario(task_id: str):
+    task_id = str(task_id)
     folder_path = Path(settings.UPLOAD_PATH, task_id)
     output_path = settings.MEDIA_ROOT / (task_id + ".zip")
     if not folder_path.exists():
