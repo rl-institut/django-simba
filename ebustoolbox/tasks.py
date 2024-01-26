@@ -674,14 +674,24 @@ def _run_ebus_toolchain(schedule: "simba.schedule.Schedule", args, task_id):
     if settings.EFLIPS_USE:
         eflips_dataclass_list: List[InputForSimba] = run_eflips(report_dir, task_id)
 
+        for obj in eflips_dataclass_list:
+            # SimBA doesn't work with the DB IDs, instead it needs the object names
+            rotation = Rotation.objects.get(id=obj.rotation_id)
+            obj.rotation_id = rotation.name
+            vehicle_type = VehicleType.objects.get(id=obj.vehicle_type_id)
+            obj.vehicle_type_id = vehicle_type.name_short
+            obj.vehicle_type_id += "_oppb" if vehicle_type.opportunity_charging_capable else "_depb"
+            v_id = obj.vehicle_id.split(" ")[1]
+            obj.vehicle_id = f"{obj.vehicle_type_id}_{v_id}"
+
+        schedule.assign_vehicles_for_django(eflips_dataclass_list)
         # set report dir for second iteration/final results
         # report_dir = Path(settings.BASE_DIR, args.output_directory, "report_2")
         # TODO: currently report_directory is set in simba internally and is always report_1 for current purposes
         # (number changes by the amount of reports in the same fun of SimBA)
         # call simba with eflips results
-        run_simba(
-            schedule, args, task_id, report_dir=report_dir, eflips_input=eflips_dataclass_list
-        )
+
+        run_simba(schedule, args, task_id, report_dir=report_dir)
 
 
 def run_simba(
@@ -689,7 +699,6 @@ def run_simba(
     args,
     task_id,
     report_dir=Path(".", "report"),
-    eflips_input: List["InputForSimba"] | None = None,
 ):
     # TODO don't overwrite output on multiple function calls
     args.attach_vehicle_soc = True
@@ -703,19 +712,6 @@ def run_simba(
     for key, station in schedule.stations.items():
         schedule.stations[key]["cs_power_deps_depb"] = 0
         schedule.stations[key]["cs_power_deps_oppb"] = 0
-
-    if eflips_input is not None:
-        for obj in eflips_input:
-            # SimBA doesn't work with the DB IDs, instead it needs the object names
-            rotation = Rotation.objects.get(id=obj.rotation_id)
-            obj.rotation_id = rotation.name
-            vehicle_type = VehicleType.objects.get(id=obj.vehicle_type_id)
-            obj.vehicle_type_id = vehicle_type.name_short
-            obj.vehicle_type_id += "_oppb" if vehicle_type.opportunity_charging_capable else "_depb"
-            v_id = obj.vehicle_id.split(" ")[1]
-            obj.vehicle_id = f"{obj.vehicle_type_id}_{v_id}"
-
-        schedule.assign_vehicles_for_django(eflips_input)
 
     scenario = schedule.run(args)
 
