@@ -23,7 +23,7 @@ Template:
 - Temperatures or other
 - Generate vehicles with the same name as SimBA
 - Fix Popups of map stations
--
+- Use "Agg" as matplotlib backend. If problems arise on your machine, the backend will be moved to the env variables.
 ### Changed
 - [(#40)](https://github.com/rl-institut/django-simba/pull/40)
 - Expands the database according to discussed specifications.
