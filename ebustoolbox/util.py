@@ -69,7 +69,8 @@ def get_stations(scenario_id):
     """
     scenario = Scenario.objects.get(id=scenario_id)
     events = scenario.event_set.filter(station__isnull=False)
-    return dict()
+    # TODO proper return
+    return events
 
 
 def rotation_filter(scenario_id, threshold=0):

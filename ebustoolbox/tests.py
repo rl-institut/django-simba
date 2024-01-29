@@ -725,6 +725,8 @@ class TestUtil(TestCase):
     def test_get_stations(self):
         scenario_id = Scenario.objects.get(name="Test").id
         stations = util.get_stations(scenario_id)
+        # TODO change
+        assert stations
         # nothing to test yet
 
     def test_rotation_filter(self):
