@@ -966,7 +966,7 @@ def create_event_output(simba_scenario, task_id):
             time_start=vehicle_event.start_time.astimezone(),
             time_end=end_time.astimezone(),
             timeseries=timeseries,
-            event_type=event_type
+            event_type=event_type,
         )
         event.save()
     # Event.objects.bulk_create(events)
