@@ -30,6 +30,7 @@ from .models import (
     Trip,
     Temperatures,
     Event,
+    EventType,
 )
 from . import util
 
@@ -619,36 +620,43 @@ class TestUtil(TestCase):
             opportunity_charging_capable=False,
             battery_capacity=100,
         )
-        vehicle = Vehicle.objects.create(name="Test Vehicle", vehicle_type=vehicle_type)
-        r1 = Rotation.objects.create(name="Test Rotation 1", scenario=scenario)
-        r2 = Rotation.objects.create(name="Test Rotation 2", scenario=scenario)
+        vehicle = Vehicle.objects.create(scenario=scenario, name="Test Vehicle", vehicle_type=vehicle_type)
+        r1 = Rotation.objects.create(name="Test Rotation 1", scenario=scenario, vehicle_type=vehicle_type, vehicle=vehicle, allow_opportunity_charging=True)
+        r2 = Rotation.objects.create(name="Test Rotation 2", scenario=scenario, vehicle_type=vehicle_type, vehicle=vehicle, allow_opportunity_charging=True)
         st = Station.objects.create(geom="POINT(0 0 0)", name="Test Station", scenario=scenario)
+        route1 = Route.objects.create(
+            distance=120.5,
+            name="Main Route",
+            name_short="MR",
+            scenario=scenario,
+            headsign="Downtown",
+            departure_station=st,
+            arrival_station=st,
+        )
         t1 = Trip.objects.create(
             scenario=scenario,
+            route=route1,
             rotation=r1,
-            departure_station=st,
             departure_time=parse_datetime("2023-01-01 10:00:00+01:00"),
-            arrival_station=st,
             arrival_time=parse_datetime("2023-01-01 11:00:00+01:00"),
-            distance=100,
         )
         t2 = Trip.objects.create(
             scenario=scenario,
+            route=route1,
             rotation=r2,
-            departure_station=st,
             departure_time=parse_datetime("2023-01-01 12:00:00+01:00"),
-            arrival_station=st,
             arrival_time=parse_datetime("2023-01-01 13:00:00+01:00"),
-            distance=100,
         )
         Event.objects.create(
             scenario=scenario,
             vehicle=vehicle,
+            vehicle_type=vehicle_type,
             station=st,
             time_start=parse_datetime("2023-01-01 09:00:00+01:00"),
             time_end=parse_datetime("2023-01-01 10:00:00+01:00"),
             soc_start=0.5,
             soc_end=0.8,
+            event_type=EventType.CHARGING_OPPORTUNITY,
             timeseries={
                 "time": [
                     "2023-01-01 09:00:00+01:00",
@@ -663,11 +671,13 @@ class TestUtil(TestCase):
         Event.objects.create(
             scenario=scenario,
             vehicle=vehicle,
+            vehicle_type=vehicle_type,
             trip=t1,
             time_start=parse_datetime("2023-01-01 10:00:00+01:00"),
             time_end=parse_datetime("2023-01-01 11:00:00+01:00"),
             soc_start=0.8,
             soc_end=-0.1,
+            event_type=EventType.DRIVING,
             timeseries={
                 "time": [
                     "2023-01-01 10:00:00+01:00",
@@ -681,11 +691,13 @@ class TestUtil(TestCase):
         Event.objects.create(
             scenario=scenario,
             vehicle=vehicle,
+            vehicle_type=vehicle_type,
             station=st,
             time_start=parse_datetime("2023-01-01 11:00:00+01:00"),
             time_end=parse_datetime("2023-01-01 12:00:00+01:00"),
             soc_start=-0.1,
             soc_end=0.8,
+            event_type=EventType.CHARGING_OPPORTUNITY,
             timeseries={
                 "time": [
                     "2023-01-01 11:00:00+01:00",
@@ -699,11 +711,13 @@ class TestUtil(TestCase):
         Event.objects.create(
             scenario=scenario,
             vehicle=vehicle,
+            vehicle_type=vehicle_type,
             trip=t2,
             time_start=parse_datetime("2023-01-01 12:00:00+01:00"),
             time_end=parse_datetime("2023-01-01 13:00:00+01:00"),
             soc_start=0.8,
             soc_end=0.2,
+            event_type=EventType.DRIVING,
             timeseries={
                 "time": [
                     "2023-01-01 12:00:00+01:00",

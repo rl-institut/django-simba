@@ -845,17 +845,19 @@ def save_vehicle_properties_from_file(file_path, scenario):
     VehicleProperties.objects.bulk_create(object_list)
 
 
-def get_timestep_from_datetime(scenario, timestamp):
+def get_timestep(simba_scenario, timestamp: datetime) -> int:
+    """Returns time steps into the scenario for a given scenario and datetime"""
     # calculate the corresponding time step
-    timedelta_into_scenario = timestamp - scenario.start_time
+    timedelta_into_scenario = timestamp - simba_scenario.start_time
     minutes_into_scenario = timedelta_into_scenario.total_seconds() / 60
-    return round(minutes_into_scenario * (scenario.stepsPerHour / 60))
+    return round(minutes_into_scenario * (simba_scenario.stepsPerHour / 60))
 
 
-def get_datetime_from_timestep(scenario, timestep):
+def get_datetime(simba_scenario, timestep: int) -> datetime:
+    """Returns datetime for a given scenario and time steps into the scenario"""
     # calculate the corresponding datetime
-    minutes = timestep * (60 / scenario.stepsPerHour)
-    return scenario.start_time + timedelta(minutes=minutes)
+    minutes = timestep * (60 / simba_scenario.stepsPerHour)
+    return simba_scenario.start_time + timedelta(minutes=minutes)
 
 
 def create_event_output(simba_scenario, task_id):
@@ -873,13 +875,13 @@ def create_event_output(simba_scenario, task_id):
     # collect info from vehicle_event
     sorted_vehicle_events = sorted(simba_scenario.events.vehicle_events, key=lambda d: d.start_time)
     for counter, vehicle_event in enumerate(sorted_vehicle_events):
-        start_timestep = get_timestep_from_datetime(simba_scenario, vehicle_event.start_time)
+        start_timestep = get_timestep(simba_scenario, vehicle_event.start_time)
         try:
             end_time = sorted_vehicle_events[counter + 1].start_time
         except IndexError:
             end_time = simba_scenario.stop_time
         end_timestep = min(
-            get_timestep_from_datetime(simba_scenario, end_time), simba_scenario.step_i - 1
+            get_timestep(simba_scenario, end_time), simba_scenario.step_i - 1
         )
         try:
             vehicle = vehicle_dict[vehicle_event.vehicle_id]
@@ -935,7 +937,7 @@ def create_event_output(simba_scenario, task_id):
             trip = trips[0]
             # event_type = EventType.DRIVING
         timestamp_list = [
-            get_datetime_from_timestep(simba_scenario, t).astimezone().isoformat()
+            get_datetime(simba_scenario, t).astimezone().isoformat()
             for t in range(start_timestep, end_timestep + 1, int(60 / simba_scenario.stepsPerHour))
         ]
         timeseries = {
