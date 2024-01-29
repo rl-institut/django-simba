@@ -910,15 +910,9 @@ def create_event_output(simba_scenario, task_id):
         # figure out the location of the event
         station = None
         trip = None
-        # # TODO the following code block can replace the following nested if-else once DB integration exists in SimBA
-        # # this assumes that the schedule will always be followed and all vehicles are assigned
-        # # will only work if everything is done through the db (no more files/objects passed)
-        # # needs to add stations from schedule/trips and event_type implicitly
-        # vehicle_rotations = rotations.filter(vehicle=vehicle)
-        # if not len(vehicle_rotations):
-        #     raise RuntimeError(
-        #         f"Vehicle {vehicle} has an event but is not assigned any rotations according to the database")
-        # vehicle_trips = trips.filter(rotation__in=vehicle_rotations)
+vehicle_trips = Trip.objects.filter(rotation__vehicle=vehicle)
+if len(vehilce_trips) == 0: 
+   RuntimeError
         if vehicle_event.event_type == "arrival":
             # TODO set EventType here once implemented
             simba_location = vehicle_event.update["connected_charging_station"]
