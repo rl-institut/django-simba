@@ -36,6 +36,7 @@ from .models import (
     charge_type_from_simba_to_db,
     charge_type_from_db_to_station,
     Event,
+    EventType,
 )
 
 from simba.consumption import Consumption
@@ -946,6 +947,14 @@ def create_event_output(simba_scenario, task_id):
         soc_start = simba_scenario.vehicle_socs[vehicle.name][start_timestep]
         soc_end = simba_scenario.vehicle_socs[vehicle.name][end_timestep]
 
+        # TODO get actual event types, from vehicle_event.event_type or implicit?
+        if soc_end > soc_start:
+            event_type = EventType.CHARGING_OPPORTUNITY
+        elif soc_start > soc_end:
+            event_type = EventType.DRIVING
+        else:
+            event_type = EventType.STANDBY_DEPARTURE
+
         event = Event(
             scenario=db_scenario,
             vehicle=vehicle,
@@ -957,7 +966,7 @@ def create_event_output(simba_scenario, task_id):
             time_start=vehicle_event.start_time.astimezone(),
             time_end=end_time.astimezone(),
             timeseries=timeseries,
-            # event_type = vehicle_event.event_type, TODO replace with event_type
+            event_type=event_type
         )
         event.save()
     # Event.objects.bulk_create(events)
