@@ -873,46 +873,31 @@ def create_event_output(simba_scenario, task_id):
     trips = Trip.objects.filter(scenario=db_scenario)
     # rotations = Rotation.objects.filter(scenario=db_scenario)
     # collect info from vehicle_event
-    sorted_vehicle_events = sorted(simba_scenario.events.vehicle_events, key=lambda d: d.start_time)
+    sorted_vehicle_events = sorted(simba_scenario.events.vehicle_events, key=lambda e: (e.vehicle_id, e.start_time))
     for counter, vehicle_event in enumerate(sorted_vehicle_events):
         start_timestep = get_timestep(simba_scenario, vehicle_event.start_time)
         try:
-            end_time = sorted_vehicle_events[counter + 1].start_time
+            if sorted_vehicle_events[counter + 1].vehicle_id == vehicle_event.vehicle_id:
+                end_time = sorted_vehicle_events[counter + 1].start_time
+            else:
+                end_time = simba_scenario.stop_time
         except IndexError:
             end_time = simba_scenario.stop_time
         end_timestep = min(
             get_timestep(simba_scenario, end_time), simba_scenario.step_i - 1
         )
-        try:
-            vehicle = vehicle_dict[vehicle_event.vehicle_id]
-        except KeyError:
-            vehicle = Vehicle.objects.create(scenario=db_scenario, name=vehicle_event.vehicle_id)
-            vehicle_dict[vehicle_event.vehicle_id] = vehicle
+        # TODO remove try clauses once DB integration of tools is complete (or raise Exceptions)
+
+        vehicle = vehicle_dict[vehicle_event.vehicle_id]
         simba_vehicle_type = vehicle_event.vehicle_id.split("_")[0]
-        try:
-            vehicle_type = vehicle_type_dict[simba_vehicle_type]
-        except KeyError:
-            # TODO do we want to except this, or is this just an error?
-            vehicle_type_params = simba_scenario.components.vehicle_types[
-                "_".join(vehicle_event.vehicle_id.split("_")[:2])
-            ]
-            opp_capable = vehicle_event.vehicle_id.split("_")[1] == "oppb"
-            vehicle_type = VehicleType.objects.create(
-                scenario=db_scenario,
-                name=simba_vehicle_type,
-                name_short=simba_vehicle_type,
-                opportunity_charging_capable=opp_capable,
-                battery_capacity=vehicle_type_params.capacity,
-                charging_curve=vehicle_type_params.charging_curve.points,
-            )
-            vehicle_type_dict[simba_vehicle_type] = vehicle_type
+        vehicle_type = vehicle_type_dict[simba_vehicle_type]
 
         # figure out the location of the event
         station = None
         trip = None
-vehicle_trips = Trip.objects.filter(rotation__vehicle=vehicle)
-if len(vehilce_trips) == 0: 
-   RuntimeError
+        vehicle_trips = Trip.objects.filter(rotation__vehicle=vehicle)
+        if not len(vehicle_trips):
+            raise RuntimeError(f"No trip assigned to vehicle {vehicle.name} found in database.")
         if vehicle_event.event_type == "arrival":
             # TODO set EventType here once implemented
             simba_location = vehicle_event.update["connected_charging_station"]
