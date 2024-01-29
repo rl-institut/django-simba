@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
+from django.db.models import QuerySet, Sum
 from django.utils.timezone import make_aware
 from django.dispatch import receiver
 
@@ -379,6 +380,21 @@ class Rotation(models.Model):
     # SimBA specific data to make SimBA simulations reproducible
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_DEFAULT, default=None, null=True)
     allow_opportunity_charging = models.BooleanField(default=None, null=False)
+
+    def get_distance(self):
+        return Route.objects.filter(trip__rotation=self).aggregate(Sum("distance"))
+
+
+def annotate_distance(query: QuerySet[Rotation]):
+    return query.annotate(distance=Sum("trip__route__distance"))
+
+
+def get_longest_distance_rotation(filter_dict: dict) -> Rotation:
+    return annotate_distance(Rotation.objects.filter(**filter_dict)).order_by("distance").last()
+
+
+def get_shortest_distance_rotation(filter_dict: dict) -> Rotation:
+    return annotate_distance(Rotation.objects.filter(**filter_dict)).order_by("distance").first()
 
 
 class EnumVoltageLevel(models.TextChoices):

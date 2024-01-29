@@ -753,8 +753,8 @@ def run_simba(
     with open(Path(report_dir, "eflips_input.json"), "w") as f:
         json.dump(input_for_eflips, f, indent=4)
 
-    file_path = Path(report_dir, "vehicle_socs.csv")
-    save_vehicle_properties_from_file(file_path, db_scenario)
+    # file_path = Path(report_dir, "vehicle_socs.csv")
+    # save_vehicle_properties_from_file(file_path, db_scenario)
 
 
 def opportunity_rotation_to_eflips_input(

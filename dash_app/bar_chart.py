@@ -10,10 +10,10 @@ def render(app: Dash) -> html.Div:
     @app.callback(
         Output(ids.BAR_CHART, "children"),
         Input(ids.BUS_DROPDOWN, "value"),
-        Input(ids.HIDDEN_DIV_FOR_SLUG, "children"),
     )
-    def update_bar_chart(buses: list[str], task_id, session_state=None, **kwargs) -> html.Div:
+    def update_bar_chart(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
         print("updating bar chart")
+        task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
         rotations = Rotation.objects.filter(scenario=s)
         all_buses = [r.vehicle.name_short for r in rotations]

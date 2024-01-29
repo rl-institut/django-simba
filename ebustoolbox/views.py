@@ -111,12 +111,18 @@ class SuccessView(TemplateView, MapEngineMixin):
 
     def get_context_data(self, **kwargs):
         context = super(SuccessView, self).get_context_data(**kwargs)
-        context["task_id"] = self.request.GET["task_id"]
-        context["dash_app"] = {ids.HIDDEN_DIV_FOR_SLUG: {"children": self.request.GET["task_id"]}}
+        task_id = self.request.GET["task_id"]
+        context["task_id"] = task_id
 
         session = self.request.session
+        from dash_app.dash_app import create_app
 
-        session["django_plotly_dash"] = {"task_id": self.request.GET["task_id"]}
+        # By creating a specific app for this task ID, the app "knows" which data to load
+        # ToDO make sure only authorized users can view this
+        create_app(task_id=task_id)
+        # the dictionary in "django_plotly_dash" appears in the session_state of the app, which
+        # is an optional kwarg in app.callbacks
+        session["django_plotly_dash"] = {"task_id": task_id}
 
         return context
 

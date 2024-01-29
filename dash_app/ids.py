@@ -1,5 +1,4 @@
 BUS_DROPDOWN = "bus-dropdown"
 SELECT_ALL_BUSES_BUTTON = "select-all-buses-button"
 BAR_CHART = "bar-chart"
-HIDDEN_DIV_FOR_SLUG = "hidden-div-for-slug"
-HIDDEN_DIV_ALL_BUSES = "hidden-div-all-buses"
+NUMBER_REPORT = "number-report"

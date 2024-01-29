@@ -74,15 +74,13 @@
           {% endwith %}
         {% endwith %}
       </div>
-      <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
-        <div id="chart"></div>
-        {%load plotly_dash%}
+        <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
 
-        <!--    Simple Dash app start-->
-        <!--            <div id="dash_app" style="height:580px">-->
-        {% plotly_app name='SimpleExampleApp' ratio=0.9 initial_arguments=dash_app %}
-        <!--                </div>-->
-        <!--        Simple Dash app end-->
+                <div id="chart"></div>
+                {% load plotly_dash %}
+
+               {% plotly_app  slug=task_id ratio=0.9 %}
+                <!--                </div>-->
       </div>
       <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">
         {% include 'minimal_mapengine.html'%}
