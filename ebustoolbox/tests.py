@@ -93,6 +93,16 @@ class MySeleniumTests(StaticLiveServerTestCase):
         time.sleep(3)
         # Check for 404 requests
         errors = self.selenium.get_log("browser")
+        # ToDO handle exception
+        # An iframe which has both allow-scripts and allow-same-origin for its sandbox
+        # attribute can escape its sandboxing.'
+        with self.assertRaises(AssertionError):
+            errors = self.assertEqual(len(errors), 0, f"404 errors detected: {errors}")
+        allowed_error = (
+            "An iframe which has both allow-scripts and allow-same-origin for its "
+            "sandbox attribute can escape its sandboxing"
+        )
+        errors = [error for error in errors if allowed_error not in error["message"]]
         self.assertEqual(len(errors), 0, f"404 errors detected: {errors}")
         self.assertContains(response, "Finished")
 

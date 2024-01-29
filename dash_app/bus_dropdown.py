@@ -15,9 +15,7 @@ def render(app: Dash) -> html.Div:
     )
     def select_all_buses(_: int, session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
-        all_buses = session_state.get(task_id, {}).get(
-            "all_buses", get_all_buses(session_state, task_id)
-        )
+        all_buses = session_state.get(task_id, {}).get("all_buses", get_all_buses(task_id))
         try:
             session_state[task_id]
         except KeyError:

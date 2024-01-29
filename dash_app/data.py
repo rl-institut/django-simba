@@ -10,7 +10,7 @@ from ebustoolbox.models import (
 )
 
 
-def get_all_buses(task_id) -> list[str]:
+def get_all_buses(task_id: str) -> list[str]:
     s = Scenario.objects.get(task_id=task_id)
     rotations = Rotation.objects.filter(scenario=s)
     all_buses = [r.vehicle.name_short for r in rotations]
