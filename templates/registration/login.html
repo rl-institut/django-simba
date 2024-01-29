@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Anmelden{% endblock %}
+{% block content %}
+  <div class="grid-container" style="margin: 0; max-width: none">
+    <div class="grid-x grid-margin-x align-center">
+      <div class="cell medium-6 large-3">
+        {% if not user.is_authenticated %}
+          <h2>Anmeldung</h2>
+            {% if form.errors %}
+              <p>E-Mail und Passwort stimmen nicht überein.</p>
+            {% endif %}
+
+            {% if next %}
+              {% if user.is_authenticated %}
+                <p>Sie haben keinen Zugang zu dieser Seite.</p>
+              {% else %}
+              {% endif %}
+            {% endif %}
+
+            <form method="post" action="{% url 'core:login' %}">
+            {% csrf_token %}
+              <div>
+                <label>E-Mail {{ form.username }}</label>
+              </div>
+              <div>
+                <label>Passwort {{ form.password }}</label>
+              </div>
+
+              <div>
+                <input class="button" type="submit" value="Anmelden" style="width: 100%"/>
+                <input class="button" type="hidden" name="next" value="{{ next }}" />
+              </div>
+            </form>
+
+            {# Assumes you setup the password_reset view in your URLconf #}
+            <p style="text-align: right;">
+              <a href="{% url 'core:password_reset' %}">Passwort vergessen?</a>
+            </p>
+        {% else %}
+        <h2>Sie sind bereits angemeldet.</h2>
+        <p>Eine Weiterleitung erfolgt in 3 Sekunden.</p>
+        <p><a class="btn btn--cta btn--medium" href="/">Startseite</a></p>
+            <meta http-equiv="refresh" content="3;url=/" />
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

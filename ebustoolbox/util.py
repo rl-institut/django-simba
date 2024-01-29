@@ -1,10 +1,12 @@
 from .models import Scenario
 from celery import uuid
-
-# make matplotlib not use Tk, run on main thread
 import matplotlib
+import sys
 
-matplotlib.use("Agg")
+if not any(["selenium" in str(x) for x in sys.modules.values()]):
+    # do not use tkagg during testing since it does not work with headless selenium
+    # Explicitly call backend. Put into env? Without simba does not always properly generate plots
+    matplotlib.use("TkAgg")
 
 
 def get_unique_task_id() -> str:

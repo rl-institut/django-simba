@@ -177,6 +177,9 @@ def save_and_simulate(
         cleaned_data = form.cleaned_data
 
     django_scenario, simba_schedule, args = tasks.input_files_to_database(cleaned_data, request)
+    if request.user.is_authenticated:
+        django_scenario.manager = request.user
+        django_scenario.users.add(request.user)
     # start computation
     task_id = get_unique_task_id()
     django_scenario.task_id = task_id

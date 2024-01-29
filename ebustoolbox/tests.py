@@ -1,9 +1,10 @@
 import shutil
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from copy import copy
 from typing import Iterable
+from selenium import webdriver
 
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.http import HttpRequest
@@ -17,9 +18,9 @@ from django.conf import settings
 
 # Create your tests here.
 from django.urls import reverse
-from selenium import webdriver
 
 from .models import (
+    Route,
     Scenario,
     UploadedFile,
     VehicleType,
@@ -27,6 +28,7 @@ from .models import (
     Rotation,
     Station,
     Trip,
+    Temperatures,
     Event,
 )
 from . import util
@@ -54,12 +56,14 @@ class MySeleniumTests(StaticLiveServerTestCase):
         shutil.rmtree(TMP_UPLOAD)
 
     @override_settings(CELERY_USE=True)
+    @override_settings(EFLIPS_USE=True)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(DEBUG=True)
     def test_result_generation_w_celery(self):
         self.simple_simba_call_in_selenium()
 
     @override_settings(CELERY_USE=False)
+    @override_settings(EFLIPS_USE=True)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(DEBUG=True)
     def test_result_generation(self):
@@ -242,6 +246,9 @@ class WriteReadScenarioToDatabase(TestCase):
         # Recursively search the schedule for primitive data which has to be equal to the database
         # schedule
         for key_stack, values in objects_digger([simba_schedule, simba_schedule_db]):
+            # Skip the temperature data, since it is not part of the database schedule
+            if "temperature" in key_stack:
+                continue
             if isinstance(values[0], datetime):
                 values[0] = make_aware(values[0])
             self.assertAlmostEqual(
@@ -380,14 +387,29 @@ class WriteReadScenarioToDatabase(TestCase):
 
 class RunSimulationTest(TestCase):
     @override_settings(CELERY_USE=True)
+    @override_settings(EFLIPS_USE=False)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(DEBUG=True)
-    def test_submit_button_click_with_celery(self):
+    def test_submit_button_click_with_celery_wo_eflips(self):
         self.submit_default_simulation()
 
     @override_settings(CELERY_USE=False)
+    @override_settings(EFLIPS_USE=False)
     @override_settings(DEBUG=True)
-    def test_submit_button_click_without_celery(self):
+    def test_submit_button_click_without_celery_wo_eflips(self):
+        self.submit_default_simulation()
+
+    @override_settings(CELERY_USE=True)
+    @override_settings(EFLIPS_USE=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(DEBUG=True)
+    def test_submit_button_click_with_celery_with_eflips(self):
+        self.submit_default_simulation()
+
+    @override_settings(CELERY_USE=False)
+    @override_settings(EFLIPS_USE=True)
+    @override_settings(DEBUG=True)
+    def test_submit_button_click_without_celery_with_eflips(self):
         self.submit_default_simulation()
 
     def submit_default_simulation(self):
@@ -445,12 +467,27 @@ class ModelTests(TestCase):
             battery_capacity=100,
             charging_efficiency=0.95,
         )
-        vehicle = Vehicle.objects.create(name="Test Vehicle", vehicle_type=vehicle_type)
+        vehicle = Vehicle.objects.create(
+            name="Test Vehicle", vehicle_type=vehicle_type, scenario=scenario
+        )
         self.assertEqual(str(vehicle), "Test Vehicle")
 
     def test_rotation_creation(self):
         scenario = Scenario.objects.create(name="Test Scenario")
-        rotation = Rotation.objects.create(name="Test Rotation", scenario=scenario)
+        vehicle_type = VehicleType.objects.create(
+            name="Test Type",
+            scenario=scenario,
+            charging_curve=[[0.0, 150], [1.0, 150]],
+            opportunity_charging_capable=True,
+            battery_capacity=100,
+            charging_efficiency=0.95,
+        )
+        rotation = Rotation.objects.create(
+            name="Test Rotation",
+            scenario=scenario,
+            allow_opportunity_charging=True,
+            vehicle_type=vehicle_type,
+        )
         self.assertEqual(str(rotation.name), "Test Rotation")
 
     def test_station_creation(self):
@@ -462,20 +499,40 @@ class ModelTests(TestCase):
 
     def test_trip_creation(self):
         scenario = Scenario.objects.create(name="Test Scenario")
-        rotation = Rotation.objects.create(name="Test Rotation", scenario=scenario)
+        vehicle_type = VehicleType.objects.create(
+            name="Test Type",
+            scenario=scenario,
+            charging_curve=[[0.0, 150], [1.0, 150]],
+            opportunity_charging_capable=True,
+            battery_capacity=100,
+            charging_efficiency=0.95,
+        )
+        rotation = Rotation.objects.create(
+            name="Test Rotation",
+            scenario=scenario,
+            allow_opportunity_charging=True,
+            vehicle_type=vehicle_type,
+        )
         departure_station = Station.objects.create(
             geom="POINT(0 0 0)", name="Departure Station", scenario=scenario
         )
         arrival_station = Station.objects.create(
             geom="POINT(1 1 1)", name="Arrival Station", scenario=scenario
         )
-        trip = Trip.objects.create(
-            rotation=rotation,
+        route = Route(
+            name="Test Route",
+            scenario=scenario,
             departure_station=departure_station,
-            departure_time=parse_datetime("2023-08-14 10:00:00"),
             arrival_station=arrival_station,
-            arrival_time=parse_datetime("2023-08-14 11:00:00"),
             distance=100,
+        )
+        route.save()
+        trip = Trip.objects.create(
+            scenario=scenario,
+            rotation=rotation,
+            route=route,
+            departure_time=parse_datetime("2023-08-14 10:00:00"),
+            arrival_time=parse_datetime("2023-08-14 11:00:00"),
         )
         self.assertEqual(trip.duration_in_seconds, 3600)
         self.assertEqual(trip.incline, 0.01)
@@ -496,6 +553,59 @@ class ScenarioTestCase(TestCase):
         self.assertIsNone(instance_1.finished)
         self.assertIsInstance(instance_1.simba_options, dict)
         self.assertIsNone(instance_1.task_id)
+
+
+class TemperaturesTestCase(TestCase):
+    def test_model_creation(self):
+        date1 = datetime(year=2024, month=1, day=1)
+        dt = timedelta(hours=5)
+        date2 = date1 + dt
+        date3 = date1 - timedelta(days=5)
+        temp1 = 25
+        temp2 = 0
+        temp3 = 100
+        temperature_instance = Temperatures(
+            scenario=Scenario.objects.get(pk=Scenario.get_default_pk()),
+            name="First Temperatures",
+            use_only_time=False,
+            datetimes=[date1, date2, date3],
+            data=[temp1, temp2, temp3],
+        )
+        temperature_instance.save()
+        pk = temperature_instance.pk
+        assert temperature_instance.get_temperature(date1) == temp1
+        assert temperature_instance.get_temperature(date2) == temp2
+        assert temperature_instance.get_temperature(date3) == temp3
+        assert temperature_instance.get_temperature(date1 + dt / 2) == (temp1 + temp2) / 2
+
+        # Use only time works if only datetimes from a single date are passed
+        temperature_instance = Temperatures(
+            scenario=Scenario.objects.get(pk=Scenario.get_default_pk()),
+            name="Second Temperatures",
+            use_only_time=True,
+            datetimes=[date1, date2],
+            data=[temp1, temp2],
+        )
+        temperature_instance.save()
+        assert temperature_instance.get_temperature(date1) == temp1
+        assert temperature_instance.get_temperature(date1 + timedelta(days=1)) == temp1
+        assert temperature_instance.get_temperature(date1 + timedelta(days=1) + dt) == temp2
+
+        # Previous dates get the last possible value
+        assert temperature_instance.get_temperature(date3) == temp1
+
+        t = Temperatures.objects.get(pk=pk)
+        assert t.get_temperature(date3) == temp3
+
+        temperature_instance = Temperatures(
+            scenario=Scenario.objects.get(pk=Scenario.get_default_pk()),
+            name="Max. Temperatures Berlin",
+            use_only_time=True,
+            datetimes=[date1, date2, date3],
+            data=[temp1, temp2, temp3],
+        )
+        # Different dates raise an attribute error
+        self.assertRaises(AttributeError, temperature_instance.save)
 
 
 class TestUtil(TestCase):

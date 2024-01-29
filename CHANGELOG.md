@@ -17,6 +17,18 @@ Template:
 - [(#)]()
 ```
 ### Changed
+- [(#40)](https://github.com/rl-institut/django-simba/pull/40)
+- Expands the database according to discussed specifications.
+- Add VehicleClass for Eflips Depot Simulations.
+- Update task functions with new database models
+- Add Temperatures Model to store temperatures
+  - Add tests
+- Add functionality to interpolate between datetimes
+- Expand tests, so version with and without eflips are included
+- SimBA only calculates the consumption of a single vehicle type, i.e. one type per rotation.
+
+
+### Changed
 - [(#38)](https://github.com/rl-institut/django-simba/pull/38)
 - Expands the database according to discussed specifications.
 - Removes VehicleClass from SIMBA algorithm, meaning, only a single VehicleType will be run per rotation.
