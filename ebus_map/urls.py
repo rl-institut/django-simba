@@ -11,7 +11,6 @@ urlpatterns = [
     # path("", views.MapGLView.as_view(), name="map"),
     # path("", views.MapGLView.as_view(), name="map"),
     path("", views.MinimalMapengineView.as_view(), name="minimal"),
-
     # path("choropleth/<str:lookup>/<str:scenario>", views.get_choropleth, name="choropleth"),
     # path("visualization", views.get_visualization, name="visualization"),
     path("popup/<str:lookup>/<int:id>", views.get_popup, name="popup"),

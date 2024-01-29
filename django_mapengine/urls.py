@@ -25,7 +25,9 @@ urlpatterns += [
 urlpatterns += [
     path(
         f"{name}_mvt/<int:z>/<int:x>/<int:y>/",
-        mvt.mvt_view_factory(name, [mvt.MVTLayer(mvt_api.layer_id, queryset=mvt_api.manager) for mvt_api in mvt_apis]),
+        mvt.mvt_view_factory(
+            name, [mvt.MVTLayer(mvt_api.layer_id, queryset=mvt_api.manager) for mvt_api in mvt_apis]
+        ),
     )
     for name, mvt_apis in settings.MAP_ENGINE_API_MVTS.items()
 ]
@@ -36,7 +38,8 @@ if settings.MAP_ENGINE_DISTILL:
         distill_path(
             f"<int:z>/<int:x>/<int:y>/{name}.mvt",
             mvt.mvt_view_factory(
-                name, [mvt.MVTLayer(mvt_api.layer_id, queryset=mvt_api.manager) for mvt_api in mvt_apis]
+                name,
+                [mvt.MVTLayer(mvt_api.layer_id, queryset=mvt_api.manager) for mvt_api in mvt_apis],
             ),
             name=name,
             distill_func=distill.get_all_statics_for_state_lod,

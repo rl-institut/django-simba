@@ -10,7 +10,7 @@
 <script>
     function fetch_zip(button) {
         button.disabled = true;
-        fetch('/generate_zip/' + task_id).then(response => {
+        fetch("{% url 'simba:generate_zip' task_id %}").then(response => {
             if (response.ok) {
                 handleZipResponse(response);
             } else {

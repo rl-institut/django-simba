@@ -313,7 +313,7 @@
               </div>
               <div class="form-group row py-1">
                 <div class="col-md-4">
-                  <strong>{{form.outside_temperature_over_day_path.label}}</strong>
+                                    <strong>{{ form.temperature_time_series_path.label }}</strong>
                   <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
                       <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
@@ -322,7 +322,7 @@
                   </a>
                 </div>
                 <div class="col-md-8">
-                  {{form.outside_temperature_over_day_path}}
+                                    {{ form.temperature_time_series_path}}
                 </div>
               </div>
               <div class="form-group row py-1">
@@ -418,6 +418,15 @@
                   {{form.cost_calculation}}
                 </div>
               </div>
+
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.use_only_time.label }}</strong>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.use_only_time }}
+                                </div>
+                            </div>
             </div>
           </div>
         </div>

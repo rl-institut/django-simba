@@ -37,6 +37,9 @@ class UploadFileForm(forms.Form):
     vehicle_types = forms.FileField(required=False)
     station_data_path = forms.FileField(required=False)
     outside_temperature_over_day_path = forms.FileField(required=False)
+    temperature_time_series_path = forms.FileField(
+        required=False, help_text="Used by django to give simba trips temperatures"
+    )
     level_of_loading_over_day_path = forms.FileField(required=False)
     cost_parameters_file = forms.FileField(required=False)
 
@@ -50,6 +53,9 @@ class UploadFileForm(forms.Form):
     include_price_csv = forms.FileField(required=False)
     seed = forms.CharField(required=False)
     cost_calculation = forms.BooleanField(initial=False, required=False)
+    # Should the temperature time series use date specific data or use data of a single day
+    # reduced to the time?
+    use_only_time = forms.BooleanField(initial=True, required=False)
 
 
 class EbusToolboxForm(forms.Form):

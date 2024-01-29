@@ -19,14 +19,14 @@ class Station(ebustoolbox.models.Station):
         "center": models.functions.Centroid("geom"),
         "lat": X("center", output_field=models.DecimalField()),
         "lon": Y("center", output_field=models.DecimalField()),
-        "title_length": Length("name")
+        "title_length": Length("name"),
     }
 
     vector_tiles = MVTManager(
         geo_col="geom", columns=["id", "geom", "name", "lat", "lon", "title_length"]
     )
 
-    layer = "busstop"
+    layer = "station"
     mapping = {
         "id": "id",
         "geom": "POINT",
@@ -89,9 +89,7 @@ class MyExamplePoint(models.Model):
     # name = "One of my points"
 
     objects = models.Manager()
-    vector_tiles = MVTManager(
-        geo_col="geom", columns=["id"]
-    )
+    vector_tiles = MVTManager(geo_col="geom", columns=["id"])
 
     # data_file = "bnetza_mastr_wind_agg_region"
     layer = "wind"
@@ -106,6 +104,7 @@ class MyExamplePoint(models.Model):
 
     # def __str__(self):
     #     return self.name
+
 
 #
 # class LayerFilterType(Enum):

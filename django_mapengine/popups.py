@@ -11,7 +11,13 @@ from django.template.loader import render_to_string
 class Popup(ABC):
     """Base class for popups"""
 
-    def __init__(self, lookup: str, selected_id: int, map_state: Optional[dict] = None, template: Optional[str] = None):
+    def __init__(
+        self,
+        lookup: str,
+        selected_id: int,
+        map_state: Optional[dict] = None,
+        template: Optional[str] = None,
+    ):
         self.lookup = lookup
         self.selected_id = selected_id
         self.map_state = map_state

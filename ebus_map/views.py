@@ -6,12 +6,14 @@ from collections import namedtuple
 from typing import Optional, Iterable
 
 from django.apps import apps
+
 # from django.conf import settings
 from django.http import HttpRequest, response
 from django.template.exceptions import TemplateDoesNotExist
 from django.template.loader import render_to_string
 from django.views.generic import TemplateView
 from django_mapengine import views
+
 LookupFunctions = namedtuple("PopupData", ("data_fct", "chart_fct", "choropleth_fct"))
 # from . import config
 # from .results import core
@@ -41,7 +43,7 @@ def get_popup(request: HttpRequest, lookup: str, id: int) -> response.JsonRespon
     JsonResponse
         containing HTML to render popup and chart options to be used in E-Chart.
     """
-    data = apps.get_model(app_label="ebustoolbox", model_name=lookup).get_popup_data(id)
+    data = apps.get_model(app_label="ebus_map", model_name=lookup).get_popup_data(id)
     try:
         html = render_to_string(f"popups/{lookup}.html", context=data)
     except TemplateDoesNotExist:

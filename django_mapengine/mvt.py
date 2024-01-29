@@ -37,7 +37,9 @@ class MVTView(BaseMVTView):
         except ValidationError:
             pass
 
-        response = MVTResponse(mvt, content_type="application/vnd.mapbox-vector-tile", status=status)
+        response = MVTResponse(
+            mvt, content_type="application/vnd.mapbox-vector-tile", status=status
+        )
         response["Content-Type"] = "application/vnd.mapbox-vector-tile"
         return response
 
@@ -46,7 +48,8 @@ class MVTView(BaseMVTView):
             return None
 
         mvt_geom_queries = ", ".join(
-            f"q{i} AS ({layer.queryset.get_mvt_query(x, y, z, filters)})" for i, layer in enumerate(self.layers)
+            f"q{i} AS ({layer.queryset.get_mvt_query(x, y, z, filters)})"
+            for i, layer in enumerate(self.layers)
         )
 
         mvt_select_queries = ", ".join(
@@ -55,7 +58,8 @@ class MVTView(BaseMVTView):
         )
 
         mvt_query = " UNION ALL ".join(
-            f"SELECT ST_AsMVT(s{i}.*, '{layer.name}') FROM s{i}" for i, layer in enumerate(self.layers)
+            f"SELECT ST_AsMVT(s{i}.*, '{layer.name}') FROM s{i}"
+            for i, layer in enumerate(self.layers)
         )
 
         query = f"WITH {mvt_geom_queries}, {mvt_select_queries} {mvt_query};".strip()
