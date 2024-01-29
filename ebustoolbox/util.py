@@ -39,14 +39,16 @@ def get_soc(scenario_id):
     for event in events:
         if event.vehicle_id not in socs:
             socs[event.vehicle_id] = []
-        socs[event.vehicle_id].append({
-            "station":    event.station_id,
-            "time_start": event.time_start.isoformat(),
-            "time_end": event.time_end.isoformat(),
-            "soc_start":  event.soc_start,
-            "soc_end":    event.soc_end,
-            "timeseries": event.timeseries["soc"],
-        })
+        socs[event.vehicle_id].append(
+            {
+                "station": event.station_id,
+                "time_start": event.time_start.isoformat(),
+                "time_end": event.time_end.isoformat(),
+                "soc_start": event.soc_start,
+                "soc_end": event.soc_end,
+                "timeseries": event.timeseries["soc"],
+            }
+        )
     return socs
 
 
@@ -87,7 +89,7 @@ def rotation_filter(scenario_id, threshold=0):
     scenario = Scenario.objects.get(id=scenario_id)
     events = scenario.event_set.filter(trip__isnull=False)
     # get all rotations with trips below threshold
-    below_threshold = events.filter(soc_end__lt=threshold).values('trip__rotation')
+    below_threshold = events.filter(soc_end__lt=threshold).values("trip__rotation")
     # get all scenario rotations with no trip below
     rotations = scenario.rotation_set.exclude(id__in=below_threshold)
     return [r.id for r in rotations]

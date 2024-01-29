@@ -657,8 +657,8 @@ class TestUtil(TestCase):
                     "2023-01-01 09:45:00+01:00",
                     "2023-01-01 10:00:00+01:00",
                 ],
-                "soc": [0.5, 0.6, 0.7, 0.8, 0.8]
-            }
+                "soc": [0.5, 0.6, 0.7, 0.8, 0.8],
+            },
         )
         Event.objects.create(
             scenario=scenario,
@@ -675,8 +675,8 @@ class TestUtil(TestCase):
                     "2023-01-01 10:30:00+01:00",
                     "2023-01-01 10:45:00+01:00",
                 ],
-                "soc": [0.8, 0.5, 0.2, -0.1]
-            }
+                "soc": [0.8, 0.5, 0.2, -0.1],
+            },
         )
         Event.objects.create(
             scenario=scenario,
@@ -693,8 +693,8 @@ class TestUtil(TestCase):
                     "2023-01-01 11:30:00+01:00",
                     "2023-01-01 11:45:00+01:00",
                 ],
-                "soc": [-0.1, 0.2, 0.5, 0.8]
-            }
+                "soc": [-0.1, 0.2, 0.5, 0.8],
+            },
         )
         Event.objects.create(
             scenario=scenario,
@@ -711,8 +711,8 @@ class TestUtil(TestCase):
                     "2023-01-01 12:30:00+01:00",
                     "2023-01-01 12:45:00+01:00",
                 ],
-                "soc": [0.8, 0.6, 0.4, 0.2]
-            }
+                "soc": [0.8, 0.6, 0.4, 0.2],
+            },
         )
 
     def test_get_soc(self):
