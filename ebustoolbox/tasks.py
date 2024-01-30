@@ -875,7 +875,9 @@ def create_event_output(simba_scenario: SimbaScenario, task_id):
     }
 
     # collect info from vehicle_event
-    sorted_vehicle_events = sorted(simba_scenario.events.vehicle_events, key=lambda e: (e.vehicle_id, e.start_time))
+    sorted_vehicle_events = sorted(
+        simba_scenario.events.vehicle_events, key=lambda e: (e.vehicle_id, e.start_time)
+    )
     for counter, vehicle_event in enumerate(sorted_vehicle_events):
         start_timestep = get_timestep(simba_scenario, vehicle_event.start_time)
         try:
@@ -885,9 +887,7 @@ def create_event_output(simba_scenario: SimbaScenario, task_id):
                 end_time = simba_scenario.stop_time
         except IndexError:
             end_time = simba_scenario.stop_time
-        end_timestep = min(
-            get_timestep(simba_scenario, end_time), simba_scenario.step_i - 1
-        )
+        end_timestep = min(get_timestep(simba_scenario, end_time), simba_scenario.step_i - 1)
         # TODO remove try clauses once DB integration of tools is complete (or raise Exceptions)
 
         vehicle = vehicle_dict[vehicle_event.vehicle_id]
@@ -903,7 +903,9 @@ def create_event_output(simba_scenario: SimbaScenario, task_id):
         if vehicle_event.event_type == "arrival":
             simba_location = vehicle_event.update["connected_charging_station"]
             station = vehicle_trips.get(arrival_time=vehicle_event.start_time).route.arrival_station
-            event_type = EventType.CHARGING_OPPORTUNITY if simba_location else EventType.STANDBY_DEPARTURE
+            event_type = (
+                EventType.CHARGING_OPPORTUNITY if simba_location else EventType.STANDBY_DEPARTURE
+            )
         else:
             trip = vehicle_trips.get(departure_time=vehicle_event.start_time)
             event_type = EventType.DRIVING
