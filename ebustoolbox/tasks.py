@@ -849,7 +849,7 @@ def save_vehicle_properties_from_file(file_path, scenario: Scenario):
     VehicleProperties.objects.bulk_create(object_list)
 
 
-def get_timestep(simba_scenario: SimbaScenario, timestamp: datetime) -> int:
+def get_timestep(simba_scenario: "SimbaScenario", timestamp: datetime) -> int:
     """Returns time steps into the scenario for a given scenario and datetime"""
     # calculate the corresponding time step
     timedelta_into_scenario = timestamp - simba_scenario.start_time
@@ -857,14 +857,14 @@ def get_timestep(simba_scenario: SimbaScenario, timestamp: datetime) -> int:
     return round(minutes_into_scenario * (simba_scenario.stepsPerHour / 60))
 
 
-def get_datetime(simba_scenario: SimbaScenario, timestep: int) -> datetime:
+def get_datetime(simba_scenario: "SimbaScenario", timestep: int) -> datetime:
     """Returns datetime for a given scenario and time steps into the scenario"""
     # calculate the corresponding datetime
     minutes = timestep * (60 / simba_scenario.stepsPerHour)
     return simba_scenario.start_time + timedelta(minutes=minutes)
 
 
-def create_event_output(simba_scenario: SimbaScenario, task_id):
+def create_event_output(simba_scenario: "SimbaScenario", task_id):
     # collect data from DB
     db_scenario = Scenario.objects.get(task_id=task_id)
     vehicle_dict = Vehicle.objects.filter(scenario=db_scenario)
