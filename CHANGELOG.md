@@ -27,6 +27,7 @@ Template:
 - Fix Popups of map stations
 - Make dash_app a separate app
 - Use "Agg" as matplotlib backend. If problems arise on your machine, the backend will be moved to the env variables.
+- Make geom for Stations nullable
 ### Changed
 - [(#40)](https://github.com/rl-institut/django-simba/pull/40)
 - Expands the database according to discussed specifications.

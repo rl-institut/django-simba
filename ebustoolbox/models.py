@@ -675,7 +675,7 @@ class Station(models.Model):
         db_table = "Station"
 
     # Map Engine models need geom and name as first columns
-    geom = models.PointField(dim=3, srid=4326)  # without z elevation
+    geom = models.PointField(dim=3, srid=4326, null=True)  # without z elevation
     name = models.TextField(null=False)
     name_short = models.TextField(null=True, blank=True)
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
