@@ -3,7 +3,7 @@
 from django.urls import path
 
 from . import views
-from .dash_app import app
+from dash_app.dash_app import app
 
 app_name = "simba"
 
