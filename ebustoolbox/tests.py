@@ -620,9 +620,23 @@ class TestUtil(TestCase):
             opportunity_charging_capable=False,
             battery_capacity=100,
         )
-        vehicle = Vehicle.objects.create(scenario=scenario, name="Test Vehicle", vehicle_type=vehicle_type)
-        r1 = Rotation.objects.create(name="Test Rotation 1", scenario=scenario, vehicle_type=vehicle_type, vehicle=vehicle, allow_opportunity_charging=True)
-        r2 = Rotation.objects.create(name="Test Rotation 2", scenario=scenario, vehicle_type=vehicle_type, vehicle=vehicle, allow_opportunity_charging=True)
+        vehicle = Vehicle.objects.create(
+            scenario=scenario, name="Test Vehicle", vehicle_type=vehicle_type
+        )
+        r1 = Rotation.objects.create(
+            name="Test Rotation 1",
+            scenario=scenario,
+            vehicle_type=vehicle_type,
+            vehicle=vehicle,
+            allow_opportunity_charging=True,
+        )
+        r2 = Rotation.objects.create(
+            name="Test Rotation 2",
+            scenario=scenario,
+            vehicle_type=vehicle_type,
+            vehicle=vehicle,
+            allow_opportunity_charging=True,
+        )
         st = Station.objects.create(geom="POINT(0 0 0)", name="Test Station", scenario=scenario)
         route1 = Route.objects.create(
             distance=120.5,
