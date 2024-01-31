@@ -12,7 +12,7 @@ packages = [{include = "ebustoolbox"},
 python = "^3.11"
 spice_ev = { git = "https://github.com/rl-institut/spice_ev", rev = "51268c639a02f2a94c418d6215376f585dd14af0"}
 simba = { git = "https://github.com/rl-institut/SimBA", rev = "feature/django_simba"}
-eflips-depot = { git = "git@github.com:mpm-tu-berlin/eflips-depot.git"}
+eflips-depot = "1.0.1"
 
 Django = "^4.2.3"
 django-environ = ">=0.10.0, <1.0.0"
@@ -34,6 +34,8 @@ django-extensions = "^3.2.3"
 selenium = "^4.13.0"
 setuptools = "^68.2.2"
 django-bootstrap4 = "23.4"
+
+
 
 [tool.poetry.group.dev]
 optional = true
