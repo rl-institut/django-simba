@@ -15,11 +15,11 @@ MAP_ENGINE_IMAGES = [setup.MapImage("busstop", "django_mapengine/images/icons/bu
 
 # MAP_ENGINE_API_MVTS = {}
 MAP_ENGINE_API_MVTS = {
-    "station":
-        [
-            setup.MVTAPI("station", "ebustoolbox", "station"),
-            setup.MVTAPI("routes", "ebustoolbox", "route"),
-        ],
+    "station": [
+        setup.MVTAPI("station", "ebus_map", "Station"),
+	setup.MVTAPI("station", "ebustoolbox", "station"),
+        setup.MVTAPI("routes", "ebustoolbox", "route"),
+    ],
 }
 
 MAP_ENGINE_API_CLUSTERS = [

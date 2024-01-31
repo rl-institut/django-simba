@@ -901,9 +901,6 @@ class AssocRouteStation(models.Model):
     location = models.PointField(dim=3, srid=4326, null=True)
     """An optional precise location of the this route's stop at the station. Use WGS84 coordinates (EPSG:4326)."""
 
-    vector_tiles = MVTManager(
-            geo_col="geom", columns=["id", "geom", "name"]
-        )
 
 class EnumTripType(models.TextChoices):
     EMPTY_TRIP = "EMPTY"

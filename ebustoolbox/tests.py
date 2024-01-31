@@ -30,7 +30,6 @@ from .models import (
     Trip,
     Temperatures,
 )
-from . import util
 
 TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
 TMP_STATICFILES_DIRS = settings.STATICFILES_DIRS + [settings.BASE_DIR / TMP_UPLOAD]
