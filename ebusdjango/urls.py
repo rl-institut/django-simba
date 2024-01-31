@@ -18,12 +18,13 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path('simba/', include("ebustoolbox.urls")),
-    path('', include("core.urls")),
-    path('admin/', admin.site.urls),
-    path('django_plotly_dash/', include('django_plotly_dash.urls')),
+    path("simba/", include("ebustoolbox.urls")),
+    path("", include("core.urls")),
+    path("django_plotly_dash/", include("django_plotly_dash.urls")),
     path("map/", include("django_mapengine.urls")),
+    # Admin and authentification urls
+    path("", include("django.contrib.auth.urls")),
+    path("admin/", admin.site.urls),
     # Map urls
-    path('', include("ebus_map.urls")),
-
+    path("", include("ebus_map.urls")),
 ]

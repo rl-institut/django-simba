@@ -69,7 +69,9 @@ class Choropleth:
                 continue
         return static_choropleths
 
-    def __calculate_steps(self, choropleth_config: dict, values: Optional[list] = None) -> list[float]:
+    def __calculate_steps(
+        self, choropleth_config: dict, values: Optional[list] = None
+    ) -> list[float]:
         """
         Calculate needed steps, either from given values or from static values in choropleth config.
 
@@ -105,7 +107,9 @@ class Choropleth:
             return [min_value + i * step for i in range(num - 1)] + [max_value]
 
         if "values" not in choropleth_config:
-            error_msg = "Values have to be set in style file in order to composite choropleth colors."
+            error_msg = (
+                "Values have to be set in style file in order to composite choropleth colors."
+            )
             raise ChoroplethError(error_msg)
         return choropleth_config["values"]
 
@@ -177,7 +181,7 @@ class Choropleth:
             return int((number * 10) / 10)
         if number > 1:
             digits = int(math.log10(number))
-            return int(number / pow(10, digits)) * 10 ** digits
+            return int(number / pow(10, digits)) * 10**digits
         raise ValueError(f"Cannot find lower limit for {number=}")
 
     @staticmethod
@@ -203,5 +207,5 @@ class Choropleth:
             return math.ceil((number * 10) / 10)
         if number > 1:
             digits = int(math.log10(number))
-            return math.ceil(number / 10 ** digits) * 10 ** digits
+            return math.ceil(number / 10**digits) * 10**digits
         raise ValueError(f"Cannot find upper limit for {number=}")

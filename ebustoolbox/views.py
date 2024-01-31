@@ -12,7 +12,8 @@ from celery.result import AsyncResult
 import plotly.graph_objects as go
 
 # Unused import of dash_app needed to register app
-from . import dash_app, tasks  # noqa: F401
+from dash_app import dash_app, ids  # noqa: F401
+from . import tasks
 from .forms import UploadFileForm
 from .util import get_unique_task_id
 
@@ -115,9 +116,19 @@ class SuccessView(TemplateView, MapEngineMixin):
 
     def get_context_data(self, **kwargs):
         context = super(SuccessView, self).get_context_data(**kwargs)
-        context["task_id"] = self.request.GET["task_id"]
-        ##Dash context here????
-        context["dash_context"] = {"userid": {"value": self.request.GET["task_id"]}}
+        task_id = self.request.GET["task_id"]
+        context["task_id"] = task_id
+
+        session = self.request.session
+        from dash_app.dash_app import create_app
+
+        # By creating a specific app for this task ID, the app "knows" which data to load
+        # ToDO make sure only authorized users can view this
+        create_app(task_id=task_id)
+        # the dictionary in "django_plotly_dash" appears in the session_state of the app, which
+        # is an optional kwarg in app.callbacks
+        session["django_plotly_dash"] = {"task_id": task_id}
+
         return context
 
 
@@ -184,6 +195,9 @@ def save_and_simulate(
         cleaned_data = form.cleaned_data
 
     django_scenario, simba_schedule, args = tasks.input_files_to_database(cleaned_data, request)
+    if request.user.is_authenticated:
+        django_scenario.manager = request.user
+        django_scenario.users.add(request.user)
     # start computation
     task_id = get_unique_task_id()
     django_scenario.task_id = task_id

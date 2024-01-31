@@ -38,8 +38,7 @@ MAP_ENGINE_ZOOM_LEVELS = {
 # These layers will be plotted as region, i.e. use layer_styles of region with outline and fill
 REGIONS = []
 MAP_ENGINE_POPUPS = [
-    setup.Popup("station",
-                True),
+    setup.Popup("station", True),
     # setup.Popup(
     #     "myexamplemultipolygon",
     #     True,
@@ -50,7 +49,6 @@ MAP_ENGINE_POPUPS = [
     # setup.Popup("wind_cluster",
     #             True,
     #             ["population", ], )
-
 ]
 MAP_ENGINE_USE_DISTILLED_MVTS = False
 MAP_ENGINE_DEBUG = True

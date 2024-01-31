@@ -16,6 +16,29 @@ Template:
 ### Removed
 - [(#)]()
 ```
+
+### Changed
+- [(#45)](https://github.com/rl-institut/django-simba/pull/45)
+- Changed the type of datetimes and data to arrayfields
+- Temperatures or other values can now be easily interpolated or looked up
+- Test file for temperatures uploaded
+- Add bootstrap4 to requirements
+- Generate vehicles with the same name as SimBA
+- Fix Popups of map stations
+- Make dash_app a separate app
+- Use "Agg" as matplotlib backend. If problems arise on your machine, the backend will be moved to the env variables.
+### Changed
+- [(#40)](https://github.com/rl-institut/django-simba/pull/40)
+- Expands the database according to discussed specifications.
+- Add VehicleClass for Eflips Depot Simulations.
+- Update task functions with new database models
+- Add Temperatures Model to store temperatures
+  - Add tests
+- Add functionality to interpolate between datetimes
+- Expand tests, so version with and without eflips are included
+- SimBA only calculates the consumption of a single vehicle type, i.e. one type per rotation.
+
+
 ### Changed
 - [(#38)](https://github.com/rl-institut/django-simba/pull/38)
 - Expands the database according to discussed specifications.
