@@ -35,6 +35,3 @@ RUN poetry install
 CMD [ "poetry", "run", "python", "-c", "print('Started')" ]
 #
 CMD [ "poetry", "run", "python", "manage.py", "runserver", "0.0.0.0:8000"]
-#CMD [ "poetry", "run", "python", "manage.py", "migrate" ]
-#CMD [ "poetry", "run", "python", "-c", "print('Migrated')" ]
-#CMD [ "poetry", "run", "python", "manage.py", "runserver" ]
