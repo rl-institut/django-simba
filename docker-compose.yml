@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+  web:
+    build: .
+
+
+    command:
+      - sh
+      - -c
+      - |
+        poetry run python manage.py makemigrations
+        poetry run python manage.py migrate
+        poetry run python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - my-postgres
+
+  my-postgres:
+    image: postgis/postgis
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_PASSWORD: 1234
+        - POSTGRES_USER=myprojectuser
+        - POSTGRES_PASSWORD=1234
+        - POSTGRES_DB=mydb
+
+
+volumes:
+  postgres_data:
