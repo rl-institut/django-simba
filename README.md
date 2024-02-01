@@ -82,11 +82,74 @@ go into database via
 \c mydb
 ```
 or exit with \q and connect directly from normal terminal
+
 ```bash
 psql -U postgres -d mydb
 ```
+
 Define settings and install postgis and show installation worked
+
 ```bash
 CREATE EXTENSION IF NOT EXISTS postgis;
 SELECT PostGIS_version();
+```
+
+## Loading a SQL dump
+
+A database dump can be used to fill the database.
+In your terminal navigate to the dump file ending with sql. If it is a text based dump us. For some reason specifying
+the host seems to be needed on my machine. This has something to do how authentification seems to work.
+
+```bash
+psql -U YourProjectuser -h 127.0.0.1 YourDBName < DumpFileName.sql;
+```
+
+## Docker install
+
+To build a docker locally install docker using
+https://docs.docker.com/engine/install/
+
+Make sure to not have other dockers installed
+https://docs.docker.com/engine/install/ubuntu/#uninstall-old-versions
+
+For me only installing from package worked
+https://docs.docker.com/engine/install/ubuntu/#install-from-a-package
+
+wsl users can try following this
+https://docs.docker.com/desktop/wsl/
+
+### Docker build and run
+
+Navigate into the root of the project containing manage.py
+run.
+
+```bash
+docker build -t django-simba .
+```
+
+On Linux systems it might be necessary to run as superuser
+
+```bash
+sudo docker build -t django-simba .
+```
+
+run the docker using
+
+```bash
+docker run django-simba
+```
+
+to delete the image get the id of the image
+get the id of the container and of the image
+
+```bash
+docker ps -a
+docker images
+```
+
+and delete them
+
+```bash
+docker rm CONTAINER_ID
+docker rmi IMAGE_ID
 ```

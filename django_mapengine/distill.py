@@ -1,7 +1,7 @@
 import range_key_dict
 
 from django.conf import settings
-from django_distill import distill
+# from django_distill import distill
 
 
 def get_region_zooms():

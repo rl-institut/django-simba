@@ -1,16 +1,16 @@
 import shutil
 from datetime import timedelta, datetime
-from pathlib import Path
-import numpy as np
 from functools import partial
+from pathlib import Path
 
+import numpy as np
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.db.models import QuerySet, Sum
-from django.utils.timezone import make_aware
 from django.dispatch import receiver
+from django.utils.timezone import make_aware
 
 MINIMAL_TRIP_DURATION_S = 60  # seconds
 
@@ -1014,7 +1014,7 @@ class EventType(models.TextChoices):
     DRIVING = "DRIVING"
     CHARGING_OPPORTUNITY = "CHARGING_OPPORTUNITY"
     CHARGING_DEPOT = "CHARGING_DEPOT"
-    SERCVICE = "SERVICE"
+    SERVICE = "SERVICE"
     STANDBY_DEPARTURE = "STANDBY_DEPARTURE"
     PRECONDITIONING = "PRECONDITIONING"
 

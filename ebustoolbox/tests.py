@@ -1,24 +1,24 @@
 import shutil
 import time
+from copy import copy
 from datetime import datetime, timedelta
 from pathlib import Path
-from copy import copy
 from typing import Iterable
-from selenium import webdriver
 
+from django.conf import settings
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.http import HttpRequest
 from django.test import TestCase, override_settings
-from django.utils.dateparse import parse_datetime
-from django.utils.timezone import make_aware
-
-from . import tasks
-from .forms import UploadFileForm
-from django.conf import settings
 
 # Create your tests here.
 from django.urls import reverse
+from django.utils.dateparse import parse_datetime
+from django.utils.timezone import make_aware
+from selenium import webdriver
 
+from . import tasks
+from . import util
+from .forms import UploadFileForm
 from .models import (
     Route,
     Scenario,
@@ -29,6 +29,8 @@ from .models import (
     Station,
     Trip,
     Temperatures,
+    Event,
+    EventType,
 )
 
 TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
@@ -630,3 +632,160 @@ class TemperaturesTestCase(TestCase):
 
     def test_temperatures_from_csv(self):
         pass
+
+
+class TestUtil(TestCase):
+    def setUp(self):
+        # simple scenario with some events
+        scenario = Scenario.objects.create(name="Test")
+        vehicle_type = VehicleType.objects.create(
+            name="Test Type",
+            scenario=scenario,
+            charging_curve=[[0, 0], [1, 3]],
+            opportunity_charging_capable=False,
+            battery_capacity=100,
+        )
+        vehicle = Vehicle.objects.create(
+            scenario=scenario, name="Test Vehicle", vehicle_type=vehicle_type
+        )
+        r1 = Rotation.objects.create(
+            name="Test Rotation 1",
+            scenario=scenario,
+            vehicle_type=vehicle_type,
+            vehicle=vehicle,
+            allow_opportunity_charging=True,
+        )
+        r2 = Rotation.objects.create(
+            name="Test Rotation 2",
+            scenario=scenario,
+            vehicle_type=vehicle_type,
+            vehicle=vehicle,
+            allow_opportunity_charging=True,
+        )
+        st = Station.objects.create(geom="POINT(0 0 0)", name="Test Station", scenario=scenario)
+        route1 = Route.objects.create(
+            distance=120.5,
+            name="Main Route",
+            name_short="MR",
+            scenario=scenario,
+            headsign="Downtown",
+            departure_station=st,
+            arrival_station=st,
+        )
+        t1 = Trip.objects.create(
+            scenario=scenario,
+            route=route1,
+            rotation=r1,
+            departure_time=parse_datetime("2023-01-01 10:00:00+01:00"),
+            arrival_time=parse_datetime("2023-01-01 11:00:00+01:00"),
+        )
+        t2 = Trip.objects.create(
+            scenario=scenario,
+            route=route1,
+            rotation=r2,
+            departure_time=parse_datetime("2023-01-01 12:00:00+01:00"),
+            arrival_time=parse_datetime("2023-01-01 13:00:00+01:00"),
+        )
+        Event.objects.create(
+            scenario=scenario,
+            vehicle=vehicle,
+            vehicle_type=vehicle_type,
+            station=st,
+            time_start=parse_datetime("2023-01-01 09:00:00+01:00"),
+            time_end=parse_datetime("2023-01-01 10:00:00+01:00"),
+            soc_start=0.5,
+            soc_end=0.8,
+            event_type=EventType.CHARGING_OPPORTUNITY,
+            timeseries={
+                "time": [
+                    "2023-01-01 09:00:00+01:00",
+                    "2023-01-01 09:15:00+01:00",
+                    "2023-01-01 09:30:00+01:00",
+                    "2023-01-01 09:45:00+01:00",
+                    "2023-01-01 10:00:00+01:00",
+                ],
+                "soc": [0.5, 0.6, 0.7, 0.8, 0.8],
+            },
+        )
+        Event.objects.create(
+            scenario=scenario,
+            vehicle=vehicle,
+            vehicle_type=vehicle_type,
+            trip=t1,
+            time_start=parse_datetime("2023-01-01 10:00:00+01:00"),
+            time_end=parse_datetime("2023-01-01 11:00:00+01:00"),
+            soc_start=0.8,
+            soc_end=-0.1,
+            event_type=EventType.DRIVING,
+            timeseries={
+                "time": [
+                    "2023-01-01 10:00:00+01:00",
+                    "2023-01-01 10:15:00+01:00",
+                    "2023-01-01 10:30:00+01:00",
+                    "2023-01-01 10:45:00+01:00",
+                ],
+                "soc": [0.8, 0.5, 0.2, -0.1],
+            },
+        )
+        Event.objects.create(
+            scenario=scenario,
+            vehicle=vehicle,
+            vehicle_type=vehicle_type,
+            station=st,
+            time_start=parse_datetime("2023-01-01 11:00:00+01:00"),
+            time_end=parse_datetime("2023-01-01 12:00:00+01:00"),
+            soc_start=-0.1,
+            soc_end=0.8,
+            event_type=EventType.CHARGING_OPPORTUNITY,
+            timeseries={
+                "time": [
+                    "2023-01-01 11:00:00+01:00",
+                    "2023-01-01 11:15:00+01:00",
+                    "2023-01-01 11:30:00+01:00",
+                    "2023-01-01 11:45:00+01:00",
+                ],
+                "soc": [-0.1, 0.2, 0.5, 0.8],
+            },
+        )
+        Event.objects.create(
+            scenario=scenario,
+            vehicle=vehicle,
+            vehicle_type=vehicle_type,
+            trip=t2,
+            time_start=parse_datetime("2023-01-01 12:00:00+01:00"),
+            time_end=parse_datetime("2023-01-01 13:00:00+01:00"),
+            soc_start=0.8,
+            soc_end=0.2,
+            event_type=EventType.DRIVING,
+            timeseries={
+                "time": [
+                    "2023-01-01 12:00:00+01:00",
+                    "2023-01-01 12:15:00+01:00",
+                    "2023-01-01 12:30:00+01:00",
+                    "2023-01-01 12:45:00+01:00",
+                ],
+                "soc": [0.8, 0.6, 0.4, 0.2],
+            },
+        )
+
+    def test_get_soc(self):
+        scenario_id = Scenario.objects.get(name="Test").id
+        socs = util.get_soc(scenario_id)
+        vehicle_id = Vehicle.objects.get(name="Test Vehicle").id
+        assert len(socs) == 1  # one vehicle
+        assert len(socs[vehicle_id]) == 2  # two times at station
+
+    def test_get_stations(self):
+        scenario_id = Scenario.objects.get(name="Test").id
+        stations = util.get_stations(scenario_id)
+        # TODO change
+        assert stations
+        # nothing to test yet
+
+    def test_rotation_filter(self):
+        scenario_id = Scenario.objects.get(name="Test").id
+        rotations = util.rotation_filter(scenario_id)
+        r1_id = Rotation.objects.get(name="Test Rotation 1").id
+        r2_id = Rotation.objects.get(name="Test Rotation 2").id
+        assert r1_id not in rotations  # trip became negative
+        assert r2_id in rotations  # all trips positive

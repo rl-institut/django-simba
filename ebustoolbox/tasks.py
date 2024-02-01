@@ -1,25 +1,33 @@
 import collections
+import csv
 import json
-from copy import deepcopy, copy
+import shutil
+import traceback
 from argparse import Namespace
+from copy import deepcopy, copy
+from datetime import datetime, timedelta
+from decimal import Decimal
+from pathlib import Path
+from typing import TYPE_CHECKING
 
-from django.utils import timezone
+import tqdm
+from celery import shared_task
+from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
 from django.db.models import Max
-from django.conf import settings
-from django.utils.timezone import make_aware
+from django.db.transaction import atomic
 from django.http import HttpRequest
-
-import csv
-import shutil
-import tqdm
-import traceback
-from datetime import datetime, timedelta
-from pathlib import Path
-from decimal import Decimal
-from celery import shared_task
+from django.utils import timezone
+from django.utils.timezone import make_aware
 from matplotlib import pyplot as plt
 
+import simba.optimizer_util
+import simba.simulate
+import simba.trip
+import simba.util
+from simba.consumption import Consumption
+from simba.rotation import Rotation as SimbaRotation
+from simba.schedule import Schedule as SimbaSchedule
 from .models import (
     Route,
     Vehicle,
@@ -41,16 +49,12 @@ from .models import (
     Area,
     AreaType,
     AssocAreaProcess,
+    Event,
+    EventType,
 )
 
-from simba.consumption import Consumption
-import simba.optimizer_util
-import simba.trip
-import simba.util
-import simba.simulate
-from django.db.transaction import atomic
-from simba.rotation import Rotation as SimbaRotation
-from simba.schedule import Schedule as SimbaSchedule
+if TYPE_CHECKING:
+    from spice_ev.scenario import Scenario as SimbaScenario
 
 if settings.EFLIPS_USE:
     from eflips.depot.api import simulate_scenario
@@ -662,7 +666,7 @@ def vary_depot_rotations(schedule) -> "collections.Iterable[SimbaRotation]":
     schedule.rotations = orig_rotations
 
 
-def _run_ebus_toolchain(schedule: "simba.schedule.Schedule", args, task_id):
+def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
     """Run the tool chain"""
     # set report dir for first iteration
     args.output_directory = Path(settings.UPLOAD_PATH) / task_id
@@ -687,7 +691,7 @@ def _run_ebus_toolchain(schedule: "simba.schedule.Schedule", args, task_id):
 
 
 def run_simba(
-    schedule: "SimbaSchedule",
+    schedule: SimbaSchedule,
     args,
     task_id,
     report_dir=Path(".", "report"),
@@ -745,8 +749,7 @@ def run_simba(
     with open(Path(report_dir, "eflips_input.json"), "w") as f:
         json.dump(input_for_eflips, f, indent=4)
 
-    # file_path = Path(report_dir, "vehicle_socs.csv")
-    # save_vehicle_properties_from_file(file_path, db_scenario)
+    create_event_output(scenario, task_id)
 
 
 def opportunity_rotation_to_eflips_input(
@@ -809,7 +812,7 @@ def run_eflips(task_id) -> None:
     simulate_scenario(db_scenario.pk, database_url=db_url)
 
 
-def save_vehicle_properties_from_file(file_path, scenario):
+def save_vehicle_properties_from_file(file_path, scenario: Scenario):
     """Placeholder functionality to save data for plotting"""
 
     object_list = []
@@ -853,6 +856,98 @@ def save_vehicle_properties_from_file(file_path, scenario):
                 )
                 last_id += 1
     VehicleProperties.objects.bulk_create(object_list)
+
+
+def get_timestep(simba_scenario: "SimbaScenario", timestamp: datetime) -> int:
+    """Returns time steps into the scenario for a given scenario and datetime"""
+    # calculate the corresponding time step
+    timedelta_into_scenario = timestamp - simba_scenario.start_time
+    minutes_into_scenario = timedelta_into_scenario.total_seconds() / 60
+    return round(minutes_into_scenario * (simba_scenario.stepsPerHour / 60))
+
+
+def get_datetime(simba_scenario: "SimbaScenario", timestep: int) -> datetime:
+    """Returns datetime for a given scenario and time steps into the scenario"""
+    # calculate the corresponding datetime
+    minutes = timestep * (60 / simba_scenario.stepsPerHour)
+    return simba_scenario.start_time + timedelta(minutes=minutes)
+
+
+def create_event_output(simba_scenario: "SimbaScenario", task_id):
+    # collect data from DB
+    db_scenario = Scenario.objects.get(task_id=task_id)
+    vehicle_dict = Vehicle.objects.filter(scenario=db_scenario)
+    vehicle_dict = {vehicle.name: vehicle for vehicle in vehicle_dict}
+    vehicle_type_dict = VehicleType.objects.filter(scenario=db_scenario)
+    vehicle_type_dict = {
+        vehicle_type.name_short: vehicle_type for vehicle_type in vehicle_type_dict
+    }
+
+    # collect info from vehicle_event
+    sorted_vehicle_events = sorted(
+        simba_scenario.events.vehicle_events, key=lambda e: (e.vehicle_id, e.start_time)
+    )
+    for counter, vehicle_event in enumerate(sorted_vehicle_events):
+        start_timestep = get_timestep(simba_scenario, vehicle_event.start_time)
+        try:
+            if sorted_vehicle_events[counter + 1].vehicle_id == vehicle_event.vehicle_id:
+                end_time = sorted_vehicle_events[counter + 1].start_time
+            else:
+                end_time = simba_scenario.stop_time
+        except IndexError:
+            end_time = simba_scenario.stop_time
+        end_timestep = min(get_timestep(simba_scenario, end_time), simba_scenario.step_i - 1)
+        # TODO remove try clauses once DB integration of tools is complete (or raise Exceptions)
+
+        vehicle = vehicle_dict[vehicle_event.vehicle_id]
+        simba_vehicle_type = vehicle_event.vehicle_id.split("_")[0]
+        vehicle_type = vehicle_type_dict[simba_vehicle_type]
+
+        # figure out the location of the event
+        station = None
+        trip = None
+        vehicle_trips = Trip.objects.filter(rotation__vehicle=vehicle)
+        if not len(vehicle_trips):
+            raise RuntimeError(f"No trip assigned to vehicle {vehicle.name} found in database.")
+        if vehicle_event.event_type == "arrival":
+            simba_location = vehicle_event.update["connected_charging_station"]
+            station = vehicle_trips.get(
+                arrival_time=make_aware(vehicle_event.start_time)
+            ).route.arrival_station
+            event_type = (
+                EventType.CHARGING_OPPORTUNITY if simba_location else EventType.STANDBY_DEPARTURE
+            )
+        else:
+            trip = vehicle_trips.get(departure_time=make_aware(vehicle_event.start_time))
+            event_type = EventType.DRIVING
+
+        timestamp_list = [
+            get_datetime(simba_scenario, t).astimezone().isoformat()
+            for t in range(start_timestep, end_timestep + 1, int(60 / simba_scenario.stepsPerHour))
+        ]
+        timeseries = {
+            "time": timestamp_list,
+            "soc": simba_scenario.vehicle_socs[vehicle.name][start_timestep : end_timestep + 1],
+        }
+
+        # grab current vehicle SoC at timestep
+        soc_start = simba_scenario.vehicle_socs[vehicle.name][start_timestep]
+        soc_end = simba_scenario.vehicle_socs[vehicle.name][end_timestep]
+
+        event = Event(
+            scenario=db_scenario,
+            vehicle=vehicle,
+            vehicle_type=vehicle_type,
+            station=station,
+            trip=trip,
+            soc_start=soc_start,
+            soc_end=soc_end,
+            time_start=vehicle_event.start_time.astimezone(),
+            time_end=end_time.astimezone() - timedelta(seconds=1),
+            timeseries=timeseries,
+            event_type=event_type,
+        )
+        event.save()
 
 
 def add_simple_depot(scenario: Scenario):
