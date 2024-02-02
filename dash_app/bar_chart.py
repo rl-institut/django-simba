@@ -1,34 +1,34 @@
 from dash import Dash, html, dcc
-import plotly.express as px
+import plotly.graph_objects as go
 from . import ids
 from dash.dependencies import Input, Output  # no fa401
-from ebustoolbox.models import Scenario, Rotation
-import pandas as pd
+from .data import get_bar_plot_data
 
 
 def render(app: Dash) -> html.Div:
-    @app.callback(
-        Output(ids.BAR_CHART, "children"),
-        Input(ids.BUS_DROPDOWN, "value"),
-    )
-    def update_bar_chart(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
-        print("updating bar chart")
+    @app.callback(Output(ids.BAR_CHART, "figure"), Input(ids.BUS_DROPDOWN, "value"))
+    def update_scatter(buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
-        s = Scenario.objects.get(task_id=task_id)
-        rotations = Rotation.objects.filter(scenario=s)
-        all_buses = [r.vehicle.name_short for r in rotations]
-        session_state[task_id]["all_buses"] = all_buses
-        filter_data = pd.DataFrame(
-            {"type": "depb" if not r.allow_opportunity_charging else "oppb"}
-            for r in rotations
-            if r.vehicle.name_short in buses
-        )
-        # filter_data = SOME_DATA.query("nation in @buses")
-        if filter_data.shape[0] == 0:
-            return html.Div("No Data Selected")
-        # fig = px.bar(filter_data, x="nation", y="count", color="nation", text="nation")
-        fig = px.bar(filter_data, x="type")
-        return html.Div(dcc.Graph(figure=fig), id=ids.BAR_CHART)
+        filter_dict = dict(task_id=task_id, vehicle__name_short__in=buses)
 
-    #
-    return html.Div(id=ids.BAR_CHART)
+        # Get the data
+        data = get_bar_plot_data(filter_dict)
+        x_data = data[:, 1]
+        y_data = data[:, 2]
+        hover_data = data[:, 0]
+        fig = go.Figure(
+            [
+                go.Bar(x=x_data, y=y_data, hovertext=hover_data),
+            ]
+        )
+
+        fig.update_layout(
+            margin=dict(l=20, r=20, t=20, b=20),
+        )
+        fig.update_layout(
+            xaxis=dict(tickmode="linear", tick0=min(x_data), dtick=x_data[1] - x_data[0])
+        )
+        fig.update_layout(showlegend=False)
+        return fig
+
+    return html.Div(dcc.Graph(id=ids.BAR_CHART), style={"verticalAlign": "top"})
