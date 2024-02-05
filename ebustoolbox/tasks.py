@@ -52,11 +52,10 @@ from .models import (
     EventType,
 )
 
+from eflips.depot.api import simulate_scenario
+
 if TYPE_CHECKING:
     from spice_ev.scenario import Scenario as SimbaScenario
-
-if settings.EFLIPS_USE:
-    from eflips.depot.api import simulate_scenario
 
 # ToDo: Any better solutions?
 INTEGER_INF = 9999
