@@ -32,6 +32,4 @@ WORKDIR /app
 COPY . /app
 RUN poetry install
 
-CMD [ "poetry", "run", "python", "-c", "print('Started')" ]
-#
-CMD [ "poetry", "run", "python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["sh", "-c", "poetry run python -c 'print(\"Started\")' && poetry run python manage.py makemigrations && poetry run python manage.py migrate && poetry run python manage.py runserver 0.0.0.0:8000"]

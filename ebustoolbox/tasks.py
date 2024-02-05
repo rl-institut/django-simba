@@ -31,7 +31,6 @@ from simba.schedule import Schedule as SimbaSchedule
 from .models import (
     Route,
     Vehicle,
-    VehicleProperties,
     UploadedFile,
     Station,
     VehicleType,
@@ -815,52 +814,6 @@ def run_eflips(task_id) -> None:
         f"{engine}://{db_dict['USER']}:{db_dict['PASSWORD']}@{db_dict['HOST']}/{db_dict['NAME']}"
     )
     simulate_scenario(db_scenario.pk, database_url=db_url)
-
-
-def save_vehicle_properties_from_file(file_path, scenario: Scenario):
-    """Placeholder functionality to save data for plotting"""
-
-    object_list = []
-    try:
-        last_id = VehicleProperties.objects.last().id
-    except Exception:
-        last_id = -1
-    with open(file_path, "r") as csvfile:
-        reader = csv.DictReader(csvfile)
-        vehicle_names = [name for name in reader.fieldnames]
-        vehicle_names.remove("time")
-        vehicle_names.remove("timestep")
-        vehicle_dict = dict()
-
-        # ToDo: Vehicles are not properly assigned. Since this is only a "dummy" plotting feature
-        # that is ok.
-        vehicles = Vehicle.objects.filter(vehicle_type__scenario=scenario)
-
-        for i, vehicle_name in enumerate(vehicle_names):
-            vehicle = vehicles[i]
-            vehicle.name = vehicle_name
-            vehicle.save()
-            vehicle_dict[vehicle_name] = vehicle
-
-        for row in reader:
-            dt = datetime.fromisoformat(row["time"])
-            aware_datetime = make_aware(dt)
-            for vehicle_name in vehicle_names:
-                try:
-                    soc = float(row[vehicle_name])
-                except (KeyError, ValueError):
-                    soc = None
-                object_list.append(
-                    VehicleProperties(
-                        date=aware_datetime,
-                        soc=soc,
-                        vehicle=vehicle_dict[vehicle_name],
-                        scenario=scenario,
-                        id=last_id + 1,
-                    )
-                )
-                last_id += 1
-    VehicleProperties.objects.bulk_create(object_list)
 
 
 def get_timestep(simba_scenario: "SimbaScenario", timestamp: datetime) -> int:

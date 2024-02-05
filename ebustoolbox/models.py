@@ -328,15 +328,6 @@ class Vehicle(models.Model):
         return self.name
 
 
-# ToDo Deprecated
-class VehicleProperties(models.Model):
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
-
-    date = models.DateTimeField()
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
-    soc = models.FloatField(null=True)
-
-
 class Rotation(models.Model):
     """
     Model representing a rotation associated with a scenario.

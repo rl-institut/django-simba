@@ -118,38 +118,65 @@ https://docs.docker.com/engine/install/ubuntu/#install-from-a-package
 wsl users can try following this
 https://docs.docker.com/desktop/wsl/
 
-### Docker build and run
+# Docker build and run
+ STEP BY STEP AFTER INSTALLING DOCKER
+## go into your django-simba root containing manage.py
 
-Navigate into the root of the project containing manage.py
-run.
-
+## Using Docker without compose
+### Create a network for your postgres and django-app to communicate
 ```bash
-docker build -t django-simba .
+ docker network create mynetwork
+ ```
+
+ ### Optional check your networks
+```bash
+ sudo docker network ls
+  ```
+
+ ### run a postgis instance in this network. Set you database according to your settings
+```bash
+ sudo docker run --name my-docker-postgres -e  POSTGRES_PASSWORD=1234 -e POSTGRES_USER=myprojectuser -e  POSTGRES_DB=mydb -d --network=mynetwork postgis/postgis
+  ```
+
+ Go into your Django .env file and make sure the host is the the same as in the above db, e.g. my-docker-postgres. this replaces "localhost" in the database url.
+
+ ### Build your Django-simba docker
+```bash
+ sudo docker build -t django-simba .
+  ```
+
+ ### run the created docker in this network and expose the port
+```bash
+ sudo docker run -p 8000:8000  --network=mynetwork django-simba
+  ```
+
+ #### Optional you can use the flag -d to start the container as detached. this means closing the terminal will NOT stop the container
+
+ ### to stop the container
+```bash
+ sudo docker stop CONTAINER_ID
+ ```
+
+ ### Alternatively most of the above can be simplified by running
+```bash
+sudo docker compose up
 ```
 
-On Linux systems it might be necessary to run as superuser
+to remove this container
 
 ```bash
-sudo docker build -t django-simba .
+sudo docker compose down
 ```
 
-run the docker using
-
+### In the above options only docker compose uses a permanent storage for the database. by creating the volume postgres_data. In other words stopping the container and starting it again, the database will not have lost its data. At the same time, migrations have to respect the existing data aswell.
+### Volumes can be checked using
 ```bash
-docker run django-simba
+sudo docker volume ls
 ```
 
-to delete the image get the id of the image
-get the id of the container and of the image
-
+or removed
 ```bash
-docker ps -a
-docker images
+sudo docker volume rm VOLUME_ID
 ```
 
-and delete them
-
-```bash
-docker rm CONTAINER_ID
-docker rmi IMAGE_ID
-```
+but only if the docker is not running
