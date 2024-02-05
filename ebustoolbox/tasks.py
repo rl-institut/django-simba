@@ -488,7 +488,8 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
             )
             model_routes.append(route)
             # ToDo: loaded_mass is level_of_loading * vehicle_capacity[kg]
-            # needs changing
+            # ToDo: How do we know if its a type, e.g. passanger trip or not ? Right now instance
+            #  uses default passanger_trip
             t = Trip(
                 rotation=r,
                 route=route,
@@ -680,14 +681,18 @@ def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
     if settings.EFLIPS_USE:
         run_eflips(task_id)
         # Todo assign from database
-        # schedule.assign_vehicles_for_django(eflips_dataclass_list)
+        eflips_assignment = get_assigned_vehicles(task_id)
+        schedule.assign_vehicles_for_django(eflips_assignment)
         # set report dir for second iteration/final results
         # report_dir = Path(settings.BASE_DIR, args.output_directory, "report_2")
         # TODO: currently report_directory is set in simba internally and is always report_1 for current purposes
         # (number changes by the amount of reports in the same fun of SimBA)
         # call simba with eflips results
-
         run_simba(schedule, args, task_id, report_dir=report_dir)
+
+
+def get_assigned_vehicles():
+    raise NotImplementedError
 
 
 def run_simba(
@@ -909,15 +914,17 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):
         vehicle_trips = Trip.objects.filter(rotation__vehicle=vehicle)
         if not len(vehicle_trips):
             raise RuntimeError(f"No trip assigned to vehicle {vehicle.name} found in database.")
+
         if vehicle_event.event_type == "arrival":
-            simba_location = vehicle_event.update["connected_charging_station"]
             station = vehicle_trips.get(
                 arrival_time=make_aware(vehicle_event.start_time)
             ).route.arrival_station
+
+            is_charging = vehicle_event.update["connected_charging_station"] is not None
             event_type = (
-                EventType.CHARGING_OPPORTUNITY if simba_location else EventType.STANDBY_DEPARTURE
+                EventType.CHARGING_OPPORTUNITY if is_charging else EventType.STANDBY_DEPARTURE
             )
-        else:
+        elif vehicle_event.event_type == "departure":
             trip = vehicle_trips.get(departure_time=make_aware(vehicle_event.start_time))
             event_type = EventType.DRIVING
 
@@ -975,6 +982,7 @@ def add_simple_depot(scenario: Scenario):
         scenario=scenario,
         dispatchable=False,
         duration=timedelta(minutes=30),
+        availability=None,
     )
     charging = Process.objects.create(
         name="Charging",
