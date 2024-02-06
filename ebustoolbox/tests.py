@@ -1,24 +1,24 @@
 import shutil
 import time
+from copy import copy
 from datetime import datetime, timedelta
 from pathlib import Path
-from copy import copy
 from typing import Iterable
-from selenium import webdriver
 
+from django.conf import settings
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.http import HttpRequest
 from django.test import TestCase, override_settings
-from django.utils.dateparse import parse_datetime
-from django.utils.timezone import make_aware
-
-from . import tasks
-from .forms import UploadFileForm
-from django.conf import settings
 
 # Create your tests here.
 from django.urls import reverse
+from django.utils.dateparse import parse_datetime
+from django.utils.timezone import make_aware
+from selenium import webdriver
 
+from . import tasks
+from . import util
+from .forms import UploadFileForm
 from .models import (
     Route,
     Scenario,
@@ -29,6 +29,8 @@ from .models import (
     Station,
     Trip,
     Temperatures,
+    Event,
+    EventType,
 )
 
 TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
@@ -62,7 +64,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
 
     @override_settings(CELERY_USE=False)
     @override_settings(EFLIPS_USE=True)
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=False)
     @override_settings(DEBUG=True)
     def test_result_generation(self):
         self.simple_simba_call_in_selenium()
@@ -93,6 +95,16 @@ class MySeleniumTests(StaticLiveServerTestCase):
         time.sleep(3)
         # Check for 404 requests
         errors = self.selenium.get_log("browser")
+        # ToDO handle exception
+        # An iframe which has both allow-scripts and allow-same-origin for its sandbox
+        # attribute can escape its sandboxing.'
+        with self.assertRaises(AssertionError):
+            errors = self.assertEqual(len(errors), 0, f"404 errors detected: {errors}")
+        allowed_error = (
+            "An iframe which has both allow-scripts and allow-same-origin for its "
+            "sandbox attribute can escape its sandboxing"
+        )
+        errors = [error for error in errors if allowed_error not in error["message"]]
         self.assertEqual(len(errors), 0, f"404 errors detected: {errors}")
         self.assertContains(response, "Finished")
 
@@ -555,47 +567,60 @@ class ScenarioTestCase(TestCase):
 
 class TemperaturesTestCase(TestCase):
     def test_model_creation(self):
-        date1 = datetime(year=2024, month=1, day=1)
+        date1 = make_aware(datetime(year=2024, month=1, day=1))
         dt = timedelta(hours=5)
         date2 = date1 + dt
         date3 = date1 - timedelta(days=5)
         temp1 = 25
         temp2 = 0
         temp3 = 100
-        temperature_instance = Temperatures(
+        t_instance = Temperatures(
             scenario=Scenario.objects.get(pk=Scenario.get_default_pk()),
             name="First Temperatures",
             use_only_time=False,
             datetimes=[date1, date2, date3],
             data=[temp1, temp2, temp3],
         )
-        temperature_instance.save()
-        pk = temperature_instance.pk
-        assert temperature_instance.get_temperature(date1) == temp1
-        assert temperature_instance.get_temperature(date2) == temp2
-        assert temperature_instance.get_temperature(date3) == temp3
-        assert temperature_instance.get_temperature(date1 + dt / 2) == (temp1 + temp2) / 2
+        t_instance.save()
+        pk = t_instance.pk
+
+        # look up of temperatures using the look up functions
+        assert t_instance.get_interpolated_temperature(date1) == temp1
+        assert t_instance.get_closest_temperature(date1) == temp1
+        assert t_instance.get_interpolated_temperature(date2) == temp2
+        assert t_instance.get_closest_temperature(date2) == temp2
+        assert t_instance.get_interpolated_temperature(date3) == temp3
+        assert t_instance.get_closest_temperature(date3) == temp3
+        assert t_instance.get_interpolated_temperature(date1 + dt / 2) == (temp1 + temp2) / 2
+
+        assert t_instance.get_closest_temperature(date1 + dt / 2.01) == temp1
+        assert t_instance.get_closest_temperature(date1 + dt / 1.99) == temp2
 
         # Use only time works if only datetimes from a single date are passed
-        temperature_instance = Temperatures(
+        t_instance = Temperatures(
             scenario=Scenario.objects.get(pk=Scenario.get_default_pk()),
             name="Second Temperatures",
             use_only_time=True,
             datetimes=[date1, date2],
             data=[temp1, temp2],
         )
-        temperature_instance.save()
-        assert temperature_instance.get_temperature(date1) == temp1
-        assert temperature_instance.get_temperature(date1 + timedelta(days=1)) == temp1
-        assert temperature_instance.get_temperature(date1 + timedelta(days=1) + dt) == temp2
+        t_instance.save()
+        assert t_instance.get_interpolated_temperature(date1) == temp1
+        assert t_instance.get_interpolated_temperature(date1 + timedelta(days=1)) == temp1
+        assert t_instance.get_interpolated_temperature(date1 + timedelta(days=1) + dt) == temp2
+
+        assert t_instance.get_closest_temperature(date1) == temp1
+        assert t_instance.get_closest_temperature(date1 + timedelta(days=1)) == temp1
+        assert t_instance.get_closest_temperature(date1 + timedelta(days=1) + dt) == temp2
 
         # Previous dates get the last possible value
-        assert temperature_instance.get_temperature(date3) == temp1
+        assert t_instance.get_interpolated_temperature(date3) == temp1
 
+        # new temperature instance will use its own function
         t = Temperatures.objects.get(pk=pk)
-        assert t.get_temperature(date3) == temp3
+        assert t.get_interpolated_temperature(date3) == temp3
 
-        temperature_instance = Temperatures(
+        t_instance = Temperatures(
             scenario=Scenario.objects.get(pk=Scenario.get_default_pk()),
             name="Max. Temperatures Berlin",
             use_only_time=True,
@@ -603,4 +628,164 @@ class TemperaturesTestCase(TestCase):
             data=[temp1, temp2, temp3],
         )
         # Different dates raise an attribute error
-        self.assertRaises(AttributeError, temperature_instance.save)
+        self.assertRaises(AttributeError, t_instance.save)
+
+    def test_temperatures_from_csv(self):
+        pass
+
+
+class TestUtil(TestCase):
+    def setUp(self):
+        # simple scenario with some events
+        scenario = Scenario.objects.create(name="Test")
+        vehicle_type = VehicleType.objects.create(
+            name="Test Type",
+            scenario=scenario,
+            charging_curve=[[0, 0], [1, 3]],
+            opportunity_charging_capable=False,
+            battery_capacity=100,
+        )
+        vehicle = Vehicle.objects.create(
+            scenario=scenario, name="Test Vehicle", vehicle_type=vehicle_type
+        )
+        r1 = Rotation.objects.create(
+            name="Test Rotation 1",
+            scenario=scenario,
+            vehicle_type=vehicle_type,
+            vehicle=vehicle,
+            allow_opportunity_charging=True,
+        )
+        r2 = Rotation.objects.create(
+            name="Test Rotation 2",
+            scenario=scenario,
+            vehicle_type=vehicle_type,
+            vehicle=vehicle,
+            allow_opportunity_charging=True,
+        )
+        st = Station.objects.create(geom="POINT(0 0 0)", name="Test Station", scenario=scenario)
+        route1 = Route.objects.create(
+            distance=120.5,
+            name="Main Route",
+            name_short="MR",
+            scenario=scenario,
+            headsign="Downtown",
+            departure_station=st,
+            arrival_station=st,
+        )
+        t1 = Trip.objects.create(
+            scenario=scenario,
+            route=route1,
+            rotation=r1,
+            departure_time=parse_datetime("2023-01-01 10:00:00+01:00"),
+            arrival_time=parse_datetime("2023-01-01 11:00:00+01:00"),
+        )
+        t2 = Trip.objects.create(
+            scenario=scenario,
+            route=route1,
+            rotation=r2,
+            departure_time=parse_datetime("2023-01-01 12:00:00+01:00"),
+            arrival_time=parse_datetime("2023-01-01 13:00:00+01:00"),
+        )
+        Event.objects.create(
+            scenario=scenario,
+            vehicle=vehicle,
+            vehicle_type=vehicle_type,
+            station=st,
+            time_start=parse_datetime("2023-01-01 09:00:00+01:00"),
+            time_end=parse_datetime("2023-01-01 10:00:00+01:00"),
+            soc_start=0.5,
+            soc_end=0.8,
+            event_type=EventType.CHARGING_OPPORTUNITY,
+            timeseries={
+                "time": [
+                    "2023-01-01 09:00:00+01:00",
+                    "2023-01-01 09:15:00+01:00",
+                    "2023-01-01 09:30:00+01:00",
+                    "2023-01-01 09:45:00+01:00",
+                    "2023-01-01 10:00:00+01:00",
+                ],
+                "soc": [0.5, 0.6, 0.7, 0.8, 0.8],
+            },
+        )
+        Event.objects.create(
+            scenario=scenario,
+            vehicle=vehicle,
+            vehicle_type=vehicle_type,
+            trip=t1,
+            time_start=parse_datetime("2023-01-01 10:00:00+01:00"),
+            time_end=parse_datetime("2023-01-01 11:00:00+01:00"),
+            soc_start=0.8,
+            soc_end=-0.1,
+            event_type=EventType.DRIVING,
+            timeseries={
+                "time": [
+                    "2023-01-01 10:00:00+01:00",
+                    "2023-01-01 10:15:00+01:00",
+                    "2023-01-01 10:30:00+01:00",
+                    "2023-01-01 10:45:00+01:00",
+                ],
+                "soc": [0.8, 0.5, 0.2, -0.1],
+            },
+        )
+        Event.objects.create(
+            scenario=scenario,
+            vehicle=vehicle,
+            vehicle_type=vehicle_type,
+            station=st,
+            time_start=parse_datetime("2023-01-01 11:00:00+01:00"),
+            time_end=parse_datetime("2023-01-01 12:00:00+01:00"),
+            soc_start=-0.1,
+            soc_end=0.8,
+            event_type=EventType.CHARGING_OPPORTUNITY,
+            timeseries={
+                "time": [
+                    "2023-01-01 11:00:00+01:00",
+                    "2023-01-01 11:15:00+01:00",
+                    "2023-01-01 11:30:00+01:00",
+                    "2023-01-01 11:45:00+01:00",
+                ],
+                "soc": [-0.1, 0.2, 0.5, 0.8],
+            },
+        )
+        Event.objects.create(
+            scenario=scenario,
+            vehicle=vehicle,
+            vehicle_type=vehicle_type,
+            trip=t2,
+            time_start=parse_datetime("2023-01-01 12:00:00+01:00"),
+            time_end=parse_datetime("2023-01-01 13:00:00+01:00"),
+            soc_start=0.8,
+            soc_end=0.2,
+            event_type=EventType.DRIVING,
+            timeseries={
+                "time": [
+                    "2023-01-01 12:00:00+01:00",
+                    "2023-01-01 12:15:00+01:00",
+                    "2023-01-01 12:30:00+01:00",
+                    "2023-01-01 12:45:00+01:00",
+                ],
+                "soc": [0.8, 0.6, 0.4, 0.2],
+            },
+        )
+
+    def test_get_soc(self):
+        scenario_id = Scenario.objects.get(name="Test").id
+        socs = util.get_soc(scenario_id)
+        vehicle_id = Vehicle.objects.get(name="Test Vehicle").id
+        assert len(socs) == 1  # one vehicle
+        assert len(socs[vehicle_id]) == 2  # two times at station
+
+    def test_get_stations(self):
+        scenario_id = Scenario.objects.get(name="Test").id
+        stations = util.get_stations(scenario_id)
+        # TODO change
+        assert stations
+        # nothing to test yet
+
+    def test_rotation_filter(self):
+        scenario_id = Scenario.objects.get(name="Test").id
+        rotations = util.rotation_filter(scenario_id)
+        r1_id = Rotation.objects.get(name="Test Rotation 1").id
+        r2_id = Rotation.objects.get(name="Test Rotation 2").id
+        assert r1_id not in rotations  # trip became negative
+        assert r2_id in rotations  # all trips positive

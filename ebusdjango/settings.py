@@ -35,7 +35,7 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "*"])
 
 # Application definition
 
@@ -52,8 +52,10 @@ INSTALLED_APPS = [
     "ebustoolbox",
     "django_mapengine",
     "ebus_map",
+    "dash_app",
     # Django plotly dash
     "django_plotly_dash.apps.DjangoPlotlyDashConfig",
+    "bootstrap4",
 ]
 
 

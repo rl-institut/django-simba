@@ -26,7 +26,7 @@ class Station(ebustoolbox.models.Station):
         geo_col="geom", columns=["id", "geom", "name", "lat", "lon", "title_length"]
     )
 
-    layer = "busstop"
+    layer = "station"
     mapping = {
         "id": "id",
         "geom": "POINT",

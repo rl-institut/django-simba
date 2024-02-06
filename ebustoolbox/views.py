@@ -6,70 +6,17 @@ from django.views.generic import TemplateView
 from django.views.decorators.http import require_GET
 
 from django_mapengine.views import MapEngineMixin
-from django.db.models import Q
 
 from celery.result import AsyncResult
-import plotly.graph_objects as go
 
 # Unused import of dash_app needed to register app
-from . import dash_app, tasks  # noqa: F401
+from dash_app import dash_app, ids  # noqa: F401
+from . import tasks
 from .forms import UploadFileForm
 from .util import get_unique_task_id
 
 import ebustoolbox
-from ebustoolbox.forms import ChartForm
-from ebustoolbox.models import VehicleProperties, Vehicle, Scenario
-
-
-def get_map(request):
-    pass
-
-
-def get_chart(request):
-    """Get a rendered chart of vehicle data
-
-    :param request: django.http.HttpRequest
-    :return: django.http.HttpResponse
-    """
-    task_id = request.GET.get("task_id")
-    print("get is :", task_id)
-    get_vehicles = request.GET.getlist("vehicles")
-    print("vehicles  are :", get_vehicles)
-
-    scenario = Scenario.objects.get(task_id=task_id)
-    vehicles = Vehicle.objects.filter(vehicle_type__scenario=scenario)
-
-    # Does the request ask for specific vehicles? If not, don't filter and show all vehicles
-    if get_vehicles is None:
-        pass
-    else:
-        my_filter_qs = Q()
-        for v in get_vehicles:
-            my_filter_qs = my_filter_qs | Q(id=int(v))
-        vehicles = vehicles.filter(my_filter_qs)
-
-    plot_vehicles = get_vehicle_plot_data(vehicles)
-
-    fig = go.Figure()
-    for v in plot_vehicles:
-        fig.add_trace(go.Scatter(x=v["x"], y=v["y"], name=v["name"], line=dict(width=4)))
-
-    fig.update_layout(title={"font_size": 22, "xanchor": "center", "x": 0.5})
-    chart = fig.to_html()
-
-    context = {"chart": chart, "form": ChartForm(scenario=scenario), "result_id": task_id}
-
-    return render(request, "chart.html", context)
-
-
-def get_vehicle_plot_data(vehicles):
-    plot_vehicles = []
-    for search_vehicle in vehicles:
-        plot_data = VehicleProperties.objects.filter(vehicle=search_vehicle)
-        time_data = [c.date for c in plot_data]
-        y_data = [c.soc for c in plot_data]
-        plot_vehicles.append({"x": time_data, "y": y_data, "name": search_vehicle.name})
-    return plot_vehicles
+from ebustoolbox.models import Scenario
 
 
 def show_uploads_view(request: HttpRequest, filename):
@@ -110,7 +57,19 @@ class SuccessView(TemplateView, MapEngineMixin):
 
     def get_context_data(self, **kwargs):
         context = super(SuccessView, self).get_context_data(**kwargs)
-        context["task_id"] = self.request.GET["task_id"]
+        task_id = self.request.GET["task_id"]
+        context["task_id"] = task_id
+
+        session = self.request.session
+        from dash_app.dash_app import create_app
+
+        # By creating a specific app for this task ID, the app "knows" which data to load
+        # ToDO make sure only authorized users can view this
+        create_app(task_id=task_id)
+        # the dictionary in "django_plotly_dash" appears in the session_state of the app, which
+        # is an optional kwarg in app.callbacks
+        session["django_plotly_dash"] = {"task_id": task_id}
+
         return context
 
 

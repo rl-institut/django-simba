@@ -7,7 +7,6 @@ from . import views
 app_name = "simba"
 
 urlpatterns = [
-    path("get_chart/", views.get_chart, name="get_chart"),
     path(
         "long_running_task_status/",
         views.long_running_task_status_view,
@@ -15,6 +14,6 @@ urlpatterns = [
     ),
     path("result/", views.result_view, name="result"),
     path("", views.home_view, name="home"),
-    path("generate_zip/<str:task_id>", views.generate_zip, name="generate_zip"),
+    path("generate_zip/<uuid:task_id>", views.generate_zip, name="generate_zip"),
     path("download_scenario/<uuid:task_id>/", views.download_scenario, name="download_scenario"),
 ]

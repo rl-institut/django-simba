@@ -16,6 +16,26 @@ Template:
 ### Removed
 - [(#)]()
 ```
+
+### Changed
+- [(#45)](https://github.com/rl-institut/django-simba/pull/45)
+- Eflips-depot is currently turned off in the toolchain, since it breaks testing
+- Changed the type of datetimes and data to arrayfields
+- Temperatures or other values can now be easily interpolated or looked up
+- Test file for temperatures uploaded
+- Add bootstrap4 to requirements
+- Generate vehicles with the same name as SimBA
+- Fix Popups of map stations
+- Make dash_app a separate app
+- Implement a few basic filterable plots.
+- Use "Agg" as matplotlib backend. If problems arise on your machine, the backend will be moved to the env variables.
+- Make geom for Stations nullable
+- Use PyPi install of eflips-depot
+- remove vehicle properties as deprecated
+- Write VehicleEvents from SimBA
+- Add a dockerfile and a docker compose to run project as docker locally
+
+
 ### Changed
 - [(#40)](https://github.com/rl-institut/django-simba/pull/40)
 - Expands the database according to discussed specifications.
