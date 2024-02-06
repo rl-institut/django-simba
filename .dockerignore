@@ -1,0 +1,10 @@
+.dockerignore
+.git
+.venv
+.idea
+.github
+.pytest_cache
+__pycache__
+*.pyc
+uploads/*
+media/
