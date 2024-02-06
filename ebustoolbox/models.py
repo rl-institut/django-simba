@@ -420,6 +420,49 @@ def charge_type_from_db_to_station(charge_type: str, is_station: bool) -> str:
     raise Exception(f"{charge_type=} not found in EnumChargeTypes")
 
 
+class Consumption(models.Model):
+    """
+    Model representing Consumption data associated with a specific scenario
+
+    Attributes:
+        name (str): The name of the Consumption data, indicating its source or intention
+            (e.g., 'ConsumptionData of 12m Bus'). Cannot be blank.
+        scenario (Scenario): The scenario to which the temperature data is associated. Foreign key
+                             to the Scenario model.
+        columns (list): A list of strings indicating the columns of the data
+        data (list): A 2D list with data[y][x]. y is the row, and x the column. columns[x] gives the
+        column name of the datapoint
+
+
+    Usage Example:
+        To create a new Temperatures instance and associate it with a scenario, providing
+        temperature data:
+        >>> scenario_instance = Scenario.objects.get(id=1)
+        >>> consumption_instance = Consumption(
+        ...     scenario=scenario_instance,
+        ...     name="12m Consumption",
+        ...     columns=["speed", "incline", "consumption"]
+        ...     data=[[10,0,2], [20,0,1.8], [100,0,2.5], [100,0.1,4]],
+        ... )
+        >>> consumption_instance.save()
+    """
+
+    name = models.CharField(max_length=100)
+    # Scenario might be null for default consumption tables
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    columns = models.JSONField([], null=False)
+    data = ArrayField(
+        ArrayField(models.FloatField(), size=None),
+        size=None,
+    )
+
+    class Meta:
+        unique_together = ["name", "scenario"]
+
+    def __str__(self):
+        return "Consumption " + self.name
+
+
 class Temperatures(models.Model):
     """
     Model representing temperature data associated with a specific scenario, allowing for datetime interpolation.
