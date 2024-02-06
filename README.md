@@ -34,6 +34,8 @@
      DJANGO_DEBUG=True
      # Replace with your own database info
      DATABASE_URL=postgis://YOUR_DB_USERNAME:YOUR_PASSWORD@localhost/YOUR_DB_NAME
+     # Should the simulation run with eflips-depot. Development setting which will be set to True in stable Versions.
+     EFLIPS_USE=TRUE
      # Should celery be used? If so a CELERY_BROKER_URL has to be provided
      CELERY_USE=False
      # CELERY_BROKER_URL=pyamqp://guest@localhost//
@@ -97,12 +99,11 @@ SELECT PostGIS_version();
 ## Loading a SQL dump
 
 A database dump can be used to fill the database.
-In your terminal navigate to the dump file ending with sql. If it is a text based dump us. For some reason specifying
-the host seems to be needed on my machine. This has something to do how authentification seems to work.
-
+In your terminal navigate to the dump file ending with sql. If it is a text based dump use
 ```bash
 psql -U YourProjectuser -h 127.0.0.1 YourDBName < DumpFileName.sql;
 ```
+For some reason specifying the host seems to be needed on my machine. This has something to do how authentification seems to work.
 
 ## Docker install
 
@@ -118,57 +119,51 @@ https://docs.docker.com/engine/install/ubuntu/#install-from-a-package
 wsl users can try following this
 https://docs.docker.com/desktop/wsl/
 
-# Docker build and run
- STEP BY STEP AFTER INSTALLING DOCKER
-## go into your django-simba root containing manage.py
+## Docker build and run
+Go into your django-simba root containing manage.py
 
-## Using Docker without compose
-### Create a network for your postgres and django-app to communicate
+### With docker compose
+```bash
+sudo docker compose up
+```
+to remove this container
+```bash
+sudo docker compose down
+```
+### Using Docker without compose
+Create a network for your postgres and django-app to communicate
 ```bash
  docker network create mynetwork
  ```
-
- ### Optional check your networks
+Optional check your networks
 ```bash
  sudo docker network ls
   ```
-
- ### run a postgis instance in this network. Set you database according to your settings
+run a postgis instance in this network. Set your database according to your settings
 ```bash
  sudo docker run --name my-docker-postgres -e  POSTGRES_PASSWORD=1234 -e POSTGRES_USER=myprojectuser -e  POSTGRES_DB=mydb -d --network=mynetwork postgis/postgis
   ```
 
- Go into your Django .env file and make sure the host is the the same as in the above db, e.g. my-docker-postgres. this replaces "localhost" in the database url.
-
- ### Build your Django-simba docker
+ Go into your Django .env file and make sure the host is the same as in the above db, e.g. my-docker-postgres. this replaces "localhost" in the database url, e.g.
+```bash
+DATABASE_URL=postgis://myprojectuser:1234@my-docker-postgres:5432/mydb
+  ```
+The .env used while building will define which configuration the dockerimage will use
+Build your Django-simba docker
 ```bash
  sudo docker build -t django-simba .
   ```
-
- ### run the created docker in this network and expose the port
+run the created docker in this network and expose the port
 ```bash
  sudo docker run -p 8000:8000  --network=mynetwork django-simba
   ```
-
- #### Optional you can use the flag -d to start the container as detached. this means closing the terminal will NOT stop the container
-
- ### to stop the container
+Optional you can use the flag -d to start the container as detached. this means closing the terminal will NOT stop the container
+to stop the container
 ```bash
  sudo docker stop CONTAINER_ID
  ```
 
- ### Alternatively most of the above can be simplified by running
-```bash
-sudo docker compose up
-```
-
-to remove this container
-
-```bash
-sudo docker compose down
-```
-
-### In the above options only docker compose uses a permanent storage for the database. by creating the volume postgres_data. In other words stopping the container and starting it again, the database will not have lost its data. At the same time, migrations have to respect the existing data aswell.
+In the above options only docker compose uses a permanent storage for the database. By creating the volume postgres_data. In other words stopping the container and starting it again, the database will not have lost its data. At the same time, migrations have to respect the existing data aswell.
 ### Volumes can be checked using
 ```bash
 sudo docker volume ls
@@ -178,5 +173,4 @@ or removed
 ```bash
 sudo docker volume rm VOLUME_ID
 ```
-
 but only if the docker is not running

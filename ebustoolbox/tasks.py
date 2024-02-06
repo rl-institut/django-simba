@@ -902,7 +902,7 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):
             soc_start=soc_start,
             soc_end=soc_end,
             time_start=vehicle_event.start_time.astimezone(),
-            time_end=end_time.astimezone() - timedelta(seconds=1),
+            time_end=end_time.astimezone(),
             timeseries=timeseries,
             event_type=event_type,
         )
@@ -934,7 +934,6 @@ def add_simple_depot(scenario: Scenario):
         scenario=scenario,
         dispatchable=False,
         duration=timedelta(minutes=30),
-        availability=None,
     )
     charging = Process.objects.create(
         name="Charging",
