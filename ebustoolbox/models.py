@@ -1,16 +1,16 @@
 import shutil
 from datetime import timedelta, datetime
-from pathlib import Path
-import numpy as np
 from functools import partial
+from pathlib import Path
 
+import numpy as np
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.db.models import QuerySet, Sum
-from django.utils.timezone import make_aware
 from django.dispatch import receiver
+from django.utils.timezone import make_aware
 
 from django.db.models import Case, When, Value, CharField
 from django.db.models.functions import Length
@@ -330,15 +330,6 @@ class Vehicle(models.Model):
 
     def __str__(self):
         return self.name
-
-
-# ToDo Deprecated
-class VehicleProperties(models.Model):
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
-
-    date = models.DateTimeField()
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
-    soc = models.FloatField(null=True)
 
 
 class Rotation(models.Model):
@@ -679,7 +670,7 @@ class Station(models.Model):
         db_table = "Station"
 
     # Map Engine models need geom and name as first columns
-    geom = models.PointField(dim=3, srid=4326)  # without z elevation
+    geom = models.PointField(dim=3, srid=4326, null=True)  # without z elevation
     name = models.TextField(null=False)
     name_short = models.TextField(null=True, blank=True)
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
@@ -924,7 +915,7 @@ class Trip(models.Model):
         departure_time (DateTimeField): The departure time for the trip. Cannot be blank.
         arrival_time (DateTimeField): The arrival time for the trip. Cannot be blank.
 
-        type (str): The type of the trip. Choices defined by EnumTripType.
+        trip_type (str): The type of the trip. Choices defined by EnumTripType.
                     Defaults to EnumTripType.PASSENGER_TRIP.
 
         loaded_mass (float, optional): The mass that is loaded in [kg], i.e. mass of passengers.
@@ -951,7 +942,7 @@ class Trip(models.Model):
         ...     rotation=rotation_instance,
         ...     departure_time=datetime.datetime(2024, 1, 1, 8, 0, 0),
         ...     arrival_time=datetime.datetime(2024, 1, 1, 9, 0, 0),
-        ...     type=EnumTripType.PASSENGER_TRIP,
+        ...     trip_type=EnumTripType.PASSENGER_TRIP,
         ...     level_of_loading=0.8,
         ... )
         >>> trip_instance.save()
@@ -972,7 +963,7 @@ class Trip(models.Model):
     arrival_time = models.DateTimeField(blank=False)
 
     # Is the Trip empty, i.e., without passengers
-    type = models.CharField(
+    trip_type = models.CharField(
         max_length=9, choices=EnumTripType.choices, default=EnumTripType.PASSENGER_TRIP
     )
 
@@ -1062,7 +1053,7 @@ class EventType(models.TextChoices):
     DRIVING = "DRIVING"
     CHARGING_OPPORTUNITY = "CHARGING_OPPORTUNITY"
     CHARGING_DEPOT = "CHARGING_DEPOT"
-    SERCVICE = "SERVICE"
+    SERVICE = "SERVICE"
     STANDBY_DEPARTURE = "STANDBY_DEPARTURE"
     PRECONDITIONING = "PRECONDITIONING"
 

@@ -24,12 +24,13 @@ def create_app(task_id: str):
     sa1, created = StatelessApp.objects.get_or_create(
         app_name="SimpleExampleApp", slug="simple-example"
     )
-    if created:
+    if not created:
         sa1.save()
 
-    app_instance, _ = DashApp.objects.get_or_create(
+    app_instance, created = DashApp.objects.get_or_create(
         stateless_app=sa1,
         instance_name=sa1.app_name + "_" + task_id,
         slug=task_id,
     )  # replaces dash.Dash
-    app_instance.save()
+    if not created:
+        app_instance.save()

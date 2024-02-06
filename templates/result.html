@@ -1,6 +1,10 @@
 {% extends 'base.html'%}
 {% block title %}Simulation Results{% endblock %}
 {% block header %}
+  <script>
+  var task_id = "{{task_id }}";
+  console.log(task_id);
+    </script>
 {% endblock %}
 {% block content %}
 
@@ -28,8 +32,6 @@
         {% endwith %}
       </div>
         <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
-
-                <div id="chart"></div>
                 {% load plotly_dash %}
 
                {% plotly_app  slug=task_id ratio=0.9 %}

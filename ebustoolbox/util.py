@@ -1,6 +1,15 @@
+import sys
+
+import matplotlib
 from .models import Scenario, Vehicle
 from celery import uuid
 import pandas as pd
+
+if not any(["selenium" in str(x) for x in sys.modules.values()]):
+    # do not use tkagg during testing since it does not work with headless selenium
+    # Explicitly call backend. Put into env? Without simba does not always properly generate plots
+    matplotlib.use("Agg")
+
 
 def get_unique_task_id() -> str:
     task_id_not_unique = True
@@ -32,14 +41,16 @@ def get_soc(scenario_id):
     for event in events:
         if event.vehicle_id not in socs:
             socs[event.vehicle_id] = []
-        socs[event.vehicle_id].append({
-            "station":    event.station_id,
-            "time_start": event.time_start.isoformat(),
-            "time_end": event.time_end.isoformat(),
-            "soc_start":  event.soc_start,
-            "soc_end":    event.soc_end,
-            "timeseries": event.timeseries["soc"],
-        })
+        socs[event.vehicle_id].append(
+            {
+                "station": event.station_id,
+                "time_start": event.time_start.isoformat(),
+                "time_end": event.time_end.isoformat(),
+                "soc_start": event.soc_start,
+                "soc_end": event.soc_end,
+                "timeseries": event.timeseries["soc"],
+            }
+        )
     return socs
 
 def get_soc_as_dataframe(scenario_id):
@@ -92,7 +103,8 @@ def get_stations(scenario_id):
     """
     scenario = Scenario.objects.get(id=scenario_id)
     events = scenario.event_set.filter(station__isnull=False)
-    return dict()
+    # TODO proper return
+    return events
 
 
 def rotation_filter(scenario_id, threshold=0):
@@ -109,7 +121,7 @@ def rotation_filter(scenario_id, threshold=0):
     scenario = Scenario.objects.get(id=scenario_id)
     events = scenario.event_set.filter(trip__isnull=False)
     # get all rotations with trips below threshold
-    below_threshold = events.filter(soc_end__lt=threshold).values('trip__rotation')
+    below_threshold = events.filter(soc_end__lt=threshold).values("trip__rotation")
     # get all scenario rotations with no trip below
     rotations = scenario.rotation_set.exclude(id__in=below_threshold)
     return [r.id for r in rotations]
