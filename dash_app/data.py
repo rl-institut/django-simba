@@ -6,6 +6,7 @@ import numpy as np
 
 from ebustoolbox.models import (
     Scenario,
+    Vehicle,
     Event,
     Rotation,
     get_longest_distance_rotation,
@@ -129,29 +130,32 @@ def get_soc(scenario_id):
         })
     return socs
 
-def get_soc_as_dataframe(scenario_id):
+def get_soc_as_dataframe(scenario_id, buses):
 
-    socs = get_soc(scenario_id)
-    scenario = Scenario.objects.get(id=scenario_id)
+
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
+    scenario = Scenario.objects.get(id=scenario_id)
+    # get all vehicle events from this scenario at a station
+
 
     dfs = []
 
     for vehicle in vehicles:
-        v_id = vehicle.id
-        print(socs.keys(), v_id)
-        print(socs)
-        for element in socs[vehicle.id]:
-            time_start = element['time_start']
-            soc_start = element['soc_start']
-            # Add a row to the DataFrame
-            df = pd.DataFrame({'V_id': [v_id], 'Time': [time_start], 'SOC': [soc_start]})
-            dfs.append(df)
-            time_start = element['time_end']
-            soc_start = element['soc_end']
-            # Add a row to the DataFrame
-            df = pd.DataFrame({'V_id': [v_id], 'Time': [time_start], 'SOC': [soc_start]})
-            dfs.append(df)
+        if vehicle.name_short in buses:
+            v_id = vehicle.id
+            events = scenario.event_set.filter(vehicle__isnull=False, vehicle_id=v_id)
+            for event in events:
+                print("EVENT: ", event)
+                time_start = event.time_start
+                soc_start = event.soc_start
+                # Add a row to the DataFrame
+                df = pd.DataFrame({'V_id': [v_id], 'Time': [time_start], 'SOC': [soc_start]})
+                dfs.append(df)
+                time_end = event.time_end
+                soc_end = event.soc_end
+                # Add a row to the DataFrame
+                df = pd.DataFrame({'V_id': [v_id], 'Time': [time_end], 'SOC': [soc_end]})
+                dfs.append(df)
     result_df = pd.concat(dfs, ignore_index=True)
 
     # Convert the 'Time' column to datetime format
