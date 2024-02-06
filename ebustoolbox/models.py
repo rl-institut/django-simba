@@ -879,6 +879,9 @@ class Route(models.Model):
         geo_col="geom", columns=["id", "geom", "name"]
     )
 
+    # Add a default manager
+    objects = models.Manager()
+
 class AssocRouteStation(models.Model):
     """
     This model is used to store the many-to-many relationship between Route and Station. It also contains metadata

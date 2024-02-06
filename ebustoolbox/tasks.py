@@ -497,8 +497,8 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
             trip_id += 1
     Line.objects.bulk_create(model_lines)
 
-    print(Line.objects)
-    print(Route.objects)
+    print(dir(Line))
+    print(dir(Route))
     Route.objects.bulk_create(model_routes)
     Rotation.objects.bulk_create(model_rotations)
     Trip.objects.bulk_create(model_trips)
