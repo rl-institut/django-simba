@@ -1,5 +1,5 @@
 from dash import Dash, html, dcc
-from . import bus_dropdown, report_numbers
+from . import bus_dropdown, report_numbers, histograms
 import plotly.graph_objs as go
 
 # def create_layout(app: Dash) -> html.Div:
@@ -69,5 +69,7 @@ def block_bottom_center(app):
                 "data": [go.Bar(bar_data)],
                 "layout": {"margin": {"t": 0, "r": 0, "l": 0, "b": 0}},
             },
-        )  # Bar chart
+        ),  # Bar chart
+
+        histograms.render(app)
     ]
