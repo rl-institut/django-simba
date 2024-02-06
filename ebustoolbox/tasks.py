@@ -1,6 +1,5 @@
 import collections
 import csv
-import json
 import shutil
 import traceback
 from argparse import Namespace
@@ -662,14 +661,22 @@ def vary_depot_rotations(schedule) -> "collections.Iterable[SimbaRotation]":
     schedule.rotations = orig_rotations
 
 
+def run_toolchain_from_scenario(django_scenario: Scenario):
+    simba_schedule_db, args_db = get_schedule_from_db(django_scenario)
+    run_ebus_toolchain(simba_schedule_db, args_db, django_scenario.task_id)
+
+
+def run_simba_scenario(django_scenario: Scenario):
+    simba_schedule_db, args_db = get_schedule_from_db(django_scenario)
+    run_simba(simba_schedule_db, args_db, django_scenario.task_id)
+
+
 def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
     """Run the tool chain"""
     # set report dir for first iteration
     args.output_directory = Path(settings.UPLOAD_PATH) / task_id
-    report_dir = Path(settings.BASE_DIR, args.output_directory, "report_1")
     # call simba and eflips
-    run_simba(schedule, args, task_id, report_dir=report_dir)
-    # Currently some plots are generated and but not closed.
+    run_simba(schedule, args, task_id)
     # ToDo: Do this inside simba or spice ev
     plt.close()
 
@@ -685,7 +692,7 @@ def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
         # TODO: currently report_directory is set in simba internally and is always report_1 for current purposes
         # (number changes by the amount of reports in the same fun of SimBA)
         # call simba with eflips results
-        run_simba(schedule, args, task_id, report_dir=report_dir)
+        run_simba(schedule, args, task_id)
 
 
 def get_assigned_vehicles(task_id: str, prev_events: List[Event]):
@@ -764,7 +771,6 @@ def run_simba(
     schedule: SimbaSchedule,
     args,
     task_id,
-    report_dir=Path(".", "report"),
 ):
     # TODO don't overwrite output on multiple function calls
     args.attach_vehicle_soc = True
@@ -807,9 +813,6 @@ def run_simba(
     schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
     db_scenario.finished = timezone.now()
     db_scenario.save()
-    # Create the file for eflips. This could be passed directly to eFlips by returning eflips_input
-    with open(Path(report_dir, "eflips_input.json"), "w") as f:
-        json.dump(input_for_eflips, f, indent=4)
 
     create_event_output(scenario, task_id)
 
@@ -961,17 +964,18 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):
                 f"No trip assigned to vehicle {vehicle.name_short}/ID:{vehicle.id} found in database."
             )
 
+        event_time = vehicle_event.start_time
+        aware_start_time = make_aware(event_time) if not is_aware(event_time) else event_time
+
         if vehicle_event.event_type == "arrival":
-            station = vehicle_trips.get(
-                arrival_time=make_aware(vehicle_event.start_time)
-            ).route.arrival_station
+            station = vehicle_trips.get(arrival_time=aware_start_time).route.arrival_station
 
             is_charging = vehicle_event.update["connected_charging_station"] is not None
             event_type = (
                 EventType.CHARGING_OPPORTUNITY if is_charging else EventType.STANDBY_DEPARTURE
             )
         elif vehicle_event.event_type == "departure":
-            trip = vehicle_trips.get(departure_time=make_aware(vehicle_event.start_time))
+            trip = vehicle_trips.get(departure_time=aware_start_time)
             event_type = EventType.DRIVING
         else:
             raise NotImplementedError("Unkown vehicle event type")
