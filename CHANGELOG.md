@@ -19,6 +19,7 @@ Template:
 
 ### Changed
 - [(#45)](https://github.com/rl-institut/django-simba/pull/45)
+- Eflips-depot is currently turned off in the toolchain, since it breaks testing
 - Changed the type of datetimes and data to arrayfields
 - Temperatures or other values can now be easily interpolated or looked up
 - Test file for temperatures uploaded
