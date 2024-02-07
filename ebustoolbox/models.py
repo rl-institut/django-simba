@@ -2,15 +2,20 @@ import shutil
 from datetime import timedelta, datetime
 from functools import partial
 from pathlib import Path
+import warnings
 
 import numpy as np
+from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
+from scipy.spatial._qhull import QhullError
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
-from django.db.models import QuerySet, Sum
+from django.db.models import QuerySet, Sum, Q
+from django.db.models.constraints import UniqueConstraint
 from django.dispatch import receiver
 from django.utils.timezone import make_aware
+
 
 MINIMAL_TRIP_DURATION_S = 60  # seconds
 
@@ -429,39 +434,99 @@ class Consumption(models.Model):
             (e.g., 'ConsumptionData of 12m Bus'). Cannot be blank.
         scenario (Scenario): The scenario to which the temperature data is associated. Foreign key
                              to the Scenario model.
-        columns (list): A list of strings indicating the columns of the data
-        data (list): A 2D list with data[y][x]. y is the row, and x the column. columns[x] gives the
-        column name of the datapoint
 
 
-    Usage Example:
-        To create a new Consumption instance and associate it with a scenario, providing data:
-        >>> scenario_instance = Scenario.objects.get(id=1)
-        >>> consumption_instance = Consumption(
-        ...     scenario=scenario_instance,
-        ...     name="12m Consumption",
-        ...     columns=["speed", "incline", "consumption"]
-        ...     data=[[10,0,2], [20,0,1.8], [100,0,2.5], [100,0.1,4]],
-        ... )
-        >>> consumption_instance.save()
     """
 
     name = models.CharField(max_length=100)
     # Scenario might be null for default consumption tables
     scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
     columns = models.JSONField([], null=False)
-    data = ArrayField(
-        ArrayField(models.FloatField(), size=None),
-        size=None,
-    )
+    data_points = ArrayField(ArrayField(models.FloatField(), size=None), size=None, null=False)
+    values = ArrayField(models.FloatField(), size=None, null=False)
+
+    linear_interpolator = None
+    nearest_interpolator = None
+    one_dim = False
 
     class Meta:
-        unique_together = ["name", "scenario"]
+        constraints = [
+            UniqueConstraint(fields=["name", "scenario"], name="unique_with_scenario"),
+            UniqueConstraint(
+                fields=["name"], condition=Q(scenario=None), name="unique_without_scenario"
+            ),
+        ]
 
     def __str__(self):
         consumption_column = self.columns.index("consumption")
-        avg = np.array(self.data)[:, consumption_column].mean()
+        avg = np.array(self.values)[:, consumption_column].mean()
         return f"Consumption table {self.name} with average consumption of {avg:.1f} "
+
+    def get_consumption(self, input_point: dict | list) -> float:
+        """Get the consumption for a dict of input conditions.
+
+        Pass a dict containing all the keys of the columns of the consumption table. These are
+        available via get_columns(self). Optionally pass a list of values with the same order as
+        columns
+        """
+        point = input_point
+        if isinstance(input_point, dict):
+            if not set(input_point.keys()) == set(self.columns):
+                error = f"{input_point} does not contain exactly the needed columns:{self.columns}"
+                raise ValueError(error)
+            point = [input_point[key] for key in self.columns]
+
+        if self.linear_interpolator is None or self.nearest_interpolator is None:
+            self._set_interpolators()
+
+        output = self.linear_interpolator(point)
+        if np.isnan(output):
+            output = self.nearest_interpolator(point)
+        return output
+
+    def _set_interpolators(self):
+        if self.dims() == 1:
+            data = np.array(self.data_points).squeeze()
+
+            def partial_func(point):
+                return np.interp(point, data, self.values)
+
+            self.linear_interpolator = partial_func
+
+            def find_nearest(value):
+                array = np.asarray(data.squeeze())
+                idx = (np.abs(array - value)).argmin()
+                return self.values[idx]
+
+            self.nearest_interpolator = find_nearest
+            return
+        try:
+            self.linear_interpolator = LinearNDInterpolator(self.data_points, self.values)
+        except QhullError:
+            warnings.warn(
+                "Consumption table does not contain enough elements for multidimensional"
+                " linear interpolation. Nearest Interpolation is used instead."
+            )
+            self.linear_interpolator = NearestNDInterpolator(self.data_points, self.values)
+        self.nearest_interpolator = NearestNDInterpolator(self.data_points, self.values)
+
+    def dims(self):
+        return np.array(self.data_points).shape[1]
+
+    def get_columns(self):
+        return self.columns
+
+    def save(self, *args, **kwargs):
+        if len(self.columns) > 1 and len(self.data_points) != len(self.values):
+            error = "Consumption table does not have the same amount of data_points and values"
+            raise AttributeError(error)
+        if len(self.columns) == 1:
+            data = np.array(self.data_points)
+            if len(data.shape) == 1:
+                # Transform a list like [1,2,3] to [[1],[2],[3]]
+                self.data_points = np.expand_dims(self.data_points, 0).T.tolist()
+        self._set_interpolators()
+        super().save(*args, **kwargs)
 
 
 class Temperatures(models.Model):
