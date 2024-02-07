@@ -145,7 +145,6 @@ def get_soc_as_dataframe(scenario_id, buses):
             v_id = vehicle.id
             events = scenario.event_set.filter(vehicle__isnull=False, vehicle_id=v_id)
             for event in events:
-                print("EVENT: ", event)
                 time_start = event.time_start
                 soc_start = event.soc_start
                 # Add a row to the DataFrame
@@ -163,5 +162,35 @@ def get_soc_as_dataframe(scenario_id, buses):
 
     # Sort the DataFrame based on the 'Time' column
     result_df = result_df.sort_values(by='Time')
+
+    return result_df
+
+
+def get_activities_as_dataframe(scenario_id, buses):
+    vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
+    scenario = Scenario.objects.get(id=scenario_id)
+    # get all vehicle events from this scenario at a station
+
+    dfs = []
+
+    for vehicle in vehicles:
+        if vehicle.name_short in buses:
+            v_id = vehicle.id
+            events = scenario.event_set.filter(vehicle__isnull=False, vehicle_id=v_id)
+            for event in events:
+                time_start = event.time_start
+                event_type = event.event_type
+                duration = (pd.to_datetime(event.time_end) - pd.to_datetime(event.time_start)).total_seconds()
+                time_end = event.time_end
+                # Add a row to the DataFrame
+                df = pd.DataFrame({'V_id': [v_id], 'time_start': [time_start],'time_end': [time_end],'duration': [duration], 'event_type': [event_type]})
+                dfs.append(df)
+    result_df = pd.concat(dfs, ignore_index=True)
+
+    # Convert the 'Time' column to datetime format
+    result_df['time_start'] = pd.to_datetime(result_df['time_start'])
+    result_df['time_end'] = pd.to_datetime(result_df['time_end'])
+    # Sort the DataFrame based on the 'Time' column
+    result_df = result_df.sort_values(by='time_start')
 
     return result_df

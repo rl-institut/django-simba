@@ -1,5 +1,5 @@
 from dash import Dash, html
-from . import bus_dropdown, report_numbers, scatter_chart, bar_chart, histograms
+from . import bus_dropdown, report_numbers, scatter_chart, bar_chart, histograms, activities_chart
 
 
 def create_layout(app: Dash) -> html.Div:
@@ -50,4 +50,4 @@ def block_top_right(app):
 
 
 def block_bottom_center(app):
-    return [histograms.render(app)]
+    return [histograms.render(app), activities_chart.render(app)]
