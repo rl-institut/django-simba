@@ -42,17 +42,11 @@ from .models import (
     charge_type_from_simba_to_db,
     charge_type_from_db_to_station,
     Temperatures,
-    Depot,
-    Process,
-    Plan,
-    Area,
-    AreaType,
-    AssocAreaProcess,
     Event,
     EventType,
 )
 
-from eflips.depot.api import simulate_scenario
+from eflips.depot.api import simulate_scenario, generate_depot_layout
 
 if TYPE_CHECKING:
     from spice_ev.scenario import Scenario as SimbaScenario
@@ -677,9 +671,6 @@ def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
     plt.close()
 
     if settings.EFLIPS_USE:
-        return
-        # eflips is skipped for now since it breaks testing. Some sessions are not closed, which
-        # cannot be handled properly from django-simba
         run_eflips(task_id)
         # Todo assign from database
         eflips_assignment = get_assigned_vehicles(task_id)
@@ -802,10 +793,8 @@ def depot_rotation_to_eflips_input(db_rotation, db_scenario, input_for_eflips, r
 
 
 def run_eflips(task_id) -> None:
-    db_scenario = Scenario.objects.get(task_id=task_id)
-
     # create dummy depot
-    add_simple_depot(db_scenario)
+    db_scenario = Scenario.objects.get(task_id=task_id)
 
     # Constructing the database URL manually
     db_dict = settings.DATABASES["default"]
@@ -816,7 +805,11 @@ def run_eflips(task_id) -> None:
     db_url = (
         f"{engine}://{db_dict['USER']}:{db_dict['PASSWORD']}@{db_dict['HOST']}/{db_dict['NAME']}"
     )
-    simulate_scenario(db_scenario.pk, database_url=db_url)
+
+    generate_depot_layout(
+        db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=False
+    )
+    simulate_scenario(db_scenario, database_url=db_url)
 
 
 def get_timestep(simba_scenario: "SimbaScenario", timestamp: datetime) -> int:
@@ -911,79 +904,3 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):
             event_type=event_type,
         )
         event.save()
-
-
-def add_simple_depot(scenario: Scenario):
-    # Create a simple depot
-    # See if a depot already exists
-    depot_q = Depot.objects.filter(scenario=scenario)
-    if depot_q.count() > 0:
-        return depot_q.first()
-
-    # Create plan
-    plan = Plan.objects.create(scenario=scenario, name="Test Plan")
-
-    depot = Depot.objects.create(
-        scenario=scenario, name="Test Depot", name_short="TD", default_plan=plan
-    )
-
-    # Create processes
-    standby_arrival = Process.objects.create(
-        name="Standby Arrival",
-        scenario=scenario,
-        dispatchable=False,
-    )
-    clean = Process.objects.create(
-        name="Arrival Cleaning",
-        scenario=scenario,
-        dispatchable=False,
-        duration=timedelta(minutes=30),
-        availability=None,
-    )
-    charging = Process.objects.create(
-        name="Charging",
-        scenario=scenario,
-        dispatchable=False,
-        electric_power=90,
-    )
-    standby_departure = Process.objects.create(
-        name="Standby Pre-departure",
-        scenario=scenario,
-        dispatchable=True,
-    )
-
-    # Create areas for each vehicle type
-    vehicle_types = VehicleType.objects.filter(scenario=scenario)
-    for vehicle_type in vehicle_types:
-        CAPACITY = 2000
-        # Create areas
-        arrival_area = Area.objects.create(
-            scenario=scenario,
-            name=f"Arrival for {vehicle_type.name_short}",
-            depot=depot,
-            area_type=AreaType.DIRECT_ONESIDE,
-            capacity=CAPACITY,
-            vehicle_type=vehicle_type,
-        )
-
-        cleaning_area = Area.objects.create(
-            scenario=scenario,
-            name=f"Cleaning Area for {vehicle_type.name_short}",
-            depot=depot,
-            area_type=AreaType.DIRECT_ONESIDE,
-            capacity=CAPACITY,
-            vehicle_type=vehicle_type,
-        )
-
-        charging_area = Area.objects.create(
-            scenario=scenario,
-            name=f"Direct Charging Area for {vehicle_type.name_short}",
-            depot=depot,
-            area_type=AreaType.DIRECT_ONESIDE,
-            capacity=CAPACITY,
-            vehicle_type=vehicle_type,
-        )
-        AssocAreaProcess.objects.create(area=cleaning_area, process=clean)
-        AssocAreaProcess.objects.create(area=arrival_area, process=standby_arrival)
-        AssocAreaProcess.objects.create(area=charging_area, process=charging)
-        AssocAreaProcess.objects.create(area=charging_area, process=standby_departure)
