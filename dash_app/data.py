@@ -9,12 +9,14 @@ from ebustoolbox.models import (
     Vehicle,
     Event,
     Rotation,
+    Route,
+    Trip,
     get_longest_distance_rotation,
     get_shortest_distance_rotation,
     EventType,
 )
 import pandas as pd
-from django.db.models import Min
+from django.db.models import Min, Sum
 from dash.exceptions import PreventUpdate
 
 
@@ -192,5 +194,34 @@ def get_activities_as_dataframe(scenario_id, buses):
     result_df['time_end'] = pd.to_datetime(result_df['time_end'])
     # Sort the DataFrame based on the 'Time' column
     result_df = result_df.sort_values(by='time_start')
+
+    return result_df
+
+
+def get_distances_as_dataframe(scenario_id, buses):
+    vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
+    scenario = Scenario.objects.get(id=scenario_id)
+    # get all vehicle events from this scenario at a station
+
+    dfs = []
+
+    for vehicle in vehicles:
+        if vehicle.name_short in buses:
+            v_id = vehicle.id
+            rotations = scenario.rotation_set.filter(vehicle__isnull=False, vehicle_id=v_id)
+            for rotation in rotations:
+                trips = scenario.trip_set.filter(rotation_id=rotation.id)
+                for trip in trips:
+                    routes = Route.objects.filter(scenario_id=scenario_id, id=trip.route_id)
+                    for route in routes:
+                        distance = route.distance
+
+
+                        df = pd.DataFrame({'V_id': [v_id], 'total_distance': [distance]})
+                        dfs.append(df)
+
+    result_df = pd.concat(dfs, ignore_index=True)
+    result_df = result_df.groupby('V_id')['total_distance'].sum().reset_index()
+    print(result_df)
 
     return result_df
