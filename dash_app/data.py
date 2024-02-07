@@ -210,18 +210,42 @@ def get_distances_as_dataframe(scenario_id, buses):
             v_id = vehicle.id
             rotations = scenario.rotation_set.filter(vehicle__isnull=False, vehicle_id=v_id)
             for rotation in rotations:
+                r_id = rotation.id
                 trips = scenario.trip_set.filter(rotation_id=rotation.id)
                 for trip in trips:
                     routes = Route.objects.filter(scenario_id=scenario_id, id=trip.route_id)
                     for route in routes:
                         distance = route.distance
 
-
-                        df = pd.DataFrame({'V_id': [v_id], 'total_distance': [distance]})
+                        df = pd.DataFrame({'V_id': [v_id], 'R_id': [r_id], 'total_distance': [distance]})
                         dfs.append(df)
 
     result_df = pd.concat(dfs, ignore_index=True)
-    result_df = result_df.groupby('V_id')['total_distance'].sum().reset_index()
+    result_df = result_df.groupby('R_id')['total_distance'].sum().reset_index()
+
+    return result_df
+
+
+def get_duration_as_dataframe(scenario_id, buses):
+    vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
+    scenario = Scenario.objects.get(id=scenario_id)
+    # get all vehicle events from this scenario at a station
+
+    dfs = []
+
+    for vehicle in vehicles:
+        if vehicle.name_short in buses:
+            v_id = vehicle.id
+            rotations = scenario.rotation_set.filter(vehicle__isnull=False, vehicle_id=v_id)
+            for rotation in rotations:
+                r_id = rotation.id
+                trips = scenario.trip_set.filter(rotation_id=rotation.id)
+                for trip in trips:
+                    duration = (pd.to_datetime(trip.arrival_time) - pd.to_datetime(trip.departure_time)).total_seconds()
+                    df = pd.DataFrame({'V_id': [v_id], 'R_id': [r_id], 'duration': [duration]})
+                    dfs.append(df)
+    result_df = pd.concat(dfs, ignore_index=True)
+    result_df = result_df.groupby('R_id')['duration'].sum().reset_index()
     print(result_df)
 
     return result_df
