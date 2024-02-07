@@ -31,6 +31,7 @@ from .models import (
     Temperatures,
     Event,
     EventType,
+    Consumption,
 )
 
 TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
@@ -569,6 +570,14 @@ class ScenarioTestCase(TestCase):
         self.assertIsNone(instance_1.task_id)
 
 
+class ConsumptionTestCase(TestCase):
+    consumption_instance = Consumption.objects.create(
+        name="My Consumption",
+        columns=["speed", "consumption"],
+        data=[[10, 1], [100, 3]],
+    )
+
+
 class TemperaturesTestCase(TestCase):
     def test_model_creation(self):
         date1 = make_aware(datetime(year=2024, month=1, day=1))
@@ -635,6 +644,7 @@ class TemperaturesTestCase(TestCase):
         self.assertRaises(AttributeError, t_instance.save)
 
     def test_temperatures_from_csv(self):
+        # ToDO To be implemented
         pass
 
 

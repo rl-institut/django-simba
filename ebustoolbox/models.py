@@ -435,8 +435,7 @@ class Consumption(models.Model):
 
 
     Usage Example:
-        To create a new Temperatures instance and associate it with a scenario, providing
-        temperature data:
+        To create a new Consumption instance and associate it with a scenario, providing data:
         >>> scenario_instance = Scenario.objects.get(id=1)
         >>> consumption_instance = Consumption(
         ...     scenario=scenario_instance,
@@ -460,7 +459,9 @@ class Consumption(models.Model):
         unique_together = ["name", "scenario"]
 
     def __str__(self):
-        return "Consumption " + self.name
+        consumption_column = self.columns.index("consumption")
+        avg = np.array(self.data)[:, consumption_column].mean()
+        return f"Consumption table {self.name} with average consumption of {avg:.1f} "
 
 
 class Temperatures(models.Model):
