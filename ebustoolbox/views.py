@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.db.transaction import atomic
 from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest
 from django.shortcuts import render, redirect
@@ -16,7 +17,7 @@ from .forms import UploadFileForm
 from .util import get_unique_task_id
 
 import ebustoolbox
-from ebustoolbox.models import Scenario
+from ebustoolbox.models import Scenario, UserGroup
 
 
 def show_uploads_view(request: HttpRequest, filename):
@@ -138,7 +139,6 @@ def save_and_simulate(
     django_scenario, simba_schedule, args = tasks.input_files_to_database(cleaned_data, request)
     if request.user.is_authenticated:
         django_scenario.manager = request.user
-        django_scenario.users.add(request.user)
     # start computation
     task_id = get_unique_task_id()
     django_scenario.task_id = task_id
@@ -160,3 +160,51 @@ def download_scenario(request: HttpRequest, task_id: str):
 def generate_zip(request: HttpRequest, task_id: str):
     tasks.generate_zipped_scenario(task_id)
     return download_scenario(request, task_id)
+
+
+@login_required(login_url="/login/")
+def scenarios(request):
+    # show all scenarios of a user. Also endpoint for update and delete (POST)
+    if request.method == "POST":
+        if "update" in request.POST:
+            # update scenario user groups
+            scenario = Scenario.objects.get(id=request.POST["update"])
+            usergroups = map(int, request.POST["values"].split(','))
+            for ug in request.user.usergroup_set.all():
+                if ug.id in usergroups:
+                    ug.scenarios.add(scenario)
+                elif scenario in ug.scenarios.all():
+                    ug.scenarios.remove(scenario)
+            return HttpResponse(status=201)  # created
+        if "delete" in request.POST:
+            Scenario.objects.filter(id=request.POST["delete"]).delete()
+    scenarios = Scenario.objects.filter(manager=request.user)
+    usergroups = request.user.usergroup_set.all()
+    for ug in usergroups:
+        scenarios = scenarios.union(ug.scenarios.all())
+    scenarios = scenarios.order_by("id")
+    return render(request, "scenarios.html", {"scenarios": scenarios})
+
+
+@login_required(login_url="/login/")
+def usergroups(request):
+    # manage usergroups of a user. Also endpoint for add, update and delete (POST)
+    if request.method == "POST":
+        if "add" in request.POST:
+            # TODO: should be a form
+            ug = UserGroup.objects.create(
+                name=request.POST["name"],
+            )
+            ug.users.add(request.user)
+        elif "leave" in request.POST:
+            ug = request.user.usergroup_set.all().get(id=request.POST["leave"])
+            ug.users.remove(request.user)
+            if not ug.users:
+                # delete user group after last one has left
+                ug.delete()
+    usergroups = request.user.usergroup_set.all()
+    scenarios = Scenario.objects.filter(manager=request.user)
+    for ug in usergroups:
+        scenarios = scenarios.union(ug.scenarios.all())
+    scenarios = scenarios.order_by("id")
+    return render(request, "usergroups.html", {"scenarios": scenarios, "usergroups": usergroups})
