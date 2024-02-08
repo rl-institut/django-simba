@@ -20,6 +20,7 @@ jobs:
       matrix:
         os: [ ubuntu-latest, windows-latest ]
         python-version: [ "3.11" ]
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v3
@@ -41,6 +42,7 @@ jobs:
     needs: dev-tools
     # You must use a Linux environment when using service containers or container jobs
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # Service containers to run with `runner-job`
     services:
       # Label used to access the service container
