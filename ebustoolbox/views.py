@@ -177,7 +177,7 @@ def scenarios(request):
                     ug.scenarios.remove(scenario)
             return HttpResponse(status=201)  # created
         if "delete" in request.POST:
-            Scenario.objects.filter(id=request.POST["delete"]).delete()
+            Scenario.objects.filter(manager=request.user).filter(id=request.POST["delete"]).delete()
     scenarios = Scenario.objects.filter(manager=request.user)
     usergroups = request.user.usergroup_set.all()
     for ug in usergroups:
