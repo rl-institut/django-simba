@@ -93,6 +93,7 @@ class UserGroup(models.Model):
     - users (M2M User): participants of group
     - scenarios (M2M Scenario): shared scenarios
     """
+
     name = models.TextField(blank=False)
     users = models.ManyToManyField(User)
     scenarios = models.ManyToManyField(Scenario)

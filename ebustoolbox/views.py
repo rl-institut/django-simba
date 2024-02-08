@@ -169,7 +169,7 @@ def scenarios(request):
         if "update" in request.POST:
             # update scenario user groups
             scenario = Scenario.objects.get(id=request.POST["update"])
-            usergroups = map(int, request.POST["values"].split(','))
+            usergroups = map(int, request.POST["values"].split(","))
             for ug in request.user.usergroup_set.all():
                 if ug.id in usergroups:
                     ug.scenarios.add(scenario)
