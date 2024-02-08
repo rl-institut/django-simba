@@ -188,7 +188,7 @@ def scenarios(request):
 
 @login_required(login_url="/login/")
 def usergroups(request):
-    # manage usergroups of a user. Also endpoint for add, update and delete (POST)
+    # manage usergroups of a user. Also endpoint for add and leave (POST)
     if request.method == "POST":
         if "add" in request.POST:
             # TODO: should be a form
@@ -203,8 +203,4 @@ def usergroups(request):
                 # delete user group after last one has left
                 ug.delete()
     usergroups = request.user.usergroup_set.all()
-    scenarios = Scenario.objects.filter(manager=request.user)
-    for ug in usergroups:
-        scenarios = scenarios.union(ug.scenarios.all())
-    scenarios = scenarios.order_by("id")
-    return render(request, "usergroups.html", {"scenarios": scenarios, "usergroups": usergroups})
+    return render(request, "usergroups.html", {"usergroups": usergroups})
