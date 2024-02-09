@@ -167,8 +167,8 @@ def scenarios(request):
     # show all scenarios of a user. Also endpoint for update and delete (POST)
     if request.method == "POST":
         if "update" in request.POST:
-            # update scenario user groups
-            scenario = Scenario.objects.get(id=request.POST["update"])
+            # manager can update scenario user groups
+            scenario = Scenario.objects.get(id=request.POST["update"], manager=request.user)
             usergroups = map(int, request.POST["values"].split(","))
             for ug in request.user.usergroup_set.all():
                 if ug.id in usergroups:
@@ -177,7 +177,7 @@ def scenarios(request):
                     ug.scenarios.remove(scenario)
             return HttpResponse(status=201)  # created
         if "delete" in request.POST:
-            Scenario.objects.filter(manager=request.user).filter(id=request.POST["delete"]).delete()
+            Scenario.objects.filter(id=request.POST["delete"], manager=request.user).delete()
     scenarios = Scenario.objects.filter(manager=request.user)
     usergroups = request.user.usergroup_set.all()
     for ug in usergroups:
