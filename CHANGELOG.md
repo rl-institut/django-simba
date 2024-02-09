@@ -16,6 +16,15 @@ Template:
 ### Removed
 - [(#)]()
 ```
+### Changed
+- SimBA does not create 0 Duration Events anymore
+- SimBA does not create events passed the last trip. I.e. the last event is a driving event.
+- SimBA reads Rotation Start SOCs from the Database-Event before rotation departure.
+  - In some cases there is no event.
+  - Vehicle renaming is handled in django. Might need overhaul later.
+  - Unused vehicles get deleted by django
+
+
 
 ### Changed
 - [(#45)](https://github.com/rl-institut/django-simba/pull/45)

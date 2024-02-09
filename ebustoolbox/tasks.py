@@ -299,6 +299,7 @@ def get_schedule_from_args(
     :rtype: simba.schedule.Schedule, Namespace
     """
     simba_schedule, new_args = simba.simulate.pre_simulation(original_args)
+    simba_schedule.assign_only_new_vehicles()
 
     add_temperatures_to_trips(django_scenario, simba_schedule)
 
@@ -671,9 +672,11 @@ def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
     plt.close()
 
     if settings.EFLIPS_USE:
+
+        prev_events = [e.id for e in Event.objects.filter(scenario__task_id=task_id)]
         run_eflips(task_id)
-        # Todo assign from database
-        eflips_assignment = get_assigned_vehicles(task_id)
+
+        eflips_assignment = get_assigned_vehicles(task_id, prev_events)
         schedule.assign_vehicles_for_django(eflips_assignment)
         # set report dir for second iteration/final results
         # report_dir = Path(settings.BASE_DIR, args.output_directory, "report_2")
@@ -683,8 +686,57 @@ def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
         run_simba(schedule, args, task_id, report_dir=report_dir)
 
 
-def get_assigned_vehicles():
-    raise NotImplementedError
+def get_assigned_vehicles(task_id, prev_events):
+    scenario = Scenario.objects.get(task_id=task_id)
+    used_vehicles = Vehicle.objects.filter(event__scenario=scenario).distinct()
+    # Delete the old vehicles which are not used anymore
+    Vehicle.objects.filter(scenario=scenario).exclude(id__in=used_vehicles).delete()
+    all_events = Event.objects.filter(scenario=scenario)
+    eflips_events = all_events.exclude(id__in=prev_events)
+
+    all_rotations = Rotation.objects.filter(scenario=scenario)
+    vehicle_assigns = []
+    vehicle_counter_dict = {
+        v.vehicle_type.name_short: {EnumChargeType.OPPORTUNITY: 0, EnumChargeType.DEPOT: 0}
+        for v in used_vehicles
+    }
+    counted_vehicles = set()
+    for rot in all_rotations:
+        first_trip = Trip.objects.filter(rotation=rot).order_by("departure_time").first()
+        vehicle = rot.vehicle
+        # ToDo vehicle does not have a short name from eflips. Save initializes it. Simba needs
+        # a special vehicle name for vehicle identification
+        if vehicle not in counted_vehicles:
+            vt = vehicle.vehicle_type
+            if vt.opportunity_charging_capable:
+                ct = EnumChargeType.OPPORTUNITY
+            else:
+                ct = EnumChargeType.DEPOT
+
+            vehicle_counter_dict[vt.name_short][ct] += 1
+            counted_vehicles.add(vehicle)
+            vehicle.name_short = f"{vt.name_short}_{ct}_{vehicle_counter_dict[vt.name_short][ct]}"
+            vehicle.save()
+
+        prev_event = (
+            eflips_events.filter(time_end__lt=first_trip.departure_time, vehicle=vehicle)
+            .order_by("time_end")
+            .last()
+        )
+        if prev_event is None:
+            current_event = (
+                all_events.filter(time_start=first_trip.departure_time, vehicle=vehicle)
+                .order_by("time_end")
+                .last()
+            )
+            # ToDo: Fix. Every departure event should have an event right before, where it stands
+            # in the depot right?
+            prev_event = current_event
+        vehicle_assigns.append(
+            {"rot": rot.name, "v_id": vehicle.name_short, "soc": prev_event.soc_end}
+        )
+
+    return vehicle_assigns
 
 
 def run_simba(
@@ -697,14 +749,6 @@ def run_simba(
     args.attach_vehicle_soc = True
 
     db_scenario = Scenario.objects.get(task_id=task_id)
-
-    # By setting charging power for depot buses to zero, we make sure every rotation will generate
-    # a new bus
-    args.cs_power_depbs_depb = 0
-    args.cs_power_deps_oppb = 0
-    for key, station in schedule.stations.items():
-        schedule.stations[key]["cs_power_deps_depb"] = 0
-        schedule.stations[key]["cs_power_deps_oppb"] = 0
 
     scenario = schedule.run(args)
 
@@ -793,7 +837,6 @@ def depot_rotation_to_eflips_input(db_rotation, db_scenario, input_for_eflips, r
 
 
 def run_eflips(task_id) -> None:
-    # create dummy depot
     db_scenario = Scenario.objects.get(task_id=task_id)
 
     # Constructing the database URL manually
@@ -831,7 +874,7 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):
     # collect data from DB
     db_scenario = Scenario.objects.get(task_id=task_id)
     vehicle_dict = Vehicle.objects.filter(scenario=db_scenario)
-    vehicle_dict = {vehicle.name: vehicle for vehicle in vehicle_dict}
+    vehicle_dict = {vehicle.name_short: vehicle for vehicle in vehicle_dict}
     vehicle_type_dict = VehicleType.objects.filter(scenario=db_scenario)
     vehicle_type_dict = {
         vehicle_type.name_short: vehicle_type for vehicle_type in vehicle_type_dict
@@ -850,9 +893,12 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):
                 end_time = simba_scenario.stop_time
         except IndexError:
             end_time = simba_scenario.stop_time
-        end_timestep = min(get_timestep(simba_scenario, end_time), simba_scenario.step_i - 1)
-        # TODO remove try clauses once DB integration of tools is complete (or raise Exceptions)
 
+        # Skip events with no duration
+        if vehicle_event.start_time == end_time:
+            continue
+
+        end_timestep = min(get_timestep(simba_scenario, end_time), simba_scenario.step_i - 1)
         vehicle = vehicle_dict[vehicle_event.vehicle_id]
         simba_vehicle_type = vehicle_event.vehicle_id.split("_")[0]
         vehicle_type = vehicle_type_dict[simba_vehicle_type]
@@ -862,9 +908,20 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):
         trip = None
         vehicle_trips = Trip.objects.filter(rotation__vehicle=vehicle)
         if not len(vehicle_trips):
-            raise RuntimeError(f"No trip assigned to vehicle {vehicle.name} found in database.")
+            raise RuntimeError(
+                f"No trip assigned to vehicle {vehicle.name_short}/ID:{vehicle.id} found in database."
+            )
 
         if vehicle_event.event_type == "arrival":
+            rot = vehicle_trips.get(arrival_time=make_aware(vehicle_event.start_time)).rotation
+
+            # Do not save events passed their rotation time. This is done by eflips
+            last_arrival_time = (
+                Trip.objects.filter(rotation=rot).order_by("arrival_time").last().arrival_time
+            )
+
+            if make_aware(vehicle_event.start_time) == last_arrival_time:
+                continue
             station = vehicle_trips.get(
                 arrival_time=make_aware(vehicle_event.start_time)
             ).route.arrival_station
@@ -876,6 +933,8 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):
         elif vehicle_event.event_type == "departure":
             trip = vehicle_trips.get(departure_time=make_aware(vehicle_event.start_time))
             event_type = EventType.DRIVING
+        else:
+            raise NotImplementedError("Unkown vehicle event type")
 
         timestamp_list = [
             get_datetime(simba_scenario, t).astimezone().isoformat()
@@ -883,12 +942,14 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):
         ]
         timeseries = {
             "time": timestamp_list,
-            "soc": simba_scenario.vehicle_socs[vehicle.name][start_timestep : end_timestep + 1],
+            "soc": simba_scenario.vehicle_socs[vehicle.name_short][
+                start_timestep : end_timestep + 1
+            ],
         }
 
         # grab current vehicle SoC at timestep
-        soc_start = simba_scenario.vehicle_socs[vehicle.name][start_timestep]
-        soc_end = simba_scenario.vehicle_socs[vehicle.name][end_timestep]
+        soc_start = simba_scenario.vehicle_socs[vehicle.name_short][start_timestep]
+        soc_end = simba_scenario.vehicle_socs[vehicle.name_short][end_timestep]
 
         event = Event(
             scenario=db_scenario,
