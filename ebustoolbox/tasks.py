@@ -886,6 +886,9 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):
     sorted_vehicle_events = sorted(
         simba_scenario.events.vehicle_events, key=lambda e: (e.vehicle_id, e.start_time)
     )
+
+    vehicle_trips_dict = dict()
+    current_rotation = None
     for counter, vehicle_event in enumerate(sorted_vehicle_events):
         start_timestep = get_timestep(simba_scenario, vehicle_event.start_time)
         try:
@@ -900,30 +903,46 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):
         if vehicle_event.start_time == end_time:
             continue
 
-        end_timestep = min(get_timestep(simba_scenario, end_time), simba_scenario.step_i - 1)
         vehicle = vehicle_dict[vehicle_event.vehicle_id]
+        vehicle_trips = vehicle_trips_dict.get(vehicle, None)
+        if vehicle_trips is None:
+            vehicle_trips_dict[vehicle] = Trip.objects.filter(rotation__vehicle=vehicle)
+            vehicle_trips = vehicle_trips_dict[vehicle]
+
+        # trips are sorted by time. all trips before the current rotation end time belong to the
+        # same rotation
+        if current_rotation is None:
+            # first event must be a departure
+            assert vehicle_event.event_type == "departure"
+            current_rotation = vehicle_trips.get(
+                departure_time=make_aware(vehicle_event.start_time)
+            ).rotation
+            # Do not save events passed their rotation time. This is done by eflips
+            last_arrival_time = (
+                Trip.objects.filter(rotation=current_rotation)
+                .order_by("arrival_time")
+                .last()
+                .arrival_time
+            )
+
+        if make_aware(vehicle_event.start_time) == last_arrival_time:
+            # Set current rotation to none so new rotation will be looked up
+            current_rotation = None
+            continue
+
+        end_timestep = min(get_timestep(simba_scenario, end_time), simba_scenario.step_i - 1)
         simba_vehicle_type = vehicle_event.vehicle_id.split("_")[0]
         vehicle_type = vehicle_type_dict[simba_vehicle_type]
 
         # figure out the location of the event
         station = None
         trip = None
-        vehicle_trips = Trip.objects.filter(rotation__vehicle=vehicle)
         if not len(vehicle_trips):
             raise RuntimeError(
                 f"No trip assigned to vehicle {vehicle.name_short}/ID:{vehicle.id} found in database."
             )
 
         if vehicle_event.event_type == "arrival":
-            rot = vehicle_trips.get(arrival_time=make_aware(vehicle_event.start_time)).rotation
-
-            # Do not save events passed their rotation time. This is done by eflips
-            last_arrival_time = (
-                Trip.objects.filter(rotation=rot).order_by("arrival_time").last().arrival_time
-            )
-
-            if make_aware(vehicle_event.start_time) == last_arrival_time:
-                continue
             station = vehicle_trips.get(
                 arrival_time=make_aware(vehicle_event.start_time)
             ).route.arrival_station
