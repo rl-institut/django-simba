@@ -131,7 +131,7 @@ def consumption_to_db(consumption_path: Path, django_scenario: Scenario) -> None
     Consumption.objects.create(
         name=consumption_path.name,
         scenario=django_scenario,
-        columns=reader.fieldnames,
+        columns=columns,
         data_points=datapoints,
         values=values,
     )
@@ -181,6 +181,9 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
 
     # get SimBA vehicle_types from db
     vehicle_types = get_vehicle_types_from_db(django_scenario)
+
+    # read the consumption from db
+    raise NotImplementedError
 
     # ToDo this might need refactoring since binding consumption to Trip Class is not versatile
     # in case of parallel schedules / scenarios, since both access the same Consumption
@@ -347,7 +350,16 @@ def get_schedule_from_args(
     :return: simba schedule and args
     :rtype: simba.schedule.Schedule, Namespace
     """
+
     simba_schedule, new_args = simba.simulate.pre_simulation(original_args)
+
+    # Set Up Consumption to use database / file values
+    some_trip = next(iter(next(iter(simba_schedule.rotations.values())).trips))
+    simba_consumption = some_trip.__class__.consumption
+    consumptions = Consumption.objects.filter(scenario=django_scenario)
+    for consumption in consumptions:
+        simba_consumption.set_consumption_interpolation(consumption.name, consumption.to_df())
+
     simba_schedule.assign_only_new_vehicles()
 
     add_temperatures_to_trips(django_scenario, simba_schedule)
@@ -565,7 +577,14 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
 
     for name, v_type in vehicle_types.items():
         for charge_name, charge_type in v_type.items():
-            consumption = float(charge_type.get("mileage"))
+            consumption = None
+            consumption_table = None
+
+            mileage_text = charge_type.get("mileage")
+            try:
+                consumption = float(mileage_text)
+            except ValueError:
+                consumption_table = Consumption.objects.get(scenario=scenario, name=mileage_text)
             params = dict(
                 name=charge_type.get("name", "unnamed bus"),
                 name_short=name,
@@ -577,6 +596,7 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
                 charging_curve=charge_type["charging_curve"],
                 v2g_curve=charge_type.get("v2g_curve", None),
                 consumption=consumption,
+                consumption_table=consumption_table,
                 length=charge_type.get("length", 0),
                 width=DEFAULT_WIDTH,
                 height=DEFAULT_HEIGHT,
