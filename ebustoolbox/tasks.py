@@ -8,7 +8,7 @@ from copy import deepcopy, copy
 from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 import tqdm
 from celery import shared_task
@@ -688,7 +688,26 @@ def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
         run_simba(schedule, args, task_id, report_dir=report_dir)
 
 
-def get_assigned_vehicles(task_id, prev_events):
+def get_assigned_vehicles(task_id: str, prev_events: List[Event]):
+    """
+    Retrieves assigned vehicles for a given task ID, considering previous events.
+
+    Args:
+        task_id (str): The ID of the task associated with the scenario.
+        prev_events (List[Event]): List of previous events to consider.
+
+    Returns:
+        List[dict]: A list of dictionaries containing assigned vehicle information, including
+        rotation name, vehicle ID, and state of charge (SOC) at the end of the previous event.
+
+    Raises:
+        Scenario.DoesNotExist: If the scenario with the specified task ID does not exist.
+
+    Note:
+        This function retrieves assigned vehicles based on the given task ID and considers previous
+        events to determine the state of charge (SOC) at the end of the previous event.
+    """
+
     scenario = Scenario.objects.get(task_id=task_id)
     used_vehicles = Vehicle.objects.filter(event__scenario=scenario).distinct()
     # Delete the old vehicles which are not used anymore
