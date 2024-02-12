@@ -395,10 +395,11 @@ class WriteReadScenarioToDatabase(TestCase):
                 print(f"Difference in scenario was found for {mutation}, {difference}")
 
 
-class RunSimulationTest(TestCase):
+class RunSimulationTest(StaticLiveServerTestCase):
     @override_settings(CELERY_USE=True)
     @override_settings(EFLIPS_USE=False)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
     @override_settings(DEBUG=True)
     def test_submit_button_click_with_celery_wo_eflips(self):
         self.submit_default_simulation()
@@ -412,6 +413,7 @@ class RunSimulationTest(TestCase):
     @override_settings(CELERY_USE=True)
     @override_settings(EFLIPS_USE=True)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
     @override_settings(DEBUG=True)
     def test_submit_button_click_with_celery_with_eflips(self):
         self.submit_default_simulation()
