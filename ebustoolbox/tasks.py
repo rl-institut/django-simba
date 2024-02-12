@@ -18,7 +18,7 @@ from django.db.models import Max
 from django.db.transaction import atomic
 from django.http import HttpRequest
 from django.utils import timezone
-from django.utils.timezone import make_aware
+from django.utils.timezone import make_aware, is_aware
 from matplotlib import pyplot as plt
 
 import simba.optimizer_util
@@ -149,8 +149,9 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
 
     # get SimBA rotations and trips from db
     rotations = get_rotations_and_trips_from_db(django_scenario, schedule, station_data)
-
     schedule.rotations = rotations
+
+    add_temperatures_to_trips(django_scenario, schedule)
 
     # schedule.original_rotations = deepcopy(rotations)
     # Database does not store information about "original rotations yet"
@@ -166,7 +167,7 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
     # Create soc dispatcher
     schedule.init_soc_dispatcher(args)
 
-    schedule.assign_vehicles()
+    schedule.assign_only_new_vehicles()
 
     return schedule, args
 
@@ -355,10 +356,11 @@ def add_temperatures_to_trips(django_scenario, simba_schedule):
     # set temperatures according to temperature file
     for rot in simba_schedule.rotations.values():
         for trip in rot.trips:
-            middle_time = make_aware(
-                trip.departure_time + 0.5 * (trip.arrival_time - trip.departure_time)
-            )
-            trip.temperature = temperatures.get_interpolated_temperature(middle_time)
+            # ToDo: Make times from db unaware once? so every function does not have to check
+            # for awareness? or other way around. make simba times aware early?
+            middle_time = trip.departure_time + 0.5 * (trip.arrival_time - trip.departure_time)
+            temp_time = middle_time if is_aware(middle_time) else make_aware(middle_time)
+            trip.temperature = temperatures.get_interpolated_temperature(temp_time)
 
 
 def get_args(django_scenario) -> Namespace:
