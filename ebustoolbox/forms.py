@@ -40,6 +40,10 @@ class UploadFileForm(forms.Form):
     temperature_time_series_path = forms.FileField(
         required=False, help_text="Used by django to give simba trips temperatures"
     )
+    consumption_path = forms.FileField(
+        required=False, help_text="Used by SimBA to interpolate consumption"
+    )
+
     level_of_loading_over_day_path = forms.FileField(required=False)
     cost_parameters_file = forms.FileField(required=False)
 

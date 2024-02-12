@@ -24,11 +24,12 @@ import simba.optimizer_util
 import simba.simulate
 import simba.trip
 import simba.util
-from simba.consumption import Consumption
+from simba.consumption import Consumption as SimbaConsumption
 from simba.rotation import Rotation as SimbaRotation
 from simba.schedule import Schedule as SimbaSchedule
 from .models import (
     Route,
+    Consumption,
     Vehicle,
     UploadedFile,
     Station,
@@ -71,6 +72,10 @@ def input_files_to_database(cleaned_data: dict, request: HttpRequest):
     use_only_time = django_scenario.simba_options["use_only_time"]
     temperatures_to_db(temperature_path, django_scenario, use_only_time=use_only_time)
 
+    # Write the Consumption to the DB
+    consumption_path = Path(django_scenario.simba_options["consumption_path"])
+    consumption_to_db(consumption_path, django_scenario)
+
     # Create the schedule from the args, and delete features which are not used in django
     simba_schedule, new_args = get_schedule_from_args(
         original_args, django_scenario=django_scenario
@@ -88,14 +93,58 @@ def input_files_to_database(cleaned_data: dict, request: HttpRequest):
     return django_scenario, simba_schedule, original_args
 
 
+def consumption_to_db(consumption_path: Path, django_scenario: Scenario) -> None:
+    """Writes the Consumption to the database and connects it with the scenario"""
+
+    delim = simba.util.get_csv_delim(consumption_path)
+    consumption_names = ["consumption", "consumption_kwh_per_km"]
+
+    with open(consumption_path, encoding="utf-8") as f:
+        reader = csv.DictReader(f, delimiter=delim)
+        columns = copy(reader.fieldnames)
+        consumption_found = False
+        cons = None
+        for cons in consumption_names:
+            if cons in columns:
+                consumption_found = True
+                break
+        assert consumption_found
+        columns.remove(cons)
+        datapoints = []
+        values = []
+        for row in reader:
+            data = []
+            try:
+                for field in columns:
+                    data_point = row[field]
+                    data.append(float(data_point))
+                val = row[cons]
+                val = float(val)
+            except ValueError:
+                if val == "" or data_point == "":
+                    break
+                else:
+                    raise
+            values.append(val)
+            datapoints.append(data)
+
+    Consumption.objects.create(
+        name=consumption_path.name,
+        scenario=django_scenario,
+        columns=reader.fieldnames,
+        data_points=datapoints,
+        values=values,
+    )
+
+
 def temperatures_to_db(
     temperature_file_path: Path,
     django_scenario: Scenario,
     use_only_time: bool,
 ) -> None:
     """Writes the temperatures to the database and connects it with the scenario"""
+    delim = simba.util.get_csv_delim(temperature_file_path)
     with open(temperature_file_path, encoding="utf-8") as f:
-        delim = simba.util.get_csv_delim(temperature_file_path)
         reader = csv.DictReader(f, delimiter=delim)
         times = []
         temperatures = []
@@ -136,7 +185,7 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
     # ToDo this might need refactoring since binding consumption to Trip Class is not versatile
     # in case of parallel schedules / scenarios, since both access the same Consumption
     # setup consumption calculator that can be accessed by all trips
-    simba.trip.Trip.consumption = Consumption(vehicle_types)
+    simba.trip.Trip.consumption = SimbaConsumption(vehicle_types)
 
     options = copy(django_scenario.simba_options)
 
@@ -399,6 +448,7 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
         "vehicle_types": "vehicle_types.json",
         "station_data_path": "all_stations.csv",
         "outside_temperature_over_day_path": "default_temp_summer.csv",
+        "consumption_path": "energy_consumption_example.csv",
         "temperature_time_series_path": "temperature_time_series.csv",
         "level_of_loading_over_day_path": "default_level_of_loading_over_day.csv",
         "cost_parameters_file": "cost_params.json",
