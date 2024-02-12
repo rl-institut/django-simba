@@ -17,12 +17,18 @@ Template:
 - [(#)]()
 ```
 ### Changed
+- [(#48)](https://github.com/rl-institut/django-simba/pull/48)
+-  Update poetry.lock to import fixed eflips-depot.
+- use the new generate_depot_layout() method.
+- Update Simba Version
 - SimBA does not create 0 Duration Events anymore
 - SimBA does not create events passed the last trip. I.e. the last event is a driving event.
 - SimBA reads Rotation Start SOCs from the Database-Event before rotation departure.
   - In some cases there is no event.
-  - Vehicle renaming is handled in django. Might need overhaul later.
+  - Vehicle renaming is handled in django. Might need an overhaul later.
   - Unused vehicles get deleted by django
+- Fix tests by using other TestCase
+  - Add temperatures to testing if db and "normal" version are the same
 
 
 
