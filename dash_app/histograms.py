@@ -25,7 +25,6 @@ def render(app: Dash) -> html.Div:
         # Binning SOCs per vehicle in 0.05 bins
         bins = []
         for vehicle_id, group in soc_df.groupby('V_id'):
-            print("GROUP: ", group['SOC'])
             hist, bin_edges = np.histogram(group['SOC'], bins=np.arange(-0.1, 1.1, 0.1), density=True)
             for i, b in enumerate(hist):
                 bins.append({'V_id': vehicle_id, 'Bin': bin_edges[i], 'Frequency': b})

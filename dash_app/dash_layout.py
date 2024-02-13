@@ -3,6 +3,8 @@ from . import (bus_dropdown,
                report_numbers,
                scatter_chart,
                bar_chart,
+               power_draw,
+               dist_dur_hist,
                histograms,
                activities_chart,
                rotation_duration,
@@ -38,7 +40,7 @@ def create_layout(app: Dash) -> html.Div:
             ),
             html.Div(
                 children=block_bottom_center(app),
-                style={"display": "inline-block", "width": "100%", "height": "300px"},
+                style={"display": "inline-block", "width": "100%", "height": "600px"},
             ),
         ]
     )
@@ -60,4 +62,6 @@ def block_bottom_center(app):
     return [histograms.render(app),
             activities_chart.render(app),
             rotation_duration.render(app),
-            rotation_distance.render(app)]
+            rotation_distance.render(app),
+            power_draw.render(app),
+            dist_dur_hist.render(app)]

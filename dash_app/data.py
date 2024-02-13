@@ -14,6 +14,7 @@ from ebustoolbox.models import (
     get_longest_distance_rotation,
     get_shortest_distance_rotation,
     EventType,
+    VehicleType,
 )
 import pandas as pd
 from django.db.models import Min, Sum
@@ -246,6 +247,41 @@ def get_duration_as_dataframe(scenario_id, buses):
                     dfs.append(df)
     result_df = pd.concat(dfs, ignore_index=True)
     result_df = result_df.groupby('R_id')['duration'].sum().reset_index()
-    print(result_df)
+
+    return result_df
+
+def get_powerdraw_as_dataframe(scenario_id, buses):
+    vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
+    scenario = Scenario.objects.get(id=scenario_id)
+    # get all vehicle events from this scenario at a station
+
+    dfs = []
+
+    for vehicle in vehicles:
+        if vehicle.name_short in buses:
+            v_id = vehicle.id
+            v_typeid = vehicle.vehicle_type_id
+            batterycapacity = VehicleType.objects.get(id=v_typeid)#
+            charge_eff = VehicleType.objects.get(id=v_typeid)#
+
+            print(">>>>>>>>>>>>>>>>>>", batterycapacity.charging_efficiency, charge_eff.battery_capacity)
+
+            events = scenario.event_set.filter(vehicle__isnull=False, station_id__isnull=False, vehicle_id=v_id)
+            for event in events:
+                time_start = event.time_start
+                soc_start = event.soc_start
+                station = event.station_id
+                # Add a row to the DataFrame
+                time_end = event.time_end
+                soc_end = event.soc_end
+                if soc_end > soc_start:
+                    energy = soc_end-soc_start * charge_eff * batterycapacity
+                    # Add a row to the DataFrame
+                    df = pd.DataFrame({'V_id': [v_id], 'Time': [time_end], 'Energy': [energy], 'Station_id': [station] })
+                    dfs.append(df)
+    if dfs: #if not empty
+        result_df = pd.concat(dfs, ignore_index=True)
+    else:
+        result_df = pd.DataFrame({'V_id': [None], 'Time': [None], 'Energy': [None], 'Station_id': [None]})
 
     return result_df

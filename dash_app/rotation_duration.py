@@ -23,10 +23,9 @@ def render(app: Dash) -> html.Div:
         bin_width = 1000  # Specify your desired bin width here
 
         # Calculate the number of bins based on the bin width
-        max_distance = df['duration'].max()
-        min_distance = df['duration'].min()
-        num_bins = int((max_distance - min_distance) / bin_width)
-
+        max_duration = df['duration'].max()
+        min_duration = df['duration'].min()
+        num_bins = int((max_duration - min_duration) / bin_width)
 
         fig = px.histogram(df, x='duration', color="R_id",nbins=num_bins, barmode='overlay')
 

@@ -13,7 +13,6 @@ def render(app: Dash) -> html.Div:
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def update_distances_histogram(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
-        print("updating SOC Histogram")
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
@@ -28,8 +27,7 @@ def render(app: Dash) -> html.Div:
 
         num_bins = int((max_distance - min_distance) / bin_width)
 
-
-        fig = px.histogram(df, x='total_distance', color="R_id",nbins=num_bins, barmode='overlay')
+        fig = px.histogram(df, x='total_distance', color="R_id", nbins=num_bins, barmode='overlay')
 
         # Update layout to display bars in front of each other
         fig.update_layout(barmode='overlay')
