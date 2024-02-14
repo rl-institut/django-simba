@@ -101,9 +101,6 @@ def home_view(request: HttpRequest):
 
         django_scenario = save_and_simulate(form, request)
 
-        simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
-        tasks.run_ebus_toolchain(simba_schedule_db, args_db, django_scenario.task_id)
-        tasks.run_simba(simba_schedule_db, args_db, django_scenario.task_id)
         if "ebus_map" in settings.INSTALLED_APPS:
             create_stations_for_map(django_scenario)
 

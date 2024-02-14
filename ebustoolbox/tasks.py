@@ -687,6 +687,7 @@ def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
 
         eflips_assignment = get_assigned_vehicles(task_id, prev_events)
         schedule.assign_vehicles_for_django(eflips_assignment)
+        print(eflips_assignment)
         # set report dir for second iteration/final results
         # report_dir = Path(settings.BASE_DIR, args.output_directory, "report_2")
         # TODO: currently report_directory is set in simba internally and is always report_1 for current purposes
@@ -737,9 +738,9 @@ def get_assigned_vehicles(task_id: str, prev_events: List[Event]):
         if vehicle not in counted_vehicles:
             vt = vehicle.vehicle_type
             if vt.opportunity_charging_capable:
-                ct = EnumChargeType.OPPORTUNITY
+                ct = EnumChargeType.OPPORTUNITY.value
             else:
-                ct = EnumChargeType.DEPOT
+                ct = EnumChargeType.DEPOT.value
 
             vehicle_counter_dict[vt.name_short][ct] += 1
             counted_vehicles.add(vehicle)
@@ -776,39 +777,7 @@ def run_simba(
     args.attach_vehicle_soc = True
 
     db_scenario = Scenario.objects.get(task_id=task_id)
-
     scenario = schedule.run(args)
-
-    def dict_creator():
-        return dict(
-            departure_soc=None,
-            vehicle_type=[],
-            delta_soc=[],
-            arrival_soc=None,
-            minimal_soc=None,
-            charging_type=None,
-        )
-
-    # initialize eflips input
-    input_for_eflips = {
-        Rotation.objects.get(scenario=db_scenario, name=rot_id).id: dict_creator()
-        for rot_id in schedule.rotations
-    }
-
-    # Analyze schedules which are generated using different depot vehicles. I.e. every depot
-    # rotation is run with each vehicle to generate the consumption
-    for rot_id, rotation in schedule.rotations.items():
-        rotation.calculate_consumption()
-        db_rotation = Rotation.objects.get(scenario=db_scenario, name=rotation.id)
-        if rotation.charging_type == EnumChargeType.DEPOT:
-            input_for_eflips = depot_rotation_to_eflips_input(
-                db_rotation, db_scenario, input_for_eflips, rotation, schedule
-            )
-        else:
-            assert rotation.charging_type == EnumChargeType.OPPORTUNITY
-            input_for_eflips = opportunity_rotation_to_eflips_input(
-                db_rotation, db_scenario, input_for_eflips, rot_id, rotation, scenario, schedule
-            )
 
     schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
     db_scenario.finished = timezone.now()
@@ -913,6 +882,10 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):
     current_rotation = None
     for counter, vehicle_event in enumerate(sorted_vehicle_events):
         start_timestep = get_timestep(simba_scenario, vehicle_event.start_time)
+
+        event_time = vehicle_event.start_time
+        aware_start_time = make_aware(event_time) if not is_aware(event_time) else event_time
+
         try:
             if sorted_vehicle_events[counter + 1].vehicle_id == vehicle_event.vehicle_id:
                 end_time = sorted_vehicle_events[counter + 1].start_time
@@ -936,9 +909,8 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):
         if current_rotation is None:
             # first event must be a departure
             assert vehicle_event.event_type == "departure"
-            current_rotation = vehicle_trips.get(
-                departure_time=make_aware(vehicle_event.start_time)
-            ).rotation
+            current_rotation = vehicle_trips.get(departure_time=aware_start_time).rotation
+
             # Do not save events passed their rotation time. This is done by eflips
             last_arrival_time = (
                 Trip.objects.filter(rotation=current_rotation)
@@ -947,9 +919,10 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):
                 .arrival_time
             )
 
-        if make_aware(vehicle_event.start_time) == last_arrival_time:
+        if aware_start_time == last_arrival_time:
             # Set current rotation to none so new rotation will be looked up
             current_rotation = None
+            vehicle_trips = None
             continue
 
         end_timestep = min(get_timestep(simba_scenario, end_time), simba_scenario.step_i - 1)
@@ -963,9 +936,6 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):
             raise RuntimeError(
                 f"No trip assigned to vehicle {vehicle.name_short}/ID:{vehicle.id} found in database."
             )
-
-        event_time = vehicle_event.start_time
-        aware_start_time = make_aware(event_time) if not is_aware(event_time) else event_time
 
         if vehicle_event.event_type == "arrival":
             station = vehicle_trips.get(arrival_time=aware_start_time).route.arrival_station
