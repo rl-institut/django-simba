@@ -195,8 +195,7 @@ class Consumption(models.Model):
         ]
 
     def __str__(self):
-        consumption_column = self.columns.index("consumption")
-        avg = np.array(self.values)[:, consumption_column].mean()
+        avg = np.array(self.values).mean()
         return f"Consumption table {self.name} with average consumption of {avg:.1f} "
 
     def to_df(self):

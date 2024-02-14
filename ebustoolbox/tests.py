@@ -239,13 +239,14 @@ class WriteReadScenarioToDatabase(TestCase):
 
     @override_settings(DEBUG=True)
     def test_schedule_from_database(self):
+        """Check if the results are equal if the scenario is run from the form or from the db"""
         django_scenario, simba_schedule, args = self.get_scenario_objects_and_fill_db()
 
-        # simba_schedule_db, args_db = tasks.db_to_schedule(django_scenario)
         simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
         for sched in [simba_schedule, simba_schedule_db]:
             for rot in sched.rotations.values():
                 rot.calculate_consumption()
+
         for key, value in vars(args).items():
             # Some values don't need to be part of the args. Relative and absolute Paths are also
             # ignored
@@ -314,8 +315,10 @@ class WriteReadScenarioToDatabase(TestCase):
         # get a vehicle_type which is "used"
         vehicle = Rotation.objects.filter(scenario=django_scenario)[0].vehicle
         vehicle_type = vehicle.vehicle_type
+        consumption_table = vehicle_type.consumption_table
 
         station = Station.objects.get(scenario=django_scenario, name="Station-0")
+
         # mutate with instance, field name, value
         mutations = [
             (vehicle_type, "battery_capacity", 1),
@@ -326,11 +329,17 @@ class WriteReadScenarioToDatabase(TestCase):
                 "charging_curve",
                 [[x[0], x[1] * 0.1] for x in vehicle_type.charging_curve],
             ),
-            (vehicle_type, "consumption", vehicle_type.consumption * 0.1),
             (station, "amount_charging_places", 1),
             (station, "power_per_charger", station.power_per_charger * 0.1),
             (station, "power_total", station.power_total * 0.1),
         ]
+        if vehicle_type.consumption is not None:
+            mutations.append((vehicle_type, "consumption", vehicle_type.consumption * 0.1))
+        else:
+            mutations.append(
+                (consumption_table, "values", [v * 0.1 for v in consumption_table.values])
+            )
+
         scen_db = simba_schedule_db.run(args_db)
         # running the schedule changes the schedule since it assigns vehicles. therefore load it
         # again to have a "vanilla" schedule

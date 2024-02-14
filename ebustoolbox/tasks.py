@@ -24,9 +24,9 @@ import simba.optimizer_util
 import simba.simulate
 import simba.trip
 import simba.util
-from simba.consumption import Consumption as SimbaConsumption
 from simba.rotation import Rotation as SimbaRotation
 from simba.schedule import Schedule as SimbaSchedule
+from simba.data_container import DataContainer
 from .models import (
     Route,
     Consumption,
@@ -74,7 +74,7 @@ def input_files_to_database(cleaned_data: dict, request: HttpRequest):
 
     # Write the Consumption to the DB
     consumption_path = Path(django_scenario.simba_options["consumption_path"])
-    consumption_to_db(consumption_path, django_scenario)
+    consumption_file_to_db(consumption_path, django_scenario)
 
     # Create the schedule from the args, and delete features which are not used in django
     simba_schedule, new_args = get_schedule_from_args(
@@ -93,7 +93,7 @@ def input_files_to_database(cleaned_data: dict, request: HttpRequest):
     return django_scenario, simba_schedule, original_args
 
 
-def consumption_to_db(consumption_path: Path, django_scenario: Scenario) -> None:
+def consumption_file_to_db(consumption_path: Path, django_scenario: Scenario) -> None:
     """Writes the Consumption to the database and connects it with the scenario"""
 
     delim = simba.util.get_csv_delim(consumption_path)
@@ -181,19 +181,20 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
 
     # get SimBA vehicle_types from db
     vehicle_types = get_vehicle_types_from_db(django_scenario)
-
-    # read the consumption from db
-    raise NotImplementedError
+    data_container = DataContainer()
+    data_container.add_vehicle_types(vehicle_types)
+    consumptions = Consumption.objects.filter(scenario__in=[django_scenario, None])
+    for consumption in consumptions:
+        data_container.add_consumption_data(consumption.name, consumption.to_df())
 
     # ToDo this might need refactoring since binding consumption to Trip Class is not versatile
     # in case of parallel schedules / scenarios, since both access the same Consumption
     # setup consumption calculator that can be accessed by all trips
-    simba.trip.Trip.consumption = SimbaConsumption(vehicle_types)
+    simba.trip.Trip.consumption = data_container.to_consumption()
 
     options = copy(django_scenario.simba_options)
 
     del options["electrified_stations"]
-    del options["vehicle_types"]
 
     schedule = SimbaSchedule(stations=stations_dict, vehicle_types=vehicle_types, **options)
     schedule.station_data = station_data
@@ -237,7 +238,9 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
 
     for rot in Rotation.objects.filter(scenario=django_scenario):
         vehicle_type = rot.vehicle.vehicle_type.name_short
+        vehicle_id = rot.vehicle.name_short
         simba_rotation = SimbaRotation(id=rot.name, vehicle_type=vehicle_type, schedule=schedule)
+        simba_rotation.vehicle_id = vehicle_id
         simba_rotation.charging_type = (
             EnumChargeType.OPPORTUNITY.value
             if rot.allow_opportunity_charging
@@ -275,14 +278,19 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
     vehicle_types = dict()
     for vehicle_type in VehicleType.objects.filter(scenario=django_scenario):
         charge_type = (
-            EnumChargeType.OPPORTUNITY
+            EnumChargeType.OPPORTUNITY.value
             if vehicle_type.opportunity_charging_capable
-            else EnumChargeType.DEPOT
+            else EnumChargeType.DEPOT.value
         )
         try:
             vehicle_types[vehicle_type.name_short]
         except KeyError:
             vehicle_types[vehicle_type.name_short] = dict()
+
+        mileage = vehicle_type.consumption
+        if vehicle_type.consumption_table is not None:
+            mileage = vehicle_type.consumption_table.name
+
         vehicle_types[vehicle_type.name_short][charge_type] = {
             "name": vehicle_type.name,
             "capacity": vehicle_type.battery_capacity,
@@ -291,7 +299,7 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
             "v2g": (vehicle_type.v2g_curve is not None),
             # ToDo use vehicle to grid curve
             # vehicle_to_grid_curve ....
-            "mileage": vehicle_type.consumption,
+            "mileage": mileage,
             "battery_efficiency": vehicle_type.charging_efficiency,
         }
     return vehicle_types
@@ -351,18 +359,26 @@ def get_schedule_from_args(
     :rtype: simba.schedule.Schedule, Namespace
     """
 
-    simba_schedule, new_args = simba.simulate.pre_simulation(original_args)
-
-    # Set Up Consumption to use database / file values
-    some_trip = next(iter(next(iter(simba_schedule.rotations.values())).trips))
-    simba_consumption = some_trip.__class__.consumption
-    consumptions = Consumption.objects.filter(scenario=django_scenario)
+    data_container = DataContainer()
+    data_container.add_vehicle_types_from_json(original_args.vehicle_types_path)
+    consumptions = Consumption.objects.filter(scenario__in=[django_scenario, None])
     for consumption in consumptions:
-        simba_consumption.set_consumption_interpolation(consumption.name, consumption.to_df())
+        data_container.add_consumption_data(consumption.name, consumption.to_df())
+
+    simba_schedule, new_args = simba.simulate.pre_simulation(original_args, data_container)
+
+    # # Set Up Consumption to use database / file values
+    # some_trip = next(iter(next(iter(simba_schedule.rotations.values())).trips))
+    # simba_consumption = some_trip.__class__.consumption
+    # consumptions = Consumption.objects.filter(scenario=django_scenario)
+    # for consumption in consumptions:
+    #     simba_consumption.set_consumption_interpolation(consumption.name, consumption.to_df())
 
     simba_schedule.assign_only_new_vehicles()
 
     add_temperatures_to_trips(django_scenario, simba_schedule)
+    # Changed temperatures can effect the consumption
+    simba_schedule.calculate_consumption()
 
     # Remove simba features which are not used
     remove_station_attributes = ["battery", "energy_feed_in", "distance_to_grid", "external_load"]
@@ -457,7 +473,7 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
     for k, v in {
         "input_schedule": "trips_example.csv",
         "electrified_stations": "electrified_stations.json",
-        "vehicle_types": "vehicle_types.json",
+        "vehicle_types_path": "vehicle_types.json",
         "station_data_path": "all_stations.csv",
         "outside_temperature_over_day_path": "default_temp_summer.csv",
         "consumption_path": "energy_consumption_example.csv",

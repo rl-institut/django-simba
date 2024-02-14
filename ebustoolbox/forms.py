@@ -34,7 +34,7 @@ class UploadFileForm(forms.Form):
     # files
     input_schedule = forms.FileField(required=False)
     electrified_stations = forms.FileField(required=False)
-    vehicle_types = forms.FileField(required=False)
+    vehicle_types_path = forms.FileField(required=False)
     station_data_path = forms.FileField(required=False)
     outside_temperature_over_day_path = forms.FileField(required=False)
     temperature_time_series_path = forms.FileField(
