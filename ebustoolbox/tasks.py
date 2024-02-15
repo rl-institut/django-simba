@@ -82,6 +82,42 @@ def input_files_to_database(cleaned_data: dict, request: HttpRequest):
     # Write the vehicle types to DB
     vehicles_to_db(simba_schedule.vehicle_types, django_scenario)
 
+    # Some filter functions to handle messy bvg input
+    counter = 0
+    del_rots = []
+    for key, rotation in simba_schedule.rotations.items():
+        depart_times = [t.departure_time for t in rotation.trips]
+        arrival_times = [t.arrival_time for t in rotation.trips]
+        start = 0
+        while True:
+            for i, _ in enumerate(rotation.trips[start:]):
+                i = i + start
+                if (
+                    depart_times.count(rotation.trips[i].departure_time) > 1
+                    or arrival_times.count(rotation.trips[i].arrival_time) > 1
+                ):
+                    break
+            else:
+                rotation.trips = list(sorted(rotation.trips, key=lambda x: x.departure_time))
+                break
+            counter += 1
+            rotation.trips.pop(i)
+            depart_times = [t.departure_time for t in rotation.trips]
+            arrival_times = [t.arrival_time for t in rotation.trips]
+            start = i
+
+        if (
+            rotation.trips[0].departure_name not in simba_schedule.stations
+            or rotation.trips[-1].arrival_name not in simba_schedule.stations
+        ):
+            del_rots.append(key)
+    print(
+        f"Deleting {len(del_rots)} rotations since they dont start or end at electrified station:{del_rots}"
+    )
+    for rot_id in del_rots:
+        del simba_schedule.rotations[rot_id]
+
+    print(f"{counter} trips deleted") if counter > 0 else print()
     # Write the schedule including rotations and trips to the DB
     schedule_to_db(simba_schedule, django_scenario)
 
