@@ -46,147 +46,6 @@ def deepcopy(  # noqa
             stem = stem[key]
         stem[keys[-1]] = value
 
-    # def _deepcopy2(
-    #     source_object: models.Model,
-    #     stack: dict,
-    #     already_copied: dict,
-    #     copies: dict,
-    #     exclude_models: set,
-    #     exclude_fields: set,
-    #     model_pks: dict,
-    # ):
-    #     """Non Recursive deepcopy call
-    #
-    #     :param object: object to be copied
-    #     :param stack: reference between old pks and new pks
-    #     :param already_copied: reference of source instances of copying
-    #     :param copies:  reference of result instances of copying
-    #     :param exclude_models: models which are skipped during copying
-    #     :param exclude_fields: fields which are skipped during copying
-    #     :param model_pks: internal counter of pks
-    #     :return: pk of copy result instance
-    #     """
-    #     need_copy = [source_object]
-    #     need_related = [source_object]
-    #     checked = dict()
-    #     while len(need_copy) > 0:
-    #         obj = need_copy.pop()
-    #         # Adjust the copies
-    #         skip = True
-    #         # Was this object copied already or is a result of a copy?
-    #         try:
-    #             copies[obj.__class__][obj.id]
-    #         except KeyError:
-    #             try:
-    #                 already_copied[obj.__class__][obj.id]
-    #             except KeyError:
-    #                 skip = False
-    #         if skip:
-    #             continue
-    #
-    #         while len(need_related) > 0:
-    #             obj = need_related.pop()
-    #             pks = {o.pk for o in need_related if o.__class__ == obj.__class__}
-    #             need_related = [o for o in need_related if o.pk not in pks]
-    #             pks.add(obj.pk)
-    #             all_fields, old_pk = method_name2(already_copied, copies, model_pks, obj, stack)
-    #             for i, fields in enumerate(all_fields):
-    #                 for related in fields:
-    #                     related_model = related.related_model
-    #                     related_field = related.field if i == 0 else related
-    #                     if related_field in exclude_fields or related_model in exclude_models:
-    #                         continue
-    #                     try:
-    #                         checked[related]
-    #                     except KeyError:
-    #                         checked[related] = set()
-    #
-    #                     if i == 0:
-    #                         # which objects point with their foreign key to this instance? Those are related
-    #                         # and need copying
-    #                         instances = related_model.objects.filter(
-    #                             **{related_field.name + "__in": pks}
-    #                         )
-    #                     else:
-    #                         # ManyToMany values are accessed through the m2m manager of the object and not
-    #                         # through the model
-    #                         manager = getattr(obj, related_field.name)
-    #                         instances = manager.all()
-    #                     need_related.extend(instances)
-    #                     need_copy.extend(instances)
-    #     return stack[source_object.__class__][source_object.id]
-
-    @time_it
-    def method_name4(all_fields, exclude_fields, exclude_models, need_copy, obj, old_pk):
-        for i, fields in enumerate(all_fields):
-            for related in fields:
-                related_model = related.related_model
-                related_field = related.field if i == 0 else related
-                if related_field in exclude_fields or related_model in exclude_models:
-                    continue
-                if i == 0:
-                    # which objects point with their foreign key to this instance? Those are related
-                    # and need copying
-                    need_copy.extend(related_model.objects.filter(**{related_field.name: old_pk}))
-                else:
-                    # ManyToMany values are accessed through the m2m manager of the object and not
-                    # through the model
-                    manager = getattr(obj, related_field.name)
-                    need_copy.extend(manager.all())
-
-    @time_it
-    def method_name6(need_copy, obj, related_field):
-        manager = getattr(obj, related_field.name)
-        need_copy.extend(manager.all())
-
-    @time_it
-    def method_name5(need_copy, old_pk, related_field, related_model, obj):
-        related_name = related_field._related_name
-        if related_name is None:
-            related_name = related_model._meta.model_name + "_set"
-        need_copy.extend(getattr(obj, related_name).all())
-        # except:
-        #     a=2
-        # need_copy.extend(related_model.objects.filter(**{related_field.name: old_pk}))
-
-    @time_it
-    def method_name2(already_copied, copies, model_pks, obj, stack):
-        old_pk = obj.id
-        try:
-            model_pks[obj.__class__] += 1
-        except KeyError:
-            model_pks[obj.__class__] = obj.__class__.objects.last().id + 1
-        new_pk = model_pks[obj.__class__]
-        # Create new reference
-        copied_obj = copy(obj)
-        # In cases of inheritance in the models changed pks were not properly saved.
-        # Changing to id solved the issue
-        # but requires use of "id" as integer pk
-        copied_obj.id = new_pk
-        #
-        write_multi_dict(copies, [obj.__class__, new_pk], copied_obj)
-        write_multi_dict(already_copied, [obj.__class__, old_pk], obj)
-        write_multi_dict(stack, [obj.__class__, old_pk], new_pk)
-        all_fields = [o for o in obj._meta.related_objects]
-        many2many = [o for o in obj._meta.many_to_many]
-        all_fields = [all_fields, many2many]
-        return all_fields, old_pk
-
-    @time_it
-    def method_name1(already_copied, copies, need_copy):
-        obj = need_copy.pop()
-        # Adjust the copies
-        skip = True
-        # Was this object copied already or is a result of a copy?
-        try:
-            copies[obj.__class__][obj.id]
-        except KeyError:
-            try:
-                already_copied[obj.__class__][obj.id]
-            except KeyError:
-                skip = False
-        return obj, skip
-
     def _deepcopy(
         object: models.Model,
         stack: dict,
@@ -308,14 +167,13 @@ def deepcopy(  # noqa
         managers = replace_keys_and_get_managers(
             already_copied, copies, rev_stack, stack, exclude_models
         )
+        # After objects are saved to DB ManyToMany fields can be set
+        replace_many2many(managers)
 
         copies = {key: values for key, values in copies.items() if key in failed_classes}
 
         if len(copies) == 0:
             break
-
-    # After objects are saved to DB ManyToMany fields can be set
-    replace_many2many(managers)
 
     return instance.__class__.objects.get(pk=new_pk)
 
@@ -425,7 +283,7 @@ def get_keys_factory(m2m):
 
 def create_m2m_managers(f, managers, obj_copy, org_foreign_values, stack):
     new_foreign_values = []
-    # Replace all Foreign keys with the copy/pk translation of the objects
+    # Replace all foreign keys with the copy/pk translation of the objects
     for old_foreign in org_foreign_values:
         new_foreign_values.append(stack[f.related_model][old_foreign.pk])
     manager = getattr(obj_copy, f.name)
@@ -438,138 +296,3 @@ def set_new_foreign_value(f, obj_copy, org_foreign_values, stack, exclude_models
         setattr(obj_copy, f.name + "_id", new_foreign_values)
     except KeyError:
         assert f.related_model in exclude_models
-
-
-def deepcopy_db(  # noqa
-    instance: models.Model,
-    exclude_models: None | set[models.Model] = None,
-    exclude_fields: None | set[models.Field] = None,
-):
-    """Deprecated
-    Deepcopy an object and related objects by ForeignKey and ManyToMany Relationship.
-
-    All objects in the database that are connected to the given instance by a ManyToMany
-    Relationship or a ForeignKey are copied. Their references are updated to the set of copied
-    instances. Depth of copying can be restricted through field or model exclusion. While the
-    exclusion of a model will not copy any related object of that type, the exclusion of a field is
-    more restrictive and will only exclude objects which are related through a given field, e.g.
-    ForeignKey or ManyToMany field.
-    In both cases, objects that are related with the original instance only through the excluded
-    object will be excluded as well.
-    Note: To not break automatic id generation of the django model managers, models can not make
-    use of manually provided ids, since the manager id counter does not seem to be updated.
-    This can be avoided by passing self defined ids inside the deepcopy, but this again breaks the
-    automatic key generation through the django object manager.
-    """
-
-    def _deepcopy(
-        object: models.Model,
-        stack: dict,
-        already_copied: set,
-        copies: set,
-        exclude_models: set,
-        exclude_fields: set,
-    ):
-
-        object_hash = object.__class__, object.pk
-        if object_hash in copies or object_hash in already_copied:
-            return stack, stack[object_hash]
-
-        old_pk = object.pk
-        # This could be used to provide a new primary key/ id
-        new_pk = object.__class__.objects.last().pk + 1
-        # Create new reference
-        copied_obj = copy(object)
-        copied_obj.id = None
-        copied_obj.pk = None
-        copied_obj.save()
-        new_pk = copied_obj.id
-        print(object.__class__, old_pk, new_pk)
-        already_copied.add((object.__class__, old_pk))
-        copies.add((copied_obj.__class__, new_pk))
-        stack[(object.__class__, old_pk)] = new_pk
-        all_fields = [o for o in object._meta.related_objects]
-        many2many = [o for o in object._meta.many_to_many]
-        all_fields = [all_fields, many2many]
-        for i, fields in enumerate(all_fields):
-            for related in fields:
-                if i == 0:
-                    related_model = related.related_model
-                    related_field = related.field
-                    rel_objs = related_model.objects.filter(**{related_field.name: old_pk})
-                else:
-                    # ManyToMany values are accessed through the object and not through the model
-                    related_model = related.related_model
-                    related_field = related
-                    manager = getattr(object, related_field.name)
-                    rel_objs = manager.all()
-
-                if related_field in exclude_fields or related_model in exclude_models:
-                    continue
-                # Filter out all objects that have been copied already
-                rel_objs = list(
-                    filter(lambda x: (x.__class__, x.pk) not in already_copied, rel_objs)
-                )
-                # Filter out all objects that are the result of copying
-                rel_objs = list(filter(lambda x: (x.__class__, x.pk) not in copies, rel_objs))
-                for o in rel_objs:
-                    _deepcopy(
-                        o,
-                        stack=stack,
-                        already_copied=already_copied,
-                        copies=copies,
-                        exclude_models=exclude_models,
-                        exclude_fields=exclude_fields,
-                    )
-        return new_pk
-
-    stack = dict()
-    already_copied = set()
-    copies = set()
-    if exclude_models is None:
-        exclude_models = {}
-    if exclude_fields is None:
-        exclude_fields = {}
-
-    # Copy all related objects
-    new_pk = _deepcopy(
-        instance,
-        stack=stack,
-        already_copied=already_copied,
-        copies=copies,
-        exclude_models=exclude_models,
-        exclude_fields=exclude_fields,
-    )
-
-    rev_stack = {(x[0], value): x[1] for x, value in stack.items()}
-    # Adjust the copies
-    for obj_class, pk in copies:
-        obj = obj_class.objects.get(pk=pk)
-        org_pk = rev_stack[(obj_class, pk)]
-        fields = obj._meta.fields + obj._meta.many_to_many
-        for f in fields:
-            if f.related_model:
-                # Get the foreign key(s) of the original
-                org_foreign_values = getattr(obj_class.objects.get(pk=org_pk), f.name)
-                if org_foreign_values is None:
-                    continue
-                try:
-                    iter(org_foreign_values.all())
-                    org_foreign_values = org_foreign_values.all()
-                except (AttributeError, TypeError):
-                    # In case of a foreign field
-                    # For the foreign model get the copy/pk translation and get this object
-                    new_foreign_values = f.related_model.objects.get(
-                        pk=stack[f.related_model, org_foreign_values.pk]
-                    )
-                    setattr(obj, f.name, new_foreign_values)
-                else:
-                    # This works for manytomany fields
-                    new_foreign_values = []
-                    # Replace all Foreign keys with the copy/pk translation of the objects
-                    for old_foreign in org_foreign_values:
-                        new_foreign_values.append(stack[f.related_model, old_foreign.pk])
-                    manager = getattr(obj, f.name, new_foreign_values)
-                    manager.add(*new_foreign_values)
-        obj.save()
-    return instance.__class__.objects.get(pk=new_pk)
