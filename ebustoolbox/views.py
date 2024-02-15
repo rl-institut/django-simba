@@ -4,6 +4,7 @@ from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest
 from django.shortcuts import render, redirect
 from django.views.generic import TemplateView
 from django.views.decorators.http import require_GET
+from eflips.depot.api import simulate_scenario
 
 from django_mapengine.views import MapEngineMixin
 
@@ -13,10 +14,11 @@ from celery.result import AsyncResult
 from dash_app import dash_app, ids  # noqa: F401
 from . import tasks
 from .forms import UploadFileForm
+from .tasks import create_db_url, run_simba_scenario
 from .util import get_unique_task_id
 
 import ebustoolbox
-from ebustoolbox.models import Scenario
+from ebustoolbox.models import Scenario, Event
 
 
 def show_uploads_view(request: HttpRequest, filename):
@@ -91,7 +93,7 @@ def long_running_task_status_view(request):
 
 def home_view(request: HttpRequest):
     """Generate the home view of the tool chain with input forms"""
-
+    # test_deepcopy()
     if request.method == "GET":
         form = UploadFileForm()
     elif request.method == "POST":
@@ -110,6 +112,43 @@ def home_view(request: HttpRequest):
     else:
         return HttpResponse("Method is not allowed", status=405)
     return render(request, "index.html", {"form": form})
+
+
+def test_deepcopy():
+    num_before = Scenario.objects.all().count()
+    print(num_before)
+    scen = Scenario.objects.first()
+    Scenario.objects.exclude(id=scen.id).delete()
+    #####
+    scen = Scenario.objects.last()
+    if scen is not None:
+        # from ebustoolbox.models import Trip
+        from core.deepcopy import deepcopy
+        from ebustoolbox.models import User
+
+        # from ebustoolbox.models import Rotation
+        # from ebustoolbox.models import Vehicle, VehicleType
+        from ebus_map.models import Station
+
+        users_field = Scenario._meta.get_field("users")
+        scen.task_id = None
+        new_scen = deepcopy(
+            scen, exclude_models=[Scenario, User, Station, Event], exclude_fields=[users_field]
+        )
+
+        new_scen.task_id = get_unique_task_id()
+        new_scen.save()
+
+        Event.objects.filter(scenario=new_scen).delete()
+        run_simba_scenario(new_scen)
+        ####
+        db_url = create_db_url()
+        # generate_depot_layout(
+        #     new_scen, database_url=db_url, charging_power=90, delete_existing_depot=False)
+        simulate_scenario(new_scen, database_url=db_url)
+        print("run from copy finished")
+    ###
+    print(len(Scenario.objects.all()))
 
 
 @atomic()
