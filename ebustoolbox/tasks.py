@@ -166,7 +166,10 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
     # Create soc dispatcher
     schedule.init_soc_dispatcher(args)
 
-    schedule.assign_only_new_vehicles()
+    # Database should contain assigned vehicles already
+    for rot in schedule.rotations.values():
+        assert rot.vehicle_id is not None
+    # schedule.assign_only_new_vehicles()
 
     return schedule, args
 
@@ -185,7 +188,12 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
 
     for rot in Rotation.objects.filter(scenario=django_scenario):
         vehicle_type = rot.vehicle.vehicle_type.name_short
-        simba_rotation = SimbaRotation(id=rot.name, vehicle_type=vehicle_type, schedule=schedule)
+        simba_rotation = SimbaRotation(
+            id=rot.name,
+            vehicle_type=vehicle_type,
+            schedule=schedule,
+        )
+        simba_rotation.vehicle_id = rot.vehicle.name_short
         simba_rotation.charging_type = (
             EnumChargeType.OPPORTUNITY.value
             if rot.allow_opportunity_charging
@@ -673,8 +681,6 @@ def run_simba_scenario(django_scenario: Scenario):
 
 def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
     """Run the tool chain"""
-    # set report dir for first iteration
-    args.output_directory = Path(settings.UPLOAD_PATH) / task_id
     # call simba and eflips
     run_simba(schedule, args, task_id)
     # ToDo: Do this inside simba or spice ev
@@ -687,7 +693,6 @@ def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
 
         eflips_assignment = get_assigned_vehicles(task_id, prev_events)
         schedule.assign_vehicles_for_django(eflips_assignment)
-        print(eflips_assignment)
         # set report dir for second iteration/final results
         # report_dir = Path(settings.BASE_DIR, args.output_directory, "report_2")
         # TODO: currently report_directory is set in simba internally and is always report_1 for current purposes
@@ -774,6 +779,7 @@ def run_simba(
     task_id,
 ):
     # TODO don't overwrite output on multiple function calls
+    args.output_directory = Path(settings.UPLOAD_PATH) / task_id
     args.attach_vehicle_soc = True
 
     db_scenario = Scenario.objects.get(task_id=task_id)
@@ -833,6 +839,14 @@ def run_eflips(task_id) -> None:
     db_scenario = Scenario.objects.get(task_id=task_id)
 
     # Constructing the database URL manually
+    db_url = create_db_url()
+    generate_depot_layout(
+        db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=False
+    )
+    simulate_scenario(db_scenario, database_url=db_url)
+
+
+def create_db_url():
     db_dict = settings.DATABASES["default"]
     engine = db_dict["ENGINE"].split(".")[-1]
     # sqlalchemy needs a translation of the engine
@@ -841,11 +855,7 @@ def run_eflips(task_id) -> None:
     db_url = (
         f"{engine}://{db_dict['USER']}:{db_dict['PASSWORD']}@{db_dict['HOST']}/{db_dict['NAME']}"
     )
-
-    generate_depot_layout(
-        db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=False
-    )
-    simulate_scenario(db_scenario, database_url=db_url)
+    return db_url
 
 
 def get_timestep(simba_scenario: "SimbaScenario", timestamp: datetime) -> int:
