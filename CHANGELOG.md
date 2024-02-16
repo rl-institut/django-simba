@@ -17,6 +17,11 @@ Template:
 - [(#)]()
 ```
 ### Changed
+- []()
+- Updates project dependencies to eflips-depot 2.0
+- Closes [(#53)](https://github.com/rl-institut/django-simba/issues/53). Fix SoC plotting
+
+### Changed
 - [(#48)](https://github.com/rl-institut/django-simba/pull/48)
 -  Update poetry.lock to import fixed eflips-depot.
 - use the new generate_depot_layout() method.
