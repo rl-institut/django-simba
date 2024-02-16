@@ -887,13 +887,13 @@ files = [
 
 [[package]]
 name = "eflips"
-version = "0.1.0"
+version = "0.1.1"
 description = "eFLIPS: Electric Fleet and Infrastructure Planning/Simulation"
 optional = false
-python-versions = ">=3.11,<4.0"
+python-versions = ">=3.9,<4.0"
 files = [
-    {file = "eflips-0.1.0-py3-none-any.whl", hash = "sha256:0b36dd9e43ccf40a7546aa769d86d8c3b082e0d23a1435f5da6afdad98a27343"},
-    {file = "eflips-0.1.0.tar.gz", hash = "sha256:3210bee0a04c6c598460d45c7bef1b25808dc9ac2c033696731f42aa57d09e9c"},
+    {file = "eflips-0.1.1-py3-none-any.whl", hash = "sha256:690618d91a504647c7893fa21bcd4282778044d391dbfde48632a44a864a60e0"},
+    {file = "eflips-0.1.1.tar.gz", hash = "sha256:a7e061cfea85e76366d90b9cab00ca9c71f604bac2ee97f98071394d27d1c9ce"},
 ]
 
 [package.dependencies]
@@ -903,18 +903,18 @@ simpy = ">=4.0.1,<5.0.0"
 
 [[package]]
 name = "eflips-depot"
-version = "1.1.2"
+version = "2.0.0"
 description = "Depot Simulation for eFLIPS"
 optional = false
-python-versions = ">=3.11,<4.0"
+python-versions = ">=3.10,<4.0"
 files = [
-    {file = "eflips_depot-1.1.2-py3-none-any.whl", hash = "sha256:e8170531bbb126fe96e79f8a65b860729f99cd3517f69cd28caf8dd4dad0efea"},
-    {file = "eflips_depot-1.1.2.tar.gz", hash = "sha256:4eff34c36a7fb1b058a4ba0045c7c4aba65205228b77b0edf0065ce28dfc060c"},
+    {file = "eflips_depot-2.0.0-py3-none-any.whl", hash = "sha256:6f2c6b25841c01e3513fd02b2c91c2f169d03b1cb3aa21dbeb38186770755338"},
+    {file = "eflips_depot-2.0.0.tar.gz", hash = "sha256:0d143986ed4df10e7bec862e7ddc3aebe342f2f76f0a7ff4c8bf61725ae3d610"},
 ]
 
 [package.dependencies]
-eflips = ">=0.1.0,<0.2.0"
-eflips-model = ">=2.1.2,<3.0.0"
+eflips = ">=0.1.1,<0.2.0"
+eflips-model = ">=2.2.0,<3.0.0"
 pandas = ">=2.1.4,<3.0.0"
 simpy = ">=4.0.1,<5.0.0"
 xlrd = "<=1.2.0"
@@ -922,13 +922,13 @@ xlsxwriter = ">=3.1.9,<4.0.0"
 
 [[package]]
 name = "eflips-model"
-version = "2.1.2"
+version = "2.2.0"
 description = "A common data model for the eflips family of electric vehicle simulation & optimization tools."
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "eflips_model-2.1.2-py3-none-any.whl", hash = "sha256:04e433eaacfeafef0143067fe08983fda9a90c70cfc25e1d8b843f115a88c443"},
-    {file = "eflips_model-2.1.2.tar.gz", hash = "sha256:2674ff70c9a5ff8064dd56c61a2408711d42668a27f0c49484dc2f11ae458ff7"},
+    {file = "eflips_model-2.2.0-py3-none-any.whl", hash = "sha256:d0ddf13fed35a84a3fdf04fe0650e2a94a6724087c667d1bbf08e2adac8b68c5"},
+    {file = "eflips_model-2.2.0.tar.gz", hash = "sha256:1e4b748fc54d05709c226aa72be03a7ebab3f922403e06f657f55570950e2527"},
 ]
 
 [package.dependencies]
@@ -2413,4 +2413,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "3ce15d4c60f7f900748ad3b01b098ed44cb567028a786790a4e0cf68f2bf1625"
+content-hash = "81a3277af180d070e3a489686ceeef02e342868d2cd9d1ef8567109911fe9a10"

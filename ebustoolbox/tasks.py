@@ -709,7 +709,7 @@ def get_assigned_vehicles(task_id: str, prev_events: List[Event]):
     """
 
     scenario = Scenario.objects.get(task_id=task_id)
-    used_vehicles = Vehicle.objects.filter(event__scenario=scenario).distinct()
+    used_vehicles = Vehicle.objects.filter(rotation__scenario=scenario).distinct()
     # Delete the old vehicles which are not used anymore
     Vehicle.objects.filter(scenario=scenario).exclude(id__in=used_vehicles).delete()
     all_events = Event.objects.filter(scenario=scenario)
@@ -740,23 +740,14 @@ def get_assigned_vehicles(task_id: str, prev_events: List[Event]):
             vehicle.save()
 
         prev_event = (
-            eflips_events.filter(time_end__lt=first_trip.departure_time, vehicle=vehicle)
+            eflips_events.filter(time_end__lte=first_trip.departure_time, vehicle=vehicle)
             .order_by("time_end")
             .last()
         )
-        if prev_event is None:
-            current_event = (
-                all_events.filter(time_start=first_trip.departure_time, vehicle=vehicle)
-                .order_by("time_end")
-                .last()
-            )
-            # ToDo: Fix. Every departure event should have an event right before, where it stands
-            # in the depot right?
-            prev_event = current_event
+
         vehicle_assigns.append(
             {"rot": rot.name, "v_id": vehicle.name_short, "soc": prev_event.soc_end}
         )
-
     return vehicle_assigns
 
 
