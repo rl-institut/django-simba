@@ -16,9 +16,25 @@ Template:
 ### Removed
 - [(#)]()
 ```
+### Changed
+- [(#48)](https://github.com/rl-institut/django-simba/pull/48)
+-  Update poetry.lock to import fixed eflips-depot.
+- use the new generate_depot_layout() method.
+- Update Simba Version
+- SimBA does not create 0 Duration Events anymore
+- SimBA does not create events past the last trip. The last event is always a driving event.
+- SimBA reads Rotation Start SOCs from the Database-Event before rotation departure.
+  - In some cases there is no event.
+  - Vehicle renaming is handled in django. Might need an overhaul later.
+  - Unused vehicles get deleted by django
+- Fix tests by using other TestCase
+  - Add temperatures to testing if db and "normal" version are the same
+
+
 
 ### Changed
 - [(#45)](https://github.com/rl-institut/django-simba/pull/45)
+- Eflips-depot is currently turned off in the toolchain, since it breaks testing
 - Changed the type of datetimes and data to arrayfields
 - Temperatures or other values can now be easily interpolated or looked up
 - Test file for temperatures uploaded

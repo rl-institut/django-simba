@@ -26,7 +26,7 @@ services:
       POSTGRES_DB: mydb
       POSTGRES_USER: myprojectuser
 
-# Not that after creating a volume above info can not be swapped. The volume has to be deleted or a different volume
+# Note that after creating a volume, the above info cannot be changed. The volume has to be deleted, or a different volume
 # name has to be used
 volumes:
   postgres_data:
