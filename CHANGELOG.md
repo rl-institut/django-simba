@@ -17,7 +17,7 @@ Template:
 - [(#)]()
 ```
 ### Changed
-- []()
+- [(#54)](https://github.com/rl-institut/django-simba/pull/54)
 - Updates project dependencies to eflips-depot 2.0
 - Closes [(#53)](https://github.com/rl-institut/django-simba/issues/53). Fix SoC plotting
 
