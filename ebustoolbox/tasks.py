@@ -718,6 +718,7 @@ def run_simba_scenario(django_scenario: Scenario):
 def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
     """Run the tool chain"""
     # call simba and eflips
+
     run_simba(schedule, args, task_id)
     # ToDo: Do this inside simba or spice ev
     plt.close()
@@ -725,6 +726,7 @@ def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
     if settings.EFLIPS_USE:
 
         prev_events = [e.id for e in Event.objects.filter(scenario__task_id=task_id)]
+        print(f"Running eflips {datetime.now()}")
         run_eflips(task_id)
 
         eflips_assignment = get_assigned_vehicles(task_id, prev_events)
@@ -814,6 +816,7 @@ def run_simba(
     args,
     task_id,
 ):
+    print(f"Running Simba {datetime.now()}")
     # TODO don't overwrite output on multiple function calls
     args.output_directory = Path(settings.UPLOAD_PATH) / task_id
     args.attach_vehicle_soc = True
@@ -821,9 +824,12 @@ def run_simba(
     db_scenario = Scenario.objects.get(task_id=task_id)
     scenario = schedule.run(args)
 
+    print(f"Plotting {datetime.now()}")
     schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
     db_scenario.finished = timezone.now()
     db_scenario.save()
+
+    print(f"Creating Simba Events {datetime.now()}")
 
     create_event_output(scenario, task_id)
 

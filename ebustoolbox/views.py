@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.conf import settings
 from django.db.transaction import atomic
 from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest
@@ -133,8 +135,10 @@ def test_deepcopy():
         exclude_fields={users_field},
         max_depth=1,
     )
+    print("finished")
     print(time_it(None))
     Scenario.objects.filter(id=new_scen.id).delete()
+    print("deleted copied object")
 
 
 @atomic()
@@ -153,6 +157,7 @@ def create_stations_for_map(django_scenario: Scenario):
 def save_and_simulate(
     form: UploadFileForm | None = None, request: HttpRequest | None = None
 ) -> Scenario:
+    print(f"Running TOOLCHAIN {datetime.now()}")
     if form is None:
         new_form = UploadFileForm()
         # If this function is called without a request and a form,  use the initial values as
@@ -161,16 +166,18 @@ def save_and_simulate(
     else:
         cleaned_data = form.cleaned_data
 
+    print(f"Writing to db {datetime.now()}")
     django_scenario, simba_schedule, args = tasks.input_files_to_database(cleaned_data, request)
     if request.user.is_authenticated:
         django_scenario.manager = request.user
         django_scenario.users.add(request.user)
     # start computation
-
     task_id = get_unique_task_id()
+    print(f"{task_id=}")
     django_scenario.task_id = task_id
     django_scenario.save()
     tasks.run_ebus_toolchain(simba_schedule, args, task_id)
+    print(f"Simulation Finished {datetime.now()}")
     return django_scenario
 
 

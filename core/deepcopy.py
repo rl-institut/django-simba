@@ -121,7 +121,6 @@ def deepcopy(  # noqa
                     # through the model
                     manager = getattr(object, related_field.name)
                     rel_objs = manager.all()
-
                 for o in rel_objs:
                     _deepcopy(
                         o,
@@ -206,10 +205,10 @@ def revert_stack(stack, write_multi_dict):
 
 @time_it
 def bulk_create_objects(copies) -> []:
-    @atomic()
+    @atomic
     def atomic_creation(inner_object_class):
-        all_objects = [obj for obj in copies[inner_object_class].values()]
-        inner_object_class.objects.bulk_create(all_objects)
+        # all_objects = [obj for obj in copies[inner_object_class].values()]
+        inner_object_class.objects.bulk_create(copies[inner_object_class].values())
 
     failed_copies = []
     for object_class in copies:

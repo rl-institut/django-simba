@@ -905,6 +905,7 @@ class Trip(models.Model):
     class Meta:
         db_table = "Trip"
 
+    objects = FastUpdateManager()
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     route = models.ForeignKey(Route, null=False, on_delete=models.CASCADE)
 
