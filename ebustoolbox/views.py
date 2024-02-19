@@ -16,12 +16,12 @@ from celery.result import AsyncResult
 from dash_app import dash_app, ids  # noqa: F401
 from . import tasks
 from .forms import UploadFileForm
-from .tasks import create_db_url, run_simba_scenario  # noqa
+from .tasks import create_db_url  # noqa
 
 from .util import get_unique_task_id
 
 import ebustoolbox
-from ebustoolbox.models import Scenario, Event
+from ebustoolbox.models import Scenario
 
 
 def show_uploads_view(request: HttpRequest, filename):
@@ -96,7 +96,6 @@ def long_running_task_status_view(request):
 
 def home_view(request: HttpRequest):
     """Generate the home view of the tool chain with input forms"""
-    test_deepcopy()
     if request.method == "GET":
         form = UploadFileForm()
     elif request.method == "POST":
@@ -115,30 +114,6 @@ def home_view(request: HttpRequest):
     else:
         return HttpResponse("Method is not allowed", status=405)
     return render(request, "index.html", {"form": form})
-
-
-def test_deepcopy():
-    #####
-    scen = Scenario.objects.last()
-    from core.deepcopy import deepcopy
-    from ebustoolbox.models import User
-
-    from simba.optimizer_util import time_it
-    from ebus_map.models import Station
-
-    users_field = Scenario._meta.get_field("users")
-    scen.task_id = None
-    print("starting deepcopy")
-    new_scen = deepcopy(
-        scen,
-        exclude_models={Scenario, User, Station, Event},
-        exclude_fields={users_field},
-        max_depth=1,
-    )
-    print("finished")
-    print(time_it(None))
-    Scenario.objects.filter(id=new_scen.id).delete()
-    print("deleted copied object")
 
 
 @atomic()
