@@ -205,6 +205,23 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
     # Database should contain assigned vehicles already
     for rot in schedule.rotations.values():
         assert rot.vehicle_id is not None
+
+    # This is done since vehicle counts were generated in vehicle_assignment.
+    # ToDo replace with simba call
+    # Calculate vehicle counts
+    # count number of vehicles per type
+    # used for unique vehicle id e.g. vehicletype_chargingtype_id
+    vehicle_type_counts = {
+        f"{vehicle_type}_{charging_type}": 0
+        for vehicle_type, charging_types in schedule.vehicle_types.items()
+        for charging_type in charging_types.keys()
+    }
+    unique_vids = {rot.vehicle_id for rot in schedule.rotations.values()}
+    for vid in unique_vids:
+        v_ls = vid.split("_")
+        vehicle_type_counts[f"{v_ls[0]}_{v_ls[1]}"] += 1
+    schedule.vehicle_type_counts = vehicle_type_counts
+
     # schedule.assign_only_new_vehicles()
 
     return schedule, args
