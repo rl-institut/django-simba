@@ -1,4 +1,5 @@
 from copy import copy
+from typing import Type
 
 import django.db
 from django.db import models
@@ -12,8 +13,8 @@ from django.db.models.fields.related import ManyToManyField
 @atomic
 def deepcopy(  # noqa
     instance: models.Model,
-    exclude_models: None | set[models.Model] = None,
-    exclude_fields: None | set[models.Field] = None,
+    exclude_models: None | set[Type[models.Model]] = None,
+    exclude_fields: None | set[Type[models.Field]] = None,
     max_depth=None,
 ):
     """Deepcopy an object and related objects by ForeignKey and ManyToMany Relationship. Requires
@@ -26,17 +27,19 @@ def deepcopy(  # noqa
     exclusion of a model will not copy any related object of that type, the exclusion of a field is
     more restrictive and will only exclude objects which are related through a given field, e.g.,
     ForeignKey or ManyToMany field.
-    In both cases, objectes that are related to the original instance only through the excluded
+    In both cases, objects that are related to the original instance only through the excluded
     object will be excluded as well
 
     :param instance: object to be copied
     :param exclude_models: models which are skipped during copying
     :param exclude_fields: fields which are skipped during copying
+    :param max_depth: maximum recursion depth. For known structures, reducing the max depth
+        increases the speed of deep copying.
     :return: copy result instance
     """
 
     def write_multi_dict(source: dict, keys: list, value):
-        """Creates mutliple layers of dictionaries if needed and sets values"""
+        """Creates multiple layers of dictionaries if needed and sets values"""
         stem = source
         for key in keys[:-1]:
             try:
