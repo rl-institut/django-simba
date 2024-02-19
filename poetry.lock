@@ -774,6 +774,19 @@ files = [
 Django = ">=3.2"
 
 [[package]]
+name = "django-fast-update"
+version = "0.2.3"
+description = "Faster db updates for Django using UPDATE FROM VALUES sql variants."
+optional = false
+python-versions = "*"
+files = [
+    {file = "django-fast-update-0.2.3.tar.gz", hash = "sha256:76ad711a1dc193e20233458d584e51ad6d354663b8952ada768eec1d997abc3c"},
+]
+
+[package.dependencies]
+Django = ">=3.2"
+
+[[package]]
 name = "django-filter"
 version = "23.5"
 description = "Django-filter is a reusable Django application for allowing users to filter querysets dynamically."
@@ -2413,4 +2426,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "81a3277af180d070e3a489686ceeef02e342868d2cd9d1ef8567109911fe9a10"
+content-hash = "26e7fa296325fd5e940f24d24a8f373a8bebbf9d0286c8a6b9357e44123febe4"
