@@ -82,6 +82,20 @@ def input_files_to_database(cleaned_data: dict, request: HttpRequest):
     # Write the vehicle types to DB
     vehicles_to_db(simba_schedule.vehicle_types, django_scenario)
 
+    # ToDo Consistency check is nice, but should be handled in a more generic way.
+    # some cases are not handled like overlapping times, etc.
+    # Remove trips which have non unique times for arrival or departure per rotation
+    # Remove Rotations which dont start at the depot
+    filter_inconsistent_trips_and_rotations(simba_schedule)
+
+    # Write the schedule including rotations and trips to the DB
+    schedule_to_db(simba_schedule, django_scenario)
+
+    return django_scenario, simba_schedule, original_args
+
+
+# ToDo Do somewhere else?
+def filter_inconsistent_trips_and_rotations(simba_schedule):
     # Some filter functions to handle messy bvg input
     counter = 0
     del_rots = []
@@ -116,12 +130,7 @@ def input_files_to_database(cleaned_data: dict, request: HttpRequest):
     )
     for rot_id in del_rots:
         del simba_schedule.rotations[rot_id]
-
     print(f"{counter} trips deleted") if counter > 0 else print()
-    # Write the schedule including rotations and trips to the DB
-    schedule_to_db(simba_schedule, django_scenario)
-
-    return django_scenario, simba_schedule, original_args
 
 
 def temperatures_to_db(
