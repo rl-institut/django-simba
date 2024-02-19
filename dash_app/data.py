@@ -177,6 +177,7 @@ def get_activities_as_dataframe(scenario_id, buses):
     dfs = []
 
     for vehicle in vehicles:
+
         if vehicle.name_short in buses:
             v_id = vehicle.id
             events = scenario.event_set.filter(vehicle__isnull=False, vehicle_id=v_id)
@@ -263,8 +264,6 @@ def get_powerdraw_as_dataframe(scenario_id, buses):
             v_typeid = vehicle.vehicle_type_id
             batterycapacity = VehicleType.objects.get(id=v_typeid)#
             charge_eff = VehicleType.objects.get(id=v_typeid)#
-
-            print(">>>>>>>>>>>>>>>>>>", batterycapacity.charging_efficiency, charge_eff.battery_capacity)
 
             events = scenario.event_set.filter(vehicle__isnull=False, station_id__isnull=False, vehicle_id=v_id)
             for event in events:

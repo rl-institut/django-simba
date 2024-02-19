@@ -24,18 +24,20 @@
     </nav>
     <div class="tab-content"  id="tabContent">
       <!-- Start Tab Content -->
-      <div class="tab-pane active" id="nav-0" role="tabpanel" aria-labelledby="nav-0-tab" tabindex="0">
-        {% with this_id=request.GET.task_id %}
+      <div class="tab-pane active" id="nav-0" role="tabpanel" aria-labelledby="nav-0-tab" tabindex="0" style="height: auto">
+      {% load plotly_dash %}
+
+               {% plotly_app  slug=task_id ratio=0.9 %}
+      </div>
+        <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
+
+                <!--                </div>-->
+
+              {% with this_id=request.GET.task_id %}
           {% with image_path=this_id|add:'/report_1/run_overview.png' %}
               <img src="{% static image_path %}" alt="Scenario Overview">
           {% endwith %}
         {% endwith %}
-      </div>
-        <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
-                {% load plotly_dash %}
-
-               {% plotly_app  slug=task_id ratio=0.9 %}
-                <!--                </div>-->
       </div>
       <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">
         {% include 'minimal_mapengine.html'%}

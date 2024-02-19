@@ -3,6 +3,7 @@ from . import ids
 from dash.dependencies import Input, Output  # no fa401
 from .data import get_scatter_plot_data
 import plotly.graph_objects as go
+from .colorscheme import color_scheme
 
 
 def render(app: Dash) -> html.Div:
@@ -22,6 +23,7 @@ def render(app: Dash) -> html.Div:
         )
 
         fig.update_layout(showlegend=False)
+
         return fig
 
     return html.Div(dcc.Graph(id=ids.SCATTER_CHART), style={"verticalAlign": "top"})

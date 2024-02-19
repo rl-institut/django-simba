@@ -6,6 +6,7 @@ from ebustoolbox.models import Scenario, Rotation
 import pandas as pd
 import numpy as np
 from . import data
+from .colorscheme import color_scheme
 
 def render(app: Dash) -> html.Div:
     @app.callback(
@@ -20,7 +21,7 @@ def render(app: Dash) -> html.Div:
         dist_df = data.get_distances_as_dataframe(s.id, buses)
 
         # Set the desired bin width
-        bin_width = 2  # Specify your desired bin width here
+        bin_width = 0.5  # Specify your desired bin width here
 
         dur_df["dist_per_dur"] = dist_df['total_distance']/dur_df['duration']
 
@@ -30,7 +31,7 @@ def render(app: Dash) -> html.Div:
 
         num_bins = int((max_distance - min_distance) / bin_width)
 
-        fig = px.histogram(dur_df, x='dist_per_dur', color="R_id", nbins=num_bins, barmode='overlay')
+        fig = px.histogram(dur_df, x='dist_per_dur', barmode='overlay', color_discrete_sequence=color_scheme)
 
         # Update layout to display bars in front of each other
         fig.update_layout(barmode='overlay')

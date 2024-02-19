@@ -18,6 +18,7 @@ def render(app: Dash) -> html.Div:
 
         df = data.get_activities_as_dataframe(s.id, buses)
 
+        print(df)
         fig = px.timeline(
             df, x_start="time_start", x_end="time_end", y="V_id",
             hover_data=['event_type'],

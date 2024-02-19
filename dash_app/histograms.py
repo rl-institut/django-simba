@@ -6,6 +6,8 @@ from ebustoolbox.models import Scenario, Rotation
 import pandas as pd
 import numpy as np
 from . import data
+from .colorscheme import color_scheme
+
 
 def render(app: Dash) -> html.Div:
     @app.callback(
@@ -41,7 +43,8 @@ def render(app: Dash) -> html.Div:
         normalized_df = pd.DataFrame(normalized_bins)
 
         # Create a figure for the histogram
-        fig = px.bar(normalized_df, x='Bin', y='Frequency', color="V_id", barmode='overlay', opacity=alpha)
+        fig = px.histogram(normalized_df, x='Bin', y='Frequency', color="V_id", barmode='overlay', opacity=alpha,
+                     color_discrete_sequence=color_scheme)
 
         # Update layout to display bars in front of each other
         fig.update_layout(barmode='overlay')
