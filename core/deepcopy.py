@@ -4,7 +4,9 @@ from typing import Type
 import django.db
 from django.db import models
 from django.db.transaction import atomic
-
+from django.core.management import call_command
+from os import devnull
+from django.db import connection
 from simba.optimizer_util import time_it
 from django.db.models.fields.related import ManyToManyField
 
@@ -161,6 +163,8 @@ def deepcopy(  # noqa
 
     # Revert the stack from old_pk-> new_pk to new_pk->old_pk
     rev_stack = revert_stack(stack, write_multi_dict)
+
+    apps = {model._meta.app_label for model in copies}
     while True:
         # Bulk create the objects to speed up a writing process
         failed_classes = bulk_create_objects(copies)
@@ -176,6 +180,11 @@ def deepcopy(  # noqa
 
         if len(copies) == 0:
             break
+
+    # Finally fix postgres auto increments for all used apps during this deepcopy
+    postgres_reset_sql = call_command("sqlsequencereset", *apps, stdout=open(devnull, "a"))
+    with connection.cursor() as cursor:
+        cursor.execute(postgres_reset_sql)
 
     return instance.__class__.objects.get(pk=new_pk)
 
