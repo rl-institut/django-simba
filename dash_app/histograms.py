@@ -7,7 +7,8 @@ import pandas as pd
 import numpy as np
 from . import data
 from .colorscheme import color_scheme
-
+import time
+df_perf = data.get_df_perf()
 
 def render(app: Dash) -> html.Div:
     @app.callback(
@@ -15,7 +16,9 @@ def render(app: Dash) -> html.Div:
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def update_soc_histogram(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
-        print("updating SOC Histogram")
+        global df_perf
+        start_time = time.time()
+
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
@@ -52,6 +55,10 @@ def render(app: Dash) -> html.Div:
         fig.update_coloraxes(showscale=False)
         fig.update_xaxes(title_text='SOC')
         fig.update_yaxes(title_text='Relative Häufigkeit in %')
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        data.register_time(0, 0, elapsed_time)
 
         return html.Div(dcc.Graph(figure=fig), id=ids.SOC_HISTOGRAM)
 

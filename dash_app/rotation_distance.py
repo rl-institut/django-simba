@@ -6,6 +6,8 @@ from ebustoolbox.models import Scenario, Rotation
 import pandas as pd
 import numpy as np
 from . import data
+import time
+df_perf = data.get_df_perf()
 from .colorscheme import color_scheme
 
 def render(app: Dash) -> html.Div:
@@ -14,6 +16,8 @@ def render(app: Dash) -> html.Div:
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def update_distances_histogram(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
+        global df_perf
+        start_time = time.time()
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
@@ -36,6 +40,10 @@ def render(app: Dash) -> html.Div:
         fig.update_coloraxes(showscale=False)
         fig.update_xaxes(title_text='Distanz (Nur Trips)')
         fig.update_yaxes(title_text='Absolute Häufigkeit')
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        data.register_time(0, 0, elapsed_time)
 
         return html.Div(dcc.Graph(figure=fig), id=ids.DIST_HISTOGRAM)
 

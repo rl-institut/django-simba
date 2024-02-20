@@ -30,7 +30,8 @@ def render(app: Dash) -> html.Div:
         min_distance = dur_df["dist_per_dur"].min()
 
         num_bins = int((max_distance - min_distance) / bin_width)
-
+        print(dur_df)
+        print(dist_df)
         fig = px.histogram(dur_df, x='dist_per_dur', barmode='overlay', color_discrete_sequence=color_scheme)
 
         # Update layout to display bars in front of each other

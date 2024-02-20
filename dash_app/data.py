@@ -21,14 +21,25 @@ from django.db.models import Min, Sum
 from dash.exceptions import PreventUpdate
 
 
+import time
+df_perf = pd.DataFrame({'retrieval': [0], 'processing': [0], 'rendering': [0]})
+
 def get_all_buses(task_id: str) -> list[str]:
     s = Scenario.objects.get(task_id=task_id)
     rotations = Rotation.objects.filter(scenario=s)
     all_buses = [r.vehicle.name_short for r in rotations]
     return all_buses
 
+def get_number_of_buses(filter_dict: dict) -> list[str]:
+    task_id = filter_dict.pop("task_id")
+    vehicles = filter_dict.pop("vehicle__name_short__in")
+    return ["Selected / Total number of Buses:", str(len(vehicles)) + " / " + str(len(get_all_buses(task_id)))]
 
-def get_report_numbers_text(filter_dict: dict):
+def get_number_longest_rot(filter_dict: dict):
+
+    global df_perf
+    start_time = time.time()
+
     task_id = filter_dict.pop("task_id")
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
@@ -37,21 +48,37 @@ def get_report_numbers_text(filter_dict: dict):
 
     # Function calls annotate distance to Rotation
     longest_rotation = get_longest_distance_rotation(filter_dict)
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    register_time(elapsed_time, 0, 0)
+
+    return [f"Longest Rotation {longest_rotation.name}", f"{longest_rotation.distance} m"]
+
+def get_number_shortest_rot(filter_dict: dict):
+    global df_perf
+    start_time = time.time()
+
+    task_id = filter_dict.pop("task_id")
+    s = Scenario.objects.get(task_id=task_id)
+    filter_dict["scenario"] = s
+    if len(filter_dict["vehicle__name_short__in"]) == 0:
+        raise PreventUpdate
+
+    # Function calls annotate distance to Rotation
     shortest_rotation = get_shortest_distance_rotation(filter_dict)
-    # lowest_soc_event = Event.objects.filter(**filter_dict).order_by("soc_start").first()
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    register_time(elapsed_time, 0, 0)
 
     # Add style if text should have special style
-    styles = [{}, {}]
-    return [
-        f"Longest Rotation {longest_rotation.name} with {longest_rotation.distance} m",
-        f"Shortest Rotation {shortest_rotation.name} with {shortest_rotation.distance} m",
-        # f"Lowest soc {lowest_soc_event.soc_start:.2f} at {lowest_soc_event.station.name} for "
-        # f"Vehicle {lowest_soc_event.vehicle.name_short} at"
-        # f"{lowest_soc_event.time_start:%d-%m-%Y %H:%M}",
-    ], styles
-
+    return [f"Shortest Rotation {shortest_rotation.name}", f"{shortest_rotation.distance} m"]
 
 def get_scatter_plot_data(filter_dict: dict) -> dict:
+    global df_perf
+    start_time = time.time()
+
     task_id = filter_dict.pop("task_id")
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
@@ -73,9 +100,17 @@ def get_scatter_plot_data(filter_dict: dict) -> dict:
             socs.append(event.soc_start)
             times.append(event.time_start)
         data[vehicle.name_short] = [times, socs]
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    register_time(elapsed_time, 0, 0)
+
     return data
 
 def get_bar_plot_data(filter_dict: dict) -> list[str, float, float]:
+    global df_perf
+    start_time = time.time()
+
     task_id = filter_dict.pop("task_id")
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
@@ -105,6 +140,11 @@ def get_bar_plot_data(filter_dict: dict) -> list[str, float, float]:
         vehicles = vehicle_data[:, 0][(next_bin > vehicle_data[:, 1]) & (vehicle_data[:, 1] >= bin)]
         data[i, :] = ",".join(vehicles), bin, amount
     data[:, 1] = 0.5 * (hist_data[1][:-1] + hist_data[1][1:])
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    register_time(elapsed_time, 0, 0)
+
     return data
 
 def get_soc(scenario_id):
@@ -116,6 +156,10 @@ def get_soc(scenario_id):
     :return: vehicle ID -> event dict (station ID, soc start/end, time start/end, soc timeseries)
     :rtype: JSON
     """
+
+    global df_perf
+    start_time = time.time()
+
     scenario = Scenario.objects.get(id=scenario_id)
     # get all vehicle events from this scenario at a station
     events = scenario.event_set.filter(vehicle__isnull=False, station__isnull=False)
@@ -131,10 +175,16 @@ def get_soc(scenario_id):
             "soc_end":    event.soc_end,
             "timeseries": event.timeseries["soc"],
         })
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    register_time(elapsed_time, 0, 0)
+
     return socs
 
 def get_soc_as_dataframe(scenario_id, buses):
-
+    global df_perf
+    start_time = time.time()
 
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
     scenario = Scenario.objects.get(id=scenario_id)
@@ -166,10 +216,17 @@ def get_soc_as_dataframe(scenario_id, buses):
     # Sort the DataFrame based on the 'Time' column
     result_df = result_df.sort_values(by='Time')
 
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    register_time(elapsed_time, 0, 0)
+
     return result_df
 
 
 def get_activities_as_dataframe(scenario_id, buses):
+    global df_perf
+    start_time = time.time()
+
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
     scenario = Scenario.objects.get(id=scenario_id)
     # get all vehicle events from this scenario at a station
@@ -197,10 +254,17 @@ def get_activities_as_dataframe(scenario_id, buses):
     # Sort the DataFrame based on the 'Time' column
     result_df = result_df.sort_values(by='time_start')
 
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    register_time(elapsed_time, 0, 0)
+
     return result_df
 
 
 def get_distances_as_dataframe(scenario_id, buses):
+    global df_perf
+    start_time = time.time()
+
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
     scenario = Scenario.objects.get(id=scenario_id)
     # get all vehicle events from this scenario at a station
@@ -225,10 +289,16 @@ def get_distances_as_dataframe(scenario_id, buses):
     result_df = pd.concat(dfs, ignore_index=True)
     result_df = result_df.groupby('R_id')['total_distance'].sum().reset_index()
 
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    register_time(elapsed_time, 0, 0)
+
     return result_df
 
 
 def get_duration_as_dataframe(scenario_id, buses):
+    global df_perf
+    start_time = time.time()
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
     scenario = Scenario.objects.get(id=scenario_id)
     # get all vehicle events from this scenario at a station
@@ -249,9 +319,16 @@ def get_duration_as_dataframe(scenario_id, buses):
     result_df = pd.concat(dfs, ignore_index=True)
     result_df = result_df.groupby('R_id')['duration'].sum().reset_index()
 
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    register_time(elapsed_time, 0, 0)
+
     return result_df
 
 def get_powerdraw_as_dataframe(scenario_id, buses):
+    global df_perf
+    start_time = time.time()
+
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
     scenario = Scenario.objects.get(id=scenario_id)
     # get all vehicle events from this scenario at a station
@@ -283,4 +360,21 @@ def get_powerdraw_as_dataframe(scenario_id, buses):
     else:
         result_df = pd.DataFrame({'V_id': [None], 'Time': [None], 'Energy': [None], 'Station_id': [None]})
 
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    register_time(elapsed_time, 0, 0)
+
+
     return result_df
+
+def get_df_perf():
+    global df_perf
+    return df_perf
+
+def register_time(retrieval, processing, rendering):
+    global df_perf
+    df = pd.DataFrame({'retrieval': [retrieval], 'processing': [processing], 'rendering': [rendering]})
+    df_perf = pd.concat([df_perf, df], ignore_index=True, sort=False)
+def reset_df_perf():
+    global df_perf
+    df_perf = pd.DataFrame({'retrieval': [0], 'processing': [0], 'rendering': [0]})

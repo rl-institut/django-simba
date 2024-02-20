@@ -24,10 +24,10 @@
     </nav>
     <div class="tab-content"  id="tabContent">
       <!-- Start Tab Content -->
-      <div class="tab-pane active" id="nav-0" role="tabpanel" aria-labelledby="nav-0-tab" tabindex="0" style="height: auto">
+      <div class="tab-pane active" id="nav-0" role="tabpanel" aria-labelledby="nav-0-tab" tabindex="0" style="height: auto;">
       {% load plotly_dash %}
 
-               {% plotly_app  slug=task_id ratio=0.9 %}
+               {% plotly_app  slug=task_id ratio=3 %}
       </div>
         <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
 
@@ -59,6 +59,7 @@
 
   </div>
 <script>
+
     let routesIDList = [];
 
     function addIdToList(id, idList) {
