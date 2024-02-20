@@ -7,10 +7,10 @@ import numpy as np
 from ebustoolbox.models import (
     Scenario,
     Event,
-    Rotation,
     get_longest_distance_rotation,
     get_shortest_distance_rotation,
     EventType,
+    Vehicle,
 )
 
 from django.db.models import Min
@@ -19,8 +19,7 @@ from dash.exceptions import PreventUpdate
 
 def get_all_buses(task_id: str) -> list[str]:
     s = Scenario.objects.get(task_id=task_id)
-    rotations = Rotation.objects.filter(scenario=s)
-    all_buses = [r.vehicle.name_short for r in rotations]
+    all_buses = list(Vehicle.objects.filter(scenario=s).values_list("name_short", flat=True))
     return all_buses
 
 
