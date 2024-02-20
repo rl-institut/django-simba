@@ -57,7 +57,6 @@ class Scenario(models.Model):
     manager = models.ForeignKey(
         User, on_delete=models.SET_NULL, default=None, null=True, blank=True, related_name="+"
     )
-    users = models.ManyToManyField(User)
 
     @classmethod
     def get_default_pk(cls):
@@ -82,6 +81,22 @@ def auto_delete_results_on_delete(sender, instance, **kwargs):
         except FileNotFoundError:
             # The Folder does not exist. That is not a problem
             pass
+
+
+class UserGroup(models.Model):
+    """
+    Defines who has access to a scenario.
+
+    If not outright a scenario's manager, one has to be part of a UserGroup to access a project.
+    Attributes:
+    - name (string): displayed name
+    - users (M2M User): participants of group
+    - scenarios (M2M Scenario): shared scenarios
+    """
+
+    name = models.TextField(blank=False)
+    users = models.ManyToManyField(User)
+    scenarios = models.ManyToManyField(Scenario)
 
 
 class UploadedFile(models.Model):
