@@ -17,6 +17,11 @@ Template:
 - [(#)]()
 ```
 ### Changed
+- [(#58)](https://github.com/rl-institut/django-simba/pull/58)
+- Upgrade to maplibre 4.0.2
+- Upgrade to django-mapengine 0.18
+
+### Changed
 - [(#54)](https://github.com/rl-institut/django-simba/pull/54)
 - Updates project dependencies to eflips-depot 2.0
 - Closes [(#53)](https://github.com/rl-institut/django-simba/issues/53). Fix SoC plotting
