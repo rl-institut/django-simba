@@ -17,7 +17,7 @@ from ebustoolbox.models import (
     VehicleType,
 )
 import pandas as pd
-from django.db.models import Min, Sum
+from django.db.models import Min, Sum, Count
 from dash.exceptions import PreventUpdate
 
 
@@ -304,6 +304,20 @@ def get_powerdraw_as_dataframe(scenario_id, buses):
 
 
     return result_df
+
+def get_vehicle_types(scenario_id, buses):
+    filter_dict = dict(scenario_id=scenario_id)
+
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!111",len(VehicleType.objects.filter(**filter_dict)))
+
+    values_with_counts = VehicleType.objects.filter(**filter_dict).values('name').annotate(count=Count('name'))
+
+    print("$$$$$$$$$$$$$$$$$$$$$$444")
+    print(values_with_counts)
+
+    df = pd.DataFrame(values_with_counts)
+
+    return df
 
 def get_df_perf():
     global df_perf

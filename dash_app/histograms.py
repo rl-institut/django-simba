@@ -126,7 +126,7 @@ def render_dist_dur(app: Dash) -> html.Div:
 
         # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template='plotly'))
-        fig = px.histogram(dur_df, x='dist_per_dur', barmode='overlay', color_discrete_sequence=color_scheme)
+        fig = px.histogram(dur_df, x='dist_per_dur', barmode='overlay', nbins=20, color_discrete_sequence=color_scheme)
 
         # Update layout to display bars in front of each other
         fig.update_layout(barmode='overlay')
@@ -208,7 +208,7 @@ def render_rotation_duration(app: Dash) -> html.Div:
         start = time.time()
         # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template='plotly'))
-        fig = px.histogram(df, x='duration', barmode='overlay',color_discrete_sequence=color_scheme)
+        fig = px.histogram(df, x='duration', barmode='overlay', nbins=20, color_discrete_sequence=color_scheme)
 
         # Update layout to display bars in front of each other
         fig.update_layout(barmode='overlay')
@@ -223,3 +223,41 @@ def render_rotation_duration(app: Dash) -> html.Div:
         return html.Div(dcc.Graph(figure=fig), id=ids.DUR_HISTOGRAM)
 
     return html.Div(id=ids.DUR_HISTOGRAM)
+
+
+def render_minimal_soc(app: Dash) -> html.Div:
+    @app.callback(
+        Output(ids.MIN_SOC_HISTOGRAM, "children"),
+        Input(ids.BUS_DROPDOWN, "value"),
+    )
+    def update_soc_histogram(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
+
+
+        task_id = dash_app.slug
+        s = Scenario.objects.get(task_id=task_id)
+        start = time.time()
+        soc_df = data.get_soc_as_dataframe(s.id, buses)
+        end = time.time()
+        data.register_time("minimal SOC Histogram", start, end, "retrieval")
+        min_soc_per_v_id = soc_df.groupby('V_id')['SOC'].min().reset_index()
+
+        start = time.time()
+        # Create a figure for the histogram
+        # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
+        fig = go.Figure(layout=dict(template='plotly'))
+        # Plot histogram using Plotly Express
+        fig = px.histogram(min_soc_per_v_id, x='SOC', title='Minimum SOC per Vehicle', nbins=20, barmode='overlay', color_discrete_sequence=color_scheme)
+
+        # Update layout to display bars in front of each other
+        fig.update_layout(barmode='overlay')
+        fig.update_layout(showlegend=False)
+        fig.update_coloraxes(showscale=False)
+        fig.update_xaxes(title_text='minimal SOC')
+        fig.update_yaxes(title_text='Relative Häufigkeit in %')
+
+        end = time.time()
+        data.register_time("minimal SOC Histogram", start, end, "render")
+
+        return html.Div(dcc.Graph(figure=fig), id=ids.MIN_SOC_HISTOGRAM)
+
+    return html.Div(id=ids.MIN_SOC_HISTOGRAM)

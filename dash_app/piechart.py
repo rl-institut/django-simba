@@ -1,11 +1,11 @@
 from dash import Dash, html, dcc
 from . import ids
 from dash.dependencies import Input, Output  # no fa401
-from .data import get_df_perf
+from .data import get_df_perf, get_vehicle_types
 import plotly.graph_objects as go
 from .colorscheme import color_scheme
 import plotly.express as px
-import pandas as pd
+from ebustoolbox.models import Scenario, Rotation
 import time
 def render_performance(app: Dash) -> html.Div:
     @app.callback(Output(ids.PIE_PERFORMANCE, "figure"), Input(ids.BUS_DROPDOWN, "value"))
@@ -36,13 +36,15 @@ def render_bustype(app: Dash) -> html.Div:
     @app.callback(Output(ids.PIE_BUSTYPE, "figure"), Input(ids.PIE_BUSTYPE, "value"))
     def update_scatter(buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
-        filter_dict = dict(task_id=task_id, vehicle__name_short__in=buses)
+        s = Scenario.objects.get(task_id=task_id)
 
-        # Sample data
-        df = get_df_perf()
+        df = get_vehicle_types(s.id, buses)
 
-        # Create the pie chart
-        fig = px.pie(df)
+        print(df)
+
+        # Create a pie chart
+        fig = go.Figure(layout=dict(template='plotly'))
+        fig = px.pie(df, values='count', names='name', title='Vehicle Type Distribution')
 
         return fig
 

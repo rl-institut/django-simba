@@ -9,7 +9,6 @@ def render_longest_rotation(app: Dash) -> html.Div:
     def update_report_numbers(
         buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
-        print("updating numbers")
         task_id = dash_app.slug
         filter_dict = dict(task_id=task_id, vehicle__name_short__in=buses)
 
@@ -22,7 +21,6 @@ def render_longest_rotation(app: Dash) -> html.Div:
         html_div = []
 
         for line, style in zip(lines, styles):
-            print(line, style)
             html_div.append(html.H2(line, style=style))
         number_divs = html.Div(html_div)
         return html.Div(number_divs, id=ids.NUMBER_LONGEST_ROTATION)
@@ -35,7 +33,6 @@ def render_shortest_rotation(app: Dash) -> html.Div:
     def update_report_numbers(
         buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
-        print("updating numbers")
         task_id = dash_app.slug
         filter_dict = dict(task_id=task_id, vehicle__name_short__in=buses)
 
@@ -48,7 +45,6 @@ def render_shortest_rotation(app: Dash) -> html.Div:
         html_div = []
 
         for line, style in zip(lines, styles):
-            print(line, style)
             html_div.append(html.H2(line, style=style))
         number_divs = html.Div(html_div)
         return html.Div(number_divs, id=ids.NUMBER_SHORTEST_ROTATION)
@@ -60,7 +56,6 @@ def render_shortest_rotation(app: Dash) -> html.Div:
     def update_report_numbers(
         buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
-        print("updating numbers")
         task_id = dash_app.slug
         filter_dict = dict(task_id=task_id, vehicle__name_short__in=buses)
 
@@ -73,7 +68,6 @@ def render_shortest_rotation(app: Dash) -> html.Div:
         html_div = []
 
         for line, style in zip(lines, styles):
-            print(line, style)
             html_div.append(html.H2(line, style=style))
         number_divs = html.Div(html_div)
         return html.Div(number_divs, id=ids.NUMBER_SHORTEST_ROTATION)
