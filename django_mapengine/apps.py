@@ -76,6 +76,9 @@ class MapEngineConf(AppConf):
     # IMAGES
     IMAGES: List[Dict[str, str]] = []
 
+    # CHOROPLETHS
+    CHOROPLETHS = []
+
     # POPUPS
     POPUPS: List[str] = []
 
@@ -86,7 +89,7 @@ class MapEngineConf(AppConf):
     Y_OFFSET = 1  # Defines how many tiles to the bottom are added at first level
 
     ZOOM_LEVELS = settings.MAP_ENGINE_ZOOM_LEVELS
-    REGIONS = list(settings.REGIONS)
+    REGIONS = list(ZOOM_LEVELS)
 
     # pylint:disable=R0903
     class Meta:

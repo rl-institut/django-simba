@@ -31,6 +31,7 @@ function activateChoropleth(msg, choroplethName) {
   }
   map_store.cold.currentChoropleth = choroplethName;
   PubSub.publish(mapEvent.CHOROPLETH_UPDATED, choroplethName);
+  legendElement.style.visibility = "visible";
   return logMessage(msg);
 }
 
@@ -64,13 +65,14 @@ function initDefaultChoropleths() {
   }
 }
 
-function deactivateChoropleth(choroplethName) {
+function deactivateChoropleth() {
   for (const choropleth in map_store.cold.choropleths) {
     for (const layerID of map_store.cold.choropleths[choropleth].layers) {
       setPaintProperties(layerID, map_store.cold.storedChoroplethPaintProperties["default"][layerID]);
     }
   }
   map_store.cold.currentChoropleth = null;
+  legendElement.style.visibility = "hidden";
 }
 
 function setPaintProperties(layerID, paintProperties) {

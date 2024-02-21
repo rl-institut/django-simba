@@ -20,7 +20,7 @@ const createLegend = (title, unit, colors, valueRanges, nextColumnStartIndex = 3
     <div class="legend__heading">
       <span class="legend__title">Legend -&nbsp;</span>
       <span class="legend__detail">${title}</span>
-      <div class="legend__unit">(${unit})</div>
+      <div class="legend__unit">${unit ? `(${unit})` : ""}</div>
     </div>
     <div class="legend__wrap">
       <div class="legend__column">
@@ -38,7 +38,8 @@ const createLegend = (title, unit, colors, valueRanges, nextColumnStartIndex = 3
 
 
 function loadLegend(msg, choroplethName){
-  const unit = "unit"; //need value!
+  const title = map_store.cold.choropleths[choroplethName]["title"];
+  const unit = map_store.cold.choropleths[choroplethName]["unit"];
   const paintPropertiesPerLayer = map_store.cold.storedChoroplethPaintProperties[choroplethName];
 
   /* Find active layer */
@@ -75,6 +76,6 @@ function loadLegend(msg, choroplethName){
     }
   }
   const entriesPerColumn = Math.floor(values.length / 2);
-  legendElement.innerHTML = createLegend(choroplethName, unit, colors, values, entriesPerColumn);
+  legendElement.innerHTML = createLegend(title, unit, colors, values, entriesPerColumn);
   return logMessage(msg);
 }
