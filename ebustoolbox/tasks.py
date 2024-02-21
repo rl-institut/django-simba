@@ -547,6 +547,7 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
         "temperature_time_series_path": "temperature_time_series.csv",
         "level_of_loading_over_day_path": "default_level_of_loading_over_day.csv",
         "cost_parameters_file": "cost_params.json",
+        "optimizer_config": "default_optimizer.cfg",
     }.items():
         if args[k]:
             # uploaded file: store in upload folder
@@ -827,7 +828,7 @@ def run_simba_scenario(django_scenario: Scenario):
 def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
     """Run the tool chain"""
     # call simba and eflips
-    run_simba(schedule, args, task_id)
+    schedule, scenario = run_simba(schedule, args, task_id)
 
     if settings.EFLIPS_USE:
 
@@ -842,7 +843,11 @@ def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
         # TODO: currently report_directory is set in simba internally and is always report_1 for current purposes
         # (number changes by the amount of reports in the same fun of SimBA)
         # call simba with eflips results
-        run_simba(schedule, args, task_id)
+        schedule, scenario = run_simba(schedule, args, task_id)
+
+    schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
+    Event.objects.filter(scenario__task_id=task_id).delete()
+    create_event_output(scenario, task_id)
 
 
 def get_assigned_vehicles(task_id: str, prev_events: List[Event]):
@@ -922,13 +927,14 @@ def run_simba(
     scenario = schedule.run(args)
 
     print(f"Plotting {datetime.now()}")
-    schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
+
     db_scenario.finished = timezone.now()
     db_scenario.save()
 
     print(f"Creating Simba Events {datetime.now()}")
 
     create_event_output(scenario, task_id)
+    return schedule, scenario
 
 
 def opportunity_rotation_to_eflips_input(
