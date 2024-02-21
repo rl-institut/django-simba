@@ -90,8 +90,8 @@
     "layout": {
       "icon-image": ["step",
         ["get","title_length"],
-        "station",
-        12,"station_red"],
+        "station_icon",
+        12,"station_icon_red"],
       "icon-size":  ["interpolate", ["linear"], ["zoom"], 10,0.5, 17, 1],
       "icon-allow-overlap": true
     }
