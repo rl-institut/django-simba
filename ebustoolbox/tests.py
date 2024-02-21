@@ -92,7 +92,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
         response = self.client.get(url)
         self.selenium.get(f"{self.live_server_url}{url}")
         # give django some time to calculate
-        time.sleep(3)
+        time.sleep(6)
         # Check for 404 requests
         errors = self.selenium.get_log("browser")
         # ToDO handle exception
