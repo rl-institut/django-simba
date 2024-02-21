@@ -3,12 +3,8 @@ from . import (bus_dropdown,
                report_numbers,
                scatter_chart,
                bar_chart,
-               power_draw,
-               dist_dur_hist,
                histograms,
                activities_chart,
-               rotation_duration,
-               rotation_distance,
                piechart)
 
 from .data import reset_df_perf
@@ -65,7 +61,7 @@ def create_layout(app: Dash) -> html.Div:
                     "display": "inline-block",
                     "width": "50%",
                     "verticalAlign": "top",
-                    "height": "300px",
+                    "height": "400px",
                 },
             ),
             html.Div(
@@ -86,22 +82,17 @@ def block_third_third(app) -> list[html.Div]:
 def block_top_center(app) -> list[html.Div]:
     return [bus_dropdown.render(app)]
 
-
+def block_bottom_center(app):
+    return [scatter_chart.render(app),
+            histograms.render_soc(app),
+            activities_chart.render(app),
+            histograms.render_rotation_duration(app),
+            histograms.render_rotation_distance(app),
+            histograms.render_power_draw(app),
+            histograms.render_dist_dur(app)]
+def block_top_left(app) -> list[html.Div]:
+    return []#[piechart.render_performance(app)]
 
 
 def block_top_right(app):
-    return []
-
-
-def block_bottom_center(app):
-    return [scatter_chart.render(app),
-            histograms.render(app),
-            activities_chart.render(app),
-            rotation_duration.render(app),
-            rotation_distance.render(app),
-            power_draw.render(app),
-            dist_dur_hist.render(app)]
-def block_top_left(app) -> list[html.Div]:
-    return [piechart.render_performance(app)]
-
-
+    return [activities_chart.render_performance(app)]

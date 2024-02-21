@@ -6,31 +6,53 @@ from ebustoolbox.models import Scenario, Rotation
 import pandas as pd
 import time
 
-df_perf = data.get_df_perf()
 def render(app: Dash) -> html.Div:
     @app.callback(
         Output(ids.BAR_CHART, "children"),
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def update_timeline_chart(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
-        global df_perf
-        start_time = time.time()
 
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
+        start = time.time()
         df = data.get_activities_as_dataframe(s.id, buses)
+        end = time.time()
+        data.register_time("activities", start, end, "retrieval")
 
+        start = time.time()
         fig = px.timeline(
             df, x_start="time_start", x_end="time_end", y="V_id",
             hover_data=['event_type'],
             color='event_type'
         )
-
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        data.register_time(0, 0, elapsed_time)
+        end = time.time()
+        data.register_time("activities", start, end, "render")
 
         return html.Div(dcc.Graph(figure=fig), id=ids.BAR_CHART)
 
     return html.Div(id=ids.BAR_CHART)
+
+
+def render_performance(app: Dash) -> html.Div:
+    @app.callback(
+        Output(ids.ACTIVITY_PERFORMANCE, "children"),
+        Input(ids.BUS_DROPDOWN, "value"),
+    )
+    def update(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
+        task_id = dash_app.slug
+        s = Scenario.objects.get(task_id=task_id)
+
+        time.sleep(8)
+
+        # Sample data
+        df = data.get_df_perf()
+        print(df)
+
+        fig = px.timeline(df, x_start='start', x_end='end', y='name', color='process')
+        fig.update_layout(title='Process Timeline', xaxis_title='Time', yaxis_title='Function')
+
+        return html.Div(dcc.Graph(figure=fig), id=ids.ACTIVITY_PERFORMANCE)
+
+    return html.Div(id=ids.ACTIVITY_PERFORMANCE)

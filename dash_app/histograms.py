@@ -8,21 +8,21 @@ import numpy as np
 from . import data
 from .colorscheme import color_scheme
 import time
-df_perf = data.get_df_perf()
 
-def render(app: Dash) -> html.Div:
+def render_soc(app: Dash) -> html.Div:
     @app.callback(
         Output(ids.SOC_HISTOGRAM, "children"),
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def update_soc_histogram(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
-        global df_perf
-        start_time = time.time()
+
 
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
-
+        start = time.time()
         soc_df = data.get_soc_as_dataframe(s.id, buses)
+        end = time.time()
+        data.register_time("SOC Histogram", start, end, "retrieval")
 
         # Calculate alpha value
         alpha = 1 / len(soc_df['V_id'].unique())
@@ -45,6 +45,7 @@ def render(app: Dash) -> html.Div:
         # Create a DataFrame for the normalized bins
         normalized_df = pd.DataFrame(normalized_bins)
 
+        start = time.time()
         # Create a figure for the histogram
         fig = px.histogram(normalized_df, x='Bin', y='Frequency', color="V_id", barmode='overlay', opacity=alpha,
                      color_discrete_sequence=color_scheme)
@@ -56,10 +57,158 @@ def render(app: Dash) -> html.Div:
         fig.update_xaxes(title_text='SOC')
         fig.update_yaxes(title_text='Relative Häufigkeit in %')
 
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        data.register_time(0, 0, elapsed_time)
+        end = time.time()
+        data.register_time("SOC Histogram", start, end, "render")
 
         return html.Div(dcc.Graph(figure=fig), id=ids.SOC_HISTOGRAM)
 
     return html.Div(id=ids.SOC_HISTOGRAM)
+
+def render_power_draw(app: Dash) -> html.Div:
+    @app.callback(Output(ids.POWER_DRAW_CHART, "figure"), Input(ids.BUS_DROPDOWN, "value"))
+    def power_draw(buses: list[str], session_state=None, dash_app=None, **kwargs):
+        task_id = dash_app.slug
+
+        s = Scenario.objects.get(task_id=task_id)
+
+        start = time.time()
+        df = data.get_powerdraw_as_dataframe(s.id, buses)
+        end = time.time()
+        data.register_time("power_draw", start, end, "retrieval")
+
+        start = time.time()
+        fig = px.histogram(df, x='Time', y="Energy", color="Station_id")
+
+        # Update layout to display bars in front of each other
+        fig.update_layout(showlegend=False)
+        fig.update_coloraxes(showscale=True)
+        fig.update_xaxes(title_text='Energie in kWh')
+        fig.update_yaxes(title_text='Zeit')
+
+        end = time.time()
+        data.register_time("power_draw", start, end, "render")
+
+        return html.Div(dcc.Graph(figure=fig), id=ids.POWER_DRAW_CHART)
+
+    return html.Div(dcc.Graph(id=ids.POWER_DRAW_CHART), style={"verticalAlign": "top"})
+
+def render_dist_dur(app: Dash) -> html.Div:
+    @app.callback(
+        Output(ids.DIST_DUR_HISTOGRAM, "children"),
+        Input(ids.BUS_DROPDOWN, "value"),
+    )
+    def dist_dur_histogram(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
+        task_id = dash_app.slug
+        s = Scenario.objects.get(task_id=task_id)
+
+        start = time.time()
+        dur_df = data.get_duration_as_dataframe(s.id, buses)
+        dist_df = data.get_distances_as_dataframe(s.id, buses)
+        end = time.time()
+        data.register_time("dist/dur hist", start, end, "retrieval")
+
+        # Set the desired bin width
+        bin_width = 0.5  # Specify your desired bin width here
+
+        dur_df["dist_per_dur"] = dist_df['total_distance']/dur_df['duration']
+
+        # Calculate the number of bins based on the bin width
+        max_distance = dur_df["dist_per_dur"].max()
+        min_distance = dur_df["dist_per_dur"].min()
+
+        num_bins = int((max_distance - min_distance) / bin_width)
+
+        start = time.time()
+        fig = px.histogram(dur_df, x='dist_per_dur', barmode='overlay', color_discrete_sequence=color_scheme)
+
+        # Update layout to display bars in front of each other
+        fig.update_layout(barmode='overlay')
+        fig.update_layout(showlegend=False)
+        fig.update_coloraxes(showscale=False)
+        fig.update_xaxes(title_text='Durchschnittsgeschwindigkeit für Umlauf (inkl. Stillstand, Pausen) in m/s')
+        fig.update_yaxes(title_text='Relative Häufigkeit in %')
+        end = time.time()
+        data.register_time("dist/dur hist", start, end, "render")
+        return html.Div(dcc.Graph(figure=fig), id=ids.DIST_DUR_HISTOGRAM)
+
+    return html.Div(id=ids.DIST_DUR_HISTOGRAM)
+
+def render_rotation_distance(app: Dash) -> html.Div:
+    @app.callback(
+        Output(ids.DIST_HISTOGRAM, "children"),
+        Input(ids.BUS_DROPDOWN, "value"),
+    )
+    def update_distances_histogram(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
+
+        task_id = dash_app.slug
+        s = Scenario.objects.get(task_id=task_id)
+
+        start = time.time()
+        df = data.get_distances_as_dataframe(s.id, buses)
+        end = time.time()
+        data.register_time("distances_hist", start, end, "retrieval")
+
+        # Set the desired bin width
+        bin_width = 20000  # Specify your desired bin width here
+
+        # Calculate the number of bins based on the bin width
+        max_distance = df['total_distance'].max()
+        min_distance = df['total_distance'].min()
+
+        num_bins = int((max_distance - min_distance) / bin_width)
+
+        start = time.time()
+        fig = px.histogram(df, x='total_distance',  nbins=num_bins, barmode='overlay',color_discrete_sequence=color_scheme)
+
+        # Update layout to display bars in front of each other
+        fig.update_layout(barmode='overlay')
+        fig.update_layout(showlegend=False)
+        fig.update_coloraxes(showscale=False)
+        fig.update_xaxes(title_text='Distanz (Nur Trips)')
+        fig.update_yaxes(title_text='Absolute Häufigkeit')
+
+        end = time.time()
+        data.register_time("distances_hist", start, end, "render")
+
+        return html.Div(dcc.Graph(figure=fig), id=ids.DIST_HISTOGRAM)
+
+    return html.Div(id=ids.DIST_HISTOGRAM)
+
+def render_rotation_duration(app: Dash) -> html.Div:
+    @app.callback(
+        Output(ids.DUR_HISTOGRAM, "children"),
+        Input(ids.BUS_DROPDOWN, "value"),
+    )
+    def update_distances_histogram(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
+        task_id = dash_app.slug
+        s = Scenario.objects.get(task_id=task_id)
+
+        start = time.time()
+        df = data.get_duration_as_dataframe(s.id, buses)
+        end = time.time()
+        data.register_time("duration", start, end, "retrieval")
+
+        # Set the desired bin width
+        bin_width = 100  # Specify your desired bin width here
+
+        # Calculate the number of bins based on the bin width
+        max_duration = df['duration'].max()
+        min_duration = df['duration'].min()
+        num_bins = int((max_duration - min_duration) / bin_width)
+
+        start = time.time()
+        fig = px.histogram(df, x='duration', barmode='overlay',color_discrete_sequence=color_scheme)
+
+        # Update layout to display bars in front of each other
+        fig.update_layout(barmode='overlay')
+        fig.update_layout(showlegend=False)
+        fig.update_coloraxes(showscale=False)
+        fig.update_xaxes(title_text='Dauer (Nur Trips)')
+        fig.update_yaxes(title_text='Absolute Häufigkeit')
+
+        end = time.time()
+        data.register_time("duration", start, end, "render")
+
+        return html.Div(dcc.Graph(figure=fig), id=ids.DUR_HISTOGRAM)
+
+    return html.Div(id=ids.DUR_HISTOGRAM)
