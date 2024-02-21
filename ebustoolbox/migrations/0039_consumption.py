@@ -7,7 +7,7 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("ebustoolbox", "0037_rename_type_trip_trip_type"),
+        ("ebustoolbox", "0038_remove_scenario_users_usergroup"),
     ]
 
     operations = [

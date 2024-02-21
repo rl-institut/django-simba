@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("ebustoolbox", "0038_consumption"),
+        ("ebustoolbox", "0039_consumption"),
     ]
 
     operations = [

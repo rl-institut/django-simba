@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("ebustoolbox", "0039_rename_data_consumption_data_points_and_more"),
+        ("ebustoolbox", "0040_rename_data_consumption_data_points_and_more"),
     ]
 
     operations = [

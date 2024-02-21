@@ -6,7 +6,7 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("ebustoolbox", "0040_alter_consumption_unique_together_and_more"),
+        ("ebustoolbox", "0041_alter_consumption_unique_together_and_more"),
     ]
 
     operations = [
