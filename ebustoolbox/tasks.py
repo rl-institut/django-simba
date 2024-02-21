@@ -18,7 +18,6 @@ from django.db.transaction import atomic
 from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.timezone import make_aware, is_aware
-from matplotlib import pyplot as plt
 
 import simba.optimizer_util
 import simba.simulate
@@ -829,8 +828,6 @@ def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
     """Run the tool chain"""
     # call simba and eflips
     run_simba(schedule, args, task_id)
-    # ToDo: Do this inside simba or spice ev
-    plt.close()
 
     if settings.EFLIPS_USE:
 
