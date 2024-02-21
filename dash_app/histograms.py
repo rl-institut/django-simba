@@ -8,6 +8,8 @@ import numpy as np
 from . import data
 from .colorscheme import color_scheme
 import time
+import plotly.graph_objects as go
+
 
 def render_soc(app: Dash) -> html.Div:
     @app.callback(
@@ -47,6 +49,8 @@ def render_soc(app: Dash) -> html.Div:
 
         start = time.time()
         # Create a figure for the histogram
+        # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
+        fig = go.Figure(layout=dict(template='plotly'))
         fig = px.histogram(normalized_df, x='Bin', y='Frequency', color="V_id", barmode='overlay', opacity=alpha,
                      color_discrete_sequence=color_scheme)
 
@@ -119,6 +123,9 @@ def render_dist_dur(app: Dash) -> html.Div:
         num_bins = int((max_distance - min_distance) / bin_width)
 
         start = time.time()
+
+        # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
+        fig = go.Figure(layout=dict(template='plotly'))
         fig = px.histogram(dur_df, x='dist_per_dur', barmode='overlay', color_discrete_sequence=color_scheme)
 
         # Update layout to display bars in front of each other
@@ -158,6 +165,8 @@ def render_rotation_distance(app: Dash) -> html.Div:
         num_bins = int((max_distance - min_distance) / bin_width)
 
         start = time.time()
+        # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
+        fig = go.Figure(layout=dict(template='plotly'))
         fig = px.histogram(df, x='total_distance',  nbins=num_bins, barmode='overlay',color_discrete_sequence=color_scheme)
 
         # Update layout to display bars in front of each other
@@ -197,6 +206,8 @@ def render_rotation_duration(app: Dash) -> html.Div:
         num_bins = int((max_duration - min_duration) / bin_width)
 
         start = time.time()
+        # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
+        fig = go.Figure(layout=dict(template='plotly'))
         fig = px.histogram(df, x='duration', barmode='overlay',color_discrete_sequence=color_scheme)
 
         # Update layout to display bars in front of each other

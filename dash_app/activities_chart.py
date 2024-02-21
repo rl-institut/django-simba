@@ -3,7 +3,7 @@ import plotly.express as px
 from . import ids, data
 from dash.dependencies import Input, Output
 from ebustoolbox.models import Scenario, Rotation
-import pandas as pd
+import plotly.graph_objects as go
 import time
 
 def render(app: Dash) -> html.Div:
@@ -22,9 +22,11 @@ def render(app: Dash) -> html.Div:
         data.register_time("activities", start, end, "retrieval")
 
         start = time.time()
+        # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
+        fig = go.Figure(layout=dict(template='plotly'))
         fig = px.timeline(
             df, x_start="time_start", x_end="time_end", y="V_id",
-            hover_data=['event_type'],
+            hover_data='event_type',
             color='event_type'
         )
         end = time.time()
@@ -44,7 +46,7 @@ def render_performance(app: Dash) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
-        time.sleep(8)
+        time.sleep(5)
 
         # Sample data
         df = data.get_df_perf()
