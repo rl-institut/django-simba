@@ -634,10 +634,10 @@ class ConsumptionTestCase(TestCase):
             ],
             values=[1, 2, 3, 4, 5, 6, 7, 8],
         )
-        assert c.get_consumption((10, 20, 1)) == 1
-        assert c.get_consumption((5, 20, 1)) == 3
-        assert c.get_consumption((10, 20, 2)) == 1.5
-        assert c.get_consumption((10, 25, 3)) == 3
+        self.assertAlmostEquals(c.get_consumption((10, 20, 1)), 1)
+        self.assertAlmostEquals(c.get_consumption((5, 20, 1)), 3)
+        self.assertAlmostEquals(c.get_consumption((10, 20, 2)), 1.5)
+        self.assertAlmostEquals(c.get_consumption((10, 25, 3)), 3)
         delta = 1e-9
         self.assertAlmostEquals(c.get_consumption((0 + delta, 30 - delta, 3 - delta)), 8)
         self.assertNotEquals(c.get_consumption((0 + delta, 30 - delta, 3 - delta)), 8)
