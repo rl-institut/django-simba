@@ -42,7 +42,7 @@ function add_sources(msg) {
 async function add_images(msg) {
     const map_images = JSON.parse(document.getElementById("mapengine_images").textContent);
     for (const map_image of map_images) {
-        if (maplibregl.version < "3") {
+        if (maplibregl.getVersion() < "3") {
             map.loadImage(map_image.path, function (error, image) {
                 if (error) throw error;
                 map.addImage(map_image.name, image);

@@ -42,4 +42,4 @@ MAP_ENGINE_POPUPS = [
     #             ["population", ], )
 ]
 MAP_ENGINE_USE_DISTILLED_MVTS = False
-MAP_ENGINE_DEBUG = True
+MAP_ENGINE_DEBUG = False
