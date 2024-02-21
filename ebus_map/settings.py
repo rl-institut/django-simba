@@ -5,13 +5,14 @@ MAP_ENGINE_CENTER_AT_STARTUP = [13, 52]
 MAP_ENGINE_ZOOM_AT_STARTUP = 8
 
 MAP_ENGINE_IMAGES = [
-    setup.MapImage("station", "ebus_map/bus_stop.jpg"),
-    setup.MapImage("station_red", "ebus_map/bus_stop_red.png"),
+    setup.MapImage("station_icon", "ebus_map/bus_stop.jpg"),
+    setup.MapImage("station_icon_red", "ebus_map/bus_stop_red.png"),
+    setup.MapImage("station_icon_png", "ebus_map/bus_stop.png"),
 ]
 
 # MAP_ENGINE_API_MVTS = {}
 MAP_ENGINE_API_MVTS = {
-    "station": [
+    "stations_mvt": [
         setup.MVTAPI("station", "ebus_map", "Station"),
     ],
 }
