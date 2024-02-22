@@ -215,6 +215,8 @@ def usergroups(request):
                     recipient_list=[email],
                     fail_silently=False,
                 )
+            else:
+                raise NotImplementedError("No email backend set")
         elif "leave" in request.POST:
             ug = request.user.usergroup_set.all().get(id=request.POST["leave"])
             ug.users.remove(request.user)
