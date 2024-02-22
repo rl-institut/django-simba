@@ -430,7 +430,14 @@ class Consumption(models.Model):
             if len(data.shape) == 1:
                 # Transform a list like [1,2,3] to [[1],[2],[3]]
                 self.data_points = np.expand_dims(self.data_points, 0).T.tolist()
-        assert len(Consumption.objects.filter(scenario=self.scenario, name=self.name)) == 0
+        assert (
+            len(
+                Consumption.objects.filter(scenario=self.scenario, name=self.name).exclude(
+                    id=self.id
+                )
+            )
+            == 0
+        )
         self._set_interpolators()
         super().save(*args, **kwargs)
 
