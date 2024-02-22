@@ -43,6 +43,7 @@ from .models import (
     Temperatures,
     Event,
     EventType,
+    VehicleClass,
 )
 
 from eflips.depot.api import simulate_scenario, generate_depot_layout
@@ -133,12 +134,19 @@ def consumption_file_to_db(consumption_path: Path, django_scenario: Scenario) ->
             values.append(val)
             datapoints.append(data)
 
+    # VehicleClass that will be linked with this Consumption
+    vehicle_class, _ = VehicleClass.objects.get_or_create(
+        scenario=django_scenario,
+        name=consumption_path.name,
+    )
+    vehicle_class.save()
     Consumption.objects.create(
         name=consumption_path.name,
         scenario=django_scenario,
         columns=columns,
         data_points=datapoints,
         values=values,
+        vehicle_class=vehicle_class,
     )
 
 
@@ -355,8 +363,11 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
             vehicle_types[vehicle_type.name_short] = dict()
 
         mileage = vehicle_type.consumption
-        if vehicle_type.consumption_table is not None:
-            mileage = vehicle_type.consumption_table.name
+        query = VehicleClass.objects.filter(vehicle_types=vehicle_type).exclude(consumption=None)
+        if len(query) > 0:
+            assert mileage is None
+            assert len(query) == 1
+            mileage = Consumption.objects.get(vehicle_class=query[0]).name
 
         vehicle_types[vehicle_type.name_short][charge_type] = {
             "name": vehicle_type.name,
@@ -661,13 +672,16 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
     for name, v_type in vehicle_types.items():
         for charge_name, charge_type in v_type.items():
             consumption = None
-            consumption_table = None
-
             mileage_text = charge_type.get("mileage")
+
+            add_to_vehicle_class = False
             try:
                 consumption = float(mileage_text)
             except ValueError:
-                consumption_table = Consumption.objects.get(scenario=scenario, name=mileage_text)
+                # The milage can be a link/ str to a consumption_table.In this case link
+                # the VehicleClass with this name to this vehicle
+                add_to_vehicle_class = True
+                pass
             params = dict(
                 name=charge_type.get("name", "unnamed bus"),
                 name_short=name,
@@ -679,12 +693,15 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
                 charging_curve=charge_type["charging_curve"],
                 v2g_curve=charge_type.get("v2g_curve", None),
                 consumption=consumption,
-                consumption_table=consumption_table,
                 length=charge_type.get("length", 0),
                 width=DEFAULT_WIDTH,
                 height=DEFAULT_HEIGHT,
             )
-            VehicleType.objects.create(**params)
+            vt = VehicleType.objects.create(**params)
+            if add_to_vehicle_class:
+                VehicleClass.objects.get(scenario=scenario, name=mileage_text).vehicle_types.add(
+                    vt, through_defaults=None
+                )
 
 
 def stations_to_db(station_data, electrified_stations, scenario):

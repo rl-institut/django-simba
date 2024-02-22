@@ -315,7 +315,7 @@ class WriteReadScenarioToDatabase(TestCase):
         # get a vehicle_type which is "used"
         vehicle = Rotation.objects.filter(scenario=django_scenario)[0].vehicle
         vehicle_type = vehicle.vehicle_type
-        consumption_table = vehicle_type.consumption_table
+        consumption_table = Consumption.objects.get(vehicle_class__vehicletype=vehicle_type)
 
         station = Station.objects.get(scenario=django_scenario, name="Station-0")
 
