@@ -7,7 +7,7 @@ from copy import deepcopy, copy
 from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 import tqdm
 from celery import shared_task
@@ -43,6 +43,7 @@ from .models import (
     Temperatures,
     Event,
     EventType,
+    Depot,
 )
 
 from eflips.depot.api import simulate_scenario, generate_depot_layout
@@ -828,35 +829,45 @@ def run_simba_scenario(django_scenario: Scenario):
 def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
     """Run the tool chain"""
     # call simba and eflips
-    schedule, scenario = run_simba(schedule, args, task_id)
+    mode = simba.simulate.Mode
+    simba_modes = [func for func in dir(mode) if callable(getattr(mode, func))]
+    wanted_modes = args.modes.split(",")
+    for m in wanted_modes:
+        assert m in simba_modes
+    assert wanted_modes[-1] == "report"
+    simba_scenario = None
 
-    if settings.EFLIPS_USE:
+    # Chain of modes with mode->eflips -> sim. Last mode is "report" and can be outside of loop
+    for mode in wanted_modes[:-1]:
+        # Delete old events
+        Event.objects.filter(scenario__task_id=task_id).delete()
+        Depot.objects.filter(scenario__task_id=task_id).delete()
 
-        prev_events = [e.id for e in Event.objects.filter(scenario__task_id=task_id)]
-        print(f"Running eflips {datetime.now()}")
-        run_eflips(task_id)
+        schedule, simba_scenario = run_simba(
+            schedule, args, task_id, mode=mode, scenario=simba_scenario
+        )
+        # ToDo remove Flag. Eflips should not stay optional
+        # ToDo Create class SimulationMode: which couple logical toolchain steps, e.g.
+        # simba.sim -> eflips -> simba.sim
+        # simba.station_opt -> eflips -> simba.sim
+        if settings.EFLIPS_USE:
+            run_eflips(task_id)
+            eflips_assignment = get_assigned_vehicles(task_id)
+            schedule.assign_vehicles_for_django(eflips_assignment)
+            schedule, simba_scenario = run_simba(schedule, args, task_id, mode="sim")
 
-        eflips_assignment = get_assigned_vehicles(task_id, prev_events)
-        schedule.assign_vehicles_for_django(eflips_assignment)
-        # set report dir for second iteration/final results
-        # report_dir = Path(settings.BASE_DIR, args.output_directory, "report_2")
-        # TODO: currently report_directory is set in simba internally and is always report_1 for current purposes
-        # (number changes by the amount of reports in the same fun of SimBA)
-        # call simba with eflips results
-        schedule, scenario = run_simba(schedule, args, task_id)
-
-    schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
-    Event.objects.filter(scenario__task_id=task_id).delete()
-    create_event_output(scenario, task_id)
+    # Post Processing or Clean Up ########
+    # ToDo: Report run might be removed at some point
+    _, __ = run_simba(schedule, args, task_id, mode=wanted_modes[-1], scenario=simba_scenario)
 
 
-def get_assigned_vehicles(task_id: str, prev_events: List[Event]):
+def get_assigned_vehicles(task_id: str):
     """
     Retrieves assigned vehicles for a given task ID, considering previous events.
 
     Args:
         task_id (str): The ID of the task associated with the scenario.
-        prev_events (List[Event]): List of previous events to consider.
+        prev_events (Query[Event]): Query of previous events to consider.
 
     Returns:
         List[dict]: A list of dictionaries containing assigned vehicle information, including
@@ -874,8 +885,7 @@ def get_assigned_vehicles(task_id: str, prev_events: List[Event]):
     used_vehicles = Vehicle.objects.filter(rotation__scenario=scenario).distinct()
     # Delete the old vehicles which are not used anymore
     Vehicle.objects.filter(scenario=scenario).exclude(id__in=used_vehicles).delete()
-    all_events = Event.objects.filter(scenario=scenario)
-    eflips_events = all_events.exclude(id__in=prev_events)
+    events = Event.objects.filter(scenario=scenario)
 
     all_rotations = Rotation.objects.filter(scenario=scenario)
     vehicle_assigns = []
@@ -902,7 +912,7 @@ def get_assigned_vehicles(task_id: str, prev_events: List[Event]):
             vehicle.save()
 
         prev_event = (
-            eflips_events.filter(time_end__lte=first_trip.departure_time, vehicle=vehicle)
+            events.filter(time_end__lte=first_trip.departure_time, vehicle=vehicle)
             .order_by("time_end")
             .last()
         )
@@ -913,18 +923,20 @@ def get_assigned_vehicles(task_id: str, prev_events: List[Event]):
     return vehicle_assigns
 
 
-def run_simba(
-    schedule: SimbaSchedule,
-    args,
-    task_id,
-):
+def run_simba(schedule: SimbaSchedule, args, task_id, mode=None, scenario=None):
     print(f"Running Simba {datetime.now()}")
     # TODO don't overwrite output on multiple function calls
     args.output_directory = Path(settings.UPLOAD_PATH) / task_id
     args.attach_vehicle_soc = True
 
     db_scenario = Scenario.objects.get(task_id=task_id)
-    scenario = schedule.run(args)
+    if mode is None:
+        scenario = schedule.run(args)
+    else:
+        func = getattr(simba.simulate.Mode, mode)
+        # Run this mode. Iteration number is not changed right now since only the last report is
+        # used from the generated simba files
+        schedule, scenario = func(schedule, scenario, args, 1)
 
     print(f"Plotting {datetime.now()}")
 
@@ -981,6 +993,8 @@ def depot_rotation_to_eflips_input(db_rotation, db_scenario, input_for_eflips, r
 
 
 def run_eflips(task_id) -> None:
+    # ToDo Replace with logger
+    print(f"Running eflips {datetime.now()}")
     db_scenario = Scenario.objects.get(task_id=task_id)
 
     # Constructing the database URL manually
