@@ -16,6 +16,13 @@ Template:
 ### Removed
 - [(#)]()
 ```
+
+### Changed
+- Adds loop over different toolchain mode
+- Station-optimization is turned on per default
+- Removes simba.report from loop and moves it to a single post processing call
+- Missing: Frontend Implementation of choosing Modes
+
 ### Changed
 - Add consumption model
   - Consumption model looks up consumption multidimensional input conditions. Nearest and Interpolation Lookup is possible
