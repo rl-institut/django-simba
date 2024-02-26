@@ -8,7 +8,7 @@ name: Docker build
 on:
   push:
     branches:
-      - bugfix/docker_ci
+      - dev
 
 env:
   REGISTRY: ghcr.io
