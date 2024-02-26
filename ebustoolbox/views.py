@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -8,6 +10,7 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.views.generic import TemplateView
 from django.views.decorators.http import require_GET
+from eflips.depot.api import simulate_scenario  # noqa
 
 from django_mapengine.views import MapEngineMixin
 
@@ -17,6 +20,8 @@ from celery.result import AsyncResult
 from dash_app import dash_app, ids  # noqa: F401
 from . import tasks
 from .forms import UploadFileForm
+from .tasks import create_db_url  # noqa
+
 from .util import get_unique_task_id
 
 import ebustoolbox
@@ -95,7 +100,6 @@ def long_running_task_status_view(request):
 
 def home_view(request: HttpRequest):
     """Generate the home view of the tool chain with input forms"""
-
     if request.method == "GET":
         form = UploadFileForm()
     elif request.method == "POST":
@@ -104,6 +108,7 @@ def home_view(request: HttpRequest):
             return render(request, "index.html", {"form": form})
 
         django_scenario = save_and_simulate(form, request)
+
         if "ebus_map" in settings.INSTALLED_APPS:
             create_stations_for_map(django_scenario)
 
@@ -131,6 +136,7 @@ def create_stations_for_map(django_scenario: Scenario):
 def save_and_simulate(
     form: UploadFileForm | None = None, request: HttpRequest | None = None
 ) -> Scenario:
+    print(f"Running TOOLCHAIN {datetime.now()}")
     if form is None:
         new_form = UploadFileForm()
         # If this function is called without a request and a form,  use the initial values as
@@ -139,14 +145,17 @@ def save_and_simulate(
     else:
         cleaned_data = form.cleaned_data
 
+    print(f"Writing to db {datetime.now()}")
     django_scenario, simba_schedule, args = tasks.input_files_to_database(cleaned_data, request)
     if request.user.is_authenticated:
         django_scenario.manager = request.user
     # start computation
     task_id = get_unique_task_id()
+    print(f"{task_id=}")
     django_scenario.task_id = task_id
     django_scenario.save()
     tasks.run_ebus_toolchain(simba_schedule, args, task_id)
+    print(f"Simulation Finished {datetime.now()}")
     return django_scenario
 
 
