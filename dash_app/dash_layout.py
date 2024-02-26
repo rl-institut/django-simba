@@ -53,7 +53,12 @@ def create_layout(app: Dash) -> html.Div:
             html.Div(
                 children=block_top_left(app),
                 id='performance',
-                style={"display": "inline-block", "width": "50%", "verticalAlign": "top"},
+                style={
+                    "display": "inline-block",
+                    "width": "50%",
+                    "verticalAlign": "top",
+                    "height": "300px",
+                },
             ),
             html.Div(
                 children=block_top_right(app),

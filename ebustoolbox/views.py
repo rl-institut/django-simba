@@ -1,9 +1,16 @@
+from datetime import datetime
+
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.core import signing, mail
 from django.db.transaction import atomic
 from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.views.generic import TemplateView
 from django.views.decorators.http import require_GET
+from eflips.depot.api import simulate_scenario  # noqa
 
 from django_mapengine.views import MapEngineMixin
 
@@ -13,10 +20,12 @@ from celery.result import AsyncResult
 from dash_app import dash_app, ids  # noqa: F401
 from . import tasks
 from .forms import UploadFileForm
+from .tasks import create_db_url  # noqa
+
 from .util import get_unique_task_id
 
 import ebustoolbox
-from ebustoolbox.models import Scenario
+from ebustoolbox.models import Scenario, UserGroup
 
 
 def show_uploads_view(request: HttpRequest, filename):
@@ -91,7 +100,6 @@ def long_running_task_status_view(request):
 
 def home_view(request: HttpRequest):
     """Generate the home view of the tool chain with input forms"""
-
     if request.method == "GET":
         form = UploadFileForm()
     elif request.method == "POST":
@@ -100,6 +108,7 @@ def home_view(request: HttpRequest):
             return render(request, "index.html", {"form": form})
 
         django_scenario = save_and_simulate(form, request)
+
         if "ebus_map" in settings.INSTALLED_APPS:
             create_stations_for_map(django_scenario)
 
@@ -127,6 +136,7 @@ def create_stations_for_map(django_scenario: Scenario):
 def save_and_simulate(
     form: UploadFileForm | None = None, request: HttpRequest | None = None
 ) -> Scenario:
+    print(f"Running TOOLCHAIN {datetime.now()}")
     if form is None:
         new_form = UploadFileForm()
         # If this function is called without a request and a form,  use the initial values as
@@ -135,15 +145,17 @@ def save_and_simulate(
     else:
         cleaned_data = form.cleaned_data
 
+    print(f"Writing to db {datetime.now()}")
     django_scenario, simba_schedule, args = tasks.input_files_to_database(cleaned_data, request)
     if request.user.is_authenticated:
         django_scenario.manager = request.user
-        django_scenario.users.add(request.user)
     # start computation
     task_id = get_unique_task_id()
+    print(f"{task_id=}")
     django_scenario.task_id = task_id
     django_scenario.save()
     tasks.run_ebus_toolchain(simba_schedule, args, task_id)
+    print(f"Simulation Finished {datetime.now()}")
     return django_scenario
 
 
@@ -161,3 +173,64 @@ def generate_zip(request: HttpRequest, task_id: str):
     tasks.generate_zipped_scenario(task_id)
     return download_scenario(request, task_id)
 
+
+@login_required(login_url="/login/")
+def scenarios(request):
+    # show all scenarios of a user. Also endpoint for update and delete (POST)
+    if request.method == "POST":
+        if "update" in request.POST:
+            # manager can update scenario user groups
+            scenario = Scenario.objects.get(id=request.POST["update"], manager=request.user)
+            usergroups = map(int, request.POST["values"].split(","))
+            for ug in request.user.usergroup_set.all():
+                if ug.id in usergroups:
+                    ug.scenarios.add(scenario)
+                elif scenario in ug.scenarios.all():
+                    ug.scenarios.remove(scenario)
+            return HttpResponse(status=201)  # created
+        if "delete" in request.POST:
+            Scenario.objects.filter(id=request.POST["delete"], manager=request.user).delete()
+    scenarios = Scenario.objects.filter(manager=request.user)
+    usergroups = request.user.usergroup_set.all()
+    for ug in usergroups:
+        scenarios = scenarios.union(ug.scenarios.all())
+    scenarios = scenarios.order_by("id")
+    return render(request, "scenarios.html", {"scenarios": scenarios})
+
+
+@login_required(login_url="/login/")
+def usergroups(request):
+    # manage usergroups of a user. Also endpoint for add and leave (POST)
+    if request.method == "POST":
+        if "add" in request.POST:
+            # TODO: should be a form
+            ug = UserGroup.objects.create(
+                name=request.POST["name"],
+            )
+            ug.users.add(request.user)
+        elif "invite" in request.POST:
+            if settings.EMAIL_BACKEND:
+                email = request.POST["email"].lower()
+                if User.objects.filter(username=email).exists():
+                    return HttpResponse("User already exists", status=409)
+                url = f"{request.scheme}://{request.get_host()}{reverse('core:signup')}"
+                # generate and append token (embed email, sign with server key)
+                url += f"?token={signing.dumps(email)}"
+                body = f"Klicken Sie auf folgenden Link, um sich zu registrieren: {url}"
+                mail.send_mail(
+                    subject="Willkommen zu eBus2030+",
+                    message=body,
+                    from_email=None,
+                    recipient_list=[email],
+                    fail_silently=False,
+                )
+            else:
+                raise NotImplementedError("No email backend set")
+        elif "leave" in request.POST:
+            ug = request.user.usergroup_set.all().get(id=request.POST["leave"])
+            ug.users.remove(request.user)
+            if not ug.users:
+                # delete user group after last one has left
+                ug.delete()
+    usergroups = request.user.usergroup_set.all()
+    return render(request, "usergroups.html", {"usergroups": usergroups})

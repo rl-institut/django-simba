@@ -11,6 +11,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.db.models import QuerySet, Sum
 from django.dispatch import receiver
 from django.utils.timezone import make_aware
+from fast_update.query import FastUpdateManager
 
 from django.db.models import Case, When, Value, CharField
 from django.db.models.functions import Length
@@ -61,7 +62,6 @@ class Scenario(models.Model):
     manager = models.ForeignKey(
         User, on_delete=models.SET_NULL, default=None, null=True, blank=True, related_name="+"
     )
-    users = models.ManyToManyField(User)
 
     @classmethod
     def get_default_pk(cls):
@@ -86,6 +86,22 @@ def auto_delete_results_on_delete(sender, instance, **kwargs):
         except FileNotFoundError:
             # The Folder does not exist. That is not a problem
             pass
+
+
+class UserGroup(models.Model):
+    """
+    Defines who has access to a scenario.
+
+    If not outright a scenario's manager, one has to be part of a UserGroup to access a project.
+    Attributes:
+    - name (string): displayed name
+    - users (M2M User): participants of group
+    - scenarios (M2M Scenario): shared scenarios
+    """
+
+    name = models.TextField(blank=False)
+    users = models.ManyToManyField(User)
+    scenarios = models.ManyToManyField(Scenario)
 
 
 class UploadedFile(models.Model):
@@ -849,6 +865,7 @@ class Route(models.Model):
     geom = models.LineStringField(dim=3, srid=4326, null=True)
     distance = models.FloatField(default=None, null=False)
 
+    objects = FastUpdateManager()
     name = models.TextField(default=None, null=False, blank=True)
     name_short = models.TextField(default=None, null=True, blank=True)
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
@@ -951,6 +968,7 @@ class Trip(models.Model):
     class Meta:
         db_table = "Trip"
 
+    objects = FastUpdateManager()
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     route = models.ForeignKey(Route, null=False, on_delete=models.CASCADE)
 
@@ -1032,7 +1050,7 @@ class StopTime(models.Model):
 
     """Intermediate stops of trips,
     which are not described by the arrival or departure of the trip"""
-
+    objects = FastUpdateManager()
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
     # When does the trip arrive at this station
@@ -1121,6 +1139,7 @@ class Event(models.Model):
     class Meta:
         db_table = "Event"
 
+    objects = FastUpdateManager()
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     vehicle_type = models.ForeignKey(VehicleType, null=False, on_delete=models.CASCADE)
     vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE)

@@ -8,12 +8,12 @@ from ebustoolbox.models import (
     Scenario,
     Vehicle,
     Event,
-    Rotation,
     Route,
     Trip,
     get_longest_distance_rotation,
     get_shortest_distance_rotation,
     EventType,
+    Vehicle,
     VehicleType,
 )
 import pandas as pd
@@ -26,8 +26,7 @@ df_perf = pd.DataFrame({'name': [], 'start': [], 'end': [], 'process': []})
 
 def get_all_buses(task_id: str) -> list[str]:
     s = Scenario.objects.get(task_id=task_id)
-    rotations = Rotation.objects.filter(scenario=s)
-    all_buses = [r.vehicle.name_short for r in rotations]
+    all_buses = list(Vehicle.objects.filter(scenario=s).values_list("name_short", flat=True))
     return all_buses
 
 def get_number_of_buses(filter_dict: dict) -> list[str]:

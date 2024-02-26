@@ -214,34 +214,33 @@ def dict_digger(early_return, instance_stack, key_stack, new_objects):
             yield x
 
 
+@override_settings(DEBUG=True)
+def build_scenario():
+    form = UploadFileForm()
+    # Use all the initial and set values from the form as post data
+    post_data = {
+        f: form.fields[f].initial if form.fields[f].initial is not None else "" for f in form.fields
+    }
+    # create form with post data without extra files
+    form = UploadFileForm(data=post_data, files=None)
+    form.full_clean()
+
+    # Empty request, since no files are used for this simulation.
+    request = HttpRequest()
+
+    django_scenario, simba_schedule, args = tasks.input_files_to_database(
+        form.cleaned_data, request
+    )
+    return django_scenario, simba_schedule, args
+
+
 class WriteReadScenarioToDatabase(TestCase):
     @override_settings(DEBUG=True)
-    def get_scenario_objects_and_fill_db(self):
-        form = UploadFileForm()
-        # Use all the initial and set values from the form as post data
-        post_data = {
-            f: form.fields[f].initial if form.fields[f].initial is not None else ""
-            for f in form.fields
-        }
-        # create form with post data without extra files
-        form = UploadFileForm(data=post_data, files=None)
-        form.full_clean()
-
-        # Empty request, since no files are used for this simulation.
-        request = HttpRequest()
-
-        django_scenario, simba_schedule, args = tasks.input_files_to_database(
-            form.cleaned_data, request
-        )
-        return django_scenario, simba_schedule, args
-
-    @override_settings(DEBUG=True)
     def test_schedule_from_database(self):
-        django_scenario, simba_schedule, args = self.get_scenario_objects_and_fill_db()
+        django_scenario, simba_schedule, args = build_scenario()
 
         # simba_schedule_db, args_db = tasks.db_to_schedule(django_scenario)
         simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
-
         for sched in [simba_schedule, simba_schedule_db]:
             for rot in sched.rotations.values():
                 rot.calculate_consumption()
@@ -257,16 +256,16 @@ class WriteReadScenarioToDatabase(TestCase):
         # schedule
         for key_stack, values in objects_digger([simba_schedule, simba_schedule_db]):
             # Skip the temperature data, since it is not part of the database schedule
-            if "temperature" in key_stack:
-                continue
-            if isinstance(values[0], datetime):
-                values[0] = make_aware(values[0])
-            self.assertAlmostEqual(
-                values[0],
-                values[1],
-                places=8,
-                msg=key_stack,
-            )
+            self.handle_unaware_datetime(values)
+            try:
+                self.assertAlmostEqual(
+                    values[0],
+                    values[1],
+                    places=8,
+                    msg=key_stack,
+                )
+            except TypeError:
+                raise Exception(f"Could not compare {values[0]} and {values[1]}.")
 
         scen = simba_schedule.run(args)
         scen_db = simba_schedule_db.run(args_db)
@@ -279,8 +278,7 @@ class WriteReadScenarioToDatabase(TestCase):
                     ignore_key = True
             if ignore_key:
                 continue
-            if isinstance(values[0], datetime):
-                values[0] = make_aware(values[0])
+            self.handle_unaware_datetime(values)
             try:
                 self.assertAlmostEquals(values[0], values[1], places=8, msg=key_stack)
             except TypeError:
@@ -289,6 +287,10 @@ class WriteReadScenarioToDatabase(TestCase):
                 values[0] = make_aware(datetime.fromisoformat(values[0]))
                 values[1] = datetime.fromisoformat(values[1])
                 self.assertAlmostEquals(values[0], values[1], places=8, msg=key_stack)
+
+    def handle_unaware_datetime(self, values):
+        if isinstance(values[0], datetime):
+            values[0] = make_aware(values[0])
 
     # Above code shows "normal" and database schedule seem to generate the same output.
     # Test if the opposite is true by changing database values. Each change of a database
@@ -303,7 +305,7 @@ class WriteReadScenarioToDatabase(TestCase):
         only for their occurrence.
         """
         # create a scenario from the form
-        django_scenario, simba_schedule, args = self.get_scenario_objects_and_fill_db()
+        django_scenario, simba_schedule, args = build_scenario()
 
         # get the schedule and args from the db
         simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
@@ -395,10 +397,11 @@ class WriteReadScenarioToDatabase(TestCase):
                 print(f"Difference in scenario was found for {mutation}, {difference}")
 
 
-class RunSimulationTest(TestCase):
+class RunSimulationTest(StaticLiveServerTestCase):
     @override_settings(CELERY_USE=True)
     @override_settings(EFLIPS_USE=False)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
     @override_settings(DEBUG=True)
     def test_submit_button_click_with_celery_wo_eflips(self):
         self.submit_default_simulation()
@@ -412,6 +415,7 @@ class RunSimulationTest(TestCase):
     @override_settings(CELERY_USE=True)
     @override_settings(EFLIPS_USE=True)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
     @override_settings(DEBUG=True)
     def test_submit_button_click_with_celery_with_eflips(self):
         self.submit_default_simulation()

@@ -16,6 +16,40 @@ Template:
 ### Removed
 - [(#)]()
 ```
+### Changed
+- [(#55)](https://github.com/rl-institut/django-simba/pull/55)
+- Add deepcopy function to 'core'
+- Test deepcopy
+- Add simba and toolchain call with a scenario as input.
+  - Scenarios are not purged of their events. This can lead to side effects
+  - Toolchain contains a depot generation which fails if the scenario has a depot associated with it already
+- Add a basic filter to run trip data which contains false data
+  - duplicate departure or arrival times are handled by removing trips
+  - rotations which do not start at the depot are removed
+- Add some timing prints of function blocks. Should be moved to a logger at some point
+- Add vehicle counting to make db schedule consistent
+
+
+### Changed
+- [(#54)](https://github.com/rl-institut/django-simba/pull/54)
+- Updates project dependencies to eflips-depot 2.0
+- Closes [(#53)](https://github.com/rl-institut/django-simba/issues/53). Fix SoC plotting
+
+### Changed
+- [(#48)](https://github.com/rl-institut/django-simba/pull/48)
+-  Update poetry.lock to import fixed eflips-depot.
+- use the new generate_depot_layout() method.
+- Update Simba Version
+- SimBA does not create 0 Duration Events anymore
+- SimBA does not create events past the last trip. The last event is always a driving event.
+- SimBA reads Rotation Start SOCs from the Database-Event before rotation departure.
+  - In some cases there is no event.
+  - Vehicle renaming is handled in django. Might need an overhaul later.
+  - Unused vehicles get deleted by django
+- Fix tests by using other TestCase
+  - Add temperatures to testing if db and "normal" version are the same
+
+
 
 ### Changed
 - [(#45)](https://github.com/rl-institut/django-simba/pull/45)

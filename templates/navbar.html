@@ -1,43 +1,80 @@
+<style>
+.dropdown .dropbtn {
+  background: none;
+  border: none;
+}
+
+.dropdown-content {
+  display: none;
+  position: fixed;
+  z-index: 1;
+}
+
+.dropdown-content a {
+  display: block;
+  text-decoration: none;
+}
+
+.dropdown:hover .dropdown-content {display: block;}
+.dropdown:hover .dropbtn {background-color: #eee;}
+</style>
+
 <header class="d-flex justify-content-between align-items-md-center pb-3 mb-5 border-bottom">
-    <div class="row w-100">
-        <!-- Left Section: Takes 35% width and left-aligned content -->
-        <div class="col-4">
-            <div class="navbar-text">
-                <h1 class="h4">
-                    <a href="/" class="d-flex align-items-center text-dark text-decoration-none">
-                        <div class="logo">
-                            <img class="img-fluid" id="logo"
-                                 src="https://reiner-lemoine-institut.de//wp-content/uploads/2015/09/rlilogo.png"
-                                 data-retina=""
-                                 data-height="" alt="Reiner Lemoine Institut" data-no-retina="">
-                        </div>
-                        <span>RLI</span>
-                    </a>
-                </h1>
+  <div class="row w-100">
+    <!-- Left Section: Takes 35% width and left-aligned content -->
+    <div class="col-4">
+      <div class="navbar-text">
+        <h1 class="h4">
+          <a href="/" class="d-flex align-items-center text-dark text-decoration-none">
+            <div class="logo">
+              <img class="img-fluid" id="logo"
+                src="https://reiner-lemoine-institut.de//wp-content/uploads/2015/09/rlilogo.png"
+                data-retina=""
+                data-height="" alt="Reiner Lemoine Institut" data-no-retina="">
             </div>
-        </div>
-
-        <!-- Middle Section: Takes 30% width and centered content -->
-        <div class="col-4 text-center">
-            <div class="navbar-text">
-
-                <div class="container mt-0 text-center">
-                    <div class="callout tiny primary">
-                        <div class="row column text-center">
-                            <h1>
-                                <div class="title">E-Bus 2030+</div>
-                            </h1>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Right Section: Takes 35% width and right-aligned content -->
-        <div class="col-4 d-flex justify-content-end">
-            <div class="navbar-text">
-                Right Section
-            </div>
-        </div>
+            <span>RLI</span>
+          </a>
+        </h1>
+      </div>
     </div>
+
+    <!-- Middle Section: Takes 30% width and centered content -->
+    <div class="col-4 text-center">
+      <div class="navbar-text">
+        <div class="container mt-0 text-center">
+          <div class="callout tiny primary">
+            <div class="row column text-center">
+              <h1>
+                <div class="title">E-Bus 2030+</div>
+              </h1>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Section: Takes 35% width and right-aligned content -->
+    <div class="col-4 d-flex justify-content-end">
+      <div class="navbar-text">
+        <div class="dropdown">
+          <button class="dropbtn">Menü</button>
+          <div class="dropdown-content">
+            <nav>
+            {% if user.is_authenticated %}
+              <a href="{% url 'simba:scenarios' %}">Meine Szenarios</a>
+              <a href="{% url 'simba:usergroups' %}">Meine Nutzergruppen</a>
+              <a href="{% url 'logout' %}">Abmelden</a>
+              {% if user.is_staff %}
+                <a href="/admin">Admin</a>
+              {% endif %}
+            {% else %}
+              <a href="{% url 'login' %}">Anmelden</a>
+              <!--<a href="{% url 'core:signup' %}">Registrieren</a>-->
+            {% endif %}
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </header>
