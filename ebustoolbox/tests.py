@@ -91,8 +91,13 @@ class MySeleniumTests(StaticLiveServerTestCase):
         url = response.url
         response = self.client.get(url)
         self.selenium.get(f"{self.live_server_url}{url}")
+        time.sleep(2)
+        # Clear the browser log. We check the state of the site after refresh, to give
+        # map images time to load.
+        _ = self.selenium.get_log("browser")
+        self.selenium.refresh()
         # give django some time to calculate
-        time.sleep(3)
+        time.sleep(2)
         # Check for 404 requests
         errors = self.selenium.get_log("browser")
         # ToDO handle exception

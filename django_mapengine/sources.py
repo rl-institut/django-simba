@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import urllib
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Optional
 
@@ -48,8 +47,6 @@ class MapSource:
             if type is not supported as map source type.
         """
         source = {"type": self.type, "promoteId": self.promote_id}
-        params = request.GET.dict()
-        param_url = urllib.parse.urlencode(params)
         if self.minzoom:
             source["minzoom"] = self.minzoom
         if self.maxzoom:
@@ -58,7 +55,7 @@ class MapSource:
             source["tiles"] = [
                 tile
                 if tile.startswith("http")
-                else f"{request.scheme}://{request.get_host()}{tile}?{param_url}"
+                else f"{request.scheme}://{request.get_host()}{tile}"
                 for tile in self.tiles
             ]
         elif self.type == "geojson":

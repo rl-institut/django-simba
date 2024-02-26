@@ -17,6 +17,11 @@ Template:
 - [(#)]()
 ```
 ### Changed
+- [(#58)](https://github.com/rl-institut/django-simba/pull/58)
+- Upgrade to maplibre 4.0.2
+- Upgrade to django-mapengine 0.18
+
+### Changed
 - [(#55)](https://github.com/rl-institut/django-simba/pull/55)
 - Add deepcopy function to 'core'
 - Test deepcopy
@@ -28,7 +33,6 @@ Template:
   - rotations which do not start at the depot are removed
 - Add some timing prints of function blocks. Should be moved to a logger at some point
 - Add vehicle counting to make db schedule consistent
-
 
 ### Changed
 - [(#54)](https://github.com/rl-institut/django-simba/pull/54)
