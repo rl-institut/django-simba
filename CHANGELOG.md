@@ -22,6 +22,19 @@ Template:
 - Upgrade to django-mapengine 0.18
 
 ### Changed
+- [(#55)](https://github.com/rl-institut/django-simba/pull/55)
+- Add deepcopy function to 'core'
+- Test deepcopy
+- Add simba and toolchain call with a scenario as input.
+  - Scenarios are not purged of their events. This can lead to side effects
+  - Toolchain contains a depot generation which fails if the scenario has a depot associated with it already
+- Add a basic filter to run trip data which contains false data
+  - duplicate departure or arrival times are handled by removing trips
+  - rotations which do not start at the depot are removed
+- Add some timing prints of function blocks. Should be moved to a logger at some point
+- Add vehicle counting to make db schedule consistent
+
+### Changed
 - [(#54)](https://github.com/rl-institut/django-simba/pull/54)
 - Updates project dependencies to eflips-depot 2.0
 - Closes [(#53)](https://github.com/rl-institut/django-simba/issues/53). Fix SoC plotting

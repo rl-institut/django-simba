@@ -1,7 +1,10 @@
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.contrib.auth.forms import PasswordChangeForm
+from django.core import signing
+from django.http import HttpResponse, Http404
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.views.generic import TemplateView
@@ -24,17 +27,25 @@ def signup(request):
     if request.method == "POST":
         # posted data: create new user instance
         form = SignUpForm(request.POST)
-        if form.is_valid():
-            user = form.save()  # read necessary info from form
-            user.refresh_from_db()
-            user.username = user.email.lower()  # force lowercase for username
-            user.is_active = True
-            user.save()
-            return redirect(reverse("core:home"))
-    else:
-        # GET: present empty registration form
-        form = SignUpForm()
-    return render(request, "registration/signup.html", {"form": form})
+        if not form.is_valid():
+            return render(request, "registration/signup.html", {"form": form})
+        user = form.save()  # read necessary info from form
+        user.refresh_from_db()
+        user.username = user.email.lower()  # force lowercase for username
+        user.is_active = True
+        user.save()
+        return redirect(reverse("core:home"))
+    elif request.GET.get("token"):
+        # GET: present registration form, fill in email from token
+        try:
+            email = signing.loads(request.GET["token"])
+        except signing.BadSignature:
+            return HttpResponse("Wrong signature", status=400)
+        if User.objects.filter(username=email).exists():
+            return redirect(reverse("login"))
+        form = SignUpForm(initial={"email": email})
+        return render(request, "registration/signup.html", {"form": form})
+    raise Http404()
 
 
 @login_required(login_url="/login/")

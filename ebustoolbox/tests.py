@@ -219,30 +219,30 @@ def dict_digger(early_return, instance_stack, key_stack, new_objects):
             yield x
 
 
+@override_settings(DEBUG=True)
+def build_scenario():
+    form = UploadFileForm()
+    # Use all the initial and set values from the form as post data
+    post_data = {
+        f: form.fields[f].initial if form.fields[f].initial is not None else "" for f in form.fields
+    }
+    # create form with post data without extra files
+    form = UploadFileForm(data=post_data, files=None)
+    form.full_clean()
+
+    # Empty request, since no files are used for this simulation.
+    request = HttpRequest()
+
+    django_scenario, simba_schedule, args = tasks.input_files_to_database(
+        form.cleaned_data, request
+    )
+    return django_scenario, simba_schedule, args
+
+
 class WriteReadScenarioToDatabase(TestCase):
     @override_settings(DEBUG=True)
-    def get_scenario_objects_and_fill_db(self):
-        form = UploadFileForm()
-        # Use all the initial and set values from the form as post data
-        post_data = {
-            f: form.fields[f].initial if form.fields[f].initial is not None else ""
-            for f in form.fields
-        }
-        # create form with post data without extra files
-        form = UploadFileForm(data=post_data, files=None)
-        form.full_clean()
-
-        # Empty request, since no files are used for this simulation.
-        request = HttpRequest()
-
-        django_scenario, simba_schedule, args = tasks.input_files_to_database(
-            form.cleaned_data, request
-        )
-        return django_scenario, simba_schedule, args
-
-    @override_settings(DEBUG=True)
     def test_schedule_from_database(self):
-        django_scenario, simba_schedule, args = self.get_scenario_objects_and_fill_db()
+        django_scenario, simba_schedule, args = build_scenario()
 
         # simba_schedule_db, args_db = tasks.db_to_schedule(django_scenario)
         simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
@@ -310,7 +310,7 @@ class WriteReadScenarioToDatabase(TestCase):
         only for their occurrence.
         """
         # create a scenario from the form
-        django_scenario, simba_schedule, args = self.get_scenario_objects_and_fill_db()
+        django_scenario, simba_schedule, args = build_scenario()
 
         # get the schedule and args from the db
         simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
