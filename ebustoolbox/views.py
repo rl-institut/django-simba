@@ -1,8 +1,11 @@
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.core import signing, mail
 from django.db.transaction import atomic
 from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.views.generic import TemplateView
 from django.views.decorators.http import require_GET
 
@@ -196,6 +199,24 @@ def usergroups(request):
                 name=request.POST["name"],
             )
             ug.users.add(request.user)
+        elif "invite" in request.POST:
+            if settings.EMAIL_BACKEND:
+                email = request.POST["email"].lower()
+                if User.objects.filter(username=email).exists():
+                    return HttpResponse("User already exists", status=409)
+                url = f"{request.scheme}://{request.get_host()}{reverse('core:signup')}"
+                # generate and append token (embed email, sign with server key)
+                url += f"?token={signing.dumps(email)}"
+                body = f"Klicken Sie auf folgenden Link, um sich zu registrieren: {url}"
+                mail.send_mail(
+                    subject="Willkommen zu eBus2030+",
+                    message=body,
+                    from_email=None,
+                    recipient_list=[email],
+                    fail_silently=False,
+                )
+            else:
+                raise NotImplementedError("No email backend set")
         elif "leave" in request.POST:
             ug = request.user.usergroup_set.all().get(id=request.POST["leave"])
             ug.users.remove(request.user)

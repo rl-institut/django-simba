@@ -31,4 +31,13 @@
   <input name="name">
   <button type="submit" name="add">Neu</button>
 </form>
+{% if user.is_staff %}
+  <div>
+  <form method="post">
+    {% csrf_token %}
+    <input type="email" name="email" required="true">
+    <button type="submit" name="invite">Neuen Benutzer einladen</button>
+  </form>
+  </div>
+{% endif %}
 {% endblock %}
