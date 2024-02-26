@@ -18,6 +18,7 @@ Template:
 ```
 
 ### Changed
+- [(#60)](https://github.com/rl-institut/django-simba/pull/60)
 - Adds loop over different toolchain mode
 - Station-optimization is turned on per default
 - Removes simba.report from loop and moves it to a single post processing call
