@@ -17,6 +17,7 @@ Template:
 - [(#)]()
 ```
 ### Changed
+- [(#57)](https://github.com/rl-institut/django-simba/pull/57)
 - Add consumption model
   - Consumption model looks up consumption multidimensional input conditions. Nearest and Interpolation Lookup is possible
 - Consumption models can be separated from a scenario to allow generic consumption table storage
@@ -25,6 +26,12 @@ Template:
 - Give example vehicles a file reference to a consumption file
 - Input form: Rename vehicle_types to vehicle_types_path
 - Input form: Add consumption_path. For now only a single file is possible in the frontend, but no backend limitation exists
+
+
+### Changed
+- [(#58)](https://github.com/rl-institut/django-simba/pull/58)
+- Upgrade to maplibre 4.0.2
+- Upgrade to django-mapengine 0.18
 
 ### Changed
 - [(#55)](https://github.com/rl-institut/django-simba/pull/55)
@@ -38,7 +45,6 @@ Template:
   - rotations which do not start at the depot are removed
 - Add some timing prints of function blocks. Should be moved to a logger at some point
 - Add vehicle counting to make db schedule consistent
-
 
 ### Changed
 - [(#54)](https://github.com/rl-institut/django-simba/pull/54)
