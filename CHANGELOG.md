@@ -16,6 +16,11 @@ Template:
 ### Removed
 - [(#)]()
 ```
+
+### Changed (UNRELEASED)  
+## [(#62)](https://github.com/rl-institut/django-simba/pull/62)
+- `Scenario.created` is now a server default timestamp instead of a client default timestamp
+
 ### Changed
 - [(#58)](https://github.com/rl-institut/django-simba/pull/58)
 - Upgrade to maplibre 4.0.2
