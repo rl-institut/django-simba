@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.functions import TransactionNow
 from django.db.models import QuerySet, Sum
 from django.dispatch import receiver
 from django.utils.timezone import make_aware
@@ -49,7 +50,7 @@ class Scenario(models.Model):
     name_short = models.TextField(blank=True, null=True)
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
 
-    created = models.DateTimeField(auto_now_add=True)
+    created = models.DateTimeField(db_default=TransactionNow()) # Set to now() on the database side
     task_id = models.UUIDField(default=None, null=True, unique=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
     simba_options = models.JSONField(default=dict, null=True)
