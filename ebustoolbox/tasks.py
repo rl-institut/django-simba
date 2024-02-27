@@ -716,6 +716,12 @@ def stations_to_db(station_data, electrified_stations, scenario):
             pass
     Station.objects.bulk_create(object_list)
 
+    # Update db stations which are electrified with info from electrified_stations dictionary
+    update_electrified_stations_db(electrified_stations, scenario)
+
+
+def update_electrified_stations_db(electrified_stations, scenario):
+    """Update stations which are electrified with info from electrified_stations dictionary"""
     for name, ele_station in electrified_stations.items():
         station = Station.objects.get(name=name, scenario=scenario)
         station.is_electrified = True
@@ -829,11 +835,7 @@ def run_simba_scenario(django_scenario: Scenario):
 def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
     """Run the tool chain"""
     # call simba and eflips
-    mode = simba.simulate.Mode
-    simba_modes = [func for func in dir(mode) if callable(getattr(mode, func))]
     wanted_modes = args.modes.split(",")
-    for m in wanted_modes:
-        assert m in simba_modes
     assert wanted_modes[-1] == "report"
     simba_scenario = None
 
@@ -937,6 +939,13 @@ def run_simba(schedule: SimbaSchedule, args, task_id, mode=None, scenario=None):
         # Run this mode. Iteration number is not changed right now since only the last report is
         # used from the generated simba files
         schedule, scenario = func(schedule, scenario, args, 1)
+        match mode:
+            case "sim" | "report":
+                pass
+            case "station_optimization":
+                update_electrified_stations_db(schedule.stations, db_scenario)
+            case _:
+                raise NotImplementedError
 
     print(f"Plotting {datetime.now()}")
 
