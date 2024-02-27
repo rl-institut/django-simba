@@ -50,7 +50,7 @@ class Scenario(models.Model):
     name_short = models.TextField(blank=True, null=True)
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
 
-    created = models.DateTimeField(db_default=Now()) # Set to now() on the database side
+    created = models.DateTimeField(db_default=Now())  # Set to now() on the database side
     task_id = models.UUIDField(default=None, null=True, unique=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
     simba_options = models.JSONField(default=dict, null=True)
