@@ -306,14 +306,7 @@ def get_powerdraw_as_dataframe(scenario_id, buses):
 
 def get_vehicle_types(scenario_id, buses):
     filter_dict = dict(scenario_id=scenario_id)
-
-    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!111",len(VehicleType.objects.filter(**filter_dict)))
-
     values_with_counts = VehicleType.objects.filter(**filter_dict).values('name').annotate(count=Count('name'))
-
-    print("$$$$$$$$$$$$$$$$$$$$$$444")
-    print(values_with_counts)
-
     df = pd.DataFrame(values_with_counts)
 
     return df
@@ -334,3 +327,51 @@ def reset_df_perf():
     df_perf = pd.DataFrame({'name': [], 'start': [], 'end': [], 'process': []})
     df_perf['start'] = pd.to_datetime(df_perf['start'])
     df_perf['end'] = pd.to_datetime(df_perf['end'])
+
+def critical_rotations(scenario_id, buses):
+    vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
+    scenario = Scenario.objects.get(id=scenario_id)
+    # get all vehicle events from this scenario at a station
+
+    dfs = []
+
+    for vehicle in vehicles:
+        if vehicle.name_short in buses:
+            v_id = vehicle.id
+
+            rotations = scenario.rotation_set.filter(vehicle__isnull=False, vehicle_id=v_id)
+            for rotation in rotations:
+                r_id = rotation.id
+                events = scenario.event_set.filter(vehicle__isnull=False, vehicle_id=v_id)
+                for event in events:
+                    soc_start = event.soc_start
+                    # Add a row to the DataFrame
+                    df = pd.DataFrame({'V_id': [v_id], 'SOC': [soc_start], 'R_id': [r_id]})
+                    dfs.append(df)
+                    soc_end = event.soc_end
+                    # Add a row to the DataFrame
+                    df = pd.DataFrame({'V_id': [v_id],  'SOC': [soc_end], 'R_id': [r_id]})
+                    dfs.append(df)
+    result_df = pd.concat(dfs, ignore_index=True)
+
+    result_df = result_df.groupby('R_id')['SOC'].min().reset_index()
+
+    # Categorize SOC into positive and negative
+    result_df['SOC_category'] = result_df['SOC'].apply(lambda x: 'Non-Critical' if x > -0.2 else 'Critical')
+
+    # Counting occurrences of each category
+    category_counts = result_df['SOC_category'].value_counts()
+
+    # Creating a new DataFrame with the counts
+    result_df = pd.DataFrame({'Category': category_counts.index, 'Count': category_counts.values})
+
+    # Customizing tooltip
+    result_df['Tooltip'] = result_df.apply(
+        lambda row: f'{row["Category"]}: {row["Count"]} instances. Click for more info.', axis=1)
+
+    # Adding a clickable link (dummy link)
+    result_df['URL'] = result_df.apply(lambda row: "https://www.example.com", axis=1)
+
+    print(result_df)
+
+    return result_df

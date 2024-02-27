@@ -13,7 +13,16 @@ def create_layout(app: Dash) -> html.Div:
     # App layout
     return html.Div(
         [
-            html.H1(app.title, style={"textAlign": "center"}),
+            #html.H4(app.title, style={"textAlign": "center"}),
+            html.Div(
+                #THIS IS JUST A SPACER
+                style={
+                    "display": "inline-block",
+                    "width": "100%",
+                    "verticalAlign": "top",
+                    "height": "20px",
+                },
+            ),
             html.Div(
                 children=block_top_center(app),
                 style={
@@ -52,21 +61,29 @@ def create_layout(app: Dash) -> html.Div:
             ),
             html.Div(
                 children=block_top_left(app),
-                id='performance',
                 style={
                     "display": "inline-block",
                     "width": "50%",
                     "verticalAlign": "top",
-                    "height": "300px",
+                    "height": "200px",
                 },
             ),
             html.Div(
                 children=block_top_right(app),
                 style={
                     "display": "inline-block",
+                    "width": "49%",
+                    "verticalAlign": "top",
+                    "height": "400px",
+                },
+            ),
+            html.Div(
+                children=block_lower_left(app),
+                style={
+                    "display": "inline-block",
                     "width": "50%",
                     "verticalAlign": "top",
-                    "height": "500px",
+                    "height": "400px",
                 },
             ),
             html.Div(
@@ -99,6 +116,7 @@ def block_bottom_center(app):
 def block_top_left(app) -> list[html.Div]:
     return [piechart.render_bustype(app)]
 
-
+def block_lower_left(app) -> list[html.Div]:
+    return [piechart.render_critical_rotations(app)]
 def block_top_right(app):
     return [activities_chart.render_performance(app)]

@@ -25,7 +25,7 @@ def render(app: Dash) -> html.Div:
 
     return html.Div(
         children=[
-            html.H6("Bus"),
+            html.H6("Select one or multiple Buses:"),
             dcc.Dropdown(
                 # Id with which this dropdown can be called
                 id=ids.BUS_DROPDOWN,
