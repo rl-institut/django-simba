@@ -81,18 +81,19 @@ def render_power_draw(app: Dash) -> html.Div:
         data.register_time("power_draw", start, end, "retrieval")
 
         start = time.time()
-        fig = px.histogram(df, x='Time', y="Energy", color="Station_id")
+        fig = go.Figure(layout=dict(template='plotly'))
+        fig = px.line(df, x='Time_start', y='Energy', color='Station_id',
+                      title='Energy Consumption Over Time by Station ID',
+                      labels={'Time_start': 'Time', 'Energy': 'Energy', 'Station_id': 'Station ID', 'V_id': 'Vehicle'},
+                      line_group='Station_id')
 
-        # Update layout to display bars in front of each other
-        fig.update_layout(showlegend=False)
-        fig.update_coloraxes(showscale=True)
-        fig.update_xaxes(title_text='Energie in kWh')
-        fig.update_yaxes(title_text='Zeit')
+        # Update layout
+        fig.update_layout(xaxis_title='Time', yaxis_title='Energy')
 
         end = time.time()
         data.register_time("power_draw", start, end, "render")
-
-        return html.Div(dcc.Graph(figure=fig), id=ids.POWER_DRAW_CHART)
+        return fig
+        #return html.Div(dcc.Graph(figure=fig), id=ids.POWER_DRAW_CHART)
 
     return html.Div(dcc.Graph(id=ids.POWER_DRAW_CHART), style={"verticalAlign": "top"})
 

@@ -13,9 +13,11 @@ from ebustoolbox.models import (
     EventType,
     Vehicle,
     VehicleType,
+    Rotation,
+    Trip
 )
 import pandas as pd
-from django.db.models import Min, Count
+from django.db.models import Min, Count, Prefetch
 from dash.exceptions import PreventUpdate
 
 
@@ -201,15 +203,6 @@ def recent_memoizer(function, _dcache1=dict(), _result_cache2=dict()):
 
 @recent_memoizer
 def get_all_soc_as_dataframe(scenario_id):
-    # if scenario_id in _cache:
-    #     _cache.remove(scenario_id)
-    #     _cache.append(scenario_id)
-    #     return _dcache[scenario_id]
-    # else:
-    #     if len(_cache) >= 10:
-    #         del _dcache[_cache[0]]
-    #         del _cache[0]
-    #     _cache.append(scenario_id)
 
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
     scenario = Scenario.objects.get(id=scenario_id)
@@ -217,9 +210,12 @@ def get_all_soc_as_dataframe(scenario_id):
 
     dfs = []
 
+    all_events = Event.objects.filter(scenario=scenario, vehicle__isnull=False).prefetch_related('vehicle')
+
     for vehicle in vehicles:
         v_id = vehicle.name_short
-        events = scenario.event_set.filter(vehicle__isnull=False, vehicle_id=vehicle.id)
+        #events = scenario.event_set.filter(vehicle__isnull=False, vehicle_id=vehicle.id)
+        events = [event for event in all_events if event.vehicle_id == vehicle.id]
         for event in events:
             time_start = event.time_start
             soc_start = event.soc_start
@@ -289,34 +285,34 @@ def get_activities_as_dataframe(scenario_id, buses):
 
     return result_df
 
-
-def get_distances_as_dataframe(scenario_id, buses):
-
+@recent_memoizer
+def get_all_distances_as_dataframe(scenario_id):
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
-    scenario = Scenario.objects.get(id=scenario_id)
-    # get all vehicle events from this scenario at a station
+    scenario = Scenario.objects.prefetch_related('rotation_set__trip_set__route').get(id=scenario_id)
 
-    dfs = []
+    # Initialize lists to store data
+    v_ids = []
+    r_ids = []
+    distances = []
 
+    # Iterate over vehicles
     for vehicle in vehicles:
-        if vehicle.name_short in buses:
-            v_id = vehicle.id
-            rotations = scenario.rotation_set.filter(vehicle__isnull=False, vehicle_id=v_id)
-            for rotation in rotations:
-                r_id = rotation.id
-                trips = scenario.trip_set.filter(rotation_id=rotation.id)
-                for trip in trips:
-                    routes = Route.objects.filter(scenario_id=scenario_id, id=trip.route_id)
-                    for route in routes:
-                        distance = route.distance
+        v_id = vehicle.name_short
+        # Filter rotations for the current vehicle
+        rotations = scenario.rotation_set.filter(vehicle_id=vehicle.id)
+        for rotation in rotations:
+            r_id = rotation.id
+            # Filter trips for the current rotation
+            trips = rotation.trip_set.all()
+            for trip in trips:
+                distance = trip.route.distance
+                v_ids.append(v_id)
+                r_ids.append(r_id)
+                distances.append(distance)
 
-                        df = pd.DataFrame(
-                            {"V_id": [v_id], "R_id": [r_id], "total_distance": [distance]}
-                        )
-                        dfs.append(df)
-
-    result_df = pd.concat(dfs, ignore_index=True)
-    result_df = result_df.groupby("R_id")["total_distance"].sum().reset_index()
+    # Create DataFrame from collected data
+    result_df = pd.DataFrame({"V_id": v_ids, "R_id": r_ids, "total_distance": distances})
+    result_df = result_df.groupby(["R_id", "V_id"])["total_distance"].sum().reset_index()
 
     return result_df
 
@@ -324,26 +320,30 @@ def get_distances_as_dataframe(scenario_id, buses):
 @recent_memoizer
 def get_all_durations_as_dataframe(scenario_id):
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
-    scenario = Scenario.objects.get(id=scenario_id)
-    # get all vehicle events from this scenario at a station
+    scenario = Scenario.objects.prefetch_related('rotation_set__trip_set__route').get(id=scenario_id)
 
-    dfs = []
+    # Initialize lists to store data
+    v_ids = []
+    r_ids = []
+    durations = []
 
+    # Iterate over vehicles
     for vehicle in vehicles:
-        v_id = vehicle.id
-        rotations = scenario.rotation_set.filter(vehicle__isnull=False, vehicle_id=v_id)
+        v_id = vehicle.name_short
+        # Filter rotations for the current vehicle
+        rotations = scenario.rotation_set.filter(vehicle_id=vehicle.id)
         for rotation in rotations:
             r_id = rotation.id
-            trips = scenario.trip_set.filter(rotation_id=rotation.id)
+            # Filter trips for the current rotation
+            trips = rotation.trip_set.all()
             for trip in trips:
-                duration = (
-                    pd.to_datetime(trip.arrival_time) - pd.to_datetime(trip.departure_time)
-                ).total_seconds()
-                df = pd.DataFrame(
-                    {"V_id": [vehicle.name_short], "R_id": [r_id], "duration": [duration]}
-                )
-                dfs.append(df)
-    result_df = pd.concat(dfs, ignore_index=True)
+                duration = (trip.arrival_time - trip.departure_time).total_seconds()
+                v_ids.append(v_id)
+                r_ids.append(r_id)
+                durations.append(duration)
+
+    # Create DataFrame from collected data
+    result_df = pd.DataFrame({"V_id": v_ids, "R_id": r_ids, "duration": durations})
     result_df = result_df.groupby(["R_id", "V_id"])["duration"].sum().reset_index()
 
     return result_df
@@ -353,6 +353,9 @@ def get_duration_as_dataframe(scenario_id, buses):
     result_df = get_all_durations_as_dataframe(scenario_id)
     return result_df.query(f"V_id in {buses}")
 
+def get_distances_as_dataframe(scenario_id, buses):
+    result_df = get_all_distances_as_dataframe(scenario_id)
+    return result_df.query(f"V_id in {buses}")
 
 def get_powerdraw_as_dataframe(scenario_id, buses):
 
@@ -366,8 +369,8 @@ def get_powerdraw_as_dataframe(scenario_id, buses):
         if vehicle.name_short in buses:
             v_id = vehicle.id
             v_typeid = vehicle.vehicle_type_id
-            batterycapacity = VehicleType.objects.get(id=v_typeid)  #
-            charge_eff = VehicleType.objects.get(id=v_typeid)  #
+            batterycapacity = VehicleType.objects.get(id=v_typeid).battery_capacity  #
+            charge_eff = VehicleType.objects.get(id=v_typeid).charging_efficiency  #
 
             events = scenario.event_set.filter(
                 vehicle__isnull=False, station_id__isnull=False, vehicle_id=v_id
@@ -376,25 +379,29 @@ def get_powerdraw_as_dataframe(scenario_id, buses):
                 soc_start = event.soc_start
                 station = event.station_id
                 # Add a row to the DataFrame
+                time_start = event.time_start
                 time_end = event.time_end
                 soc_end = event.soc_end
                 if soc_end > soc_start:
-                    energy = soc_end - soc_start * charge_eff * batterycapacity
+                    energy = (soc_end - soc_start) * charge_eff * batterycapacity
                     # Add a row to the DataFrame
                     df = pd.DataFrame(
                         {
                             "V_id": [v_id],
-                            "Time": [time_end],
+                            "Time_start": [time_start],
+                            "Time_end": [time_end],
                             "Energy": [energy],
                             "Station_id": [station],
                         }
                     )
                     dfs.append(df)
     if dfs:  # if not empty
-        result_df = pd.concat(dfs, ignore_index=True)
+        result_df = pd.concat(dfs, ignore_index=True).drop_duplicates()
+        result_df["Time_start"] = pd.to_datetime(result_df["Time_start"])
+        result_df["Time_end"] = pd.to_datetime(result_df["Time_end"])
     else:
         result_df = pd.DataFrame(
-            {"V_id": [None], "Time": [None], "Energy": [None], "Station_id": [None]}
+            {"V_id": [None], "Time_end": [None], "Time_start": [None], "Energy": [None], "Station_id": [None]}
         )
 
     return result_df
@@ -402,11 +409,6 @@ def get_powerdraw_as_dataframe(scenario_id, buses):
 
 def get_vehicle_types(scenario_id, buses):
     filter_dict = dict(scenario_id=scenario_id)
-
-    print(
-        "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!111",
-        len(VehicleType.objects.filter(**filter_dict)),
-    )
 
     values_with_counts = (
         VehicleType.objects.filter(**filter_dict).values("name").annotate(count=Count("name"))

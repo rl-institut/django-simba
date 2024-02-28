@@ -7,8 +7,6 @@ from . import (bus_dropdown,
                activities_chart,
                piechart)
 
-from .data import reset_df_perf
-
 def create_layout(app: Dash) -> html.Div:
     # App layout
     return html.Div(
@@ -106,12 +104,12 @@ def block_top_center(app) -> list[html.Div]:
 
 def block_bottom_center(app):
     return [scatter_chart.render(app),
-            histograms.render_soc(app),
+            histograms.render_power_draw(app),
+            #histograms.render_soc(app),
             histograms.render_minimal_soc(app),
             activities_chart.render(app),
             histograms.render_rotation_duration(app),
             histograms.render_rotation_distance(app),
-            histograms.render_power_draw(app),
             histograms.render_dist_dur(app)]
 def block_top_left(app) -> list[html.Div]:
     return [piechart.render_bustype(app)]
