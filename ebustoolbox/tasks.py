@@ -2,6 +2,7 @@ import collections
 import csv
 import shutil
 import traceback
+import warnings
 from argparse import Namespace
 from copy import deepcopy, copy
 from datetime import datetime, timedelta
@@ -114,11 +115,13 @@ def consumption_file_to_db(consumption_path: Path, django_scenario: Scenario) ->
             if cons in columns:
                 consumption_found = True
                 break
-        assert consumption_found
+        if not consumption_found:
+            text = f"No column named {consumption_names} was found in {consumption_path.stem}"
+            raise AssertionError(text)
         columns.remove(cons)
         datapoints = []
         values = []
-        for row in reader:
+        for i, row in enumerate(reader):
             data = []
             try:
                 for field in columns:
@@ -128,6 +131,10 @@ def consumption_file_to_db(consumption_path: Path, django_scenario: Scenario) ->
                 val = float(val)
             except ValueError:
                 if val == "" or data_point == "":
+                    warnings.warn(
+                        f"Row {i} in {consumption_path.stem} contains a missing value. "
+                        f"This row and following rows will be ignored."
+                    )
                     break
                 else:
                     raise
