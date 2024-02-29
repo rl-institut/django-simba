@@ -27,7 +27,8 @@ def render(app: Dash) -> html.Div:
         fig = px.timeline(
             df, x_start="time_start", x_end="time_end", y="V_id",
             hover_data='event_type',
-            color='event_type'
+            color='event_type',
+            height= 800
         )
         end = time.time()
         data.register_time("activities", start, end, "render")
@@ -50,8 +51,7 @@ def render_performance(app: Dash) -> html.Div:
 
         # Sample data
         df = data.get_df_perf()
-        print(df)
-
+        fig = go.Figure(layout=dict(template='plotly'))
         fig = px.timeline(df, x_start='start', x_end='end', y='name', color='process')
         fig.update_layout(title='Process Timeline', xaxis_title='Time', yaxis_title='Function')
 

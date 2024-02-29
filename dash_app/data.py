@@ -203,31 +203,36 @@ def recent_memoizer(function, _dcache1=dict(), _result_cache2=dict()):
 
 @recent_memoizer
 def get_all_soc_as_dataframe(scenario_id):
-
+    # Fetch vehicles and scenario
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
-    scenario = Scenario.objects.get(id=scenario_id)
-    # get all vehicle events from this scenario at a station
+    scenario = Scenario.objects.prefetch_related('event_set').get(id=scenario_id)
 
-    dfs = []
+    # Initialize lists to store data
+    v_ids = []
+    times = []
+    socs = []
 
+    # Fetch all events for the scenario with prefetching
     all_events = Event.objects.filter(scenario=scenario, vehicle__isnull=False).prefetch_related('vehicle')
 
+    # Iterate over vehicles
     for vehicle in vehicles:
         v_id = vehicle.name_short
-        #events = scenario.event_set.filter(vehicle__isnull=False, vehicle_id=vehicle.id)
+        # Filter events for the current vehicle
         events = [event for event in all_events if event.vehicle_id == vehicle.id]
         for event in events:
             time_start = event.time_start
             soc_start = event.soc_start
-            # Add a row to the DataFrame
-            df = pd.DataFrame({"V_id": [v_id], "Time": [time_start], "SOC": [soc_start]})
-            dfs.append(df)
             time_end = event.time_end
             soc_end = event.soc_end
-            # Add a row to the DataFrame
-            df = pd.DataFrame({"V_id": [v_id], "Time": [time_end], "SOC": [soc_end]})
-            dfs.append(df)
-    result_df = pd.concat(dfs, ignore_index=True)
+
+            # Append data to the lists
+            v_ids.extend([v_id, v_id])
+            times.extend([time_start, time_end])
+            socs.extend([soc_start, soc_end])
+
+    # Create DataFrame from collected data
+    result_df = pd.DataFrame({"V_id": v_ids, "Time": times, "SOC": socs})
 
     # Convert the 'Time' column to datetime format
     result_df["Time"] = pd.to_datetime(result_df["Time"])
@@ -235,7 +240,6 @@ def get_all_soc_as_dataframe(scenario_id):
     # Sort the DataFrame based on the 'Time' column
     result_df = result_df.sort_values(by="Time")
 
-    # _dcache[scenario_id] = result_df
     return result_df
 
 
@@ -243,39 +247,37 @@ def get_soc_as_dataframe(scenario_id, buses):
     result_df = get_all_soc_as_dataframe(scenario_id)
     return result_df.query(f"V_id in {buses}")
 
-
-def get_activities_as_dataframe(scenario_id, buses):
-
+@recent_memoizer
+def get_all_activities_as_dataframe(scenario_id):
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
-    scenario = Scenario.objects.get(id=scenario_id)
-    # get all vehicle events from this scenario at a station
+    scenario = Scenario.objects.prefetch_related('event_set').get(id=scenario_id)
+    all_events = Event.objects.filter(scenario=scenario, vehicle__isnull=False).prefetch_related('vehicle')
 
+    # Initialize a list to store DataFrames
     dfs = []
 
+    # Iterate over vehicles
     for vehicle in vehicles:
+        # Check if the vehicle is a bus
+        v_id = vehicle.name_short
+        # Filter events for the current vehicle
+        events = [event for event in all_events if event.vehicle_id == vehicle.id]
+        for event in events:
+            time_start = event.time_start
+            event_type = event.event_type
+            duration = (event.time_end - event.time_start).total_seconds()
+            time_end = event.time_end
+            # Append data to the list
+            dfs.append({
+                "V_id": v_id,
+                "time_start": time_start,
+                "time_end": time_end,
+                "duration": duration,
+                "event_type": event_type,
+            })
 
-        if vehicle.name_short in buses:
-            v_id = vehicle.id
-            events = scenario.event_set.filter(vehicle__isnull=False, vehicle_id=v_id)
-            for event in events:
-                time_start = event.time_start
-                event_type = event.event_type
-                duration = (
-                    pd.to_datetime(event.time_end) - pd.to_datetime(event.time_start)
-                ).total_seconds()
-                time_end = event.time_end
-                # Add a row to the DataFrame
-                df = pd.DataFrame(
-                    {
-                        "V_id": [v_id],
-                        "time_start": [time_start],
-                        "time_end": [time_end],
-                        "duration": [duration],
-                        "event_type": [event_type],
-                    }
-                )
-                dfs.append(df)
-    result_df = pd.concat(dfs, ignore_index=True)
+    # Create DataFrame from collected data
+    result_df = pd.DataFrame(dfs)
 
     # Convert the 'Time' column to datetime format
     result_df["time_start"] = pd.to_datetime(result_df["time_start"])
@@ -355,6 +357,10 @@ def get_duration_as_dataframe(scenario_id, buses):
 
 def get_distances_as_dataframe(scenario_id, buses):
     result_df = get_all_distances_as_dataframe(scenario_id)
+    return result_df.query(f"V_id in {buses}")
+
+def get_activities_as_dataframe(scenario_id, buses):
+    result_df = get_all_activities_as_dataframe(scenario_id)
     return result_df.query(f"V_id in {buses}")
 
 def get_powerdraw_as_dataframe(scenario_id, buses):
