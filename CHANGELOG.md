@@ -16,6 +16,16 @@ Template:
 ### Removed
 - [(#)]()
 ```
+
+### Changed
+- [(#67)](https://github.com/rl-institut/django-simba/pull/67)
+- run_simba_from_scenario and run_toolchain_from_scenario get keyword argument to assign vehicles to rotations using the simba naming convention.
+- set delete_existing_depots=True in eflips depot generator
+- Running a finished Scenario is now possible
+- Running a Scenario with missing vehicle_assignments is now possible by setting assign_vehicles=True
+
+
+
 ### Changed
 - [(#58)](https://github.com/rl-institut/django-simba/pull/58)
 - Upgrade to maplibre 4.0.2
