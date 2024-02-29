@@ -289,28 +289,31 @@ def get_all_activities_as_dataframe(scenario_id):
 
 @recent_memoizer
 def get_all_distances_as_dataframe(scenario_id):
-    vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
-    scenario = Scenario.objects.prefetch_related('rotation_set__trip_set__route').get(id=scenario_id)
+    # Prefetch all related objects for the scenario
+    scenario = Scenario.objects.prefetch_related(
+        'rotation_set__trip_set__route',  # Prefetch trips and their routes
+        'rotation_set__vehicle'  # Prefetch vehicles for rotations
+    ).get(id=scenario_id)
 
     # Initialize lists to store data
     v_ids = []
     r_ids = []
     distances = []
 
-    # Iterate over vehicles
-    for vehicle in vehicles:
-        v_id = vehicle.name_short
-        # Filter rotations for the current vehicle
-        rotations = scenario.rotation_set.filter(vehicle_id=vehicle.id)
-        for rotation in rotations:
-            r_id = rotation.id
-            # Filter trips for the current rotation
-            trips = rotation.trip_set.all()
-            for trip in trips:
-                distance = trip.route.distance
-                v_ids.append(v_id)
-                r_ids.append(r_id)
-                distances.append(distance)
+    # Iterate over rotations in the scenario
+    for rotation in scenario.rotation_set.all():
+        # Get vehicle ID for the rotation
+        v_id = rotation.vehicle.name_short
+        r_id = rotation.id
+        # Iterate over trips in the rotation
+        for trip in rotation.trip_set.all():
+            # Get distance for the trip's route
+            distance = trip.route.distance
+            # Append data to lists
+            v_ids.append(v_id)
+            r_ids.append(r_id)
+            distances.append(distance)
+
 
     # Create DataFrame from collected data
     result_df = pd.DataFrame({"V_id": v_ids, "R_id": r_ids, "total_distance": distances})
