@@ -200,7 +200,6 @@ def recent_memoizer(function, _dcache1=dict(), _result_cache2=dict()):
 
     return decorated_function
 
-
 @recent_memoizer
 def get_all_soc_as_dataframe(scenario_id):
     # Fetch vehicles and scenario
@@ -241,7 +240,6 @@ def get_all_soc_as_dataframe(scenario_id):
     result_df = result_df.sort_values(by="Time")
 
     return result_df
-
 
 def get_soc_as_dataframe(scenario_id, buses):
     result_df = get_all_soc_as_dataframe(scenario_id)
@@ -321,7 +319,6 @@ def get_all_distances_as_dataframe(scenario_id):
 
     return result_df
 
-
 @recent_memoizer
 def get_all_durations_as_dataframe(scenario_id):
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
@@ -353,7 +350,6 @@ def get_all_durations_as_dataframe(scenario_id):
 
     return result_df
 
-
 def get_duration_as_dataframe(scenario_id, buses):
     result_df = get_all_durations_as_dataframe(scenario_id)
     return result_df.query(f"V_id in {buses}")
@@ -367,45 +363,55 @@ def get_activities_as_dataframe(scenario_id, buses):
     return result_df.query(f"V_id in {buses}")
 
 def get_powerdraw_as_dataframe(scenario_id, buses):
+    result_df = get_all_powerdraw_as_dataframe(scenario_id)
+    return result_df.query(f"V_id in {buses}")
 
+@recent_memoizer
+def get_all_powerdraw_as_dataframe(scenario_id):
+    # Fetch vehicles and scenario
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
     scenario = Scenario.objects.get(id=scenario_id)
-    # get all vehicle events from this scenario at a station
 
+    # Fetch battery capacity and charging efficiency for all vehicle types
+    vehicle_types = VehicleType.objects.in_bulk([vehicle.vehicle_type_id for vehicle in vehicles])
+    battery_capacities = {v_id: vehicle_types[v_type_id].battery_capacity for v_id, v_type_id in zip(vehicles.values_list('id', flat=True), vehicles.values_list('vehicle_type_id', flat=True))}
+    charging_efficiencies = {v_id: vehicle_types[v_type_id].charging_efficiency for v_id, v_type_id in zip(vehicles.values_list('id', flat=True), vehicles.values_list('vehicle_type_id', flat=True))}
+
+    # Fetch all events for the scenario with prefetching
+    all_events = Event.objects.filter(scenario=scenario, vehicle__isnull=False, station_id__isnull=False).prefetch_related('vehicle')
+
+    # Initialize list to store DataFrames
     dfs = []
 
+    # Iterate over vehicles
     for vehicle in vehicles:
-        if vehicle.name_short in buses:
             v_id = vehicle.id
             v_typeid = vehicle.vehicle_type_id
-            batterycapacity = VehicleType.objects.get(id=v_typeid).battery_capacity  #
-            charge_eff = VehicleType.objects.get(id=v_typeid).charging_efficiency  #
+            batterycapacity = battery_capacities[v_id]
+            charge_eff = charging_efficiencies[v_id]
 
-            events = scenario.event_set.filter(
-                vehicle__isnull=False, station_id__isnull=False, vehicle_id=v_id
-            )
+            # Filter events for the current vehicle from the prefetched queryset
+            events = [event for event in all_events if event.vehicle_id == v_id]
             for event in events:
                 soc_start = event.soc_start
                 station = event.station_id
-                # Add a row to the DataFrame
                 time_start = event.time_start
                 time_end = event.time_end
                 soc_end = event.soc_end
                 if soc_end > soc_start:
                     energy = (soc_end - soc_start) * charge_eff * batterycapacity
-                    # Add a row to the DataFrame
-                    df = pd.DataFrame(
-                        {
-                            "V_id": [v_id],
-                            "Time_start": [time_start],
-                            "Time_end": [time_end],
-                            "Energy": [energy],
-                            "Station_id": [station],
-                        }
-                    )
-                    dfs.append(df)
-    if dfs:  # if not empty
-        result_df = pd.concat(dfs, ignore_index=True).drop_duplicates()
+                    # Append data to the list
+                    dfs.append({
+                        "V_id": vehicle.name_short,
+                        "Time_start": time_start,
+                        "Time_end": time_end,
+                        "Energy": energy,
+                        "Station_id": station,
+                    })
+
+    # Create DataFrame from collected data
+    if dfs:
+        result_df = pd.DataFrame(dfs).drop_duplicates()
         result_df["Time_start"] = pd.to_datetime(result_df["Time_start"])
         result_df["Time_end"] = pd.to_datetime(result_df["Time_end"])
     else:
@@ -414,7 +420,6 @@ def get_powerdraw_as_dataframe(scenario_id, buses):
         )
 
     return result_df
-
 
 def get_vehicle_types(scenario_id, buses):
     filter_dict = dict(scenario_id=scenario_id)
@@ -453,50 +458,69 @@ def reset_df_perf():
     df_perf["start"] = pd.to_datetime(df_perf["start"])
     df_perf["end"] = pd.to_datetime(df_perf["end"])
 
-def critical_rotations(scenario_id, buses):
-    vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
-    scenario = Scenario.objects.get(id=scenario_id)
-    # get all vehicle events from this scenario at a station
-
-    dfs = []
-
-    for vehicle in vehicles:
-        if vehicle.name_short in buses:
-            v_id = vehicle.id
-
-            rotations = scenario.rotation_set.filter(vehicle__isnull=False, vehicle_id=v_id)
-            for rotation in rotations:
-                r_id = rotation.id
-                events = scenario.event_set.filter(vehicle__isnull=False, vehicle_id=v_id)
-                for event in events:
-                    soc_start = event.soc_start
-                    # Add a row to the DataFrame
-                    df = pd.DataFrame({'V_id': [v_id], 'SOC': [soc_start], 'R_id': [r_id]})
-                    dfs.append(df)
-                    soc_end = event.soc_end
-                    # Add a row to the DataFrame
-                    df = pd.DataFrame({'V_id': [v_id],  'SOC': [soc_end], 'R_id': [r_id]})
-                    dfs.append(df)
-    result_df = pd.concat(dfs, ignore_index=True)
-
-    result_df = result_df.groupby('R_id')['SOC'].min().reset_index()
+def get_critical_rotations_as_dataframe(scenario_id, buses):
+    result_df = get_all_critical_rotations_as_dataframe(scenario_id)
+    df = result_df.query(f"V_id in {buses}")
+    # Group by rotation ID and find the minimum SOC
+    df = df.groupby(['R_id', 'V_id'])['SOC'].min().reset_index()
 
     # Categorize SOC into positive and negative
-    result_df['SOC_category'] = result_df['SOC'].apply(lambda x: 'Non-Critical' if x > -0.2 else 'Critical')
+    df['SOC_category'] = df['SOC'].apply(lambda x: 'Non-Critical' if x > -0.2 else 'Critical')
 
-    # Counting occurrences of each category
-    category_counts = result_df['SOC_category'].value_counts()
+    # Count occurrences of each category
+    category_counts = df['SOC_category'].value_counts()
 
-    # Creating a new DataFrame with the counts
-    result_df = pd.DataFrame({'Category': category_counts.index, 'Count': category_counts.values})
+    # Create a new DataFrame with the counts
+    return pd.DataFrame({'Category': category_counts.index, 'Count': category_counts.values})
 
-    # Customizing tooltip
-    result_df['Tooltip'] = result_df.apply(
-        lambda row: f'{row["Category"]}: {row["Count"]} instances. Click for more info.', axis=1)
+@recent_memoizer
+def get_all_critical_rotations_as_dataframe(scenario_id):
+    # Fetch vehicles and scenario
+    vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
+    scenario = Scenario.objects.get(id=scenario_id)
 
-    # Adding a clickable link (dummy link)
-    result_df['URL'] = result_df.apply(lambda row: "https://www.example.com", axis=1)
+    # Fetch all events and rotations in advance
+    all_events = Event.objects.filter(scenario=scenario, vehicle__isnull=False,
+                                      station_id__isnull=False).prefetch_related('vehicle')
+    all_rotations = Rotation.objects.filter(scenario=scenario, vehicle__isnull=False).prefetch_related('vehicle')
+
+    # Organize events by vehicle_id
+    events_by_vehicle = {}
+    for event in all_events:
+        vehicle_id = event.vehicle_id
+        if vehicle_id not in events_by_vehicle:
+            events_by_vehicle[vehicle_id] = []
+        events_by_vehicle[vehicle_id].append(event)
+
+    # Initialize lists to store data
+    rotations = []
+    socs = []
+    v_ids = []
+
+    # Iterate over vehicles
+    for vehicle in vehicles:
+        v_id = vehicle.id
+        if v_id in events_by_vehicle:
+            # Filter rotations for the current vehicle
+            vehicle_rotations = all_rotations.filter(vehicle_id=v_id)
+            for rotation in vehicle_rotations:
+                r_id = rotation.id
+                # Fetch events for the current rotation
+                events = events_by_vehicle[v_id]
+                for event in events:
+                    soc_start = event.soc_start
+                    soc_end = event.soc_end
+                    rotations.extend([r_id, r_id])
+                    socs.extend([soc_start, soc_end])
+                    v_ids.extend([vehicle.name_short, vehicle.name_short])
+
+    # Create DataFrame from collected data
+    result_df = pd.DataFrame({'R_id': rotations, 'SOC': socs, 'V_id': v_ids})
 
     print(result_df)
 
     return result_df
+
+
+
+

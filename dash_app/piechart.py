@@ -6,6 +6,7 @@ from .colorscheme import color_scheme
 import plotly.express as px
 from ebustoolbox.models import Scenario, Rotation
 import time
+import pandas as pd
 def render_critical_rotations(app: Dash) -> html.Div:
     @app.callback(Output(ids.PIE_CRITICAL, "figure"), Input(ids.BUS_DROPDOWN, "value"))
     def update_pie(buses: list[str], session_state=None, dash_app=None, **kwargs):
@@ -13,26 +14,14 @@ def render_critical_rotations(app: Dash) -> html.Div:
         s = Scenario.objects.get(task_id=task_id)
 
         start = time.time()
-        df = data.critical_rotations(s.id, buses)
+        df = data.get_critical_rotations_as_dataframe(s.id, buses)
         end = time.time()
         data.register_time("Pie critical", start, end, "retrieval")
 
         start = time.time()
         # Create a pie chart
         # Plotting the pie chart
-        fig = px.pie(df, values='Count', names='Category', title='Counts of Critical and Non-Critical SOC Values',
-                     hover_data={'URL': False})
-
-        # Adding URLs as custom data
-        fig.update_traces(customdata=df['URL'])
-
-        # Update click behavior to open URLs
-        fig.update_traces(hoverinfo='label+value',
-                          textinfo='percent',
-                          textposition='inside',
-                          hovertemplate='%{label}: %{value} instances <br> Click to open URL')
-
-        fig.update_layout(showlegend=True)
+        fig = px.pie(df, values='Count', names='Category', title='Counts of Critical and Non-Critical SOC Values')
 
         end = time.time()
         data.register_time("Pie critical", start, end, "render")
