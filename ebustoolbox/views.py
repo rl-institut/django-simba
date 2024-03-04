@@ -9,7 +9,7 @@ from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.views.generic import TemplateView
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 from eflips.depot.api import simulate_scenario  # noqa
 
 from django_mapengine.views import MapEngineMixin
@@ -25,7 +25,10 @@ from .tasks import create_db_url  # noqa
 from .util import get_unique_task_id
 
 import ebustoolbox
-from ebustoolbox.models import Scenario, UserGroup
+from ebustoolbox.models import (
+    Scenario,
+    UserGroup,
+)
 
 
 def show_uploads_view(request: HttpRequest, filename):
@@ -96,6 +99,34 @@ def long_running_task_status_view(request):
         return JsonResponse({"success": True})
     print("Task is pending")
     return JsonResponse({"success": False})
+
+
+def home_prototype(request: HttpRequest):
+    """Generate the home view of the tool chain with input forms"""
+    task_id = get_unique_task_id()
+
+    return render(request, "home_prototype.html", {"task_id": task_id})
+
+
+@require_POST
+def upload_trips(request: HttpRequest, task_id: str):
+    try:
+        assert len(request.FILES) == 1
+        assert request.FILES["file"].readable()
+        file = request.FILES["file"]
+        # what kind of file is uploaded
+        schedule_reader = get_schedule_file_type(file)
+        scenario, _ = Scenario.objects.get_or_create(task_id=task_id)
+        # Read the file and write it to database
+        errors = schedule_reader(file, scenario)
+        return JsonResponse({"success": True, "errors": errors})
+    except AssertionError:
+        return JsonResponse({"success": False})
+
+
+def get_schedule_file_type(file):
+    """Returns function to handle the schedule csv."""
+    return tasks.simba_schedule_reader
 
 
 def home_view(request: HttpRequest):

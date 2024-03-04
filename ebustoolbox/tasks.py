@@ -1,5 +1,6 @@
 import collections
 import csv
+import io
 import shutil
 import traceback
 import warnings
@@ -586,6 +587,158 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
     scenario.save()
 
     return scenario
+
+
+@atomic()
+def simba_schedule_reader(file, scenario: Scenario):
+    rotations = list()
+    rotations_dict = dict()
+
+    lines = []
+    line_dict = dict()
+
+    stations = list()
+    station_dict = dict()
+    vts = list()
+    vt_dict = dict()
+
+    routes = list()
+    trip_data = dict()
+    trip_reader = csv.DictReader(io.StringIO(file.read().decode("utf-8")))
+
+    # ToDo get from frontend form
+    default_charging_type = "oppb"
+    for trip in trip_reader:
+        rotation_id = trip["rotation_id"]
+        if rotation_id not in trip_data:
+            trip_data[rotation_id] = []
+        trip_d = dict()
+        trip_d["departure_name"] = trip["departure_name"]
+        trip_d["departure_time"] = datetime.fromisoformat(trip["departure_time"])
+        trip_d["arrival_time"] = datetime.fromisoformat(trip["arrival_time"])
+        trip_d["arrival_name"] = trip["arrival_name"]
+        trip_d["distance"] = float(trip["distance"])
+        trip_d["vehicle_type"] = trip["vehicle_type"]
+        if trip["charging_type"] != "":
+            trip_d["charging_type"] = trip["charging_type"]
+        else:
+            trip_d["charging_type"] = default_charging_type
+        trip_d["line"] = trip["line"]
+        trip_data[rotation_id].append(trip_d)
+
+    # Create Stations
+    unique_arrival_stations = {trips["arrival_name"] for trips in trip_data.values() for _ in trips}
+    unique_departure_stations = {
+        trips["departure_name"] for trips in trip_data.values() for _ in trips
+    }
+    unique_stations = unique_arrival_stations.union(unique_departure_stations)
+    last_id = 1 if Station.objects.last() is None else Station.objects.last().id + 1
+    for i, name in enumerate(unique_stations):
+        station = Station(scenario=scenario, name=name, id=last_id + i)
+        stations.append(station)
+        station_dict[name] = station
+    Station.objects.bulk_create(stations)
+
+    # Create empty vehicle_types
+    unique_vts = {trips["vehicle_type"] for trips in trip_data.values() for d in trips}
+    last_id = 1 if VehicleType.objects.last() is None else VehicleType.objects.last().id + 1
+
+    # ToDo get from frontend form
+    default_capacity = 99.99
+    for i, name in enumerate(unique_vts):
+        default_params = {
+            "scenario": scenario,
+            "name": name,
+            "battery_capacity": default_capacity,
+            "charging_curve": [[0, default_capacity], [1, default_capacity]],
+        }
+        vt_opp = VehicleType(
+            **default_params, id=last_id + (i * 2) + 0, opportunity_charging_capable=True
+        )
+        vt_dep = VehicleType(
+            **default_params, id=last_id + (i * 2) + 1, opportunity_charging_capable=False
+        )
+        vts.extend([vt_opp, vt_dep])
+        vt_dict[name] = (vt_opp, vt_dep)
+    VehicleType.objects.bulk_create(vts)
+
+    # Create Rotations
+    last_id = 1 if Rotation.objects.last() is None else Rotation.objects.last().id + 1
+    i = -1
+    for rotation_id, trips in trip_data.items():
+        i += 1
+        assert len({t["vehicle_type"] for t in trip_data[rotation_id]}) == 1
+        assert len({t["charging_type"] for t in trip_data[rotation_id]}) == 1
+        first_trip = trips[0]
+        vt = vt_dict[first_trip["vehicle_type"]]
+        match str(first_trip["charging_type"]).lower():
+            case "oppb":
+                rot = Rotation(
+                    scenario=scenario,
+                    name=rotation_id,
+                    pk=last_id + i,
+                    allow_opportunity_charging=True,
+                    vehicle_type=vt[0],
+                )
+            case "depb":
+                rot = Rotation(
+                    scenario=scenario,
+                    name=rotation_id,
+                    pk=last_id + i,
+                    allow_opportunity_charging=False,
+                    vehicle_type=vt[1],
+                )
+            case _:
+                raise NotImplementedError
+        rotations.append(rot)
+        rotations_dict[rotation_id] = rot
+    Rotation.objects.bulk_create(rotations)
+
+    # Create Trips and Routes
+    route_id = 1 if Route.objects.last() is None else Route.objects.last().id + 1
+    trip_id = 1 if Trip.objects.last() is None else Trip.objects.last().id + 1
+    line_id = 1 if Line.objects.last() is None else Line.objects.last().id + 1
+
+    trips = []
+    for rotation_id, rotation_trips in trip_data.items():
+        for trip in rotation_trips:
+            if trip["line"] not in line_dict:
+                line = Line(scenario=scenario, name=trip["line"], id=line_id)
+                line_id += 1
+                lines.append(line)
+                line_dict[trip["line"]] = line
+            line = line_dict[trip["line"]]
+
+            route = Route(
+                name=trip["departure_name"] + " - " + trip["arrival_name"],
+                scenario=scenario,
+                departure_station=station_dict[trip["departure_name"]],
+                arrival_station=station_dict[trip["arrival_name"]],
+                distance=trip["distance"],
+                line=line,
+            )
+
+            t = Trip(
+                rotation=rotations_dict[rotation_id],
+                route=route,
+                scenario=scenario,
+                departure_time=make_aware(trip["departure_time"]),
+                arrival_time=make_aware(trip["arrival_time"]),
+                # ToDo How do we implement getting loaded masses? Ignore?
+                loaded_mass=0,
+            )
+            t.pk = trip_id
+            route.pk = route_id
+
+            trip_id += 1
+            route_id += 1
+
+            routes.append(route)
+            trips.append(t)
+
+    Line.objects.bulk_create(lines)
+    Route.objects.bulk_create(routes)
+    Trip.objects.bulk_create(trips)
 
 
 def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario) -> None:
