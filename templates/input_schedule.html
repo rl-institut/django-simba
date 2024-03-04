@@ -1,7 +1,7 @@
 <form enctype="multipart/form-data" method="POST"> {% csrf_token %}
   <div>
     <button class="btn btn-primary">Schedule Upload</button>
-    <!-- Drag and drop or button for FileInput -->
+    <!-- Drag and drop or button for FileInput, post request via HTMX. every function gets a view. Progress bar for upload -->
   </div>
   <div>
     <button class="btn btn-primary">Format check</button>
