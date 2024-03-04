@@ -11,22 +11,18 @@ import plotly.express as px
 def render(app: Dash) -> html.Div:
     @app.callback(Output(ids.SCATTER_CHART, "figure"), Input(ids.BUS_DROPDOWN, "value"))
     def update_scatter(buses: list[str], session_state=None, dash_app=None, **kwargs):
-
-
         task_id = dash_app.slug
-        filter_dict = dict(task_id=task_id, vehicle__name_short__in=buses)
+        s = Scenario.objects.get(task_id=task_id)
 
         start = time.time()
-        # Get the data
-        datas = data.get_scatter_plot_data(filter_dict)
+        df = data.get_soc_as_dataframe(s.id, buses)
         end = time.time()
         data.register_time("soc_scatter", start, end, "retrieval")
 
         start = time.time()
-        fig = go.Figure()
-        for vehicle_key, value in datas.items():
-            times, socs = value[0], value[1]
-            fig.add_trace(go.Scatter(x=times, y=socs, name=vehicle_key, line=dict(width=4)))
+        fig = go.Figure(layout=dict(template='plotly'))
+        fig = px.line(df, x='Time', y='SOC', color='V_id',
+                      title='Buses SOC over Time')
         fig.update_layout(
             margin=dict(l=20, r=20, t=20, b=20),
         )

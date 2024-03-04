@@ -68,31 +68,30 @@ def get_number_shortest_rot(filter_dict: dict):
     return [f"Shortest Rotation {shortest_rotation.name}", f"{shortest_rotation.distance} m"]
 
 
-def get_scatter_plot_data(filter_dict: dict) -> dict:
+def get_scatter_plot_data(scenario_id, buses):
 
-    task_id = filter_dict.pop("task_id")
-    s = Scenario.objects.get(task_id=task_id)
-    filter_dict["scenario"] = s
-    if len(filter_dict["vehicle__name_short__in"]) == 0:
-        raise PreventUpdate
-
-    queryset = Event.objects.filter(**filter_dict).distinct("vehicle")
-    vehicles = [e.vehicle for e in queryset]
-    data = dict()
-    for vehicle in vehicles:
-
-        vehicle_events = Event.objects.filter(**filter_dict, vehicle=vehicle.id).order_by(
+    # Fetch vehicles and scenario
+    vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
+    scenario = Scenario.objects.prefetch_related('event_set').get(id=scenario_id)
+    all_events = Event.objects.filter(scenario=scenario, vehicle__isnull=False).prefetch_related('vehicle').order_by(
             "time_start"
         )
-        first_event = vehicle_events.first()
+
+    for vehicle in vehicles:
+
+        events = [event for event in all_events if event.vehicle_id == vehicle.id]
+        first_event = events[0]
         socs = [first_event.soc_start]
         times = [first_event.time_start]
-        for event in vehicle_events[1:]:
+        vids = [vehicle.name_short]
+
+        for event in events[1:]:
             socs.append(event.soc_start)
             times.append(event.time_start)
-        data[vehicle.name_short] = [times, socs]
+            vids.append(vehicle.name_short)
+        result_df = pd.DataFrame({"Time": times, "SOC": socs, "V_id": vids})
 
-    return data
+    return result_df
 
 
 def get_bar_plot_data(filter_dict: dict) -> list[str, float, float]:
