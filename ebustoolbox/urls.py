@@ -16,6 +16,8 @@ urlpatterns = [
     path("usergroups/", views.usergroups, name="usergroups"),
     path("result/", views.result_view, name="result"),
     path("", views.home_view, name="home"),
+    path("test/", views.home_prototype, name="home_prototype"),
+    path("upload_trips/<uuid:task_id>", views.upload_trips, name="upload_trips"),
     path("generate_zip/<uuid:task_id>", views.generate_zip, name="generate_zip"),
     path("download_scenario/<uuid:task_id>/", views.download_scenario, name="download_scenario"),
 ]
