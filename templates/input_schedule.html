@@ -1,0 +1,14 @@
+<form enctype="multipart/form-data" method="POST"> {% csrf_token %}
+  <div>
+    <button class="btn btn-primary">Schedule Upload</button>
+    <!-- Drag and drop or button for FileInput -->
+  </div>
+  <div>
+    <button class="btn btn-primary">Format check</button>
+    <!-- Function for checking uploaded schedule format, can raise Errors, will display message -->
+  </div>
+  <div>
+    <button type='submit' class="btn btn-primary">Continue</button>
+    <!-- Starts pre-simulation, which feeds inputs into next pages. Progress bar, then goes to vehicle_type inputs -->
+  </div>
+</form>
