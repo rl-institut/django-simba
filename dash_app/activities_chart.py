@@ -51,6 +51,7 @@ def render_performance(app: Dash) -> html.Div:
 
         # Sample data
         df = data.get_df_perf()
+        # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template='plotly'))
         fig = px.timeline(df, x_start='start', x_end='end', y='name', color='process')
         fig.update_layout(title='Process Timeline', xaxis_title='Time', yaxis_title='Function')

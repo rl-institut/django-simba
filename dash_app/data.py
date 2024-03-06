@@ -2,8 +2,6 @@
 
 This way data should be easily swappable, while the dash_layout allows for swapping of the design
 """
-import numpy as np
-
 from ebustoolbox.models import (
     Scenario,
     Event,
@@ -20,11 +18,8 @@ from ebustoolbox.models import (
 import pandas as pd
 from django.db.models import Min, Count, Prefetch
 from dash.exceptions import PreventUpdate
-from django.db.models import Sum, F
-from django.db.models.functions import Extract
 
 df_perf = pd.DataFrame({"name": [], "start": [], "end": [], "process": []})
-
 
 def get_all_buses(task_id: str) -> list[str]:
     s = Scenario.objects.get(task_id=task_id)

@@ -21,6 +21,7 @@ def render(app: Dash) -> html.Div:
         data.register_time("soc_scatter", start, end, "retrieval")
 
         start = time.time()
+        # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template='plotly'))
         fig = px.line(df, x='time_end', y='soc_end', color='V_id',
                       title='Buses SOC over Time')
