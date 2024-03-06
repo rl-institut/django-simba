@@ -21,7 +21,7 @@ def render(app: Dash) -> html.Div:
 
         start = time.time()
         fig = go.Figure(layout=dict(template='plotly'))
-        fig = px.line(df, x='Time', y='SOC', color='V_id',
+        fig = px.line(df, x='time_end', y='soc_end', color='V_id',
                       title='Buses SOC over Time')
         fig.update_layout(
             margin=dict(l=20, r=20, t=20, b=20),

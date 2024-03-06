@@ -32,7 +32,7 @@ def render_soc(app: Dash) -> html.Div:
         # Binning SOCs per vehicle in 0.05 bins
         bins = []
         for vehicle_id, group in soc_df.groupby('V_id'):
-            hist, bin_edges = np.histogram(group['SOC'], bins=np.arange(-0.1, 1.1, 0.1), density=True)
+            hist, bin_edges = np.histogram(group['soc_end'], bins=np.arange(-0.1, 1.1, 0.1), density=True)
             for i, b in enumerate(hist):
                 bins.append({'V_id': vehicle_id, 'Bin': bin_edges[i], 'Frequency': b})
 
@@ -213,14 +213,14 @@ def render_minimal_soc(app: Dash) -> html.Div:
         soc_df = data.get_soc_as_dataframe(s.id, buses)
         end = time.time()
         data.register_time("minimal SOC Histogram", start, end, "retrieval")
-        min_soc_per_v_id = soc_df.groupby('V_id')['SOC'].min().reset_index()
+        min_soc_per_v_id = soc_df.groupby('V_id')['soc_end'].min().reset_index()
 
         start = time.time()
         # Create a figure for the histogram
         # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template='plotly'))
         # Plot histogram using Plotly Express
-        fig = px.histogram(min_soc_per_v_id, x='SOC', title='Minimum SOC per Vehicle', nbins=20, barmode='overlay', color_discrete_sequence=color_scheme)
+        fig = px.histogram(min_soc_per_v_id, x='soc_end', title='Minimum SOC per Vehicle', nbins=20, barmode='overlay', color_discrete_sequence=color_scheme)
 
         # Update layout to display bars in front of each other
         fig.update_layout(barmode='overlay')

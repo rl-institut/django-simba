@@ -2,7 +2,6 @@ from dash import Dash, html, dcc
 import plotly.graph_objects as go
 from . import ids
 from dash.dependencies import Input, Output  # no fa401
-from .data import get_bar_plot_data
 
 
 def render(app: Dash) -> html.Div:
