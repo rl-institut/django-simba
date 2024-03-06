@@ -120,29 +120,38 @@ def progress(request: HttpRequest, task_id):
     context["current_progress"] = progress.get_progress()
     context["status"] = progress.status
     status_code = 200
+    hx_trigger = "running"
     if progress.success or not progress.running or len(progress.errors) != 0:
         context["errors"] = progress.errors
         # End polling
         status_code = 286
+        context["finished"] = True
+        hx_trigger = "notRunning"
     response = render(request, "progress.html", context)
+    response["HX-Trigger"] = hx_trigger
     response.status_code = status_code
     return response
 
 
 @require_POST
 def upload_trips(request: HttpRequest, task_id: str):
-    assert len(request.FILES) == 1
-    assert request.FILES["file"].readable()
-    file = request.FILES["file"]
-    s, _ = Scenario.objects.get_or_create(task_id=task_id)
-    uploaded_file = UploadedFile.objects.create(scenario=s, file=file)
-    # what kind of file is uploaded
-    # errors, success = tasks.init_db_with_trips(uploaded_file.id, s.id)
-    async_result = tasks.init_db_with_trips.apply_async((uploaded_file.id, s.id))
-    response = render(
-        request, "progress_poll.html", {"progress_id": async_result.task_id, "task_id": task_id}
-    )
-    return response
+    try:
+        assert len(request.FILES) == 1, "Error: Please provide a single file"
+        assert request.FILES["file"].readable(), "Error: File cannot be read"
+        file = request.FILES["file"]
+        s, _ = Scenario.objects.get_or_create(task_id=task_id)
+        uploaded_file = UploadedFile.objects.create(scenario=s, file=file)
+        # what kind of file is uploaded
+        # errors, success = tasks.init_db_with_trips(uploaded_file.id, s.id)
+        async_result = tasks.init_db_with_trips.apply_async((uploaded_file.id, s.id))
+        context = {"progress_id": async_result.task_id, "task_id": task_id}
+
+        response = render(request, "progress_poll.html", context)
+        response["HX-Trigger"] = "running"
+        return response
+    except AssertionError as e:
+        html = f"<html>{str(e)}</html>"
+        return HttpResponse(html)
 
 
 def home_view(request: HttpRequest):
