@@ -1,0 +1,11 @@
+<h3 role="status" id="pblabel" tabindex="-1" autofocus>{{ status }}</h3>
+{% if errors %}
+    {{ errors }}
+{% endif %}
+
+<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+     aria-valuenow="{{ current_progress }}"
+     aria-labelledby="pblabel">
+    <div id="pb" class="progress-bar" style="width:{{ current_progress }}%">
+    </div>
+</div>
