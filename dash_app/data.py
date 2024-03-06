@@ -14,7 +14,8 @@ from ebustoolbox.models import (
     Vehicle,
     VehicleType,
     Rotation,
-    Trip
+    Trip,
+    Station
 )
 import pandas as pd
 from django.db.models import Min, Count, Prefetch
@@ -139,6 +140,8 @@ def get_all_powerdraw_as_dataframe(scenario_id):
     # Fetch vehicles and scenario
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
     scenario = Scenario.objects.get(id=scenario_id)
+    all_stations = Station.objects.filter(scenario_id=scenario_id)
+    stations_name_short_dict = {station.id: station.name_short for station in all_stations}
 
     # Fetch battery capacity and charging efficiency for all vehicle types
     vehicle_types = VehicleType.objects.in_bulk([vehicle.vehicle_type_id for vehicle in vehicles])
@@ -176,20 +179,25 @@ def get_all_powerdraw_as_dataframe(scenario_id):
                 # Append data to the list
                 dfs.append({
                     "V_id": vehicle.name_short,
-                    "Time_start": time_start,
-                    "Time_end": time_end,
+                    "time_start": time_start,
+                    "time_end": time_end,
                     "Energy": energy,
-                    "Station_id": station,
+                    "Station_id": stations_name_short_dict.get(station),
                 })
 
     # Create DataFrame from collected data
     if dfs:
         result_df = pd.DataFrame(dfs).drop_duplicates()
-        result_df["Time_start"] = pd.to_datetime(result_df["Time_start"])
-        result_df["Time_end"] = pd.to_datetime(result_df["Time_end"])
+        result_df["time_start"] = pd.to_datetime(result_df["time_start"])
+        result_df["time_end"] = pd.to_datetime(result_df["time_end"])
+        result_df = result_df.sort_values(by="time_start")
     else:
         result_df = pd.DataFrame(
-            {"V_id": [None], "Time_end": [None], "Time_start": [None], "Energy": [None], "Station_id": [None]}
+            {"V_id": [None],
+             "time_end": [None],
+             "time_start": [None],
+             "Energy": [None],
+             "Station_id": [None]}
         )
 
     return result_df
@@ -232,8 +240,6 @@ def reset_df_perf():
     df_perf["start"] = pd.to_datetime(df_perf["start"])
     df_perf["end"] = pd.to_datetime(df_perf["end"])
 
-
-import pandas as pd
 
 def get_critical_rotations_as_dataframe(scenario_id, buses):
     result_df = get_all_event_info(scenario_id)
@@ -300,6 +306,8 @@ def get_all_event_info(scenario_id):
         result_df = pd.DataFrame(dfs).drop_duplicates()
         result_df["time_start"] = pd.to_datetime(result_df["time_start"])
         result_df["time_end"] = pd.to_datetime(result_df["time_end"])
+        result_df = result_df.sort_values(by="time_start")
+
     else:
         result_df = pd.DataFrame(
             {"V_id": [None],

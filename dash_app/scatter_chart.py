@@ -7,6 +7,7 @@ from . import data
 import time
 from ebustoolbox.models import Scenario, Rotation
 import plotly.express as px
+from plotly.subplots import make_subplots
 
 def render(app: Dash) -> html.Div:
     @app.callback(Output(ids.SCATTER_CHART, "figure"), Input(ids.BUS_DROPDOWN, "value"))
@@ -41,7 +42,6 @@ def render_power_draw(app: Dash) -> html.Div:
     @app.callback(Output(ids.POWER_DRAW_CHART, "figure"), Input(ids.BUS_DROPDOWN, "value"))
     def power_draw(buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
-
         s = Scenario.objects.get(task_id=task_id)
 
         start = time.time()
@@ -49,19 +49,33 @@ def render_power_draw(app: Dash) -> html.Div:
         end = time.time()
         data.register_time("power_draw", start, end, "retrieval")
 
-        start = time.time()
-        fig = go.Figure(layout=dict(template='plotly'))
-        fig = px.line(df, x='Time_start', y='Energy', color='Station_id',
-                      title='Energy Consumption Over Time by Station ID',
-                      labels={'Time_start': 'Time', 'Energy': 'Energy', 'Station_id': 'Station ID', 'V_id': 'Vehicle'},
-                      line_group='Station_id')
+        # Create subplots
+        fig = make_subplots(rows=len(df['Station_id'].unique()), cols=1, shared_xaxes=True,
+                            subplot_titles=list(df['Station_id'].unique()))
+
+        # Loop through each station
+        for i, station_id in enumerate(df['Station_id'].unique()):
+            station_df = df[df['Station_id'] == station_id]
+
+            # Get unique colors for V_id
+            colors = px.colors.qualitative.Plotly[:len(station_df['V_id'].unique())]
+
+            # Loop through each V_id in the station
+            for j, vehicle_id in enumerate(station_df['V_id'].unique()):
+                vehicle_df = station_df[station_df['V_id'] == vehicle_id]
+                fig.add_trace(go.Scatter(x=vehicle_df['time_start'], y=vehicle_df['Energy'],
+                                         mode='lines',
+                                         name=f'V_id: {vehicle_id}',
+                                         line=dict(color=colors[j % len(colors)])),
+                              row=i + 1, col=1)
 
         # Update layout
-        fig.update_layout(xaxis_title='Time', yaxis_title='Energy')
+        fig.update_layout(title_text='Energy Consumption Over Time by Station ID',
+                          xaxis_title='Time', yaxis_title='Energy',
+                          showlegend=True)
 
         end = time.time()
         data.register_time("power_draw", start, end, "render")
         return fig
-        #return html.Div(dcc.Graph(figure=fig), id=ids.POWER_DRAW_CHART)
 
     return html.Div(dcc.Graph(id=ids.POWER_DRAW_CHART), style={"verticalAlign": "top"})
