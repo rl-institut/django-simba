@@ -18,7 +18,6 @@ def render_soc(app: Dash) -> html.Div:
     )
     def update_soc_histogram(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
 
-
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
         start = time.time()
@@ -48,11 +47,11 @@ def render_soc(app: Dash) -> html.Div:
         normalized_df = pd.DataFrame(normalized_bins)
 
         start = time.time()
-        # Create a figure for the histogram
-        # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
+        # Create a figure for the histogram following line is needed due to plotly bug,
+        # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template='plotly'))
         fig = px.histogram(normalized_df, x='Bin', y='Frequency', color="V_id", barmode='overlay', opacity=alpha,
-                     color_discrete_sequence=color_scheme)
+                           color_discrete_sequence=color_scheme)
 
         # Update layout to display bars in front of each other
         fig.update_layout(barmode='overlay')
@@ -67,7 +66,6 @@ def render_soc(app: Dash) -> html.Div:
         return html.Div(dcc.Graph(figure=fig), id=ids.SOC_HISTOGRAM)
 
     return html.Div(id=ids.SOC_HISTOGRAM)
-
 
 
 def render_dist_dur(app: Dash) -> html.Div:
@@ -85,20 +83,19 @@ def render_dist_dur(app: Dash) -> html.Div:
         end = time.time()
         data.register_time("dist/dur hist", start, end, "retrieval")
 
+        dur_df["dist_per_dur"] = dist_df['total_distance'] / dur_df['duration']
+
         # Set the desired bin width
-        bin_width = 0.5  # Specify your desired bin width here
-
-        dur_df["dist_per_dur"] = dist_df['total_distance']/dur_df['duration']
-
+        # bin_width = 0.5  # Specify your desired bin width here
         # Calculate the number of bins based on the bin width
-        max_distance = dur_df["dist_per_dur"].max()
-        min_distance = dur_df["dist_per_dur"].min()
-
-        num_bins = int((max_distance - min_distance) / bin_width)
+        # max_distance = dur_df["dist_per_dur"].max()
+        # min_distance = dur_df["dist_per_dur"].min()
+        # num_bins = int((max_distance - min_distance) / bin_width)
 
         start = time.time()
 
-        # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
+        # following line is needed due to plotly bug,
+        # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template='plotly'))
         fig = px.histogram(dur_df, x='dist_per_dur', barmode='overlay', nbins=20, color_discrete_sequence=color_scheme)
 
@@ -114,13 +111,13 @@ def render_dist_dur(app: Dash) -> html.Div:
 
     return html.Div(id=ids.DIST_DUR_HISTOGRAM)
 
+
 def render_rotation_distance(app: Dash) -> html.Div:
     @app.callback(
         Output(ids.DIST_HISTOGRAM, "children"),
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def update_distances_histogram(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
-
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
@@ -139,9 +136,11 @@ def render_rotation_distance(app: Dash) -> html.Div:
         num_bins = int((max_distance - min_distance) / bin_width)
 
         start = time.time()
-        # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
+        # following line is needed due to plotly bug,
+        # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template='plotly'))
-        fig = px.histogram(df, x='total_distance',  nbins=num_bins, barmode='overlay',color_discrete_sequence=color_scheme)
+        fig = px.histogram(df, x='total_distance', nbins=num_bins, barmode='overlay',
+                           color_discrete_sequence=color_scheme)
 
         # Update layout to display bars in front of each other
         fig.update_layout(barmode='overlay')
@@ -156,6 +155,7 @@ def render_rotation_distance(app: Dash) -> html.Div:
         return html.Div(dcc.Graph(figure=fig), id=ids.DIST_HISTOGRAM)
 
     return html.Div(id=ids.DIST_HISTOGRAM)
+
 
 def render_rotation_duration(app: Dash) -> html.Div:
     @app.callback(
@@ -180,7 +180,8 @@ def render_rotation_duration(app: Dash) -> html.Div:
         num_bins = int((max_duration - min_duration) / bin_width)
 
         start = time.time()
-        # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
+        # following line is needed due to plotly bug,
+        # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template='plotly'))
         fig = px.histogram(df, x='duration', barmode='overlay', nbins=20, color_discrete_sequence=color_scheme)
 
@@ -205,8 +206,6 @@ def render_minimal_soc(app: Dash) -> html.Div:
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def update_soc_histogram(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
-
-
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
         start = time.time()
@@ -216,11 +215,12 @@ def render_minimal_soc(app: Dash) -> html.Div:
         min_soc_per_v_id = soc_df.groupby('V_id')['soc_end'].min().reset_index()
 
         start = time.time()
-        # Create a figure for the histogram
-        # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
+        # Create a figure for the histogram following line is needed due to plotly bug,
+        # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template='plotly'))
         # Plot histogram using Plotly Express
-        fig = px.histogram(min_soc_per_v_id, x='soc_end', title='Minimum SOC per Vehicle', nbins=20, barmode='overlay', color_discrete_sequence=color_scheme)
+        fig = px.histogram(min_soc_per_v_id, x='soc_end', title='Minimum SOC per Vehicle', nbins=20, barmode='overlay',
+                           color_discrete_sequence=color_scheme)
 
         # Update layout to display bars in front of each other
         fig.update_layout(barmode='overlay')

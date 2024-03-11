@@ -6,7 +6,7 @@ from dash.dependencies import Input, Output  # no fa401
 
 def render(app: Dash) -> html.Div:
     @app.callback(Output(ids.BAR_CHART, "figure"), Input(ids.BUS_DROPDOWN, "value"))
-    def update_scatter(buses: list[str], session_state=None, dash_app=None, **kwargs):
+    def update_scatter(buses: list[str], dash_app=None):
         task_id = dash_app.slug
         filter_dict = dict(task_id=task_id, vehicle__name_short__in=buses)
 

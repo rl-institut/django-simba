@@ -21,6 +21,7 @@ from dash.exceptions import PreventUpdate
 
 df_perf = pd.DataFrame({"name": [], "start": [], "end": [], "process": []})
 
+
 def get_all_buses(task_id: str) -> list[str]:
     s = Scenario.objects.get(task_id=task_id)
     all_buses = list(Vehicle.objects.filter(scenario=s).values_list("name_short", flat=True))
@@ -157,7 +158,6 @@ def get_all_powerdraw_as_dataframe(scenario_id):
     # Iterate over vehicles
     for vehicle in vehicles:
         v_id = vehicle.id
-        v_typeid = vehicle.vehicle_type_id
         batterycapacity = battery_capacities[v_id]
         charge_eff = charging_efficiencies[v_id]
 
@@ -248,7 +248,6 @@ def get_critical_rotations_as_dataframe(scenario_id, buses):
     df['SOC_category'] = df['soc_end'].apply(lambda x: 'Non-Critical' if x > 0.0 else 'Critical')
 
     return pd.DataFrame(df['SOC_category'].value_counts().reset_index().values, columns=['Category', 'Count'])
-
 
 
 @recent_memoizer

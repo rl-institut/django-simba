@@ -2,12 +2,12 @@ from dash import Dash, html, dcc
 from . import ids
 from dash.dependencies import Input, Output  # no fa401
 import plotly.graph_objects as go
-from .colorscheme import color_scheme
 from . import data
 import time
 from ebustoolbox.models import Scenario, Rotation
 import plotly.express as px
 from plotly.subplots import make_subplots
+
 
 def render(app: Dash) -> html.Div:
     @app.callback(Output(ids.SCATTER_CHART, "figure"), Input(ids.BUS_DROPDOWN, "value"))
@@ -21,7 +21,8 @@ def render(app: Dash) -> html.Div:
         data.register_time("soc_scatter", start, end, "retrieval")
 
         start = time.time()
-        # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
+        # following line is needed due to plotly bug,
+        # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template='plotly'))
         fig = px.line(df, x='time_end', y='soc_end', color='V_id',
                       title='Buses SOC over Time')

@@ -6,13 +6,13 @@ from ebustoolbox.models import Scenario, Rotation
 import plotly.graph_objects as go
 import time
 
+
 def render(app: Dash) -> html.Div:
     @app.callback(
         Output(ids.BAR_CHART, "children"),
         Input(ids.BUS_DROPDOWN, "value"),
     )
-    def update_timeline_chart(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
-
+    def update_timeline_chart(buses: list[str], dash_app=None, **kwargs) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
@@ -22,13 +22,14 @@ def render(app: Dash) -> html.Div:
         data.register_time("activities", start, end, "retrieval")
 
         start = time.time()
-        # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
+        # following line is needed due to plotly bug,
+        # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template='plotly'))
         fig = px.timeline(
             df, x_start="time_start", x_end="time_end", y="V_id",
             hover_data='event_type',
             color='event_type',
-            height= 800
+            height=800
         )
         end = time.time()
         data.register_time("activities", start, end, "render")
@@ -43,15 +44,16 @@ def render_performance(app: Dash) -> html.Div:
         Output(ids.ACTIVITY_PERFORMANCE, "children"),
         Input(ids.BUS_DROPDOWN, "value"),
     )
-    def update(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
+    def update(dash_app=None, **kwargs) -> html.Div:
         task_id = dash_app.slug
-        s = Scenario.objects.get(task_id=task_id)
+        Scenario.objects.get(task_id=task_id)
 
         time.sleep(5)
 
         # Sample data
         df = data.get_df_perf()
-        # following line is needed due to plotly bug, see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
+        # following line is needed due to plotly bug,
+        # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template='plotly'))
         fig = px.timeline(df, x_start='start', x_end='end', y='name', color='process')
         fig.update_layout(title='Process Timeline', xaxis_title='Time', yaxis_title='Function')
