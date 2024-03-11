@@ -12,7 +12,7 @@ def render(app: Dash) -> html.Div:
         Output(ids.BAR_CHART, "children"),
         Input(ids.BUS_DROPDOWN, "value"),
     )
-    def update_timeline_chart(buses: list[str], dash_app=None, **kwargs) -> html.Div:
+    def update_timeline_chart(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
@@ -44,7 +44,7 @@ def render_performance(app: Dash) -> html.Div:
         Output(ids.ACTIVITY_PERFORMANCE, "children"),
         Input(ids.BUS_DROPDOWN, "value"),
     )
-    def update(dash_app=None, **kwargs) -> html.Div:
+    def update(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
         task_id = dash_app.slug
         Scenario.objects.get(task_id=task_id)
 
