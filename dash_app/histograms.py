@@ -12,6 +12,15 @@ import plotly.graph_objects as go
 
 
 def render_soc(app: Dash) -> html.Div:
+    """
+    Renders a histogram of state of charge (SOC) for selected buses.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered SOC histogram.
+    :rtype: html.Div
+    """
     @app.callback(
         Output(ids.SOC_HISTOGRAM, "children"),
         Input(ids.BUS_DROPDOWN, "value"),
@@ -69,6 +78,15 @@ def render_soc(app: Dash) -> html.Div:
 
 
 def render_dist_dur(app: Dash) -> html.Div:
+    """
+    Renders histograms of distance and duration for selected buses.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered distance and duration histograms.
+    :rtype: html.Div
+    """
     @app.callback(
         Output(ids.DIST_DUR_HISTOGRAM, "children"),
         Input(ids.BUS_DROPDOWN, "value"),
@@ -113,6 +131,15 @@ def render_dist_dur(app: Dash) -> html.Div:
 
 
 def render_rotation_distance(app: Dash) -> html.Div:
+    """
+     Renders a histogram of rotation distances for selected buses.
+
+     :param app: The Dash application instance.
+     :type app: Dash
+
+     :return: A Div element containing the rendered rotation distance histogram.
+     :rtype: html.Div
+     """
     @app.callback(
         Output(ids.DIST_HISTOGRAM, "children"),
         Input(ids.BUS_DROPDOWN, "value"),
@@ -158,6 +185,15 @@ def render_rotation_distance(app: Dash) -> html.Div:
 
 
 def render_rotation_duration(app: Dash) -> html.Div:
+    """
+    Renders a histogram of rotation durations for selected buses.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered rotation duration histogram.
+    :rtype: html.Div
+    """
     @app.callback(
         Output(ids.DUR_HISTOGRAM, "children"),
         Input(ids.BUS_DROPDOWN, "value"),
@@ -201,6 +237,15 @@ def render_rotation_duration(app: Dash) -> html.Div:
 
 
 def render_minimal_soc(app: Dash) -> html.Div:
+    """
+    Renders a histogram of minimal state of charge (SOC) for selected buses.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered minimal SOC histogram.
+    :rtype: html.Div
+    """
     @app.callback(
         Output(ids.MIN_SOC_HISTOGRAM, "children"),
         Input(ids.BUS_DROPDOWN, "value"),

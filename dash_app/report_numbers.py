@@ -5,6 +5,15 @@ from .data import get_number_longest_rot, get_number_shortest_rot, get_number_of
 
 
 def render_longest_rotation(app: Dash) -> html.Div:
+    """
+    Renders a Div element displaying the number of the longest rotation for selected buses.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered number of the longest rotation.
+    :rtype: html.Div
+    """
     @app.callback(Output(ids.NUMBER_LONGEST_ROTATION, "children"), Input(ids.BUS_DROPDOWN, "value"))
     def update_report_numbers(
             buses: list[str], session_state=None, dash_app=None, **kwargs
@@ -29,6 +38,15 @@ def render_longest_rotation(app: Dash) -> html.Div:
 
 
 def render_shortest_rotation(app: Dash) -> html.Div:
+    """
+    Renders a Div element displaying the number of the shortest rotation for selected buses.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered number of the shortest rotation.
+    :rtype: html.Div
+    """
     @app.callback(Output(ids.NUMBER_SHORTEST_ROTATION, "children"), Input(ids.BUS_DROPDOWN, "value"))
     def update_report_numbers(
             buses: list[str], session_state=None, dash_app=None, **kwargs
@@ -53,6 +71,15 @@ def render_shortest_rotation(app: Dash) -> html.Div:
 
 
 def render_number_of_buses(app: Dash) -> html.Div:
+    """
+    Renders a Div element displaying the number of selected buses.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered number of selected buses.
+    :rtype: html.Div
+    """
     @app.callback(Output(ids.NUMBER_OF_BUSES, "children"), Input(ids.BUS_DROPDOWN, "value"))
     def update_report_numbers(
             buses: list[str], session_state=None, dash_app=None, **kwargs

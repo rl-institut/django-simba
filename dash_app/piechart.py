@@ -8,6 +8,15 @@ import time
 
 
 def render_critical_rotations(app: Dash) -> html.Div:
+    """
+    Renders a pie chart showing the counts of critical and non-critical state of charge (SOC) values for selected buses.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered pie chart.
+    :rtype: html.Div
+    """
     @app.callback(Output(ids.PIE_CRITICAL, "figure"), Input(ids.BUS_DROPDOWN, "value"))
     def update_pie(buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
@@ -32,6 +41,15 @@ def render_critical_rotations(app: Dash) -> html.Div:
 
 
 def render_bustype(app: Dash) -> html.Div:
+    """
+    Renders a pie chart showing the distribution of vehicle types for selected buses.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered pie chart.
+    :rtype: html.Div
+    """
     @app.callback(Output(ids.PIE_BUSTYPE, "figure"), Input(ids.BUS_DROPDOWN, "value"))
     def update_pie(buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug

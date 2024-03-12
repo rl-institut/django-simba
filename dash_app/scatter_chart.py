@@ -10,6 +10,15 @@ from plotly.subplots import make_subplots
 
 
 def render(app: Dash) -> html.Div:
+    """
+    Renders a Div element containing a scatter chart showing SOC over time for selected buses.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the scatter chart.
+    :rtype: html.Div
+    """
     @app.callback(Output(ids.SCATTER_CHART, "figure"), Input(ids.BUS_DROPDOWN, "value"))
     def update_scatter(buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
@@ -41,6 +50,15 @@ def render(app: Dash) -> html.Div:
 
 
 def render_power_draw(app: Dash) -> html.Div:
+    """
+    Renders a Div element containing a line chart showing power draw over time by station ID for selected buses.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the line chart.
+    :rtype: html.Div
+    """
     @app.callback(Output(ids.POWER_DRAW_CHART, "figure"), Input(ids.BUS_DROPDOWN, "value"))
     def power_draw(buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug

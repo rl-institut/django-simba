@@ -1,11 +1,19 @@
 from dash import Dash, html, dcc
-
 from . import ids
 from .data import get_all_buses
 from dash.dependencies import Input, Output
 
 
 def render(app: Dash) -> html.Div:
+    """
+    Renders a Dash app with a dropdown menu for selecting buses.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered dropdown menu.
+    :rtype: html.Div
+    """
     @app.callback(
         [
             Output(ids.BUS_DROPDOWN, "value"),
@@ -14,6 +22,19 @@ def render(app: Dash) -> html.Div:
         Input(ids.SELECT_ALL_BUSES_BUTTON, "n_clicks"),
     )
     def select_all_buses(_: int, session_state=None, dash_app=None, **kwargs):
+        """
+        Selects all buses when the "Select All" button is clicked and updates the dropdown menu accordingly.
+
+        :param _: The number of clicks on the "Select All" button (unused).
+        :param session_state: State of the session.
+        :param dash_app: Dash application instance.
+        :param **kwargs: Additional keyword arguments.
+
+        :return: A tuple containing two elements:
+            - The list of all buses.
+            - The list of dictionaries representing the options for the dropdown i.e. bus short_names
+        :rtype: tuple[list, list]
+        """
         task_id = dash_app.slug
         all_buses = session_state.get(task_id, {}).get("all_buses", get_all_buses(task_id))
         try:

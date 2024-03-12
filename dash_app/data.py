@@ -23,12 +23,29 @@ df_perf = pd.DataFrame({"name": [], "start": [], "end": [], "process": []})
 
 
 def get_all_buses(task_id: str) -> list[str]:
+    """
+    Retrieves a list of all buses associated with a specific task ID.
+
+    :param task_id: The ID of the task.
+    :type task_id: str
+    :return: A list of short names of all buses associated with the task.
+    :rtype: list[str]
+    """
     s = Scenario.objects.get(task_id=task_id)
     all_buses = list(Vehicle.objects.filter(scenario=s).values_list("name_short", flat=True))
     return all_buses
 
 
 def get_number_of_buses(filter_dict: dict) -> list[str]:
+    """
+    Gets the longest rotation distance and its associated name based on the provided filter criteria.
+
+    :param filter_dict: A dictionary containing filter criteria, task_id and vehicle__name_short__in.
+    :type filter_dict: dict
+    :return: A list containing the name and distance of the longest rotation in the format:
+        ["Longest Rotation rotation_name", "distance m"]
+    :rtype: list[str]
+    """
     task_id = filter_dict.pop("task_id")
     vehicles = filter_dict.pop("vehicle__name_short__in")
     return [
@@ -38,6 +55,17 @@ def get_number_of_buses(filter_dict: dict) -> list[str]:
 
 
 def get_number_longest_rot(filter_dict: dict):
+    """
+    Gets the longest rotation distance and its associated name based on the provided filter criteria.
+
+    Args:
+        filter_dict (dict): A dictionary containing filter criteria, task_id and vehicle__name_short__in.
+
+    Returns:
+        list[str]: A list containing the name and distance of the longest rotation in the format:
+            ["Longest Rotation rotation_name", "distance m"]
+    """
+
     task_id = filter_dict.pop("task_id")
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
@@ -51,6 +79,15 @@ def get_number_longest_rot(filter_dict: dict):
 
 
 def get_number_shortest_rot(filter_dict: dict):
+    """
+    Gets the shortest rotation distance and its associated name based on the provided filter criteria.
+
+    :param filter_dict: A dictionary containing filter criteria, task_id and vehicle__name_short__in.
+    :type filter_dict: dict
+    :return: A list containing the name and distance of the shortest rotation in the format:
+        ["Shortest Rotation rotation_name", "distance m"]
+    :rtype: list[str]
+    """
     task_id = filter_dict.pop("task_id")
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
@@ -105,100 +142,99 @@ def recent_memoizer(function, _dcache1=dict(), _result_cache2=dict()):
 
 
 def get_soc_as_dataframe(scenario_id, buses):
+    """
+    Retrieves state of charge (SOC) data as a DataFrame for specified buses in a given scenario.
+
+    :param scenario_id: The ID of the scenario.
+    :type scenario_id: str
+    :param buses: List of bus IDs to retrieve SOC data for.
+    :type buses: list[str]
+
+    :return: DataFrame containing SOC data for specified buses.
+    :rtype: pandas.DataFrame
+    """
     result_df = get_all_event_info(scenario_id)
     return result_df.query(f"V_id in {buses}")
 
 
 def get_duration_as_dataframe(scenario_id, buses):
+    """
+    Retrieves duration data as a DataFrame for specified buses in a given scenario.
+
+    :param scenario_id: The ID of the scenario.
+    :type scenario_id: str
+    :param buses: List of bus IDs to retrieve duration data for.
+    :type buses: list[str]
+
+    :return: DataFrame containing duration data for specified buses.
+    :rtype: pandas.DataFrame
+    """
     result_df = get_all_trip_info(scenario_id)
     result_df = result_df.groupby(["R_id", "V_id"])["duration"].sum().reset_index()
     return result_df.query(f"V_id in {buses}")
 
 
 def get_distances_as_dataframe(scenario_id, buses):
+    """
+    Retrieves distance data as a DataFrame for specified buses in a given scenario.
+
+    :param scenario_id: The ID of the scenario.
+    :type scenario_id: str
+    :param buses: List of bus IDs to retrieve distance data for.
+    :type buses: list[str]
+
+    :return: DataFrame containing distance data for specified buses.
+    :rtype: pandas.DataFrame
+    """
     result_df = get_all_trip_info(scenario_id)
     result_df = result_df.groupby(["R_id", "V_id"])["total_distance"].sum().reset_index()
     return result_df.query(f"V_id in {buses}")
 
 
 def get_activities_as_dataframe(scenario_id, buses):
+    """
+    Retrieves activity data as a DataFrame for specified buses in a given scenario.
+
+    :param scenario_id: The ID of the scenario.
+    :type scenario_id: str
+    :param buses: List of bus IDs to retrieve activity data for.
+    :type buses: list[str]
+
+    :return: DataFrame containing activity data for specified buses.
+    :rtype: pandas.DataFrame
+    """
     result_df = get_all_event_info(scenario_id)
     return result_df.query(f"V_id in {buses}")
 
 
 def get_powerdraw_as_dataframe(scenario_id, buses):
+    """
+    Retrieves power draw data as a DataFrame for specified buses in a given scenario.
+
+    :param scenario_id: The ID of the scenario.
+    :type scenario_id: str
+    :param buses: List of bus IDs to retrieve power draw data for.
+    :type buses: list[str]
+
+    :return: DataFrame containing power draw data for specified buses.
+    :rtype: pandas.DataFrame
+    """
     result_df = get_all_powerdraw_as_dataframe(scenario_id)
     return result_df.query(f"V_id in {buses}")
 
 
-@recent_memoizer
-def get_all_powerdraw_as_dataframe(scenario_id):
-    # Fetch vehicles and scenario
-    vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
-    scenario = Scenario.objects.get(id=scenario_id)
-    all_stations = Station.objects.filter(scenario_id=scenario_id)
-    stations_name_short_dict = {station.id: station.name_short for station in all_stations}
-
-    # Fetch battery capacity and charging efficiency for all vehicle types
-    vehicle_types = VehicleType.objects.in_bulk([vehicle.vehicle_type_id for vehicle in vehicles])
-    battery_capacities = {v_id: vehicle_types[v_type_id].battery_capacity for v_id, v_type_id in
-                          zip(vehicles.values_list('id', flat=True),
-                              vehicles.values_list('vehicle_type_id', flat=True))}
-    charging_efficiencies = {v_id: vehicle_types[v_type_id].charging_efficiency for v_id, v_type_id in
-                             zip(vehicles.values_list('id', flat=True),
-                                 vehicles.values_list('vehicle_type_id', flat=True))}
-
-    # Fetch all events for the scenario with prefetching
-    all_events = Event.objects.filter(scenario=scenario, vehicle__isnull=False,
-                                      station_id__isnull=False).prefetch_related('vehicle')
-
-    # Initialize list to store DataFrames
-    dfs = []
-
-    # Iterate over vehicles
-    for vehicle in vehicles:
-        v_id = vehicle.id
-        batterycapacity = battery_capacities[v_id]
-        charge_eff = charging_efficiencies[v_id]
-
-        # Filter events for the current vehicle from the prefetched queryset
-        events = [event for event in all_events if event.vehicle_id == v_id]
-        for event in events:
-            soc_start = event.soc_start
-            station = event.station_id
-            time_start = event.time_start
-            time_end = event.time_end
-            soc_end = event.soc_end
-            if soc_end > soc_start:
-                energy = (soc_end - soc_start) * charge_eff * batterycapacity
-                # Append data to the list
-                dfs.append({
-                    "V_id": vehicle.name_short,
-                    "time_start": time_start,
-                    "time_end": time_end,
-                    "Energy": energy,
-                    "Station_id": stations_name_short_dict.get(station),
-                })
-
-    # Create DataFrame from collected data
-    if dfs:
-        result_df = pd.DataFrame(dfs).drop_duplicates()
-        result_df["time_start"] = pd.to_datetime(result_df["time_start"])
-        result_df["time_end"] = pd.to_datetime(result_df["time_end"])
-        result_df = result_df.sort_values(by="time_start")
-    else:
-        result_df = pd.DataFrame(
-            {"V_id": [None],
-             "time_end": [None],
-             "time_start": [None],
-             "Energy": [None],
-             "Station_id": [None]}
-        )
-
-    return result_df
-
-
 def get_vehicle_types(scenario_id, buses):
+    """
+    Retrieves vehicle types and their counts as a DataFrame for specified buses in a given scenario.
+
+    :param scenario_id: The ID of the scenario.
+    :type scenario_id: str
+    :param buses: List of bus IDs to filter the vehicle types.
+    :type buses: list[str]
+
+    :return: DataFrame containing vehicle types and their counts.
+    :rtype: pandas.DataFrame
+    """
     filter_dict = dict(scenario_id=scenario_id)
 
     values_with_counts = (
@@ -210,11 +246,29 @@ def get_vehicle_types(scenario_id, buses):
 
 
 def get_df_perf():
+    """
+    Retrieves a global DataFrame containing performance data.
+
+    :return: DataFrame containing performance data.
+    :rtype: pandas.DataFrame
+    """
     global df_perf
     return df_perf
 
 
 def register_time(name, start, end, process):
+    """
+    Registers a time interval with the given name, start time, end time, and process, and updates the global DataFrame containing performance data.
+
+    :param name: Name of the plot/process.
+    :type name: str
+    :param start: Start time of the interval in seconds
+    :type start: int
+    :param end: End time of the interval in seconds
+    :type end: int
+    :param process: Process type associated with the time interval.
+    :type process: str
+    """
     global df_perf
     df = pd.DataFrame(
         {
@@ -230,6 +284,9 @@ def register_time(name, start, end, process):
 
 
 def reset_df_perf():
+    """
+    Resets the global DataFrame containing performance data to an empty DataFrame.
+    """
     global df_perf
     df_perf = pd.DataFrame({"name": [], "start": [], "end": [], "process": []})
     df_perf["start"] = pd.to_datetime(df_perf["start"])
@@ -237,6 +294,17 @@ def reset_df_perf():
 
 
 def get_critical_rotations_as_dataframe(scenario_id, buses):
+    """
+    Retrieves critical rotations data as a DataFrame for specified buses in a given scenario.
+
+    :param scenario_id: The ID of the scenario.
+    :type scenario_id: str
+    :param buses: List of bus IDs to retrieve critical rotations data for.
+    :type buses: list[str]
+
+    :return: DataFrame containing critical rotation data.
+    :rtype: pandas.DataFrame
+    """
     result_df = get_all_event_info(scenario_id)
     df = result_df[result_df['V_id'].isin(buses)]
 
@@ -252,6 +320,15 @@ def get_critical_rotations_as_dataframe(scenario_id, buses):
 
 @recent_memoizer
 def get_all_event_info(scenario_id):
+    """
+    Retrieves event information for all vehicles in a given scenario.
+
+    :param scenario_id: The ID of the scenario.
+    :type scenario_id: str
+
+    :return: DataFrame containing event information for all vehicles.
+    :rtype: pandas.DataFrame
+    """
     # Fetch vehicles and scenario
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
     scenario = Scenario.objects.get(id=scenario_id)
@@ -320,6 +397,15 @@ def get_all_event_info(scenario_id):
 
 @recent_memoizer
 def get_all_trip_info(scenario_id):
+    """
+    Retrieves trip related information for all vehicles in a given scenario.
+
+    :param scenario_id: The ID of the scenario.
+    :type scenario_id: str
+
+    :return: DataFrame containing event information for all vehicles.
+    :rtype: pandas.DataFrame
+    """
     # Prefetch all related objects for the scenario
     scenario = Scenario.objects.prefetch_related(
         'rotation_set__trip_set__route',  # Prefetch trips and their routes
@@ -351,5 +437,81 @@ def get_all_trip_info(scenario_id):
 
     # Create DataFrame from collected data
     result_df = pd.DataFrame({"V_id": v_ids, "R_id": r_ids, "total_distance": distances, "duration": durations})
+
+    return result_df
+
+
+@recent_memoizer
+def get_all_powerdraw_as_dataframe(scenario_id):
+    """
+    Retrieves charging information for all vehicles in a given scenario.
+
+    :param scenario_id: The ID of the scenario.
+    :type scenario_id: str
+
+    :return: DataFrame containing event information for all vehicles.
+    :rtype: pandas.DataFrame
+    """
+    # Fetch vehicles and scenario
+    vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
+    scenario = Scenario.objects.get(id=scenario_id)
+    all_stations = Station.objects.filter(scenario_id=scenario_id)
+    stations_name_short_dict = {station.id: station.name_short for station in all_stations}
+
+    # Fetch battery capacity and charging efficiency for all vehicle types
+    vehicle_types = VehicleType.objects.in_bulk([vehicle.vehicle_type_id for vehicle in vehicles])
+    battery_capacities = {v_id: vehicle_types[v_type_id].battery_capacity for v_id, v_type_id in
+                          zip(vehicles.values_list('id', flat=True),
+                              vehicles.values_list('vehicle_type_id', flat=True))}
+    charging_efficiencies = {v_id: vehicle_types[v_type_id].charging_efficiency for v_id, v_type_id in
+                             zip(vehicles.values_list('id', flat=True),
+                                 vehicles.values_list('vehicle_type_id', flat=True))}
+
+    # Fetch all events for the scenario with prefetching
+    all_events = Event.objects.filter(scenario=scenario, vehicle__isnull=False,
+                                      station_id__isnull=False).prefetch_related('vehicle')
+
+    # Initialize list to store DataFrames
+    dfs = []
+
+    # Iterate over vehicles
+    for vehicle in vehicles:
+        v_id = vehicle.id
+        batterycapacity = battery_capacities[v_id]
+        charge_eff = charging_efficiencies[v_id]
+
+        # Filter events for the current vehicle from the prefetched queryset
+        events = [event for event in all_events if event.vehicle_id == v_id]
+        for event in events:
+            soc_start = event.soc_start
+            station = event.station_id
+            time_start = event.time_start
+            time_end = event.time_end
+            soc_end = event.soc_end
+            if soc_end > soc_start:
+                energy = (soc_end - soc_start) * charge_eff * batterycapacity
+                # Append data to the list
+                dfs.append({
+                    "V_id": vehicle.name_short,
+                    "time_start": time_start,
+                    "time_end": time_end,
+                    "Energy": energy,
+                    "Station_id": stations_name_short_dict.get(station),
+                })
+
+    # Create DataFrame from collected data
+    if dfs:
+        result_df = pd.DataFrame(dfs).drop_duplicates()
+        result_df["time_start"] = pd.to_datetime(result_df["time_start"])
+        result_df["time_end"] = pd.to_datetime(result_df["time_end"])
+        result_df = result_df.sort_values(by="time_start")
+    else:
+        result_df = pd.DataFrame(
+            {"V_id": [None],
+             "time_end": [None],
+             "time_start": [None],
+             "Energy": [None],
+             "Station_id": [None]}
+        )
 
     return result_df

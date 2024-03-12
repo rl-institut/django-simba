@@ -8,11 +8,32 @@ import time
 
 
 def render(app: Dash) -> html.Div:
+    """
+    Renders a Dash app with a timeline of Bus activities.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered chart.
+    :rtype: html.Div
+    """
     @app.callback(
         Output(ids.BAR_CHART, "children"),
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def update_timeline_chart(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
+        """
+        Updates the timeline chart based on selected bus values.
+
+        :param buses: List of selected bus' shortnames.
+        :type buses: list[str]
+        :param session_state: State of the session.
+        :param dash_app: Dash application instance.
+        :param **kwargs: Additional keyword arguments.
+
+        :return: A Div element containing the updated timeline chart.
+        :rtype: html.Div
+        """
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
@@ -40,11 +61,32 @@ def render(app: Dash) -> html.Div:
 
 
 def render_performance(app: Dash) -> html.Div:
+    """
+    Renders a Dash app with data retrieval and plotting performance over time.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered performance timeline.
+    :rtype: html.Div
+    """
     @app.callback(
         Output(ids.ACTIVITY_PERFORMANCE, "children"),
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def update(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
+        """
+        Updates the performance timeline based on selected bus values.
+
+        :param buses: Not used.
+        :type buses: list[str]
+        :param session_state: State of the session.
+        :param dash_app: Dash application instance.
+        :param **kwargs: Additional keyword arguments.
+
+        :return: A Div element containing the updated performance timeline.
+        :rtype: html.Div
+        """
         task_id = dash_app.slug
         Scenario.objects.get(task_id=task_id)
 
