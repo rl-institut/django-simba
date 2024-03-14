@@ -7,9 +7,9 @@ from typing import Iterable
 
 from django.conf import settings
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from django.db import transaction
 from django.http import HttpRequest
 from django.test import TestCase, override_settings
-from django.db import transaction
 
 # Create your tests here.
 from django.urls import reverse
@@ -93,8 +93,13 @@ class MySeleniumTests(StaticLiveServerTestCase):
         url = response.url
         response = self.client.get(url)
         self.selenium.get(f"{self.live_server_url}{url}")
+        time.sleep(2)
+        # Clear the browser log. We check the state of the site after refresh, to give
+        # map images time to load.
+        _ = self.selenium.get_log("browser")
+        self.selenium.refresh()
         # give django some time to calculate
-        time.sleep(3)
+        time.sleep(2)
         # Check for 404 requests
         errors = self.selenium.get_log("browser")
         # ToDO handle exception
@@ -315,7 +320,7 @@ class WriteReadScenarioToDatabase(TestCase):
         # get a vehicle_type which is "used"
         vehicle = Rotation.objects.filter(scenario=django_scenario)[0].vehicle
         vehicle_type = vehicle.vehicle_type
-        consumption_table = vehicle_type.consumption_table
+        consumption_table = Consumption.objects.get(vehicle_class__vehicletype=vehicle_type)
 
         station = Station.objects.get(scenario=django_scenario, name="Station-0")
 
