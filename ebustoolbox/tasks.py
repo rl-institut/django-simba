@@ -2,12 +2,13 @@ import collections
 import csv
 import shutil
 import traceback
+import warnings
 from argparse import Namespace
 from copy import deepcopy, copy
 from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 import tqdm
 from celery import shared_task
@@ -18,14 +19,15 @@ from django.db.transaction import atomic
 from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.timezone import make_aware, is_aware
+from eflips.depot.api import simulate_scenario, generate_depot_layout
 
 import simba.optimizer_util
 import simba.simulate
 import simba.trip
 import simba.util
+from simba.data_container import DataContainer
 from simba.rotation import Rotation as SimbaRotation
 from simba.schedule import Schedule as SimbaSchedule
-from simba.data_container import DataContainer
 from .models import (
     Route,
     Consumption,
@@ -43,10 +45,8 @@ from .models import (
     Temperatures,
     Event,
     EventType,
-    Depot,
+    VehicleClass,
 )
-
-from eflips.depot.api import simulate_scenario, generate_depot_layout
 
 if TYPE_CHECKING:
     from spice_ev.scenario import Scenario as SimbaScenario
@@ -114,11 +114,13 @@ def consumption_file_to_db(consumption_path: Path, django_scenario: Scenario) ->
             if cons in columns:
                 consumption_found = True
                 break
-        assert consumption_found
+        if not consumption_found:
+            text = f"No column named {consumption_names} was found in {consumption_path.stem}"
+            raise AssertionError(text)
         columns.remove(cons)
         datapoints = []
         values = []
-        for row in reader:
+        for i, row in enumerate(reader):
             data = []
             try:
                 for field in columns:
@@ -128,18 +130,29 @@ def consumption_file_to_db(consumption_path: Path, django_scenario: Scenario) ->
                 val = float(val)
             except ValueError:
                 if val == "" or data_point == "":
+                    warnings.warn(
+                        f"Row {i} in {consumption_path.stem} contains a missing value. "
+                        f"This row and following rows will be ignored."
+                    )
                     break
                 else:
                     raise
             values.append(val)
             datapoints.append(data)
 
+    # VehicleClass that will be linked with this Consumption
+    vehicle_class, _ = VehicleClass.objects.get_or_create(
+        scenario=django_scenario,
+        name=consumption_path.name,
+    )
+    vehicle_class.save()
     Consumption.objects.create(
         name=consumption_path.name,
         scenario=django_scenario,
         columns=columns,
         data_points=datapoints,
         values=values,
+        vehicle_class=vehicle_class,
     )
 
 
@@ -302,7 +315,7 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
     lines_dict = {line.id: line for line in Line.objects.filter(scenario=django_scenario)}
 
     for rot in Rotation.objects.filter(scenario=django_scenario):
-        vehicle_type = rot.vehicle.vehicle_type.name_short
+        vehicle_type = rot.vehicle_type.name_short
         simba_rotation = SimbaRotation(
             id=rot.name,
             vehicle_type=vehicle_type,
@@ -356,8 +369,11 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
             vehicle_types[vehicle_type.name_short] = dict()
 
         mileage = vehicle_type.consumption
-        if vehicle_type.consumption_table is not None:
-            mileage = vehicle_type.consumption_table.name
+        query = VehicleClass.objects.filter(vehicle_types=vehicle_type).exclude(consumption=None)
+        if len(query) > 0:
+            assert mileage is None
+            assert len(query) == 1
+            mileage = Consumption.objects.get(vehicle_class=query[0]).name
 
         vehicle_types[vehicle_type.name_short][charge_type] = {
             "name": vehicle_type.name,
@@ -663,13 +679,16 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
     for name, v_type in vehicle_types.items():
         for charge_name, charge_type in v_type.items():
             consumption = None
-            consumption_table = None
-
             mileage_text = charge_type.get("mileage")
+
+            add_to_vehicle_class = False
             try:
                 consumption = float(mileage_text)
             except ValueError:
-                consumption_table = Consumption.objects.get(scenario=scenario, name=mileage_text)
+                # The milage can be a link/ str to a consumption_table.In this case link
+                # the VehicleClass with this name to this vehicle
+                add_to_vehicle_class = True
+                pass
             params = dict(
                 name=charge_type.get("name", "unnamed bus"),
                 name_short=name,
@@ -681,12 +700,15 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
                 charging_curve=charge_type["charging_curve"],
                 v2g_curve=charge_type.get("v2g_curve", None),
                 consumption=consumption,
-                consumption_table=consumption_table,
                 length=charge_type.get("length", 0),
                 width=DEFAULT_WIDTH,
                 height=DEFAULT_HEIGHT,
             )
-            VehicleType.objects.create(**params)
+            vt = VehicleType.objects.create(**params)
+            if add_to_vehicle_class:
+                VehicleClass.objects.get(scenario=scenario, name=mileage_text).vehicle_types.add(
+                    vt, through_defaults=None
+                )
 
 
 def stations_to_db(station_data, electrified_stations, scenario):
@@ -822,14 +844,53 @@ def vary_depot_rotations(schedule) -> "collections.Iterable[SimbaRotation]":
     schedule.rotations = orig_rotations
 
 
-def run_toolchain_from_scenario(django_scenario: Scenario):
+def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False):
+    """Run a Scenario from the database with SimBA
+
+    The provided scenario must contain all information including Temperatures, Vehicle_Types,
+    station information and electrified_station information.
+    :param django_scenario: Scenario which is simulated
+    :param assign_vehicles: boolean if the vehicles should be added to rotations.
+    Previous assignments will be deleted
+    :return:
+    """
+    if assign_vehicles:
+        assign_new_vehicles_to_db(django_scenario)
     simba_schedule_db, args_db = get_schedule_from_db(django_scenario)
     run_ebus_toolchain(simba_schedule_db, args_db, django_scenario.task_id)
 
 
-def run_simba_scenario(django_scenario: Scenario):
+def run_simba_scenario(django_scenario: Scenario, assign_vehicles=False):
+    """Run a Scenario from the database with SimBA
+
+    The provided scenario must contain all information including Temperatures, Vehicle_Types,
+    station information and electrified_station information.
+    :param django_scenario: Scenario which is simulated
+    :param assign_vehicles: boolean if the vehicles should be added to rotations.
+    Previous assignments will be deleted
+    :return:
+    """
+    if assign_vehicles:
+        assign_new_vehicles_to_db(django_scenario)
     simba_schedule_db, args_db = get_schedule_from_db(django_scenario)
     run_simba(simba_schedule_db, args_db, django_scenario.task_id)
+
+
+def assign_new_vehicles_to_db(django_scenario: Scenario) -> None:
+    """Assign a new vehicle to every rotation
+
+    Already assigned vehicles are deleted
+    :param django_scenario: Scenario that gets added vehicles and rotation assignments.
+    :return: None
+    """
+    Vehicle.objects.filter(scenario=django_scenario).delete()
+    for i, r in enumerate(Rotation.objects.filter(scenario=django_scenario)):
+        vt = r.vehicle_type
+        ct = EnumChargeType.OPPORTUNITY if vt.opportunity_charging_capable else EnumChargeType.DEPOT
+        v_name = vt.name_short + "_" + ct + "_" + str(i)
+        vehicle = Vehicle.objects.create(scenario=django_scenario, vehicle_type=vt, name=v_name)
+        r.vehicle = vehicle
+        r.save()
 
 
 def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
@@ -843,13 +904,12 @@ def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
     for mode in wanted_modes[:-1]:
         # Delete old events
         Event.objects.filter(scenario__task_id=task_id).delete()
-        Depot.objects.filter(scenario__task_id=task_id).delete()
 
         schedule, simba_scenario = run_simba(
             schedule, args, task_id, mode=mode, scenario=simba_scenario
         )
         # ToDo remove Flag. Eflips should not stay optional
-        # ToDo Create class SimulationMode: which couple logical toolchain steps, e.g.
+        # ToDo Maybe create class SimulationMode: which couple logical toolchain steps, e.g.
         # simba.sim -> eflips -> simba.sim
         # simba.station_opt -> eflips -> simba.sim
         if settings.EFLIPS_USE:
@@ -863,13 +923,12 @@ def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
     _, __ = run_simba(schedule, args, task_id, mode=wanted_modes[-1], scenario=simba_scenario)
 
 
-def get_assigned_vehicles(task_id: str):
+def get_assigned_vehicles(task_id: str) -> List[dict]:
     """
     Retrieves assigned vehicles for a given task ID, considering previous events.
 
     Args:
         task_id (str): The ID of the task associated with the scenario.
-        prev_events (Query[Event]): Query of previous events to consider.
 
     Returns:
         List[dict]: A list of dictionaries containing assigned vehicle information, including
@@ -928,7 +987,7 @@ def get_assigned_vehicles(task_id: str):
 def run_simba(schedule: SimbaSchedule, args, task_id, mode=None, scenario=None):
     print(f"Running Simba {datetime.now()}")
     # TODO don't overwrite output on multiple function calls
-    args.output_directory = Path(settings.UPLOAD_PATH) / task_id
+    args.output_directory = Path(settings.UPLOAD_PATH) / str(task_id)
     args.attach_vehicle_soc = True
 
     db_scenario = Scenario.objects.get(task_id=task_id)
@@ -1009,7 +1068,7 @@ def run_eflips(task_id) -> None:
     # Constructing the database URL manually
     db_url = create_db_url()
     generate_depot_layout(
-        db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=False
+        db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=True
     )
     simulate_scenario(db_scenario, database_url=db_url)
 
