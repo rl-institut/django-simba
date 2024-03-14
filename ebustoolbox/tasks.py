@@ -316,7 +316,7 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
     lines_dict = {line.id: line for line in Line.objects.filter(scenario=django_scenario)}
 
     for rot in Rotation.objects.filter(scenario=django_scenario):
-        vehicle_type = rot.vehicle.vehicle_type.name_short
+        vehicle_type = rot.vehicle_type.name_short
         simba_rotation = SimbaRotation(
             id=rot.name,
             vehicle_type=vehicle_type,
@@ -838,14 +838,53 @@ def vary_depot_rotations(schedule) -> "collections.Iterable[SimbaRotation]":
     schedule.rotations = orig_rotations
 
 
-def run_toolchain_from_scenario(django_scenario: Scenario):
+def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False):
+    """Run a Scenario from the database with SimBA
+
+    The provided scenario must contain all information including Temperatures, Vehicle_Types,
+    station information and electrified_station information.
+    :param django_scenario: Scenario which is simulated
+    :param assign_vehicles: boolean if the vehicles should be added to rotations.
+    Previous assignments will be deleted
+    :return:
+    """
+    if assign_vehicles:
+        assign_new_vehicles_to_db(django_scenario)
     simba_schedule_db, args_db = get_schedule_from_db(django_scenario)
     run_ebus_toolchain(simba_schedule_db, args_db, django_scenario.task_id)
 
 
-def run_simba_scenario(django_scenario: Scenario):
+def run_simba_scenario(django_scenario: Scenario, assign_vehicles=False):
+    """Run a Scenario from the database with SimBA
+
+    The provided scenario must contain all information including Temperatures, Vehicle_Types,
+    station information and electrified_station information.
+    :param django_scenario: Scenario which is simulated
+    :param assign_vehicles: boolean if the vehicles should be added to rotations.
+    Previous assignments will be deleted
+    :return:
+    """
+    if assign_vehicles:
+        assign_new_vehicles_to_db(django_scenario)
     simba_schedule_db, args_db = get_schedule_from_db(django_scenario)
     run_simba(simba_schedule_db, args_db, django_scenario.task_id)
+
+
+def assign_new_vehicles_to_db(django_scenario: Scenario) -> None:
+    """Assign a new vehicle to every rotation
+
+    Already assigned vehicles are deleted
+    :param django_scenario: Scenario that gets added vehicles and rotation assignments.
+    :return: None
+    """
+    Vehicle.objects.filter(scenario=django_scenario).delete()
+    for i, r in enumerate(Rotation.objects.filter(scenario=django_scenario)):
+        vt = r.vehicle_type
+        ct = EnumChargeType.OPPORTUNITY if vt.opportunity_charging_capable else EnumChargeType.DEPOT
+        v_name = vt.name_short + "_" + ct + "_" + str(i)
+        vehicle = Vehicle.objects.create(scenario=django_scenario, vehicle_type=vt, name=v_name)
+        r.vehicle = vehicle
+        r.save()
 
 
 def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
@@ -939,7 +978,7 @@ def run_simba(
 ):
     print(f"Running Simba {datetime.now()}")
     # TODO don't overwrite output on multiple function calls
-    args.output_directory = Path(settings.UPLOAD_PATH) / task_id
+    args.output_directory = Path(settings.UPLOAD_PATH) / str(task_id)
     args.attach_vehicle_soc = True
 
     db_scenario = Scenario.objects.get(task_id=task_id)
@@ -1004,7 +1043,7 @@ def run_eflips(task_id) -> None:
     # Constructing the database URL manually
     db_url = create_db_url()
     generate_depot_layout(
-        db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=False
+        db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=True
     )
     simulate_scenario(db_scenario, database_url=db_url)
 
