@@ -1,4 +1,3 @@
-
 let popupClicked = false;
 const POPUP_DOUBLE_CLICK_TIMEOUT = 300;
 
@@ -41,7 +40,7 @@ function add_popup(layerID) {
   map.on("click", layerID, function (event) {
     if (popupClicked) return;
     popupClicked = true;
-    setTimeout(function() {
+    setTimeout(function () {
       popupClicked = false;
     }, POPUP_DOUBLE_CLICK_TIMEOUT);
     /*

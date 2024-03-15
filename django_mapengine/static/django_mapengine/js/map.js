@@ -1,6 +1,6 @@
 
-map.on("load", async function() {
-  PubSub.publish(mapEvent.MAP_LOADED);
+map.on("load", async function () {
+    PubSub.publish(mapEvent.MAP_LOADED);
 });
 
 PubSub.subscribe(mapEvent.MAP_LOADED, add_sources);

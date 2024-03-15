@@ -7,9 +7,9 @@ from typing import Iterable
 
 from django.conf import settings
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from django.db import transaction
 from django.http import HttpRequest
 from django.test import TestCase, override_settings
-from django.db import transaction
 
 # Create your tests here.
 from django.urls import reverse
