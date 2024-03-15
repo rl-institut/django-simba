@@ -154,6 +154,16 @@ def upload_trips(request: HttpRequest, task_id: str):
         return HttpResponse(html)
 
 
+def check_trips_file(request: HttpRequest, task_id: str):
+    pass
+    # return response
+
+
+def continue_trips(request: HttpRequest, task_id: str):
+    pass
+    # return response
+
+
 def home_view(request: HttpRequest):
     """Generate the home view of the tool chain with input forms"""
     if request.method == "GET":
