@@ -17,6 +17,18 @@ Template:
 - [(#)]()
 ```
 ### Changed
+- [(#57)](https://github.com/rl-institut/django-simba/pull/57)
+- Add consumption model
+  - Consumption model looks up consumption multidimensional input conditions. Nearest and Interpolation Lookup is possible
+- Consumption models can be separated from a scenario to allow generic consumption table storage
+- Vehicle type can have a numeric consumption or a foreign key to a consumption table
+- Change example trips.csv, so rotations can share a single vehicle
+- Give example vehicles a file reference to a consumption file
+- Input form: Rename vehicle_types to vehicle_types_path
+- Input form: Add consumption_path. For now only a single file is possible in the frontend, but no backend limitation exists
+
+
+### Changed
 - [(#58)](https://github.com/rl-institut/django-simba/pull/58)
 - Upgrade to maplibre 4.0.2
 - Upgrade to django-mapengine 0.18

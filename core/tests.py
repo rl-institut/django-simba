@@ -3,12 +3,12 @@ from .deepcopy import deepcopy as deepcopy_db
 from ebustoolbox.tests import build_scenario
 from ebustoolbox.tasks import run_toolchain_from_scenario
 from ebustoolbox.util import get_unique_task_id
-from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from django.test import TransactionTestCase
 from ebustoolbox.models import User, Scenario, Event, Rotation, Trip
 from ebus_map.models import Station
 
 
-class TestDeepCopy(StaticLiveServerTestCase):
+class TestDeepCopy(TransactionTestCase):
     def test_deepcopy(self):
         s1, simba_schedule, args = build_scenario()
         s1.task_id = get_unique_task_id()
@@ -16,7 +16,7 @@ class TestDeepCopy(StaticLiveServerTestCase):
         run_toolchain_from_scenario(s1)
 
         s1.task_id = None
-        s2 = deepcopy_db(
+        s2, _ = deepcopy_db(
             s1,
             exclude_models={Scenario, User, Station, Event},
             max_depth=1,

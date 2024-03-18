@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block content %}
+    <div class="row">
+        {{ task_id }}
+        <form id='form'>{% csrf_token %}
+            <input type='file' name='file'>
+            {#This will be replaced by the progressbar, during server side analyzing            #}
+            <div id="upload-progress_{{ task_id }}"></div>
+
+            <button id='button_{{ task_id }}' hx-encoding='multipart/form-data' hx-target="#upload-progress_{{ task_id }}"
+                    hx-post='{% url 'simba:upload_trips' task_id %}'>
+                Upload
+            </button>
+            {#            progress bar during upload#}
+            <progress id='progress' value='0' max='100'></progress>
+        </form>
+        <div id="runner"
+                {#             Trigger sent from server if the submitted file is not handled anymore#}
+             hx-trigger="notRunning from:body">
+        </div>
+        <script>
+            {# Activate button if the server finished handling the previous file#}
+            htmx.on('#runner', 'htmx:trigger', function (evt) {
+                htmx.find('#button_{{task_id}}').setAttribute('disabled', false)
+            });
+            htmx.on('#form', 'htmx:xhr:progress', function (evt) {
+                htmx.find('#progress').setAttribute('value', evt.detail.loaded / evt.detail.total * 100)
+            });
+            {# After submitting file disable button#}
+            {# TODO change this script to work with all of the buttons?#}
+            htmx.on('#form', 'htmx:confirm', function (evt) {
+                htmx.find('#button_{{task_id}}').setAttribute('disabled', true)
+            });
+        </script>
+    </div>
+
+    <div class="row">
+        <div id="check-progress_{{ task_id }}"></div>
+        <button id="check-btn_{{task_id}}" hx-post="{% url 'simba:check_trips_file' task_id %}">Check File</button>
+        <progress id="check-progress" value='0' max='100'></progress>
+    </div>
+
+    <div>
+        <div id="continue-progress_{{ task_id }}"></div>
+        <button id="continue-btn_{{task_id}}" hx-post="{% url 'simba:continue_trips' task_id %}">Continue</button>
+        <progress id="continue-progress" value='0' max='100'></progress>
+    </div>
+{% endblock %}
