@@ -5,7 +5,8 @@ from . import (bus_dropdown,
                bar_chart,
                histograms,
                activities_chart,
-               piechart)
+               piechart,
+               export)
 
 
 def create_layout(app: Dash) -> html.Div:
@@ -106,7 +107,8 @@ def block_third_third(app) -> list[html.Div]:
 
 
 def block_top_center(app) -> list[html.Div]:
-    return [bus_dropdown.render(app)]
+    return [bus_dropdown.render(app),
+            export.export(app)]
 
 
 def block_bottom_center(app):
