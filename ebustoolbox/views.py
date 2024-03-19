@@ -110,6 +110,16 @@ def home_prototype(request: HttpRequest):
     return render(request, "home_prototype.html", {"task_id": task_id})
 
 
+def vehicle_types(request: HttpRequest, vehicle_types_list=None):
+    """Get vehicle_types_list from POST request from the schedule and show available types."""
+    return render(request, "vehicle_types.html", {"vehicle_types_list": vehicle_types_list})
+
+
+def stations(request: HttpRequest, station_list=None):
+    """Get station_list from POST request and make it available to filter."""
+    return render(request, "stations.html", {"station_list": station_list})
+
+
 def progress(request: HttpRequest, task_id):
     context = {"progress_id": task_id, "status": "", "current_progress": 0, "task_id": task_id}
     try:
