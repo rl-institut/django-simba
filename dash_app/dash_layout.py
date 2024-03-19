@@ -112,7 +112,8 @@ def block_top_center(app) -> list[html.Div]:
 
 
 def block_bottom_center(app):
-    return [scatter_chart.render(app),
+    return [report_numbers.critical_rotations(app),
+            scatter_chart.render(app),
             scatter_chart.render_power_draw(app),
             # histograms.render_soc(app),
             histograms.render_minimal_soc(app),

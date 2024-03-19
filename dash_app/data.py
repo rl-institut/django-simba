@@ -318,6 +318,21 @@ def get_critical_rotations_as_dataframe(scenario_id, buses):
     return pd.DataFrame(df['SOC_category'].value_counts().reset_index().values, columns=['Category', 'Count'])
 
 
+def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
+    """
+    TODO
+    """
+    result_df = get_all_event_info(scenario_id)
+    df = result_df[result_df['V_id'].isin(buses)]
+
+    df = df.explode('R_id')
+    df['R_id'] = df['R_id'].apply(lambda rotation_obj: rotation_obj.id)
+
+    df = df.groupby(['R_id', 'V_id'])['soc_end'].min().reset_index()
+
+    return pd.DataFrame(df)
+
+
 @recent_memoizer
 def get_all_event_info(scenario_id):
     """

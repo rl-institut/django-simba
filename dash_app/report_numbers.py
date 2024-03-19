@@ -1,8 +1,12 @@
 from dash import Dash, html
 from . import ids
 from dash.dependencies import Input, Output  # no fa401
-from .data import get_number_longest_rot, get_number_shortest_rot, get_number_of_buses
-
+from .data import get_number_longest_rot, \
+    get_number_shortest_rot, \
+    get_number_of_buses, \
+    get_critical_rotations_and_score_as_dataframe
+from ebustoolbox.models import Scenario, Rotation
+import dash_table
 
 def render_longest_rotation(app: Dash) -> html.Div:
     """
@@ -102,3 +106,39 @@ def render_number_of_buses(app: Dash) -> html.Div:
         return html.Div(number_divs, id=ids.NUMBER_OF_BUSES)
 
     return html.Div(id=ids.NUMBER_OF_BUSES)
+
+
+def critical_rotations(app: Dash) -> html.Div:
+    """
+    Renders a Div element displaying the number of selected buses.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered number of selected buses.
+    :rtype: html.Div
+    """
+    @app.callback(Output(ids.LIST_CRIT_ROTATIONS, "children"), Input(ids.BUS_DROPDOWN, "value"))
+    def update_report_numbers(
+            buses: list[str], session_state=None, dash_app=None, **kwargs
+    ) -> html.Div:
+        task_id = dash_app.slug
+        s = Scenario.objects.get(task_id=task_id)
+
+        # Get the data
+        lines = get_critical_rotations_and_score_as_dataframe(s.id, buses)
+        df_sorted = lines.sort_values(by='soc_end')
+        # Generate HTML table dynamically
+        table = html.Div([
+            html.Div(style={'height': '50px'}),  # Spacing div after table
+            dash_table.DataTable(
+                id='table',
+                columns=[{"name": i, "id": i} for i in df_sorted.columns],
+                data=df_sorted.to_dict('records')
+            ),
+            html.Div(style={'height': '75px'})  # Spacing div after table
+        ])
+
+        return table
+
+    return html.Div(id=ids.LIST_CRIT_ROTATIONS)
