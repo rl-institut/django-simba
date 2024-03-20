@@ -7,7 +7,7 @@ import time
 from ebustoolbox.models import Scenario, Rotation
 import plotly.express as px
 from plotly.subplots import make_subplots
-
+import pandas as pd
 
 def render(app: Dash) -> html.Div:
     """
@@ -69,6 +69,8 @@ def render_power_draw(app: Dash) -> html.Div:
         end = time.time()
         data.register_time("power_draw", start, end, "retrieval")
 
+        print(df)
+
         if len(df['Station_id'].unique()) >= 1:
             # Create subplots
             fig = make_subplots(rows=len(df['Station_id'].unique()), cols=1, shared_xaxes=True,
@@ -100,3 +102,44 @@ def render_power_draw(app: Dash) -> html.Div:
             return fig
 
     return html.Div(dcc.Graph(id=ids.POWER_DRAW_CHART), style={"verticalAlign": "top"})
+
+def render_station_occupation(app: Dash) -> html.Div:
+    """
+    Renders a Div element containing a line chart showing power draw over time by station ID for selected buses.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the line chart.
+    :rtype: html.Div
+    """
+    @app.callback(Output(ids.STATION_OCCUPATION, "figure"), Input(ids.BUS_DROPDOWN, "value"))
+    def occupation(buses: list[str], session_state=None, dash_app=None, **kwargs):
+        task_id = dash_app.slug
+        s = Scenario.objects.get(task_id=task_id)
+
+        start = time.time()
+        df = data.get_powerdraw_as_dataframe(s.id, buses)
+        end = time.time()
+        data.register_time("power_draw", start, end, "retrieval")
+
+        # Group by 'Station_id' and 'time_start', count unique 'V_id'
+        grouped = df.groupby('Station_id')
+
+
+        if len(df['Station_id'].unique()) >= 1:
+            # Get unique Station_ids
+            df['time_start'] = pd.to_datetime(df['time_start'])
+
+            # Group by 'Station_id' and 'time_start', then count unique 'V_id' values
+            grouped = df.groupby(['Station_id', df['time_start'].dt.date])['V_id'].nunique().reset_index()
+            print(grouped)
+            # Plot using Plotly Express
+            fig = px.line(grouped, x='time_start', y='V_id', color='Station_id', markers=True,
+                          labels={'time_start': 'Date', 'V_id': 'Number of different V_ids charging'},
+                          title='Number of V_ids charging at different Stations over time')
+            fig.add_annotation(xref='paper', yref='paper', x=0.5, y=0.5, text="Warning: Plot not working", font=dict(size=80),
+                               showarrow=False)
+            return fig
+
+    return html.Div(dcc.Graph(id=ids.STATION_OCCUPATION), style={"verticalAlign": "top"})

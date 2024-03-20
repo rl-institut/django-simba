@@ -115,6 +115,7 @@ def block_bottom_center(app):
     return [report_numbers.critical_rotations(app),
             scatter_chart.render(app),
             scatter_chart.render_power_draw(app),
+            scatter_chart.render_station_occupation(app),
             # histograms.render_soc(app),
             histograms.render_minimal_soc(app),
             activities_chart.render(app),
