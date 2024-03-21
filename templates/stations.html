@@ -1,24 +1,40 @@
 {% extends 'base.html' %}
 {% block content %}
 <div id="dynamic-content">
-    <!-- Dynamic content will be inserted here -->
 
-    <h3>Vehicle Types from Schedule</h3>
-    {% if q_list %}
-        <ul>
-            {% for station in station_list %}
-                <li>{{ station.name }}</li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No Stations available.</p>
-    {% endif %}
+    <input type="text" id="searchInput" onkeyup="filterDropdown()" placeholder="Search for a station...">
+    <select id="stationDropdown">
+        <option value="">Select a station...</option>
+        <!-- Populate options dynamically from your backend -->
+        {% for station in station_list %}
+            <option value="{{ vehicle_type.id }}">{{ station.name }}</option>
+        {% endfor %}
+    </select>
+
+    <script>
+    function filterDropdown() {
+        var input, filter, options, option, i, txtValue;
+        input = document.getElementById("searchInput");
+        filter = input.value.toUpperCase();
+        options = document.getElementById("vehicleTypesDropdown").getElementsByTagName("option");
+        for (i = 0; i < options.length; i++) {
+            option = options[i];
+            txtValue = option.textContent || option.innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                option.style.display = "";
+            } else {
+                option.style.display = "none";
+            }
+        }
+    }
+    </script>
+
 
 
     <form enctype="multipart/form-data" method="POST"> {% csrf_token %}
       <div>
         <button type='submit' class="btn btn-primary">Continue</button>
-        <!-- Start simulation. Progress bar, then goes to overview page -->
+        <!--  -->
       </div>
     </form>
 </div>

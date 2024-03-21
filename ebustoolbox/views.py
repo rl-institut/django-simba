@@ -31,6 +31,8 @@ from ebustoolbox.models import (
     Scenario,
     UserGroup,
     UploadedFile,
+    VehicleType,
+    Station,
 )
 
 
@@ -110,13 +112,22 @@ def home_prototype(request: HttpRequest):
     return render(request, "home_prototype.html", {"task_id": task_id})
 
 
-def vehicle_types(request: HttpRequest, vehicle_types_list=None):
+def get_vehicle_types(request: HttpRequest):
     """Get vehicle_types_list from POST request from the schedule and show available types."""
-    return render(request, "vehicle_types.html", {"vehicle_types_list": vehicle_types_list})
+
+    schedule_vehicle_types = VehicleType.objects.all() # query db for schedule vehicle types
+    default_vehicle_types = VehicleType.objects.all()  # query db for default vehicle types
+
+    context = {
+        "default_vehicle_types": default_vehicle_types,
+        "schedule_vehicle_types": schedule_vehicle_types
+    }
+    return render(request, "vehicle_types.html", context)
 
 
-def stations(request: HttpRequest, station_list=None):
-    """Get station_list from POST request and make it available to filter."""
+def get_stations(request: HttpRequest):
+    """Get stations from db and make it available to filter."""
+    station_list = Station.objects.all() # query db for all stations in scenario
     return render(request, "stations.html", {"station_list": station_list})
 
 

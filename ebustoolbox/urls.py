@@ -16,9 +16,11 @@ urlpatterns = [
     path("usergroups/", views.usergroups, name="usergroups"),
     path("result/", views.result_view, name="result"),
     path("", views.home_view, name="home"),
+
     path("input/schedule/", views.home_prototype, name="home_prototype"),
-    path("input/vehicle_types/", views.vehicle_types, name="vehicle_types"),
-    path("input/stations/", views.stations, name="name"),
+    path("input/vehicle_types/", views.get_vehicle_types, name="get_vehicle_types"),
+    path("input/stations/", views.get_stations, name="get_stations"),
+
     path("upload_trips/<uuid:task_id>", views.upload_trips, name="upload_trips"),
     path("check_trips_file/<uuid:task_id>", views.check_trips_file, name="check_trips_file"),
     path("continue_trips/<uuid:task_id>", views.continue_trips, name="continue_trips"),
