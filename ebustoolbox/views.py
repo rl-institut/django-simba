@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.transaction import atomic
-from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest
+from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest, Http404
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.views.generic import TemplateView
@@ -31,6 +31,9 @@ from ebustoolbox.models import (
     Scenario,
     UserGroup,
     UploadedFile,
+    VehicleType,
+    DefaultScenario,
+    Station,
 )
 
 
@@ -118,6 +121,31 @@ def vehicle_types(request: HttpRequest, vehicle_types_list=None):
 def stations(request: HttpRequest, station_list=None):
     """Get station_list from POST request and make it available to filter."""
     return render(request, "stations.html", {"station_list": station_list})
+
+
+def get_vehicle_types(request: HttpRequest, task_id):
+    context = {"task_id": task_id}
+    try:
+        scenario = Scenario.objects.get(task_id=task_id)
+    except Scenario.DoesNotExist:
+        raise Http404("Scenario with this task_id does not exist")
+    default_scenario = DefaultScenario.objects.first().scenario
+    vehicle_types = VehicleType.objects.filter(scenario=scenario)
+    default_vehicle_types = VehicleType.objects.filter(scenario=default_scenario)
+    context["vehicle_types"] = vehicle_types
+    context["default_vehicle_types"] = default_vehicle_types
+    return render(request, "vehicle_types_selection.html", context)
+
+
+def get_stations(request: HttpRequest, task_id):
+    context = {"task_id": task_id}
+    try:
+        scenario = Scenario.objects.get(task_id=task_id)
+    except Scenario.DoesNotExist:
+        raise Http404("Scenario with this task_id does not exist")
+    stations = Station.objects.filter(scenario=scenario)
+    context["stations"] = stations
+    return render(request, "stations_selection.html", context)
 
 
 def progress(request: HttpRequest, task_id):
