@@ -2,32 +2,19 @@
 {% block content %}
 <div id="dynamic-content">
 
-    <input type="text" id="searchInput" onkeyup="filterDropdown()" placeholder="Search for a station...">
-    <select id="stationDropdown">
-        <option value="">Select a station...</option>
-        <!-- Populate options dynamically from your backend -->
-        {% for station in station_list %}
-            <option value="{{ vehicle_type.id }}">{{ station.name }}</option>
-        {% endfor %}
-    </select>
-
-    <script>
-    function filterDropdown() {
-        var input, filter, options, option, i, txtValue;
-        input = document.getElementById("searchInput");
-        filter = input.value.toUpperCase();
-        options = document.getElementById("stationDropdown").getElementsByTagName("option");
-        for (i = 0; i < options.length; i++) {
-            option = options[i];
-            txtValue = option.textContent || option.innerText;
-            if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                option.style.display = "";
-            } else {
-                option.style.display = "none";
-            }
-        }
-    }
-    </script>
+    <div id="dynamic-list">
+        <h2>Select Stations which should be electrified:</h2>
+            <form id="item-form" hx-post="/update_station">
+                {% for station in stations %}
+                    <label>
+                        <input type="checkbox" name="item_id" value="{{ station.id }}">
+                        {{ station.name }}
+                    </label>
+                    <br>
+                {% endfor %}
+                <button type="submit">Update Scenario</button>
+            </form>
+    </div>
 
 
 

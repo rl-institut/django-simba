@@ -5,14 +5,14 @@
 <div id="schedule-vehicle-types-container">
 
     <h3> Default Vehicle Types</h3>
-    {% if schedule_vehicle_types %}
+    {% if vehicle_types %}
         <ul>
-            {% for schedule_vt in schedule_vehicle_types %}
+            {% for vehicle_type in vehicle_types %}
                 <li>
-                    {{ schedule_vt.name }}
+                    {{ vehicle_type.name }}
                     <select name="vehicle_type_dropdown">
-                        {% for optional_vt in optional_vehicle_types %}
-                            <option value="{{ optional_vt.id }}">{{ optional_vt.name }}</option>
+                        {% for default_vehicle_type in default_vehicle_types %}
+                            <option value="{{ default_vehicle_type.id }}">{{ default_vehicle_type.name }}</option>
                         {% endfor %}
                     </select>
                 </li>
@@ -22,6 +22,7 @@
         <p>No default vehicle types available.</p>
     {% endif %}
 </div>
+
 
 <div>
     <form enctype="multipart/form-data" method="POST" hx-post="schedule/" hx-target="stations/" hx-swap="outerHTML" hx-trigger="click">

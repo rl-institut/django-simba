@@ -113,25 +113,6 @@ def home_prototype(request: HttpRequest):
     return render(request, "home_prototype.html", {"task_id": task_id})
 
 
-def get_vehicle_types(request: HttpRequest):
-    """Get vehicle_types_list from POST request from the schedule and show available types."""
-
-    schedule_vehicle_types = VehicleType.objects.all() # query db for schedule vehicle types
-    default_vehicle_types = VehicleType.objects.all()  # query db for default vehicle types
-
-    context = {
-        "default_vehicle_types": default_vehicle_types,
-        "schedule_vehicle_types": schedule_vehicle_types
-    }
-    return render(request, "vehicle_types.html", context)
-
-
-def get_stations(request: HttpRequest):
-    """Get stations from db and make it available to filter."""
-    station_list = Station.objects.all() # query db for all stations in scenario
-    return render(request, "stations.html", {"station_list": station_list})
-
-
 def get_vehicle_types(request: HttpRequest, task_id):
     context = {"task_id": task_id}
     try:
@@ -143,7 +124,7 @@ def get_vehicle_types(request: HttpRequest, task_id):
     default_vehicle_types = VehicleType.objects.filter(scenario=default_scenario)
     context["vehicle_types"] = vehicle_types
     context["default_vehicle_types"] = default_vehicle_types
-    return render(request, "vehicle_types_selection.html", context)
+    return render(request, "vehicle_types.html", context)
 
 
 def get_stations(request: HttpRequest, task_id):
@@ -154,7 +135,7 @@ def get_stations(request: HttpRequest, task_id):
         raise Http404("Scenario with this task_id does not exist")
     stations = Station.objects.filter(scenario=scenario)
     context["stations"] = stations
-    return render(request, "stations_selection.html", context)
+    return render(request, "stations.html", context)
 
 
 def progress(request: HttpRequest, task_id):

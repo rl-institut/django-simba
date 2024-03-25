@@ -24,9 +24,9 @@ def set_default_scenario(apps, schema_editor):
     old_scenario = default_scenario.scenario
     new_scenario = Scenario.objects.create(name="DefaultScenario")
     default_scenario.scenario = new_scenario
-    default_scenario.save()
     old_scenario.delete()
     set_default_vehicle_types(apps=apps, scenario=new_scenario)
+    default_scenario.save()
 
 
 def set_default_vehicle_types(apps, scenario) -> None:
