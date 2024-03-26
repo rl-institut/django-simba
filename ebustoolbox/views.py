@@ -113,6 +113,15 @@ def home_prototype(request: HttpRequest):
     return render(request, "home_prototype.html", {"task_id": task_id})
 
 
+def get_options(request: HttpRequest, reader_num: int):
+    # ToDo add Form
+    from . import schedule_readers
+
+    form = schedule_readers.get_options_form(reader_num)
+
+    return render(request, "schedule_reader_options.html", {"form": form, "foo": 123})
+
+
 def vehicle_types(request: HttpRequest, vehicle_types_list=None):
     """Get vehicle_types_list from POST request from the schedule and show available types."""
     return render(request, "vehicle_types.html", {"vehicle_types_list": vehicle_types_list})

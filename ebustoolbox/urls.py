@@ -17,6 +17,7 @@ urlpatterns = [
     path("result/", views.result_view, name="result"),
     path("", views.home_view, name="home"),
     path("input/schedule/", views.home_prototype, name="home_prototype"),
+    path("input/get_options/<int:reader_num>", views.get_options, name="get_options"),
     # path("input/vehicle_types/", views.vehicle_types, name="vehicle_types"),
     path("input/vehicle_types/<uuid:task_id>", views.get_vehicle_types, name="vehicle_types"),
     path("input/stations/", views.stations, name="name"),

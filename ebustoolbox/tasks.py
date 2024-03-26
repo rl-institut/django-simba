@@ -797,7 +797,7 @@ def init_db_with_trips(self, file_id: int, scenario_id: int):
         delete_old_scenario_data(scenario)
         # Read the file and write it to database
         progress.refresh_from_db()
-        progress.success = schedule_reader.write_file_to_db(scenario.id)
+        progress.success = schedule_reader.write_to_db(scenario.id)
         progress.save()
     except Exception as e:
         progress.status = "Failed"

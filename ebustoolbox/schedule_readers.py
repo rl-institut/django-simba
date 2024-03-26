@@ -1,9 +1,11 @@
 import csv
 from datetime import datetime
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, Callable
 
+from django import forms
 from django.utils.timezone import make_aware
+from inspect import signature
 
 from core.models import Progress
 from ebustoolbox.models import (
@@ -18,8 +20,41 @@ from ebustoolbox.models import (
 )
 
 
+def get_options_form(reader_num: int):
+    match reader_num:
+        case _:
+            return SimbaScheduleReader().get_options_form()
+
+
+def function_signature_to_form(function: Callable):
+    sig = signature(function)
+
+    class ScheduleReaderOptionsForm(forms.Form):
+        baz = forms.CharField(max_length=100, required=True)
+        pass
+
+    form = ScheduleReaderOptionsForm()
+
+    for name, argument in sig.parameters.items():
+        f = None
+        match argument.annotation():
+            case str():
+                if name.find("file") > -1:
+                    f = forms.FileField(required=True)
+                else:
+                    f = forms.CharField(max_length=100, required=True)
+            case int():
+                f = forms.IntegerField(required=True)
+            case float():
+                f = forms.DecimalField(max_digits=10, decimal_places=2, initial=1e5)
+            case _:
+                raise NotImplementedError
+        setattr(form, name, f)
+    return form
+
+
 class ScheduleReader(Protocol):
-    def write_file_to_db(self, scenario_id: int) -> bool:
+    def write_to_db(self, scenario_id: int, **kwargs) -> bool:
         pass
 
     def get_errors(self) -> [str]:
@@ -28,21 +63,23 @@ class ScheduleReader(Protocol):
     def set_observer(self, progress: Progress) -> None:
         pass
 
+    def get_options_form(self) -> forms.Form:
+        pass
+
 
 def get_schedule_reader(file) -> ScheduleReader:
     """Returns Schedule Reader to handle the schedule csv."""
-    return SimbaScheduleReader(Path(file.path))
+    return SimbaScheduleReader()
 
 
 class SimbaScheduleReader(ScheduleReader):
-    def __init__(self, file):
-        self.file_path: Path = file
+    def __init__(self):
+        self.file_path: Path = None
+        self.default_capacity = 99.99
+        self.default_charging_type = "oppb"
         self.encoding = "utf-8"
         self.errors = []
         self.progress: Progress = None
-        # ToDo get from frontend form
-        self.default_charging_type = "oppb"
-        self.default_capacity = 99.99
 
         self.DEPARTURE_NAME = "departure_name"
         self.DEPARTURE_TIME = "departure_time"
@@ -53,6 +90,9 @@ class SimbaScheduleReader(ScheduleReader):
         self.CHARGING_TYPE = "charging_type"
         self.LINE = "line"
         self.ROTATION_ID = "rotation_id"
+
+    def get_options_form(self):
+        return function_signature_to_form(self.write_to_db)
 
     def get_errors(self) -> [str]:
         return self.errors
@@ -72,7 +112,20 @@ class SimbaScheduleReader(ScheduleReader):
                 self.progress.status = status
             self.progress.save()
 
-    def write_file_to_db(self, scenario_id: int) -> bool:
+    def write_to_db(
+        self,
+        scenario_id: int,
+        file_path: str = "",
+        default_capacity: float = 99.9,
+        default_charging_type: str = "oppb",
+    ) -> bool:
+        """This is help text
+        :param: scenario_id: this is the id of the scenario
+        """
+        self.file_path = Path(file_path)
+        self.default_capacity = default_capacity
+        self.default_charging_type = default_charging_type
+
         self.set_total_work(5)
         self.set_progress(0, "Reading File")
         trip_data = self.file_data_to_dict()
