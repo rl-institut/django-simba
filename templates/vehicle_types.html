@@ -2,33 +2,33 @@
 
 {% block content %}
 
-<div id="schedule-vehicle-types-container">
-
-    <h3> Default Vehicle Types</h3>
-    {% if vehicle_types %}
-        <ul>
-            {% for vehicle_type in vehicle_types %}
-                <li>
-                    {{ vehicle_type.name }}
-                    <select name="vehicle_type_dropdown">
-                        {% for default_vehicle_type in default_vehicle_types %}
-                            <option value="{{ default_vehicle_type.id }}">{{ default_vehicle_type.name }}</option>
-                        {% endfor %}
-                    </select>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No default vehicle types available.</p>
-    {% endif %}
-</div>
-
-
 <div>
-    <form enctype="multipart/form-data" method="POST" hx-post="schedule/" hx-target="stations/" hx-swap="outerHTML" hx-trigger="click">
+    <form enctype="multipart/form-data" method="POST" action="{% url 'simba:assign_vehicle_types' task_id %}">
         {% csrf_token %}
+        <div id="schedule-vehicle-types-container">
+
+            <h3> Default Vehicle Types</h3>
+            {% if vehicle_types %}
+                <ul>
+                    {% for vehicle_type in vehicle_types %}
+                        <li>
+                            {{ vehicle_type.name }}
+                            <select name="vehicle_type_dropdown_{{ vehicle_type.name }}">
+                                {% for default_vehicle_type in default_vehicle_types %}
+                                    <option value="{{ default_vehicle_type.id }}">{{ default_vehicle_type.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No default vehicle types available.</p>
+            {% endif %}
+        </div>
+
         <div>
-            <button type='submit' class="btn btn-primary">Continue</button>
+            <button class="btn btn-primary" type="submit"
+                    >Continue</button>
             <!-- dummy vehicle types get default vehicle type values -->
         </div>
     </form>

@@ -192,6 +192,11 @@ def continue_trips(request: HttpRequest, task_id: str):
     # return response
 
 
+def assign_vehicle_types(request: HttpRequest, task_id: str):
+    # TODO handle values from dropdowns
+    return redirect("/simba/input/stations/" + str(task_id))
+
+
 def home_view(request: HttpRequest):
     """Generate the home view of the tool chain with input forms"""
     if request.method == "GET":

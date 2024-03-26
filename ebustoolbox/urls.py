@@ -20,6 +20,7 @@ urlpatterns = [
     # path("input/vehicle_types/", views.vehicle_types, name="vehicle_types"),
     path("input/vehicle_types/<uuid:task_id>", views.get_vehicle_types, name="vehicle_types"),
     path("input/stations/<uuid:task_id>", views.get_stations, name="get_stations"),
+    path("assign_vehicle_types/<uuid:task_id>", views.assign_vehicle_types, name="assign_vehicle_types"),
     path("upload_trips/<uuid:task_id>", views.upload_trips, name="upload_trips"),
     path("check_trips_file/<uuid:task_id>", views.check_trips_file, name="check_trips_file"),
     path("continue_trips/<uuid:task_id>", views.continue_trips, name="continue_trips"),
