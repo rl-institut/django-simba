@@ -1,7 +1,7 @@
 """Setup module is used in settings of django projects to set up mapengine"""
 
 from collections import namedtuple
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional
 
 from django.apps import apps
@@ -42,8 +42,11 @@ class ModelAPI:
 
 
 # pylint:disable=R0903
+@dataclass
 class ClusterAPI(ModelAPI):
     """Exists only to distinguish between "normal" and clustered API"""
+
+    properties: list = field(default_factory=lambda: [])
 
 
 @dataclass
@@ -104,6 +107,8 @@ class Choropleth:
     """Choropleth class used to set up choropleths in project settings"""
 
     name: str
+    title: str
+    unit: str
     layers: List[str]
     use_feature_state: bool = True
 
@@ -116,7 +121,12 @@ class Choropleth:
         dict
             holding choropleth values needed in map setups
         """
-        return {"layers": self.layers, "useFeatureState": self.use_feature_state}
+        return {
+            "title": self.title,
+            "unit": self.unit,
+            "layers": self.layers,
+            "useFeatureState": self.use_feature_state,
+        }
 
 
 @dataclass

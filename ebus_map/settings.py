@@ -13,7 +13,7 @@ MAP_ENGINE_IMAGES = [setup.MapImage("busstop", "ebus_map/static/ebus_map/bus_sto
 
 # MAP_ENGINE_API_MVTS = {}
 MAP_ENGINE_API_MVTS = {
-    "station": [
+    "stations_mvt": [
 	    setup.MVTAPI("station", "ebustoolbox", "Station"),
         setup.MVTAPI("routes", "ebustoolbox", "route"),
     ],
@@ -45,4 +45,4 @@ MAP_ENGINE_POPUPS = [
     #             ["population", ], )
 ]
 MAP_ENGINE_USE_DISTILLED_MVTS = False
-MAP_ENGINE_DEBUG = True
+MAP_ENGINE_DEBUG = False
