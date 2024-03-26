@@ -35,7 +35,9 @@ setuptools = "^68.2.2"
 django-bootstrap4 = "23.4"
 tqdm = "^4.66.1"
 eflips-depot = "^2.0"
+eflips-eval = "^1.0.1"
 django-fast-update = "^0.2.3"
+
 
 [tool.poetry.group.dev]
 optional = true

@@ -6,37 +6,55 @@ import sqlalchemy
 from dash import html, dcc, Input, Output
 from dash.exceptions import PreventUpdate
 from django_plotly_dash import DjangoDash
-from eflips.model import Event, EventType, Scenario, Vehicle
+from eflips.model import Scenario, Vehicle, Area
+from eflips.eval.output.prepare import (
+    depot_event as prepare_depot_event,
+    vehicle_soc as prepare_vehicle_soc,
+    power_and_occupancy as prepare_power_and_occupancy
+)
+from eflips.eval.output.visualize import (
+    depot_event as visualize_depot_event,
+    vehicle_soc as visualize_vehicle_soc,
+    power_and_occupancy as visualize_power_and_occupancy,
+)
 from sqlalchemy.orm import Session
 
-app = DjangoDash('EflipsDepotResults')   # replaces dash.Dash
+app = DjangoDash('EflipsDepotResults')  # replaces dash.Dash
+
 
 app.layout = html.Div(
-        children=[
-            html.H1(children="eflips-depot says hi"),
-            html.Div("Select a scenario by id:"),
-            dcc.Dropdown(
-                ["8", "7", "6"], "8", id="scenario-id-dropdown", style={"width": "30%"}
-            ),
-            html.Div("Select a color-scheme:"),
-            dcc.Dropdown(
-                ["Event type", "SOC"],
-                "Event type",
-                id="color-scheme-dropdown",
-                style={"width": "30%"},
-            ),
-            html.Div(id="scenario-name"),
-            html.Div(id="num-vehicles"),
-            dcc.Graph(id="gantt-chart"),
-            html.Div(
-                children=[
-                    html.Div(children="Selected vehicle id"),
-                    html.Pre(id="click-data"),
-                    dcc.Graph(id="vehicle-soc-plot"),
-                ]
-            ),
-        ]
-    )
+    children=[
+        html.H1(children="Simulation results of eflips-depot"),
+        dcc.Store(id="task_id"),
+        html.Div("Select a color-scheme:"),
+        dcc.Dropdown(
+            ["Event Type", "State of Charge", "Location"],
+            "Event Type",
+            id="color-scheme-dropdown",
+            style={"width": "30%"},
+        ),
+        html.Div(id="scenario-name"),
+        html.Div(id="num-vehicles"),
+        html.Div("Click on a bar to reveal the vehicle log."),
+        dcc.Graph(id="gantt-chart"),
+        html.Div(
+            children=[
+                html.Div(children="Selected vehicle id"),
+                html.Pre(id="click-data"),
+                dcc.Graph(id="vehicle-soc-plot"),
+            ]
+        ),
+
+        html.Div(
+            children=[
+                html.Div(children="Power and occupancy of current depot"),
+                dcc.Graph(id="power-and-occupancy-plot"),
+
+            ]
+        )
+    ]
+)
+
 
 def _create_engine_from_postgis_url() -> sqlalchemy.engine.Engine:
     """
@@ -44,15 +62,20 @@ def _create_engine_from_postgis_url() -> sqlalchemy.engine.Engine:
     """
     return sqlalchemy.create_engine(os.environ.get("DATABASE_URL").replace("postgis", "postgresql"))
 
+
 @app.callback(
     Output("gantt-chart", "figure"),
+    Output("scenario-name", "children"),
+    Output("num-vehicles", "children"),
+    Output("task_id", "data"),
     Input("color-scheme-dropdown", "value"),
 )
-def get_ganttchart_scenario(color_scheme: str, session_state: Dict[str, Any] | None):
+def get_ganttchart_scenario(color_scheme_dropdown: str, session_state: Dict[str, Any] | None):
     """This function takes a value from dropdown as scenario id and returns a :class:`plotly.express.timeline` object
     representing the gantt chart of the scenario to be used in a html layout.
-    :param scenario_id: The output from dropdown as scenario id
-    :return: A :class:`plotly.express.timeline` object
+    :param color_scheme_dropdown: A string coming from color-scheme-dropdown representing whether the gantt chart should be colored by event type or by SOC
+    :param session_state: A dictionary containing the task id
+    :return: A tuple of a :class:`plotly.express.timeline` object, a string of the scenario name and a string of the number of vehicles in the scenario
     """
 
     # Make sure that the session state is set and that the task id is in the session state
@@ -66,84 +89,23 @@ def get_ganttchart_scenario(color_scheme: str, session_state: Dict[str, Any] | N
     engine = _create_engine_from_postgis_url()
     with Session(engine) as session:
         scenario_id = session.query(Scenario.id).filter(Scenario.task_id == session_state["task_id"]).one()[0]
-
-        event_list = (
-            session.query(Event.__table__)
-            .filter(Event.scenario_id == scenario_id)
-            .order_by(Event.vehicle_id)
-            .all()
-        )
-        event_dict = []
-        for row in event_list:
-            d = dict(row._mapping)
-            # Convert the datetime objects to strings in order to avoid empty rows in gantt chart.TODO find a better
-            #  solution
-            d["vehicle_id"] = str(d["vehicle_id"])
-            event_dict.append(d)
-
-        num_vehicles = len(set([event["vehicle_id"] for event in event_dict]))
-
-    color_map = {
-        EventType.CHARGING_DEPOT: "forestgreen",
-        EventType.DRIVING: "skyblue",
-        EventType.SERVICE: "salmon",
-        EventType.STANDBY_DEPARTURE: "orange",
-    }
-
-    if color_scheme == "Event type":
-        color = "event_type"
-        color_discrete_map = {
-            EventType.CHARGING_DEPOT: "forestgreen",
-            EventType.DRIVING: "skyblue",
-            EventType.SERVICE: "salmon",
-            EventType.STANDBY_DEPARTURE: "orange",
-        }
-        color_continuous_scale = None
-    else:
-        color = "soc_end"
-        color_discrete_map = None
-        color_continuous_scale = px.colors.sequential.Viridis
-
-    fig = px.timeline(
-        event_dict,
-        x_start="time_start",
-        x_end="time_end",
-        y="vehicle_id",
-        color=color,
-        color_discrete_map=color_discrete_map,
-        color_continuous_scale=color_continuous_scale,
-        hover_data=[
-            "time_start",
-            "time_end",
-            "soc_start",
-            "soc_end",
-            "vehicle_id",
-            "area_id",
-        ],
-        width=2500,
-        height=num_vehicles * 20,
-    )
-    fig.update_traces(width=0.5)
-
-    return fig
-
-
-@app.callback(
-    Output("scenario-name", "children"),
-    Output("num-vehicles", "children"),
-    Input("scenario-id-dropdown", "value"),
-)
-def get_scenario_name(scenario_id: int):
-    engine = _create_engine_from_postgis_url()
-    with Session(engine) as session:
         scenario_name = (
-            session.query(Scenario.name).filter(Scenario.id == scenario_id).first()
-        )
-        vehicle_count = (
-            session.query(Vehicle).filter(Vehicle.scenario_id == scenario_id).count()
+            session.query(Scenario.name).filter(Scenario.id == scenario_id).one()[0]
         )
 
-    return str(scenario_name), f"Total number of vehicles:{vehicle_count}"
+        depot_events = prepare_depot_event(scenario_id, session)
+        num_vehicles = depot_events["vehicle_id"].nunique()
+        color_scheme = {
+            "Event Type": "event_type",
+            "State of Charge": "soc",
+            "Location": "location",
+        }
+
+        fig = visualize_depot_event(depot_events, color_scheme[color_scheme_dropdown])
+
+        fig.update_layout(height=num_vehicles * 10)
+
+    return fig, scenario_name, f"Total number of vehicles:{num_vehicles}", session_state["task_id"]
 
 
 @app.callback(
@@ -168,27 +130,25 @@ def get_vehicle_soc_plot(vehicle_id: int):
     engine = _create_engine_from_postgis_url()
 
     with Session(engine) as session:
-        all_events = (
-            session.query(Event)
-            .filter(Event.vehicle_id == vehicle_id)
-            .order_by(Event.time_start)
-            .all()
-        )
-        # Go through all events and connect the soc_start and soc_end and time_start and time_end
-        all_times = []
-        all_soc = []
-        for event in all_events:
-            all_times.append(event.time_start)
-            all_times.append(event.time_end)
-            all_soc.append(event.soc_start)
-            all_soc.append(event.soc_end)
-
-        fig = px.line(
-            x=all_times,
-            y=all_soc,
-            width=2500,
-            height=500,
-            labels={"x": "Time", "y": "SOC"},
-        )
+        vehicle_soc, descriptions = prepare_vehicle_soc(vehicle_id, session)
+        fig = visualize_vehicle_soc(vehicle_soc, descriptions)
 
     return fig
+
+@app.callback(
+    Output("power-and-occupancy-plot", "figure"),
+    Input("task_id", "data"),
+)
+def get_power_and_occupancy_plot(task_id: str):
+    # Make sure that the session state is set and that the task id is in the session state
+
+    engine = _create_engine_from_postgis_url()
+    with Session(engine) as session:
+        scenario_id = session.query(Scenario.id).filter(Scenario.task_id == task_id).one()[0]
+        all_areas = session.query(Area).filter(Area.scenario_id == scenario_id).all()
+        all_area_ids = [area.id for area in all_areas]
+        prepared_data = prepare_power_and_occupancy(all_area_ids, session)
+        fig = visualize_power_and_occupancy(prepared_data)
+    return fig
+
+
