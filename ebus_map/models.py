@@ -43,10 +43,9 @@ class Station(ebustoolbox.models.Station):
     @classmethod
     def get_popup_data(cls, id):
         obj = cls.objects.get(id=id)
-        data = {}
-        data["title"] = obj.name
-        data["lat"] = obj.geom.x
-        data["lon"] = obj.geom.y
+        data = {"title": obj.name,
+                "lat": obj.geom.x,
+                "lon": obj.geom.y}
         return data
 
 

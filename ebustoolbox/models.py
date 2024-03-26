@@ -18,9 +18,9 @@ from fast_update.query import FastUpdateManager
 from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
 from scipy.spatial._qhull import QhullError
 
-from django.db.models import Case, When, Value, CharField
+from django.db.models import Case, When, Value
 from django.db.models.functions import Length
-from ebus_map.managers import LabelMVTManager, MVTManager, X, Y
+from ebus_map.managers import MVTManager, X, Y
 
 MINIMAL_TRIP_DURATION_S = 60  # seconds
 
@@ -883,11 +883,10 @@ class Station(models.Model):
     @classmethod
     def get_popup_data(cls, id):
         obj = cls.objects.get(id=id)
-        data = {}
-        data["title"] = obj.name + " " +str(id)
-        data["municipality"] = obj.is_electrified
-        data["lat"] = obj.geom.x
-        data["lon"] = obj.geom.y
+        data = {"title": obj.name + " " + str(id),
+                "municipality": obj.is_electrified,
+                "lat": obj.geom.x,
+                "lon": obj.geom.y}
         return data
 
     def save(self, *args, **kwargs):
@@ -1036,6 +1035,7 @@ class Route(models.Model):
 
     # Add a default manager
     objects = models.Manager()
+
 
 class AssocRouteStation(models.Model):
     """

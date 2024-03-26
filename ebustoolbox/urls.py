@@ -3,7 +3,6 @@
 from django.urls import path
 
 from . import views
-from dash_app.dash_app import app
 
 app_name = "simba"
 
@@ -19,5 +18,5 @@ urlpatterns = [
     path("", views.home_view, name="home"),
     path("generate_zip/<uuid:task_id>", views.generate_zip, name="generate_zip"),
     path("download_scenario/<uuid:task_id>/", views.download_scenario, name="download_scenario"),
-#    path("popup/<str:lookup>/<int:id>", views.get_popup, name="popup"),
+    # path("popup/<str:lookup>/<int:id>", views.get_popup, name="popup"),
 ]

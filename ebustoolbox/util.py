@@ -53,6 +53,7 @@ def get_soc(scenario_id):
         )
     return socs
 
+
 def get_soc_as_dataframe(scenario_id):
 
     socs = get_soc(scenario_id)
@@ -83,6 +84,7 @@ def get_soc_as_dataframe(scenario_id):
     result_df = result_df.sort_values(by='Time')
 
     return result_df
+
 
 def get_stations(scenario_id):
     """

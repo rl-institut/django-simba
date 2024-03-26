@@ -7,6 +7,7 @@ from rest_framework.serializers import ValidationError
 from rest_framework_gis.tilenames import tile_edges
 import ebustoolbox.models as ebusmodels
 
+
 # pylint: disable=W0223
 class AsMVTGeom(models.functions.GeomOutputGeoFunc):
     function = "ST_AsMVTGeom"
@@ -53,23 +54,21 @@ class MVTManager(models.Manager):
         # ToDo Change
 
         print("!!!HERE!!!")
-        print(query)
-        print(len(query))
-        print(filters)
+        print("FILTERS: ", filters)
 
         if "scenario_id" in filters:
             pass
         else:
-            scenarios_with_task_id = ebusmodels.Scenario.objects.filter(task_id=filters["task_id"])
+            scenarios_with_task_id = ebusmodels.Scenario.objects.filter(task_id="7b94d878-ea66-43e4-9b43-2c96485017fb")
             print("Scenario_id from task_id: ", scenarios_with_task_id[0].id)
 
             try:
 
                 filters["scenario_id"] = scenarios_with_task_id[0].id
-                del filters["task_id"]
+                # del filters["task_id"]
             except KeyError:
-                filters = {}
-
+                # filters = {}
+                pass
         return query.filter(**filters)
 
     def _get_mvt_geom_query(self, x, y, z):
