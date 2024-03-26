@@ -17,6 +17,7 @@ from ebustoolbox.models import (
     Route,
     Trip,
     EnumChargeType,
+    UploadedFile,
 )
 
 
@@ -29,32 +30,37 @@ def get_options_form(reader_num: int):
 def function_signature_to_form(function: Callable):
     sig = signature(function)
 
-    class ScheduleReaderOptionsForm(forms.Form):
-        baz = forms.CharField(max_length=100, required=True)
-        pass
+    def ScheduleReaderOptionsFormFactory(classname, fields: dict):
+        return type(
+            f"{classname}",
+            (forms.Form,),
+            fields,
+        )
 
-    form = ScheduleReaderOptionsForm()
+    fields = dict()
 
-    for name, argument in sig.parameters.items():
-        f = None
+    parameters = {name: argument for name, argument in sig.parameters.items()}
+    del parameters["scenario_id"]
+    for name, argument in parameters.items():
         match argument.annotation():
             case str():
-                if name.find("file") > -1:
-                    f = forms.FileField(required=True)
-                else:
-                    f = forms.CharField(max_length=100, required=True)
+                field = forms.CharField(max_length=100, required=True)
             case int():
-                f = forms.IntegerField(required=True)
+                if name.find("file") > -1:
+                    field = forms.FileField(required=True)
+                else:
+                    field = forms.IntegerField(required=True)
             case float():
-                f = forms.DecimalField(max_digits=10, decimal_places=2, initial=1e5)
+                field = forms.DecimalField(max_digits=10, decimal_places=2, initial=1e5)
             case _:
                 raise NotImplementedError
-        setattr(form, name, f)
+        fields[name] = field
+    form = ScheduleReaderOptionsFormFactory("ScheduleReaderOptionsForm", fields)
     return form
 
 
 class ScheduleReader(Protocol):
-    def write_to_db(self, scenario_id: int, **kwargs) -> bool:
+    def write_to_db(self, scenario_id: int, files: dict[int, int], **kwargs) -> bool:
         pass
 
     def get_errors(self) -> [str]:
@@ -115,15 +121,18 @@ class SimbaScheduleReader(ScheduleReader):
     def write_to_db(
         self,
         scenario_id: int,
-        file_path: str = "",
+        file_path: int,
         default_capacity: float = 99.9,
         default_charging_type: str = "oppb",
     ) -> bool:
         """This is help text
         :param: scenario_id: this is the id of the scenario
         """
-        self.file_path = Path(file_path)
-        self.default_capacity = default_capacity
+        self.file_path = Path(UploadedFile.objects.get(id=file_path).file.path)
+        self.default_capacity = float(default_capacity)
+        if default_charging_type not in [EnumChargeType.DEPOT, EnumChargeType.OPPORTUNITY]:
+            raise Exception("""Default charging type has to be of type "depb" or "oppb" """)
+
         self.default_charging_type = default_charging_type
 
         self.set_total_work(5)

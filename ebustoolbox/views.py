@@ -20,7 +20,7 @@ from celery.result import AsyncResult
 
 # Unused import of dash_app needed to register app
 from dash_app import dash_app, ids  # noqa: F401
-from . import tasks
+from . import tasks, schedule_readers
 from .forms import UploadFileForm
 from .tasks import create_db_url  # noqa
 
@@ -113,13 +113,14 @@ def home_prototype(request: HttpRequest):
     return render(request, "home_prototype.html", {"task_id": task_id})
 
 
-def get_options(request: HttpRequest, reader_num: int):
+def get_options(request: HttpRequest, task_id, reader_num: int):
     # ToDo add Form
     from . import schedule_readers
 
     form = schedule_readers.get_options_form(reader_num)
+    context = {"form": form, "reader_num": reader_num, "task_id": task_id}
 
-    return render(request, "schedule_reader_options.html", {"form": form, "foo": 123})
+    return render(request, "schedule_reader_options.html", context)
 
 
 def vehicle_types(request: HttpRequest, vehicle_types_list=None):
@@ -181,16 +182,27 @@ def progress(request: HttpRequest, task_id):
 
 
 @require_POST
-def upload_trips(request: HttpRequest, task_id: str):
+def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
     try:
-        assert len(request.FILES) == 1, "Error: Please provide a single file"
-        assert request.FILES["file"].readable(), "Error: File cannot be read"
-        file = request.FILES["file"]
+        form = schedule_readers.get_options_form(reader_num)(request.POST, request.FILES)
+        if not form.is_valid():
+            context = {"form": form, "reader_num": reader_num, "task_id": task_id}
+            response = render(request, "schedule_reader_options.html", context)
+            response["HX-Retarget"] = "#options_form"
+            return response
+
         s, _ = Scenario.objects.get_or_create(task_id=task_id)
-        uploaded_file = UploadedFile.objects.create(scenario=s, file=file)
+        # todo check size
+        cleaned_data = form.cleaned_data
+
+        files = dict()
+        for name, file in request.FILES.items():
+            files[name] = UploadedFile.objects.create(scenario=s, file=file).id
+            del cleaned_data[name]
         # what kind of file is uploaded
         # errors, success = tasks.init_db_with_trips(uploaded_file.id, s.id)
-        async_result = tasks.init_db_with_trips.apply_async((uploaded_file.id, s.id))
+
+        async_result = tasks.init_db_with_trips.apply_async((s.id, reader_num, files, cleaned_data))
         context = {"progress_id": async_result.task_id, "task_id": task_id}
 
         response = render(request, "progress_poll.html", context)
@@ -198,7 +210,8 @@ def upload_trips(request: HttpRequest, task_id: str):
         return response
     except AssertionError as e:
         html = f"<html>{str(e)}</html>"
-        return HttpResponse(html)
+        response = HttpResponse(html)
+        return response
 
 
 def check_trips_file(request: HttpRequest, task_id: str):
