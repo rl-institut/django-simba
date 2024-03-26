@@ -865,7 +865,7 @@ class Station(models.Model):
             When(is_electrified=True, then=Value(10)),
             default=Value(0),
             output_field=models.IntegerField(),
-        )
+        ),
     }
 
     vector_tiles = MVTManager(
@@ -883,10 +883,12 @@ class Station(models.Model):
     @classmethod
     def get_popup_data(cls, id):
         obj = cls.objects.get(id=id)
-        data = {"title": obj.name + " " + str(id),
-                "municipality": obj.is_electrified,
-                "lat": obj.geom.x,
-                "lon": obj.geom.y}
+        data = {
+            "title": obj.name + " " + str(id),
+            "municipality": obj.is_electrified,
+            "lat": obj.geom.x,
+            "lon": obj.geom.y,
+        }
         return data
 
     def save(self, *args, **kwargs):
@@ -1029,9 +1031,7 @@ class Route(models.Model):
     stations = models.ManyToManyField(Station, through="AssocRouteStation")
     """Stations along this route. Ordered by `elapsed_distance`."""
 
-    vector_tiles = MVTManager(
-        geo_col="geom", columns=["id", "geom", "name"]
-    )
+    vector_tiles = MVTManager(geo_col="geom", columns=["id", "geom", "name"])
 
     # Add a default manager
     objects = models.Manager()

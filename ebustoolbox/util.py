@@ -65,23 +65,23 @@ def get_soc_as_dataframe(scenario_id):
     for vehicle in vehicles:
         v_id = vehicle.id
         for element in socs[vehicle.id]:
-            time_start = element['time_start']
-            soc_start = element['soc_start']
+            time_start = element["time_start"]
+            soc_start = element["soc_start"]
             # Add a row to the DataFrame
-            df = pd.DataFrame({'V_id': [v_id], 'Time': [time_start], 'SOC': [soc_start]})
+            df = pd.DataFrame({"V_id": [v_id], "Time": [time_start], "SOC": [soc_start]})
             dfs.append(df)
-            time_start = element['time_end']
-            soc_start = element['soc_end']
+            time_start = element["time_end"]
+            soc_start = element["soc_end"]
             # Add a row to the DataFrame
-            df = pd.DataFrame({'V_id': [v_id], 'Time': [time_start], 'SOC': [soc_start]})
+            df = pd.DataFrame({"V_id": [v_id], "Time": [time_start], "SOC": [soc_start]})
             dfs.append(df)
     result_df = pd.concat(dfs, ignore_index=True)
 
     # Convert the 'Time' column to datetime format
-    result_df['Time'] = pd.to_datetime(result_df['Time'])
+    result_df["Time"] = pd.to_datetime(result_df["Time"])
 
     # Sort the DataFrame based on the 'Time' column
-    result_df = result_df.sort_values(by='Time')
+    result_df = result_df.sort_values(by="Time")
 
     return result_df
 
