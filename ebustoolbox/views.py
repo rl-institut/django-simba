@@ -156,8 +156,8 @@ def progress(request: HttpRequest, task_id):
         context["finished"] = True
         # hx_trigger = "notRunning"
     response = render(request, "progress.html", context)
-    if context["finished"]:
-        response["HX-Redirect"] = "/simba/input/vehicle_types/" + str(progress.scenario.task_id)
+    if context["finished"] and len(context["errors"]) == 0:
+        response["HX-Redirect"] = reverse("simba:vehicle_types", args=[str(progress.scenario.task_id)])
     response.status_code = status_code
     return response
 
@@ -177,7 +177,6 @@ def upload_trips(request: HttpRequest, task_id: str):
 
         response = render(request, "progress_poll.html", context)
         response["HX-Trigger"] = "running"
-        # response["HX-Redirect"] = "/simba/input/vehicle_types/" + str(task_id)
         return response
     except AssertionError as e:
         html = f"<html>{str(e)}</html>"
@@ -186,7 +185,7 @@ def upload_trips(request: HttpRequest, task_id: str):
 
 def assign_vehicle_types(request: HttpRequest, task_id: str):
     # TODO handle values from dropdowns
-    return redirect("/simba/input/stations/" + str(task_id))
+    return redirect(reverse("simba:stations", args=[str(task_id)]))
 
 
 def home_view(request: HttpRequest):
