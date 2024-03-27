@@ -72,15 +72,15 @@
     }
 
     function getRouteIds() {
-        try {
-            const layerId = 'routes';
-            const features = map.queryRenderedFeatures({layers: [layerId]});
+        const layerId = 'routes';
+        if (map.getLayer(layerId)) {
+            const features = map.queryRenderedFeatures({ layers: [layerId] });
             const numberOfFeatures = features.length;
             for (let i = 0; i < numberOfFeatures; i++) {
                 addIdToList(features[i].id, routesIDList);
             }
-        } catch (error) {
-            console.warn('A warning occurred while querying render features:', error);
+        } else {
+            console.warn('Layer "routes" does not exist.');
         }
     }
 
@@ -95,10 +95,12 @@
 
     function removeFilters(){
         // this is actually how it is supposed to be done according to the docs!!
-        try {
-        map.setFilter('routes', null)
-        } catch (error) {
-            console.warn('Unable to remove Filter!:', error);
+        const layerId = 'routes';
+        if (map.getLayer(layerId)) {
+            // Layer exists, remove filters
+            map.setFilter(layerId, null);
+        } else {
+            console.warn('Layer "routes" does not exist.');
         }
     }
 

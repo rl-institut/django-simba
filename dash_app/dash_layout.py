@@ -107,8 +107,8 @@ def block_third_third(app) -> list[html.Div]:
 
 
 def block_top_center(app) -> list[html.Div]:
-    return [bus_dropdown.render(app),
-            export.export(app)]
+    return [bus_dropdown.render(app)]
+            # export.export(app)]
 
 
 def block_bottom_center(app):
