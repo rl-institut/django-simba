@@ -139,24 +139,25 @@ def get_stations(request: HttpRequest, task_id):
 
 
 def progress(request: HttpRequest, task_id):
-    context = {"progress_id": task_id, "status": "", "current_progress": 0, "task_id": task_id}
+    context = {"progress_id": task_id, "status": "", "current_progress": 0}
     try:
         progress = Progress.objects.get(task_id=task_id)
     except ObjectDoesNotExist:
         response = render(request, "progress.html", context)
         return response
+    # context["task_id"] = progress.scenario.task_id
     context["current_progress"] = progress.get_progress()
     context["status"] = progress.status
     status_code = 200
-    hx_trigger = "running"
     if progress.success or not progress.running or len(progress.errors) != 0:
         context["errors"] = progress.errors
         # End polling
         status_code = 286
         context["finished"] = True
-        hx_trigger = "notRunning"
+        # hx_trigger = "notRunning"
     response = render(request, "progress.html", context)
-    response["HX-Trigger"] = hx_trigger
+    if context["finished"]:
+        response["HX-Redirect"] = "/simba/input/vehicle_types/" + str(progress.scenario.task_id)
     response.status_code = status_code
     return response
 
@@ -176,20 +177,11 @@ def upload_trips(request: HttpRequest, task_id: str):
 
         response = render(request, "progress_poll.html", context)
         response["HX-Trigger"] = "running"
+        # response["HX-Redirect"] = "/simba/input/vehicle_types/" + str(task_id)
         return response
     except AssertionError as e:
         html = f"<html>{str(e)}</html>"
         return HttpResponse(html)
-
-
-def check_trips_file(request: HttpRequest, task_id: str):
-    pass
-    # return response
-
-
-def continue_trips(request: HttpRequest, task_id: str):
-    pass
-    # return response
 
 
 def assign_vehicle_types(request: HttpRequest, task_id: str):

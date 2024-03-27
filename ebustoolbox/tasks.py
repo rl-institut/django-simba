@@ -794,6 +794,8 @@ def init_db_with_trips(self, file_id: int, scenario_id: int):
         schedule_reader = schedule_readers.get_schedule_reader(file.file)
         schedule_reader.set_observer(progress)
         scenario = Scenario.objects.get(id=scenario_id)
+        progress.scenario = scenario
+        progress.save()
         delete_old_scenario_data(scenario)
         # Read the file and write it to database
         progress.refresh_from_db()
