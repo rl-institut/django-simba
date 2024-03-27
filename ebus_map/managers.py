@@ -43,7 +43,6 @@ class MVTManager(models.Manager):
 
     def get_mvt_query(self, x, y, z, filters=None):
         filters = filters or {}
-        print(filters)
         return self._build_mvt_query(x, y, z, filters)
 
     def get_columns(self):
