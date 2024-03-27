@@ -4,12 +4,12 @@ from django_mapengine.setup import Zoom  # noqa: F401
 MAP_ENGINE_CENTER_AT_STARTUP = [13, 52]
 MAP_ENGINE_ZOOM_AT_STARTUP = 8
 
-MAP_ENGINE_IMAGES = []# setup.MapImage("busstop", "ebus_map/static/ebus_map/bus_stop.jpg"),
-                     # setup.MapImage("busstop_red",
-                     #               "ebus_map/static/ebus_map/bus_stop_red.png"),
-                     # setup.MapImage("busstop_blue",
-                     #                "ebus_map/static/ebus_map/bus_stop_bl.png"),
-                     # ]
+MAP_ENGINE_IMAGES = []  # setup.MapImage("busstop", "ebus_map/static/ebus_map/bus_stop.jpg"),
+# setup.MapImage("busstop_red",
+#               "ebus_map/static/ebus_map/bus_stop_red.png"),
+# setup.MapImage("busstop_blue",
+#                "ebus_map/static/ebus_map/bus_stop_bl.png"),
+# ]
 
 # MAP_ENGINE_API_MVTS = {}
 MAP_ENGINE_API_MVTS = {
