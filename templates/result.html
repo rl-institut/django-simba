@@ -72,11 +72,15 @@
     }
 
     function getRouteIds() {
-        const layerId = 'routes';
-        const features = map.queryRenderedFeatures({layers: [layerId]});
-        const numberOfFeatures = features.length;
-        for (let i = 0; i < numberOfFeatures; i++) {
-            addIdToList(features[i].id, routesIDList)
+        try {
+            const layerId = 'routes';
+            const features = map.queryRenderedFeatures({layers: [layerId]});
+            const numberOfFeatures = features.length;
+            for (let i = 0; i < numberOfFeatures; i++) {
+                addIdToList(features[i].id, routesIDList);
+            }
+        } catch (error) {
+            console.warn('A warning occurred while querying render features:', error);
         }
     }
 
@@ -91,7 +95,11 @@
 
     function removeFilters(){
         // this is actually how it is supposed to be done according to the docs!!
+        try {
         map.setFilter('routes', null)
+        } catch (error) {
+            console.warn('Unable to remove Filter!:', error);
+        }
     }
 
     function createButtons() {
