@@ -24,7 +24,7 @@ app = DjangoDash('EflipsDepotResults')  # replaces dash.Dash
 
 app.layout = html.Div(
     children=[
-        html.H1(children="Simulation results of eflips-depot"),
+        html.H1(children="Simulation results of eflips-depot",style={"font": "arial"}),
         dcc.Store(id="task_id"),
         html.Div("Select a color-scheme:"),
         dcc.Dropdown(
@@ -33,21 +33,22 @@ app.layout = html.Div(
             id="color-scheme-dropdown",
             style={"width": "30%"},
         ),
-        html.Div(id="scenario-name"),
-        html.Div(id="num-vehicles"),
+        html.H2(id="scenario-name"),
+        html.H2(id="num-vehicles"),
         html.Div("Click on a bar to reveal the vehicle log."),
+        html.Div("Click on a group in legend to hide/show the group."),
         dcc.Graph(id="gantt-chart"),
         html.Div(
             children=[
-                html.Div(children="Selected vehicle id"),
-                html.Pre(id="click-data"),
+                html.H2(children="SoC-log of vehicle:"),
+                html.Div(id="click-data", style={"font-size": "20"}),
                 dcc.Graph(id="vehicle-soc-plot"),
             ]
         ),
 
         html.Div(
             children=[
-                html.Div(children="Power and occupancy of current depot"),
+                html.H2(children="Power and occupancy of current depot"),
                 dcc.Graph(id="power-and-occupancy-plot"),
 
             ]
@@ -140,7 +141,6 @@ def get_vehicle_soc_plot(vehicle_id: int):
     Input("task_id", "data"),
 )
 def get_power_and_occupancy_plot(task_id: str):
-    # Make sure that the session state is set and that the task id is in the session state
 
     engine = _create_engine_from_postgis_url()
     with Session(engine) as session:
