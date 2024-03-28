@@ -41,21 +41,29 @@ def function_signature_to_form(function: Callable):
     parameters = {name: argument for name, argument in sig.parameters.items()}
     del parameters["self"]
     for name, argument in parameters.items():
-        match argument.annotation():
-            case str():
+        argument_type = argument.annotation.__qualname__
+        match argument_type:
+            case str.__qualname__:
                 if name.find("file") > -1:
                     field = forms.FileField(required=True)
                 else:
                     field = forms.CharField(max_length=100, required=True)
-            case int():
+            case int.__qualname__:
                 field = forms.IntegerField(required=True)
-            case float():
+            case float.__qualname__:
                 field = forms.DecimalField(max_digits=10, decimal_places=2, initial=1e5)
+            case datetime.__qualname__:
+                field = forms.DateTimeField(widget=DateTimeInput)
             case _:
                 raise NotImplementedError
         fields[name] = field
+        print(argument, field, argument_type)
     form = ScheduleReaderOptionsFormFactory("ScheduleReaderOptionsForm", fields)
     return form
+
+
+class DateTimeInput(forms.DateTimeInput):
+    input_type = "datetime-local"
 
 
 class ScheduleReader(Protocol):
@@ -86,6 +94,7 @@ class SimbaScheduleReader(ScheduleReader):
         self,
         file_path: str,
         default_charging_type: str = "oppb",
+        date123: datetime = None,
     ):
         self.file_path: Path = Path(file_path)
         self.default_capacity = 99.99
