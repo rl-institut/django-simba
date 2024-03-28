@@ -52,6 +52,8 @@ def function_signature_to_form(function: Callable):
                 field = forms.IntegerField(required=True)
             case float.__qualname__:
                 field = forms.DecimalField(max_digits=10, decimal_places=2, initial=1e5)
+            case bool.__qualname__:
+                field = forms.BooleanField()
             case datetime.__qualname__:
                 field = forms.DateTimeField(widget=DateTimeInput)
             case _:
@@ -94,7 +96,6 @@ class SimbaScheduleReader(ScheduleReader):
         self,
         file_path: str,
         default_charging_type: str = "oppb",
-        date123: datetime = None,
     ):
         self.file_path: Path = Path(file_path)
         self.default_capacity = 99.99
