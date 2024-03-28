@@ -1,7 +1,8 @@
 import csv
 from datetime import datetime
 from pathlib import Path
-from typing import Protocol, Callable
+from typing import Callable
+from abc import ABC, abstractmethod
 
 from django import forms
 from django.utils.timezone import make_aware
@@ -68,19 +69,22 @@ class DateTimeInput(forms.DateTimeInput):
     input_type = "datetime-local"
 
 
-class ScheduleReader(Protocol):
+class ScheduleReader(ABC):
+    @abstractmethod
     def write_to_db(self, scenario_id) -> bool:
         pass
 
+    @abstractmethod
     def get_errors(self) -> [str]:
         pass
 
+    @abstractmethod
     def set_observer(self, progress: Progress) -> None:
         pass
 
     @classmethod
-    def get_options_form(cls) -> forms.Form:
-        pass
+    def get_options_form(cls):
+        return function_signature_to_form(cls.__init__)
 
 
 def get_schedule_reader_factory(reader_num: int) -> type(ScheduleReader):
@@ -117,10 +121,6 @@ class SimbaScheduleReader(ScheduleReader):
         self.CHARGING_TYPE = "charging_type"
         self.LINE = "line"
         self.ROTATION_ID = "rotation_id"
-
-    @classmethod
-    def get_options_form(cls):
-        return function_signature_to_form(cls.__init__)
 
     def get_errors(self) -> [str]:
         return self.errors
