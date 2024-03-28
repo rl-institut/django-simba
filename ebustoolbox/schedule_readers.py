@@ -17,7 +17,6 @@ from ebustoolbox.models import (
     Route,
     Trip,
     EnumChargeType,
-    UploadedFile,
 )
 
 
@@ -44,12 +43,12 @@ def function_signature_to_form(function: Callable):
     for name, argument in parameters.items():
         match argument.annotation():
             case str():
-                field = forms.CharField(max_length=100, required=True)
-            case int():
                 if name.find("file") > -1:
                     field = forms.FileField(required=True)
                 else:
-                    field = forms.IntegerField(required=True)
+                    field = forms.CharField(max_length=100, required=True)
+            case int():
+                field = forms.IntegerField(required=True)
             case float():
                 field = forms.DecimalField(max_digits=10, decimal_places=2, initial=1e5)
             case _:
@@ -85,10 +84,10 @@ def get_schedule_reader_factory(reader_num: int) -> type(ScheduleReader):
 class SimbaScheduleReader(ScheduleReader):
     def __init__(
         self,
-        file_nr: int,
+        file_path: str,
         default_charging_type: str = "oppb",
     ):
-        self.file_nr = file_nr
+        self.file_path: Path = Path(file_path)
         self.default_capacity = 99.99
         if default_charging_type not in [EnumChargeType.DEPOT, EnumChargeType.OPPORTUNITY]:
             raise Exception("""Default charging type has to be of type "depb" or "oppb" """)
@@ -97,7 +96,7 @@ class SimbaScheduleReader(ScheduleReader):
         self.encoding = "utf-8"
         self.errors = []
         self.progress: Progress = None
-        self.file_path: Path = None
+        # self.file_path: Path = None
 
         self.DEPARTURE_NAME = "departure_name"
         self.DEPARTURE_TIME = "departure_time"
@@ -135,9 +134,6 @@ class SimbaScheduleReader(ScheduleReader):
         """This is help text
         :param: scenario_id: this is the id of the scenario
         """
-        self.file_path = Path(UploadedFile.objects.get(id=self.file_nr).file.path)
-        self.default_capacity = float(self.default_capacity)
-
         self.set_total_work(5)
         self.set_progress(0, "Reading File")
         trip_data = self.file_data_to_dict()

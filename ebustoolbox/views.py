@@ -183,6 +183,7 @@ def progress(request: HttpRequest, task_id):
 
 @require_POST
 def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
+    context = {"task_id": task_id}
     try:
         form = schedule_readers.get_options_form(reader_num)(request.POST, request.FILES)
         if not form.is_valid():
@@ -197,13 +198,13 @@ def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
 
         files = dict()
         for name, file in request.FILES.items():
-            files[name] = UploadedFile.objects.create(scenario=s, file=file).id
+            files[name] = UploadedFile.objects.create(scenario=s, file=file).file.path
             del cleaned_data[name]
         # what kind of file is uploaded
         # errors, success = tasks.init_db_with_trips(uploaded_file.id, s.id)
 
         async_result = tasks.init_db_with_trips.apply_async((s.id, reader_num, files, cleaned_data))
-        context = {"progress_id": async_result.task_id, "task_id": task_id}
+        context["progress_id"] = async_result.task_id
 
         response = render(request, "progress_poll.html", context)
         response["HX-Trigger"] = "running"
@@ -211,6 +212,11 @@ def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
     except AssertionError as e:
         html = f"<html>{str(e)}</html>"
         response = HttpResponse(html)
+        return response
+    except Exception as e:
+        html = f"<html>{str(e)}</html>"
+        response = HttpResponse(html)
+        response["HX-Trigger"] = "notRunning"
         return response
 
 
