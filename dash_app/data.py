@@ -5,18 +5,15 @@ This way data should be easily swappable, while the dash_layout allows for swapp
 from ebustoolbox.models import (
     Scenario,
     Event,
-    Route,
     get_longest_distance_rotation,
     get_shortest_distance_rotation,
-    EventType,
     Vehicle,
     VehicleType,
     Rotation,
-    Trip,
-    Station
+    Station,
 )
 import pandas as pd
-from django.db.models import Min, Count, Prefetch
+from django.db.models import Count
 from dash.exceptions import PreventUpdate
 
 df_perf = pd.DataFrame({"name": [], "start": [], "end": [], "process": []})
@@ -258,7 +255,8 @@ def get_df_perf():
 
 def register_time(name, start, end, process):
     """
-    Registers a time interval with the given name, start time, end time, and process, and updates the global DataFrame containing performance data.
+    Registers a time interval with the given name, start time, end time, and process,
+    and updates the global DataFrame containing performance data.
 
     :param name: Name of the plot/process.
     :type name: str
@@ -306,16 +304,18 @@ def get_critical_rotations_as_dataframe(scenario_id, buses):
     :rtype: pandas.DataFrame
     """
     result_df = get_all_event_info(scenario_id)
-    df = result_df[result_df['V_id'].isin(buses)]
+    df = result_df[result_df["V_id"].isin(buses)]
 
-    df = df.explode('R_id')
-    df['R_id'] = df['R_id'].apply(lambda rotation_obj: rotation_obj.id)
+    df = df.explode("R_id")
+    df["R_id"] = df["R_id"].apply(lambda rotation_obj: rotation_obj.id)
 
-    df = df.groupby(['R_id', 'V_id'])['soc_end'].min().reset_index()
+    df = df.groupby(["R_id", "V_id"])["soc_end"].min().reset_index()
 
-    df['SOC_category'] = df['soc_end'].apply(lambda x: 'Non-Critical' if x > 0.0 else 'Critical')
+    df["SOC_category"] = df["soc_end"].apply(lambda x: "Non-Critical" if x > 0.0 else "Critical")
 
-    return pd.DataFrame(df['SOC_category'].value_counts().reset_index().values, columns=['Category', 'Count'])
+    return pd.DataFrame(
+        df["SOC_category"].value_counts().reset_index().values, columns=["Category", "Count"]
+    )
 
 
 def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
@@ -323,12 +323,12 @@ def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
     TODO
     """
     result_df = get_all_event_info(scenario_id)
-    df = result_df[result_df['V_id'].isin(buses)]
+    df = result_df[result_df["V_id"].isin(buses)]
 
-    df = df.explode('R_id')
-    df['R_id'] = df['R_id'].apply(lambda rotation_obj: rotation_obj.id)
+    df = df.explode("R_id")
+    df["R_id"] = df["R_id"].apply(lambda rotation_obj: rotation_obj.id)
 
-    df = df.groupby(['R_id', 'V_id'])['soc_end'].min().reset_index()
+    df = df.groupby(["R_id", "V_id"])["soc_end"].min().reset_index()
 
     return pd.DataFrame(df)
 
@@ -349,8 +349,12 @@ def get_all_event_info(scenario_id):
     scenario = Scenario.objects.get(id=scenario_id)
 
     # Fetch all events and rotations in advance
-    all_events = Event.objects.filter(scenario=scenario, vehicle__isnull=False).prefetch_related('vehicle')
-    all_rotations = Rotation.objects.filter(scenario=scenario, vehicle__isnull=False).prefetch_related('vehicle')
+    all_events = Event.objects.filter(scenario=scenario, vehicle__isnull=False).prefetch_related(
+        "vehicle"
+    )
+    all_rotations = Rotation.objects.filter(
+        scenario=scenario, vehicle__isnull=False
+    ).prefetch_related("vehicle")
 
     # Organize events by vehicle_id
     events_by_vehicle = {}
@@ -376,16 +380,18 @@ def get_all_event_info(scenario_id):
                 duration = (event.time_end - event.time_start).total_seconds()
                 time_end = event.time_end
                 # Fetch events for the current rotation
-                dfs.append({
-                    "V_id": v_id,
-                    "time_start": time_start,
-                    "time_end": time_end,
-                    "duration": duration,
-                    "event_type": event_type,
-                    "soc_start": event.soc_start,
-                    "soc_end": event.soc_end,
-                    "R_id": vehicle_rotations
-                })
+                dfs.append(
+                    {
+                        "V_id": v_id,
+                        "time_start": time_start,
+                        "time_end": time_end,
+                        "duration": duration,
+                        "event_type": event_type,
+                        "soc_start": event.soc_start,
+                        "soc_end": event.soc_end,
+                        "R_id": vehicle_rotations,
+                    }
+                )
 
     # Create DataFrame from collected data
     if dfs:
@@ -396,15 +402,16 @@ def get_all_event_info(scenario_id):
 
     else:
         result_df = pd.DataFrame(
-            {"V_id": [None],
-             "R_id": [None],
-             "time_end": [None],
-             "time_start": [None],
-             "duration": [None],
-             "event_type": [None],
-             "soc_start": [None],
-             "soc_end": [None]
-             }
+            {
+                "V_id": [None],
+                "R_id": [None],
+                "time_end": [None],
+                "time_start": [None],
+                "duration": [None],
+                "event_type": [None],
+                "soc_start": [None],
+                "soc_end": [None],
+            }
         )
 
     return result_df
@@ -423,8 +430,8 @@ def get_all_trip_info(scenario_id):
     """
     # Prefetch all related objects for the scenario
     scenario = Scenario.objects.prefetch_related(
-        'rotation_set__trip_set__route',  # Prefetch trips and their routes
-        'rotation_set__vehicle'  # Prefetch vehicles for rotations
+        "rotation_set__trip_set__route",  # Prefetch trips and their routes
+        "rotation_set__vehicle",  # Prefetch vehicles for rotations
     ).get(id=scenario_id)
 
     # Initialize lists to store data
@@ -451,7 +458,9 @@ def get_all_trip_info(scenario_id):
             durations.append(duration)
 
     # Create DataFrame from collected data
-    result_df = pd.DataFrame({"V_id": v_ids, "R_id": r_ids, "total_distance": distances, "duration": durations})
+    result_df = pd.DataFrame(
+        {"V_id": v_ids, "R_id": r_ids, "total_distance": distances, "duration": durations}
+    )
 
     return result_df
 
@@ -475,16 +484,25 @@ def get_all_powerdraw_as_dataframe(scenario_id):
 
     # Fetch battery capacity and charging efficiency for all vehicle types
     vehicle_types = VehicleType.objects.in_bulk([vehicle.vehicle_type_id for vehicle in vehicles])
-    battery_capacities = {v_id: vehicle_types[v_type_id].battery_capacity for v_id, v_type_id in
-                          zip(vehicles.values_list('id', flat=True),
-                              vehicles.values_list('vehicle_type_id', flat=True))}
-    charging_efficiencies = {v_id: vehicle_types[v_type_id].charging_efficiency for v_id, v_type_id in
-                             zip(vehicles.values_list('id', flat=True),
-                                 vehicles.values_list('vehicle_type_id', flat=True))}
+    battery_capacities = {
+        v_id: vehicle_types[v_type_id].battery_capacity
+        for v_id, v_type_id in zip(
+            vehicles.values_list("id", flat=True),
+            vehicles.values_list("vehicle_type_id", flat=True),
+        )
+    }
+    charging_efficiencies = {
+        v_id: vehicle_types[v_type_id].charging_efficiency
+        for v_id, v_type_id in zip(
+            vehicles.values_list("id", flat=True),
+            vehicles.values_list("vehicle_type_id", flat=True),
+        )
+    }
 
     # Fetch all events for the scenario with prefetching
-    all_events = Event.objects.filter(scenario=scenario, vehicle__isnull=False,
-                                      station_id__isnull=False).prefetch_related('vehicle')
+    all_events = Event.objects.filter(
+        scenario=scenario, vehicle__isnull=False, station_id__isnull=False
+    ).prefetch_related("vehicle")
 
     # Initialize list to store DataFrames
     dfs = []
@@ -506,13 +524,15 @@ def get_all_powerdraw_as_dataframe(scenario_id):
             if soc_end > soc_start:
                 energy = (soc_end - soc_start) * charge_eff * batterycapacity
                 # Append data to the list
-                dfs.append({
-                    "V_id": vehicle.name_short,
-                    "time_start": time_start,
-                    "time_end": time_end,
-                    "Energy": energy,
-                    "Station_id": stations_name_short_dict.get(station),
-                })
+                dfs.append(
+                    {
+                        "V_id": vehicle.name_short,
+                        "time_start": time_start,
+                        "time_end": time_end,
+                        "Energy": energy,
+                        "Station_id": stations_name_short_dict.get(station),
+                    }
+                )
 
     # Create DataFrame from collected data
     if dfs:
@@ -522,11 +542,13 @@ def get_all_powerdraw_as_dataframe(scenario_id):
         result_df = result_df.sort_values(by="time_start")
     else:
         result_df = pd.DataFrame(
-            {"V_id": [None],
-             "time_end": [None],
-             "time_start": [None],
-             "Energy": [None],
-             "Station_id": [None]}
+            {
+                "V_id": [None],
+                "time_end": [None],
+                "time_start": [None],
+                "Energy": [None],
+                "Station_id": [None],
+            }
         )
 
     return result_df

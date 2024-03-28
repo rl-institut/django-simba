@@ -14,6 +14,7 @@ def render(app: Dash) -> html.Div:
     :return: A Div element containing the rendered dropdown menu.
     :rtype: html.Div
     """
+
     @app.callback(
         [
             Output(ids.BUS_DROPDOWN, "value"),

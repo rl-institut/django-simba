@@ -80,7 +80,7 @@
                 addIdToList(features[i].id, routesIDList);
             }
         } else {
-            console.warn('Layer "routes" does not exist.');
+            console.log('Layer "routes" does not exist.');
         }
     }
 
@@ -100,7 +100,7 @@
             // Layer exists, remove filters
             map.setFilter(layerId, null);
         } else {
-            console.warn('Layer "routes" does not exist.');
+            console.log('Layer "routes" does not exist.');
         }
     }
 
