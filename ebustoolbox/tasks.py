@@ -790,13 +790,14 @@ def _generate_zipped_scenario(task_id: str):
 def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cleaned_data):
     progress = Progress.objects.create(task_id=self.request.id, status="Starting")
     try:
-        schedule_reader = schedule_readers.get_schedule_reader(reader_num)
+        schedule_reader_factory = schedule_readers.get_schedule_reader_factory(reader_num)
+        schedule_reader = schedule_reader_factory(**files, **cleaned_data)
         schedule_reader.set_observer(progress)
         scenario = Scenario.objects.get(id=scenario_id)
         delete_old_scenario_data(scenario)
         # Read the file and write it to database
         progress.refresh_from_db()
-        progress.success = schedule_reader.write_to_db(scenario.id, **files, **cleaned_data)
+        progress.success = schedule_reader.write_to_db(scenario.id)
         progress.save()
     except Exception as e:
         progress.status = "Failed"

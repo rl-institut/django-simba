@@ -24,7 +24,7 @@ from ebustoolbox.models import (
 def get_options_form(reader_num: int):
     match reader_num:
         case _:
-            return SimbaScheduleReader().get_options_form()
+            return SimbaScheduleReader.get_options_form()
 
 
 def function_signature_to_form(function: Callable):
@@ -40,7 +40,7 @@ def function_signature_to_form(function: Callable):
     fields = dict()
 
     parameters = {name: argument for name, argument in sig.parameters.items()}
-    del parameters["scenario_id"]
+    del parameters["self"]
     for name, argument in parameters.items():
         match argument.annotation():
             case str():
@@ -60,7 +60,7 @@ def function_signature_to_form(function: Callable):
 
 
 class ScheduleReader(Protocol):
-    def write_to_db(self, scenario_id: int, files: dict[int, int], **kwargs) -> bool:
+    def write_to_db(self, scenario_id) -> bool:
         pass
 
     def get_errors(self) -> [str]:
@@ -69,23 +69,35 @@ class ScheduleReader(Protocol):
     def set_observer(self, progress: Progress) -> None:
         pass
 
-    def get_options_form(self) -> forms.Form:
+    @classmethod
+    def get_options_form(cls) -> forms.Form:
         pass
 
 
-def get_schedule_reader(file) -> ScheduleReader:
+def get_schedule_reader_factory(reader_num: int) -> type(ScheduleReader):
     """Returns Schedule Reader to handle the schedule csv."""
-    return SimbaScheduleReader()
+    match reader_num:
+        case 1:
+            return SimbaScheduleReader
+    raise NotImplementedError(f"Schedule Reader with {reader_num} not found")
 
 
 class SimbaScheduleReader(ScheduleReader):
-    def __init__(self):
-        self.file_path: Path = None
+    def __init__(
+        self,
+        file_nr: int,
+        default_charging_type: str = "oppb",
+    ):
+        self.file_nr = file_nr
         self.default_capacity = 99.99
-        self.default_charging_type = "oppb"
+        if default_charging_type not in [EnumChargeType.DEPOT, EnumChargeType.OPPORTUNITY]:
+            raise Exception("""Default charging type has to be of type "depb" or "oppb" """)
+
+        self.default_charging_type = default_charging_type
         self.encoding = "utf-8"
         self.errors = []
         self.progress: Progress = None
+        self.file_path: Path = None
 
         self.DEPARTURE_NAME = "departure_name"
         self.DEPARTURE_TIME = "departure_time"
@@ -97,8 +109,9 @@ class SimbaScheduleReader(ScheduleReader):
         self.LINE = "line"
         self.ROTATION_ID = "rotation_id"
 
-    def get_options_form(self):
-        return function_signature_to_form(self.write_to_db)
+    @classmethod
+    def get_options_form(cls):
+        return function_signature_to_form(cls.__init__)
 
     def get_errors(self) -> [str]:
         return self.errors
@@ -118,22 +131,12 @@ class SimbaScheduleReader(ScheduleReader):
                 self.progress.status = status
             self.progress.save()
 
-    def write_to_db(
-        self,
-        scenario_id: int,
-        file_path: int,
-        default_capacity: float = 99.9,
-        default_charging_type: str = "oppb",
-    ) -> bool:
+    def write_to_db(self, scenario_id: int) -> bool:
         """This is help text
         :param: scenario_id: this is the id of the scenario
         """
-        self.file_path = Path(UploadedFile.objects.get(id=file_path).file.path)
-        self.default_capacity = float(default_capacity)
-        if default_charging_type not in [EnumChargeType.DEPOT, EnumChargeType.OPPORTUNITY]:
-            raise Exception("""Default charging type has to be of type "depb" or "oppb" """)
-
-        self.default_charging_type = default_charging_type
+        self.file_path = Path(UploadedFile.objects.get(id=self.file_nr).file.path)
+        self.default_capacity = float(self.default_capacity)
 
         self.set_total_work(5)
         self.set_progress(0, "Reading File")
