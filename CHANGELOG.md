@@ -19,6 +19,12 @@ Template:
 
 ### Changed
 
+- [(#80)](https://github.com/rl-institut/django-simba/pull/80)
+- Bump eflips-depot dependency to v3
+- Add depot.station field to django model
+- Fix test cases that are failing on py3.12 due to deprecations
+
+
 - [(#60)](https://github.com/rl-institut/django-simba/pull/60)
 - Adds loop over different toolchain modes
 - Station-optimization is turned on per default
