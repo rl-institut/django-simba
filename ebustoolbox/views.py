@@ -136,6 +136,7 @@ def get_stations(request: HttpRequest | None, task_id, form=None):
         raise Http404("Scenario with this task_id does not exist")
     stations = Station.objects.filter(scenario=scenario)
     context["stations"] = stations
+    # TODO add electrified stations to context and have boxes prechecked
     return render(request, "stations.html", context)
 
 
@@ -148,13 +149,15 @@ def set_station_values(request: HttpRequest, task_id):
         station_id_list = request.POST.getlist(key="station_id")
         scenario = Scenario.objects.get(task_id=task_id)
         tasks.electrify_db_stations(scenario, station_id_list)
-
-        response = redirect("simba:scenario_overview", args=[str(task_id)])
+        # redirect to "simulation overview" page which can start a simulation
+        response = redirect(reverse("simba:scenario_overview", args=[str(task_id)]))
         return response
     else:
         return HttpResponse("Method is not allowed", status=405)
-    # TODO check if forms are valid
-    # redirect to "simulation overview" page which can start a simulation
+
+
+def scenario_overview(request: HttpRequest, task_id):
+    return render(request, "scenario_overview.html")
 
 
 def progress(request: HttpRequest, task_id):

@@ -40,6 +40,7 @@ from .models import (
     Trip,
     Scenario,
     EnumChargeType,
+    EnumVoltageLevel,
     Line,
     charge_type_from_simba_to_db,
     charge_type_from_db_to_station,
@@ -1192,8 +1193,18 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):
         event.save()
 
 
-def electrify_db_stations(scenario: Scenario, station_id_list):
-    stations = Station.objects.filter(scenario=scenario).filter(pk__in=station_id_list)
+def electrify_db_stations(scenario: Scenario, station_id_list, unelectrify=True):
+    """Set given stations in scenario to be electrified."""
+    all_stations = Station.objects.filter(scenario=scenario)
+    stations = all_stations.filter(pk__in=station_id_list)
     for station in stations:
         station.is_electrified = True
+        # TODO get these values from somewhere?
+        station.charge_type = EnumChargeType.OPPORTUNITY
+        station.voltage_level = EnumVoltageLevel.VOLTAGE_MV
         station.save()
+    if unelectrify:
+        revert_stations = all_stations.exclude(pk__in=station_id_list).filter(is_electrified=True)
+        for station in revert_stations:
+            station.is_electrified = False
+            station.save()
