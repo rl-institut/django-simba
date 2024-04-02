@@ -64,10 +64,6 @@ def wait_view(request):
     return render(request, "wait.html")
 
 
-class resultView(TemplateView):
-    result_template = "result.html"
-
-
 class SuccessView(TemplateView, MapEngineMixin):
     """View which generates the page containing simulation results"""
 
@@ -127,8 +123,9 @@ def get_vehicle_types(request: HttpRequest, task_id):
     return render(request, "vehicle_types.html", context)
 
 
-def get_stations(request: HttpRequest, task_id):
-    form = ChargingStationDefaultsForm()
+def get_stations(request: HttpRequest | None, task_id, form=None):
+    if form is None:
+        form = ChargingStationDefaultsForm()
     context = {
         "task_id": task_id,
         "form": form
@@ -143,9 +140,21 @@ def get_stations(request: HttpRequest, task_id):
 
 
 def set_station_values(request: HttpRequest, task_id):
+
+    if request.method == "POST":
+        form = ChargingStationDefaultsForm(request.POST)
+        if not form.is_valid():
+            return get_stations(None, task_id, form)
+        station_id_list = request.POST.getlist(key="station_id")
+        scenario = Scenario.objects.get(task_id=task_id)
+        tasks.electrify_db_stations(scenario, station_id_list)
+
+        response = redirect("simba:scenario_overview", args=[str(task_id)])
+        return response
+    else:
+        return HttpResponse("Method is not allowed", status=405)
     # TODO check if forms are valid
     # redirect to "simulation overview" page which can start a simulation
-    pass
 
 
 def progress(request: HttpRequest, task_id):

@@ -9,7 +9,7 @@
                 {{ form.as_p }}
                 {% for station in stations %}
                     <label>
-                        <input type="checkbox" name="item_id" value="{{ station.id }}">
+                        <input type="checkbox" name="station_id" value="{{ station.id }}">
                         {{ station.name }}
                     </label>
                     <br>

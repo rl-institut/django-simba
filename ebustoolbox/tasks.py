@@ -1190,3 +1190,10 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):
             event_type=event_type,
         )
         event.save()
+
+
+def electrify_db_stations(scenario: Scenario, station_id_list):
+    stations = Station.objects.filter(scenario=scenario).filter(pk__in=station_id_list)
+    for station in stations:
+        station.is_electrified = True
+        station.save()
