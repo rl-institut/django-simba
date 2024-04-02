@@ -288,13 +288,13 @@ class WriteReadScenarioToDatabase(TestCase):
                 continue
             self.handle_unaware_datetime(values)
             try:
-                self.assertAlmostEquals(values[0], values[1], places=8, msg=key_stack)
+                self.assertAlmostEqual(values[0], values[1], places=8, msg=key_stack)
             except TypeError:
                 # assume it's a date. values[0] does not come from database, so it has to be made
                 # aware
                 values[0] = make_aware(datetime.fromisoformat(values[0]))
                 values[1] = datetime.fromisoformat(values[1])
-                self.assertAlmostEquals(values[0], values[1], places=8, msg=key_stack)
+                self.assertAlmostEqual(values[0], values[1], places=8, msg=key_stack)
 
     def handle_unaware_datetime(self, values):
         if isinstance(values[0], datetime):
@@ -370,7 +370,7 @@ class WriteReadScenarioToDatabase(TestCase):
                 [original_database_schedule, mut_simba_schedule]
             ):
                 try:
-                    self.assertNotEquals(values[0], values[1], msg=key_stack)
+                    self.assertNotEqual(values[0], values[1], msg=key_stack)
                     difference = key_stack, values
                     difference_found = True
                     break
@@ -396,7 +396,7 @@ class WriteReadScenarioToDatabase(TestCase):
                 if ignore_key:
                     continue
                 try:
-                    self.assertNotEquals(values[0], values[1], msg=key_stack)
+                    self.assertNotEqual(values[0], values[1], msg=key_stack)
                     difference = key_stack, values
                     difference_found = True
                     break
@@ -639,13 +639,13 @@ class ConsumptionTestCase(TestCase):
             ],
             values=[1, 2, 3, 4, 5, 6, 7, 8],
         )
-        self.assertAlmostEquals(c.get_consumption((10, 20, 1)), 1)
-        self.assertAlmostEquals(c.get_consumption((5, 20, 1)), 3)
-        self.assertAlmostEquals(c.get_consumption((10, 20, 2)), 1.5)
-        self.assertAlmostEquals(c.get_consumption((10, 25, 3)), 3)
+        self.assertAlmostEqual(c.get_consumption((10, 20, 1)), 1)
+        self.assertAlmostEqual(c.get_consumption((5, 20, 1)), 3)
+        self.assertAlmostEqual(c.get_consumption((10, 20, 2)), 1.5)
+        self.assertAlmostEqual(c.get_consumption((10, 25, 3)), 3)
         delta = 1e-9
-        self.assertAlmostEquals(c.get_consumption((0 + delta, 30 - delta, 3 - delta)), 8)
-        self.assertNotEquals(c.get_consumption((0 + delta, 30 - delta, 3 - delta)), 8)
+        self.assertAlmostEqual(c.get_consumption((0 + delta, 30 - delta, 3 - delta)), 8)
+        self.assertNotEqual(c.get_consumption((0 + delta, 30 - delta, 3 - delta)), 8)
 
     def test_model_creation(self):
 
