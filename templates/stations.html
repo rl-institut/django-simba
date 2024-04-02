@@ -4,7 +4,9 @@
 
     <div id="dynamic-list">
         <h2>Select Stations which should be electrified:</h2>
-            <form id="item-form" hx-post="/update_station">
+            <form enctype="multipart/form-data" method="POST" action="{% url 'simba:set_station_values' task_id %}">
+                {% csrf_token %}
+                {{ form.as_p }}
                 {% for station in stations %}
                     <label>
                         <input type="checkbox" name="item_id" value="{{ station.id }}">
@@ -12,17 +14,8 @@
                     </label>
                     <br>
                 {% endfor %}
-                <button type="submit">Update Scenario</button>
+                <button type="submit" class="btn btn-primary">Continue</button>
             </form>
     </div>
-
-
-
-    <form enctype="multipart/form-data" method="POST"> {% csrf_token %}
-      <div>
-        <button type='submit' class="btn btn-primary">Continue</button>
-        <!--  -->
-      </div>
-    </form>
 </div>
 {% endblock %}

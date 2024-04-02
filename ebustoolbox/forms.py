@@ -77,3 +77,12 @@ class ChartForm(forms.Form):
             self.fields["vehicles"].queryset = Vehicle.objects.filter(
                 vehicle_type__scenario=scenario
             )
+
+
+class ChargingStationDefaultsForm(forms.Form):
+    gc_power = forms.IntegerField(min_value=0, max_value=1000000, initial=5000,
+                                  label="Grid connector power in kVA")
+    charging_point_power = forms.IntegerField(min_value=0, max_value=10000, initial=300,
+                                              label="Charging point power in kW")
+    n_charging_points = forms.IntegerField(min_value=0, max_value=1000, initial=2,
+                                           label="Number of charging points per electrified station")

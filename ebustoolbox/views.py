@@ -21,7 +21,7 @@ from celery.result import AsyncResult
 # Unused import of dash_app needed to register app
 from dash_app import dash_app, ids  # noqa: F401
 from . import tasks
-from .forms import UploadFileForm
+from .forms import UploadFileForm, ChargingStationDefaultsForm
 from .tasks import create_db_url  # noqa
 
 from .util import get_unique_task_id
@@ -128,7 +128,11 @@ def get_vehicle_types(request: HttpRequest, task_id):
 
 
 def get_stations(request: HttpRequest, task_id):
-    context = {"task_id": task_id}
+    form = ChargingStationDefaultsForm()
+    context = {
+        "task_id": task_id,
+        "form": form
+    }
     try:
         scenario = Scenario.objects.get(task_id=task_id)
     except Scenario.DoesNotExist:
@@ -136,6 +140,12 @@ def get_stations(request: HttpRequest, task_id):
     stations = Station.objects.filter(scenario=scenario)
     context["stations"] = stations
     return render(request, "stations.html", context)
+
+
+def set_station_values(request: HttpRequest, task_id):
+    # TODO check if forms are valid
+    # redirect to "simulation overview" page which can start a simulation
+    pass
 
 
 def progress(request: HttpRequest, task_id):
