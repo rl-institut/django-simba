@@ -1298,7 +1298,7 @@ class Depot(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     name = models.TextField(null=False, blank=False)
     name_short = models.TextField(null=True, blank=True)
-    station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE) # Added in schema v3
+    station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE)  # Added in schema v3
 
     default_plan = models.OneToOneField("Plan", null=False, on_delete=models.CASCADE)
 
