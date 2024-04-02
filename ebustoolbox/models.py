@@ -114,6 +114,7 @@ class UploadedFile(models.Model):
         file (FileField): The actual file field storing the uploaded file, with the specified upload path.
 
     Usage Example:
+    Usage Example:
         To create a new UploadedFile instance and associate it with a scenario:
         >>> scenario_instance = Scenario.objects.get(id=1)
         >>> uploaded_file_instance = UploadedFile(scenario=scenario_instance, file=my_file)
@@ -880,6 +881,15 @@ class Station(models.Model):
             f"{self.power_per_charger} kW per charger and a total power of {self.power_total} "
             f"kW. \nLocation: {self.geom.x} {self.geom.y}"
         )
+
+    @classmethod
+    def get_default_pk(cls):
+        scenario = Scenario.objects.get(id=Scenario.get_default_pk())
+        station, created = cls.objects.get_or_create(
+            scenario=scenario,
+            name="default_station",
+        )
+        return station.pk
 
 
 class Line(models.Model):
