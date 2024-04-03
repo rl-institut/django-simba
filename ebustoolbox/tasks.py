@@ -19,6 +19,7 @@ from django.db.transaction import atomic
 from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.timezone import make_aware, is_aware
+from eflips.depot.api import simulate_scenario, generate_depot_layout
 
 import simba.optimizer_util
 import simba.simulate
@@ -48,8 +49,6 @@ from .models import (
     EventType,
     VehicleClass,
 )
-
-from eflips.depot.api import simulate_scenario, generate_depot_layout
 
 if TYPE_CHECKING:
     from spice_ev.scenario import Scenario as SimbaScenario
@@ -318,7 +317,7 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
     lines_dict = {line.id: line for line in Line.objects.filter(scenario=django_scenario)}
 
     for rot in Rotation.objects.filter(scenario=django_scenario):
-        vehicle_type = rot.vehicle.vehicle_type.name_short
+        vehicle_type = rot.vehicle_type.name_short
         simba_rotation = SimbaRotation(
             id=rot.name,
             vehicle_type=vehicle_type,
@@ -567,6 +566,7 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
         "temperature_time_series_path": "temperature_time_series.csv",
         "level_of_loading_over_day_path": "default_level_of_loading_over_day.csv",
         "cost_parameters_file": "cost_params.json",
+        "optimizer_config": "default_optimizer.cfg",
     }.items():
         if args[k]:
             # uploaded file: store in upload folder
@@ -740,6 +740,12 @@ def stations_to_db(station_data, electrified_stations, scenario):
             pass
     Station.objects.bulk_create(object_list)
 
+    # Update db stations which are electrified with info from electrified_stations dictionary
+    update_electrified_stations_db(electrified_stations, scenario)
+
+
+def update_electrified_stations_db(electrified_stations, scenario):
+    """Update stations which are electrified with info from electrified_stations dictionary"""
     for name, ele_station in electrified_stations.items():
         station = Station.objects.get(name=name, scenario=scenario)
         station.is_electrified = True
@@ -877,43 +883,91 @@ def vary_depot_rotations(schedule) -> "collections.Iterable[SimbaRotation]":
     schedule.rotations = orig_rotations
 
 
-def run_toolchain_from_scenario(django_scenario: Scenario):
+def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False):
+    """Run a Scenario from the database with SimBA
+
+    The provided scenario must contain all information including Temperatures, Vehicle_Types,
+    station information and electrified_station information.
+    :param django_scenario: Scenario which is simulated
+    :param assign_vehicles: boolean if the vehicles should be added to rotations.
+    Previous assignments will be deleted
+    :return:
+    """
+    if assign_vehicles:
+        assign_new_vehicles_to_db(django_scenario)
     simba_schedule_db, args_db = get_schedule_from_db(django_scenario)
     run_ebus_toolchain(simba_schedule_db, args_db, django_scenario.task_id)
 
 
-def run_simba_scenario(django_scenario: Scenario):
+def run_simba_scenario(django_scenario: Scenario, assign_vehicles=False):
+    """Run a Scenario from the database with SimBA
+
+    The provided scenario must contain all information including Temperatures, Vehicle_Types,
+    station information and electrified_station information.
+    :param django_scenario: Scenario which is simulated
+    :param assign_vehicles: boolean if the vehicles should be added to rotations.
+    Previous assignments will be deleted
+    :return:
+    """
+    if assign_vehicles:
+        assign_new_vehicles_to_db(django_scenario)
     simba_schedule_db, args_db = get_schedule_from_db(django_scenario)
     run_simba(simba_schedule_db, args_db, django_scenario.task_id)
+
+
+def assign_new_vehicles_to_db(django_scenario: Scenario) -> None:
+    """Assign a new vehicle to every rotation
+
+    Already assigned vehicles are deleted
+    :param django_scenario: Scenario that gets added vehicles and rotation assignments.
+    :return: None
+    """
+    Vehicle.objects.filter(scenario=django_scenario).delete()
+    for i, r in enumerate(Rotation.objects.filter(scenario=django_scenario)):
+        vt = r.vehicle_type
+        ct = EnumChargeType.OPPORTUNITY if vt.opportunity_charging_capable else EnumChargeType.DEPOT
+        v_name = vt.name_short + "_" + ct + "_" + str(i)
+        vehicle = Vehicle.objects.create(scenario=django_scenario, vehicle_type=vt, name=v_name)
+        r.vehicle = vehicle
+        r.save()
 
 
 def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
     """Run the tool chain"""
     # call simba and eflips
-    run_simba(schedule, args, task_id)
+    wanted_modes = args.modes.split(",")
+    assert wanted_modes[-1] == "report"
+    simba_scenario = None
 
-    if settings.EFLIPS_USE:
-        prev_events = [e.id for e in Event.objects.filter(scenario__task_id=task_id)]
-        print(f"Running eflips {datetime.now()}")
-        run_eflips(task_id)
+    # Chain of modes with mode->eflips -> sim. Last mode is "report" and can be outside of loop
+    for mode in wanted_modes[:-1]:
+        # Delete old events
+        Event.objects.filter(scenario__task_id=task_id).delete()
 
-        eflips_assignment = get_assigned_vehicles(task_id, prev_events)
-        schedule.assign_vehicles_for_django(eflips_assignment)
-        # set report dir for second iteration/final results
-        # report_dir = Path(settings.BASE_DIR, args.output_directory, "report_2")
-        # TODO: currently report_directory is set in simba internally and is always report_1 for current purposes
-        # (number changes by the amount of reports in the same fun of SimBA)
-        # call simba with eflips results
-        run_simba(schedule, args, task_id)
+        schedule, simba_scenario = run_simba(
+            schedule, args, task_id, mode=mode, scenario=simba_scenario
+        )
+        # ToDo remove Flag. Eflips should not stay optional
+        # ToDo Maybe create class SimulationMode: which couple logical toolchain steps, e.g.
+        # simba.sim -> eflips -> simba.sim
+        # simba.station_opt -> eflips -> simba.sim
+        if settings.EFLIPS_USE:
+            run_eflips(task_id)
+            eflips_assignment = get_assigned_vehicles(task_id)
+            schedule.assign_vehicles_for_django(eflips_assignment)
+            schedule, simba_scenario = run_simba(schedule, args, task_id, mode="sim")
+
+    # Post Processing or Clean Up ########
+    # ToDo: Report run might be removed at some point
+    _, __ = run_simba(schedule, args, task_id, mode=wanted_modes[-1], scenario=simba_scenario)
 
 
-def get_assigned_vehicles(task_id: str, prev_events: List[Event]):
+def get_assigned_vehicles(task_id: str) -> List[dict]:
     """
     Retrieves assigned vehicles for a given task ID, considering previous events.
 
     Args:
         task_id (str): The ID of the task associated with the scenario.
-        prev_events (List[Event]): List of previous events to consider.
 
     Returns:
         List[dict]: A list of dictionaries containing assigned vehicle information, including
@@ -931,8 +985,7 @@ def get_assigned_vehicles(task_id: str, prev_events: List[Event]):
     used_vehicles = Vehicle.objects.filter(rotation__scenario=scenario).distinct()
     # Delete the old vehicles which are not used anymore
     Vehicle.objects.filter(scenario=scenario).exclude(id__in=used_vehicles).delete()
-    all_events = Event.objects.filter(scenario=scenario)
-    eflips_events = all_events.exclude(id__in=prev_events)
+    events = Event.objects.filter(scenario=scenario)
 
     all_rotations = Rotation.objects.filter(scenario=scenario)
     vehicle_assigns = []
@@ -959,7 +1012,7 @@ def get_assigned_vehicles(task_id: str, prev_events: List[Event]):
             vehicle.save()
 
         prev_event = (
-            eflips_events.filter(time_end__lte=first_trip.departure_time, vehicle=vehicle)
+            events.filter(time_end__lte=first_trip.departure_time, vehicle=vehicle)
             .order_by("time_end")
             .last()
         )
@@ -970,27 +1023,37 @@ def get_assigned_vehicles(task_id: str, prev_events: List[Event]):
     return vehicle_assigns
 
 
-def run_simba(
-    schedule: SimbaSchedule,
-    args,
-    task_id,
-):
+def run_simba(schedule: SimbaSchedule, args, task_id, mode=None, scenario=None):
     print(f"Running Simba {datetime.now()}")
     # TODO don't overwrite output on multiple function calls
-    args.output_directory = Path(settings.UPLOAD_PATH) / task_id
+    args.output_directory = Path(settings.UPLOAD_PATH) / str(task_id)
     args.attach_vehicle_soc = True
 
     db_scenario = Scenario.objects.get(task_id=task_id)
-    scenario = schedule.run(args)
+    if mode is None:
+        scenario = schedule.run(args)
+    else:
+        func = getattr(simba.simulate.Mode, mode)
+        # Run this mode. Iteration number is not changed right now since only the last report is
+        # used from the generated simba files
+        schedule, scenario = func(schedule, scenario, args, 1)
+        match mode:
+            case "sim" | "report":
+                pass
+            case "station_optimization":
+                update_electrified_stations_db(schedule.stations, db_scenario)
+            case _:
+                raise NotImplementedError
 
     print(f"Plotting {datetime.now()}")
-    schedule, scenario = simba.simulate.modes_simulation(schedule, scenario, args)
+
     db_scenario.finished = timezone.now()
     db_scenario.save()
 
     print(f"Creating Simba Events {datetime.now()}")
 
     create_event_output(scenario, task_id)
+    return schedule, scenario
 
 
 def opportunity_rotation_to_eflips_input(
@@ -1037,12 +1100,14 @@ def depot_rotation_to_eflips_input(db_rotation, db_scenario, input_for_eflips, r
 
 
 def run_eflips(task_id) -> None:
+    # ToDo Replace with logger
+    print(f"Running eflips {datetime.now()}")
     db_scenario = Scenario.objects.get(task_id=task_id)
 
     # Constructing the database URL manually
     db_url = create_db_url()
     generate_depot_layout(
-        db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=False
+        db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=True
     )
     simulate_scenario(db_scenario, database_url=db_url)
 

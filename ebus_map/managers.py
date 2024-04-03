@@ -51,11 +51,10 @@ class MVTManager(models.Manager):
     # pylint: disable=W0613,R0913
     def _filter_query(self, query, x, y, z, filters):
         # ToDo Change
-        try:
-            filters["scenario__task_id"] = filters["task_id"]
-            del filters["task_id"]
-        except KeyError:
-            filters = {}
+        assert filters["task_id"] is not None, "Source can only be shown with valid task_id"
+        assert len(filters) == 1, "Only one filter supported at the time"
+        filters["scenario__task_id"] = filters["task_id"]
+        del filters["task_id"]
         return query.filter(**filters)
 
     def _get_mvt_geom_query(self, x, y, z):

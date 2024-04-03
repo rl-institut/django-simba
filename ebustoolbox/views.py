@@ -23,7 +23,6 @@ from dash_app import dash_app, ids  # noqa: F401
 from . import tasks, schedule_readers
 from .forms import UploadFileForm
 from .tasks import create_db_url  # noqa
-
 from .util import get_unique_task_id
 
 import ebustoolbox
