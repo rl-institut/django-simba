@@ -10,7 +10,7 @@ class UploadFileForm(forms.Form):
         widget=forms.RadioSelect(choices=EnumChargeType.choices),
         initial=EnumChargeType.choices[0][0],
     )
-    modes = forms.CharField(widget=forms.HiddenInput, initial="sim,report")
+    modes = forms.CharField(widget=forms.HiddenInput, initial="sim,station_optimization,report")
 
     # charging infrastructure
     gc_power_opps = forms.DecimalField(max_digits=10, decimal_places=2, initial=1e5)
@@ -46,6 +46,7 @@ class UploadFileForm(forms.Form):
 
     level_of_loading_over_day_path = forms.FileField(required=False)
     cost_parameters_file = forms.FileField(required=False)
+    optimizer_config = forms.CharField(required=False)
 
     # extended options
     strategy = forms.CharField(

@@ -1,13 +1,11 @@
 import shutil
+import warnings
 from datetime import timedelta, datetime
 from functools import partial
 from pathlib import Path
-import warnings
 
 import numpy as np
 import pandas as pd
-from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
-from scipy.spatial._qhull import QhullError
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
@@ -17,7 +15,8 @@ from django.db.models.constraints import UniqueConstraint
 from django.dispatch import receiver
 from django.utils.timezone import make_aware
 from fast_update.query import FastUpdateManager
-
+from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
+from scipy.spatial._qhull import QhullError
 
 MINIMAL_TRIP_DURATION_S = 60  # seconds
 

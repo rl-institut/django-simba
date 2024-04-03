@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from celery.result import AsyncResult
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -9,24 +10,23 @@ from django.db.transaction import atomic
 from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest, Http404
 from django.shortcuts import render, redirect
 from django.urls import reverse
+from django.views.decorators.http import require_GET
 from django.views.generic import TemplateView
 from django.views.decorators.http import require_GET, require_POST
 from eflips.depot.api import simulate_scenario  # noqa
 
 from core.models import Progress
-from django_mapengine.views import MapEngineMixin
 
-from celery.result import AsyncResult
+import ebustoolbox
 
 # Unused import of dash_app needed to register app
 from dash_app import dash_app, ids  # noqa: F401
+from django_mapengine.views import MapEngineMixin
 from . import tasks
 from .forms import UploadFileForm, ChargingStationDefaultsForm
 from .tasks import create_db_url  # noqa
-
 from .util import get_unique_task_id
 
-import ebustoolbox
 from ebustoolbox.models import (
     Scenario,
     UserGroup,

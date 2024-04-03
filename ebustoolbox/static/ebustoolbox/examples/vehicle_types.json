@@ -2,7 +2,7 @@
     "AB": {
         "oppb": {
             "name": "articulated bus - opportunity charging",
-            "capacity": 150,
+            "capacity": 50,
             "charging_curve": [[0, 250], [0.8, 250], [1, 25]],
             "min_charging_power": 0,
             "v2g": false,

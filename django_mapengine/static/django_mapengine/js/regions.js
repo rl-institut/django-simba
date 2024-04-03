@@ -4,15 +4,15 @@ PubSub.subscribe(mapEvent.MAP_LAYERS_LOADED, activate_region_hovering);
 
 
 function activate_region_pointer() {
-  for (const region_layer of map_store.cold.regions) {
-    // Show pointer cursor on fills
-    map.on("mouseenter", region_layer, function () {
-      map.getCanvas().style.cursor = "pointer";
-    });
-    map.on("mouseleave", region_layer, function () {
-      map.getCanvas().style.cursor = "";
-    });
-  }
+    for (const region_layer of map_store.cold.regions) {
+        // Show pointer cursor on fills
+        map.on("mouseenter", region_layer, function () {
+            map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mouseleave", region_layer, function () {
+            map.getCanvas().style.cursor = "";
+        });
+    }
 }
 
 function activate_region_hovering() {
