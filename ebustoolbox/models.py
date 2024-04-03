@@ -1172,6 +1172,21 @@ class StopTime(models.Model):
     station = models.ForeignKey(Station, on_delete=models.CASCADE)
 
 
+class DefaultScenario(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    # Make sure only a single DefaultScenario exists
+    _singleton = models.BooleanField(default=True, editable=False, unique=True)
+
+    def save(self, *args, **kwargs):
+        if not self._singleton:
+            raise AttributeError("DefaultScenario._singleton must be True")
+        if DefaultScenario.objects.all().count() > 0:
+            raise AttributeError(
+                "A DefaultScenario exists already. No other Default can be " "generated"
+            )
+        super().save(*args, **kwargs)
+
+
 class EventType(models.TextChoices):
     """
     The EventType represents a certain type of event, which is used to define the type of an event.

@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block content %}
+<div id="dynamic-content">
+    <!-- Dynamic content will be inserted here -->
+
+    <h3>Vehicle Types from Schedule</h3>
+    {% if q_list %}
+        <ul>
+            {% for vehicle_type in vehicle_types_list %}
+                <li>{{ vehicle_type.name }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No Vehicle Types available.</p>
+    {% endif %}
+
+
+    <form enctype="multipart/form-data" method="POST"> {% csrf_token %}
+      <div>
+        <button type='submit' class="btn btn-primary">Continue</button>
+        <!-- Starts pre-simulation, which feeds inputs into next pages. Progress bar, then goes to vehicle_type inputs -->
+      </div>
+    </form>
+</div>
+<script>
+document.addEventListener('htmx:load', function(event) {  // written by ChatGPT, not tested yet
+    var dynamicContent = document.getElementById('dynamic-content');
+    fetch('{% url 'get_vehicle_types' %}')  // Replace 'get_backend_data' with your backend function URL
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(element => {
+                var label = document.createElement('label');
+                label.textContent = element.name;  // Assuming 'name' is the property name in your backend data
+                dynamicContent.appendChild(label);
+
+                var select = document.createElement('select');
+                // Assuming 'options' is the property containing dropdown options in your backend data
+                element.options.forEach(option => {
+                    var optionElem = document.createElement('option');
+                    optionElem.value = option.value;
+                    optionElem.textContent = option.label;
+                    select.appendChild(optionElem);
+                });
+                dynamicContent.appendChild(select);
+            });
+        });
+});
+</script>
+{% endblock %}

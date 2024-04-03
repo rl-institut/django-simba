@@ -108,6 +108,7 @@ DATABASES = {"default": env.db("DATABASE_URL")}
 
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
 CELERY_USE = env("CELERY_USE", default="False").lower() == "true"
+CELERY_TASK_ALWAYS_EAGER = env("CELERY_TASK_ALWAYS_EAGER", default="False").lower() == "true"
 EFLIPS_USE = env("EFLIPS_USE", default="True").lower() == "true"
 # Make sure there is a celery broker url provided if celery should be used
 if CELERY_USE:

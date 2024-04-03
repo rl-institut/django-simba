@@ -25,9 +25,11 @@ import simba.optimizer_util
 import simba.simulate
 import simba.trip
 import simba.util
-from simba.data_container import DataContainer
+from core.models import Progress
 from simba.rotation import Rotation as SimbaRotation
 from simba.schedule import Schedule as SimbaSchedule
+from simba.data_container import DataContainer
+from . import schedule_readers
 from .models import (
     Route,
     Consumption,
@@ -788,6 +790,43 @@ def _generate_zipped_scenario(task_id: str):
         print("Zip already exists")
         return
     shutil.make_archive(output_path.with_suffix(""), "zip", folder_path)
+
+
+@shared_task(bind=True)
+def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cleaned_data):
+    progress = Progress.objects.create(task_id=self.request.id, status="Starting")
+    try:
+        schedule_reader_factory = schedule_readers.get_schedule_reader_factory(reader_num)
+        schedule_reader = schedule_reader_factory(**files, **cleaned_data)
+        schedule_reader.set_observer(progress)
+        scenario = Scenario.objects.get(id=scenario_id)
+        delete_old_scenario_data(scenario)
+        # Read the file and write it to database
+        progress.refresh_from_db()
+        progress.success = schedule_reader.write_to_db(scenario.id)
+        progress.save()
+    except Exception as e:
+        progress.status = "Failed"
+        progress.errors.append(str(e))
+    finally:
+        # delete all uploaded files
+        try:
+            for file in files.values():
+                UploadedFile.objects.get(id=file).delete()
+        except Exception as e:
+            print(e)
+        progress.running = False
+        progress.save()
+
+
+@atomic()
+def delete_old_scenario_data(scenario: Scenario):
+    Rotation.objects.filter(scenario=scenario).delete()
+    Station.objects.filter(scenario=scenario).delete()
+    VehicleType.objects.filter(scenario=scenario).delete()
+    Trip.objects.filter(scenario=scenario).delete()
+    Route.objects.filter(scenario=scenario).delete()
+    Line.objects.filter(scenario=scenario).delete()
 
 
 @shared_task(bind=True)

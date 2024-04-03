@@ -648,7 +648,6 @@ class ConsumptionTestCase(TestCase):
         self.assertNotEqual(c.get_consumption((0 + delta, 30 - delta, 3 - delta)), 8)
 
     def test_model_creation(self):
-
         consumption_instance = Consumption.objects.create(
             name="My Consumption",
             columns=["speed", "consumption"],

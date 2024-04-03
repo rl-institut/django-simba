@@ -1,0 +1,27 @@
+<div id="options_form">
+    <form id='form'>{% csrf_token %}
+        {#    use HX-retarget to target form instead of progess bar in cases of errors#}
+        {{ form }}
+        {#This will be replaced by the progressbar, during server side analyzing            #}
+        <div id="upload-progress_{{ task_id }}"></div>
+        <button id='button_{{ task_id }}' hx-encoding="multipart/form-data" method="POST"
+                hx-target="#upload-progress_{{ task_id }}"
+                hx-post='{% url 'simba:upload_trips' task_id=task_id reader_num=reader_num %}'>
+            Upload
+        </button>
+        {#            progress bar during upload#}
+        <progress id='progress' value='0' max='100'></progress>
+    </form>
+            <script>
+            {# set the first progressbar accodring to the upload progress#}
+            htmx.on('#options_form', 'htmx:xhr:progress', function (evt) {
+                htmx.find('#progress').setAttribute('value', evt.detail.loaded / evt.detail.total * 100)
+            });
+            {# After submitting file disable button#}
+            {# TODO change this script to work with all of the buttons?#}
+            htmx.on('#options_form', 'htmx:confirm', function (evt) {
+                htmx.find('#button_{{task_id}}').disabled = true;
+                console.log("disabled button")
+            });
+            </script>
+</div>
