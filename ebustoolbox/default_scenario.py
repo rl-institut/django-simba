@@ -1,4 +1,5 @@
 """File to create all default Scenario models"""
+
 from django.db import models
 
 
