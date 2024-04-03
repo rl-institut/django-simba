@@ -256,7 +256,8 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
 
     options = copy(django_scenario.simba_options)
 
-    del options["electrified_stations"]
+    if "electrified_stations" in options:
+        del options["electrified_stations"]
 
     schedule = SimbaSchedule(stations=stations_dict, vehicle_types=vehicle_types, **options)
     schedule.station_data = station_data
@@ -426,11 +427,18 @@ def get_station_data_from_db(django_scenario) -> dict:
     """
     station_data = dict()
     for station in Station.objects.filter(scenario=django_scenario):
-        station_data[station.name] = {
-            "long": station.geom.x,
-            "lat": station.geom.y,
-            "elevation": station.geom.z,
-        }
+        try:
+            station_data[station.name] = {
+                "long": station.geom.x,
+                "lat": station.geom.y,
+                "elevation": station.geom.z,
+            }
+        except AttributeError:
+            station_data[station.name] = {
+                "long": 0,
+                "lat": 0,
+                "elevation": 0,
+            }
 
     return station_data
 
@@ -1291,3 +1299,34 @@ def update_vehicle_types_from_dropdown(vehicle_type_pairs, task_id):
         vt_default.name = vt.name
         vt_default.name_short = vt.name_short
         vt_default.save()
+
+
+def set_simba_option_defaults(scenario: Scenario):
+    default_simba_options = {
+        "days": None,
+        "seed": "",
+        "modes": "sim,report",
+        "title": "SimBA",
+        "interval": 1.0,
+        "strategy": "distributed",
+        "cs_power_opps": 300.0,
+        "gc_power_deps": 100000.0,
+        "gc_power_opps": 100000.0,
+        "signal_time_dif": 10.0,
+        "cost_calculation": False,
+        "desired_soc_deps": 1.0,
+        "desired_soc_opps": 1.0,
+        "include_price_csv": None,
+        "min_charging_time": 0.0,
+        "cs_power_deps_depb": 150.0,
+        "cs_power_deps_oppb": 150.0,
+        "default_voltage_level": "MV",
+        "min_recharge_deps_depb": 1.0,
+        "min_recharge_deps_oppb": 1.0,
+        "preferred_charging_type": "depb",
+        "default_buffer_time_opps": 0.0,
+    }
+    for k, v in default_simba_options.items():
+        if k not in scenario.simba_options:
+            scenario.simba_options[k] = v
+    scenario.save()

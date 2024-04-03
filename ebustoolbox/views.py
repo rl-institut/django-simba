@@ -145,8 +145,15 @@ def set_station_values(request: HttpRequest, task_id):
         form = ChargingStationDefaultsForm(request.POST)
         if not form.is_valid():
             return get_stations(None, task_id, form)
+        cleaned_data = form.cleaned_data
         station_id_list = request.POST.getlist(key="station_id")
         scenario = Scenario.objects.get(task_id=task_id)
+        scenario.simba_options.update(cleaned_data)
+        if cleaned_data["station_optimization"]:
+            scenario.simba_options["modes"] = "sim,report"
+        else:
+            scenario.simba_options["modes"] = "sim,station_optimization,report"
+        scenario.save()
         tasks.electrify_db_stations(scenario, station_id_list)
         # redirect to "simulation overview" page which can start a simulation
         response = redirect(reverse("simba:scenario_overview", args=[str(task_id)]))
@@ -156,6 +163,7 @@ def set_station_values(request: HttpRequest, task_id):
 
 
 def scenario_overview(request: HttpRequest, task_id):
+    # TODO add more context for rendering?
     return render(request, "scenario_overview.html", {"task_id": task_id})
 
 
@@ -277,6 +285,7 @@ def run_simulation(request: HttpRequest, task_id: str):
     if request.method == "POST":
         print(f"Running TOOLCHAIN {datetime.now()}")
         scenario = Scenario.objects.get(task_id=task_id)
+        tasks.set_simba_option_defaults(scenario)
         simba_schedule, args = tasks.get_schedule_from_db(scenario)
         tasks.run_ebus_toolchain(simba_schedule, args, task_id)
         print(f"Simulation Finished {datetime.now()}")
