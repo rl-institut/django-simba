@@ -205,7 +205,10 @@ def upload_trips(request: HttpRequest, task_id: str):
 
 
 def assign_vehicle_types(request: HttpRequest, task_id: str):
-    # TODO handle values from dropdowns
+    if request.method == "POST":
+        vehicle_type_pairs = request.POST.getlist("vehicle_type_dropdown")
+        tasks.update_vehicle_types_from_dropdown(vehicle_type_pairs, task_id)
+
     return redirect(reverse("simba:stations", args=[str(task_id)]))
 
 

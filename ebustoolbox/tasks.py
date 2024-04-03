@@ -48,6 +48,7 @@ from .models import (
     Event,
     EventType,
     VehicleClass,
+    DefaultScenario,
 )
 
 from eflips.depot.api import simulate_scenario, generate_depot_layout
@@ -1208,3 +1209,15 @@ def electrify_db_stations(scenario: Scenario, station_id_list, unelectrify=True)
         for station in revert_stations:
             station.is_electrified = False
             station.save()
+
+
+def update_vehicle_types_from_dropdown(vehicle_type_pairs, task_id):
+    # TODO try except?
+    vehicle_types_db = VehicleType.objects.filter(scenario__task_id=task_id)
+    default_scenario = DefaultScenario.objects.first().scenario
+    vehicle_types_default = VehicleType.objects.filter(scenario=default_scenario)
+    for vehicle_type_pair in vehicle_type_pairs:
+        vehicle_types = vehicle_type_pair.split("_")
+        vt = vehicle_types_db.get(pk=vehicle_types[0])
+        vt_default = vehicle_types_default.get(pk=vehicle_types[1])
+        # TODO change all relevant vt stats to the vt_default stats

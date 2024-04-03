@@ -13,9 +13,9 @@
                     {% for vehicle_type in vehicle_types %}
                         <li>
                             {{ vehicle_type.name }}
-                            <select name="vehicle_type_dropdown_{{ vehicle_type.name }}">
+                            <select name="vehicle_type_dropdown">
                                 {% for default_vehicle_type in default_vehicle_types %}
-                                    <option value="{{ default_vehicle_type.id }}">{{ default_vehicle_type.name }}</option>
+                                    <option value="{{ vehicle_type.id }}_{{ default_vehicle_type.id }}">{{ default_vehicle_type.name }}</option>
                                 {% endfor %}
                             </select>
                         </li>
