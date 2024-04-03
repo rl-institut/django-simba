@@ -6,7 +6,7 @@ from ebustoolbox.default_scenario import set_default_scenario
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("ebustoolbox", "0039_consumption_consumption_unique_with_scenario_and_more"),
+        ("ebustoolbox", "0040_depot_station.py"),
     ]
 
     operations = [
