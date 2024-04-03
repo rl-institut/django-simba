@@ -27,5 +27,5 @@ urlpatterns = [
     path("generate_zip/<uuid:task_id>", views.generate_zip, name="generate_zip"),
     path("download_scenario/<uuid:task_id>/", views.download_scenario, name="download_scenario"),
     path("progress/<uuid:task_id>/", views.progress, name="progress"),
-    path("run_simulation/<uuid:task_id>/", views.run_simulation, name="simulate"),
+    path("run_simulation/<uuid:task_id>/", views.run_simulation, name="run_simulation"),
 ]

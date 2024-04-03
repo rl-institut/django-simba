@@ -156,7 +156,7 @@ def set_station_values(request: HttpRequest, task_id):
 
 
 def scenario_overview(request: HttpRequest, task_id):
-    return render(request, "scenario_overview.html")
+    return render(request, "scenario_overview.html", {"task_id": task_id})
 
 
 def progress(request: HttpRequest, task_id):
@@ -274,9 +274,19 @@ def save_and_simulate(
 
 
 def run_simulation(request: HttpRequest, task_id: str):
-    # TODO run simulation for task_id-scenario
-    # as a result render simulation result plots in a not yet existing div/tab
-    pass
+    if request.method == "POST":
+        print(f"Running TOOLCHAIN {datetime.now()}")
+        scenario = Scenario.objects.get(task_id=task_id)
+        simba_schedule, args = tasks.get_schedule_from_db(scenario)
+        tasks.run_ebus_toolchain(simba_schedule, args, task_id)
+        print(f"Simulation Finished {datetime.now()}")
+        # as a result render simulation result plots in a not yet existing div/tab
+        if "ebus_map" in settings.INSTALLED_APPS:
+            create_stations_for_map(scenario)
+
+        response = redirect("simba:result")
+        response["Location"] += "?task_id=" + scenario.task_id
+        return response
 
 
 def download_scenario(request: HttpRequest, task_id: str):

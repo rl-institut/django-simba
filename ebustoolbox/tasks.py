@@ -1278,11 +1278,16 @@ def electrify_db_stations(scenario: Scenario, station_id_list, unelectrify=True)
 
 def update_vehicle_types_from_dropdown(vehicle_type_pairs, task_id):
     # TODO try except?
-    vehicle_types_db = VehicleType.objects.filter(scenario__task_id=task_id)
+    scenario = Scenario.objects.get(task_id=task_id)
+    vehicle_types_db = VehicleType.objects.filter(scenario=scenario)
     default_scenario = DefaultScenario.objects.first().scenario
     vehicle_types_default = VehicleType.objects.filter(scenario=default_scenario)
     for vehicle_type_pair in vehicle_type_pairs:
         vehicle_types = vehicle_type_pair.split("_")
         vt = vehicle_types_db.get(pk=vehicle_types[0])
         vt_default = vehicle_types_default.get(pk=vehicle_types[1])
-        # TODO change all relevant vt stats to the vt_default stats
+        vt_default.scenario = scenario
+        vt_default.pk = vehicle_types[0]
+        vt_default.name = vt.name
+        vt_default.name_short = vt.name_short
+        vt_default.save()
