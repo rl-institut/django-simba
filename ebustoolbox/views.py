@@ -273,6 +273,12 @@ def save_and_simulate(
     return django_scenario
 
 
+def run_simulation(request: HttpRequest, task_id: str):
+    # TODO run simulation for task_id-scenario
+    # as a result render simulation result plots in a not yet existing div/tab
+    pass
+
+
 def download_scenario(request: HttpRequest, task_id: str):
     file_path = settings.MEDIA_ROOT / (str(task_id) + ".zip")
     if file_path.exists():

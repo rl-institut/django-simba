@@ -3,5 +3,6 @@
 {#  <p>Add scenario overview here :)</p>#}
 {#  This page shows all selected attributes of the scenario, or at least a summary (maybe don't list all el stations, but say how many there are)#}
 {#  Thix page also shows all plots that can be created without a simulation, and any other plot once simulation is done#}
-    <button id="simba_submit_button" type='submit' class="btn btn-primary">Run simulation</button>
+    <button id="simba_submit_button" class="btn btn-primary" hx-post='{% url 'simba:run_simulation' task_id %}'
+    >Run simulation</button>
 {% endblock %}
