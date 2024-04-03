@@ -9,7 +9,8 @@
                 {{ form.as_p }}
                 {% for station in stations %}
                     <label>
-                        <input type="checkbox" name="station_id" value="{{ station.id }}">
+                        <input type="checkbox" name="station_id" value="{{ station.id }}"
+                        {% if station.is_electrified %} checked {% endif %}>
                         {{ station.name }}
                     </label>
                     <br>

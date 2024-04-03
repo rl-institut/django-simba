@@ -136,7 +136,6 @@ def get_stations(request: HttpRequest | None, task_id, form=None):
         raise Http404("Scenario with this task_id does not exist")
     stations = Station.objects.filter(scenario=scenario)
     context["stations"] = stations
-    # TODO add electrified stations to context and have boxes prechecked
     return render(request, "stations.html", context)
 
 
