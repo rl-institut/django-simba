@@ -266,7 +266,10 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
     rotations = get_rotations_and_trips_from_db(django_scenario, schedule, station_data)
     schedule.rotations = rotations
 
-    add_temperatures_to_trips(django_scenario, schedule)
+    try:
+        add_temperatures_to_trips(django_scenario, schedule)
+    except Temperatures.DoesNotExist:
+        pass
 
     # schedule.original_rotations = deepcopy(rotations)
     # Database does not store information about "original rotations yet"
@@ -845,7 +848,7 @@ def run_ebus_toolchain(schedule: simba.schedule.Schedule, args, task_id):
     if settings.CELERY_USE:
         print("Using Celery")
         args_dict = vars(args)
-        _ = _celery_run_ebus_toolchain.apply_async((args_dict, str(task_id)), task_id=task_id)
+        _ = _celery_run_ebus_toolchain.apply_async((args_dict, str(task_id)), task_id=str(task_id))
     else:
         _run_ebus_toolchain(schedule, args, task_id)
 

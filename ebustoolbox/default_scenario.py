@@ -39,6 +39,7 @@ def set_default_vehicle_types(apps, scenario) -> None:
         "length": 10,
         "empty_mass": 13_000 * 10 / 12,
         "allowed_mass": 19_000 * 10 / 12,
+        "consumption": 1.0,
     }
     VehicleType = apps.get_model("ebustoolbox", "VehicleType")
     _ = VehicleType.objects.create(**vehicle_type_args, opportunity_charging_capable=True)
@@ -53,6 +54,7 @@ def set_default_vehicle_types(apps, scenario) -> None:
         "length": 12,
         "empty_mass": 13_000,
         "allowed_mass": 19_000,
+        "consumption": 1.2,
     }
     _ = VehicleType.objects.create(**vehicle_type_args, opportunity_charging_capable=True)
     _ = VehicleType.objects.create(**vehicle_type_args, opportunity_charging_capable=False)
@@ -66,6 +68,7 @@ def set_default_vehicle_types(apps, scenario) -> None:
         "length": 18,
         "empty_mass": 13_000 * 1.5,
         "allowed_mass": 19_000 * 1.5,
+        "consumption": 2.0,
     }
     _ = VehicleType.objects.create(**vehicle_type_args, opportunity_charging_capable=True)
     _ = VehicleType.objects.create(**vehicle_type_args, opportunity_charging_capable=False)
