@@ -410,14 +410,15 @@ def get_electrified_stations_from_db(django_scenario) -> dict:
             continue
         stat_dict = {
             "type": charge_type_from_db_to_station(station.charge_type.lower(), is_station=True),
-            "n_charging_stations": station.amount_charging_places,
+            "n_charging_stations": station.amount_charging_places or 10,
             "cs_power_deps_oppb": station.power_per_charger,
             "cs_power_deps_depb": station.power_per_charger,
             "cs_power_opps": station.power_per_charger,
             "gc_power": station.power_total,
             "voltage_level": station.voltage_level,
         }
-        stations_dict[station.name] = stat_dict
+        stat_dict_cleaned = {k: v for k, v in stat_dict.items() if v is not None}
+        stations_dict[station.name] = stat_dict_cleaned
     return stations_dict
 
 
@@ -844,21 +845,8 @@ def _celery_generate_zipped_scenario(self, task_id: str):
     _generate_zipped_scenario(task_id)
 
 
-def run_ebus_toolchain(schedule: simba.schedule.Schedule, args, task_id):
-    if settings.CELERY_USE:
-        print("Using Celery")
-        args_dict = vars(args)
-        _ = _celery_run_ebus_toolchain.apply_async((args_dict, str(task_id)), task_id=str(task_id))
-    else:
-        _run_ebus_toolchain(schedule, args, task_id)
-
-
-@shared_task(bind=True)
-def _celery_run_ebus_toolchain(self, args, task_id):
-    args = Namespace(**args)
-    django_scenario = Scenario.objects.get(task_id=task_id)
-    schedule, args = get_schedule_from_args(args, django_scenario)
-    _run_ebus_toolchain(schedule, args, task_id)
+def run_ebus_toolchain(task_id):
+    _ = _run_ebus_toolchain.apply_async((str(task_id),), task_id=str(task_id))
 
 
 def vary_depot_rotations(schedule) -> "collections.Iterable[SimbaRotation]":
@@ -905,8 +893,7 @@ def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False
     """
     if assign_vehicles:
         assign_new_vehicles_to_db(django_scenario)
-    simba_schedule_db, args_db = get_schedule_from_db(django_scenario)
-    run_ebus_toolchain(simba_schedule_db, args_db, django_scenario.task_id)
+    run_ebus_toolchain(django_scenario.task_id)
 
 
 def run_simba_scenario(django_scenario: Scenario, assign_vehicles=False):
@@ -942,8 +929,13 @@ def assign_new_vehicles_to_db(django_scenario: Scenario) -> None:
         r.save()
 
 
-def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
+@shared_task(bind=True)
+def _run_ebus_toolchain(self, task_id):
     """Run the tool chain"""
+    db_scenario = Scenario.objects.get(task_id=task_id)
+    schedule, args = get_schedule_from_db(db_scenario)
+    # django_scenario = Scenario.objects.get(task_id=task_id)
+    # schedule, args = get_schedule_from_args(args, django_scenario)
     # call simba and eflips
     wanted_modes = args.modes.split(",")
     assert wanted_modes[-1] == "report"
@@ -952,7 +944,7 @@ def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
     # Chain of modes with mode->eflips -> sim. Last mode is "report" and can be outside of loop
     for mode in wanted_modes[:-1]:
         # Delete old events
-        Event.objects.filter(scenario__task_id=task_id).delete()
+        Event.objects.filter(scenario=db_scenario).delete()
 
         schedule, simba_scenario = run_simba(
             schedule, args, task_id, mode=mode, scenario=simba_scenario
@@ -970,6 +962,10 @@ def _run_ebus_toolchain(schedule: SimbaSchedule, args, task_id):
     # Post Processing or Clean Up ########
     # ToDo: Report run might be removed at some point
     _, __ = run_simba(schedule, args, task_id, mode=wanted_modes[-1], scenario=simba_scenario)
+
+    db_scenario.refresh_from_db()
+    db_scenario.finished = timezone.now()
+    db_scenario.save()
 
 
 def get_assigned_vehicles(task_id: str) -> List[dict]:
@@ -1057,12 +1053,10 @@ def run_simba(schedule: SimbaSchedule, args, task_id, mode=None, scenario=None):
 
     print(f"Plotting {datetime.now()}")
 
-    db_scenario.finished = timezone.now()
-    db_scenario.save()
-
     print(f"Creating Simba Events {datetime.now()}")
 
     create_event_output(scenario, task_id)
+
     return schedule, scenario
 
 
@@ -1277,6 +1271,7 @@ def electrify_db_stations(scenario: Scenario, station_id_list, unelectrify=True)
     for station in stations:
         station.is_electrified = True
         # TODO get these values from somewhere?
+        # TODO set scenario defaults for each station
         station.charge_type = EnumChargeType.OPPORTUNITY
         station.voltage_level = EnumVoltageLevel.VOLTAGE_MV
         station.save()
