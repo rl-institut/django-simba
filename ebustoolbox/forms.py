@@ -88,7 +88,7 @@ class ChargingStationDefaultsForm(forms.Form):
     # not implemented in SimBA
     # n_charging_points = forms.IntegerField(min_value=0, max_value=1000, initial=2,
     #                                        label="Number of charging points per electrified station")
-    station_optimization = forms.BooleanField(initial=False)
+    station_optimization = forms.BooleanField(initial=False, required=False)
     charging_types = (
         ("depb", "Depotlader"),
         ("oppb", "Gelegenheitslader"),
