@@ -158,10 +158,6 @@ class SimbaScheduleReader(ScheduleReader):
         last_id = 1 if Rotation.objects.last() is None else Rotation.objects.last().id + 1
         i = -1
 
-        # Sort trips
-        for rot_id, trips in trip_data.items():
-            trip_data[rot_id] = sorted(trips, key=lambda x: x[self.ARRIVAL_TIME])
-
         for rotation_id, trips in trip_data.items():
             i += 1
             assert (
