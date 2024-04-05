@@ -823,6 +823,7 @@ def init_db_with_trips(self, file_id: int, scenario_id: int):
         progress.save()
     except Exception as e:
         progress.status = "Failed"
+        traceback.print_exc()
         progress.errors.append(str(e))
     finally:
         file.delete()

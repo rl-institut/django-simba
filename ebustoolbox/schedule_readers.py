@@ -89,7 +89,6 @@ class SimbaScheduleReader(ScheduleReader):
         VehicleType.objects.bulk_create(vts)
 
         self.set_progress(3, "Finding Rotations")
-
         # Create Rotations
         rotations, rotations_dict = self.get_rotations(scenario, trip_data, vt_dict)
         Rotation.objects.bulk_create(rotations)
@@ -142,6 +141,7 @@ class SimbaScheduleReader(ScheduleReader):
                     # ToDo How do we implement getting loaded masses? Ignore?
                     loaded_mass=0,
                 )
+
                 t.pk = trip_id
                 route.pk = route_id
 
@@ -157,10 +157,15 @@ class SimbaScheduleReader(ScheduleReader):
         rotations_dict = dict()
         last_id = 1 if Rotation.objects.last() is None else Rotation.objects.last().id + 1
         i = -1
+
+        # Sort trips
+        for rot_id, trips in trip_data.items():
+            trip_data[rot_id] = sorted(trips, key=lambda x: x[self.ARRIVAL_TIME])
+
         for rotation_id, trips in trip_data.items():
             i += 1
             assert (
-                len({t[self.VEHICLE_TYPE] for t in trip_data[rotation_id]}) == 1
+                len({t[self.VEHICLE_TYPE] for t in trips}) == 1
             ), f"Rotation {rotation_id} contains multiple vehicle types"
             assert (
                 len({t[self.CHARGING_TYPE] for t in trip_data[rotation_id]}) == 1
@@ -215,6 +220,19 @@ class SimbaScheduleReader(ScheduleReader):
     def get_stations(self, scenario, trip_data):
         stations = list()
         station_dict = dict()
+
+        # make sure the trips are sorted
+        for rot_id, trips in trip_data.items():
+            trip_data[rot_id] = sorted(trips, key=lambda x: x[self.ARRIVAL_TIME])
+
+        # Assume first and last stop are always depots
+        # Get the arrival name of the first trip and departure_name of the last trip.
+        depot_stations = {
+            trips[num][name]
+            for trips in trip_data.values()
+            for num, name in [(1, self.ARRIVAL_NAME), (-1, self.DEPARTURE_NAME)]
+        }
+
         unique_arrival_stations = {
             trip[self.ARRIVAL_NAME] for trips in trip_data.values() for trip in trips
         }
@@ -225,12 +243,20 @@ class SimbaScheduleReader(ScheduleReader):
         last_id = 1 if Station.objects.last() is None else Station.objects.last().id + 1
         for i, name in enumerate(unique_stations):
             station = Station(scenario=scenario, name=name, id=last_id + i)
+            if name in depot_stations:
+                station.is_electrified = True
+                station.charge_type = EnumChargeType.DEPOT.value
             stations.append(station)
             station_dict[name] = station
+
         return stations, station_dict
 
     def file_data_to_dict(self) -> dict[str, []]:
         trip_data = dict()
+
+        # Possible error texts
+        duration_error = "has no duration. Remove it from the schedule"
+
         with open(self.file_path, encoding=self.encoding) as file:
             trip_reader = csv.DictReader(file)
             trip = next(iter(trip_reader))
@@ -255,7 +281,7 @@ class SimbaScheduleReader(ScheduleReader):
                     f"{newline.join(self.errors)}"
                 )
 
-            for trip in trip_reader:
+            for i, trip in enumerate(trip_reader):
                 rotation_id = trip[self.ROTATION_ID]
                 if rotation_id not in trip_data:
                     trip_data[rotation_id] = []
@@ -271,5 +297,10 @@ class SimbaScheduleReader(ScheduleReader):
                 else:
                     trip_d[self.CHARGING_TYPE] = self.default_charging_type
                 trip_d[self.LINE] = trip[self.LINE]
+
+                assert (
+                    trip_d[self.DEPARTURE_TIME] < trip_d[self.ARRIVAL_TIME]
+                ), f"Line {i+1}: Trip {trip_d} {duration_error}"
+
                 trip_data[rotation_id].append(trip_d)
         return trip_data
