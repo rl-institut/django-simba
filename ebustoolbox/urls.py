@@ -22,9 +22,15 @@ urlpatterns = [
     ),
     path("input/vehicle_types/<uuid:task_id>", views.get_vehicle_types, name="vehicle_types"),
     path("input/stations/<uuid:task_id>", views.get_stations, name="stations"),
-    path("input/scenario_overview/<uuid:task_id>", views.scenario_overview, name="scenario_overview"),
+    path(
+        "input/scenario_overview/<uuid:task_id>", views.scenario_overview, name="scenario_overview"
+    ),
     path("set_station_values/<uuid:task_id>", views.set_station_values, name="set_station_values"),
-    path("assign_vehicle_types/<uuid:task_id>", views.assign_vehicle_types, name="assign_vehicle_types"),
+    path(
+        "assign_vehicle_types/<uuid:task_id>",
+        views.assign_vehicle_types,
+        name="assign_vehicle_types",
+    ),
     path("upload_trips/<uuid:task_id>/<int:reader_num>", views.upload_trips, name="upload_trips"),
     path("generate_zip/<uuid:task_id>", views.generate_zip, name="generate_zip"),
     path("download_scenario/<uuid:task_id>/", views.download_scenario, name="download_scenario"),

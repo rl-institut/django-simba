@@ -81,10 +81,12 @@ class ChartForm(forms.Form):
 
 
 class ChargingStationDefaultsForm(forms.Form):
-    gc_power_opps = forms.IntegerField(min_value=0, max_value=1000000, initial=5000,
-                                       label="Grid connector power in kVA")
-    cs_power_opps = forms.IntegerField(min_value=0, max_value=10000, initial=300,
-                                       label="Charging point power in kW")
+    gc_power_opps = forms.IntegerField(
+        min_value=0, max_value=1000000, initial=5000, label="Grid connector power in kVA"
+    )
+    cs_power_opps = forms.IntegerField(
+        min_value=0, max_value=10000, initial=300, label="Charging point power in kW"
+    )
     # not implemented in SimBA
     # n_charging_points = forms.IntegerField(min_value=0, max_value=1000, initial=2,
     #                                        label="Number of charging points per electrified station")

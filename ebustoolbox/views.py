@@ -135,10 +135,7 @@ def get_vehicle_types(request: HttpRequest, task_id):
 def get_stations(request: HttpRequest | None, task_id, form=None):
     if form is None:
         form = ChargingStationDefaultsForm()
-    context = {
-        "task_id": task_id,
-        "form": form
-    }
+    context = {"task_id": task_id, "form": form}
     try:
         scenario = Scenario.objects.get(task_id=task_id)
     except Scenario.DoesNotExist:
@@ -149,7 +146,6 @@ def get_stations(request: HttpRequest | None, task_id, form=None):
 
 
 def set_station_values(request: HttpRequest, task_id):
-
     if request.method == "POST":
         form = ChargingStationDefaultsForm(request.POST)
         if not form.is_valid():
@@ -195,7 +191,9 @@ def progress(request: HttpRequest, task_id):
         # hx_trigger = "notRunning"
     response = render(request, "progress.html", context)
     if context["finished"] and len(context["errors"]) == 0:
-        response["HX-Redirect"] = reverse("simba:vehicle_types", args=[str(progress.scenario.task_id)])
+        response["HX-Redirect"] = reverse(
+            "simba:vehicle_types", args=[str(progress.scenario.task_id)]
+        )
     response.status_code = status_code
     return response
 
