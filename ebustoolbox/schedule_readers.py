@@ -1,9 +1,12 @@
 import csv
 from datetime import datetime
 from pathlib import Path
-from typing import Protocol
+from typing import Callable
+from abc import ABC, abstractmethod
 
+from django import forms
 from django.utils.timezone import make_aware
+from inspect import signature
 
 from core.models import Progress
 from ebustoolbox.models import (
@@ -18,31 +21,96 @@ from ebustoolbox.models import (
 )
 
 
-class ScheduleReader(Protocol):
-    def write_file_to_db(self, scenario_id: int) -> bool:
+def get_options_form(reader_num: int):
+    match reader_num:
+        case _:
+            return SimbaScheduleReader.get_options_form()
+
+
+def function_signature_to_form(function: Callable):
+    sig = signature(function)
+
+    def ScheduleReaderOptionsFormFactory(classname, fields: dict):
+        return type(
+            f"{classname}",
+            (forms.Form,),
+            fields,
+        )
+
+    fields = dict()
+
+    parameters = {name: argument for name, argument in sig.parameters.items()}
+    del parameters["self"]
+    for name, argument in parameters.items():
+        argument_type = argument.annotation.__qualname__
+        match argument_type:
+            case str.__qualname__:
+                if name.find("file") > -1:
+                    field = forms.FileField(required=True)
+                else:
+                    field = forms.CharField(max_length=100, required=True)
+            case int.__qualname__:
+                field = forms.IntegerField(required=True)
+            case float.__qualname__:
+                field = forms.DecimalField(max_digits=10, decimal_places=2, initial=1e5)
+            case bool.__qualname__:
+                field = forms.BooleanField()
+            case datetime.__qualname__:
+                field = forms.DateTimeField(widget=DateTimeInput)
+            case _:
+                raise NotImplementedError
+        fields[name] = field
+        print(argument, field, argument_type)
+    form = ScheduleReaderOptionsFormFactory("ScheduleReaderOptionsForm", fields)
+    return form
+
+
+class DateTimeInput(forms.DateTimeInput):
+    input_type = "datetime-local"
+
+
+class ScheduleReader(ABC):
+    @abstractmethod
+    def write_to_db(self, scenario_id) -> bool:
         pass
 
+    @abstractmethod
     def get_errors(self) -> [str]:
         pass
 
+    @abstractmethod
     def set_observer(self, progress: Progress) -> None:
         pass
 
+    @classmethod
+    def get_options_form(cls):
+        return function_signature_to_form(cls.__init__)
 
-def get_schedule_reader(file) -> ScheduleReader:
+
+def get_schedule_reader_factory(reader_num: int) -> type(ScheduleReader):
     """Returns Schedule Reader to handle the schedule csv."""
-    return SimbaScheduleReader(Path(file.path))
+    match reader_num:
+        case 1:
+            return SimbaScheduleReader
+    raise NotImplementedError(f"Schedule Reader with {reader_num} not found")
 
 
 class SimbaScheduleReader(ScheduleReader):
-    def __init__(self, file):
-        self.file_path: Path = file
+    def __init__(
+        self,
+        file_path: str,
+        default_charging_type: str = "oppb",
+    ):
+        self.file_path: Path = Path(file_path)
+        self.default_capacity = 99.99
+        if default_charging_type not in [EnumChargeType.DEPOT, EnumChargeType.OPPORTUNITY]:
+            raise Exception("""Default charging type has to be of type "depb" or "oppb" """)
+
+        self.default_charging_type = default_charging_type
         self.encoding = "utf-8"
         self.errors = []
         self.progress: Progress = None
-        # ToDo get from frontend form
-        self.default_charging_type = "oppb"
-        self.default_capacity = 99.99
+        # self.file_path: Path = None
 
         self.DEPARTURE_NAME = "departure_name"
         self.DEPARTURE_TIME = "departure_time"
@@ -72,7 +140,10 @@ class SimbaScheduleReader(ScheduleReader):
                 self.progress.status = status
             self.progress.save()
 
-    def write_file_to_db(self, scenario_id: int) -> bool:
+    def write_to_db(self, scenario_id: int) -> bool:
+        """This is help text
+        :param: scenario_id: this is the id of the scenario
+        """
         self.set_total_work(5)
         self.set_progress(0, "Reading File")
         trip_data = self.file_data_to_dict()

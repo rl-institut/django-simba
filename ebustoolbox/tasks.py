@@ -807,11 +807,11 @@ def _generate_zipped_scenario(task_id: str):
 
 
 @shared_task(bind=True)
-def init_db_with_trips(self, file_id: int, scenario_id: int):
-    file = UploadedFile.objects.get(id=file_id)
+def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cleaned_data):
     progress = Progress.objects.create(task_id=self.request.id, status="Starting")
     try:
-        schedule_reader = schedule_readers.get_schedule_reader(file.file)
+        schedule_reader_factory = schedule_readers.get_schedule_reader_factory(reader_num)
+        schedule_reader = schedule_reader_factory(**files, **cleaned_data)
         schedule_reader.set_observer(progress)
         scenario = Scenario.objects.get(id=scenario_id)
         progress.scenario = scenario
@@ -819,14 +819,19 @@ def init_db_with_trips(self, file_id: int, scenario_id: int):
         delete_old_scenario_data(scenario)
         # Read the file and write it to database
         progress.refresh_from_db()
-        progress.success = schedule_reader.write_file_to_db(scenario.id)
+        progress.success = schedule_reader.write_to_db(scenario.id)
         progress.save()
     except Exception as e:
         progress.status = "Failed"
         traceback.print_exc()
         progress.errors.append(str(e))
     finally:
-        file.delete()
+        # delete all uploaded files
+        try:
+            for file in files.values():
+                UploadedFile.objects.get(id=file).delete()
+        except Exception as e:
+            print(e)
         progress.running = False
         progress.save()
 

@@ -1,6 +1,5 @@
 from datetime import datetime
 
-from celery.result import AsyncResult
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -10,23 +9,23 @@ from django.db.transaction import atomic
 from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest, Http404
 from django.shortcuts import render, redirect
 from django.urls import reverse
-from django.views.decorators.http import require_GET
 from django.views.generic import TemplateView
 from django.views.decorators.http import require_GET, require_POST
 from eflips.depot.api import simulate_scenario  # noqa
 
 from core.models import Progress
 
-import ebustoolbox
+from celery.result import AsyncResult
 
 # Unused import of dash_app needed to register app
 from dash_app import dash_app, ids  # noqa: F401
 from django_mapengine.views import MapEngineMixin
-from . import tasks
+from . import tasks, schedule_readers
 from .forms import UploadFileForm, ChargingStationDefaultsForm
 from .tasks import create_db_url  # noqa
 from .util import get_unique_task_id
 
+import ebustoolbox
 from ebustoolbox.models import (
     Scenario,
     UserGroup,
@@ -107,6 +106,16 @@ def home_prototype(request: HttpRequest):
     """Generate the home view of the tool chain with input forms"""
     task_id = get_unique_task_id()
     return render(request, "home_prototype.html", {"task_id": task_id})
+
+
+def get_options(request: HttpRequest, task_id, reader_num: int):
+    # ToDo add Form
+    from . import schedule_readers
+
+    form = schedule_readers.get_options_form(reader_num)
+    context = {"form": form, "reader_num": reader_num, "task_id": task_id}
+
+    return render(request, "schedule_reader_options.html", context)
 
 
 def get_vehicle_types(request: HttpRequest, task_id):
@@ -192,24 +201,42 @@ def progress(request: HttpRequest, task_id):
 
 
 @require_POST
-def upload_trips(request: HttpRequest, task_id: str):
+def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
+    context = {"task_id": task_id}
     try:
-        assert len(request.FILES) == 1, "Error: Please provide a single file"
-        assert request.FILES["file"].readable(), "Error: File cannot be read"
-        file = request.FILES["file"]
+        form = schedule_readers.get_options_form(reader_num)(request.POST, request.FILES)
+        if not form.is_valid():
+            context = {"form": form, "reader_num": reader_num, "task_id": task_id}
+            response = render(request, "schedule_reader_options.html", context)
+            response["HX-Retarget"] = "#options_form"
+            return response
+
         s, _ = Scenario.objects.get_or_create(task_id=task_id)
-        uploaded_file = UploadedFile.objects.create(scenario=s, file=file)
+        # todo check size
+        cleaned_data = form.cleaned_data
+
+        files = dict()
+        for name, file in request.FILES.items():
+            files[name] = UploadedFile.objects.create(scenario=s, file=file).file.path
+            del cleaned_data[name]
         # what kind of file is uploaded
         # errors, success = tasks.init_db_with_trips(uploaded_file.id, s.id)
-        async_result = tasks.init_db_with_trips.apply_async((uploaded_file.id, s.id))
-        context = {"progress_id": async_result.task_id, "task_id": task_id}
+
+        async_result = tasks.init_db_with_trips.apply_async((s.id, reader_num, files, cleaned_data))
+        context["progress_id"] = async_result.task_id
 
         response = render(request, "progress_poll.html", context)
         response["HX-Trigger"] = "running"
         return response
     except AssertionError as e:
         html = f"<html>{str(e)}</html>"
-        return HttpResponse(html)
+        response = HttpResponse(html)
+        return response
+    except Exception as e:
+        html = f"<html>{str(e)}</html>"
+        response = HttpResponse(html)
+        response["HX-Trigger"] = "notRunning"
+        return response
 
 
 def assign_vehicle_types(request: HttpRequest, task_id: str):
