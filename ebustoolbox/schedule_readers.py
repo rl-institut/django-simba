@@ -1,12 +1,21 @@
 import csv
+import inspect
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
-from typing import Callable
+from typing import Callable, List, Type
 from abc import ABC, abstractmethod
+from uuid import UUID
 
+import sqlalchemy.orm
 from django import forms
 from django.utils.timezone import make_aware
 from inspect import signature
+
+from eflips.ingest import DummyIngester, AbstractIngester
+from eflips.ingest.dummy import BusType
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
 from core.models import Progress
 from ebustoolbox.models import (
@@ -23,6 +32,8 @@ from ebustoolbox.models import (
 
 def get_options_form(reader_num: int):
     match reader_num:
+        case 2:
+            return EflipsIngestScheduleReaderDummy.get_options_form(DummyIngester)
         case _:
             return SimbaScheduleReader.get_options_form()
 
@@ -92,6 +103,8 @@ def get_schedule_reader_factory(reader_num: int) -> type(ScheduleReader):
     match reader_num:
         case 1:
             return SimbaScheduleReader
+        case 2:
+            return EflipsIngestScheduleReaderDummy
     raise NotImplementedError(f"Schedule Reader with {reader_num} not found")
 
 
@@ -344,3 +357,196 @@ class SimbaScheduleReader(ScheduleReader):
                 trip_d[self.LINE] = trip[self.LINE]
                 trip_data[rotation_id].append(trip_d)
         return trip_data
+
+
+class EflipsIngestScheduleReaderBase(SimbaScheduleReader, ABC):
+    """
+    This class is the base class for the various eflips-ingest schedule readers. It implements the common
+    functionality for all the readers.
+    """
+
+    @abstractmethod
+    def __init__(self):
+        """
+        This method initializes the class. In the django-simba world, initial validity checks could be done here.
+        However, per Paul's EMail from  2024-03-24, eflips-ingest shims should do the initial validity checks in the
+        meth:`write_to_db` method.
+
+        This method needs to be overridden by the subclasses. The arguments during initialization should be the
+        parameters that are needed for the meth:`validate` method of the eflips-ingest class that the shim is
+        for.
+        """
+        # As meth:`get_errors` should always return a list, we initialize it here.
+        super().__init__()
+
+        self._errors = []
+        self._progress: Progress = []
+
+        # Local import to get around circular import
+        from ebustoolbox.tasks import create_db_url
+
+        self._database_url = create_db_url()
+
+        # This is useless, but it is here to make the instance variables available in the methods.
+        self._ingester: AbstractIngester = None  # Overridden in the subclasses
+
+        # Overridden in the subclasses, this should be the parameters for the meth:`prepare` method of the
+        # eflips-ingest class that the shim is for.
+        self._kwargs = {
+            "progress_callback": None
+        }  # Overridden in the subclasses. Keep the None for progress_callback.
+
+    def write_to_db(self, scenario_id: int) -> bool:
+        """
+        This method calls the meth:`prepare` method of the eflips-ingest class that the shim is for. If the validation
+        fails, it fills the self.errors list with the error messages and returns False. If the validation passes, it
+        calls the meth:`ingest` method of the eflips-ingest class that the shim is for and returns True.
+
+        About handling the scenario_id: eflips-ingest matches scenario_ids through the task_id field, django-simba
+        expects task_id to be None. So what we do is:
+
+        1. Call eflips-ingests meth:`prepare` method. If it succeeds, remember the uuid
+        2. Load the scenario from the scenario_id given to us by django-simba and remember the task_id
+        3. set the task_id of the scenario to the uuid from step 1
+        4. Call eflips-ingests meth:`ingest` method with the uuid (== task_id) and the progress_callback function
+           given to us through meth:`set_observer`
+        5. Change the task_id back to what we remembered in step 2
+
+        param: scenario_id: The id of the scenario that the data should be ingested into.
+
+        """
+
+        validation_result, uuid_or_errors = self._ingester.prepare(**self._kwargs)
+        if not validation_result:
+            assert isinstance(uuid_or_errors, dict)
+            self._errors = [f"{key}: {value}" for key, value in uuid_or_errors.items()]
+            return False
+        else:
+            assert isinstance(uuid_or_errors, UUID)
+
+        engine = create_engine(self._database_url)
+        with Session(engine) as session:
+            try:
+                scenario = session.query(Scenario).filter(Scenario.id == scenario_id).first()
+                django_assigned_task_id = scenario.task_id
+                scenario.task_id = uuid_or_errors  # This is the uuid from the prepare method
+
+                self._ingester.ingest(uuid_or_errors, self._progress_callback)
+
+                scenario.task_id = django_assigned_task_id
+            except Exception as e:
+                self._errors = [str(e)]
+                session.rollback()
+                return False
+            finally:
+                session.commit()
+
+        return True
+
+    @staticmethod
+    def get_options_form(for_class: Type[AbstractIngester]) -> Callable:
+        """
+        This method returns a django-simba form that can be used to set the parameters for the meth:`__init__` method.
+
+        It introspects the meth:`prepare` method of the eflips-ingest class that the shim is for and creates a form
+        based on the parameters of that method.
+        """
+
+        def ScheduleReaderOptionsFormFactory(classname, fields: dict):
+            return type(
+                f"{classname}",
+                (forms.Form,),
+                fields,
+            )
+
+        fields = dict()
+
+        names = for_class.prepare_param_names()
+        descriptions = for_class.prepare_param_description()
+        signature = inspect.signature(for_class.prepare)
+        assert isinstance(names, dict)
+        assert isinstance(descriptions, dict)
+        assert isinstance(signature, inspect.Signature)
+        params_for_us = set(signature.parameters.keys()) - {"progress_callback", "self"}
+        assert set(names.keys()) == set(descriptions.keys()) == params_for_us
+
+        for entry in signature.parameters.values():
+            parameter_name = entry.name
+            if parameter_name == "progress_callback" or parameter_name == "self":
+                continue
+
+            form_name = names[parameter_name]
+            form_description = descriptions[parameter_name]
+
+            if entry.annotation == str:
+                fields[parameter_name] = forms.CharField(label=form_description)
+            elif entry.annotation == int:
+                fields[parameter_name] = forms.IntegerField(label=form_description)
+            elif entry.annotation == float:
+                fields[parameter_name] = forms.DecimalField(label=form_description)
+            elif entry.annotation == bool:
+                fields[parameter_name] = forms.BooleanField(label=form_description)
+            elif issubclass(entry.annotation, Enum):
+                fields[parameter_name] = forms.ChoiceField(
+                    choices=[(key, value) for key, value in names[parameter_name].items()],
+                )
+            elif entry.annotation == Path:
+                fields[parameter_name] = forms.FileField(label=form_description)
+            else:
+                raise NotImplementedError(f"Parameter type {entry.annotation} not implemented.")
+
+        return ScheduleReaderOptionsFormFactory(for_class.__name__ + "OptionsForm", fields)
+
+
+    def get_errors(self) -> [str]:
+        """
+        This method returns the errors that were collected during the meth:`write_to_db` method.
+        """
+        return self._errors
+
+    def set_observer(self, progress: Progress) -> None:
+        """
+        This method sets the progress observer. The progress observer is a django-simba Progress object that the shim
+        can use to report the progress of the ingestion process.
+        """
+        progress.total_work = 100  # We convert our float progress to an integer between 0 and 100
+        progress.current_work = 0
+        self._progress = progress
+        self._progress.save()
+
+    def _progress_callback(self, increment: float) -> None:
+        """
+        This method is provided to ingest() as a callback function. When called, it updates the observers with the
+        current progress. It is called periodically by the ingest() method.
+        """
+        self._progress.current_work += int(round(self._progress.total_work * increment))
+        self._progress.save()
+
+
+class EflipsIngestScheduleReaderDummy(EflipsIngestScheduleReaderBase):
+    """
+    This class is a dummy shim for the eflips-ingest DummyIngester class. It is used for testing the shim system.
+    """
+
+    def __init__(
+        self,
+        random_text_file: Path,
+        name: str,
+        depot_count: int,
+        line_count: int,
+        rotation_per_line: int,
+        opportunity_charging: bool,
+        bus_type: BusType,
+    ):
+        super().__init__()
+        self._ingester = DummyIngester(self._database_url)
+        self._kwargs = {
+            "random_text_file": random_text_file,
+            "name": name,
+            "depot_count": depot_count,
+            "line_count": line_count,
+            "rotation_per_line": rotation_per_line,
+            "opportunity_charging": opportunity_charging,
+            "bus_type": bus_type,
+            "progress_callback": None,
+        }
