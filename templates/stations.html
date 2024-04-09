@@ -28,7 +28,7 @@
           <span> / {{ stations|length }} selected</span>
         </summary>
         <div id="station-container" class="grid-container">
-          {% for station in stations|dictsort:"id" %}
+          {% for station in stations %}
             <div class="grid-item">
               <input
                 type="checkbox"

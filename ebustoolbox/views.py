@@ -140,7 +140,7 @@ def get_stations(request: HttpRequest | None, task_id, form=None):
         scenario = Scenario.objects.get(task_id=task_id)
     except Scenario.DoesNotExist:
         raise Http404("Scenario with this task_id does not exist")
-    stations = Station.objects.filter(scenario=scenario)
+    stations = Station.objects.filter(scenario=scenario).exclude(charge_type='depb').order_by('id')
     context["stations"] = stations
     return render(request, "stations.html", context)
 
@@ -310,17 +310,12 @@ def run_simulation(request: HttpRequest, task_id: str):
     if request.method == "GET":
         print(f"Running TOOLCHAIN {datetime.now()}")
         scenario = Scenario.objects.get(task_id=task_id)
-        tasks.set_simba_option_defaults(scenario)
         tasks.run_toolchain_from_scenario(scenario, assign_vehicles=True)
-        # simba_schedule, args = tasks.get_schedule_from_db(scenario)
-        # tasks.run_ebus_toolchain(simba_schedule, args, task_id)
         print(f"Simulation Finished {datetime.now()}")
         # as a result render simulation result plots in a not yet existing div/tab
         if "ebus_map" in settings.INSTALLED_APPS:
             create_stations_for_map(scenario)
 
-        # response = redirect("simba:result")
-        # response["Location"] += "?task_id=" + str(scenario.task_id)
         return SuccessView.as_view()(request)
 
 
