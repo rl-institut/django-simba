@@ -110,9 +110,9 @@ LOGOUT_REDIRECT_URL = "/login/"  # redirect to login after logout
 DATABASES = {"default": env.db("DATABASE_URL")}
 
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
-CELERY_USE = env("CELERY_USE", default="False").lower() == "true"
-CELERY_TASK_ALWAYS_EAGER = env("CELERY_TASK_ALWAYS_EAGER", default="False").lower() == "true"
-EFLIPS_USE = env("EFLIPS_USE", default="True").lower() == "true"
+CELERY_USE = env.bool("CELERY_USE", default=False)
+CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=False)
+EFLIPS_USE = env.bool("EFLIPS_USE", default=True)
 # Make sure there is a celery broker url provided if celery should be used
 if CELERY_USE:
     assert CELERY_BROKER_URL, (
