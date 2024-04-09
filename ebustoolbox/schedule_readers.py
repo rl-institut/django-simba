@@ -359,7 +359,7 @@ class SimbaScheduleReader(ScheduleReader):
         return trip_data
 
 
-class EflipsIngestScheduleReaderBase(SimbaScheduleReader, ABC):
+class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
     """
     This class is the base class for the various eflips-ingest schedule readers. It implements the common
     functionality for all the readers.
@@ -485,7 +485,7 @@ class EflipsIngestScheduleReaderBase(SimbaScheduleReader, ABC):
             elif entry.annotation == float:
                 fields[parameter_name] = forms.DecimalField(label=form_description)
             elif entry.annotation == bool:
-                fields[parameter_name] = forms.BooleanField(label=form_description)
+                fields[parameter_name] = forms.BooleanField(label=form_description, required=False)
             elif issubclass(entry.annotation, Enum):
                 fields[parameter_name] = forms.ChoiceField(
                     choices=[(key, value) for key, value in names[parameter_name].items()],
@@ -530,7 +530,7 @@ class EflipsIngestScheduleReaderDummy(EflipsIngestScheduleReaderBase):
 
     def __init__(
         self,
-        random_text_file: Path,
+        random_text_file: str,
         name: str,
         depot_count: int,
         line_count: int,
@@ -541,7 +541,7 @@ class EflipsIngestScheduleReaderDummy(EflipsIngestScheduleReaderBase):
         super().__init__()
         self._ingester = DummyIngester(self._database_url)
         self._kwargs = {
-            "random_text_file": random_text_file,
+            "random_text_file": Path(random_text_file),
             "name": name,
             "depot_count": depot_count,
             "line_count": line_count,
