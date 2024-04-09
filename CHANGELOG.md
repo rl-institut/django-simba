@@ -17,8 +17,12 @@ Template:
 - [(#)]()
 ```
 ### Changed
+- [(#82)](https://github.com/rl-institut/django-simba/pull/82)
 - Fixed proper file deletion after reading the files using a ScheduleReader
 - Added DJANGO_LOCAL_DEVELOPMENT=True setting to .env. Used if security features needed for production should be disabled.
+- Override settings for tests so they run through
+
+
 
 ### Changed
 - [(#79)](https://github.com/rl-institut/django-simba/pull/79)
