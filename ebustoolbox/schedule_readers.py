@@ -7,6 +7,7 @@ from typing import Callable, List, Type
 from abc import ABC, abstractmethod
 from uuid import UUID
 
+import eflips
 import sqlalchemy.orm
 from django import forms
 from django.utils.timezone import make_aware
@@ -420,6 +421,9 @@ class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
         if not validation_result:
             assert isinstance(uuid_or_errors, dict)
             self._errors = [f"{key}: {value}" for key, value in uuid_or_errors.items()]
+            raise Exception(
+                f"Validation failed: {self._errors}"
+            )  # TODO: This violates the contract of the method
             return False
         else:
             assert isinstance(uuid_or_errors, UUID)
@@ -427,9 +431,16 @@ class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
         engine = create_engine(self._database_url)
         with Session(engine) as session:
             try:
-                scenario = session.query(Scenario).filter(Scenario.id == scenario_id).first()
+                scenario = (
+                    session.query(eflips.model.Scenario)
+                    .filter(eflips.model.Scenario.id == scenario_id)
+                    .first()
+                )
                 django_assigned_task_id = scenario.task_id
                 scenario.task_id = uuid_or_errors  # This is the uuid from the prepare method
+
+                # We need to commit the session here, because the ingest method will start a new transaction
+                session.commit()
 
                 self._ingester.ingest(uuid_or_errors, self._progress_callback)
 
@@ -437,8 +448,11 @@ class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
             except Exception as e:
                 self._errors = [str(e)]
                 session.rollback()
+                raise e  # TODO: This violates the contract of the method
                 return False
             finally:
+                # In any case, we need to set the task_id back to what it was before
+                scenario.task_id = django_assigned_task_id
                 session.commit()
 
         return True
@@ -488,7 +502,7 @@ class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
                 fields[parameter_name] = forms.BooleanField(label=form_description, required=False)
             elif issubclass(entry.annotation, Enum):
                 fields[parameter_name] = forms.ChoiceField(
-                    choices=[(key, value) for key, value in names[parameter_name].items()],
+                    choices=[(key.name, value) for key, value in names[parameter_name].items()],
                 )
             elif entry.annotation == Path:
                 fields[parameter_name] = forms.FileField(label=form_description)
@@ -496,7 +510,6 @@ class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
                 raise NotImplementedError(f"Parameter type {entry.annotation} not implemented.")
 
         return ScheduleReaderOptionsFormFactory(for_class.__name__ + "OptionsForm", fields)
-
 
     def get_errors(self) -> [str]:
         """
@@ -536,12 +549,19 @@ class EflipsIngestScheduleReaderDummy(EflipsIngestScheduleReaderBase):
         line_count: int,
         rotation_per_line: int,
         opportunity_charging: bool,
-        bus_type: BusType,
+        bus_type: str,
     ):
         super().__init__()
         self._ingester = DummyIngester(self._database_url)
+
+        # BusType is an enum, wich we need to recreate here
+        bus_type = BusType[bus_type]
+
+        # random_text_file is a Path as string, we need to convert it to a Path
+        random_text_file = Path(random_text_file)
+
         self._kwargs = {
-            "random_text_file": Path(random_text_file),
+            "random_text_file": random_text_file,
             "name": name,
             "depot_count": depot_count,
             "line_count": line_count,
