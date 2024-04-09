@@ -1,22 +1,85 @@
 {% extends 'base.html' %}
+{% block header %}
+<style>
+  #station-container.grid-container {
+    display: grid;
+    grid-template-columns: auto auto auto;  // three columns with optimal width
+    padding: 10px;
+    background:lightskyblue;
+  }
+<!--
+  .grid-item {
+    text-align: left;
+  }
+-->
+</style>
+{% endblock %}
 {% block content %}
 <div id="dynamic-content">
-
-    <div id="dynamic-list">
-        <h2>Select Stations which should be electrified:</h2>
-            <form enctype="multipart/form-data" method="POST" action="{% url 'simba:set_station_values' task_id %}">
-                {% csrf_token %}
-                {{ form.as_p }}
-                {% for station in stations %}
-                    <label>
-                        <input type="checkbox" name="station_id" value="{{ station.id }}"
-                        {% if station.is_electrified %} checked {% endif %}>
-                        {{ station.name }}
-                    </label>
-                    <br>
-                {% endfor %}
-                <button type="submit" class="btn btn-primary">Continue</button>
-            </form>
-    </div>
+  <div id="dynamic-list">
+    <h2>Select Stations which should be electrified:</h2>
+    <form enctype="multipart/form-data" method="POST" action="{% url 'simba:set_station_values' task_id %}">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <details>
+        <summary>
+          <span>Stations: </span>
+          <span id="station-counter">X</span>
+          <span> / {{ stations|length }} selected</span>
+        </summary>
+        <div id="station-container" class="grid-container">
+          {% for station in stations|dictsort:"id" %}
+            <div class="grid-item">
+              <input
+                type="checkbox"
+                class="station-checkbox"
+                id="station_{{ station.id }}"
+                name="station_id"
+                value="{{ station.id }}"
+                onclick="updateStationCounter();"
+                initial={{station.is_electrified}}
+                {% if station.is_electrified %} checked {% endif %}
+              >
+              <label for="station_{{ station.id }}">{{ station.name }}</label>
+            </div>
+          {% endfor %}
+        </div>
+      </details>
+      <div>
+        <a class="btn btn-secondary" onclick="setCheckboxes(true);">Select all</a>
+        <a class="btn btn-secondary" onclick="setCheckboxes(false);">Deselect all</a>
+        <a class="btn btn-secondary" onclick="setCheckboxes('initial');">Reset</a>
+      </div>
+      <div>
+        <br>
+        <button type="submit" class="btn btn-primary">Continue</button>
+      </div>
+    </form>
+  </div>
 </div>
+
+<script>
+// checkbox logic
+function updateStationCounter(){
+  // get all checkboxes by class
+  const checkboxes = document.getElementsByClassName("station-checkbox");
+  // convert HTMLCollection to Array and count selected checkboxes
+  const count = [...checkboxes].reduce((a,c) => a + c.checked, 0);
+  // set span text (convert number to string first)
+  document.getElementById('station-counter').textContent = count + "";
+}
+
+// select, unselect or reset all station checkboxes
+// values for checked:
+// - true -> all boxes selected
+// - false -> all boxes deselected
+// - initial -> all boxes reset
+function setCheckboxes(checked){
+  const checkboxes = document.getElementsByClassName("station-checkbox");
+  for(let box of checkboxes)
+      box.checked = checked==='initial'? box.getAttribute('initial')==='True' : checked;
+  updateStationCounter();
+}
+window.onload = updateStationCounter;
+</script>
 {% endblock %}
