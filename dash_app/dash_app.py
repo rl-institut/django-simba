@@ -2,7 +2,6 @@ from django_plotly_dash import DjangoDash
 from .dash_layout import create_layout
 from dash_bootstrap_components.themes import BOOTSTRAP
 from django.apps import apps
-from .data import reset_df_perf
 
 # create basic stateless app
 app = DjangoDash(
@@ -33,8 +32,6 @@ def create_app(task_id: str):
     sa1, created = StatelessApp.objects.get_or_create(
         app_name="SimpleExampleApp", slug="simple-example"
     )
-
-    reset_df_perf()
 
     if not created:
         sa1.save()

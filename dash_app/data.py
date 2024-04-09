@@ -16,8 +16,6 @@ import pandas as pd
 from django.db.models import Count
 from dash.exceptions import PreventUpdate
 
-df_perf = pd.DataFrame({"name": [], "start": [], "end": [], "process": []})
-
 
 def get_all_buses(task_id: str) -> list[str]:
     """
@@ -240,55 +238,6 @@ def get_vehicle_types(scenario_id, buses):
     df = pd.DataFrame(values_with_counts)
 
     return df
-
-
-def get_df_perf():
-    """
-    Retrieves a global DataFrame containing performance data.
-
-    :return: DataFrame containing performance data.
-    :rtype: pandas.DataFrame
-    """
-    global df_perf
-    return df_perf
-
-
-def register_time(name, start, end, process):
-    """
-    Registers a time interval with the given name, start time, end time, and process,
-    and updates the global DataFrame containing performance data.
-
-    :param name: Name of the plot/process.
-    :type name: str
-    :param start: Start time of the interval in seconds
-    :type start: int
-    :param end: End time of the interval in seconds
-    :type end: int
-    :param process: Process type associated with the time interval.
-    :type process: str
-    """
-    global df_perf
-    df = pd.DataFrame(
-        {
-            "name": [name],
-            "start": [pd.to_datetime(start, unit="s")],
-            "end": [pd.to_datetime(end, unit="s")],
-            "process": [process],
-        }
-    )
-    # df['start'] = pd.to_datetime(df['start'])
-    # df['end'] = pd.to_datetime(df['end'])
-    df_perf = pd.concat([df_perf, df], ignore_index=True, sort=False)
-
-
-def reset_df_perf():
-    """
-    Resets the global DataFrame containing performance data to an empty DataFrame.
-    """
-    global df_perf
-    df_perf = pd.DataFrame({"name": [], "start": [], "end": [], "process": []})
-    df_perf["start"] = pd.to_datetime(df_perf["start"])
-    df_perf["end"] = pd.to_datetime(df_perf["end"])
 
 
 def get_critical_rotations_as_dataframe(scenario_id, buses):
