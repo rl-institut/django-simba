@@ -18,6 +18,12 @@ Template:
 ```
 
 ### Changed
+- [(#87)](https://github.com/rl-institut/django-simba/pull/87)
+- Add a working (dummy for now) eflips-ingest ingester and the code around it.
+- Change the models to use db_default values for compatibility with eflips-model
+- Bump django dependency to 5.0.0
+
+
 - [(#79)](https://github.com/rl-institut/django-simba/pull/79)
 - Implements an abstract class of ScheduleReader which allows importing of different Schedule Types like SimBA, GTFS or VDE
 - Implements a Progressbar with a Progress model
