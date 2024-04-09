@@ -555,10 +555,12 @@ def get_args(django_scenario) -> Namespace:
     parser = simba.util.get_parser()
     # Read the parse values, in this case the default values
     args, _ = parser.parse_known_args()
-    vars(args).update({
-        "modes": "sim,report",
-        "title": "SimBA",
-    })
+    vars(args).update(
+        {
+            "modes": "sim,report",
+            "title": "SimBA",
+        }
+    )
     # Overwrite args with scenario specific data
     vars(args).update(vars(Namespace(**django_scenario.simba_options)))
     # arguments relevant to SpiceEV, setting automatically to reduce clutter in config
