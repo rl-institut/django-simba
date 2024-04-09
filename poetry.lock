@@ -935,24 +935,22 @@ xlsxwriter = ">=3.1.9,<4.0.0"
 
 [[package]]
 name = "eflips-ingest"
-version = "1.1.0"
+version = "1.1.1"
 description = "A collection of import scripts for converting bus schedule data into the [eflips-model](https://github.com/mpm-tu-berlin/eflips-model) data format."
 optional = false
-python-versions = "^3.10"
-files = []
-develop = false
+python-versions = "<4.0,>=3.10"
+files = [
+    {file = "eflips_ingest-1.1.1-py3-none-any.whl", hash = "sha256:4a806a86fa0595d364ea48b9d5393827799367a6a556bfe1280f867e6fc2dfb9"},
+    {file = "eflips_ingest-1.1.1.tar.gz", hash = "sha256:e757f494c559338bcd45c5ea9ea91b9c028b742df7d6bc65e5e0fadb2b4033d7"},
+]
 
 [package.dependencies]
-eflips-model = "^3.1.1"
-fire = "^0.5.0"
-lxml = "^5.1.0"
-pyproj = "^3.6.1"
-requests = "^2.31.0"
-tqdm = "^4.66.1"
-
-[package.source]
-type = "directory"
-url = "../eflips-ingest"
+eflips-model = ">=3.1.1,<4.0.0"
+fire = ">=0.5.0,<0.6.0"
+lxml = ">=5.1.0,<6.0.0"
+pyproj = ">=3.6.1,<4.0.0"
+requests = ">=2.31.0,<3.0.0"
+tqdm = ">=4.66.1,<5.0.0"
 
 [[package]]
 name = "eflips-model"
@@ -2730,4 +2728,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "9601f25e3c41a7413793bbfaf8c63e9de7b7c32cdb893badb7f0cbce524f6465"
+content-hash = "ceb0b6d7242fbc7b6a57b6daa142432f966407161e97e7a5efda54ea5efd7e0b"
