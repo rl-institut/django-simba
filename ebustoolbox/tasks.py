@@ -254,7 +254,9 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
     # setup consumption calculator that can be accessed by all trips
     simba.trip.Trip.consumption = data_container.to_consumption()
 
-    options = copy(django_scenario.simba_options)
+    # options = copy(django_scenario.simba_options)
+    args = get_args(django_scenario=django_scenario)
+    options = vars(args)
 
     if "electrified_stations" in options:
         del options["electrified_stations"]
@@ -275,7 +277,7 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
     # Database does not store information about "original rotations yet"
     schedule.original_rotations = None
 
-    args = get_args(django_scenario=django_scenario)
+    # args = get_args(django_scenario=django_scenario)
     # filter rotations
     schedule.rotation_filter(args)
 
@@ -553,6 +555,10 @@ def get_args(django_scenario) -> Namespace:
     parser = simba.util.get_parser()
     # Read the parse values, in this case the default values
     args, _ = parser.parse_known_args()
+    vars(args).update({
+        "modes": "sim,report",
+        "title": "SimBA",
+    })
     # Overwrite args with scenario specific data
     vars(args).update(vars(Namespace(**django_scenario.simba_options)))
     # arguments relevant to SpiceEV, setting automatically to reduce clutter in config
@@ -1303,34 +1309,3 @@ def update_vehicle_types_from_dropdown(vehicle_type_pairs, task_id):
         vt_default.name = vt.name
         vt_default.name_short = vt.name_short
         vt_default.save()
-
-
-def set_simba_option_defaults(scenario: Scenario):
-    default_simba_options = {
-        "days": None,
-        "seed": "",
-        "modes": "sim,report",
-        "title": "SimBA",
-        "interval": 1.0,
-        "strategy": "distributed",
-        "cs_power_opps": 300.0,
-        "gc_power_deps": 100000.0,
-        "gc_power_opps": 100000.0,
-        "signal_time_dif": 10.0,
-        "cost_calculation": False,
-        "desired_soc_deps": 1.0,
-        "desired_soc_opps": 1.0,
-        "include_price_csv": None,
-        "min_charging_time": 0.0,
-        "cs_power_deps_depb": 150.0,
-        "cs_power_deps_oppb": 150.0,
-        "default_voltage_level": "MV",
-        "min_recharge_deps_depb": 1.0,
-        "min_recharge_deps_oppb": 1.0,
-        "preferred_charging_type": "depb",
-        "default_buffer_time_opps": 0.0,
-    }
-    for k, v in default_simba_options.items():
-        if k not in scenario.simba_options:
-            scenario.simba_options[k] = v
-    scenario.save()

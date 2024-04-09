@@ -8,12 +8,14 @@
                 {% csrf_token %}
                 {{ form.as_p }}
                 {% for station in stations %}
+                    {% if station.charge_type != "depb" %}
                     <label>
                         <input type="checkbox" name="station_id" value="{{ station.id }}"
                         {% if station.is_electrified %} checked {% endif %}>
                         {{ station.name }}
                     </label>
                     <br>
+                    {% endif %}
                 {% endfor %}
                 <button type="submit" class="btn btn-primary">Continue</button>
             </form>
