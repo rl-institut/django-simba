@@ -3,12 +3,11 @@ import inspect
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Callable, List, Type
+from typing import Callable, Type
 from abc import ABC, abstractmethod
 from uuid import UUID
 
 import eflips
-import sqlalchemy.orm
 from django import forms
 from django.utils.timezone import make_aware
 from inspect import signature
@@ -493,19 +492,29 @@ class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
             form_description = descriptions[parameter_name]
 
             if entry.annotation == str:
-                fields[parameter_name] = forms.CharField(label=form_description)
+                fields[parameter_name] = forms.CharField(
+                    label=form_name, help_text=form_description
+                )
             elif entry.annotation == int:
-                fields[parameter_name] = forms.IntegerField(label=form_description)
+                fields[parameter_name] = forms.IntegerField(
+                    label=form_name, help_text=form_description
+                )
             elif entry.annotation == float:
-                fields[parameter_name] = forms.DecimalField(label=form_description)
+                fields[parameter_name] = forms.DecimalField(
+                    label=form_name, help_text=form_description
+                )
             elif entry.annotation == bool:
-                fields[parameter_name] = forms.BooleanField(label=form_description, required=False)
+                fields[parameter_name] = forms.BooleanField(
+                    label=form_name, required=False, help_text=form_description
+                )
             elif issubclass(entry.annotation, Enum):
                 fields[parameter_name] = forms.ChoiceField(
-                    choices=[(key.name, value) for key, value in names[parameter_name].items()],
+                    choices=[(key.name, value) for key, value in names[parameter_name].items()]
                 )
             elif entry.annotation == Path:
-                fields[parameter_name] = forms.FileField(label=form_description)
+                fields[parameter_name] = forms.FileField(
+                    label=form_name, help_text=form_description
+                )
             else:
                 raise NotImplementedError(f"Parameter type {entry.annotation} not implemented.")
 
