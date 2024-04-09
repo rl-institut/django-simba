@@ -163,7 +163,7 @@ class BatteryType(models.Model):
     # relative to gross capacity
     specific_mass = models.FloatField(null=False, blank=True)
     # defined in eFLIPS-LCA
-    chemistry = models.JSONField(default=dict)
+    chemistry = models.JSONField(null=True, default=dict)
 
 
 class AssocVehicleTypeVehicleClass(models.Model):
@@ -240,9 +240,9 @@ class VehicleType(models.Model):
     name_short = models.TextField(null=True, blank=False, default=name)
     opportunity_charging_capable = models.BooleanField()
     battery_capacity = models.FloatField()
-    battery_capacity_reserve = models.FloatField(default=0)
-    charging_efficiency = models.FloatField(default=0.95)
-    minimum_charging_power = models.FloatField(default=0)
+    battery_capacity_reserve = models.FloatField(db_default=0)
+    charging_efficiency = models.FloatField(db_default=0.95)
+    minimum_charging_power = models.FloatField(db_default=0)
 
     # SOC, ChargingPower
     charging_curve = ArrayField(ArrayField(models.FloatField(), size=2))

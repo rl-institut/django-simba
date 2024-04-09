@@ -677,17 +677,17 @@ files = [
 
 [[package]]
 name = "django"
-version = "4.2.10"
+version = "5.0.4"
 description = "A high-level Python web framework that encourages rapid development and clean, pragmatic design."
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.10"
 files = [
-    {file = "Django-4.2.10-py3-none-any.whl", hash = "sha256:a2d4c4d4ea0b6f0895acde632071aff6400bfc331228fc978b05452a0ff3e9f1"},
-    {file = "Django-4.2.10.tar.gz", hash = "sha256:b1260ed381b10a11753c73444408e19869f3241fc45c985cd55a30177c789d13"},
+    {file = "Django-5.0.4-py3-none-any.whl", hash = "sha256:916423499d75d62da7aa038d19aef23d23498d8df229775eb0a6309ee1013775"},
+    {file = "Django-5.0.4.tar.gz", hash = "sha256:4bd01a8c830bb77a8a3b0e7d8b25b887e536ad17a81ba2dce5476135c73312bd"},
 ]
 
 [package.dependencies]
-asgiref = ">=3.6.0,<4"
+asgiref = ">=3.7.0,<4"
 sqlparse = ">=0.3.1"
 tzdata = {version = "*", markers = "sys_platform == \"win32\""}
 
@@ -820,20 +820,20 @@ field = ["django-leaflet (>=0.12)"]
 
 [[package]]
 name = "django-plotly-dash"
-version = "2.2.2"
+version = "2.3.1"
 description = "Django use of plotly dash apps through template tags"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "django-plotly-dash-2.2.2.tar.gz", hash = "sha256:d6f7d634372d486c358412d1bc59ff2a4b3adc4a2a76c0681a35ec06603630c7"},
-    {file = "django_plotly_dash-2.2.2-py3-none-any.whl", hash = "sha256:145553038f423db5344d08b1513805cf14a9a040071d01ae8d20dbb70fa9328d"},
+    {file = "django-plotly-dash-2.3.1.tar.gz", hash = "sha256:715a827a5d02d1d6e646a9ea415bd27c3ba06c45f1c300f48f89c0a6301dc551"},
+    {file = "django_plotly_dash-2.3.1-py3-none-any.whl", hash = "sha256:1a0da2a1547ab394076febc16802ddc9aa8f21fbfd2ba1b41a2093f5c4a31551"},
 ]
 
 [package.dependencies]
-channels = ">=2.0"
+channels = ">=4.0"
 dash = ">=2.0,<2.10"
 dash-bootstrap-components = "*"
-Django = ">=3.2,<5.0.0"
+Django = ">=4.0.0"
 dpd-components = "*"
 Flask = ">=1.0.2"
 plotly = "*"
@@ -938,19 +938,21 @@ name = "eflips-ingest"
 version = "1.1.0"
 description = "A collection of import scripts for converting bus schedule data into the [eflips-model](https://github.com/mpm-tu-berlin/eflips-model) data format."
 optional = false
-python-versions = "<4.0,>=3.10"
-files = [
-    {file = "eflips_ingest-1.1.0-py3-none-any.whl", hash = "sha256:8f2d18903fa10514a884d31dec84b44b2772210f4f17a92dd0856c00d80fab46"},
-    {file = "eflips_ingest-1.1.0.tar.gz", hash = "sha256:7bd1e63a99d83511e9939ad8781c9e67a3d5ec033060035bff39876b76e8df5d"},
-]
+python-versions = "^3.10"
+files = []
+develop = false
 
 [package.dependencies]
-eflips-model = ">=3.1.1,<4.0.0"
-fire = ">=0.5.0,<0.6.0"
-lxml = ">=5.1.0,<6.0.0"
-pyproj = ">=3.6.1,<4.0.0"
-requests = ">=2.31.0,<3.0.0"
-tqdm = ">=4.66.1,<5.0.0"
+eflips-model = "^3.1.1"
+fire = "^0.5.0"
+lxml = "^5.1.0"
+pyproj = "^3.6.1"
+requests = "^2.31.0"
+tqdm = "^4.66.1"
+
+[package.source]
+type = "directory"
+url = "../eflips-ingest"
 
 [[package]]
 name = "eflips-model"
@@ -2728,4 +2730,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "a4a6c9ea0fb1b0e41e714e94e6f7178ab2312742323d01d6710e369c0f1d8cf9"
+content-hash = "9601f25e3c41a7413793bbfaf8c63e9de7b7c32cdb893badb7f0cbce524f6465"
