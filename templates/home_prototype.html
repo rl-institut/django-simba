@@ -8,6 +8,13 @@
                         Get options
                     </button>
             </div>
+
+                {#            replace 1 witch reader number #}
+            <div hx-swap="outerHTML" hx-get='{% url 'simba:get_options' task_id 2 %}' >
+                    <button>
+                        EflipsDummyIngest
+                    </button>
+            </div>
     </div>
 
             <div id="runner"
