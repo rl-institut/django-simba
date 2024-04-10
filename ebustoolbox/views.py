@@ -140,7 +140,7 @@ def get_stations(request: HttpRequest | None, task_id, form=None):
         scenario = Scenario.objects.get(task_id=task_id)
     except Scenario.DoesNotExist:
         raise Http404("Scenario with this task_id does not exist")
-    stations = Station.objects.filter(scenario=scenario)
+    stations = Station.objects.filter(scenario=scenario).exclude(charge_type='depb').order_by('id')
     context["stations"] = stations
     return render(request, "stations.html", context)
 
