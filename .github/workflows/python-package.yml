@@ -99,7 +99,7 @@ jobs:
           DJANGO_DEBUG: True
           # Replace with your own database info
           DATABASE_URL: postgis://postgres:postgres@localhost/DbName
-          CELERY_USE: False
+          CELERY_TASK_ALWAYS_EAGER: False
           CELERY_BROKER_URL: pyamqp://guerrst@localhost//
           TILING_SERVICE_TOKEN: ${{ secrets.TILING_SERVICE_TOKEN }}
           TILING_SERVICE_STYLE_ID: basic-v2

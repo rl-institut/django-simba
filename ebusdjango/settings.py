@@ -110,11 +110,12 @@ LOGOUT_REDIRECT_URL = "/login/"  # redirect to login after logout
 DATABASES = {"default": env.db("DATABASE_URL")}
 
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
-CELERY_USE = env.bool("CELERY_USE", default=False)
+# eager tasks run in same process without needing a worker
+# disable in production!
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=False)
 EFLIPS_USE = env.bool("EFLIPS_USE", default=True)
 # Make sure there is a celery broker url provided if celery should be used
-if CELERY_USE:
+if not CELERY_TASK_ALWAYS_EAGER:
     assert CELERY_BROKER_URL, (
         "CELERY_BROKER_URL is missing from .env file. If celery should be"
         "used, this URL has to be provided"

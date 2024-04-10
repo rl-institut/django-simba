@@ -794,11 +794,7 @@ def update_electrified_stations_db(electrified_stations, scenario):
 
 
 def generate_zipped_scenario(task_id: str):
-    if settings.CELERY_USE:
-        print("Using Celery")
-        _celery_generate_zipped_scenario.apply_async((str(task_id),), task_id=task_id)
-    else:
-        _generate_zipped_scenario(task_id)
+    _celery_generate_zipped_scenario.apply_async((str(task_id),), task_id=task_id)
 
 
 def _generate_zipped_scenario(task_id: str):
@@ -860,7 +856,7 @@ def _celery_generate_zipped_scenario(self, task_id: str):
 
 
 def run_ebus_toolchain(task_id):
-    if settings.CELERY_USE:
+    if settings.CELERY_TASK_ALWAYS_EAGER:
         _run_ebus_toolchain.apply_async((str(task_id),), task_id=str(task_id))
     else:
         _run_ebus_toolchain(task_id)
