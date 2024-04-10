@@ -856,10 +856,7 @@ def _celery_generate_zipped_scenario(self, task_id: str):
 
 
 def run_ebus_toolchain(task_id):
-    if settings.CELERY_TASK_ALWAYS_EAGER:
-        _run_ebus_toolchain.apply_async((str(task_id),), task_id=str(task_id))
-    else:
-        _run_ebus_toolchain(task_id)
+    _run_ebus_toolchain.apply_async((str(task_id),), task_id=str(task_id))
 
 
 def vary_depot_rotations(schedule) -> "collections.Iterable[SimbaRotation]":
