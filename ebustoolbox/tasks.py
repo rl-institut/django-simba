@@ -25,6 +25,7 @@ import simba.optimizer_util
 import simba.simulate
 import simba.trip
 import simba.util
+from core.deepcopy import reset_postgres_auto_increments
 from core.models import Progress
 from simba.rotation import Rotation as SimbaRotation
 from simba.schedule import Schedule as SimbaSchedule
@@ -1041,7 +1042,7 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
         )
 
         vehicle_assigns.append(
-            {"rot": rot.name, "v_id": vehicle.to_simba_name(), "soc": prev_event.soc_end}
+            {"rot": rot.id, "v_id": vehicle.to_simba_name(), "soc": prev_event.soc_end}
         )
     return vehicle_assigns
 
@@ -1076,6 +1077,8 @@ def run_simba(schedule: SimbaSchedule, args, task_id, mode=None, scenario=None):
     print(f"Creating Simba Events {datetime.now()}")
 
     create_event_output(scenario, task_id)
+
+    reset_postgres_auto_increments(apps=[Event._meta.app_label])
     return schedule, scenario
 
 
@@ -1192,7 +1195,7 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):  # noqa: C901
     vehicle_trips_dict = dict()
     current_rotation = None
     events = []
-    event_id = 1 if Event.objects.last() is None else Event.objects.all().max() + 1
+    event_id = 1 if Event.objects.last() is None else Event.objects.last().id + 1
     last_arrival_time = None
     current_vehicle = None
     last_aware = None
