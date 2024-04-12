@@ -115,7 +115,7 @@ DATABASES = {"default": env.db("DATABASE_URL")}
 
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
 CELERY_USE = env("CELERY_USE", default="False").lower() == "true"
-CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=False)
+CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=True)
 if CELERY_TASK_ALWAYS_EAGER:
     CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=True)
 EFLIPS_USE = env("EFLIPS_USE", default="True").lower() == "true"
