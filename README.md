@@ -36,12 +36,14 @@
      DATABASE_URL=postgis://YOUR_DB_USERNAME:YOUR_PASSWORD@localhost/YOUR_DB_NAME
      # Should the simulation run with eflips-depot. Development setting which will be set to True in stable Versions.
      EFLIPS_USE=TRUE
-     # Should celery be used? If so a CELERY_BROKER_URL has to be provided
-     CELERY_USE=False
+     # Should celery be used synchronously? In this case no celery process and CELERY_BROKER_URL is needed.
+     CELERY_TASK_ALWAYS_EAGER=True
      # CELERY_BROKER_URL=pyamqp://guest@localhost//
      TILING_SERVICE_TOKEN=GET_YOUR_TOKEN_THROUGH_MAP_TILER
      TILING_SERVICE_STYLE_ID=basic-v2
      DJANGO_SETTINGS_MODULE=ebusdjango.settings
+     # If you are developing locally set this to true. It disables production security features.
+     DJANGO_LOCAL_DEVELOPMENT=True
      ````
 
 3. Set up django (inside the virtual environment)
