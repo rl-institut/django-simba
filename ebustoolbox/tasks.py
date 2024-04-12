@@ -479,7 +479,7 @@ def get_schedule_from_args(
     simba_schedule.assign_only_new_vehicles()
 
     add_temperatures_to_trips(django_scenario, simba_schedule)
-    # Changed temperatures can effect the consumption
+    # Changed temperatures can affect the consumption
     simba_schedule.calculate_consumption()
 
     # Remove simba features which are not used
@@ -645,7 +645,9 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
         r.id = rot_id
         rot_id += 1
         model_rotations.append(r)
-        for trip in rot.trips:
+
+        trips = sorted(rot.trips, key=lambda x: x.arrival_time)
+        for trip in trips:
             # Get the proper Line
             if trip.line in line_dict:
                 line = line_dict[trip.line]
@@ -1190,7 +1192,7 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):  # noqa: C901
     vehicle_trips_dict = dict()
     current_rotation = None
     events = []
-    event_id = 1 if Event.objects.last() is None else Event.objects.last().id + 1
+    event_id = 1 if Event.objects.last() is None else Event.objects.all().max() + 1
     last_arrival_time = None
     current_vehicle = None
     last_aware = None
