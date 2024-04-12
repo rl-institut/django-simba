@@ -41,6 +41,8 @@ TMP_STATICFILES_DIRS = settings.STATICFILES_DIRS + [settings.BASE_DIR / TMP_UPLO
 
 @override_settings(STATICFILES_DIRS=TMP_STATICFILES_DIRS)
 @override_settings(UPLOAD_PATH=TMP_UPLOAD)
+@override_settings(SECURE_PROXY_SSL_HEADER=None)
+@override_settings(SECURE_SSL_REDIRECT=False)
 class MySeleniumTests(StaticLiveServerTestCase):
     @classmethod
     def setUpClass(cls):
@@ -413,6 +415,8 @@ class WriteReadScenarioToDatabase(TestCase):
                 print(f"Difference in scenario was found for {mutation}, {difference}")
 
 
+@override_settings(SECURE_PROXY_SSL_HEADER=None)
+@override_settings(SECURE_SSL_REDIRECT=False)
 class RunSimulationTest(StaticLiveServerTestCase):
     @override_settings(CELERY_USE=True)
     @override_settings(EFLIPS_USE=False)
