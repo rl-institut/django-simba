@@ -1175,7 +1175,6 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):  # noqa: C901
         vehicle_type.name_short: vehicle_type for vehicle_type in vehicle_type_dict
     }
 
-    # shift arrivals slightly, so events are ordered properly
     vehicle_events = [e for e in simba_scenario.events.vehicle_events]
 
     # Sort events by their vehicle_id, their start time. Departures and arrivals with the same
@@ -1288,7 +1287,7 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):  # noqa: C901
         }
         if None in timeseries["soc"]:
             print("Warning: None Values found in timeseries")
-            forward_fill_last_value(timeseries)
+            forward_fill_last_value(timeseries["soc"])
         # grab current vehicle SoC at timestep
         soc_start = timeseries["soc"][0]
         soc_end = timeseries["soc"][-1]
@@ -1320,7 +1319,8 @@ def sort_events_by_vid_time_and_type(events):
 
     Departures and arrivals with the same
     vehicle_id and start time are ordered "arrival" -> "departure".
-    this assumes there are no 0 duration trips but 0 duration stops
+    this assumes there are no 0-duration trips but 0 duration stops. This is done by slightly
+    shifting arrivals, sorting and shifting arrivals back.
     :param events: events to be sorted
     :type events: list of SpiceEV.VehicleEvent
     :return: sorted events
@@ -1337,12 +1337,17 @@ def sort_events_by_vid_time_and_type(events):
     return events
 
 
-def forward_fill_last_value(timeseries):
-    for idx in range(len(timeseries["soc"]) - 1, -1, -1):
-        last_soc = timeseries["soc"][idx]
+def forward_fill_last_value(list_with_nones):
+    """Forward fill the last non None value
+
+    :param list_with_nones: List containing nones at the end
+    :return: list without None values at the end
+    """
+    for idx in range(len(list_with_nones) - 1, -1, -1):
+        last_soc = list_with_nones[idx]
         last_idx = idx
         if last_soc is not None:
             break
     else:
         raise Exception("Timeseries has only None values as soc")
-    timeseries["soc"][last_idx:] = [last_soc for _ in range(last_idx, len(timeseries["soc"]))]
+    list_with_nones[last_idx:] = [last_soc for _ in range(last_idx, len(list_with_nones))]
