@@ -1177,9 +1177,13 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):  # noqa: C901
 
     vehicle_events = [e for e in simba_scenario.events.vehicle_events]
 
-    # Sort events by their vehicle_id, their start time. Departures and arrivals with the same
-    # vehicle_id and start time are ordered "departure" -> "arrival"
-    vehicle_events = sort_events_by_vid_time_and_type(vehicle_events)
+    # Departures and arrivals with the same vehicle_id and start time are ordered
+    # "arrival" -> "departure".
+    # this assumes there are no 0-duration trips but 0 duration stops
+    vehicle_events = sorted(
+        vehicle_events,
+        key=lambda e: (e.vehicle_id, e.start_time, ["arrival", "departure"].index(e.event_type)),
+    )
 
     last_id = None
     counter = 0
@@ -1312,29 +1316,6 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):  # noqa: C901
         event_id += 1
         events.append(event)
     Event.objects.bulk_create(events)
-
-
-def sort_events_by_vid_time_and_type(events):
-    """Sort SpiceEV.VehicleEvents by their vehicle_id, their start time and type.
-
-    Departures and arrivals with the same
-    vehicle_id and start time are ordered "arrival" -> "departure".
-    this assumes there are no 0-duration trips but 0 duration stops. This is done by slightly
-    shifting arrivals, sorting and shifting arrivals back.
-    :param events: events to be sorted
-    :type events: list of SpiceEV.VehicleEvent
-    :return: sorted events
-    :rtype: list of SpiceEV.VehicleEvent
-
-    """
-    for e in events:
-        if e.event_type == "arrival":
-            e.start_time -= timedelta(seconds=1)
-    events = sorted(events, key=lambda e: (e.vehicle_id, e.start_time))
-    for e in events:
-        if e.event_type == "arrival":
-            e.start_time += timedelta(seconds=1)
-    return events
 
 
 def forward_fill_last_value(list_with_nones):
