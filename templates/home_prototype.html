@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+    <div class="row">
+        {{ task_id }}
+            {#            replace 1 witch reader number #}
+            <div hx-swap="outerHTML" hx-get='{% url 'simba:get_options' task_id 1 %}' >
+                    <button>
+                        Get options
+                    </button>
+            </div>
+    </div>
+
+            <div id="runner"
+                {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
+             hx-trigger="notRunning from:body">
+        </div>
+
+        <div hx-trigger="notRunning from:body"
+                    hx-get='{% url 'simba:vehicle_types' task_id %}'>
+        </div>
+
+
+        <script>
+            {# Activate button if the server finished handling the previous file#}
+            let task_id = '{{ task_id }}';
+            htmx.on('#runner', 'htmx:trigger', function (evt) {
+                htmx.find('#button_{{task_id}}').disabled= false;
+                console.log("turning on button")
+            });
+        </script>
+    </div>
+
+{% endblock %}

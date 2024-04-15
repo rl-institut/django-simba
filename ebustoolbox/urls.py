@@ -16,7 +16,17 @@ urlpatterns = [
     path("usergroups/", views.usergroups, name="usergroups"),
     path("result/", views.result_view, name="result"),
     path("", views.home_view, name="home"),
+    path("input/schedule/", views.home_prototype, name="home_prototype"),
+    path(
+        "input/get_options/<uuid:task_id>/<int:reader_num>", views.get_options, name="get_options"
+    ),
+    # path("input/vehicle_types/", views.vehicle_types, name="vehicle_types"),
+    path("input/vehicle_types/<uuid:task_id>", views.get_vehicle_types, name="vehicle_types"),
+    path("input/stations/", views.stations, name="name"),
+    path("upload_trips/<uuid:task_id>/<int:reader_num>", views.upload_trips, name="upload_trips"),
+    path("check_trips_file/<uuid:task_id>", views.check_trips_file, name="check_trips_file"),
+    path("continue_trips/<uuid:task_id>", views.continue_trips, name="continue_trips"),
     path("generate_zip/<uuid:task_id>", views.generate_zip, name="generate_zip"),
     path("download_scenario/<uuid:task_id>/", views.download_scenario, name="download_scenario"),
-    # path("popup/<str:lookup>/<int:id>", views.get_popup, name="popup"),
+    path("progress/<uuid:task_id>/", views.progress, name="progress"),
 ]

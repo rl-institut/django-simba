@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div id="dynamic-content">
+    <!-- Dynamic content will be inserted here -->
+
+    <h3>Vehicle Types from Schedule</h3>
+    {% if q_list %}
+        <ul>
+            {% for station in station_list %}
+                <li>{{ station.name }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No Stations available.</p>
+    {% endif %}
+
+
+    <form enctype="multipart/form-data" method="POST"> {% csrf_token %}
+      <div>
+        <button type='submit' class="btn btn-primary">Continue</button>
+        <!-- Start simulation. Progress bar, then goes to overview page -->
+      </div>
+    </form>
+</div>
+{% endblock %}

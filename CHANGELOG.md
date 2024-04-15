@@ -18,6 +18,16 @@ Template:
 ```
 
 ### Changed
+- [(#79)](https://github.com/rl-institut/django-simba/pull/79)
+- Implements an abstract class of ScheduleReader which allows importing of different Schedule Types like SimBA, GTFS or VDE
+- Implements a Progressbar with a Progress model
+- Adds files for Front-End workflow
+
+- [(#80)](https://github.com/rl-institut/django-simba/pull/80)
+- Bump eflips-depot dependency to v3
+- Add depot.station field to django model
+- Fix test cases that are failing on py3.12 due to deprecations
+
 
 - [(#60)](https://github.com/rl-institut/django-simba/pull/60)
 - Adds loop over different toolchain modes

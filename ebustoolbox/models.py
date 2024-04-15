@@ -118,6 +118,7 @@ class UploadedFile(models.Model):
         file (FileField): The actual file field storing the uploaded file, with the specified upload path.
 
     Usage Example:
+    Usage Example:
         To create a new UploadedFile instance and associate it with a scenario:
         >>> scenario_instance = Scenario.objects.get(id=1)
         >>> uploaded_file_instance = UploadedFile(scenario=scenario_instance, file=my_file)
@@ -924,6 +925,15 @@ class Station(models.Model):
             f"kW. \nLocation: {self.geom.x} {self.geom.y}"
         )
 
+    @classmethod
+    def get_default_pk(cls):
+        scenario = Scenario.objects.get(id=Scenario.get_default_pk())
+        station, created = cls.objects.get_or_create(
+            scenario=scenario,
+            name="default_station",
+        )
+        return station.pk
+
 
 class Line(models.Model):
     """
@@ -1210,6 +1220,21 @@ class StopTime(models.Model):
     station = models.ForeignKey(Station, on_delete=models.CASCADE)
 
 
+class DefaultScenario(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    # Make sure only a single DefaultScenario exists
+    _singleton = models.BooleanField(default=True, editable=False, unique=True)
+
+    def save(self, *args, **kwargs):
+        if not self._singleton:
+            raise AttributeError("DefaultScenario._singleton must be True")
+        if DefaultScenario.objects.all().count() > 0:
+            raise AttributeError(
+                "A DefaultScenario exists already. No other Default can be " "generated"
+            )
+        super().save(*args, **kwargs)
+
+
 class EventType(models.TextChoices):
     """
     The EventType represents a certain type of event, which is used to define the type of an event.
@@ -1346,6 +1371,7 @@ class Depot(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     name = models.TextField(null=False, blank=False)
     name_short = models.TextField(null=True, blank=True)
+    station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE)  # Added in schema v3
 
     default_plan = models.OneToOneField("Plan", null=False, on_delete=models.CASCADE)
 
