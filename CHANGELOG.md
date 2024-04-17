@@ -22,7 +22,7 @@ Template:
 - Change the models to use db_default values for compatibility with eflips-model
 
 
-### Changed (UNRELEASED)
+### Changed
 ## [(#62)](https://github.com/rl-institut/django-simba/pull/62)
 - `Scenario.created` is now a datebase default timestamp if no client side timestamp is given
   - Django will continue supplying the default timestamp to no break compatibility with existing migrations
@@ -45,12 +45,6 @@ Template:
 - Added DJANGO_LOCAL_DEVELOPMENT=True setting to .env. Used if security features needed for production should be disabled.
 - Override settings for tests so they run through
 
-
-
-### Changed
-- [(#87)](https://github.com/rl-institut/django-simba/pull/87)
-- Add a working (dummy for now) eflips-ingest ingester and the code around it.
-- Change the models to use db_default values for compatibility with eflips-model
 
 
 - [(#79)](https://github.com/rl-institut/django-simba/pull/79)
