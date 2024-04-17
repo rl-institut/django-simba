@@ -2,11 +2,19 @@
 {% block content %}
     <div class="row">
         {{ task_id }}
-            {#            replace 1 witch reader number #}
-            <div hx-swap="outerHTML" hx-get='{% url 'simba:get_options' task_id 1 %}' >
-                    <button>
-                        Get options
+        <div id="ScheduleReaderChoice" >
+            <div>
+                    <button hx-target="#ScheduleReaderChoice" hx-get='{% url 'simba:get_options' task_id 1 %}'>
+                        Supply SimBA Inputs
                     </button>
+            </div>
+
+                {#            replace 1 witch reader number #}
+            <div >
+                    <button hx-target="#ScheduleReaderChoice" hx-get='{% url 'simba:get_options' task_id 2 %}'>
+                        Supply EflipsDummyIngest Inputs
+                    </button>
+            </div>
             </div>
     </div>
 

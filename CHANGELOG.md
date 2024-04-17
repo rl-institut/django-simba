@@ -16,8 +16,13 @@ Template:
 ### Removed
 - [(#)]()
 ```
+### Changed
+- [(#87)](https://github.com/rl-institut/django-simba/pull/87)
+- Add a working (dummy for now) eflips-ingest ingester and the code around it.
+- Change the models to use db_default values for compatibility with eflips-model
 
-### Changed (UNRELEASED)
+
+### Changed
 ## [(#62)](https://github.com/rl-institut/django-simba/pull/62)
 - `Scenario.created` is now a datebase default timestamp if no client side timestamp is given
   - Django will continue supplying the default timestamp to no break compatibility with existing migrations
@@ -42,7 +47,6 @@ Template:
 
 
 
-### Changed
 - [(#79)](https://github.com/rl-institut/django-simba/pull/79)
 - Implements an abstract class of ScheduleReader which allows importing of different Schedule Types like SimBA, GTFS or VDE
 - Implements a Progressbar with a Progress model
