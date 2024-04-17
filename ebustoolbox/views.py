@@ -197,7 +197,8 @@ def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
 
         files = dict()
         for name, file in request.FILES.items():
-            files[name] = UploadedFile.objects.create(scenario=s, file=file).file.path
+            uploaded_file = UploadedFile.objects.create(scenario=s, file=file)
+            files[name] = uploaded_file.file.path, uploaded_file.id
             del cleaned_data[name]
         # what kind of file is uploaded
         # errors, success = tasks.init_db_with_trips(uploaded_file.id, s.id)
@@ -285,7 +286,7 @@ def save_and_simulate(
     print(f"{task_id=}")
     django_scenario.task_id = task_id
     django_scenario.save()
-    tasks.run_ebus_toolchain(simba_schedule, args, task_id)
+    tasks.run_ebus_toolchain(task_id)
     print(f"Simulation Finished {datetime.now()}")
     return django_scenario
 

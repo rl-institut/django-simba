@@ -41,6 +41,8 @@ TMP_STATICFILES_DIRS = settings.STATICFILES_DIRS + [settings.BASE_DIR / TMP_UPLO
 
 @override_settings(STATICFILES_DIRS=TMP_STATICFILES_DIRS)
 @override_settings(UPLOAD_PATH=TMP_UPLOAD)
+@override_settings(SECURE_PROXY_SSL_HEADER=None)
+@override_settings(SECURE_SSL_REDIRECT=False)
 class MySeleniumTests(StaticLiveServerTestCase):
     @classmethod
     def setUpClass(cls):
@@ -57,21 +59,11 @@ class MySeleniumTests(StaticLiveServerTestCase):
         super().tearDownClass()
         shutil.rmtree(TMP_UPLOAD)
 
-    @override_settings(CELERY_USE=True)
     @override_settings(EFLIPS_USE=True)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
     @override_settings(DEBUG=True)
     def test_result_generation_w_celery(self):
-        self.simple_simba_call_in_selenium()
-
-    @override_settings(CELERY_USE=False)
-    @override_settings(EFLIPS_USE=True)
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=False)
-    @override_settings(DEBUG=True)
-    def test_result_generation(self):
-        self.simple_simba_call_in_selenium()
-
-    def simple_simba_call_in_selenium(self):
         # Get the URL using reverse
         url = reverse("simba:home")
         # Simulate a GET request to the URL
@@ -246,8 +238,19 @@ class WriteReadScenarioToDatabase(TestCase):
     def test_schedule_from_database(self):
         """Check if the results are equal if the scenario is run from the form or from the db"""
         django_scenario, simba_schedule, args = build_scenario()
-
         simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
+        # rotation names are swapped
+        rotations_keys = [rot for rot in simba_schedule.rotations]
+        db_iter = iter(simba_schedule_db.rotations)
+        for rot in rotations_keys:
+            db_rot = next(db_iter)
+            simba_schedule.rotations[db_rot] = simba_schedule.rotations[rot]
+            simba_schedule.rotations[db_rot].id = db_rot
+            simba_schedule.rotations[db_rot].vehicle_id = simba_schedule_db.rotations[
+                db_rot
+            ].vehicle_id
+            del simba_schedule.rotations[rot]
+
         for sched in [simba_schedule, simba_schedule_db]:
             for rot in sched.rotations.values():
                 rot.calculate_consumption()
@@ -413,8 +416,9 @@ class WriteReadScenarioToDatabase(TestCase):
                 print(f"Difference in scenario was found for {mutation}, {difference}")
 
 
+@override_settings(SECURE_PROXY_SSL_HEADER=None)
+@override_settings(SECURE_SSL_REDIRECT=False)
 class RunSimulationTest(StaticLiveServerTestCase):
-    @override_settings(CELERY_USE=True)
     @override_settings(EFLIPS_USE=False)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
@@ -422,24 +426,11 @@ class RunSimulationTest(StaticLiveServerTestCase):
     def test_submit_button_click_with_celery_wo_eflips(self):
         self.submit_default_simulation()
 
-    @override_settings(CELERY_USE=False)
-    @override_settings(EFLIPS_USE=False)
-    @override_settings(DEBUG=True)
-    def test_submit_button_click_without_celery_wo_eflips(self):
-        self.submit_default_simulation()
-
-    @override_settings(CELERY_USE=True)
     @override_settings(EFLIPS_USE=True)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
     @override_settings(DEBUG=True)
     def test_submit_button_click_with_celery_with_eflips(self):
-        self.submit_default_simulation()
-
-    @override_settings(CELERY_USE=False)
-    @override_settings(EFLIPS_USE=True)
-    @override_settings(DEBUG=True)
-    def test_submit_button_click_without_celery_with_eflips(self):
         self.submit_default_simulation()
 
     def submit_default_simulation(self):

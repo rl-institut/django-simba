@@ -109,19 +109,20 @@ def get_schedule_reader_factory(reader_num: int) -> type(ScheduleReader):
 
 
 class SimbaScheduleReader(ScheduleReader):
+    class SimbaScheduleReaderException(Exception):
+        pass
+
     def __init__(
         self,
         file_path: str,
         default_charging_type: str = "oppb",
     ):
+        self.errors = []
         self.file_path: Path = Path(file_path)
         self.default_capacity = 99.99
-        if default_charging_type not in [EnumChargeType.DEPOT, EnumChargeType.OPPORTUNITY]:
-            raise Exception("""Default charging type has to be of type "depb" or "oppb" """)
-
         self.default_charging_type = default_charging_type
         self.encoding = "utf-8"
-        self.errors = []
+
         self.progress: Progress = None
         # self.file_path: Path = None
 
@@ -157,38 +158,46 @@ class SimbaScheduleReader(ScheduleReader):
         """This is help text
         :param: scenario_id: this is the id of the scenario
         """
-        self.set_total_work(5)
-        self.set_progress(0, "Reading File")
-        trip_data = self.file_data_to_dict()
+        try:
+            # raise Errors which might have happened earlier / during init
+            if self.default_charging_type not in [EnumChargeType.DEPOT, EnumChargeType.OPPORTUNITY]:
+                self.errors.append("""Default charging type has to be of type "depb" or "oppb" """)
+                raise self.SimbaScheduleReaderException
 
-        self.set_progress(1, "Finding Stations")
-        # Create Stations
-        scenario = Scenario.objects.get(id=scenario_id)
-        stations, station_dict = self.get_stations(scenario, trip_data)
-        Station.objects.bulk_create(stations)
+            self.set_total_work(5)
+            self.set_progress(0, "Reading File")
+            trip_data = self.file_data_to_dict()
 
-        self.set_progress(2, "Finding Vehicle Types")
-        # Create empty vehicle_types
-        vt_dict, vts = self.get_vehicles(scenario, trip_data)
-        VehicleType.objects.bulk_create(vts)
+            self.set_progress(1, "Finding Stations")
+            # Create Stations
+            scenario = Scenario.objects.get(id=scenario_id)
+            stations, station_dict = self.get_stations(scenario, trip_data)
+            Station.objects.bulk_create(stations)
 
-        self.set_progress(3, "Finding Rotations")
+            self.set_progress(2, "Finding Vehicle Types")
+            # Create empty vehicle_types
+            vt_dict, vts = self.get_vehicles(scenario, trip_data)
+            VehicleType.objects.bulk_create(vts)
 
-        # Create Rotations
-        rotations, rotations_dict = self.get_rotations(scenario, trip_data, vt_dict)
-        Rotation.objects.bulk_create(rotations)
+            self.set_progress(3, "Finding Rotations")
 
-        self.set_progress(4, "Finding Trips")
+            # Create Rotations
+            rotations, rotations_dict = self.get_rotations(scenario, trip_data, vt_dict)
+            Rotation.objects.bulk_create(rotations)
 
-        # Create Trips and Routes
-        lines, routes, trips = self.get_lines_routes_trips(
-            rotations_dict, scenario, station_dict, trip_data
-        )
+            self.set_progress(4, "Finding Trips")
 
-        Line.objects.bulk_create(lines)
-        Route.objects.bulk_create(routes)
-        Trip.objects.bulk_create(trips)
-        self.set_progress(5, "Finished")
+            # Create Trips and Routes
+            lines, routes, trips = self.get_lines_routes_trips(
+                rotations_dict, scenario, station_dict, trip_data
+            )
+
+            Line.objects.bulk_create(lines)
+            Route.objects.bulk_create(routes)
+            Trip.objects.bulk_create(trips)
+            self.set_progress(5, "Finished")
+        except self.SimbaScheduleReaderException:
+            return False
         return True
 
     def get_lines_routes_trips(self, rotations_dict, scenario, station_dict, trip_data):
@@ -243,12 +252,12 @@ class SimbaScheduleReader(ScheduleReader):
         i = -1
         for rotation_id, trips in trip_data.items():
             i += 1
-            assert (
-                len({t[self.VEHICLE_TYPE] for t in trip_data[rotation_id]}) == 1
-            ), f"Rotation {rotation_id} contains multiple vehicle types"
-            assert (
-                len({t[self.CHARGING_TYPE] for t in trip_data[rotation_id]}) == 1
-            ), f"Rotation {rotation_id} contains multiple charging types"
+            if not (len({t[self.VEHICLE_TYPE] for t in trip_data[rotation_id]}) == 1):
+                self.errors.append(f"Rotation {rotation_id} contains multiple vehicle types")
+                raise self.SimbaScheduleReaderException
+            if not (len({t[self.CHARGING_TYPE] for t in trip_data[rotation_id]}) == 1):
+                self.errors.append(f"Rotation {rotation_id} contains multiple charging types")
+                raise self.SimbaScheduleReaderException
             first_trip = trips[0]
             vt = vt_dict[first_trip[self.VEHICLE_TYPE]]
             match str(first_trip[self.CHARGING_TYPE]).lower():
@@ -332,12 +341,9 @@ class SimbaScheduleReader(ScheduleReader):
                 if column not in trip.keys():
                     missing_column = True
                     self.errors.append(f"Column {column} is missing.")
+
             if missing_column:
-                newline = "\n"
-                raise Exception(
-                    f"At least on column is missing from the file {self.file_path.stem}. "
-                    f"{newline.join(self.errors)}"
-                )
+                raise self.SimbaScheduleReaderException
 
             for trip in trip_reader:
                 rotation_id = trip[self.ROTATION_ID]
