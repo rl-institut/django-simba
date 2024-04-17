@@ -201,7 +201,12 @@ def list_digger(early_return, instance_stack, key_stack, new_objects):
 
 def dict_digger(early_return, instance_stack, key_stack, new_objects):
     for key, value in new_objects[0].items():
-        inner_objects = [o[key] for o in new_objects]
+        try:
+            inner_objects = [o[key] for o in new_objects]
+        except KeyError as e:
+            if key not in ["electrified_stations", "vehicle_types"]:
+                raise e
+            continue
         key_stack_copy = [key for key in key_stack]
         key_stack_copy[-1] = key
         for x in objects_digger(
