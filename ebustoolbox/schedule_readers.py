@@ -32,10 +32,11 @@ from ebustoolbox.models import (
 
 def get_options_form(reader_num: int):
     match reader_num:
+        case 1:
+            return SimbaScheduleReader.get_options_form()
         case 2:
             return EflipsIngestScheduleReaderDummy.get_options_form(DummyIngester)
-        case _:
-            return SimbaScheduleReader.get_options_form()
+    raise NotImplementedError
 
 
 def function_signature_to_form(function: Callable):
@@ -195,7 +196,7 @@ class SimbaScheduleReader(ScheduleReader):
             Line.objects.bulk_create(lines)
             Route.objects.bulk_create(routes)
             Trip.objects.bulk_create(trips)
-            self.set_progress(5, "Finished")
+            self.set_progress(5, "Trips created")
         except self.SimbaScheduleReaderException:
             return False
         return True
@@ -426,9 +427,6 @@ class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
         if not validation_result:
             assert isinstance(uuid_or_errors, dict)
             self._errors = [f"{key}: {value}" for key, value in uuid_or_errors.items()]
-            raise Exception(
-                f"Validation failed: {self._errors}"
-            )  # TODO: This violates the contract of the method
             return False
         else:
             assert isinstance(uuid_or_errors, UUID)
@@ -453,7 +451,6 @@ class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
             except Exception as e:
                 self._errors = [str(e)]
                 session.rollback()
-                raise e  # TODO: This violates the contract of the method
                 return False
             finally:
                 # In any case, we need to set the task_id back to what it was before

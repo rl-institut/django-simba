@@ -1,10 +1,10 @@
 <div id="options_form">
-    <form id='form' enctype="multipart/form-data">{% csrf_token %}
+    <form id='form'>{% csrf_token %}
         {#    use HX-retarget to target form instead of progess bar in cases of errors#}
         {{ form }}
         {#This will be replaced by the progressbar, during server side analyzing            #}
         <div id="upload-progress_{{ task_id }}"></div>
-        <button type=submit id='button_{{ task_id }}' hx-encoding="multipart/form-data" formmethod="POST"
+        <button type=submit id='button_{{ task_id }}' hx-encoding="multipart/form-data"
                 hx-target="#upload-progress_{{ task_id }}"
                 hx-post='{% url 'simba:upload_trips' task_id=task_id reader_num=reader_num %}'>
             Upload

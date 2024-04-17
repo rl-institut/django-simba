@@ -16,6 +16,11 @@ Template:
 ### Removed
 - [(#)]()
 ```
+### Changed
+- [(#87)](https://github.com/rl-institut/django-simba/pull/87)
+- Add a working (dummy for now) eflips-ingest ingester and the code around it.
+- Change the models to use db_default values for compatibility with eflips-model
+
 
 ### Changed (UNRELEASED)
 ## [(#62)](https://github.com/rl-institut/django-simba/pull/62)
@@ -46,7 +51,6 @@ Template:
 - [(#87)](https://github.com/rl-institut/django-simba/pull/87)
 - Add a working (dummy for now) eflips-ingest ingester and the code around it.
 - Change the models to use db_default values for compatibility with eflips-model
-- Bump django dependency to 5.0.0
 
 
 - [(#79)](https://github.com/rl-institut/django-simba/pull/79)
