@@ -942,7 +942,7 @@ name = "eflips-eval"
 version = "1.0.2"
 description = ""
 optional = false
-python-versions = "<4.0,>=3.11"
+python-versions = ">=3.10,<4.0"
 files = [
     {file = "eflips_eval-1.0.2-py3-none-any.whl", hash = "sha256:ba3e5e56c501e19dcd108004a28317a79bb32b58a37ed75086deaaa05b6a1464"},
     {file = "eflips_eval-1.0.2.tar.gz", hash = "sha256:a680a9efc9efddcbca5295e60c1e362e733f55cd06bc1a9c02227eb5ea06ef1f"},
