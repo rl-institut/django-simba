@@ -33,12 +33,16 @@ def deepcopy_and_sequence_reset(
         exclude_fields=exclude_fields,
         max_depth=max_depth,
     )
+    reset_postgres_auto_increments(apps)
+
+    return copied_instance
+
+
+def reset_postgres_auto_increments(apps):
     # Finally fix postgres auto increments for all used apps during this deepcopy
     postgres_reset_sql = call_command("sqlsequencereset", *apps, stdout=open(devnull, "a"))
     with connection.cursor() as cursor:
         cursor.execute(postgres_reset_sql)
-
-    return copied_instance
 
 
 @time_it
