@@ -491,6 +491,12 @@ class Vehicle(models.Model):
     def __str__(self):
         return self.name
 
+    def to_simba_name(self):
+        ct = EnumChargeType.DEPOT.value
+        if self.vehicle_type.opportunity_charging_capable:
+            ct = EnumChargeType.OPPORTUNITY.value
+        return self.vehicle_type.name_short + "_" + ct + "_" + str(self.pk)
+
 
 class Rotation(models.Model):
     """

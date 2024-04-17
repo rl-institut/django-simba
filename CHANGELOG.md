@@ -17,6 +17,17 @@ Template:
 - [(#)]()
 ```
 ### Changed
+- [(#88)](https://github.com/rl-institut/django-simba/pull/88)
+- Fixes Issue where soc timeseries in events contained null/none values
+- Fixes Issue with missing events
+- Fixes Issue with unsorted trips from database
+- Fixes Issue with SimBA being dependent on Vehicle Naming
+- Speeds up reading Trips and Rotations from Database
+- Remove tests without celery
+- Error Propagation from celery is now turned on via default, if celery is in task_always_eager mode
+
+
+### Changed
 - [(#82)](https://github.com/rl-institut/django-simba/pull/82)
 - Fixed proper file deletion after reading the files using a ScheduleReader
 - Added DJANGO_LOCAL_DEVELOPMENT=True setting to .env. Used if security features needed for production should be disabled.
