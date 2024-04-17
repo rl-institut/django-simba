@@ -19,7 +19,9 @@ Template:
 
 ### Changed (UNRELEASED)
 ## [(#62)](https://github.com/rl-institut/django-simba/pull/62)
-- `Scenario.created` is now a server default timestamp instead of a client default timestamp
+- `Scenario.created` is now a datebase default timestamp if no client side timestamp is given
+  - Django will continue supplying the default timestamp to no break compatibility with existing migrations
+- Fixed issue regarding failing local tests when sql-sequence resetting
 
 ### Changed
 - [(#88)](https://github.com/rl-institut/django-simba/pull/88)
