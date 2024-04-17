@@ -426,15 +426,14 @@ def get_electrified_stations_from_db(django_scenario) -> dict:
             continue
         stat_dict = {
             "type": charge_type_from_db_to_station(station.charge_type.lower(), is_station=True),
-            "n_charging_stations": station.amount_charging_places or 10,
+            "n_charging_stations": station.amount_charging_places,
             "cs_power_deps_oppb": station.power_per_charger,
             "cs_power_deps_depb": station.power_per_charger,
             "cs_power_opps": station.power_per_charger,
             "gc_power": station.power_total,
             "voltage_level": station.voltage_level,
         }
-        stat_dict_cleaned = {k: v for k, v in stat_dict.items() if v is not None}
-        stations_dict[station.name] = stat_dict_cleaned
+        stations_dict[station.name] = stat_dict
     return stations_dict
 
 
@@ -1358,14 +1357,17 @@ def electrify_db_stations(scenario: Scenario, station_id_list, unelectrify=True)
     for station in stations:
         station.is_electrified = True
         # TODO get these values from somewhere?
-        # TODO set scenario defaults for each station
         station.charge_type = EnumChargeType.OPPORTUNITY
         station.voltage_level = EnumVoltageLevel.VOLTAGE_MV
+        station.amount_charging_places = scenario.simba_options["amount_charging_places"]
         station.save()
     if unelectrify:
         revert_stations = all_stations.exclude(pk__in=station_id_list).filter(is_electrified=True)
         for station in revert_stations:
             station.is_electrified = False
+            station.charge_type = None
+            station.voltage_level = None
+            station.amount_charging_places = None
             station.save()
 
 
