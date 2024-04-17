@@ -9,11 +9,11 @@ packages = [{include = "ebustoolbox"},
             {include = "django_mapengine"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.10"
 spice_ev = { git = "https://github.com/rl-institut/spice_ev", rev = "51268c639a02f2a94c418d6215376f585dd14af0"}
 simba = { git = "https://github.com/rl-institut/SimBA", rev = "feature/django_simba"}
 
-Django = "^4.2.3"
+Django = "^5.0.0"
 django-environ = ">=0.10.0, <1.0.0"
 django-plotly-dash = "^2.2.1"
 django-appconf = ">=1.0.5, <2.0.0"

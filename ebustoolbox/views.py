@@ -286,7 +286,7 @@ def save_and_simulate(
     print(f"{task_id=}")
     django_scenario.task_id = task_id
     django_scenario.save()
-    tasks.run_ebus_toolchain(simba_schedule, args, task_id)
+    tasks.run_ebus_toolchain(task_id)
     print(f"Simulation Finished {datetime.now()}")
     return django_scenario
 
