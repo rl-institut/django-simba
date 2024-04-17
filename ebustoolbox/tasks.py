@@ -1371,8 +1371,8 @@ def electrify_db_stations(scenario: Scenario, station_id_list, unelectrify=True)
             station.save()
 
 
-def update_vehicle_types_from_dropdown(vehicle_type_pairs, task_id):
-    # TODO try except?
+def update_vehicle_types_with_defaults(vehicle_type_pairs, task_id):
+    """Update info of a VehicleType with a paired VehicleType from DefaultScenario"""
     scenario = Scenario.objects.get(task_id=task_id)
     vehicle_types_db = VehicleType.objects.filter(scenario=scenario)
     default_scenario = DefaultScenario.objects.first().scenario

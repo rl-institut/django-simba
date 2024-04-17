@@ -146,6 +146,7 @@ def get_stations(request: HttpRequest | None, task_id, form=None):
 
 
 def set_station_values(request: HttpRequest, task_id):
+    """Process stations input and redirect to scenario_overview"""
     if request.method == "POST":
         form = ChargingStationDefaultsForm(request.POST)
         if not form.is_valid():
@@ -241,7 +242,7 @@ def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
 def assign_vehicle_types(request: HttpRequest, task_id: str):
     if request.method == "POST":
         vehicle_type_pairs = request.POST.getlist("vehicle_type_dropdown")
-        tasks.update_vehicle_types_from_dropdown(vehicle_type_pairs, task_id)
+        tasks.update_vehicle_types_with_defaults(vehicle_type_pairs, task_id)
 
     return redirect(reverse("simba:stations", args=[str(task_id)]))
 
