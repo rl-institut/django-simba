@@ -13,6 +13,7 @@ from django.views.generic import TemplateView
 from django.views.decorators.http import require_GET, require_POST
 from eflips.depot.api import simulate_scenario  # noqa
 
+import core.deepcopy
 from core.models import Progress
 from django_mapengine.views import MapEngineMixin
 
@@ -232,6 +233,7 @@ def continue_trips(request: HttpRequest, task_id: str):
 
 def home_view(request: HttpRequest):
     """Generate the home view of the tool chain with input forms"""
+    core.deepcopy.reset_postgres_auto_increments(["ebustoolbox"])
     if request.method == "GET":
         form = UploadFileForm()
     elif request.method == "POST":
