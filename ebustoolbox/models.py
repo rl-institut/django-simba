@@ -11,6 +11,7 @@ from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.db.models import QuerySet, Sum, Q
+from django.db.models.functions import Now
 from django.db.models.constraints import UniqueConstraint
 from django.dispatch import receiver
 from django.utils.timezone import make_aware
@@ -54,7 +55,9 @@ class Scenario(models.Model):
     name_short = models.TextField(blank=True, null=True)
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
 
-    created = models.DateTimeField(auto_now_add=True)
+    created = models.DateTimeField(
+        auto_now_add=True, db_default=Now()
+    )  # Set to now() on the database side
     task_id = models.UUIDField(default=None, null=True, unique=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
     simba_options = models.JSONField(default=dict, null=True)
@@ -113,7 +116,6 @@ class UploadedFile(models.Model):
         scenario (Scenario): The scenario to which the file is associated. Foreign key to the Scenario model.
         file (FileField): The actual file field storing the uploaded file, with the specified upload path.
 
-    Usage Example:
     Usage Example:
         To create a new UploadedFile instance and associate it with a scenario:
         >>> scenario_instance = Scenario.objects.get(id=1)
