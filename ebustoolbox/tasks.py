@@ -256,7 +256,8 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
     # setup consumption calculator that can be accessed by all trips
     simba.trip.Trip.consumption = data_container.to_consumption()
 
-    options = copy(django_scenario.simba_options)
+    args = get_args(django_scenario=django_scenario)
+    options = vars(args)
     try:
         del options["electrified_stations"]
     except (TypeError, KeyError):
@@ -278,7 +279,6 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
     # Database does not store information about "original rotations yet"
     schedule.original_rotations = None
 
-    args = get_args(django_scenario=django_scenario)
     # filter rotations
     schedule.rotation_filter(args)
 
