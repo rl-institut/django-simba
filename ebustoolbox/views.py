@@ -4,28 +4,36 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.transaction import atomic
-from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest
+from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest, Http404
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.views.generic import TemplateView
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 from eflips.depot.api import simulate_scenario  # noqa
 
+from core.models import Progress
 from django_mapengine.views import MapEngineMixin
 
 from celery.result import AsyncResult
 
 # Unused import of dash_app needed to register app
 from dash_app import dash_app, ids  # noqa: F401
-from . import tasks
+from . import tasks, schedule_readers
 from .forms import UploadFileForm
 from .tasks import create_db_url  # noqa
-
 from .util import get_unique_task_id
 
 import ebustoolbox
-from ebustoolbox.models import Scenario, UserGroup
+from ebustoolbox.models import (
+    Scenario,
+    UserGroup,
+    UploadedFile,
+    VehicleType,
+    DefaultScenario,
+    Station,
+)
 
 
 def show_uploads_view(request: HttpRequest, filename):
@@ -98,6 +106,130 @@ def long_running_task_status_view(request):
     return JsonResponse({"success": False})
 
 
+def home_prototype(request: HttpRequest):
+    """Generate the home view of the tool chain with input forms"""
+    task_id = get_unique_task_id()
+    return render(request, "home_prototype.html", {"task_id": task_id})
+
+
+def get_options(request: HttpRequest, task_id, reader_num: int):
+    # ToDo add Form
+    from . import schedule_readers
+
+    form = schedule_readers.get_options_form(reader_num)
+    context = {"form": form, "reader_num": reader_num, "task_id": task_id}
+
+    return render(request, "schedule_reader_options.html", context)
+
+
+def vehicle_types(request: HttpRequest, vehicle_types_list=None):
+    """Get vehicle_types_list from POST request from the schedule and show available types."""
+    return render(request, "vehicle_types.html", {"vehicle_types_list": vehicle_types_list})
+
+
+def stations(request: HttpRequest, station_list=None):
+    """Get station_list from POST request and make it available to filter."""
+    return render(request, "stations.html", {"station_list": station_list})
+
+
+def get_vehicle_types(request: HttpRequest, task_id):
+    context = {"task_id": task_id}
+    try:
+        scenario = Scenario.objects.get(task_id=task_id)
+    except Scenario.DoesNotExist:
+        raise Http404("Scenario with this task_id does not exist")
+    default_scenario = DefaultScenario.objects.first().scenario
+    vehicle_types = VehicleType.objects.filter(scenario=scenario)
+    default_vehicle_types = VehicleType.objects.filter(scenario=default_scenario)
+    context["vehicle_types"] = vehicle_types
+    context["default_vehicle_types"] = default_vehicle_types
+    return render(request, "vehicle_types_selection.html", context)
+
+
+def get_stations(request: HttpRequest, task_id):
+    context = {"task_id": task_id}
+    try:
+        scenario = Scenario.objects.get(task_id=task_id)
+    except Scenario.DoesNotExist:
+        raise Http404("Scenario with this task_id does not exist")
+    stations = Station.objects.filter(scenario=scenario)
+    context["stations"] = stations
+    return render(request, "stations_selection.html", context)
+
+
+def progress(request: HttpRequest, task_id):
+    context = {"progress_id": task_id, "status": "", "current_progress": 0, "task_id": task_id}
+    try:
+        progress = Progress.objects.get(task_id=task_id)
+    except ObjectDoesNotExist:
+        response = render(request, "progress.html", context)
+        return response
+    context["current_progress"] = progress.get_progress()
+    context["status"] = progress.status
+    status_code = 200
+    hx_trigger = "running"
+    if progress.success or not progress.running or len(progress.errors) != 0:
+        context["errors"] = progress.errors
+        # End polling
+        status_code = 286
+        context["finished"] = True
+        hx_trigger = "notRunning"
+    response = render(request, "progress.html", context)
+    response["HX-Trigger"] = hx_trigger
+    response.status_code = status_code
+    return response
+
+
+@require_POST
+def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
+    context = {"task_id": task_id}
+    try:
+        form = schedule_readers.get_options_form(reader_num)(request.POST, request.FILES)
+        if not form.is_valid():
+            context = {"form": form, "reader_num": reader_num, "task_id": task_id}
+            response = render(request, "schedule_reader_options.html", context)
+            response["HX-Retarget"] = "#options_form"
+            return response
+
+        s, _ = Scenario.objects.get_or_create(task_id=task_id)
+        # todo check size
+        cleaned_data = form.cleaned_data
+
+        files = dict()
+        for name, file in request.FILES.items():
+            uploaded_file = UploadedFile.objects.create(scenario=s, file=file)
+            files[name] = uploaded_file.file.path, uploaded_file.id
+            del cleaned_data[name]
+        # what kind of file is uploaded
+        # errors, success = tasks.init_db_with_trips(uploaded_file.id, s.id)
+
+        async_result = tasks.init_db_with_trips.apply_async((s.id, reader_num, files, cleaned_data))
+        context["progress_id"] = async_result.task_id
+
+        response = render(request, "progress_poll.html", context)
+        response["HX-Trigger"] = "running"
+        return response
+    except AssertionError as e:
+        html = f"<html>{str(e)}</html>"
+        response = HttpResponse(html)
+        return response
+    except Exception as e:
+        html = f"<html>{str(e)}</html>"
+        response = HttpResponse(html)
+        response["HX-Trigger"] = "notRunning"
+        return response
+
+
+def check_trips_file(request: HttpRequest, task_id: str):
+    pass
+    # return response
+
+
+def continue_trips(request: HttpRequest, task_id: str):
+    pass
+    # return response
+
+
 def home_view(request: HttpRequest):
     """Generate the home view of the tool chain with input forms"""
     if request.method == "GET":
@@ -154,7 +286,7 @@ def save_and_simulate(
     print(f"{task_id=}")
     django_scenario.task_id = task_id
     django_scenario.save()
-    tasks.run_ebus_toolchain(simba_schedule, args, task_id)
+    tasks.run_ebus_toolchain(task_id)
     print(f"Simulation Finished {datetime.now()}")
     return django_scenario
 

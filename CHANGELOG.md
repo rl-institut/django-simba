@@ -17,16 +17,77 @@ Template:
 - [(#)]()
 ```
 
-### Changed (UNRELEASED)  
+### Changed (UNRELEASED)
 ## [(#62)](https://github.com/rl-institut/django-simba/pull/62)
 - `Scenario.created` is now a server default timestamp instead of a client default timestamp
 
 ### Changed
+- [(#88)](https://github.com/rl-institut/django-simba/pull/88)
+- Fixes Issue where soc timeseries in events contained null/none values
+- Fixes Issue with missing events
+- Fixes Issue with unsorted trips from database
+- Fixes Issue with SimBA being dependent on Vehicle Naming
+- Speeds up reading Trips and Rotations from Database
+- Remove tests without celery
+- Error Propagation from celery is now turned on via default, if celery is in task_always_eager mode
+
+
+### Changed
+- [(#82)](https://github.com/rl-institut/django-simba/pull/82)
+- Fixed proper file deletion after reading the files using a ScheduleReader
+- Added DJANGO_LOCAL_DEVELOPMENT=True setting to .env. Used if security features needed for production should be disabled.
+- Override settings for tests so they run through
+
+
+
+### Changed
+- [(#79)](https://github.com/rl-institut/django-simba/pull/79)
+- Implements an abstract class of ScheduleReader which allows importing of different Schedule Types like SimBA, GTFS or VDE
+- Implements a Progressbar with a Progress model
+- Adds files for Front-End workflow
+
+- [(#80)](https://github.com/rl-institut/django-simba/pull/80)
+- Bump eflips-depot dependency to v3
+- Add depot.station field to django model
+- Fix test cases that are failing on py3.12 due to deprecations
+
+
+- [(#60)](https://github.com/rl-institut/django-simba/pull/60)
+- Adds loop over different toolchain modes
+- Station-optimization is turned on per default
+- Removes simba.report from loop and moves it to a single post processing call
+- Missing: Frontend Implementation of choosing Modes
+
+
+- [(#67)](https://github.com/rl-institut/django-simba/pull/67)
+- run_simba_from_scenario and run_toolchain_from_scenario get keyword argument to assign vehicles to rotations using the
+  simba naming convention.
+- set delete_existing_depots=True in eflips depot generator
+- Running a finished Scenario is now possible
+- Running a Scenario with missing vehicle_assignments is now possible by setting assign_vehicles=True
+
+### Changed
+
+- [(#57)](https://github.com/rl-institut/django-simba/pull/57)
+- Add consumption model
+  - Consumption model looks up consumption multidimensional input conditions. Nearest and Interpolation Lookup is
+    possible
+- Consumption models can be separated from a scenario to allow generic consumption table storage
+- Vehicle type can have a numeric consumption or a foreign key to a consumption table
+- Change example trips.csv, so rotations can share a single vehicle
+- Give example vehicles a file reference to a consumption file
+- Input form: Rename vehicle_types to vehicle_types_path
+- Input form: Add consumption_path. For now only a single file is possible in the frontend, but no backend limitation
+  exists
+
+### Changed
+
 - [(#58)](https://github.com/rl-institut/django-simba/pull/58)
 - Upgrade to maplibre 4.0.2
 - Upgrade to django-mapengine 0.18
 
 ### Changed
+
 - [(#55)](https://github.com/rl-institut/django-simba/pull/55)
 - Add deepcopy function to 'core'
 - Test deepcopy

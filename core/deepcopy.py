@@ -11,6 +11,40 @@ from simba.optimizer_util import time_it
 from django.db.models.fields.related import ManyToManyField
 
 
+def deepcopy_and_sequence_reset(
+    instance: models.Model,
+    exclude_models: None | set[Type[models.Model]] = None,
+    exclude_fields: None | set[Type[models.Field]] = None,
+    max_depth=None,
+):
+    """Deepcopy an object using deepcopy of this module and fix postgres sequences after wards.
+
+    :param instance: object to be copied
+    :param exclude_models: models which are skipped during copying
+    :param exclude_fields: fields which are skipped during copying
+    :param max_depth: maximum recursion depth. For known structures, reducing the max depth
+        increases the speed of deep copying.
+    :return: copy result instance
+    """
+
+    copied_instance, apps = deepcopy(
+        instance=instance,
+        exclude_models=exclude_models,
+        exclude_fields=exclude_fields,
+        max_depth=max_depth,
+    )
+    reset_postgres_auto_increments(apps)
+
+    return copied_instance
+
+
+def reset_postgres_auto_increments(apps):
+    # Finally fix postgres auto increments for all used apps during this deepcopy
+    postgres_reset_sql = call_command("sqlsequencereset", *apps, stdout=open(devnull, "a"))
+    with connection.cursor() as cursor:
+        cursor.execute(postgres_reset_sql)
+
+
 @time_it
 @atomic
 def deepcopy(  # noqa
@@ -180,13 +214,7 @@ def deepcopy(  # noqa
 
         if len(copies) == 0:
             break
-
-    # Finally fix postgres auto increments for all used apps during this deepcopy
-    postgres_reset_sql = call_command("sqlsequencereset", *apps, stdout=open(devnull, "a"))
-    with connection.cursor() as cursor:
-        cursor.execute(postgres_reset_sql)
-
-    return instance.__class__.objects.get(pk=new_pk)
+    return instance.__class__.objects.get(pk=new_pk), apps
 
 
 @time_it

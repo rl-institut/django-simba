@@ -59,19 +59,19 @@
         <div class="dropdown">
           <button class="dropbtn">Menü</button>
           <div class="dropdown-content">
-            <nav>
-            {% if user.is_authenticated %}
-              <a href="{% url 'simba:scenarios' %}">Meine Szenarios</a>
-              <a href="{% url 'simba:usergroups' %}">Meine Nutzergruppen</a>
-              <a href="{% url 'logout' %}">Abmelden</a>
-              {% if user.is_staff %}
-                <a href="/admin">Admin</a>
-              {% endif %}
-            {% else %}
-              <a href="{% url 'login' %}">Anmelden</a>
-              <!--<a href="{% url 'core:signup' %}">Registrieren</a>-->
-            {% endif %}
-            </nav>
+              <nav>
+                  {% if user.is_authenticated %}
+                      <a href="{% url 'simba:scenarios' %}">Meine Szenarios</a>
+                      <a href="{% url 'simba:usergroups' %}">Meine Nutzergruppen</a>
+                      <a href="{% url 'logout' %}">Abmelden</a>
+                      {% if user.is_staff %}
+                          <a href="/admin">Admin</a>
+                      {% endif %}
+                  {% else %}
+                      <a href="{% url 'login' %}">Anmelden</a>
+                      <!--<a href="{% url 'core:signup' %}">Registrieren</a>-->
+                  {% endif %}
+              </nav>
           </div>
         </div>
       </div>

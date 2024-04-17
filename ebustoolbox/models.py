@@ -1,18 +1,23 @@
 import shutil
+import warnings
 from datetime import timedelta, datetime
 from functools import partial
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
-from django.db.models import QuerySet, Sum
+from django.db.models import QuerySet, Sum, Q
 from django.db.models.functions import Now
+from django.db.models.constraints import UniqueConstraint
 from django.dispatch import receiver
 from django.utils.timezone import make_aware
 from fast_update.query import FastUpdateManager
+from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
+from scipy.spatial._qhull import QhullError
 
 MINIMAL_TRIP_DURATION_S = 60  # seconds
 
@@ -50,7 +55,9 @@ class Scenario(models.Model):
     name_short = models.TextField(blank=True, null=True)
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
 
-    created = models.DateTimeField(db_default=Now())  # Set to now() on the database side
+    created = models.DateTimeField(
+        auto_now_add=True, db_default=Now()
+    )  # Set to now() on the database side
     task_id = models.UUIDField(default=None, null=True, unique=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
     simba_options = models.JSONField(default=dict, null=True)
@@ -243,8 +250,8 @@ class VehicleType(models.Model):
     charging_curve = ArrayField(ArrayField(models.FloatField(), size=2))
     v2g_curve = ArrayField(ArrayField(models.FloatField(), size=2), null=True)
 
-    # TODO link to consumption table if no value is given here?
     consumption = models.FloatField(default=None, null=True)
+
     # Shape of the vehicle in the form of length, width, height.
     length = models.FloatField(default=None, null=True)
     width = models.FloatField(default=None, null=True)
@@ -295,6 +302,148 @@ class VehicleClass(models.Model):
     """Vehicle types that belong to this vehicle class."""
 
 
+class Consumption(models.Model):
+    """
+    Model representing Consumption data associated with a specific scenario.
+
+    Attributes:
+        name (str): name of the Consumption data, indicating its source or intention
+            (e.g., 'ConsumptionData of 12m Bus'). Cannot be blank
+        vehicle_class (VehicleClass): vehicle class associated with the consumption data
+        scenario (Scenario): scenario to which the consumption data is associated. Foreign key
+                             to the Scenario model
+        columns (list): list of column names representing input conditions for consumption calculation
+        data_points (list): list of lists representing input data points for consumption calculation
+        values (list): list of consumption values corresponding to the data points in kwh/km
+        linear_interpolator (function): function for linear interpolation of consumption data
+        nearest_interpolator (function):function for nearest interpolation of consumption data
+        one_dim (bool): Indicates if the consumption data is one-dimensional
+
+    """
+
+    name = models.CharField(max_length=100)
+    vehicle_class = models.ForeignKey(VehicleClass, null=True, on_delete=models.CASCADE)
+    # Scenario might be null for default consumption tables
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    columns = models.JSONField([], null=False)
+    data_points = ArrayField(ArrayField(models.FloatField(), size=None), size=None, null=False)
+    values = ArrayField(models.FloatField(), size=None, null=False)
+
+    linear_interpolator = None
+    nearest_interpolator = None
+    one_dim = False
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=["name", "scenario"], name="unique_with_scenario"),
+            UniqueConstraint(
+                fields=["name"], condition=Q(scenario=None), name="unique_without_scenario"
+            ),
+        ]
+
+    def __str__(self):
+        avg = np.array(self.values).mean()
+        return f"Consumption table {self.name} with average consumption of {avg:.1f} "
+
+    def to_df(self):
+        """
+        Convert consumption data to a pandas DataFrame.
+
+        :return: DataFrame containing consumption data.
+        :rtype: pandas.DataFrame
+        """
+        return pd.DataFrame(
+            columns=self.columns + ["consumption_kwh_per_km"],
+            data=np.hstack((np.array(self.data_points), np.expand_dims(self.values, axis=1))),
+        )
+
+    def get_consumption(self, input_point: dict | list) -> float:
+        """
+        Get the consumption for a given input point.
+
+        :param input_point: Input conditions for consumption calculation
+        :type input_point: dict | list
+        :return: Consumption value
+        :rtype: float
+        :raises ValueError: if input_point does not contain exactly the needed columns
+        """
+        point = input_point
+        if isinstance(input_point, dict):
+            if not set(input_point.keys()) == set(self.columns):
+                error = f"{input_point} does not contain exactly the needed columns:{self.columns}"
+                raise ValueError(error)
+            point = [input_point[key] for key in self.columns]
+
+        if self.linear_interpolator is None or self.nearest_interpolator is None:
+            self._set_interpolators()
+
+        output = self.linear_interpolator(point)
+        if np.isnan(output):
+            output = self.nearest_interpolator(point)
+        return output
+
+    def _set_interpolators(self):
+        """
+        Set interpolation functions for consumption data.
+        """
+        if self._dims() == 1:
+            data = np.array(self.data_points).squeeze()
+
+            def partial_func(point):
+                return np.interp(point, data, self.values)
+
+            self.linear_interpolator = partial_func
+
+            def find_nearest(value):
+                array = np.asarray(data.squeeze())
+                idx = (np.abs(array - value)).argmin()
+                return self.values[idx]
+
+            self.nearest_interpolator = find_nearest
+            return
+        try:
+            self.linear_interpolator = LinearNDInterpolator(self.data_points, self.values)
+        except QhullError:
+            warnings.warn(
+                "Consumption table does not contain enough elements for multidimensional"
+                " linear interpolation. Nearest Interpolation is used instead."
+            )
+            self.linear_interpolator = NearestNDInterpolator(self.data_points, self.values)
+        self.nearest_interpolator = NearestNDInterpolator(self.data_points, self.values)
+
+    def _dims(self):
+        return np.array(self.data_points).shape[1]
+
+    def get_columns(self):
+        """
+        Get the column names of the consumption data.
+
+        :return: Column names of the consumption data.
+        :rtype: list
+        """
+        return self.columns
+
+    def save(self, *args, **kwargs):
+        if len(self.columns) > 1 and len(self.data_points) != len(self.values):
+            error = "Consumption table does not have the same amount of data_points and values"
+            raise AttributeError(error)
+        if len(self.columns) == 1:
+            data = np.array(self.data_points)
+            if len(data.shape) == 1:
+                # Transform a list like [1,2,3] to [[1],[2],[3]]
+                self.data_points = np.expand_dims(self.data_points, 0).T.tolist()
+        assert (
+            len(
+                Consumption.objects.filter(scenario=self.scenario, name=self.name).exclude(
+                    id=self.id
+                )
+            )
+            == 0
+        )
+        self._set_interpolators()
+        super().save(*args, **kwargs)
+
+
 class Vehicle(models.Model):
     """
     Model representing a vehicle in a scenario.
@@ -343,6 +492,12 @@ class Vehicle(models.Model):
 
     def __str__(self):
         return self.name
+
+    def to_simba_name(self):
+        ct = EnumChargeType.DEPOT.value
+        if self.vehicle_type.opportunity_charging_capable:
+            ct = EnumChargeType.OPPORTUNITY.value
+        return self.vehicle_type.name_short + "_" + ct + "_" + str(self.pk)
 
 
 class Rotation(models.Model):
@@ -735,6 +890,15 @@ class Station(models.Model):
             f"kW. \nLocation: {self.geom.x} {self.geom.y}"
         )
 
+    @classmethod
+    def get_default_pk(cls):
+        scenario = Scenario.objects.get(id=Scenario.get_default_pk())
+        station, created = cls.objects.get_or_create(
+            scenario=scenario,
+            name="default_station",
+        )
+        return station.pk
+
 
 class Line(models.Model):
     """
@@ -1016,6 +1180,21 @@ class StopTime(models.Model):
     station = models.ForeignKey(Station, on_delete=models.CASCADE)
 
 
+class DefaultScenario(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    # Make sure only a single DefaultScenario exists
+    _singleton = models.BooleanField(default=True, editable=False, unique=True)
+
+    def save(self, *args, **kwargs):
+        if not self._singleton:
+            raise AttributeError("DefaultScenario._singleton must be True")
+        if DefaultScenario.objects.all().count() > 0:
+            raise AttributeError(
+                "A DefaultScenario exists already. No other Default can be " "generated"
+            )
+        super().save(*args, **kwargs)
+
+
 class EventType(models.TextChoices):
     """
     The EventType represents a certain type of event, which is used to define the type of an event.
@@ -1152,6 +1331,7 @@ class Depot(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     name = models.TextField(null=False, blank=False)
     name_short = models.TextField(null=True, blank=True)
+    station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE)  # Added in schema v3
 
     default_plan = models.OneToOneField("Plan", null=False, on_delete=models.CASCADE)
 

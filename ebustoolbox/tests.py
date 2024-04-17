@@ -7,6 +7,7 @@ from typing import Iterable
 
 from django.conf import settings
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from django.db import transaction
 from django.http import HttpRequest
 from django.test import TestCase, override_settings
 
@@ -31,6 +32,7 @@ from .models import (
     Temperatures,
     Event,
     EventType,
+    Consumption,
 )
 
 TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
@@ -39,6 +41,8 @@ TMP_STATICFILES_DIRS = settings.STATICFILES_DIRS + [settings.BASE_DIR / TMP_UPLO
 
 @override_settings(STATICFILES_DIRS=TMP_STATICFILES_DIRS)
 @override_settings(UPLOAD_PATH=TMP_UPLOAD)
+@override_settings(SECURE_PROXY_SSL_HEADER=None)
+@override_settings(SECURE_SSL_REDIRECT=False)
 class MySeleniumTests(StaticLiveServerTestCase):
     @classmethod
     def setUpClass(cls):
@@ -55,21 +59,11 @@ class MySeleniumTests(StaticLiveServerTestCase):
         super().tearDownClass()
         shutil.rmtree(TMP_UPLOAD)
 
-    @override_settings(CELERY_USE=True)
     @override_settings(EFLIPS_USE=True)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
     @override_settings(DEBUG=True)
     def test_result_generation_w_celery(self):
-        self.simple_simba_call_in_selenium()
-
-    @override_settings(CELERY_USE=False)
-    @override_settings(EFLIPS_USE=True)
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=False)
-    @override_settings(DEBUG=True)
-    def test_result_generation(self):
-        self.simple_simba_call_in_selenium()
-
-    def simple_simba_call_in_selenium(self):
         # Get the URL using reverse
         url = reverse("simba:home")
         # Simulate a GET request to the URL
@@ -242,13 +236,25 @@ def build_scenario():
 class WriteReadScenarioToDatabase(TestCase):
     @override_settings(DEBUG=True)
     def test_schedule_from_database(self):
+        """Check if the results are equal if the scenario is run from the form or from the db"""
         django_scenario, simba_schedule, args = build_scenario()
-
-        # simba_schedule_db, args_db = tasks.db_to_schedule(django_scenario)
         simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
+        # rotation names are swapped
+        rotations_keys = [rot for rot in simba_schedule.rotations]
+        db_iter = iter(simba_schedule_db.rotations)
+        for rot in rotations_keys:
+            db_rot = next(db_iter)
+            simba_schedule.rotations[db_rot] = simba_schedule.rotations[rot]
+            simba_schedule.rotations[db_rot].id = db_rot
+            simba_schedule.rotations[db_rot].vehicle_id = simba_schedule_db.rotations[
+                db_rot
+            ].vehicle_id
+            del simba_schedule.rotations[rot]
+
         for sched in [simba_schedule, simba_schedule_db]:
             for rot in sched.rotations.values():
                 rot.calculate_consumption()
+
         for key, value in vars(args).items():
             # Some values don't need to be part of the args. Relative and absolute Paths are also
             # ignored
@@ -285,13 +291,13 @@ class WriteReadScenarioToDatabase(TestCase):
                 continue
             self.handle_unaware_datetime(values)
             try:
-                self.assertAlmostEquals(values[0], values[1], places=8, msg=key_stack)
+                self.assertAlmostEqual(values[0], values[1], places=8, msg=key_stack)
             except TypeError:
                 # assume it's a date. values[0] does not come from database, so it has to be made
                 # aware
                 values[0] = make_aware(datetime.fromisoformat(values[0]))
                 values[1] = datetime.fromisoformat(values[1])
-                self.assertAlmostEquals(values[0], values[1], places=8, msg=key_stack)
+                self.assertAlmostEqual(values[0], values[1], places=8, msg=key_stack)
 
     def handle_unaware_datetime(self, values):
         if isinstance(values[0], datetime):
@@ -317,8 +323,10 @@ class WriteReadScenarioToDatabase(TestCase):
         # get a vehicle_type which is "used"
         vehicle = Rotation.objects.filter(scenario=django_scenario)[0].vehicle
         vehicle_type = vehicle.vehicle_type
+        consumption_table = Consumption.objects.get(vehicle_class__vehicletype=vehicle_type)
 
         station = Station.objects.get(scenario=django_scenario, name="Station-0")
+
         # mutate with instance, field name, value
         mutations = [
             (vehicle_type, "battery_capacity", 1),
@@ -329,11 +337,17 @@ class WriteReadScenarioToDatabase(TestCase):
                 "charging_curve",
                 [[x[0], x[1] * 0.1] for x in vehicle_type.charging_curve],
             ),
-            (vehicle_type, "consumption", vehicle_type.consumption * 0.1),
             (station, "amount_charging_places", 1),
             (station, "power_per_charger", station.power_per_charger * 0.1),
             (station, "power_total", station.power_total * 0.1),
         ]
+        if vehicle_type.consumption is not None:
+            mutations.append((vehicle_type, "consumption", vehicle_type.consumption * 0.1))
+        else:
+            mutations.append(
+                (consumption_table, "values", [v * 0.1 for v in consumption_table.values])
+            )
+
         scen_db = simba_schedule_db.run(args_db)
         # running the schedule changes the schedule since it assigns vehicles. therefore load it
         # again to have a "vanilla" schedule
@@ -359,7 +373,7 @@ class WriteReadScenarioToDatabase(TestCase):
                 [original_database_schedule, mut_simba_schedule]
             ):
                 try:
-                    self.assertNotEquals(values[0], values[1], msg=key_stack)
+                    self.assertNotEqual(values[0], values[1], msg=key_stack)
                     difference = key_stack, values
                     difference_found = True
                     break
@@ -385,7 +399,7 @@ class WriteReadScenarioToDatabase(TestCase):
                 if ignore_key:
                     continue
                 try:
-                    self.assertNotEquals(values[0], values[1], msg=key_stack)
+                    self.assertNotEqual(values[0], values[1], msg=key_stack)
                     difference = key_stack, values
                     difference_found = True
                     break
@@ -402,8 +416,9 @@ class WriteReadScenarioToDatabase(TestCase):
                 print(f"Difference in scenario was found for {mutation}, {difference}")
 
 
+@override_settings(SECURE_PROXY_SSL_HEADER=None)
+@override_settings(SECURE_SSL_REDIRECT=False)
 class RunSimulationTest(StaticLiveServerTestCase):
-    @override_settings(CELERY_USE=True)
     @override_settings(EFLIPS_USE=False)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
@@ -411,24 +426,11 @@ class RunSimulationTest(StaticLiveServerTestCase):
     def test_submit_button_click_with_celery_wo_eflips(self):
         self.submit_default_simulation()
 
-    @override_settings(CELERY_USE=False)
-    @override_settings(EFLIPS_USE=False)
-    @override_settings(DEBUG=True)
-    def test_submit_button_click_without_celery_wo_eflips(self):
-        self.submit_default_simulation()
-
-    @override_settings(CELERY_USE=True)
     @override_settings(EFLIPS_USE=True)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
     @override_settings(DEBUG=True)
     def test_submit_button_click_with_celery_with_eflips(self):
-        self.submit_default_simulation()
-
-    @override_settings(CELERY_USE=False)
-    @override_settings(EFLIPS_USE=True)
-    @override_settings(DEBUG=True)
-    def test_submit_button_click_without_celery_with_eflips(self):
         self.submit_default_simulation()
 
     def submit_default_simulation(self):
@@ -574,6 +576,114 @@ class ScenarioTestCase(TestCase):
         self.assertIsNone(instance_1.task_id)
 
 
+class ConsumptionTestCase(TestCase):
+    def test_get_consumption(self):
+        consumption_instance = Consumption.objects.create(
+            name="My Consumption",
+            columns=["speed", "other"],
+            data_points=[[10, 1], [100, 3]],
+            values=[1, 2],
+        )
+
+        assert consumption_instance.get_consumption({"speed": 10, "other": 1}) == 1
+        assert consumption_instance.get_consumption((10, 1)) == 1
+        assert consumption_instance.get_consumption({"speed": 100, "other": 3}) == 2
+        assert consumption_instance.get_consumption((100, 3)) == 2
+        assert consumption_instance.get_consumption((999, 3)) == 2
+
+        c1 = Consumption.objects.create(
+            name="My Other Consumption",
+            columns=[
+                "speed",
+            ],
+            data_points=[1, 10, 50, 100],
+            values=[1, 2, 3, 50],
+        )
+        c2 = Consumption.objects.create(
+            name="My Other Consumption 2",
+            columns=[
+                "speed",
+            ],
+            data_points=[[1], [10], [50], [100]],
+            values=[1, 2, 3, 50],
+        )
+        assert c1.get_consumption((1)) == 1 == c2.get_consumption((1))
+        assert c1.get_consumption((5.5)) == 1.5 == c2.get_consumption((5.5))
+        assert c1.get_consumption((30)) == 2.5 == c2.get_consumption((30))
+        assert c1.get_consumption((100)) == 50 == c2.get_consumption((100))
+        assert c1.get_consumption((300)) == 50 == c2.get_consumption((300))
+        assert c2.nearest_interpolator(99) == 50
+
+        # multidim with more values so linear nd interpol works
+        c = Consumption.objects.create(
+            name="My Consumption with multidim",
+            columns=["speed", "other", "other2"],
+            data_points=[
+                [10, 20, 1],
+                [10, 20, 3],
+                [10, 30, 1],
+                [10, 30, 3],
+                [0, 20, 1],
+                [0, 20, 3],
+                [0, 30, 1],
+                [0, 30, 3],
+            ],
+            values=[1, 2, 3, 4, 5, 6, 7, 8],
+        )
+        self.assertAlmostEqual(c.get_consumption((10, 20, 1)), 1)
+        self.assertAlmostEqual(c.get_consumption((5, 20, 1)), 3)
+        self.assertAlmostEqual(c.get_consumption((10, 20, 2)), 1.5)
+        self.assertAlmostEqual(c.get_consumption((10, 25, 3)), 3)
+        delta = 1e-9
+        self.assertAlmostEqual(c.get_consumption((0 + delta, 30 - delta, 3 - delta)), 8)
+        self.assertNotEqual(c.get_consumption((0 + delta, 30 - delta, 3 - delta)), 8)
+
+    def test_model_creation(self):
+        consumption_instance = Consumption.objects.create(
+            name="My Consumption",
+            columns=["speed", "consumption"],
+            data_points=[[10, 1], [100, 3]],
+            values=[1, 2],
+        )
+
+        name = "My other Consumption"
+        builder_kwargs = dict(
+            name=name,
+            columns=["speed", "consumption"],
+            data_points=[[10, 1], [100, 3]],
+            values=[1, 2],
+        )
+        # The same consumption name cannot exist twice, except when its bound by a scenario
+        Consumption.objects.create(**builder_kwargs)
+        assert Consumption.objects.filter(name=name).count() == 1
+        with transaction.atomic():
+            self.assertRaises(Exception, lambda: Consumption.objects.create(**builder_kwargs))
+        assert Consumption.objects.filter(name=name).count() == 1
+        # The name can be shared it its associated with a scenario
+        s = Scenario.objects.create(name="foo")
+        Consumption.objects.create(**builder_kwargs, scenario=s)
+        assert Consumption.objects.filter(name=name).count() == 2
+        # but only once
+        with transaction.atomic():
+            self.assertRaises(
+                Exception, lambda: Consumption.objects.create(**builder_kwargs, scenario=s)
+            )
+        assert Consumption.objects.filter(name=name).count() == 2
+
+        # but another scenario can have the same consumption name aswell
+        s = Scenario.objects.create(name="bar")
+        Consumption.objects.create(**builder_kwargs, scenario=s)
+        assert Consumption.objects.filter(name=name).count() == 3
+
+        # Wrong number of input dims
+        self.assertRaises(Exception, lambda: consumption_instance.get_consumption((999, 3, 5)))
+        # Wrong keys in input dict
+        self.assertRaises(
+            Exception,
+            lambda: consumption_instance.get_consumption({"speesdfd": 100, "consumption": 3}),
+        )
+
+
 class TemperaturesTestCase(TestCase):
     def test_model_creation(self):
         date1 = make_aware(datetime(year=2024, month=1, day=1))
@@ -638,9 +748,6 @@ class TemperaturesTestCase(TestCase):
         )
         # Different dates raise an attribute error
         self.assertRaises(AttributeError, t_instance.save)
-
-    def test_temperatures_from_csv(self):
-        pass
 
 
 class TestUtil(TestCase):

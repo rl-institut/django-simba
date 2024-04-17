@@ -2,6 +2,8 @@ from __future__ import absolute_import, unicode_literals
 from celery import Celery
 import os
 
+from celery.result import AsyncResult
+
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ebusdjango.settings")
 
@@ -15,3 +17,22 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
+
+
+def get_scheduled():
+    i = app.control.inspect()
+    return i.scheduled()
+
+
+def get_active():
+    i = app.control.inspect()
+    return i.active()
+
+
+def get_reserved():
+    i = app.control.inspect()
+    return i.reserved()
+
+
+def get_result(task_id):
+    return AsyncResult(task_id, app=app)
