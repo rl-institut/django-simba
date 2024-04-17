@@ -345,7 +345,11 @@ class SimbaScheduleReader(ScheduleReader):
 
             if missing_column:
                 raise self.SimbaScheduleReaderException
+            # Jump to beginning of file for iteration
+            file.seek(0)
 
+            # Skip the first line containing headers / column names
+            next(trip_reader)
             for trip in trip_reader:
                 rotation_id = trip[self.ROTATION_ID]
                 if rotation_id not in trip_data:
