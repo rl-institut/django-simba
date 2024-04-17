@@ -87,8 +87,12 @@ class ChargingStationDefaultsForm(forms.Form):
     cs_power_opps = forms.IntegerField(
         min_value=0, max_value=10000, initial=300, label="Charging point power in kW"
     )
-    amount_charging_places = forms.IntegerField(min_value=0, max_value=1000, initial=2,
-                                                label="Number of charging points per electrified station")
+    amount_charging_places = forms.IntegerField(
+        min_value=0,
+        max_value=1000,
+        initial=2,
+        label="Number of charging points per electrified station",
+    )
     station_optimization = forms.BooleanField(initial=False, required=False)
     charging_types = (
         ("depb", "Depotlader"),
