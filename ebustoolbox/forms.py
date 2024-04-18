@@ -94,8 +94,3 @@ class ChargingStationDefaultsForm(forms.Form):
         label="Number of charging points per electrified station",
     )
     station_optimization = forms.BooleanField(initial=False, required=False)
-    charging_types = (
-        ("depb", "Depotlader"),
-        ("oppb", "Gelegenheitslader"),
-    )
-    preferred_charging_type = forms.ChoiceField(choices=charging_types)
