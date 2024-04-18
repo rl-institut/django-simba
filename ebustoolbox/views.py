@@ -1,3 +1,4 @@
+import traceback
 from datetime import datetime
 
 from django.conf import settings
@@ -110,13 +111,17 @@ def home_prototype(request: HttpRequest):
 
 
 def get_options(request: HttpRequest, task_id, reader_num: int):
-    # ToDo add Form
-    from . import schedule_readers
-
-    form = schedule_readers.get_options_form(reader_num)
-    context = {"form": form, "reader_num": reader_num, "task_id": task_id}
-
-    return render(request, "schedule_reader_options.html", context)
+    context = {"reader_num": reader_num, "task_id": task_id}
+    response = HttpResponse(context)
+    try:
+        form = schedule_readers.get_options_form(reader_num)
+        context |= {"form": form}
+        response = render(request, "schedule_reader_options.html", context)
+    except:  # noqa
+        traceback.print_exc()
+        # 204 - No Content https://htmx.org/docs/#requests
+        response.status_code = 204
+    return response
 
 
 def get_vehicle_types(request: HttpRequest, task_id):

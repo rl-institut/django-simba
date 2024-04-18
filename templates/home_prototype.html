@@ -2,25 +2,23 @@
 {% block content %}
     <div class="row">
         {{ task_id }}
-        {#            replace 1 witch reader number #}
-        <div hx-swap="outerHTML" hx-get='{% url 'simba:get_options' task_id 1 %}' >
-                <button>
-                    Get options
-                </button>
-        </div>
-{#        <form id='form'>{% csrf_token %}#}
-{#            <input type='file' name='file'>#}
-            {#This will be replaced by the progressbar, during server side analyzing            #}
-{#            <div id="upload-progress_{{ task_id }}"></div>#}
-{##}
-{#            <button id='button_{{ task_id }}' hx-encoding='multipart/form-data' hx-target="#upload-progress_{{ task_id }}"#}
-{#                    hx-post='{% url 'simba:upload_trips' task_id 1 %}'>#}
-{#                Upload#}
-{#            </button>#}
-            {#            progress bar during upload#}
-{#            <progress id='progress' value='0' max='100'></progress>#}
-{#        </form>#}
-        <div id="runner"
+        <div id="ScheduleReaderChoice" >
+            <div>
+                    <button hx-target="#ScheduleReaderChoice" hx-get='{% url 'simba:get_options' task_id 1 %}'>
+                        Supply SimBA Inputs
+                    </button>
+            </div>
+
+                {#            replace 1 witch reader number #}
+            <div >
+                    <button hx-target="#ScheduleReaderChoice" hx-get='{% url 'simba:get_options' task_id 2 %}'>
+                        Supply EflipsDummyIngest Inputs
+                    </button>
+            </div>
+            </div>
+    </div>
+
+            <div id="runner"
                 {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
              hx-trigger="notRunning from:body">
         </div>

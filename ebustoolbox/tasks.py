@@ -21,6 +21,7 @@ from django.utils import timezone
 from django.utils.timezone import make_aware, is_aware
 from eflips.depot.api import simulate_scenario, generate_depot_layout
 
+import core.deepcopy
 import simba.optimizer_util
 import simba.simulate
 import simba.trip
@@ -857,16 +858,20 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
             progress.errors.extend(schedule_reader.get_errors())
         except:  # noqa
             pass
+        progress.status = "Finished"
         if not progress.success:
             progress.status = "Failed"
         # delete all uploaded files
         try:
             for file_path, file_id in files.values():
                 UploadedFile.objects.get(id=file_id).delete()
-        except Exception as e:
-            print(e)
+        except Exception:
+            traceback.print_exc()
         progress.running = False
         progress.save()
+
+        # Make sure postgres auto increment is up to date
+        core.deepcopy.reset_postgres_auto_increments(["ebustoolbox"])
 
 
 @atomic()
