@@ -259,10 +259,6 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
 
     args = get_args(django_scenario=django_scenario)
     options = vars(args)
-    try:
-        del options["electrified_stations"]
-    except (TypeError, KeyError):
-        pass
 
     schedule = SimbaSchedule(stations=stations_dict, vehicle_types=vehicle_types, **options)
     schedule.station_data = station_data
