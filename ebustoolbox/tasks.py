@@ -434,7 +434,9 @@ def get_electrified_stations_from_db(django_scenario) -> dict:
             "gc_power": station.power_total,
             "voltage_level": station.voltage_level,
         }
-        stat_dict_cleaned = {k: v for k, v in stat_dict.items() if v is not None}
+        stat_dict_cleaned = {
+            k: v for k, v in stat_dict.items() if v is not None or k == "n_charging_stations"
+        }
         stations_dict[station.name] = stat_dict_cleaned
     return stations_dict
 
