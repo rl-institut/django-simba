@@ -27,6 +27,7 @@ from ebustoolbox.models import (
     Route,
     Trip,
     EnumChargeType,
+    EnumVoltageLevel
 )
 
 
@@ -335,6 +336,7 @@ class SimbaScheduleReader(ScheduleReader):
             if name in depot_stations:
                 station.is_electrified = True
                 station.charge_type = EnumChargeType.DEPOT.value
+                station.voltage_level = EnumVoltageLevel.VOLTAGE_MV.value
             stations.append(station)
             station_dict[name] = station
 
