@@ -1360,15 +1360,16 @@ def electrify_db_stations(scenario: Scenario, station_id_list, unelectrify=True)
         station.charge_type = EnumChargeType.OPPORTUNITY
         station.voltage_level = EnumVoltageLevel.VOLTAGE_MV
         station.amount_charging_places = scenario.simba_options["amount_charging_places"]
-        station.save()
+    Station.objects.bulk_update(stations, ["is_electrified", "charge_type", "voltage_level", "amount_charging_places"])
     if unelectrify:
-        revert_stations = all_stations.exclude(pk__in=station_id_list).filter(is_electrified=True)
+        revert_stations = all_stations.exclude(pk__in=station_id_list).filter(is_electrified=True).exclude(charge_type=EnumChargeType.DEPOT)
         for station in revert_stations:
             station.is_electrified = False
             station.charge_type = None
             station.voltage_level = None
             station.amount_charging_places = None
-            station.save()
+        Station.objects.bulk_update(revert_stations,
+                                    ["is_electrified", "charge_type", "voltage_level", "amount_charging_places"])
 
 
 def update_vehicle_types_with_defaults(vehicle_type_pairs, task_id):
