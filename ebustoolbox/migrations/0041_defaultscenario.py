@@ -28,6 +28,6 @@ class Migration(migrations.Migration):
                 ),
             ],
         ),
-        migrations.RunPython(set_default_scenario, lambda app, shema_editor: ()),
+        migrations.RunPython(set_default_scenario, lambda app, schema_editor: ()),
 
     ]
