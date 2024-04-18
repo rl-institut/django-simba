@@ -433,7 +433,8 @@ def get_electrified_stations_from_db(django_scenario) -> dict:
             "gc_power": station.power_total,
             "voltage_level": station.voltage_level,
         }
-        stations_dict[station.name] = stat_dict
+        stat_dict_cleaned = {k: v for k, v in stat_dict.items() if v is not None}
+        stations_dict[station.name] = stat_dict_cleaned
     return stations_dict
 
 
@@ -1353,7 +1354,7 @@ def forward_fill_last_value(list_with_nones):
 def electrify_db_stations(scenario: Scenario, station_id_list, unelectrify=True):
     """Set given stations in scenario to be electrified."""
     all_stations = Station.objects.filter(scenario=scenario)
-    stations = all_stations.filter(pk__in=station_id_list)
+    stations = all_stations.filter(pk__in=station_id_list).exclude(charge_type=EnumChargeType.DEPOT)
     for station in stations:
         station.is_electrified = True
         # TODO get these values from somewhere?
