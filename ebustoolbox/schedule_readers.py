@@ -27,7 +27,7 @@ from ebustoolbox.models import (
     Route,
     Trip,
     EnumChargeType,
-    EnumVoltageLevel
+    EnumVoltageLevel,
 )
 
 
