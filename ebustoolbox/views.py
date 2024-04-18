@@ -1,9 +1,12 @@
+import random
 import traceback
+import warnings
 from datetime import datetime
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.contrib.gis.geos import Point
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.transaction import atomic
@@ -284,11 +287,18 @@ def create_stations_for_map(django_scenario: Scenario):
     from ebus_map.models import Station as MapStation
 
     stations = ebustoolbox.models.Station.objects.filter(scenario=django_scenario)
-    map_stations = []
+    # Delete old Stations
+    MapStation.objects.filter(scenario=django_scenario).delete()
+    warned = False
     for station in stations:
         map_stat = MapStation()
         map_stat.__dict__.update(station.__dict__)
-        map_stations.append(map_stat)
+        if station.geom is None:
+            if not warned:
+                warnings.warn("At least one Station has no geometry and is placed randomly")
+                warned = True
+            map_stat.geom = Point(x=13.2 + random.random(), y=52.0 + random.random(), z=0)
+        # Cannot bulk create multi inherited model
         map_stat.save()
 
 

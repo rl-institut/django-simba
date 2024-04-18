@@ -1,3 +1,5 @@
+import warnings
+
 from django.contrib.gis.db import models
 from django.contrib.gis.db.models.functions import Transform
 from django.contrib.gis.geos import Polygon
@@ -52,9 +54,11 @@ class MVTManager(models.Manager):
     def _filter_query(self, query, x, y, z, filters):
         # ToDo Change
         assert filters["task_id"] is not None, "Source can only be shown with valid task_id"
-        assert len(filters) == 1, "Only one filter supported at the time"
-        filters["scenario__task_id"] = filters["task_id"]
-        del filters["task_id"]
+        if len(filters) > 1:
+            warnings.warn("Only one filter supported at the time")
+        task_id = filters["task_id"]
+        filters = dict()
+        filters["scenario__task_id"] = task_id
         return query.filter(**filters)
 
     def _get_mvt_geom_query(self, x, y, z):
