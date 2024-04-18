@@ -315,11 +315,11 @@ class SimbaScheduleReader(ScheduleReader):
             trip_data[rot_id] = sorted(trips, key=lambda x: x[self.ARRIVAL_TIME])
 
         # Assume first and last stop are always depots
-        # Get the arrival name of the first trip and departure_name of the last trip.
+        # Get the departure_name of the first trip and arrival_name of the last trip.
         depot_stations = {
             trips[num][name]
             for trips in trip_data.values()
-            for num, name in [(1, self.ARRIVAL_NAME), (-1, self.DEPARTURE_NAME)]
+            for num, name in [(-1, self.ARRIVAL_NAME), (0, self.DEPARTURE_NAME)]
         }
 
         unique_arrival_stations = {
