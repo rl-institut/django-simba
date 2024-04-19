@@ -264,6 +264,12 @@ class VehicleType(models.Model):
     vehicle_classes = models.ManyToManyField("VehicleClass", through="AssocVehicleTypeVehicleClass")
     """Vehicle classes this vehicle type belongs to."""
 
+    def save(self, *args, **kwargs):
+        # Override save to make certain name_short exists
+        if not self.name_short or self.name_short == str(models.TextField(null=False, blank=False)):
+            self.name_short = self.name
+        super().save(*args, **kwargs)
+
 
 class VehicleClass(models.Model):
     """
