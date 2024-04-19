@@ -6,6 +6,7 @@ from ebustoolbox.util import get_unique_task_id
 from django.test import TransactionTestCase
 from ebustoolbox.models import User, Scenario, Event, Rotation, Trip
 from ebus_map.models import Station
+from .models import Progress
 
 
 class TestDeepCopy(TransactionTestCase):
@@ -18,7 +19,7 @@ class TestDeepCopy(TransactionTestCase):
         s1.task_id = None
         s2, _ = deepcopy_db(
             s1,
-            exclude_models={Scenario, User, Station, Event},
+            exclude_models={Scenario, User, Station, Event, Progress},
             max_depth=1,
         )
         assert Trip.objects.filter(scenario=s1).count() == Trip.objects.filter(scenario=s2).count()

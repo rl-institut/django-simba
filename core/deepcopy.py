@@ -201,7 +201,9 @@ def deepcopy(  # noqa
     rev_stack = revert_stack(stack, write_multi_dict)
 
     apps = {model._meta.app_label for model in copies}
-    while True:
+    counter = 0
+    while counter < 100:
+        counter += 1
         # Bulk create the objects to speed up a writing process
         failed_classes = bulk_create_objects(copies)
         # Replace the foreign keys of the copied objects. This can only be done after they were created
@@ -216,6 +218,8 @@ def deepcopy(  # noqa
 
         if len(copies) == 0:
             break
+    else:
+        raise Exception("Deepcopying could not create Objects. Database restrictions aren't met?")
     return instance.__class__.objects.get(pk=new_pk), apps
 
 
