@@ -53,6 +53,7 @@ def result_view(request: HttpRequest):
     try:
         print(task_id, Scenario.objects.filter(task_id=task_id).exists())
         if Scenario.objects.get(task_id=task_id).finished:
+            request.task_id = str(task_id)
             return SuccessView.as_view()(request)
         else:
             return wait_view(request)
@@ -75,7 +76,10 @@ class SuccessView(TemplateView, MapEngineMixin):
 
     def get_context_data(self, **kwargs):
         context = super(SuccessView, self).get_context_data(**kwargs)
-        task_id = self.request.GET["task_id"]
+        task_id = kwargs.get("task_id")
+        if task_id is None:
+            raise Http404
+        task_id = str(task_id)
         context["task_id"] = task_id
 
         session = self.request.session
@@ -186,35 +190,50 @@ def scenario_overview(request: HttpRequest, task_id):
     return render(request, "scenario_overview.html", {"task_id": task_id})
 
 
-def progress(request: HttpRequest, task_id):
-    context = {"progress_id": task_id, "status": "", "current_progress": 0}
+def progress(request: HttpRequest, progress_id, progress_type: str):
+    context = {"progress_id": progress_id, "status": "", "current_progress": 0}
+    context |= {"finished": False}
     try:
-        progress = Progress.objects.get(task_id=task_id)
+        progress = Progress.objects.get(task_id=progress_id)
     except ObjectDoesNotExist:
         response = render(request, "progress.html", context)
         return response
-    # context["task_id"] = progress.scenario.task_id
+
     context["current_progress"] = progress.get_progress()
     context["status"] = progress.status
     status_code = 200
+    hx_trigger = "running"
     if progress.success or not progress.running or len(progress.errors) != 0:
         context["errors"] = progress.errors
         # End polling
         status_code = 286
         context["finished"] = True
-        # hx_trigger = "notRunning"
+        hx_trigger = "notRunning"
     response = render(request, "progress.html", context)
     if context["finished"] and len(context["errors"]) == 0:
-        response["HX-Redirect"] = reverse(
-            "simba:vehicle_types", args=[str(progress.scenario.task_id)]
-        )
+        match progress_type:
+            case "vehicle_types":
+                response["HX-Redirect"] = reverse(
+                    "simba:vehicle_types", args=[str(progress.scenario.task_id)]
+                )
+            case "simulation":
+                # as a result render simulation result plots in a not yet existing div/tab
+                scenario = progress.scenario
+                if "ebus_map" in settings.INSTALLED_APPS:
+                    create_stations_for_map(scenario)
+                    task_id = progress.scenario.task_id
+                    request.task_id = task_id
+                    response = SuccessView.as_view()(request, task_id=task_id)
+            case _:
+                raise NotImplementedError
+    response["HX-Trigger"] = hx_trigger
     response.status_code = status_code
     return response
 
 
 @require_POST
 def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
-    context = {"task_id": task_id}
+    context = {"task_id": task_id, "progress_type": "vehicle_types"}
     try:
         form = schedule_readers.get_options_form(reader_num)(request.POST, request.FILES)
         if not form.is_valid():
@@ -233,8 +252,6 @@ def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
             files[name] = uploaded_file.file.path, uploaded_file.id
             del cleaned_data[name]
         # what kind of file is uploaded
-        # errors, success = tasks.init_db_with_trips(uploaded_file.id, s.id)
-
         async_result = tasks.init_db_with_trips.apply_async((s.id, reader_num, files, cleaned_data))
         context["progress_id"] = async_result.task_id
 
@@ -287,8 +304,6 @@ def create_stations_for_map(django_scenario: Scenario):
     from ebus_map.models import Station as MapStation
 
     stations = ebustoolbox.models.Station.objects.filter(scenario=django_scenario)
-    # Delete old Stations
-    MapStation.objects.filter(scenario=django_scenario).delete()
     warned = False
     for station in stations:
         map_stat = MapStation()
@@ -297,7 +312,7 @@ def create_stations_for_map(django_scenario: Scenario):
             if not warned:
                 warnings.warn("At least one Station has no geometry and is placed randomly")
                 warned = True
-            map_stat.geom = Point(x=13.2 + random.random(), y=52.0 + random.random(), z=0)
+            map_stat.geom = Point(x=13.0 + random.random(), y=52.0 + random.random(), z=0)
         # Cannot bulk create multi inherited model
         map_stat.save()
 
@@ -329,16 +344,27 @@ def save_and_simulate(
 
 
 def run_simulation(request: HttpRequest, task_id: str):
-    if request.method == "GET":
-        print(f"Running TOOLCHAIN {datetime.now()}")
-        scenario = Scenario.objects.get(task_id=task_id)
-        tasks.run_toolchain_from_scenario(scenario, assign_vehicles=True)
-        print(f"Simulation Finished {datetime.now()}")
-        # as a result render simulation result plots in a not yet existing div/tab
-        if "ebus_map" in settings.INSTALLED_APPS:
-            create_stations_for_map(scenario)
+    context = {"task_id": task_id, "progress_type": "simulation"}
+    print(context)
+    response = HttpResponse(context)
+    try:
+        if request.method == "GET":
+            print(f"Running TOOLCHAIN {datetime.now()}")
+            try:
+                scenario = Scenario.objects.get(task_id=task_id)
+            except Scenario.DoesNotExist:
+                raise Http404
+            # This triggers progress polling. If the toolchain is finished
+            # the progress view will be triggered with the task_id and progress type
+            async_result = tasks.run_toolchain_from_scenario(scenario, assign_vehicles=True)
 
-        return SuccessView.as_view()(request)
+            context["progress_id"] = async_result.task_id
+            response = render(request, "progress_poll.html", context)
+            response["HX-Trigger"] = "running"
+    except Exception:
+        traceback.print_exc()
+        response["HX-Trigger"] = "notRunning"
+    return response
 
 
 def download_scenario(request: HttpRequest, task_id: str):
