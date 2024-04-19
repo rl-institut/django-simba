@@ -883,7 +883,8 @@ def _celery_generate_zipped_scenario(self, task_id: str):
 
 
 def run_ebus_toolchain(task_id):
-    _ = _run_ebus_toolchain.apply_async((str(task_id),), task_id=str(task_id))
+    async_result = _run_ebus_toolchain.apply_async((str(task_id),), task_id=str(task_id))
+    return async_result
 
 
 def vary_depot_rotations(schedule) -> "collections.Iterable[SimbaRotation]":
@@ -930,7 +931,7 @@ def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False
     """
     if assign_vehicles:
         assign_new_vehicles_to_db(django_scenario)
-    run_ebus_toolchain(django_scenario.task_id)
+    return run_ebus_toolchain(django_scenario.task_id)
 
 
 def run_simba_scenario(django_scenario: Scenario, assign_vehicles=False):
@@ -968,41 +969,62 @@ def assign_new_vehicles_to_db(django_scenario: Scenario) -> None:
 
 @shared_task(bind=True)
 def _run_ebus_toolchain(self, task_id):
+
     """Run the tool chain"""
     db_scenario = Scenario.objects.get(task_id=task_id)
-    schedule, args = get_schedule_from_db(db_scenario)
-    # django_scenario = Scenario.objects.get(task_id=task_id)
-    # schedule, args = get_schedule_from_args(args, django_scenario)
-    # call simba and eflips
-    wanted_modes = args.modes.split(",")
-    assert wanted_modes[-1] == "report"
-    simba_scenario = None
+    progress, _ = Progress.objects.get_or_create(task_id=self.request.id, scenario=db_scenario)
+    progress.reset()
 
-    # Chain of modes with mode->eflips -> sim. Last mode is "report" and can be outside of loop
-    for mode in wanted_modes[:-1]:
-        # Delete old events
-        Event.objects.filter(scenario=db_scenario).delete()
+    try:
+        schedule, args = get_schedule_from_db(db_scenario)
+        progress.total_work = 100
+        progress.current_work = 0
+        progress.save()
 
-        schedule, simba_scenario = run_simba(
-            schedule, args, task_id, mode=mode, scenario=simba_scenario
-        )
-        # ToDo remove Flag. Eflips should not stay optional
-        # ToDo Maybe create class SimulationMode: which couple logical toolchain steps, e.g.
-        # simba.sim -> eflips -> simba.sim
-        # simba.station_opt -> eflips -> simba.sim
-        if settings.EFLIPS_USE:
-            run_eflips(task_id)
-            eflips_assignment = get_assigned_vehicles(task_id)
-            schedule.assign_vehicles_for_django(eflips_assignment)
-            schedule, simba_scenario = run_simba(schedule, args, task_id, mode="sim")
+        # django_scenario = Scenario.objects.get(task_id=task_id)
+        # schedule, args = get_schedule_from_args(args, django_scenario)
+        # call simba and eflips
+        wanted_modes = args.modes.split(",")
+        assert wanted_modes[-1] == "report"
+        simba_scenario = None
 
-    # Post Processing or Clean Up ########
-    # ToDo: Report run might be removed at some point
-    _, __ = run_simba(schedule, args, task_id, mode=wanted_modes[-1], scenario=simba_scenario)
+        # Chain of modes with mode->eflips -> sim. Last mode is "report" and can be outside of loop
+        for mode in wanted_modes[:-1]:
+            # Delete old events
+            Event.objects.filter(scenario=db_scenario).delete()
 
-    db_scenario.refresh_from_db()
-    db_scenario.finished = timezone.now()
-    db_scenario.save()
+            schedule, simba_scenario = run_simba(
+                schedule, args, task_id, mode=mode, scenario=simba_scenario
+            )
+            # ToDo remove Flag. Eflips should not stay optional
+            # ToDo Maybe create class SimulationMode: which couple logical toolchain steps, e.g.
+            # simba.sim -> eflips -> simba.sim
+            # simba.station_opt -> eflips -> simba.sim
+            if settings.EFLIPS_USE:
+                run_eflips(task_id)
+                eflips_assignment = get_assigned_vehicles(task_id)
+                schedule.assign_vehicles_for_django(eflips_assignment)
+                schedule, simba_scenario = run_simba(schedule, args, task_id, mode="sim")
+
+            progress.current_work += 90 // (len(wanted_modes) - 1)
+            progress.save()
+
+        # Post Processing or Clean Up ########
+        # ToDo: Report run might be removed at some point
+        _, __ = run_simba(schedule, args, task_id, mode=wanted_modes[-1], scenario=simba_scenario)
+
+        db_scenario.refresh_from_db()
+        db_scenario.finished = timezone.now()
+        db_scenario.save()
+        progress.set_success()
+    except Exception as e:
+        traceback.print_exc()
+        progress.refresh_from_db()
+        try:
+            progress.errors.append(str(e))
+        except Exception:
+            traceback.print_exc()
+        progress.set_failed()
 
 
 def get_assigned_vehicles(task_id: str) -> List[dict]:
@@ -1390,6 +1412,8 @@ def update_vehicle_types_with_defaults(vehicle_type_pairs, task_id):
         vt_default = vehicle_types_default.get(pk=vehicle_types[1])
         vt_default.scenario = scenario
         vt_default.pk = vehicle_types[0]
+        # Do not overwrite this, since both capabilties might be needed
+        vt_default.opportunity_charging_capable = vt.opportunity_charging_capable
         vt_default.name = vt.name
         vt_default.name_short = vt.name_short
         vt_default.save()
