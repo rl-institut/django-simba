@@ -73,7 +73,6 @@ def function_signature_to_form(function: Callable):
             case _:
                 raise NotImplementedError
         fields[name] = field
-        print(argument, field, argument_type)
     form = ScheduleReaderOptionsFormFactory("ScheduleReaderOptionsForm", fields)
     return form
 
@@ -396,6 +395,34 @@ class SimbaScheduleReader(ScheduleReader):
 
                 trip_data[rotation_id].append(trip_d)
         return trip_data
+
+    @classmethod
+    def get_options_form(cls):
+        function = cls.__init__
+        sig = signature(function)
+
+        def ScheduleReaderOptionsFormFactory(classname, fields: dict):
+            return type(
+                f"{classname}",
+                (forms.Form,),
+                fields,
+            )
+
+        fields = dict()
+        field = forms.FileField(required=True)
+        fields["file_path"] = field
+        field = forms.CharField(
+            widget=forms.RadioSelect(choices=EnumChargeType.choices),
+            initial=EnumChargeType.choices[0],
+        )
+        fields["default_charging_type"] = field
+        parameters = {name: argument for name, argument in sig.parameters.items()}
+        del parameters["self"]
+        for name, argument in parameters.items():
+            assert name in fields.keys(), "Missing required field {}".format(name)
+
+        form = ScheduleReaderOptionsFormFactory("ScheduleReaderOptionsForm", fields)
+        return form
 
 
 class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
