@@ -51,10 +51,9 @@ def result_view(request: HttpRequest):
     """View controlling if the wait or success view should be shown"""
     task_id = request.GET["task_id"]
     try:
-        print(task_id, Scenario.objects.filter(task_id=task_id).exists())
         if Scenario.objects.get(task_id=task_id).finished:
             request.task_id = str(task_id)
-            return SuccessView.as_view()(request)
+            return SuccessView.as_view()(request, task_id=task_id)
         else:
             return wait_view(request)
     except Scenario.DoesNotExist:
