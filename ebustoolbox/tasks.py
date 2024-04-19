@@ -969,7 +969,6 @@ def assign_new_vehicles_to_db(django_scenario: Scenario) -> None:
 
 @shared_task(bind=True)
 def _run_ebus_toolchain(self, task_id):
-
     """Run the tool chain"""
     db_scenario = Scenario.objects.get(task_id=task_id)
     progress, _ = Progress.objects.get_or_create(task_id=self.request.id, scenario=db_scenario)
