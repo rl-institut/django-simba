@@ -256,10 +256,6 @@ class WriteReadScenarioToDatabase(TestCase):
                 rot.calculate_consumption()
 
         for key, value in vars(args).items():
-            # Some values don't need to be part of the args. Relative and absolute Paths are also
-            # ignored
-            if key in ["electrified_stations", "vehicle_types"]:
-                continue
             db_value = vars(args_db).get(key)
             self.assertEqual(db_value, value)
 
@@ -280,15 +276,10 @@ class WriteReadScenarioToDatabase(TestCase):
 
         scen = simba_schedule.run(args)
         scen_db = simba_schedule_db.run(args_db)
+
         # Recursively search the scenario for primitive data which has to be equal to the data
         # created by the database schedule
         for key_stack, values in objects_digger([scen, scen_db], early_return=False):
-            ignore_key = False
-            for key in ["electrified_stations", "vehicle_types"]:
-                if key in key_stack:
-                    ignore_key = True
-            if ignore_key:
-                continue
             self.handle_unaware_datetime(values)
             try:
                 self.assertAlmostEqual(values[0], values[1], places=8, msg=key_stack)

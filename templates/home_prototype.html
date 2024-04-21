@@ -23,11 +23,6 @@
              hx-trigger="notRunning from:body">
         </div>
 
-        <div hx-trigger="notRunning from:body"
-                    hx-get='{% url 'simba:vehicle_types' task_id %}'>
-        </div>
-
-
         <script>
             {# Activate button if the server finished handling the previous file#}
             let task_id = '{{ task_id }}';
@@ -37,5 +32,4 @@
             });
         </script>
     </div>
-
 {% endblock %}

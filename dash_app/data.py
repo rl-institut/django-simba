@@ -89,7 +89,7 @@ def get_bar_plot_data(filter_dict: dict) -> list[str, float, float]:
         min_soc = next(iter(vehicle_events.aggregate(Min("soc_end")).values()))
         vehicle_data[i, :] = vehicle.name_short, min_soc
 
-    soc_data = vehicle_data[:, 1]
+    soc_data = vehicle_data[:, 1] or [0]
     lower_end = min(soc_data) // 0.05 * 0.05
     upper_end = 1
     bins = int((upper_end - lower_end) / 0.05)

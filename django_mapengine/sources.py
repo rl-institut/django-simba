@@ -48,7 +48,8 @@ class MapSource:
             if type is not supported as map source type.
         """
         source = {"type": self.type, "promoteId": self.promote_id}
-        params = request.GET.dict()
+        params = dict(request.GET)
+        params |= {"task_id": request.task_id}
         param_url = urllib.parse.urlencode(params)
         if self.minzoom:
             source["minzoom"] = self.minzoom

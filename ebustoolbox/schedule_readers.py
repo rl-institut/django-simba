@@ -27,6 +27,7 @@ from ebustoolbox.models import (
     Route,
     Trip,
     EnumChargeType,
+    EnumVoltageLevel,
 )
 
 
@@ -72,7 +73,6 @@ def function_signature_to_form(function: Callable):
             case _:
                 raise NotImplementedError
         fields[name] = field
-        print(argument, field, argument_type)
     form = ScheduleReaderOptionsFormFactory("ScheduleReaderOptionsForm", fields)
     return form
 
@@ -123,7 +123,6 @@ class SimbaScheduleReader(ScheduleReader):
         self.default_capacity = 99.99
         self.default_charging_type = default_charging_type
         self.encoding = "utf-8"
-
         self.progress: Progress = None
         # self.file_path: Path = None
 
@@ -181,7 +180,6 @@ class SimbaScheduleReader(ScheduleReader):
             VehicleType.objects.bulk_create(vts)
 
             self.set_progress(3, "Finding Rotations")
-
             # Create Rotations
             rotations, rotations_dict = self.get_rotations(scenario, trip_data, vt_dict)
             Rotation.objects.bulk_create(rotations)
@@ -236,6 +234,7 @@ class SimbaScheduleReader(ScheduleReader):
                     # ToDo How do we implement getting loaded masses? Ignore?
                     loaded_mass=0,
                 )
+
                 t.pk = trip_id
                 route.pk = route_id
 
@@ -251,6 +250,7 @@ class SimbaScheduleReader(ScheduleReader):
         rotations_dict = dict()
         last_id = 1 if Rotation.objects.last() is None else Rotation.objects.last().id + 1
         i = -1
+
         for rotation_id, trips in trip_data.items():
             i += 1
             if not (len({t[self.VEHICLE_TYPE] for t in trip_data[rotation_id]}) == 1):
@@ -309,6 +309,19 @@ class SimbaScheduleReader(ScheduleReader):
     def get_stations(self, scenario, trip_data):
         stations = list()
         station_dict = dict()
+
+        # make sure the trips are sorted
+        for rot_id, trips in trip_data.items():
+            trip_data[rot_id] = sorted(trips, key=lambda x: x[self.ARRIVAL_TIME])
+
+        # Assume first and last stop are always depots
+        # Get the departure_name of the first trip and arrival_name of the last trip.
+        depot_stations = {
+            trips[num][name]
+            for trips in trip_data.values()
+            for num, name in [(-1, self.ARRIVAL_NAME), (0, self.DEPARTURE_NAME)]
+        }
+
         unique_arrival_stations = {
             trip[self.ARRIVAL_NAME] for trips in trip_data.values() for trip in trips
         }
@@ -319,12 +332,21 @@ class SimbaScheduleReader(ScheduleReader):
         last_id = 1 if Station.objects.last() is None else Station.objects.last().id + 1
         for i, name in enumerate(unique_stations):
             station = Station(scenario=scenario, name=name, id=last_id + i)
+            if name in depot_stations:
+                station.is_electrified = True
+                station.charge_type = EnumChargeType.DEPOT.value
+                station.voltage_level = EnumVoltageLevel.VOLTAGE_MV.value
             stations.append(station)
             station_dict[name] = station
+
         return stations, station_dict
 
     def file_data_to_dict(self) -> dict[str, []]:
         trip_data = dict()
+
+        # Possible error texts
+        duration_error = "has no duration. Remove it from the schedule"
+
         with open(self.file_path, encoding=self.encoding) as file:
             trip_reader = csv.DictReader(file)
             trip = next(iter(trip_reader))
@@ -350,7 +372,7 @@ class SimbaScheduleReader(ScheduleReader):
 
             # Skip the first line containing headers / column names
             next(trip_reader)
-            for trip in trip_reader:
+            for i, trip in enumerate(trip_reader):
                 rotation_id = trip[self.ROTATION_ID]
                 if rotation_id not in trip_data:
                     trip_data[rotation_id] = []
@@ -366,8 +388,41 @@ class SimbaScheduleReader(ScheduleReader):
                 else:
                     trip_d[self.CHARGING_TYPE] = self.default_charging_type
                 trip_d[self.LINE] = trip[self.LINE]
+
+                assert (
+                    trip_d[self.DEPARTURE_TIME] < trip_d[self.ARRIVAL_TIME]
+                ), f"Line {i+1}: Trip {trip_d} {duration_error}"
+
                 trip_data[rotation_id].append(trip_d)
         return trip_data
+
+    @classmethod
+    def get_options_form(cls):
+        function = cls.__init__
+        sig = signature(function)
+
+        def ScheduleReaderOptionsFormFactory(classname, fields: dict):
+            return type(
+                f"{classname}",
+                (forms.Form,),
+                fields,
+            )
+
+        fields = dict()
+        field = forms.FileField(required=True)
+        fields["file_path"] = field
+        field = forms.CharField(
+            widget=forms.RadioSelect(choices=EnumChargeType.choices),
+            initial=EnumChargeType.choices[0],
+        )
+        fields["default_charging_type"] = field
+        parameters = {name: argument for name, argument in sig.parameters.items()}
+        del parameters["self"]
+        for name, argument in parameters.items():
+            assert name in fields.keys(), "Missing required field {}".format(name)
+
+        form = ScheduleReaderOptionsFormFactory("ScheduleReaderOptionsForm", fields)
+        return form
 
 
 class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
