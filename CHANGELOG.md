@@ -17,13 +17,17 @@ Template:
 - [(#)]()
 ```
 
-### Changed (UNRELEASED)
-## [(#62)](https://github.com/rl-institut/django-simba/pull/62)
+## [x.x.x] - Unreleased
+### Changed
+- [(#87)](https://github.com/rl-institut/django-simba/pull/87)
+- Add a working (dummy for now) eflips-ingest ingester and the code around it.
+- Change the models to use db_default values for compatibility with eflips-model
+
+- [(#62)](https://github.com/rl-institut/django-simba/pull/62)
 - `Scenario.created` is now a datebase default timestamp if no client side timestamp is given
   - Django will continue supplying the default timestamp to no break compatibility with existing migrations
 - Fixed issue regarding failing local tests when sql-sequence resetting
 
-### Changed
 - [(#88)](https://github.com/rl-institut/django-simba/pull/88)
 - Fixes Issue where soc timeseries in events contained null/none values
 - Fixes Issue with missing events
@@ -33,16 +37,18 @@ Template:
 - Remove tests without celery
 - Error Propagation from celery is now turned on via default, if celery is in task_always_eager mode
 
-
-### Changed
 - [(#82)](https://github.com/rl-institut/django-simba/pull/82)
 - Fixed proper file deletion after reading the files using a ScheduleReader
 - Added DJANGO_LOCAL_DEVELOPMENT=True setting to .env. Used if security features needed for production should be disabled.
 - Override settings for tests so they run through
 
+### Added
+- [(#81)](https://github.com/rl-institut/django-simba/pull/81)
+- Implements new frontend workflow
+- SimBA schedule reader sets depots
+- Add consumption to default VehicleTypes
+- Combine _run_ebus_toolchain and _celery_run_ebus_toolchain
 
-
-### Changed
 - [(#79)](https://github.com/rl-institut/django-simba/pull/79)
 - Implements an abstract class of ScheduleReader which allows importing of different Schedule Types like SimBA, GTFS or VDE
 - Implements a Progressbar with a Progress model
@@ -53,13 +59,11 @@ Template:
 - Add depot.station field to django model
 - Fix test cases that are failing on py3.12 due to deprecations
 
-
 - [(#60)](https://github.com/rl-institut/django-simba/pull/60)
 - Adds loop over different toolchain modes
 - Station-optimization is turned on per default
 - Removes simba.report from loop and moves it to a single post processing call
 - Missing: Frontend Implementation of choosing Modes
-
 
 - [(#67)](https://github.com/rl-institut/django-simba/pull/67)
 - run_simba_from_scenario and run_toolchain_from_scenario get keyword argument to assign vehicles to rotations using the
@@ -67,8 +71,6 @@ Template:
 - set delete_existing_depots=True in eflips depot generator
 - Running a finished Scenario is now possible
 - Running a Scenario with missing vehicle_assignments is now possible by setting assign_vehicles=True
-
-### Changed
 
 - [(#57)](https://github.com/rl-institut/django-simba/pull/57)
 - Add consumption model
@@ -82,13 +84,9 @@ Template:
 - Input form: Add consumption_path. For now only a single file is possible in the frontend, but no backend limitation
   exists
 
-### Changed
-
 - [(#58)](https://github.com/rl-institut/django-simba/pull/58)
 - Upgrade to maplibre 4.0.2
 - Upgrade to django-mapengine 0.18
-
-### Changed
 
 - [(#55)](https://github.com/rl-institut/django-simba/pull/55)
 - Add deepcopy function to 'core'
@@ -102,12 +100,10 @@ Template:
 - Add some timing prints of function blocks. Should be moved to a logger at some point
 - Add vehicle counting to make db schedule consistent
 
-### Changed
 - [(#54)](https://github.com/rl-institut/django-simba/pull/54)
 - Updates project dependencies to eflips-depot 2.0
 - Closes [(#53)](https://github.com/rl-institut/django-simba/issues/53). Fix SoC plotting
 
-### Changed
 - [(#48)](https://github.com/rl-institut/django-simba/pull/48)
 -  Update poetry.lock to import fixed eflips-depot.
 - use the new generate_depot_layout() method.
@@ -121,9 +117,6 @@ Template:
 - Fix tests by using other TestCase
   - Add temperatures to testing if db and "normal" version are the same
 
-
-
-### Changed
 - [(#45)](https://github.com/rl-institut/django-simba/pull/45)
 - Eflips-depot is currently turned off in the toolchain, since it breaks testing
 - Changed the type of datetimes and data to arrayfields
@@ -141,8 +134,6 @@ Template:
 - Write VehicleEvents from SimBA
 - Add a dockerfile and a docker compose to run project as docker locally
 
-
-### Changed
 - [(#40)](https://github.com/rl-institut/django-simba/pull/40)
 - Expands the database according to discussed specifications.
 - Add VehicleClass for Eflips Depot Simulations.
@@ -153,8 +144,6 @@ Template:
 - Expand tests, so version with and without eflips are included
 - SimBA only calculates the consumption of a single vehicle type, i.e. one type per rotation.
 
-
-### Changed
 - [(#38)](https://github.com/rl-institut/django-simba/pull/38)
 - Expands the database according to discussed specifications.
 - Removes VehicleClass from SIMBA algorithm, meaning, only a single VehicleType will be run per rotation.
@@ -163,26 +152,15 @@ Template:
 - Added functionality to turn of eflips in the basic toolchain
   - .env file now makes use of an optional setting EFLIPS_USE=False. The default value for this setting is True, so the standard behavior does not change
 
-
-
-## [x.x.x] - Unreleased
 - Added the feature to read the database and generate a SimBA Schedule from the database.
 - Added tests to check that scenarios from the database are generating the same results as default simulations.
 - Added function save_and_simulate() with default behavior of running a simulation.
--
 
-### Changed
 - [(#29)](https://github.com/rl-institut/django-simba/pull/29)The generated input for eflips gets the database ID of the vehicle_type instead of the simba specific name of the vehicle type
 - Output for eflips also generates consumption of opportunity chargers on depot rotations without opportunity charging.
 - vehicle_class is read by django. Depot rotations are run with each vehicle type of the vehicle_class
 - Adjusted vehicle_class to be many-to-many relation with vehicle_type
 - simba.rotation now contains a vehicle_class, which can be read by defining a vehicle_type list instead of a single vehicle type with ";" as seperator, eg. ,AB;SB, instead of ,AB,. The default vehicle_type in case of a list is the first vehicle_type of this list
 
-
-### Added
 - [(#26)](https://github.com/rl-institut/django-simba/pull/26) Added dev tools for consistent formatting
 - [(#35)](https://github.com/rl-institut/django-simba/pull/35) Basic toolchain implements eflips and SimBA communication
-### Changed
-- [(#)]()
-### Removed
-- [(#)]()

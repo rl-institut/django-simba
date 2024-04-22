@@ -1,4 +1,3 @@
-import collections
 import csv
 import shutil
 import traceback
@@ -21,15 +20,16 @@ from django.utils import timezone
 from django.utils.timezone import make_aware, is_aware
 from eflips.depot.api import simulate_scenario, generate_depot_layout
 
+import core.deepcopy
 import simba.optimizer_util
 import simba.simulate
 import simba.trip
 import simba.util
 from core.deepcopy import reset_postgres_auto_increments
 from core.models import Progress
+from simba.data_container import DataContainer
 from simba.rotation import Rotation as SimbaRotation
 from simba.schedule import Schedule as SimbaSchedule
-from simba.data_container import DataContainer
 from . import schedule_readers
 from .models import (
     Route,
@@ -42,6 +42,7 @@ from .models import (
     Trip,
     Scenario,
     EnumChargeType,
+    EnumVoltageLevel,
     Line,
     charge_type_from_simba_to_db,
     charge_type_from_db_to_station,
@@ -49,6 +50,7 @@ from .models import (
     Event,
     EventType,
     VehicleClass,
+    DefaultScenario,
 )
 from .schedule_readers import ScheduleReader
 
@@ -254,11 +256,8 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
     # setup consumption calculator that can be accessed by all trips
     simba.trip.Trip.consumption = data_container.to_consumption()
 
-    options = copy(django_scenario.simba_options)
-    try:
-        del options["electrified_stations"]
-    except (TypeError, KeyError):
-        pass
+    args = get_args(django_scenario=django_scenario)
+    options = vars(args)
 
     schedule = SimbaSchedule(stations=stations_dict, vehicle_types=vehicle_types, **options)
     schedule.station_data = station_data
@@ -267,13 +266,15 @@ def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Sche
     rotations = get_rotations_and_trips_from_db(django_scenario, schedule, station_data)
     schedule.rotations = rotations
 
-    add_temperatures_to_trips(django_scenario, schedule)
+    try:
+        add_temperatures_to_trips(django_scenario, schedule)
+    except Temperatures.DoesNotExist:
+        pass
 
     # schedule.original_rotations = deepcopy(rotations)
     # Database does not store information about "original rotations yet"
     schedule.original_rotations = None
 
-    args = get_args(django_scenario=django_scenario)
     # filter rotations
     schedule.rotation_filter(args)
 
@@ -428,7 +429,10 @@ def get_electrified_stations_from_db(django_scenario) -> dict:
             "gc_power": station.power_total,
             "voltage_level": station.voltage_level,
         }
-        stations_dict[station.name] = stat_dict
+        stat_dict_cleaned = {
+            k: v for k, v in stat_dict.items() if v is not None or k == "n_charging_stations"
+        }
+        stations_dict[station.name] = stat_dict_cleaned
     return stations_dict
 
 
@@ -441,11 +445,18 @@ def get_station_data_from_db(django_scenario) -> dict:
     """
     station_data = dict()
     for station in Station.objects.filter(scenario=django_scenario):
-        station_data[station.name] = {
-            "long": station.geom.x,
-            "lat": station.geom.y,
-            "elevation": station.geom.z,
-        }
+        try:
+            station_data[station.name] = {
+                "long": station.geom.x,
+                "lat": station.geom.y,
+                "elevation": station.geom.z,
+            }
+        except AttributeError:
+            station_data[station.name] = {
+                "long": 0,
+                "lat": 0,
+                "elevation": 0,
+            }
 
     return station_data
 
@@ -831,22 +842,27 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
     except Exception as e:
         traceback.print_exc()
         progress.status = "Failed"
+        traceback.print_exc()
         progress.errors.append(str(e))
     finally:
         try:
             progress.errors.extend(schedule_reader.get_errors())
         except:  # noqa
             pass
+        progress.status = "Finished"
         if not progress.success:
             progress.status = "Failed"
         # delete all uploaded files
         try:
             for file_path, file_id in files.values():
                 UploadedFile.objects.get(id=file_id).delete()
-        except Exception as e:
-            print(e)
+        except Exception:
+            traceback.print_exc()
         progress.running = False
         progress.save()
+
+        # Make sure postgres auto increment is up to date
+        core.deepcopy.reset_postgres_auto_increments(["ebustoolbox"])
 
 
 @atomic()
@@ -866,39 +882,8 @@ def _celery_generate_zipped_scenario(self, task_id: str):
 
 
 def run_ebus_toolchain(task_id):
-    _ = _run_ebus_toolchain.apply_async((str(task_id),), task_id=str(task_id))
-
-
-def vary_depot_rotations(schedule) -> "collections.Iterable[SimbaRotation]":
-    """Generator that creates schedules with varying vehicle types for"""
-    # Keep original rotations to restore them later and keep track of depot rotations
-    orig_rotations = deepcopy(schedule.rotations)
-    # depot rotations
-    depot_rotations = {
-        r_id: rotation
-        for r_id, rotation in orig_rotations.items()
-        if rotation.charging_type == "depb"
-    }
-    for rot_id, rotation in depot_rotations.items():
-        vt = rotation.vehicle_type
-        # Iterate over both charging types of this vehicle type, e.g., depot and opp bus.
-        for charging_type in EnumChargeType.values:
-            # Skip rotation with a vehicle type / charging type combination, if it does not exist
-            try:
-                schedule.vehicle_types[vt][charging_type]
-            except KeyError:
-                continue
-            # in case of a depot rotation, the vehicle type is adjusted and both
-            # charging types are used, even the "oppb". This way calculate_consumption() also
-            # calculates the "non-charging" consumption of a depot rotation which is run with
-            # an opportunity bus.
-            if orig_rotations[rot_id].charging_type == EnumChargeType.DEPOT:
-                # Charging type is mutated, since this is used to determine the exact vehicle
-                schedule.rotations[rot_id].charging_type = charging_type
-                schedule.rotations[rot_id].vehicle_type = vt
-                yield schedule.rotations[rot_id]
-    # Restore rotations before leaving generator
-    schedule.rotations = orig_rotations
+    async_result = _run_ebus_toolchain.apply_async((str(task_id),), task_id=str(task_id))
+    return async_result
 
 
 def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False):
@@ -913,7 +898,7 @@ def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False
     """
     if assign_vehicles:
         assign_new_vehicles_to_db(django_scenario)
-    run_ebus_toolchain(django_scenario.task_id)
+    return run_ebus_toolchain(django_scenario.task_id)
 
 
 def run_simba_scenario(django_scenario: Scenario, assign_vehicles=False):
@@ -953,39 +938,59 @@ def assign_new_vehicles_to_db(django_scenario: Scenario) -> None:
 def _run_ebus_toolchain(self, task_id):
     """Run the tool chain"""
     db_scenario = Scenario.objects.get(task_id=task_id)
-    schedule, args = get_schedule_from_db(db_scenario)
-    # django_scenario = Scenario.objects.get(task_id=task_id)
-    # schedule, args = get_schedule_from_args(args, django_scenario)
-    # call simba and eflips
-    wanted_modes = args.modes.split(",")
-    assert wanted_modes[-1] == "report"
-    simba_scenario = None
+    progress, _ = Progress.objects.get_or_create(task_id=self.request.id, scenario=db_scenario)
+    progress.reset()
 
-    # Chain of modes with mode->eflips -> sim. Last mode is "report" and can be outside of loop
-    for mode in wanted_modes[:-1]:
-        # Delete old events
-        Event.objects.filter(scenario=db_scenario).delete()
+    try:
+        schedule, args = get_schedule_from_db(db_scenario)
+        progress.total_work = 100
+        progress.current_work = 0
+        progress.save()
 
-        schedule, simba_scenario = run_simba(
-            schedule, args, task_id, mode=mode, scenario=simba_scenario
-        )
-        # ToDo remove Flag. Eflips should not stay optional
-        # ToDo Maybe create class SimulationMode: which couple logical toolchain steps, e.g.
-        # simba.sim -> eflips -> simba.sim
-        # simba.station_opt -> eflips -> simba.sim
-        if settings.EFLIPS_USE:
-            run_eflips(task_id)
-            eflips_assignment = get_assigned_vehicles(task_id)
-            schedule.assign_vehicles_for_django(eflips_assignment)
-            schedule, simba_scenario = run_simba(schedule, args, task_id, mode="sim")
+        # django_scenario = Scenario.objects.get(task_id=task_id)
+        # schedule, args = get_schedule_from_args(args, django_scenario)
+        # call simba and eflips
+        wanted_modes = args.modes.split(",")
+        assert wanted_modes[-1] == "report"
+        simba_scenario = None
 
-    # Post Processing or Clean Up ########
-    # ToDo: Report run might be removed at some point
-    _, __ = run_simba(schedule, args, task_id, mode=wanted_modes[-1], scenario=simba_scenario)
+        # Chain of modes with mode->eflips -> sim. Last mode is "report" and can be outside of loop
+        for mode in wanted_modes[:-1]:
+            # Delete old events
+            Event.objects.filter(scenario=db_scenario).delete()
 
-    db_scenario.refresh_from_db()
-    db_scenario.finished = timezone.now()
-    db_scenario.save()
+            schedule, simba_scenario = run_simba(
+                schedule, args, task_id, mode=mode, scenario=simba_scenario
+            )
+            # ToDo remove Flag. Eflips should not stay optional
+            # ToDo Maybe create class SimulationMode: which couple logical toolchain steps, e.g.
+            # simba.sim -> eflips -> simba.sim
+            # simba.station_opt -> eflips -> simba.sim
+            if settings.EFLIPS_USE:
+                run_eflips(task_id)
+                eflips_assignment = get_assigned_vehicles(task_id)
+                schedule.assign_vehicles_for_django(eflips_assignment)
+                schedule, simba_scenario = run_simba(schedule, args, task_id, mode="sim")
+
+            progress.current_work += 90 // (len(wanted_modes) - 1)
+            progress.save()
+
+        # Post Processing or Clean Up ########
+        # ToDo: Report run might be removed at some point
+        _, __ = run_simba(schedule, args, task_id, mode=wanted_modes[-1], scenario=simba_scenario)
+
+        db_scenario.refresh_from_db()
+        db_scenario.finished = timezone.now()
+        db_scenario.save()
+        progress.set_success()
+    except Exception as e:
+        traceback.print_exc()
+        progress.refresh_from_db()
+        try:
+            progress.errors.append(str(e))
+        except Exception:
+            traceback.print_exc()
+        progress.set_failed()
 
 
 def get_assigned_vehicles(task_id: str) -> List[dict]:
@@ -1070,9 +1075,6 @@ def run_simba(schedule: SimbaSchedule, args, task_id, mode=None, scenario=None):
                 raise NotImplementedError
 
     print(f"Plotting {datetime.now()}")
-
-    db_scenario.finished = timezone.now()
-    db_scenario.save()
 
     print(f"Creating Simba Events {datetime.now()}")
 
@@ -1332,3 +1334,52 @@ def forward_fill_last_value(list_with_nones):
     else:
         raise Exception("Timeseries has only None values as soc")
     list_with_nones[last_idx:] = [last_soc for _ in range(last_idx, len(list_with_nones))]
+
+
+def electrify_db_stations(scenario: Scenario, station_id_list, unelectrify=True):
+    """Set given stations in scenario to be electrified."""
+    all_stations = Station.objects.filter(scenario=scenario)
+    stations = all_stations.filter(pk__in=station_id_list).exclude(charge_type=EnumChargeType.DEPOT)
+    for station in stations:
+        station.is_electrified = True
+        # TODO get these values from somewhere?
+        station.charge_type = EnumChargeType.OPPORTUNITY
+        station.voltage_level = EnumVoltageLevel.VOLTAGE_MV
+        station.amount_charging_places = scenario.simba_options["amount_charging_places"]
+    Station.objects.bulk_update(
+        stations, ["is_electrified", "charge_type", "voltage_level", "amount_charging_places"]
+    )
+    if unelectrify:
+        revert_stations = (
+            all_stations.exclude(pk__in=station_id_list)
+            .filter(is_electrified=True)
+            .exclude(charge_type=EnumChargeType.DEPOT)
+        )
+        for station in revert_stations:
+            station.is_electrified = False
+            station.charge_type = None
+            station.voltage_level = None
+            station.amount_charging_places = None
+        Station.objects.bulk_update(
+            revert_stations,
+            ["is_electrified", "charge_type", "voltage_level", "amount_charging_places"],
+        )
+
+
+def update_vehicle_types_with_defaults(vehicle_type_pairs, task_id):
+    """Update info of a VehicleType with a paired VehicleType from DefaultScenario"""
+    scenario = Scenario.objects.get(task_id=task_id)
+    vehicle_types_db = VehicleType.objects.filter(scenario=scenario)
+    default_scenario = DefaultScenario.objects.first().scenario
+    vehicle_types_default = VehicleType.objects.filter(scenario=default_scenario)
+    for vehicle_type_pair in vehicle_type_pairs:
+        vehicle_types = vehicle_type_pair.split("_")
+        vt = vehicle_types_db.get(pk=vehicle_types[0])
+        vt_default = vehicle_types_default.get(pk=vehicle_types[1])
+        vt_default.scenario = scenario
+        vt_default.pk = vehicle_types[0]
+        # Do not overwrite this, since both capabilties might be needed
+        vt_default.opportunity_charging_capable = vt.opportunity_charging_capable
+        vt_default.name = vt.name
+        vt_default.name_short = vt.name_short
+        vt_default.save()

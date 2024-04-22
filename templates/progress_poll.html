@@ -1,5 +1,5 @@
 <div
-        hx-get="{% url 'simba:progress' progress_id %}"
+        hx-get="{% url 'simba:progress' progress_id progress_type %}"
         hx-trigger="every 600ms"
         hx-target="this"
         hx-swap="innerHTML">

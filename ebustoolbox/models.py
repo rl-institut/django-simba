@@ -169,7 +169,7 @@ class BatteryType(models.Model):
     # relative to gross capacity
     specific_mass = models.FloatField(null=False, blank=True)
     # defined in eFLIPS-LCA
-    chemistry = models.JSONField(default=dict)
+    chemistry = models.JSONField(null=True, default=dict)
 
 
 class AssocVehicleTypeVehicleClass(models.Model):
@@ -246,9 +246,9 @@ class VehicleType(models.Model):
     name_short = models.TextField(null=True, blank=False, default=name)
     opportunity_charging_capable = models.BooleanField()
     battery_capacity = models.FloatField()
-    battery_capacity_reserve = models.FloatField(default=0)
-    charging_efficiency = models.FloatField(default=0.95)
-    minimum_charging_power = models.FloatField(default=0)
+    battery_capacity_reserve = models.FloatField(default=0, db_default=0)
+    charging_efficiency = models.FloatField(default=0.95, db_default=0.95)
+    minimum_charging_power = models.FloatField(default=0, db_default=0)
 
     # SOC, ChargingPower
     charging_curve = ArrayField(ArrayField(models.FloatField(), size=2))
@@ -267,6 +267,12 @@ class VehicleType(models.Model):
 
     vehicle_classes = models.ManyToManyField("VehicleClass", through="AssocVehicleTypeVehicleClass")
     """Vehicle classes this vehicle type belongs to."""
+
+    def save(self, *args, **kwargs):
+        # Override save to make certain name_short exists
+        if not self.name_short or self.name_short == str(models.TextField(null=False, blank=False)):
+            self.name_short = self.name
+        super().save(*args, **kwargs)
 
 
 class VehicleClass(models.Model):
@@ -926,11 +932,11 @@ class Station(models.Model):
 
     def __str__(self):
         if not self.is_electrified:
-            return f"{self.name} and id {self.id} is not electrified. Location: {self.geom.x} {self.geom.y}"
+            return f"{self.name} is not electrified. Location: {None if not self.geom else (self.geom.x, self.geom.y)}"
         return (
             f"{self.name} with {self.amount_charging_places} chargers with "
             f"{self.power_per_charger} kW per charger and a total power of {self.power_total} "
-            f"kW. \nLocation: {self.geom.x} {self.geom.y}"
+            f"kW. \nLocation: {None if not self.geom else (self.geom.x, self.geom.y)}"
         )
 
     @classmethod

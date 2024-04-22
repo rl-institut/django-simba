@@ -1,12 +1,21 @@
 import csv
+import inspect
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Type
 from abc import ABC, abstractmethod
+from uuid import UUID
 
+import eflips
 from django import forms
 from django.utils.timezone import make_aware
 from inspect import signature
+
+from eflips.ingest import DummyIngester, AbstractIngester
+from eflips.ingest.dummy import BusType
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
 from core.models import Progress
 from ebustoolbox.models import (
@@ -18,13 +27,17 @@ from ebustoolbox.models import (
     Route,
     Trip,
     EnumChargeType,
+    EnumVoltageLevel,
 )
 
 
 def get_options_form(reader_num: int):
     match reader_num:
-        case _:
+        case 1:
             return SimbaScheduleReader.get_options_form()
+        case 2:
+            return EflipsIngestScheduleReaderDummy.get_options_form(DummyIngester)
+    raise NotImplementedError
 
 
 def function_signature_to_form(function: Callable):
@@ -60,7 +73,6 @@ def function_signature_to_form(function: Callable):
             case _:
                 raise NotImplementedError
         fields[name] = field
-        print(argument, field, argument_type)
     form = ScheduleReaderOptionsFormFactory("ScheduleReaderOptionsForm", fields)
     return form
 
@@ -92,6 +104,8 @@ def get_schedule_reader_factory(reader_num: int) -> type(ScheduleReader):
     match reader_num:
         case 1:
             return SimbaScheduleReader
+        case 2:
+            return EflipsIngestScheduleReaderDummy
     raise NotImplementedError(f"Schedule Reader with {reader_num} not found")
 
 
@@ -109,7 +123,6 @@ class SimbaScheduleReader(ScheduleReader):
         self.default_capacity = 99.99
         self.default_charging_type = default_charging_type
         self.encoding = "utf-8"
-
         self.progress: Progress = None
         # self.file_path: Path = None
 
@@ -167,7 +180,6 @@ class SimbaScheduleReader(ScheduleReader):
             VehicleType.objects.bulk_create(vts)
 
             self.set_progress(3, "Finding Rotations")
-
             # Create Rotations
             rotations, rotations_dict = self.get_rotations(scenario, trip_data, vt_dict)
             Rotation.objects.bulk_create(rotations)
@@ -182,7 +194,7 @@ class SimbaScheduleReader(ScheduleReader):
             Line.objects.bulk_create(lines)
             Route.objects.bulk_create(routes)
             Trip.objects.bulk_create(trips)
-            self.set_progress(5, "Finished")
+            self.set_progress(5, "Trips created")
         except self.SimbaScheduleReaderException:
             return False
         return True
@@ -222,6 +234,7 @@ class SimbaScheduleReader(ScheduleReader):
                     # ToDo How do we implement getting loaded masses? Ignore?
                     loaded_mass=0,
                 )
+
                 t.pk = trip_id
                 route.pk = route_id
 
@@ -237,6 +250,7 @@ class SimbaScheduleReader(ScheduleReader):
         rotations_dict = dict()
         last_id = 1 if Rotation.objects.last() is None else Rotation.objects.last().id + 1
         i = -1
+
         for rotation_id, trips in trip_data.items():
             i += 1
             if not (len({t[self.VEHICLE_TYPE] for t in trip_data[rotation_id]}) == 1):
@@ -295,6 +309,19 @@ class SimbaScheduleReader(ScheduleReader):
     def get_stations(self, scenario, trip_data):
         stations = list()
         station_dict = dict()
+
+        # make sure the trips are sorted
+        for rot_id, trips in trip_data.items():
+            trip_data[rot_id] = sorted(trips, key=lambda x: x[self.ARRIVAL_TIME])
+
+        # Assume first and last stop are always depots
+        # Get the departure_name of the first trip and arrival_name of the last trip.
+        depot_stations = {
+            trips[num][name]
+            for trips in trip_data.values()
+            for num, name in [(-1, self.ARRIVAL_NAME), (0, self.DEPARTURE_NAME)]
+        }
+
         unique_arrival_stations = {
             trip[self.ARRIVAL_NAME] for trips in trip_data.values() for trip in trips
         }
@@ -305,12 +332,21 @@ class SimbaScheduleReader(ScheduleReader):
         last_id = 1 if Station.objects.last() is None else Station.objects.last().id + 1
         for i, name in enumerate(unique_stations):
             station = Station(scenario=scenario, name=name, id=last_id + i)
+            if name in depot_stations:
+                station.is_electrified = True
+                station.charge_type = EnumChargeType.DEPOT.value
+                station.voltage_level = EnumVoltageLevel.VOLTAGE_MV.value
             stations.append(station)
             station_dict[name] = station
+
         return stations, station_dict
 
     def file_data_to_dict(self) -> dict[str, []]:
         trip_data = dict()
+
+        # Possible error texts
+        duration_error = "has no duration. Remove it from the schedule"
+
         with open(self.file_path, encoding=self.encoding) as file:
             trip_reader = csv.DictReader(file)
             trip = next(iter(trip_reader))
@@ -331,8 +367,12 @@ class SimbaScheduleReader(ScheduleReader):
 
             if missing_column:
                 raise self.SimbaScheduleReaderException
+            # Jump to beginning of file for iteration
+            file.seek(0)
 
-            for trip in trip_reader:
+            # Skip the first line containing headers / column names
+            next(trip_reader)
+            for i, trip in enumerate(trip_reader):
                 rotation_id = trip[self.ROTATION_ID]
                 if rotation_id not in trip_data:
                     trip_data[rotation_id] = []
@@ -348,5 +388,256 @@ class SimbaScheduleReader(ScheduleReader):
                 else:
                     trip_d[self.CHARGING_TYPE] = self.default_charging_type
                 trip_d[self.LINE] = trip[self.LINE]
+
+                assert (
+                    trip_d[self.DEPARTURE_TIME] < trip_d[self.ARRIVAL_TIME]
+                ), f"Line {i+1}: Trip {trip_d} {duration_error}"
+
                 trip_data[rotation_id].append(trip_d)
         return trip_data
+
+    @classmethod
+    def get_options_form(cls):
+        function = cls.__init__
+        sig = signature(function)
+
+        def ScheduleReaderOptionsFormFactory(classname, fields: dict):
+            return type(
+                f"{classname}",
+                (forms.Form,),
+                fields,
+            )
+
+        fields = dict()
+        field = forms.FileField(required=True)
+        fields["file_path"] = field
+        field = forms.CharField(
+            widget=forms.RadioSelect(choices=EnumChargeType.choices),
+            initial=EnumChargeType.choices[0],
+        )
+        fields["default_charging_type"] = field
+        parameters = {name: argument for name, argument in sig.parameters.items()}
+        del parameters["self"]
+        for name, argument in parameters.items():
+            assert name in fields.keys(), "Missing required field {}".format(name)
+
+        form = ScheduleReaderOptionsFormFactory("ScheduleReaderOptionsForm", fields)
+        return form
+
+
+class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
+    """
+    This class is the base class for the various eflips-ingest schedule readers. It implements the common
+    functionality for all the readers.
+    """
+
+    @abstractmethod
+    def __init__(self):
+        """
+        This method initializes the class. In the django-simba world, initial validity checks could be done here.
+        However, per Paul's EMail from  2024-03-24, eflips-ingest shims should do the initial validity checks in the
+        meth:`write_to_db` method.
+
+        This method needs to be overridden by the subclasses. The arguments during initialization should be the
+        parameters that are needed for the meth:`validate` method of the eflips-ingest class that the shim is
+        for.
+        """
+        # As meth:`get_errors` should always return a list, we initialize it here.
+        super().__init__()
+
+        self._errors = []
+        self._progress: Progress = []
+
+        # Local import to get around circular import
+        from ebustoolbox.tasks import create_db_url
+
+        self._database_url = create_db_url()
+
+        # This is useless, but it is here to make the instance variables available in the methods.
+        self._ingester: AbstractIngester = None  # Overridden in the subclasses
+
+        # Overridden in the subclasses, this should be the parameters for the meth:`prepare` method of the
+        # eflips-ingest class that the shim is for.
+        self._kwargs = {
+            "progress_callback": None
+        }  # Overridden in the subclasses. Keep the None for progress_callback.
+
+    def write_to_db(self, scenario_id: int) -> bool:
+        """
+        This method calls the meth:`prepare` method of the eflips-ingest class that the shim is for. If the validation
+        fails, it fills the self.errors list with the error messages and returns False. If the validation passes, it
+        calls the meth:`ingest` method of the eflips-ingest class that the shim is for and returns True.
+
+        About handling the scenario_id: eflips-ingest matches scenario_ids through the task_id field, django-simba
+        expects task_id to be None. So what we do is:
+
+        1. Call eflips-ingests meth:`prepare` method. If it succeeds, remember the uuid
+        2. Load the scenario from the scenario_id given to us by django-simba and remember the task_id
+        3. set the task_id of the scenario to the uuid from step 1
+        4. Call eflips-ingests meth:`ingest` method with the uuid (== task_id) and the progress_callback function
+           given to us through meth:`set_observer`
+        5. Change the task_id back to what we remembered in step 2
+
+        param: scenario_id: The id of the scenario that the data should be ingested into.
+
+        """
+
+        validation_result, uuid_or_errors = self._ingester.prepare(**self._kwargs)
+        if not validation_result:
+            assert isinstance(uuid_or_errors, dict)
+            self._errors = [f"{key}: {value}" for key, value in uuid_or_errors.items()]
+            return False
+        else:
+            assert isinstance(uuid_or_errors, UUID)
+
+        engine = create_engine(self._database_url)
+        with Session(engine) as session:
+            try:
+                scenario = (
+                    session.query(eflips.model.Scenario)
+                    .filter(eflips.model.Scenario.id == scenario_id)
+                    .first()
+                )
+                django_assigned_task_id = scenario.task_id
+                scenario.task_id = uuid_or_errors  # This is the uuid from the prepare method
+
+                # We need to commit the session here, because the ingest method will start a new transaction
+                session.commit()
+
+                self._ingester.ingest(uuid_or_errors, self._progress_callback)
+
+                scenario.task_id = django_assigned_task_id
+            except Exception as e:
+                self._errors = [str(e)]
+                session.rollback()
+                return False
+            finally:
+                # In any case, we need to set the task_id back to what it was before
+                scenario.task_id = django_assigned_task_id
+                session.commit()
+
+        return True
+
+    @staticmethod
+    def get_options_form(for_class: Type[AbstractIngester]) -> Callable:
+        """
+        This method returns a django-simba form that can be used to set the parameters for the meth:`__init__` method.
+
+        It introspects the meth:`prepare` method of the eflips-ingest class that the shim is for and creates a form
+        based on the parameters of that method.
+        """
+
+        def ScheduleReaderOptionsFormFactory(classname, fields: dict):
+            return type(
+                f"{classname}",
+                (forms.Form,),
+                fields,
+            )
+
+        fields = dict()
+
+        names = for_class.prepare_param_names()
+        descriptions = for_class.prepare_param_description()
+        signature = inspect.signature(for_class.prepare)
+        assert isinstance(names, dict)
+        assert isinstance(descriptions, dict)
+        assert isinstance(signature, inspect.Signature)
+        params_for_us = set(signature.parameters.keys()) - {"progress_callback", "self"}
+        assert set(names.keys()) == set(descriptions.keys()) == params_for_us
+
+        for entry in signature.parameters.values():
+            parameter_name = entry.name
+            if parameter_name == "progress_callback" or parameter_name == "self":
+                continue
+
+            form_name = names[parameter_name]
+            form_description = descriptions[parameter_name]
+
+            if entry.annotation == str:
+                fields[parameter_name] = forms.CharField(
+                    label=form_name, help_text=form_description
+                )
+            elif entry.annotation == int:
+                fields[parameter_name] = forms.IntegerField(
+                    label=form_name, help_text=form_description
+                )
+            elif entry.annotation == float:
+                fields[parameter_name] = forms.DecimalField(
+                    label=form_name, help_text=form_description
+                )
+            elif entry.annotation == bool:
+                fields[parameter_name] = forms.BooleanField(
+                    label=form_name, required=False, help_text=form_description
+                )
+            elif issubclass(entry.annotation, Enum):
+                fields[parameter_name] = forms.ChoiceField(
+                    choices=[(key.name, value) for key, value in names[parameter_name].items()]
+                )
+            elif entry.annotation == Path:
+                fields[parameter_name] = forms.FileField(
+                    label=form_name, help_text=form_description
+                )
+            else:
+                raise NotImplementedError(f"Parameter type {entry.annotation} not implemented.")
+
+        return ScheduleReaderOptionsFormFactory(for_class.__name__ + "OptionsForm", fields)
+
+    def get_errors(self) -> [str]:
+        """
+        This method returns the errors that were collected during the meth:`write_to_db` method.
+        """
+        return self._errors
+
+    def set_observer(self, progress: Progress) -> None:
+        """
+        This method sets the progress observer. The progress observer is a django-simba Progress object that the shim
+        can use to report the progress of the ingestion process.
+        """
+        progress.total_work = 100  # We convert our float progress to an integer between 0 and 100
+        progress.current_work = 0
+        self._progress = progress
+        self._progress.save()
+
+    def _progress_callback(self, increment: float) -> None:
+        """
+        This method is provided to ingest() as a callback function. When called, it updates the observers with the
+        current progress. It is called periodically by the ingest() method.
+        """
+        self._progress.current_work += int(round(self._progress.total_work * increment))
+        self._progress.save()
+
+
+class EflipsIngestScheduleReaderDummy(EflipsIngestScheduleReaderBase):
+    """
+    This class is a dummy shim for the eflips-ingest DummyIngester class. It is used for testing the shim system.
+    """
+
+    def __init__(
+        self,
+        random_text_file: str,
+        name: str,
+        depot_count: int,
+        line_count: int,
+        rotation_per_line: int,
+        opportunity_charging: bool,
+        bus_type: str,
+    ):
+        super().__init__()
+        self._ingester = DummyIngester(self._database_url)
+
+        # BusType is an enum, wich we need to recreate here
+        bus_type = BusType[bus_type]
+
+        # random_text_file is a Path as string, we need to convert it to a Path
+        random_text_file = Path(random_text_file)
+
+        self._kwargs = {
+            "random_text_file": random_text_file,
+            "name": name,
+            "depot_count": depot_count,
+            "line_count": line_count,
+            "rotation_per_line": rotation_per_line,
+            "opportunity_charging": opportunity_charging,
+            "bus_type": bus_type,
+            "progress_callback": None,
+        }

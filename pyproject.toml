@@ -38,6 +38,7 @@ eflips-depot = "^3.0"
 eflips-eval = "^1.0.1"
 django-fast-update = "^0.2.3"
 scipy = "^1.12.0"
+eflips-ingest = "^1.1.1"
 
 [tool.poetry.group.dev]
 optional = true
