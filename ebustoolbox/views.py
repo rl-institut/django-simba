@@ -61,11 +61,11 @@ def result_view(request: HttpRequest):
         return HttpResponse(html)
 
 
-def wait_view(request):
+def wait_view(request, task_id):
     """View while waiting for results. Will trigger success view as soon as long-running task
     returns pending"""
     print("SimBA is calculating. Showing wait view")
-    return render(request, "wait.html")
+    return render(request, "wait.html", {"task_id": task_id})
 
 
 class SuccessView(TemplateView, MapEngineMixin):
@@ -101,8 +101,8 @@ def long_running_task_status_view(request):
     task_id = request.GET.get("task_id")
     task_result = AsyncResult(task_id)
     if (
-        task_result.ready()
-        or Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
+            task_result.ready()
+            or Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
     ):
         print("Task is finished")
         return JsonResponse({"success": True})
@@ -183,10 +183,30 @@ def set_station_values(request: HttpRequest, task_id):
     else:
         return HttpResponse("Method is not allowed", status=405)
 
+def scenario_overview_view(request: HttpRequest, task_id):
+    """View controlling if the wait or success view should be shown"""
 
-def scenario_overview(request: HttpRequest, task_id):
-    # TODO add more context for rendering?
-    return render(request, "scenario_overview.html", {"task_id": task_id})
+    try:
+        if Scenario.objects.get(task_id=task_id):
+            request.task_id = str(task_id)
+            return ScenarioOverview.as_view()(request, task_id=task_id)
+    except Scenario.DoesNotExist:
+        html = "<html><body>task_id is not valid</body></html>"
+        return HttpResponse(html)
+
+
+class ScenarioOverview(TemplateView, MapEngineMixin):
+    template_name = "scenario_overview.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(ScenarioOverview, self).get_context_data(**kwargs)
+        task_id = kwargs.get("task_id")
+        if task_id is None:
+            raise Http404
+        task_id = str(task_id)
+        context["task_id"] = task_id
+
+        return context
 
 
 def progress(request: HttpRequest, progress_id, progress_type: str):
@@ -222,7 +242,10 @@ def progress(request: HttpRequest, progress_id, progress_type: str):
                     create_stations_for_map(scenario)
                     task_id = progress.scenario.task_id
                     request.task_id = task_id
-                    response = SuccessView.as_view()(request, task_id=task_id)
+
+                    response["HX-Redirect"] = reverse(
+                        "simba:result"
+                    ) + '?task_id={}'.format(task_id)
             case _:
                 raise NotImplementedError
     response["HX-Trigger"] = hx_trigger
@@ -317,7 +340,7 @@ def create_stations_for_map(django_scenario: Scenario):
 
 
 def save_and_simulate(
-    form: UploadFileForm | None = None, request: HttpRequest | None = None
+        form: UploadFileForm | None = None, request: HttpRequest | None = None
 ) -> Scenario:
     print(f"Running TOOLCHAIN {datetime.now()}")
     if form is None:
@@ -355,6 +378,7 @@ def run_simulation(request: HttpRequest, task_id: str):
                 raise Http404
             # This triggers progress polling. If the toolchain is finished
             # the progress view will be triggered with the task_id and progress type
+
             async_result = tasks.run_toolchain_from_scenario(scenario, assign_vehicles=True)
 
             context["progress_id"] = async_result.task_id
