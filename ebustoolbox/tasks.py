@@ -567,8 +567,13 @@ def get_args(django_scenario) -> Namespace:
     parser = simba.util.get_parser()
     # Read the parse values, in this case the default values
     args, _ = parser.parse_known_args()
+
     # Overwrite args with scenario specific data
     vars(args).update(vars(Namespace(**django_scenario.simba_options)))
+
+    # turn of plotting
+    args.skip_plots = True
+
     # arguments relevant to SpiceEV, setting automatically to reduce clutter in config
     simba.util.mutate_args_for_spiceev(args)
 
@@ -970,6 +975,11 @@ def _run_ebus_toolchain(self, task_id):
                 run_eflips(task_id)
                 eflips_assignment = get_assigned_vehicles(task_id)
                 schedule.assign_vehicles_for_django(eflips_assignment)
+
+                # get electrified stations from db, e.g. depot station from eflips with
+                # power
+                stations_dict = get_electrified_stations_from_db(db_scenario)
+                schedule.stations = stations_dict.copy()
                 schedule, simba_scenario = run_simba(schedule, args, task_id, mode="sim")
 
             progress.current_work += 90 // (len(wanted_modes) - 1)
@@ -1069,15 +1079,12 @@ def run_simba(schedule: SimbaSchedule, args, task_id, mode=None, scenario=None):
         match mode:
             case "sim" | "report":
                 pass
-            case "station_optimization":
+            case w if w in ["station_optimization", "station_optimization_single_step"]:
                 update_electrified_stations_db(schedule.stations, db_scenario)
             case _:
                 raise NotImplementedError
 
-    print(f"Plotting {datetime.now()}")
-
     print(f"Creating Simba Events {datetime.now()}")
-
     create_event_output(scenario, task_id)
 
     reset_postgres_auto_increments(apps=[Event._meta.app_label])
