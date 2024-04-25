@@ -11,7 +11,7 @@ def render(app: Dash) -> html.Div:
     ) -> html.Div:
         print("updating numbers")
         task_id = dash_app.slug
-        filter_dict = dict(task_id=task_id, vehicle__name_short__in=buses)
+        filter_dict = dict(task_id=task_id, vehicle__name__in=buses)
 
         # Get the data
         lines, styles = get_report_numbers_text(filter_dict)
