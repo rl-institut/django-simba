@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+
+
+    <div class="container bg-light" style="min-height: 80vh;">
+
+    <!-- wizard -->
+    {% include 'wizard.html' %}
+
+    <!-- Main Content -->
+
+    <div class="row lead justify-content-center d-flex m-5 p-5">
+        Wähle einen Zeitplan aus deinen Dateien aus. Verwende jedoch ein zulässiges Format.
+    </div>
+
+    <form id="uploadForm" class="text-center">
+
+            {#This will be replaced by the progressbar, during server side analyzing#}
+            {#<div id="upload-progress_{{ task_id }}"></div>#}
+
+
+        <div class="input-item row m-5">
+            <div class="col-6">
+                <div class="input-group mb-3">
+                    <input class="form-control" type="file"  name="fileUpload" id='{{ task_id }}'
+                       hx-encoding='multipart/form-data' hx-target="#upload-progress_{{ task_id }}"
+                       hx-post="{% url 'simba:upload_trips' task_id 1 %}">
+                  <label class="input-group-text" for='{{ task_id }}'>Upload</label>
+                </div>
+            </div>
+            <div class="col-6">
+                <small class="form-text text-muted">Hier können Sie eine Datei auswählen, die Sie hochladen möchten. Stellen Sie sicher, dass die Datei im richtigen Format ist, bevor Sie sie hochladen.</small>
+            </div>
+        </div>
+
+        <div class="input-item row m-5">
+            <div class="col-6">
+                <button class="btn btn-primary" type="button" id="checkFormat">Format überprüfen</button>
+            </div>
+            <div class="col-6">
+                <small class="form-text text-muted">Nachdem Sie die Datei ausgewählt haben, klicken Sie auf den Button "Format überprüfen", um sicherzustellen, dass die Datei korrekt ist und keine Fehler aufweist.</small>
+            </div>
+        </div>
+    </form>
+
+
+</div>
+
+<div class="row justify-content-center d-flex">
+    {% include 'continue_button.html' %}
+</div>
+
+{% endblock %}
