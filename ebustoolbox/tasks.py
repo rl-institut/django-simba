@@ -12,8 +12,10 @@ from typing import TYPE_CHECKING, List
 import environ
 import tqdm
 from celery import shared_task
+import django.apps
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
+from django.db import connections
 from django.db.models import Max
 from django.db.transaction import atomic
 from django.http import HttpRequest
@@ -228,7 +230,7 @@ def temperatures_to_db(
 
 
 def get_schedule_from_db(
-    django_scenario: Scenario, db_name="default"
+    django_scenario: Scenario,
 ) -> tuple[simba.schedule.Schedule, Namespace]:
     """Takes a django Scenario and returns the simba Schedule and arguments
 
@@ -572,7 +574,8 @@ def get_args(django_scenario) -> Namespace:
     args, _ = parser.parse_known_args()
 
     # Overwrite args with scenario specific data
-    vars(args).update(vars(Namespace(**django_scenario.simba_options)))
+    if django_scenario.simba_options is not None:
+        vars(args).update(vars(Namespace(**django_scenario.simba_options)))
 
     # turn of plotting
     args.skip_plots = True
@@ -909,7 +912,7 @@ def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False
     return run_ebus_toolchain(django_scenario.task_id)
 
 
-def run_simba_scenario(django_scenario: Scenario, assign_vehicles=False, db_url=None):
+def run_simba_scenario(django_scenario: Scenario | int, assign_vehicles=False, db_url=None):
     """Run a Scenario from the database with SimBA
 
     The provided scenario must contain all information including Temperatures, Vehicle_Types,
@@ -921,16 +924,28 @@ def run_simba_scenario(django_scenario: Scenario, assign_vehicles=False, db_url=
     Previous assignments will be deleted
     :return:
     """
-    old_default = deepcopy(settings.DATABASES["default"])
+
+    if db_url is not None:
+        # Other database needs to be added to connections. Use same database settings as default,
+        # then overwrite db_url. Might be problematic with multithreading
+        connections.databases[db_url] = deepcopy(connections.databases["default"])
+        connections.databases[db_url] |= environ.Env().db_url_config(db_url)
     try:
         if db_url is not None:
-            settings.DATABASES["default"] = environ.Env().db_url_config(db_url)
+            # overwrite all managers so they use the specicied db
+            for model in django.apps.apps.app_configs["ebustoolbox"].models.values():
+                model.objects = model.objects.using(db_url)
+
+        if isinstance(django_scenario, int):
+            django_scenario = Scenario.objects.get(id=django_scenario)
         if assign_vehicles:
             assign_new_vehicles_to_db(django_scenario, db_url)
-        simba_schedule_db, args_db = get_schedule_from_db(django_scenario, db_url)
+        simba_schedule_db, args_db = get_schedule_from_db(django_scenario)
         run_simba(simba_schedule_db, args_db, django_scenario.task_id)
     finally:
-        settings.DATABASES["default"] = old_default
+        # Always reset the database to default
+        for model in django.apps.apps.app_configs["ebustoolbox"].models.values():
+            model.objects = model.objects.using("default")
 
 
 def assign_new_vehicles_to_db(django_scenario: Scenario, db_name="default") -> None:
@@ -968,7 +983,10 @@ def _run_ebus_toolchain(self, task_id):
         # django_scenario = Scenario.objects.get(task_id=task_id)
         # schedule, args = get_schedule_from_args(args, django_scenario)
         # call simba and eflips
-        wanted_modes = args.modes.split(",")
+        try:
+            wanted_modes = args.modes.split(",")
+        except AttributeError:
+            wanted_modes = args.mode
         assert wanted_modes[-1] == "report"
         simba_scenario = None
 
@@ -988,7 +1006,16 @@ def _run_ebus_toolchain(self, task_id):
                 run_eflips(task_id)
                 eflips_assignment = get_assigned_vehicles(task_id)
                 schedule.assign_vehicles_for_django(eflips_assignment)
-
+                for station in Station.objects.filter(depot__scenario=db_scenario):
+                    if station.is_electrified:
+                        continue
+                    # ToDo get defaults from somewhere
+                    station.is_electrified = True
+                    station.power_total = station.power_total or 1000
+                    station.amount_charging_places = station.amount_charging_places or 1000
+                    station.power_per_charger = station.power_per_charger or 150
+                    station.save()
+                #
                 # get electrified stations from db, e.g. depot station from eflips with
                 # power
                 stations_dict = get_electrified_stations_from_db(db_scenario)
