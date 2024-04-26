@@ -47,9 +47,8 @@ def show_uploads_view(request: HttpRequest, filename):
     return response
 
 
-def result_view(request: HttpRequest):
+def result_view(request: HttpRequest, task_id):
     """View controlling if the wait or success view should be shown"""
-    task_id = request.GET["task_id"]
     try:
         if Scenario.objects.get(task_id=task_id).finished:
             request.task_id = str(task_id)
@@ -222,7 +221,9 @@ def progress(request: HttpRequest, progress_id, progress_type: str):
                     create_stations_for_map(scenario)
                     task_id = progress.scenario.task_id
                     request.task_id = task_id
-                    response = SuccessView.as_view()(request, task_id=task_id)
+                    response["HX-Redirect"] = reverse(
+                        "simba:result", args=[str(progress.scenario.task_id)]
+                    )
             case _:
                 raise NotImplementedError
     response["HX-Trigger"] = hx_trigger
