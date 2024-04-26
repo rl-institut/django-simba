@@ -9,6 +9,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING, List
 
+import environ
 import tqdm
 from celery import shared_task
 from django.conf import settings
@@ -226,7 +227,9 @@ def temperatures_to_db(
         temperatures_instance.save()
 
 
-def get_schedule_from_db(django_scenario: Scenario) -> tuple[simba.schedule.Schedule, Namespace]:
+def get_schedule_from_db(
+    django_scenario: Scenario, db_name="default"
+) -> tuple[simba.schedule.Schedule, Namespace]:
     """Takes a django Scenario and returns the simba Schedule and arguments
 
     Can be used to run a previously stored Django Scenario again straight from the database without
@@ -906,35 +909,45 @@ def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False
     return run_ebus_toolchain(django_scenario.task_id)
 
 
-def run_simba_scenario(django_scenario: Scenario, assign_vehicles=False):
+def run_simba_scenario(django_scenario: Scenario, assign_vehicles=False, db_url=None):
     """Run a Scenario from the database with SimBA
 
     The provided scenario must contain all information including Temperatures, Vehicle_Types,
     station information and electrified_station information.
     :param django_scenario: Scenario which is simulated
     :param assign_vehicles: boolean if the vehicles should be added to rotations.
+    :param db_url: url of database to be used. Defaults to django default
+    :type db_url: str
     Previous assignments will be deleted
     :return:
     """
-    if assign_vehicles:
-        assign_new_vehicles_to_db(django_scenario)
-    simba_schedule_db, args_db = get_schedule_from_db(django_scenario)
-    run_simba(simba_schedule_db, args_db, django_scenario.task_id)
+    old_default = deepcopy(settings.DATABASES["default"])
+    try:
+        if db_url is not None:
+            settings.DATABASES["default"] = environ.Env().db_url_config(db_url)
+        if assign_vehicles:
+            assign_new_vehicles_to_db(django_scenario, db_url)
+        simba_schedule_db, args_db = get_schedule_from_db(django_scenario, db_url)
+        run_simba(simba_schedule_db, args_db, django_scenario.task_id)
+    finally:
+        settings.DATABASES["default"] = old_default
 
 
-def assign_new_vehicles_to_db(django_scenario: Scenario) -> None:
+def assign_new_vehicles_to_db(django_scenario: Scenario, db_name="default") -> None:
     """Assign a new vehicle to every rotation
 
     Already assigned vehicles are deleted
     :param django_scenario: Scenario that gets added vehicles and rotation assignments.
     :return: None
     """
-    Vehicle.objects.filter(scenario=django_scenario).delete()
+    Vehicle.objects.using(db_name).filter(scenario=django_scenario).delete()
     # ToDo bulk updating. replace with independent simba vehicle naming
-    for i, r in enumerate(Rotation.objects.filter(scenario=django_scenario)):
+    for i, r in enumerate(Rotation.objects.using(db_name).filter(scenario=django_scenario)):
         vt = r.vehicle_type
         v_name = "Vehicle_" + str(i)
-        vehicle = Vehicle.objects.create(scenario=django_scenario, vehicle_type=vt, name=v_name)
+        vehicle = Vehicle.objects.using(db_name).create(
+            scenario=django_scenario, vehicle_type=vt, name=v_name
+        )
         r.vehicle = vehicle
         r.save()
 
