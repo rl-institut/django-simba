@@ -19,7 +19,7 @@ from dash.exceptions import PreventUpdate
 
 def get_all_buses(task_id: str) -> list[str]:
     s = Scenario.objects.get(task_id=task_id)
-    all_buses = list(Vehicle.objects.filter(scenario=s).values_list("name_short", flat=True))
+    all_buses = list(Vehicle.objects.filter(scenario=s).values_list("name", flat=True))
     return all_buses
 
 
@@ -27,7 +27,7 @@ def get_report_numbers_text(filter_dict: dict):
     task_id = filter_dict.pop("task_id")
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
-    if len(filter_dict["vehicle__name_short__in"]) == 0:
+    if len(filter_dict["vehicle__name__in"]) == 0:
         raise PreventUpdate
 
     # Function calls annotate distance to Rotation
@@ -50,7 +50,7 @@ def get_scatter_plot_data(filter_dict: dict) -> dict:
     task_id = filter_dict.pop("task_id")
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
-    if len(filter_dict["vehicle__name_short__in"]) == 0:
+    if len(filter_dict["vehicle__name__in"]) == 0:
         raise PreventUpdate
 
     queryset = Event.objects.filter(**filter_dict).distinct("vehicle")
@@ -67,7 +67,7 @@ def get_scatter_plot_data(filter_dict: dict) -> dict:
         for event in vehicle_events[1:]:
             socs.append(event.soc_start)
             times.append(event.time_start)
-        data[vehicle.name_short] = [times, socs]
+        data[vehicle.name] = [times, socs]
     return data
 
 
@@ -76,7 +76,7 @@ def get_bar_plot_data(filter_dict: dict) -> list[str, float, float]:
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
     queryset = Event.objects.filter(**filter_dict).distinct("vehicle")
-    if len(filter_dict["vehicle__name_short__in"]) == 0:
+    if len(filter_dict["vehicle__name__in"]) == 0:
         raise PreventUpdate
 
     vehicles = [e.vehicle for e in queryset]
@@ -87,9 +87,9 @@ def get_bar_plot_data(filter_dict: dict) -> list[str, float, float]:
             **filter_dict, vehicle=vehicle.id, event_type=EventType.DRIVING
         )
         min_soc = next(iter(vehicle_events.aggregate(Min("soc_end")).values()))
-        vehicle_data[i, :] = vehicle.name_short, min_soc
+        vehicle_data[i, :] = vehicle.name, min_soc
 
-    soc_data = vehicle_data[:, 1] or [0]
+    soc_data = vehicle_data[:, 1] if np.any(vehicle_data[:, 1]) else [0]
     lower_end = min(soc_data) // 0.05 * 0.05
     upper_end = 1
     bins = int((upper_end - lower_end) / 0.05)

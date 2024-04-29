@@ -9,7 +9,7 @@ def render(app: Dash) -> html.Div:
     @app.callback(Output(ids.SCATTER_CHART, "figure"), Input(ids.BUS_DROPDOWN, "value"))
     def update_scatter(buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
-        filter_dict = dict(task_id=task_id, vehicle__name_short__in=buses)
+        filter_dict = dict(task_id=task_id, vehicle__name__in=buses)
 
         # Get the data
         data = get_scatter_plot_data(filter_dict)
