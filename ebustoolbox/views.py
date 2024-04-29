@@ -189,6 +189,17 @@ def scenario_overview_view(request: HttpRequest, task_id):
     try:
         if Scenario.objects.get(task_id=task_id):
             request.task_id = str(task_id)
+            session = request.session
+            from dash_app.dash_app import create_app
+
+            # By creating a specific app for this task ID, the app "knows" which data to load
+            # ToDO make sure only authorized users can view this
+            create_app(task_id=str(task_id))
+            # the dictionary in "django_plotly_dash" appears in the session_state of the app, which
+            # is an optional kwarg in app.callbacks
+            session["django_plotly_dash"] = {"task_id": str(task_id)}
+
+
             return ScenarioOverview.as_view()(request, task_id=task_id)
     except Scenario.DoesNotExist:
         html = "<html><body>task_id is not valid</body></html>"
