@@ -1,6 +1,7 @@
-<header >
-    <nav class="navbar navbar-expand-lg navbar-light border-bottom align-center">
-          <div class="container-fluid">
+<header>
+    <nav class="navbar navbar-expand-lg navbar-light border-bottom sticky-top">
+          <div class="container-fluid align-center">
+                <!-- Logos -->
                 <a href="#" class="navbar-brand">
                       {% load static %}
                       <img src="{% static 'templates/img/RLI_Logo.png' %}" width="55" height="40" class="d-inline-block align-top" alt="Reiner Lemoine Institut">
@@ -8,75 +9,74 @@
                       <img src="{% static 'templates/img/bvg_icon.png' %}" width="50" height="40" class="d-inline-block align-top" alt="..">
                 </a>
 
-
-                <!-- Middle Section: Takes 30% width and centered content -->
-                <div class="col-6 text-center">
-                  <div class="navbar-text">
-                    <div class="container mt-0 text-center">
-                      <div class="callout tiny primary">
-                        <div class="row column text-center">
-                          <h1>
-                            <div class="title">E-Bus 2030+</div>
-                          </h1>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-
-              <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
-                      <span class="navbar-toggler-icon"></span>
+              <!-- Collapsing Element -->
+              <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
+                      aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon"></span>
               </button>
-
-              <div class="nav-item d-flex align-items-center">
-
-                <div class="dropdown">
-                    <button class="btn btn-info dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                          Language
-                      </button>
-                  <ul class="dropdown-menu">
-                      <li><a class="dropdown-item" href="#">English</a></li>
-                      <li><a class="dropdown-item" href="#">German</a></li>
-                    </ul>
+              <div class="collapse navbar-collapse" id="navbarCollapse">
+                <!-- Navbar Title -->
+                <div class="navbar-text mx-auto text-center">
+                    <div class="container mt-0 text-center">
+                        <div class="callout tiny primary">
+                            <div class="row column text-center">
+                                <h1>
+                                    <div class="title">E-Bus 2030+</div>
+                                </h1>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
+                  <!-- Dropdown Elements on the right Side -->
+                  <div class="ms-auto">
+                        <div class="dropdown">
+                            <button class="dropbtn btn btn-info" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                  Sprache
+                              </button>
+                          <ul class="dropdown-menu">
+                              <li><a class="dropdown-item" href="#">ENG</a></li>
+                              <li><a class="dropdown-item" href="#">DE</a></li>
+                            </ul>
+                        </div>
 
-                <div class="dropdown">
-                      <button class="btn btn-light dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                          Menü
-                      </button>
 
-                      <ul class="dropdown-menu">
+                        <div class="dropdown">
+                              <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                  Menü
+                              </button>
 
-                            <li class="dropdown-item">
-                                  <a href="#" class="nav-link active" aria-current="page">Simulate</a>
-                            </li>
-                            <li class="dropdown-item">
-                                  <a href="#" class="nav-link active">Docs</a>
-                            </li>
-                            <li class="dropdown-item">
-                                  <a href="#" class="nav-link active">About</a>
-                            </li>
-                            <li class="dropdown-item">
-                                  <a href="#" class="nav-link active">Contact</a>
-                            </li>
+                              <ul class="dropdown-menu">
 
-                          <li><hr class="dropdown-divider"></li>
+                                    <li class="dropdown-item">
+                                          <a href="#" class="nav-link active" aria-current="page">Simulate</a>
+                                    </li>
+                                    <li class="dropdown-item">
+                                          <a href="#" class="nav-link active">Docs</a>
+                                    </li>
+                                    <li class="dropdown-item">
+                                          <a href="#" class="nav-link active">About</a>
+                                    </li>
+                                    <li class="dropdown-item">
+                                          <a href="#" class="nav-link active">Contact</a>
+                                    </li>
 
-                          {% if user.is_authenticated %}
-                              <li><a class="dropdown-item" href="{% url 'simba:scenarios' %}">Meine Szenarien</a></li>
-                              <li><a class="dropdown-item" href="{% url 'simba:usergroups' %}">Meine Nutzergruppen</a></li>
-                              <li><a class="dropdown-item" href="{% url 'logout' %}">Abmelden</a></li>
-                              {% if user.is_staff %}
-                                  <li><a href="/admin">Admin</a></li>
-                              {% endif %}
-                          {% else %}
-                              <li><a class="dropdown-item" href="{% url 'login' %}">Anmelden</a></li>
-                              <!--<a href="{% url 'core:signup' %}">Registrieren</a>-->
-                          {% endif %}
-                      </ul>
-                </div>
+                                  <li><hr class="dropdown-divider"></li>
+
+                                  {% if user.is_authenticated %}
+                                      <li><a class="dropdown-item" href="{% url 'simba:scenarios' %}">Meine Szenarien</a></li>
+                                      <li><a class="dropdown-item" href="{% url 'simba:usergroups' %}">Meine Nutzergruppen</a></li>
+                                      <li><a class="dropdown-item" href="{% url 'logout' %}">Abmelden</a></li>
+                                      {% if user.is_staff %}
+                                          <li><a href="/admin">Admin</a></li>
+                                      {% endif %}
+                                  {% else %}
+                                      <li><a class="dropdown-item" href="{% url 'login' %}">Anmelden</a></li>
+                                      <!--<a href="{% url 'core:signup' %}">Registrieren</a>-->
+                                  {% endif %}
+                              </ul>
+                        </div>
+                  </div>
               </div>
 
 

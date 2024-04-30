@@ -16,6 +16,7 @@ urlpatterns = [
     path("usergroups/", views.usergroups, name="usergroups"),
     path("result/", views.result_view, name="result"),
     path("", views.home_view, name="home"),
+    path("landing_page", views.landing_page, name="landing_page"),
     path("input/schedule/", views.schedule, name="schedule"),
     path(
         "input/get_options/<uuid:task_id>/<int:reader_num>", views.get_options, name="get_options"

@@ -267,6 +267,10 @@ def home_view(request: HttpRequest):
     return render(request, "index.html", {"form": form})
 
 
+def landing_page(request: HttpRequest):
+    return render(request, "landing_page.html")
+
+
 @atomic()
 def create_stations_for_map(django_scenario: Scenario):
     from ebus_map.models import Station as MapStation

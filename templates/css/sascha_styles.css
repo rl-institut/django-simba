@@ -1,0 +1,40 @@
+// Toggle global options
+$enable-gradients: true;
+$enable-shadows: true;
+
+
+// Customize some defaults
+$body-color: #333;
+$body-bg: #fff;
+$border-radius: .4rem;
+$success: #7952b3;
+$primary: #2274a5;
+$info: red;
+
+body {
+  padding: 1.5rem;
+}
+
+
+.custom-btn {
+    display: flex;
+
+    align-items: center;
+    max-width: 200px; /* Setzt die maximale Breite der Buttons */
+    width: 100%; /* Setzt die Breite der Buttons auf 100% der Liste */
+    text-align: center; /* Zentriert den Text innerhalb der Buttons */
+}
+
+#hero {
+    background: url('bg_bus_figma.png');
+    background-repeat: no-repeat;
+    background-position: center center;
+    padding-bottom: 0;
+    padding-top: 1rem;
+}
+
+.page-section {
+    padding: 50px 0; /* Fügt oben und unten Abstand hinzu */
+    background-color: #f8f9fa; /* Setzt eine Hintergrundfarbe */
+    color: #333; /* Setzt die Schriftfarbe */
+}

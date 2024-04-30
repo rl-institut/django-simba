@@ -1,28 +1,4 @@
 // Override Bootstrap's Sass default variables
-//
-// Nearly all variables in Bootstrap are written with the `!default` flag.
-// This allows you to override the default values of those variables before
-// you import Bootstrap's source Sass files.
-//
-// Overriding the default variable values is the best way to customize your
-// CSS without writing _new_ styles. For example, change you can either change
-// `$body-color` or write more CSS that override's Bootstrap's CSS like so:
-// `body { color: red; }`.
-
-
-//
-// Bring in Bootstrap
-//
-
-// Option 1
-//
-// Import all of Bootstrap's CSS
-
-// @import "bootstrap/scss/bootstrap";
-
-// Option 2
-//
-// Place variable overrides first, then import just the styles you need. Note that some stylesheets are required no matter what.
 
 // Toggle global options
 $enable-gradients: true;
@@ -99,4 +75,25 @@ $theme-colors: map-merge($theme-colors, (
 
 body {
   padding: 1.5rem;
+}
+
+.custom-bg {
+    background-image: url('templates/img/bus_bg_figma.png');
+    background-size: cover;
+    background-position: center;
+}
+
+.custom-btn {
+    display: flex;
+
+    align-items: center;
+    max-width: 200px; /* Setzt die maximale Breite der Buttons */
+    width: 100%; /* Setzt die Breite der Buttons auf 100% der Liste */
+    text-align: center; /* Zentriert den Text innerhalb der Buttons */
+}
+
+#hero {
+    background: linear-gradient(rgba(0, 0, 0, 0.507), url('../img/bus_bg_figma.png');
+    background-position: center;
+    background-size: cover;
 }
