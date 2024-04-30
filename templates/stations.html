@@ -15,10 +15,22 @@
 </style>
 {% endblock %}
 {% block content %}
+<div class="container bg-light" style="min-height: 80vh;">
+
+    <!-- wizard -->
+    {% include 'wizard.html' %}
+
+    <!-- Main Content -->
+
+    <div class="row lead justify-content-center d-flex m-5 p-5">
+        Wähle alle Stationen aus, die elektrifiziert werden sollen.
+    </div>
 <div id="dynamic-content">
   <div id="dynamic-list">
     <h2>Select Stations which should be electrified:</h2>
-    <form enctype="multipart/form-data" method="POST" action="{% url 'simba:set_station_values' task_id %}">
+    <form class="text-center" enctype="multipart/form-data" method="POST" action="{% url 'simba:set_station_values' task_id %}">
+        <div class="input-item row m-5">
+            <div class="col-6">
       {% csrf_token %}
       {{ form.as_p }}
       <details>
@@ -54,8 +66,11 @@
         <br>
         <button type="submit" class="btn btn-primary">Continue</button>
       </div>
+            </div>
+        </div>
     </form>
   </div>
+</div>
 </div>
 
 <script>

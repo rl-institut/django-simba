@@ -2,14 +2,25 @@
 
 {% block content %}
 
-<div>
-    <form enctype="multipart/form-data" method="POST" action="{% url 'simba:assign_vehicle_types' task_id %}">
-        {% csrf_token %}
-        <div id="schedule-vehicle-types-container">
+    <!-- wizard -->
+    {% include 'wizard.html' %}
 
-            <h3> Default Vehicle Types</h3>
+    <!-- Main Content -->
+
+    <div class="row lead justify-content-center d-flex m-5 p-5">
+        Ordne jedem Fahrzeug in dem Zeitplan ein Default-Fahrzeug zu.
+    </div>
+
+    <form class="text-center" enctype="multipart/form-data" method="POST" action="{% url 'simba:assign_vehicle_types' task_id %}">
+        {% csrf_token %}
+
+        <div class="input-item row m-5">
+            <div class="col-6">
+                <div id="schedule-vehicle-types-container">
+
+            <h4>Fahrzeuge</h4>
             {% if vehicle_types %}
-                <ul>
+                <ul class="list-unstyled">
                     {% for vehicle_type in vehicle_types %}
                         <li>
                             {{ vehicle_type.name }}
@@ -22,13 +33,17 @@
                     {% endfor %}
                 </ul>
             {% else %}
-                <p>No default vehicle types available.</p>
+                <p>Keine Fahrzeugtypen verfügbar.</p>
             {% endif %}
         </div>
+            </div>
+            <div class="col-6">
+                <small class="form-text text-muted">Hier können die Fahrzeuge ausgewählt werden, die aus dem hochgeladen Zeitplan extrahiert wurden.</small>
+            </div>
+        </div>
 
-        <div>
-            <button class="btn btn-primary" type="submit"
-                    >Continue</button>
+        <div class="row">
+            {% include 'continue_button.html' %}
             <!-- dummy vehicle types get default vehicle type values -->
         </div>
     </form>
