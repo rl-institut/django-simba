@@ -896,6 +896,15 @@ class Station(models.Model):
             f"kW. \nLocation: {None if not self.geom else (self.geom.x, self.geom.y)}"
         )
 
+    def to_simba_name(self) -> str:
+        """Create a verbose unqiue name for simba"""
+        return self.name + "_" + str(self.id)
+
+    @classmethod
+    def get_id_from_simba_name(cls, name) -> int:
+        """Return the id of a verbose unique name from simba"""
+        return int(name.split("_")[-1])
+
     @classmethod
     def get_default_pk(cls):
         scenario = Scenario.objects.get(id=Scenario.get_default_pk())
