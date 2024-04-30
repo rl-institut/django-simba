@@ -54,6 +54,7 @@ from .models import (
     EventType,
     VehicleClass,
     DefaultScenario,
+    Depot,
 )
 from .schedule_readers import ScheduleReader
 
@@ -357,14 +358,14 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
         for trip in query:
             simba_trip_dict = {
                 "departure_time": str(trip.departure_time),
-                "departure_name": trip.route.departure_station.name,
+                "departure_name": trip.route.departure_station.to_simba_name(),
                 "arrival_time": str(trip.arrival_time),
-                "arrival_name": trip.route.arrival_station.name,
+                "arrival_name": trip.route.arrival_station.to_simba_name(),
                 "distance": trip.route.distance,
                 "line": lines_dict[trip.route.line.id].name,
                 "height_diff": (
-                    station_data[trip.route.arrival_station.name]["elevation"]
-                    - station_data[trip.route.departure_station.name]["elevation"]
+                    station_data[trip.route.arrival_station.to_simba_name()]["elevation"]
+                    - station_data[trip.route.departure_station.to_simba_name()]["elevation"]
                 ),
                 "level_of_loading": trip.loaded_mass,
                 "mean_speed": trip.speed * 3.6,
@@ -422,9 +423,8 @@ def get_electrified_stations_from_db(django_scenario) -> dict:
     :rtype: dict
     """
     stations_dict = dict()
-    for station in Station.objects.filter(scenario=django_scenario):
-        if not station.is_electrified:
-            continue
+    for station in Station.objects.filter(scenario=django_scenario, is_electrified=True):
+
         stat_dict = {
             "type": charge_type_from_db_to_station(station.charge_type.lower(), is_station=True),
             "n_charging_stations": station.amount_charging_places,
@@ -437,7 +437,7 @@ def get_electrified_stations_from_db(django_scenario) -> dict:
         stat_dict_cleaned = {
             k: v for k, v in stat_dict.items() if v is not None or k == "n_charging_stations"
         }
-        stations_dict[station.name] = stat_dict_cleaned
+        stations_dict[station.to_simba_name()] = stat_dict_cleaned
     return stations_dict
 
 
@@ -451,13 +451,13 @@ def get_station_data_from_db(django_scenario) -> dict:
     station_data = dict()
     for station in Station.objects.filter(scenario=django_scenario):
         try:
-            station_data[station.name] = {
+            station_data[station.to_simba_name()] = {
                 "long": station.geom.x,
                 "lat": station.geom.y,
                 "elevation": station.geom.z,
             }
         except AttributeError:
-            station_data[station.name] = {
+            station_data[station.to_simba_name()] = {
                 "long": 0,
                 "lat": 0,
                 "elevation": 0,
@@ -643,7 +643,7 @@ def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario)
     trip_id = 1 if Trip.objects.last() is None else Trip.objects.last().id + 1
 
     station_dict = Station.objects.filter(scenario=django_scenario)
-    station_dict = {station.name: station for station in station_dict}
+    station_dict = {station.to_simba_name(): station for station in station_dict}
     line_dict = {}
     for key, rot in tqdm.tqdm(schedule.rotations.items(), total=len(schedule.rotations)):
         assert rot.charging_type in EnumChargeType.values
@@ -788,7 +788,8 @@ def stations_to_db(station_data, electrified_stations, scenario):
 def update_electrified_stations_db(electrified_stations, scenario):
     """Update stations which are electrified with info from electrified_stations dictionary"""
     for name, ele_station in electrified_stations.items():
-        station = Station.objects.get(name=name, scenario=scenario)
+        # Todo loop over stations
+        station = Station.objects.get(id=Station.get_id_from_simba_name(name), scenario=scenario)
         station.is_electrified = True
 
         charge_type = ele_station.get("type")
@@ -976,6 +977,14 @@ def _run_ebus_toolchain(self, task_id):
 
     try:
         schedule, args = get_schedule_from_db(db_scenario)
+
+        # in the first run Depots can stay un electrified
+        # ToDo keep that?
+        for depot in Depot.objects.filter(scenario=db_scenario):
+            try:
+                del schedule.stations[depot.station.to_simba_name()]
+            except KeyError:
+                pass
         progress.total_work = 100
         progress.current_work = 0
         progress.save()
@@ -989,7 +998,6 @@ def _run_ebus_toolchain(self, task_id):
             wanted_modes = args.mode
         assert wanted_modes[-1] == "report"
         simba_scenario = None
-
         # Chain of modes with mode->eflips -> sim. Last mode is "report" and can be outside of loop
         for mode in wanted_modes[:-1]:
             # Delete old events
@@ -998,36 +1006,33 @@ def _run_ebus_toolchain(self, task_id):
             schedule, simba_scenario = run_simba(
                 schedule, args, task_id, mode=mode, scenario=simba_scenario
             )
-            # ToDo remove Flag. Eflips should not stay optional
-            # ToDo Maybe create class SimulationMode: which couple logical toolchain steps, e.g.
-            # simba.sim -> eflips -> simba.sim
-            # simba.station_opt -> eflips -> simba.sim
-            if settings.EFLIPS_USE:
-                run_eflips(task_id)
-                eflips_assignment = get_assigned_vehicles(task_id)
-                schedule.assign_vehicles_for_django(eflips_assignment)
-                for station in Station.objects.filter(depot__scenario=db_scenario):
-                    if station.is_electrified:
-                        continue
-                    # ToDo get defaults from somewhere
-                    station.is_electrified = True
-                    station.power_total = station.power_total or 1000
-                    station.amount_charging_places = station.amount_charging_places or 1000
-                    station.power_per_charger = station.power_per_charger or 150
-                    station.save()
-                #
-                # get electrified stations from db, e.g. depot station from eflips with
-                # power
-                stations_dict = get_electrified_stations_from_db(db_scenario)
-                schedule.stations = stations_dict.copy()
-                schedule, simba_scenario = run_simba(schedule, args, task_id, mode="sim")
+
+            # Event.objects.filter(scenario=db_scenario).order_by("soc_end").first().soc_end
+            run_eflips(task_id)
+            eflips_assignment = get_assigned_vehicles(task_id)
+            schedule.assign_vehicles_for_django(eflips_assignment)
+            for depot in Depot.objects.filter(scenario=db_scenario):
+                station = depot.station
+                if station.is_electrified:
+                    continue
+                # ToDo get defaults from somewhere
+                station.is_electrified = True
+                station.power_total = station.power_total or 1000_000
+                station.amount_charging_places = station.amount_charging_places or 1000
+                station.power_per_charger = station.power_per_charger or 150
+                station.charge_type = EnumChargeType.DEPOT.value
+                station.voltage_level = station.voltage_level or EnumVoltageLevel.VOLTAGE_MV.value
+
+                station.save()
+            #
+            # get electrified stations from db, e.g. depot station from eflips with
+            # power
+            stations_dict = get_electrified_stations_from_db(db_scenario)
+            schedule.stations = stations_dict.copy()
+            schedule, simba_scenario = run_simba(schedule, args, task_id, mode="sim")
 
             progress.current_work += 90 // (len(wanted_modes) - 1)
             progress.save()
-
-        # Post Processing or Clean Up ########
-        # ToDo: Report run might be removed at some point
-        _, __ = run_simba(schedule, args, task_id, mode=wanted_modes[-1], scenario=simba_scenario)
 
         db_scenario.refresh_from_db()
         db_scenario.finished = timezone.now()
@@ -1078,8 +1083,6 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
     for rot in all_rotations:
         first_trip = Trip.objects.filter(rotation=rot).order_by("departure_time").first()
         vehicle = rot.vehicle
-        # ToDo vehicle does not have a short name from eflips. Save initializes it. Simba needs
-        # a special vehicle name for vehicle identification
         if vehicle not in counted_vehicles:
             vt = vehicle.vehicle_type
             if vt.opportunity_charging_capable:
@@ -1107,22 +1110,23 @@ def run_simba(schedule: SimbaSchedule, args, task_id, mode=None, scenario=None):
     # TODO don't overwrite output on multiple function calls
     args.output_directory = Path(settings.UPLOAD_PATH) / str(task_id)
     args.attach_vehicle_soc = True
-
     db_scenario = Scenario.objects.get(task_id=task_id)
-    if mode is None:
-        scenario = schedule.run(args)
-    else:
-        func = getattr(simba.simulate.Mode, mode)
-        # Run this mode. Iteration number is not changed right now since only the last report is
-        # used from the generated simba files
-        schedule, scenario = func(schedule, scenario, args, 1)
-        match mode:
-            case "sim" | "report":
-                pass
-            case w if w in ["station_optimization", "station_optimization_single_step"]:
-                update_electrified_stations_db(schedule.stations, db_scenario)
-            case _:
-                raise NotImplementedError
+
+    # Default mode is greedy simulation
+    if mode is None or mode == "sim":
+        mode = "sim_greedy"
+
+    func = getattr(simba.simulate.Mode, mode)
+    # Run this mode. Iteration number is not changed right now since only the last report is
+    # used from the generated simba files
+    schedule, scenario = func(schedule, scenario, args, 1)
+    match mode:
+        case "sim_greedy" | "report":
+            pass
+        case w if w in ["station_optimization", "station_optimization_single_step"]:
+            update_electrified_stations_db(schedule.stations, db_scenario)
+        case _:
+            raise NotImplementedError
 
     print(f"Creating Simba Events {datetime.now()}")
     create_event_output(scenario, task_id)
@@ -1217,6 +1221,16 @@ def get_datetime(simba_scenario: "SimbaScenario", timestep: int) -> datetime:
 def create_event_output(simba_scenario: "SimbaScenario", task_id):  # noqa: C901
     # collect data from DB
     db_scenario = Scenario.objects.get(task_id=task_id)
+    # Delete old simba events
+    Event.objects.filter(
+        scenario=db_scenario,
+        event_type__in=[
+            EventType.CHARGING_OPPORTUNITY,
+            EventType.DRIVING,
+            EventType.STANDBY_DEPARTURE,
+        ],
+    ).delete()
+
     vehicle_dict = Vehicle.objects.filter(scenario=db_scenario)
     vehicle_dict = {vehicle.to_simba_name(): vehicle for vehicle in vehicle_dict}
     vehicle_type_dict = VehicleType.objects.filter(scenario=db_scenario)
@@ -1272,24 +1286,34 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):  # noqa: C901
             assert (
                 vehicle == current_vehicle
             ), f"{counter} {vehicle} , {last_aware}, {aware_start_time}"
-        vehicle_trips = vehicle_trips_dict.get(vehicle, None)
-        if vehicle_trips is None:
-            vehicle_trips_dict[vehicle] = Trip.objects.filter(rotation__vehicle=vehicle)
-            vehicle_trips = vehicle_trips_dict[vehicle]
+        if vehicle_trips_dict.get(vehicle, None) is None:
+            vehicle_trips_dict[vehicle] = Trip.objects.filter(
+                rotation__vehicle=vehicle
+            ).select_related("route__arrival_station", "rotation", "route__departure_station")
+            vehicle_trips_arr = {
+                t.arrival_time: (t, t.route.arrival_station, t.rotation)
+                for t in vehicle_trips_dict[vehicle]
+            }
+            vehicle_trips_dep = {
+                t.departure_time: (t, t.route.departure_station, t.rotation)
+                for t in vehicle_trips_dict[vehicle]
+            }
 
         # trips are sorted by time. all trips before the current rotation end time belong to the
         # same rotation
         if current_rotation is None:
             # first event must be a departure
             assert vehicle_event.event_type == "departure"
-            current_rotation = vehicle_trips.get(departure_time=aware_start_time).rotation
+            current_rotation = vehicle_trips_dep.get(aware_start_time)[2]
             current_vehicle = vehicle
+            last_arrival_time = None
+            for arrival_time, value in vehicle_trips_arr.items():
+                trip, arrival_station, rotation = value
+                if rotation != current_rotation:
+                    continue
+                if last_arrival_time is None or arrival_time > last_arrival_time:
+                    last_arrival_time = arrival_time
 
-            last_trip = (
-                Trip.objects.filter(rotation=current_rotation).order_by("arrival_time").last()
-            )
-
-            last_arrival_time = last_trip.arrival_time
             # print(current_rotation,last_trip.departure_time, last_arrival_time)
 
         if aware_start_time >= last_arrival_time:
@@ -1311,19 +1335,19 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):  # noqa: C901
         # figure out the location of the event
         station = None
         trip = None
-        if not len(vehicle_trips):
+        if not len(vehicle_trips_arr):
             raise RuntimeError(
                 f"No trip assigned to vehicle {vehicle.name_short}/ID:{vehicle.id} found in database."
             )
 
         if vehicle_event.event_type == "arrival":
-            station = vehicle_trips.get(arrival_time=aware_start_time).route.arrival_station
+            station = vehicle_trips_arr.get(aware_start_time)[1]
             is_charging = vehicle_event.update["connected_charging_station"] is not None
             event_type = (
                 EventType.CHARGING_OPPORTUNITY if is_charging else EventType.STANDBY_DEPARTURE
             )
         elif vehicle_event.event_type == "departure":
-            trip = vehicle_trips.get(departure_time=aware_start_time)
+            trip = vehicle_trips_dep.get(aware_start_time)[0]
             event_type = EventType.DRIVING
         else:
             raise NotImplementedError("Unknown vehicle event type")
