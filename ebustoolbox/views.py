@@ -13,6 +13,7 @@ from django.db.transaction import atomic
 from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest, Http404
 from django.shortcuts import render, redirect
 from django.urls import reverse
+from django.utils.cache import patch_cache_control
 from django.views.generic import TemplateView
 from django.views.decorators.http import require_GET, require_POST
 from eflips.depot.api import simulate_scenario  # noqa
@@ -187,7 +188,7 @@ def scenario_overview_view(request: HttpRequest, task_id):
     """View controlling if the wait or success view should be shown"""
 
     try:
-        if Scenario.objects.get(task_id=task_id):
+        if Scenario.objects.get(task_id=task_id) and not Scenario.objects.get(task_id=task_id).finished:
             request.task_id = str(task_id)
             session = request.session
             from dash_app.dash_app import create_app
@@ -199,8 +200,14 @@ def scenario_overview_view(request: HttpRequest, task_id):
             # is an optional kwarg in app.callbacks
             session["django_plotly_dash"] = {"task_id": str(task_id)}
 
+            response = ScenarioOverview.as_view()(request, task_id=task_id)
 
-            return ScenarioOverview.as_view()(request, task_id=task_id)
+            # Setting Cache-Control header
+            patch_cache_control(response, no_cache=True, no_store=True, must_revalidate=True)
+            return response
+        else:
+            html = "<html><body>This Scenario has already been simulated! You are being forwarded to the results page in 1...2....3....</body></html>"
+            return HttpResponse(html)
     except Scenario.DoesNotExist:
         html = "<html><body>task_id is not valid</body></html>"
         return HttpResponse(html)
