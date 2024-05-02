@@ -26,9 +26,8 @@ def render_soc(app: Dash) -> html.Div:
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def update_soc_histogram(
-            buses: list[str], session_state=None, dash_app=None, **kwargs
+        buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
-
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
@@ -103,7 +102,7 @@ def render_dist_dur(app: Dash) -> html.Div:
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def dist_dur_histogram(
-            buses: list[str], session_state=None, dash_app=None, **kwargs
+        buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -161,7 +160,7 @@ def render_rotation_distance(app: Dash) -> html.Div:
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def update_distances_histogram(
-            buses: list[str], session_state=None, dash_app=None, **kwargs
+        buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -219,7 +218,7 @@ def render_rotation_duration(app: Dash) -> html.Div:
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def update_distances_histogram(
-            buses: list[str], session_state=None, dash_app=None, **kwargs
+        buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -269,7 +268,7 @@ def render_minimal_soc(app: Dash) -> html.Div:
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def update_soc_histogram(
-            buses: list[str], session_state=None, dash_app=None, **kwargs
+        buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)

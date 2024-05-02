@@ -15,65 +15,78 @@ def create_layout(app: Dash) -> html.Div:
                     "height": "20%",
                 },
             ),
-            dcc.Tabs([
-
-                dcc.Tab(label='Scenario Plots', children=[
-
-                    html.Div(
-                         children=block_first_third(app),
-                         style={
-                             "display": "inline-block",
-                             "width": "33%",
-                             "verticalAlign": "top",
-                             "height": "100px",
-                         },
-                     ),
-                    html.Div(
-                         children=block_second_third(app),
-                         style={
-                             "display": "inline-block",
-                             "width": "33%",
-                             "verticalAlign": "top",
-                             "height": "100px",
-                         },
-                     ),
-                    html.Div(
-                         children=block_third_third(app),
-                         style={
-                             "display": "inline-block",
-                             "width": "33%",
-                             "verticalAlign": "top",
-                             "height": "100px",
-                         },
-                     ),
-                    html.Div(
-                         children=block_top_left(app),
-                         style={
-                             "display": "inline-block",
-                             "width": "50%",
-                             "verticalAlign": "top",
-                             "height": "200px",
-                         },
-                     ),
-                ]),
-                dcc.Tab(label='CEO Tab', children=[
-                    html.Div(
-                        children=block_top_right(app),
-                        style={
-                            "display": "inline-block",
-                            "width": "49%",
-                            "verticalAlign": "top",
-                            "height": "400px",
-                        },
+            dcc.Tabs(
+                [
+                    dcc.Tab(
+                        label="Scenario Plots",
+                        children=[
+                            html.Div(
+                                children=block_first_third(app),
+                                style={
+                                    "display": "inline-block",
+                                    "width": "33%",
+                                    "verticalAlign": "top",
+                                    "height": "100px",
+                                },
+                            ),
+                            html.Div(
+                                children=block_second_third(app),
+                                style={
+                                    "display": "inline-block",
+                                    "width": "33%",
+                                    "verticalAlign": "top",
+                                    "height": "100px",
+                                },
+                            ),
+                            html.Div(
+                                children=block_third_third(app),
+                                style={
+                                    "display": "inline-block",
+                                    "width": "33%",
+                                    "verticalAlign": "top",
+                                    "height": "100px",
+                                },
+                            ),
+                            html.Div(
+                                children=block_top_left(app),
+                                style={
+                                    "display": "inline-block",
+                                    "width": "50%",
+                                    "verticalAlign": "top",
+                                    "height": "200px",
+                                },
+                            ),
+                        ],
                     ),
-                ]),
-                dcc.Tab(label='Simulation Plots', children=[
-                    html.Div(
-                         children=block_bottom_center(app),
-                         style={"display": "inline-block", "width": "100%", "height": "600px"},
+                    dcc.Tab(
+                        label="CEO Tab",
+                        children=[
+                            html.Div(
+                                children=block_top_right(app),
+                                style={
+                                    "display": "inline-block",
+                                    "width": "49%",
+                                    "verticalAlign": "top",
+                                    "height": "400px",
+                                },
+                            ),
+                        ],
                     ),
-                ]),
-            ]),
+                    dcc.Tab(
+                        label="Simulation Plots",
+                        children=[
+                            html.Div(
+                                children=block_bottom_center(app),
+                                style={
+                                    "display": "inline-block",
+                                    "width": "100%",
+                                    "height": "600px",
+                                },
+                            ),
+                        ],
+                    ),
+                ]
+            ),
         ]
     )
 

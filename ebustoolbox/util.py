@@ -55,7 +55,6 @@ def get_soc(scenario_id):
 
 
 def get_soc_as_dataframe(scenario_id):
-
     socs = get_soc(scenario_id)
     scenario = Scenario.objects.get(id=scenario_id)
     vehicles = Vehicle.objects.filter(vehicle_type__scenario=scenario)

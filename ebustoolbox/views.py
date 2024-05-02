@@ -102,8 +102,8 @@ def long_running_task_status_view(request):
     task_id = request.GET.get("task_id")
     task_result = AsyncResult(task_id)
     if (
-            task_result.ready()
-            or Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
+        task_result.ready()
+        or Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
     ):
         print("Task is finished")
         return JsonResponse({"success": True})
@@ -184,11 +184,15 @@ def set_station_values(request: HttpRequest, task_id):
     else:
         return HttpResponse("Method is not allowed", status=405)
 
+
 def scenario_overview_view(request: HttpRequest, task_id):
     """View controlling if the wait or success view should be shown"""
 
     try:
-        if Scenario.objects.get(task_id=task_id) and not Scenario.objects.get(task_id=task_id).finished:
+        if (
+            Scenario.objects.get(task_id=task_id)
+            and not Scenario.objects.get(task_id=task_id).finished
+        ):
             request.task_id = str(task_id)
             session = request.session
             from dash_app.dash_app import create_app
@@ -206,7 +210,10 @@ def scenario_overview_view(request: HttpRequest, task_id):
             patch_cache_control(response, no_cache=True, no_store=True, must_revalidate=True)
             return response
         else:
-            html = "<html><body>This Scenario has already been simulated! You are being forwarded to the results page in 1...2....3....</body></html>"
+            html = (
+                "<html><body>This Scenario has already been simulated! "
+                "You are being forwarded to the results page in 1...2....3....</body></html>"
+            )
             return HttpResponse(html)
     except Scenario.DoesNotExist:
         html = "<html><body>task_id is not valid</body></html>"
@@ -261,9 +268,9 @@ def progress(request: HttpRequest, progress_id, progress_type: str):
                     task_id = progress.scenario.task_id
                     request.task_id = task_id
 
-                    response["HX-Redirect"] = reverse(
-                        "simba:result"
-                    ) + '?task_id={}'.format(task_id)
+                    response["HX-Redirect"] = reverse("simba:result") + "?task_id={}".format(
+                        task_id
+                    )
             case _:
                 raise NotImplementedError
     response["HX-Trigger"] = hx_trigger
@@ -358,7 +365,7 @@ def create_stations_for_map(django_scenario: Scenario):
 
 
 def save_and_simulate(
-        form: UploadFileForm | None = None, request: HttpRequest | None = None
+    form: UploadFileForm | None = None, request: HttpRequest | None = None
 ) -> Scenario:
     print(f"Running TOOLCHAIN {datetime.now()}")
     if form is None:

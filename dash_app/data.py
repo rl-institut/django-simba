@@ -73,7 +73,8 @@ def get_number_longest_rot(filter_dict: dict):
     if longest_rotation:
         return [f"Longest Rotation {longest_rotation.name}", f"{longest_rotation.distance} m"]
     else:
-        return [f"No Rotations found!"]
+        return ["No Rotations found!"]
+
 
 def get_number_shortest_rot(filter_dict: dict):
     """
@@ -98,7 +99,8 @@ def get_number_shortest_rot(filter_dict: dict):
     if shortest_rotation:
         return [f"Shortest Rotation {shortest_rotation.name}", f"{shortest_rotation.distance} m"]
     else:
-        return [f"No Rotations found!"]
+        return ["No Rotations found!"]
+
 
 def recent_memoizer(function, _dcache1=dict(), _result_cache2=dict()):
     """Decorator function

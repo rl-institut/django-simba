@@ -5,7 +5,7 @@ import sqlalchemy
 from dash import html, dcc, Input, Output
 from dash.exceptions import PreventUpdate
 from django_plotly_dash import DjangoDash
-from eflips.model import Scenario, Area
+from eflips.model import Area
 from eflips.eval.output.prepare import (
     depot_event as prepare_depot_event,
     vehicle_soc as prepare_vehicle_soc,
@@ -18,6 +18,7 @@ from eflips.eval.output.visualize import (
 )
 from sqlalchemy.orm import Session
 
+import plotly.graph_objects as go
 
 app = DjangoDash("EflipsDepotResults")  # replaces dash.Dash
 
@@ -79,7 +80,7 @@ def get_ganttchart_scenario(color_scheme_dropdown: str, session_state: Dict[str,
     :return: A tuple of a :class:`plotly.express.timeline` object, a string of the scenario name
     and a string of the number of vehicles in the scenario
     """
-    from ebustoolbox.models import Scenario
+    from ebustoolbox.models import Scenario as ebusScenario
 
     # Make sure that the session state is set and that the task id is in the session state
     if session_state is None:
@@ -91,7 +92,7 @@ def get_ganttchart_scenario(color_scheme_dropdown: str, session_state: Dict[str,
 
     engine = _create_engine_from_postgis_url()
     with Session(engine) as session:
-        scenario = Scenario.objects.get(task_id=session_state["task_id"])
+        scenario = ebusScenario.objects.get(task_id=session_state["task_id"])
         scenario_id = scenario.id
         scenario_name = scenario.name
 
@@ -136,24 +137,26 @@ def get_vehicle_soc_plot(vehicle_id: int):
         fig = visualize_vehicle_soc(vehicle_soc, descriptions)
 
     return fig
-#
-#
-# @app.callback(
-#     Output("power-and-occupancy-plot", "figure"),
-#     Input("task_id", "data"),
-# )
-# def get_power_and_occupancy_plot(task_id: str):
-#     from ebustoolbox.models import Scenario
-#     engine = _create_engine_from_postgis_url()
-#     with Session(engine) as session:
-#         scenario = Scenario.objects.get(task_id=task_id)
-#         scenario_id = scenario.id
-#         all_areas = session.query(Area).filter(Area.scenario_id == scenario_id).all()
-#         all_area_ids = [area.id for area in all_areas]
-#
-#         try:
-#             prepared_data = prepare_power_and_occupancy(all_area_ids, session)
-#             fig = visualize_power_and_occupancy(prepared_data)
-#         except ValueError:
-#             fig = None
-#     return fig
+
+
+@app.callback(
+    Output("power-and-occupancy-plot", "figure"),
+    Input("task_id", "data"),
+)
+def get_power_and_occupancy_plot(task_id: str):
+    from ebustoolbox.models import Scenario as ebusScenario
+
+    engine = _create_engine_from_postgis_url()
+    with Session(engine) as session:
+        scenario = ebusScenario.objects.get(task_id=task_id)
+        scenario_id = scenario.id
+        all_areas = session.query(Area).filter(Area.scenario_id == scenario_id).all()
+        all_area_ids = [area.id for area in all_areas]
+
+        try:
+            prepared_data = prepare_power_and_occupancy(all_area_ids, session)
+            fig = go.Figure(layout=dict(template="plotly"))
+            fig = visualize_power_and_occupancy(prepared_data)
+        except ValueError:
+            fig = go.Figure(layout=dict(template="plotly"))
+    return fig
