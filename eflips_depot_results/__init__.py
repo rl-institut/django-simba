@@ -63,8 +63,10 @@ def _create_engine_from_postgis_url() -> sqlalchemy.engine.Engine:
     """
 
     print("The Problem is here: "+ os.environ.get("DATABASE_URL").replace("postgis", "postgresql"))
+    print("instead use:")
+    print("postgresql://postgres:postgres@localhost/default")
 
-    return sqlalchemy.create_engine(os.environ.get("DATABASE_URL").replace("postgis", "postgresql"))
+    return sqlalchemy.create_engine("postgresql://postgres:postgres@localhost/default")
 
 
 @app.callback(
