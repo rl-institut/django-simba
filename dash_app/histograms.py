@@ -26,7 +26,7 @@ def render_soc(app: Dash) -> html.Div:
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def update_soc_histogram(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+            buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
 
         task_id = dash_app.slug
@@ -103,7 +103,7 @@ def render_dist_dur(app: Dash) -> html.Div:
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def dist_dur_histogram(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+            buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -161,7 +161,7 @@ def render_rotation_distance(app: Dash) -> html.Div:
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def update_distances_histogram(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+            buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -175,7 +175,10 @@ def render_rotation_distance(app: Dash) -> html.Div:
         max_distance = df["total_distance"].max()
         min_distance = df["total_distance"].min()
 
-        num_bins = int((max_distance - min_distance) / bin_width)
+        try:
+            num_bins = int((max_distance - min_distance) / bin_width)
+        except ValueError:
+            num_bins = 10
 
         # following line is needed due to plotly bug,
         # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
@@ -216,7 +219,7 @@ def render_rotation_duration(app: Dash) -> html.Div:
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def update_distances_histogram(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+            buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -266,7 +269,7 @@ def render_minimal_soc(app: Dash) -> html.Div:
         Input(ids.BUS_DROPDOWN, "value"),
     )
     def update_soc_histogram(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+            buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
