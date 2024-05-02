@@ -98,7 +98,7 @@ jobs:
           DJANGO_SECRET_KEY: ${{ secrets.SECRET_KEY }}
           DJANGO_DEBUG: True
           # Replace with your own database info
-          DATABASE_URL: postgis://postgres:postgres@localhost/default
+          DATABASE_URL: postgis://postgres:postgres@localhost/DbName
           CELERY_TASK_ALWAYS_EAGER: True
           CELERY_BROKER_URL: pyamqp://guerrst@localhost//
           TILING_SERVICE_TOKEN: ${{ secrets.TILING_SERVICE_TOKEN }}
