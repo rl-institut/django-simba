@@ -61,6 +61,9 @@ def _create_engine_from_postgis_url() -> sqlalchemy.engine.Engine:
     Create a sqlalchemy engine from the DATABASE_URL environment variable.
     Replace the 'postgis' scheme with 'postgresql'
     """
+
+    print("The Problem is here: "+ os.environ.get("DATABASE_URL").replace("postgis", "postgresql"))
+
     return sqlalchemy.create_engine(os.environ.get("DATABASE_URL").replace("postgis", "postgresql"))
 
 
