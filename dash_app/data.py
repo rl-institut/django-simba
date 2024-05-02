@@ -27,7 +27,7 @@ def get_all_buses(task_id: str) -> list[str]:
     :rtype: list[str]
     """
     s = Scenario.objects.get(task_id=task_id)
-    all_buses = list(Vehicle.objects.filter(scenario=s).values_list("name_short", flat=True))
+    all_buses = list(Vehicle.objects.filter(scenario=s).values_list("name", flat=True))
     return all_buses
 
 
@@ -42,7 +42,7 @@ def get_number_of_buses(filter_dict: dict) -> list[str]:
     :rtype: list[str]
     """
     task_id = filter_dict.pop("task_id")
-    vehicles = filter_dict.pop("vehicle__name_short__in")
+    vehicles = filter_dict.pop("vehicle__name__in")
     return [
         "Selected / Total number of Buses:",
         str(len(vehicles)) + " / " + str(len(get_all_buses(task_id))),
@@ -64,7 +64,7 @@ def get_number_longest_rot(filter_dict: dict):
     task_id = filter_dict.pop("task_id")
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
-    if len(filter_dict["vehicle__name_short__in"]) == 0:
+    if len(filter_dict["vehicle__name__in"]) == 0:
         raise PreventUpdate
 
     # Function calls annotate distance to Rotation
@@ -89,7 +89,7 @@ def get_number_shortest_rot(filter_dict: dict):
     task_id = filter_dict.pop("task_id")
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
-    if len(filter_dict["vehicle__name_short__in"]) == 0:
+    if len(filter_dict["vehicle__name__in"]) == 0:
         raise PreventUpdate
 
     # Function calls annotate distance to Rotation
@@ -324,7 +324,7 @@ def get_all_event_info(scenario_id):
 
     # Iterate over vehicles
     for vehicle in vehicles:
-        v_id = vehicle.name_short
+        v_id = vehicle.name
         if vehicle.id in events_by_vehicle:
             # Filter rotations for the current vehicle
             vehicle_rotations = all_rotations.filter(vehicle_id=vehicle.id)
@@ -398,7 +398,7 @@ def get_all_trip_info(scenario_id):
     # Iterate over rotations in the scenario
     for rotation in scenario.rotation_set.all():
         # Get vehicle ID for the rotation
-        v_id = rotation.vehicle.name_short
+        v_id = rotation.vehicle.name
         r_id = rotation.id
         # Iterate over trips in the rotation
         for trip in rotation.trip_set.all():
@@ -481,7 +481,7 @@ def get_all_powerdraw_as_dataframe(scenario_id):
                 # Append data to the list
                 dfs.append(
                     {
-                        "V_id": vehicle.name_short,
+                        "V_id": vehicle.name,
                         "time_start": time_start,
                         "time_end": time_end,
                         "Energy": energy,

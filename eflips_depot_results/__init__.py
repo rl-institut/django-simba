@@ -63,16 +63,7 @@ def _create_engine_from_postgis_url() -> sqlalchemy.engine.Engine:
     from ebustoolbox.tasks import create_db_url
     db_url = create_db_url()
 
-    print("using this URL: " + db_url)
-
-    return sqlalchemy.create_engine(
-                        db_url,
-                        pool_size=5,
-                        max_overflow=10,
-                        pool_timeout=30,
-                        pool_recycle=300,
-                        echo=False
-                    )
+    return sqlalchemy.create_engine(db_url)
 
 
 @app.callback(
