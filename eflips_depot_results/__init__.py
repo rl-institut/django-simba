@@ -22,7 +22,6 @@ import plotly.graph_objects as go
 
 app = DjangoDash("EflipsDepotResults")  # replaces dash.Dash
 
-
 app.layout = html.Div(
     children=[
         html.H1(children="Simulation results of eflips-depot", style={"font": "arial"}),
@@ -62,12 +61,18 @@ def _create_engine_from_postgis_url() -> sqlalchemy.engine.Engine:
     Replace the 'postgis' scheme with 'postgresql'
     """
     from ebustoolbox.tasks import create_db_url
-
     db_url = create_db_url()
 
     print("using this URL: " + db_url)
 
-    return sqlalchemy.create_engine(db_url)
+    return sqlalchemy.create_engine(
+                        db_url,
+                        pool_size=5,
+                        max_overflow=10,
+                        pool_timeout=30,
+                        pool_recycle=300,
+                        echo=False
+                    )
 
 
 @app.callback(
@@ -86,6 +91,7 @@ def get_ganttchart_scenario(color_scheme_dropdown: str, session_state: Dict[str,
     :return: A tuple of a :class:`plotly.express.timeline` object, a string of the scenario name
     and a string of the number of vehicles in the scenario
     """
+
     from ebustoolbox.models import Scenario as ebusScenario
 
     # Make sure that the session state is set and that the task id is in the session state
@@ -97,6 +103,7 @@ def get_ganttchart_scenario(color_scheme_dropdown: str, session_state: Dict[str,
     # Create a connection to the database
 
     engine = _create_engine_from_postgis_url()
+
     with Session(engine) as session:
         scenario = ebusScenario.objects.get(task_id=session_state["task_id"])
         scenario_id = scenario.id
@@ -152,7 +159,10 @@ def get_vehicle_soc_plot(vehicle_id: int):
 def get_power_and_occupancy_plot(task_id: str):
     from ebustoolbox.models import Scenario as ebusScenario
 
+
     engine = _create_engine_from_postgis_url()
+
+
     with Session(engine) as session:
         scenario = ebusScenario.objects.get(task_id=task_id)
         scenario_id = scenario.id
