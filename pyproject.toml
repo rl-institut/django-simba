@@ -6,7 +6,8 @@ authors = ["Reiner Lemoine Institut <info@rl-institut.de>"]
 license = "AGPLv3"
 readme = "README.md"
 packages = [{include = "ebustoolbox"},
-            {include = "django_mapengine"}]
+            {include = "django_mapengine"},
+            {include = "core"}]
 
 [tool.poetry.dependencies]
 python = ">=3.11,<4.0"
