@@ -66,7 +66,7 @@ def _create_engine_from_postgis_url() -> sqlalchemy.engine.Engine:
     print("instead use:")
     print("postgresql://myprojectuser:1234@localhost/mydb")
 
-    return sqlalchemy.create_engine("postgresql://myprojectuser:1234@localhost/mydb")
+    return sqlalchemy.create_engine("postgresql://myprojectuser:1234@my-docker-postgres:5432/mydb")
 
 
 @app.callback(
