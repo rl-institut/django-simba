@@ -61,12 +61,13 @@ def _create_engine_from_postgis_url() -> sqlalchemy.engine.Engine:
     Create a sqlalchemy engine from the DATABASE_URL environment variable.
     Replace the 'postgis' scheme with 'postgresql'
     """
+    from ebustoolbox.tasks import create_db_url
 
-    print("The Problem is here: "+ os.environ.get("DATABASE_URL").replace("postgis", "postgresql"))
-    print("instead use:")
-    print("postgresql://myprojectuser:1234@localhost/mydb")
+    db_url = create_db_url()
 
-    return sqlalchemy.create_engine("postgresql://myprojectuser:1234@my-docker-postgres:5432/mydb")
+    print("using this URL: " + db_url)
+
+    return sqlalchemy.create_engine(db_url)
 
 
 @app.callback(
