@@ -25,16 +25,42 @@ body {
     text-align: center; /* Zentriert den Text innerhalb der Buttons */
 }
 
-#hero {
-    background: url('bg_bus_figma.png');
+#landing-page {
+    background: url('bg_bus.png');
     background-repeat: no-repeat;
     background-position: center center;
-    padding-bottom: 0;
-    padding-top: 1rem;
+
+    
+
+    background-size: cover; /* Stellt sicher, dass das Bild den gesamten Bereich abdeckt */
+
+
+    background-attachment: fixed;
 }
 
 .page-section {
     padding: 50px 0; /* Fügt oben und unten Abstand hinzu */
     background-color: #f8f9fa; /* Setzt eine Hintergrundfarbe */
     color: #333; /* Setzt die Schriftfarbe */
+}
+
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.navbar-text {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%; /* Stellt sicher, dass der Container die volle Breite des Navbar einnimmt */
+}
+
+.center-element {
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }

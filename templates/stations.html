@@ -15,63 +15,71 @@
 </style>
 {% endblock %}
 {% block content %}
-<div class="container bg-light" style="min-height: 80vh;">
+<div class="container bg-light" style="min-height: 100vh;">
 
     <!-- wizard -->
     {% include 'wizard.html' %}
 
     <!-- Main Content -->
-
     <div class="row lead justify-content-center d-flex m-5 p-5">
         Wähle alle Stationen aus, die elektrifiziert werden sollen.
     </div>
-<div id="dynamic-content">
-  <div id="dynamic-list">
-    <h2>Select Stations which should be electrified:</h2>
-    <form class="text-center" enctype="multipart/form-data" method="POST" action="{% url 'simba:set_station_values' task_id %}">
-        <div class="input-item row m-5">
-            <div class="col-6">
-      {% csrf_token %}
-      {{ form.as_p }}
-      <details>
-        <summary>
-          <span>Stations: </span>
-          <span id="station-counter">X</span>
-          <span> / {{ stations|length }} selected</span>
-        </summary>
-        <div id="station-container" class="grid-container">
-          {% for station in stations %}
-            <div class="grid-item">
-              <input
-                type="checkbox"
-                class="station-checkbox"
-                id="station_{{ station.id }}"
-                name="station_id"
-                value="{{ station.id }}"
-                onclick="updateStationCounter();"
-                initial={{station.is_electrified}}
-                {% if station.is_electrified %} checked {% endif %}
-              >
-              <label for="station_{{ station.id }}">{{ station.name }}</label>
-            </div>
-          {% endfor %}
+
+    <div id="dynamic-content">
+        <div id="dynamic-list">
+            <form class="text-center" enctype="multipart/form-data" method="POST" action="{% url 'simba:set_station_values' task_id %}">
+                <div class="input-item row m-5">
+                    <div class="col-6">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                    </div>
+                </div>
+                <div class="input-item row m-5">
+                    <div class="col-6">
+                        <details class="card mb-2">
+                            <summary class="card-header">
+                                <span>Stationen: </span>
+                                <span id="station-counter">X</span>
+                                <span> / {{ stations|length }} ausgewählt</span>
+                            </summary>
+                            <div id="station-container" class="grid-container m-2">
+                                {% for station in stations %}
+                                <div class="grid-item">
+                                    <div class="form-check">
+                                        <input
+                                          type="checkbox"
+                                          class="form-check-input station-checkbox"
+                                          id="station_{{ station.id }}"
+                                          name="station_id"
+                                          value="{{ station.id }}"
+                                          onclick="updateStationCounter();"
+                                          initial="{{station.is_electrified}}"
+                                        >
+                                        {% if station.is_electrified %} checked {% endif %}
+                                        <label class="form-check-label" for="station_{{ station.id }}">{{ station.name }}</label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </details>
+                        <div class="text-center">
+                          <a class="btn btn-secondary btn-block" onclick="setCheckboxes(true);">Select all</a>
+                          <a class="btn btn-secondary btn-block" onclick="setCheckboxes(false);">Deselect all</a>
+                          <a class="btn btn-secondary btn-block" onclick="setCheckboxes('initial');">Reset</a>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        Hier können die Stationen ausgewählt werden, die elektrifiziert werden sollen. Dies wird dementsprechend in der Simulation berücksichtigt.
+                    </div>
+                </div>
+            </form>
         </div>
-      </details>
-      <div>
-        <a class="btn btn-secondary" onclick="setCheckboxes(true);">Select all</a>
-        <a class="btn btn-secondary" onclick="setCheckboxes(false);">Deselect all</a>
-        <a class="btn btn-secondary" onclick="setCheckboxes('initial');">Reset</a>
-      </div>
-      <div>
-        <br>
-        <button type="submit" class="btn btn-primary">Continue</button>
-      </div>
-            </div>
-        </div>
-    </form>
-  </div>
+    </div>
 </div>
-</div>
+
+
+{% include 'continue_button.html' %}
+
 
 <script>
 // checkbox logic

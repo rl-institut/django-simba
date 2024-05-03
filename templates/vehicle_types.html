@@ -2,6 +2,9 @@
 
 {% block content %}
 
+
+<div class="container bg-light" style="min-height: 80vh;">
+
     <!-- wizard -->
     {% include 'wizard.html' %}
 
@@ -15,39 +18,49 @@
         {% csrf_token %}
 
         <div class="input-item row m-5">
+            <div class="col-6"><h4>Fahrzeuge</h4></div>
+            <div class="col-6"></div>
+
+        </div>
+
+        <div class="input-item row m-5">
             <div class="col-6">
                 <div id="schedule-vehicle-types-container">
-
-            <h4>Fahrzeuge</h4>
-            {% if vehicle_types %}
-                <ul class="list-unstyled">
-                    {% for vehicle_type in vehicle_types %}
-                        <li>
-                            {{ vehicle_type.name }}
-                            <select name="vehicle_type_dropdown">
-                                {% for default_vehicle_type in default_vehicle_types %}
-                                    <option value="{{ vehicle_type.id }}_{{ default_vehicle_type.id }}">{{ default_vehicle_type.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </li>
-                    {% endfor %}
-                </ul>
+                    {% if vehicle_types %}
+                    <ul class="list-unstyled">
+                        {% for vehicle_type in vehicle_types %}
+                            <li class="list-group-item p-2">
+                                <div class="row">
+                                    <div class="col bg-primary text-white rounded">
+                                        {{ vehicle_type.name }}
+                                    </div>
+                                    <div class="col d-flex align-center">
+                                        <select name="vehicle_type_dropdown" class="form-select">
+                                            {% for default_vehicle_type in default_vehicle_types %}
+                                                <option value="{{ vehicle_type.id }}_{{ default_vehicle_type.id }}">{{ default_vehicle_type.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
             {% else %}
                 <p>Keine Fahrzeugtypen verfügbar.</p>
             {% endif %}
         </div>
             </div>
-            <div class="col-6">
+                <div class="col-6">
                 <small class="form-text text-muted">Hier können die Fahrzeuge ausgewählt werden, die aus dem hochgeladen Zeitplan extrahiert wurden.</small>
+                </div>
             </div>
-        </div>
-
-        <div class="row">
-            {% include 'continue_button.html' %}
-            <!-- dummy vehicle types get default vehicle type values -->
-        </div>
     </form>
+
 </div>
+
+
+<!-- dummy vehicle types get default vehicle type values -->
+{% include 'continue_button.html' %}
 
 
 {% endblock %}

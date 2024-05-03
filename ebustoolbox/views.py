@@ -116,6 +116,12 @@ def schedule(request: HttpRequest):
     return render(request, "schedule.html", {"task_id": task_id})
 
 
+def home_prototype(request: HttpRequest):
+    """Generate the home view of the tool chain with input forms"""
+    task_id = get_unique_task_id()
+    return render(request, "home_prototype.html", {"task_id": task_id})
+
+
 def get_options(request: HttpRequest, task_id, reader_num: int):
     context = {"reader_num": reader_num, "task_id": task_id}
     response = HttpResponse(context)
