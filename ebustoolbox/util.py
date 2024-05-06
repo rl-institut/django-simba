@@ -1,9 +1,9 @@
 import sys
 
 import matplotlib
+from .models import Scenario, Vehicle
 from celery import uuid
-
-from .models import Scenario
+import pandas as pd
 
 if not any(["selenium" in str(x) for x in sys.modules.values()]):
     # do not use tkagg during testing since it does not work with headless selenium
@@ -52,6 +52,37 @@ def get_soc(scenario_id):
             }
         )
     return socs
+
+
+def get_soc_as_dataframe(scenario_id):
+    socs = get_soc(scenario_id)
+    scenario = Scenario.objects.get(id=scenario_id)
+    vehicles = Vehicle.objects.filter(vehicle_type__scenario=scenario)
+
+    dfs = []
+
+    for vehicle in vehicles:
+        v_id = vehicle.id
+        for element in socs[vehicle.id]:
+            time_start = element["time_start"]
+            soc_start = element["soc_start"]
+            # Add a row to the DataFrame
+            df = pd.DataFrame({"V_id": [v_id], "Time": [time_start], "SOC": [soc_start]})
+            dfs.append(df)
+            time_start = element["time_end"]
+            soc_start = element["soc_end"]
+            # Add a row to the DataFrame
+            df = pd.DataFrame({"V_id": [v_id], "Time": [time_start], "SOC": [soc_start]})
+            dfs.append(df)
+    result_df = pd.concat(dfs, ignore_index=True)
+
+    # Convert the 'Time' column to datetime format
+    result_df["Time"] = pd.to_datetime(result_df["Time"])
+
+    # Sort the DataFrame based on the 'Time' column
+    result_df = result_df.sort_values(by="Time")
+
+    return result_df
 
 
 def get_stations(scenario_id):

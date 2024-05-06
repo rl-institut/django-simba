@@ -13,6 +13,7 @@ from django.db.transaction import atomic
 from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest, Http404
 from django.shortcuts import render, redirect
 from django.urls import reverse
+from django.utils.cache import patch_cache_control
 from django.views.generic import TemplateView
 from django.views.decorators.http import require_GET, require_POST
 from eflips.depot.api import simulate_scenario  # noqa
@@ -61,11 +62,11 @@ def result_view(request: HttpRequest):
         return HttpResponse(html)
 
 
-def wait_view(request):
+def wait_view(request, task_id):
     """View while waiting for results. Will trigger success view as soon as long-running task
     returns pending"""
     print("SimBA is calculating. Showing wait view")
-    return render(request, "wait.html")
+    return render(request, "wait.html", {"task_id": task_id})
 
 
 class SuccessView(TemplateView, MapEngineMixin):
@@ -184,9 +185,53 @@ def set_station_values(request: HttpRequest, task_id):
         return HttpResponse("Method is not allowed", status=405)
 
 
-def scenario_overview(request: HttpRequest, task_id):
-    # TODO add more context for rendering?
-    return render(request, "scenario_overview.html", {"task_id": task_id})
+def scenario_overview_view(request: HttpRequest, task_id):
+    """View controlling if the wait or success view should be shown"""
+
+    try:
+        if (
+            Scenario.objects.get(task_id=task_id)
+            and not Scenario.objects.get(task_id=task_id).finished
+        ):
+            request.task_id = str(task_id)
+            session = request.session
+            from dash_app.dash_app import create_app
+
+            # By creating a specific app for this task ID, the app "knows" which data to load
+            # ToDO make sure only authorized users can view this
+            create_app(task_id=str(task_id))
+            # the dictionary in "django_plotly_dash" appears in the session_state of the app, which
+            # is an optional kwarg in app.callbacks
+            session["django_plotly_dash"] = {"task_id": str(task_id)}
+
+            response = ScenarioOverview.as_view()(request, task_id=task_id)
+
+            # Setting Cache-Control header
+            patch_cache_control(response, no_cache=True, no_store=True, must_revalidate=True)
+            return response
+        else:
+            html = (
+                "<html><body>This Scenario has already been simulated! "
+                "You are being forwarded to the results page in 1...2....3....</body></html>"
+            )
+            return HttpResponse(html)
+    except Scenario.DoesNotExist:
+        html = "<html><body>task_id is not valid</body></html>"
+        return HttpResponse(html)
+
+
+class ScenarioOverview(TemplateView, MapEngineMixin):
+    template_name = "scenario_overview.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(ScenarioOverview, self).get_context_data(**kwargs)
+        task_id = kwargs.get("task_id")
+        if task_id is None:
+            raise Http404
+        task_id = str(task_id)
+        context["task_id"] = task_id
+
+        return context
 
 
 def progress(request: HttpRequest, progress_id, progress_type: str):
@@ -222,7 +267,10 @@ def progress(request: HttpRequest, progress_id, progress_type: str):
                     create_stations_for_map(scenario)
                     task_id = progress.scenario.task_id
                     request.task_id = task_id
-                    response = SuccessView.as_view()(request, task_id=task_id)
+
+                    response["HX-Redirect"] = reverse("simba:result") + "?task_id={}".format(
+                        task_id
+                    )
             case _:
                 raise NotImplementedError
     response["HX-Trigger"] = hx_trigger
@@ -355,6 +403,7 @@ def run_simulation(request: HttpRequest, task_id: str):
                 raise Http404
             # This triggers progress polling. If the toolchain is finished
             # the progress view will be triggered with the task_id and progress type
+
             async_result = tasks.run_toolchain_from_scenario(scenario, assign_vehicles=True)
 
             context["progress_id"] = async_result.task_id

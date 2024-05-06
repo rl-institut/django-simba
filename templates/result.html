@@ -24,29 +24,25 @@
     </nav>
     <div class="tab-content"  id="tabContent">
       <!-- Start Tab Content -->
-      <div class="tab-pane active" id="nav-0" role="tabpanel" aria-labelledby="nav-0-tab" tabindex="0">
-        {% with this_id=request.GET.task_id %}
+      <div class="tab-pane active" id="nav-0" role="tabpanel" aria-labelledby="nav-0-tab" tabindex="0" style="height: auto;">
+            {% load plotly_dash %}
+            {% plotly_app  slug=task_id ratio=5 %}
+      </div>
+        <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
+              {% with this_id=request.GET.task_id %}
           {% with image_path=this_id|add:'/report_1/run_overview.png' %}
               <img src="{% static image_path %}" alt="Scenario Overview">
           {% endwith %}
         {% endwith %}
       </div>
-        <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
-                {% load plotly_dash %}
-
-               {% plotly_app  slug=task_id ratio=0.9 %}
-                <!--                </div>-->
-      </div>
       <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">
         {% include 'minimal_mapengine.html'%}
+            <div id="buttonContainer"></div>
       </div>
       <div class="tab-pane" id="nav-3" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="3">
-          <h2> Eflips Content goes here</h2>
-{#        {% with this_id=request.GET.task_id %}#}
-{#          {% with image_path=this_id|add:'/report_1/vehicle_periods.png' %}#}
-{#              <img src="{% static image_path %}" alt="Depot Overview" style="max-width: 100%">#}
-{#          {% endwith %}#}
-{#        {% endwith %}#}
+          {% load plotly_dash %}
+
+               {% plotly_app name="EflipsDepotResults" ratio=3.6 %}
       </div>
       <!-- End Tab Content -->
     </div>
@@ -56,7 +52,89 @@
 
 
   </div>
+<script>
 
-    <!--<div id="task-status"></div>-->
+    let routesIDList = [];
+
+    function addIdToList(id, idList) {
+        // Check if the ID is not already in the list
+        if (!idList.includes(id)) {
+            // Add the ID to the list
+            idList.push(id);
+        }
+    }
+
+    function getRouteIds() {
+        const layerId = 'routes';
+        if (map.getLayer(layerId)) {
+            const features = map.queryRenderedFeatures({ layers: [layerId] });
+            const numberOfFeatures = features.length;
+            for (let i = 0; i < numberOfFeatures; i++) {
+                addIdToList(features[i].id, routesIDList);
+            }
+        } else {
+            console.log('Layer "routes" does not exist.');
+        }
+    }
+
+    function filterBy(id) {
+            id = parseInt(id);
+            var filters = [
+                'all',
+                ["==", 'id', id]
+            ];
+            map.setFilter('routes', filters);
+        }
+
+    function removeFilters(){
+        // this is actually how it is supposed to be done according to the docs!!
+        const layerId = 'routes';
+        if (map.getLayer(layerId)) {
+            // Layer exists, remove filters
+            map.setFilter(layerId, null);
+        } else {
+            console.log('Layer "routes" does not exist.');
+        }
+    }
+
+    function createButtons() {
+        const buttonContainer = document.getElementById('buttonContainer');
+
+        // Clear any existing buttons
+        buttonContainer.innerHTML = '';
+
+        const button = document.createElement('button');
+        button.classList.add('btn', 'btn-primary', 'm-2');
+        button.textContent = `Show All`;
+        button.addEventListener('click', removeFilters);
+        buttonContainer.appendChild(button);
+
+        // Create buttons based on the given number
+        for (let i = 0; i < routesIDList.length; i++) {
+            const button = document.createElement('button');
+            button.classList.add('btn', 'btn-primary', 'm-2');
+            button.textContent = `Show ID ${routesIDList[i]}`;
+            button.setAttribute('data-id', routesIDList[i]);
+
+            // Add event listener to call showRoute function on button click
+            button.addEventListener('click', function() {
+                showRoute(this.getAttribute('data-id'));
+            });
+
+            buttonContainer.appendChild(button);
+        };
+    }
+
+    // Function to show route based on data-id
+    function showRoute(dataId) {
+        filterBy(dataId);
+    }
+
+    map.on('idle', function () {
+        getRouteIds()
+        createButtons();
+    });
+
+
 </script>
 {% endblock %}
