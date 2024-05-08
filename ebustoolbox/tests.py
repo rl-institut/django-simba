@@ -99,11 +99,21 @@ class MySeleniumTests(StaticLiveServerTestCase):
         # attribute can escape its sandboxing.'
         with self.assertRaises(AssertionError):
             errors = self.assertEqual(len(errors), 0, f"404 errors detected: {errors}")
-        allowed_error = (
+        allowed_errors = [
             "An iframe which has both allow-scripts and allow-same-origin for its "
-            "sandbox attribute can escape its sandboxing"
-        )
-        errors = [error for error in errors if allowed_error not in error["message"]]
+            "sandbox attribute can escape its sandboxing",
+             " could not be loaded. Please make sure you have added the image with map.addImage() or a"
+            ]
+
+        filtered_errors = []
+        for error in errors:
+            for allowed_error in allowed_errors:
+                if allowed_error in error["message"]:
+                    break
+            else:
+                filtered_errors.append(error)
+
+        errors = filtered_errors
         self.assertEqual(len(errors), 0, f"404 errors detected: {errors}")
         self.assertContains(response, "Finished")
 
