@@ -1,7 +1,7 @@
 <div id="options_form" class="text-center">
     <form id='form'>{% csrf_token %}
         {#    use HX-retarget to target form instead of progess bar in cases of errors#}
-        {{ form }}
+        {{ form.as_p }}
         {#This will be replaced by the progressbar, during server side analyzing            #}
         <div id="upload-progress_{{ task_id }}"></div>
         <button type=submit id='button_{{ task_id }}' hx-encoding="multipart/form-data"
