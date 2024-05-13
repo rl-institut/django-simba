@@ -239,17 +239,17 @@ class WriteReadScenarioToDatabase(TestCase):
         """Check if the results are equal if the scenario is run from the form or from the db"""
         django_scenario, simba_schedule, args = build_scenario()
         simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
-        # rotation names are swapped
+        # rotation names and station names are swapped
         rotations_keys = [rot for rot in simba_schedule.rotations]
         db_iter = iter(simba_schedule_db.rotations)
-        for rot in rotations_keys:
-            db_rot = next(db_iter)
-            simba_schedule.rotations[db_rot] = simba_schedule.rotations[rot]
-            simba_schedule.rotations[db_rot].id = db_rot
-            simba_schedule.rotations[db_rot].vehicle_id = simba_schedule_db.rotations[
-                db_rot
-            ].vehicle_id
-            del simba_schedule.rotations[rot]
+
+        for rot_id in rotations_keys:
+            db_rot_id = next(db_iter)
+            db_rot = simba_schedule_db.rotations[db_rot_id]
+            simba_schedule.rotations[db_rot_id] = simba_schedule.rotations[rot_id]
+            simba_schedule.rotations[db_rot_id].id = db_rot_id
+            simba_schedule.rotations[db_rot_id].vehicle_id = db_rot.vehicle_id
+            del simba_schedule.rotations[rot_id]
 
         for sched in [simba_schedule, simba_schedule_db]:
             for rot in sched.rotations.values():
@@ -272,7 +272,7 @@ class WriteReadScenarioToDatabase(TestCase):
                     msg=key_stack,
                 )
             except TypeError:
-                raise Exception(f"Could not compare {values[0]} and {values[1]}.")
+                raise Exception(f"Could not compare {values[0]} and {values[1]}. {key_stack}")
 
         scen = simba_schedule.run(args)
         scen_db = simba_schedule_db.run(args_db)

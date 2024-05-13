@@ -92,7 +92,7 @@ def input_files_to_database(cleaned_data: dict, request: HttpRequest):
     )
 
     # Write the station geodata and electrified stations to DB
-    stations_to_db(simba_schedule.station_data, simba_schedule.stations, django_scenario)
+    stations_to_db(simba_schedule, django_scenario)
 
     # Write the vehicle types to DB
     vehicles_to_db(simba_schedule.vehicle_types, django_scenario)
@@ -101,6 +101,7 @@ def input_files_to_database(cleaned_data: dict, request: HttpRequest):
     # some cases are not handled like overlapping times, etc.
     # Remove trips which have non unique times for arrival or departure per rotation
     # Remove Rotations which dont start at the depot
+    # validate database instead, which works for all scenarios
     filter_inconsistent_trips_and_rotations(simba_schedule)
 
     # Write the schedule including rotations and trips to the DB
@@ -754,20 +755,22 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
                 )
 
 
-def stations_to_db(station_data, electrified_stations, scenario):
+def stations_to_db(simba_schedule: SimbaSchedule, scenario):
     """Takes a dictionary of vehicle types and writes them into the db with the scenario as handle
     :param schedule: simba Schedule
     :param scenario: django model Scenario
     :return: None
     """
     object_list = []
+    station_translation = dict()
+
     try:
         last_id = Station.objects.aggregate(Max("id"))["id__max"]
         if last_id is None:
             last_id = -1
     except Exception:
         last_id = -1
-    for key, station in station_data.items():
+    for key, station in simba_schedule.station_data.copy().items():
         last_id += 1
         try:
             long = float(station["long"])
@@ -775,14 +778,35 @@ def stations_to_db(station_data, electrified_stations, scenario):
             elevation = float(station["elevation"])
             geom = GEOSGeometry(f"POINT({long} {lat} {elevation})")
             params = dict(id=last_id, scenario=scenario, geom=geom, name=str(key))
-            object_list.append(Station(**params))
+            new_station = Station(**params)
+            object_list.append(new_station)
+            # try renaming the station in the simba context, so it gets access to the database.
+            # This is needed to guarantee uniqueness of station names which is not enforced by the
+            # database
+            station_translation[key] = new_station.to_simba_name()
+            simba_schedule.station_data[new_station.to_simba_name()] = station
+            del simba_schedule.station_data[key]
+            try:
+                simba_schedule.stations[new_station.to_simba_name()] = simba_schedule.stations[key]
+                del simba_schedule.stations[key]
+            except KeyError:
+                pass
         except Exception:
             print(traceback.format_exc())
             pass
     Station.objects.bulk_create(object_list)
 
     # Update db stations which are electrified with info from electrified_stations dictionary
-    update_electrified_stations_db(electrified_stations, scenario)
+    update_electrified_stations_db(simba_schedule.stations, scenario)
+
+    # mutate the schedule, so trip names are identical with new database names
+    for rot_key in simba_schedule.rotations.copy().keys():
+        rot = simba_schedule.rotations[rot_key]
+        rot.arrival_name = station_translation[rot.arrival_name]
+        rot.departure_name = station_translation[rot.departure_name]
+        for trip in rot.trips:
+            trip.arrival_name = station_translation[trip.arrival_name]
+            trip.departure_name = station_translation[trip.departure_name]
 
 
 def update_electrified_stations_db(electrified_stations, scenario):
