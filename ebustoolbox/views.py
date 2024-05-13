@@ -291,8 +291,7 @@ def home_view(request: HttpRequest):
         if "ebus_map" in settings.INSTALLED_APPS:
             create_stations_for_map(django_scenario)
 
-        response = redirect("simba:result")
-        response["Location"] += "?task_id=" + django_scenario.task_id
+        response = redirect("simba:result", task_id=django_scenario.task_id)
         return response
     else:
         return HttpResponse("Method is not allowed", status=405)
