@@ -62,45 +62,47 @@ def render_power_draw(app: Dash) -> html.Div:
 
         fig = go.Figure(layout=dict(template="plotly"))
 
-        if len(df["Station_id"].unique()) >= 1:
-            # Create subplots
-            fig = make_subplots(
-                rows=len(df["Station_id"].unique()),
-                cols=1,
-                shared_xaxes=True,
-                subplot_titles=list(df["Station_id"].unique()),
-            )
+        if len(df["Station_id"].unique()) < 1:
+            # Nothing to plot -> return empty figure
+            return fig
 
-            # Loop through each station
-            for i, station_id in enumerate(df["Station_id"].unique()):
-                station_df = df[df["Station_id"] == station_id]
+        # Create subplots
+        fig = make_subplots(
+            rows=len(df["Station_id"].unique()),
+            cols=1,
+            shared_xaxes=True,
+            subplot_titles=list(df["Station_id"].unique()),
+        )
 
-                # Get unique colors for V_id
-                colors = px.colors.qualitative.Plotly[: len(station_df["V_id"].unique())]
+        # Loop through each station
+        for i, station_id in enumerate(df["Station_id"].unique()):
+            station_df = df[df["Station_id"] == station_id]
 
-                # Loop through each V_id in the station
-                for j, vehicle_id in enumerate(station_df["V_id"].unique()):
-                    vehicle_df = station_df[station_df["V_id"] == vehicle_id]
-                    fig.add_trace(
-                        go.Scatter(
-                            x=vehicle_df["time_start"],
-                            y=vehicle_df["Energy"],
-                            mode="lines",
-                            name=f"V_id: {vehicle_id}",
-                            line=dict(color=colors[j % len(colors)]),
-                        ),
-                        row=i + 1,
-                        col=1,
-                    )
+            # Get unique colors for V_id
+            colors = px.colors.qualitative.Plotly[: len(station_df["V_id"].unique())]
 
-            # Update layout
-            fig.update_layout(
-                title_text="Energy Consumption Over Time by Station ID",
-                xaxis_title="Time",
-                yaxis_title="Energy",
-                showlegend=True,
-            )
+            # Loop through each V_id in the station
+            for j, vehicle_id in enumerate(station_df["V_id"].unique()):
+                vehicle_df = station_df[station_df["V_id"] == vehicle_id]
+                fig.add_trace(
+                    go.Scatter(
+                        x=vehicle_df["time_start"],
+                        y=vehicle_df["Power"],
+                        mode="lines",
+                        name=f"V_id: {vehicle_id}",
+                        line=dict(color=colors[j % len(colors)], shape="hv"),
+                    ),
+                    row=i + 1,
+                    col=1,
+                )
 
+        # Update layout
+        fig.update_layout(
+            title_text="Charging Power over Time by Station ID",
+            xaxis_title="Time",
+            yaxis_title="Power [kW]",
+            showlegend=True,
+        )
         return fig
 
     return html.Div(dcc.Graph(id=ids.POWER_DRAW_CHART), style={"verticalAlign": "top"})

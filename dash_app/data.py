@@ -11,10 +11,16 @@ from ebustoolbox.models import (
     VehicleType,
     Rotation,
     Station,
+    EventType,
 )
 import pandas as pd
 from django.db.models import Count
 from dash.exceptions import PreventUpdate
+
+
+def vid_for_plotting(vehicle: Vehicle):
+    # Create a user friendly vehicle identifier for plotting
+    return vehicle.id
 
 
 def get_all_buses(task_id: str) -> list[str]:
@@ -27,7 +33,7 @@ def get_all_buses(task_id: str) -> list[str]:
     :rtype: list[str]
     """
     s = Scenario.objects.get(task_id=task_id)
-    all_buses = list(Vehicle.objects.filter(scenario=s).values_list("name", flat=True))
+    all_buses = list(Vehicle.objects.filter(scenario=s).values_list("id", flat=True))
     return all_buses
 
 
@@ -35,14 +41,14 @@ def get_number_of_buses(filter_dict: dict) -> list[str]:
     """
     Gets the longest rotation distance and its associated name based on the provided filter criteria.
 
-    :param filter_dict: A dictionary containing filter criteria, task_id and vehicle__name_short__in.
+    :param filter_dict: A dictionary containing filter criteria, task_id and vehicle__id__in.
     :type filter_dict: dict
     :return: A list containing the name and distance of the longest rotation in the format:
         ["Longest Rotation rotation_name", "distance m"]
     :rtype: list[str]
     """
     task_id = filter_dict.pop("task_id")
-    vehicles = filter_dict.pop("vehicle__name__in")
+    vehicles = filter_dict.pop("vehicle__id__in")
     return [
         "Selected / Total number of Buses:",
         str(len(vehicles)) + " / " + str(len(get_all_buses(task_id))),
@@ -54,7 +60,7 @@ def get_number_longest_rot(filter_dict: dict):
     Gets the longest rotation distance and its associated name based on the provided filter criteria.
 
     Args:
-        filter_dict (dict): A dictionary containing filter criteria, task_id and vehicle__name_short__in.
+        filter_dict (dict): A dictionary containing filter criteria, task_id and vehicle__id__in.
 
     Returns:
         list[str]: A list containing the name and distance of the longest rotation in the format:
@@ -64,14 +70,14 @@ def get_number_longest_rot(filter_dict: dict):
     task_id = filter_dict.pop("task_id")
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
-    if len(filter_dict["vehicle__name__in"]) == 0:
+    if len(filter_dict["vehicle__id__in"]) == 0:
         raise PreventUpdate
 
     # Function calls annotate distance to Rotation
     longest_rotation = get_longest_distance_rotation(filter_dict)
 
     if longest_rotation:
-        return [f"Longest Rotation {longest_rotation.name}", f"{longest_rotation.distance} m"]
+        return [f"Longest Rotation {longest_rotation.name}", f"{longest_rotation.distance:.1f} m"]
     else:
         return ["No Rotations found!"]
 
@@ -80,7 +86,7 @@ def get_number_shortest_rot(filter_dict: dict):
     """
     Gets the shortest rotation distance and its associated name based on the provided filter criteria.
 
-    :param filter_dict: A dictionary containing filter criteria, task_id and vehicle__name_short__in.
+    :param filter_dict: A dictionary containing filter criteria, task_id and vehicle__id__in.
     :type filter_dict: dict
     :return: A list containing the name and distance of the shortest rotation in the format:
         ["Shortest Rotation rotation_name", "distance m"]
@@ -89,7 +95,7 @@ def get_number_shortest_rot(filter_dict: dict):
     task_id = filter_dict.pop("task_id")
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
-    if len(filter_dict["vehicle__name__in"]) == 0:
+    if len(filter_dict["vehicle__id__in"]) == 0:
         raise PreventUpdate
 
     # Function calls annotate distance to Rotation
@@ -97,7 +103,10 @@ def get_number_shortest_rot(filter_dict: dict):
 
     # Add style if text should have special style
     if shortest_rotation:
-        return [f"Shortest Rotation {shortest_rotation.name}", f"{shortest_rotation.distance} m"]
+        return [
+            f"Shortest Rotation {shortest_rotation.name}",
+            f"{shortest_rotation.distance:.1f} m",
+        ]
     else:
         return ["No Rotations found!"]
 
@@ -324,7 +333,7 @@ def get_all_event_info(scenario_id):
 
     # Iterate over vehicles
     for vehicle in vehicles:
-        v_id = vehicle.name
+        v_id = vid_for_plotting(vehicle)
         if vehicle.id in events_by_vehicle:
             # Filter rotations for the current vehicle
             vehicle_rotations = all_rotations.filter(vehicle_id=vehicle.id)
@@ -398,7 +407,10 @@ def get_all_trip_info(scenario_id):
     # Iterate over rotations in the scenario
     for rotation in scenario.rotation_set.all():
         # Get vehicle ID for the rotation
-        v_id = rotation.vehicle.name
+        try:
+            v_id = vid_for_plotting(rotation.vehicle)
+        except AttributeError:
+            v_id = None
         r_id = rotation.id
         # Iterate over trips in the rotation
         for trip in rotation.trip_set.all():
@@ -420,7 +432,7 @@ def get_all_trip_info(scenario_id):
     return result_df
 
 
-@recent_memoizer
+# @recent_memoizer
 def get_all_powerdraw_as_dataframe(scenario_id):
     """
     Retrieves charging information for all vehicles in a given scenario.
@@ -455,9 +467,9 @@ def get_all_powerdraw_as_dataframe(scenario_id):
     }
 
     # Fetch all events for the scenario with prefetching
-    all_events = Event.objects.filter(
-        scenario=scenario, vehicle__isnull=False, station_id__isnull=False
-    ).prefetch_related("vehicle")
+    all_events = Event.objects.filter(scenario=scenario, vehicle__isnull=False).prefetch_related(
+        "vehicle"
+    )
 
     # Initialize list to store DataFrames
     dfs = []
@@ -468,26 +480,46 @@ def get_all_powerdraw_as_dataframe(scenario_id):
         batterycapacity = battery_capacities[v_id]
         charge_eff = charging_efficiencies[v_id]
 
-        # Filter events for the current vehicle from the prefetched queryset
-        events = [event for event in all_events if event.vehicle_id == v_id]
+        # Filter events for the current vehicle from the prefetched queryset and
+        # charging in some way
+        events = []
+        for event in all_events:
+            if event.vehicle_id == v_id and event.event_type in [
+                EventType.CHARGING_DEPOT,
+                EventType.CHARGING_OPPORTUNITY,
+            ]:
+                events.append(event)
+
         for event in events:
-            soc_start = event.soc_start
-            station = event.station_id
             time_start = event.time_start
             time_end = event.time_end
+
+            if event.event_type == EventType.CHARGING_DEPOT:
+                station = event.area.depot.station
+            else:
+                station = event.station
+
+            soc_start = event.soc_start
             soc_end = event.soc_end
             if soc_end > soc_start:
                 energy = (soc_end - soc_start) * charge_eff * batterycapacity
                 # Append data to the list
+                if len(dfs) > 0:
+                    # update the last disconnection of the dataframe with new start event time
+                    dfs[-1]["time_end"] = time_start
                 dfs.append(
                     {
-                        "V_id": vehicle.name,
+                        "V_id": vid_for_plotting(vehicle),
                         "time_start": time_start,
                         "time_end": time_end,
-                        "Energy": energy,
-                        "Station_id": stations_name_short_dict.get(station),
+                        "Power": energy / ((time_end - time_start).total_seconds() / 3600),
+                        "Station_id": stations_name_short_dict.get(station.id),
                     }
                 )
+                # Disconnection of vehicle after event. Copy last event and change power
+                dfs.append(dfs[-1].copy())
+                dfs[-1]["time_start"] = time_end
+                dfs[-1]["Power"] = 0
 
     # Create DataFrame from collected data
     if dfs:
