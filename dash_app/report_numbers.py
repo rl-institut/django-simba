@@ -26,7 +26,7 @@ def render_longest_rotation(app: Dash) -> html.Div:
         buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
-        filter_dict = dict(task_id=task_id, vehicle__name__in=buses)
+        filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
 
         # Get the data
         lines = get_number_longest_rot(filter_dict)
@@ -64,7 +64,7 @@ def render_shortest_rotation(app: Dash) -> html.Div:
         buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
-        filter_dict = dict(task_id=task_id, vehicle__name__in=buses)
+        filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
 
         # Get the data
         lines = get_number_shortest_rot(filter_dict)
@@ -101,7 +101,7 @@ def render_number_of_buses(app: Dash) -> html.Div:
     ) -> html.Div:
         # print("updating numbers")
         task_id = dash_app.slug
-        filter_dict = dict(task_id=task_id, vehicle__name__in=buses)
+        filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
 
         # Get the data
         lines = get_number_of_buses(filter_dict)
