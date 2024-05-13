@@ -59,7 +59,6 @@ class MySeleniumTests(StaticLiveServerTestCase):
         super().tearDownClass()
         shutil.rmtree(TMP_UPLOAD)
 
-    @override_settings(EFLIPS_USE=True)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
     @override_settings(DEBUG=True)
@@ -410,14 +409,6 @@ class WriteReadScenarioToDatabase(TestCase):
 @override_settings(SECURE_PROXY_SSL_HEADER=None)
 @override_settings(SECURE_SSL_REDIRECT=False)
 class RunSimulationTest(StaticLiveServerTestCase):
-    @override_settings(EFLIPS_USE=False)
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
-    @override_settings(DEBUG=True)
-    def test_submit_button_click_with_celery_wo_eflips(self):
-        self.submit_default_simulation()
-
-    @override_settings(EFLIPS_USE=True)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
     @override_settings(DEBUG=True)

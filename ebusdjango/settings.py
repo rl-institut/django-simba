@@ -118,7 +118,6 @@ CELERY_USE = env("CELERY_USE", default="False").lower() == "true"
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=True)
 if CELERY_TASK_ALWAYS_EAGER:
     CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=True)
-EFLIPS_USE = env("EFLIPS_USE", default="True").lower() == "true"
 # Make sure there is a celery broker url provided if celery should be used
 if CELERY_USE:
     assert CELERY_BROKER_URL, (
