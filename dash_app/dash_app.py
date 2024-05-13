@@ -19,11 +19,20 @@ StatelessApp = apps.get_model("django_plotly_dash", "StatelessApp")
 
 # todo, check user too
 def create_app(task_id: str):
-    # create a specific app which refers to a task id
+    """
+    Creates a specific Dash app instance associated with a task ID.
+
+    :param task_id: The ID of the task.
+    :type task_id: str
+
+    :return: None
+    :rtype: None
+    """
     # Save the Stateless app
     sa1, created = StatelessApp.objects.get_or_create(
         app_name="SimpleExampleApp", slug="simple-example"
     )
+
     if not created:
         sa1.save()
 

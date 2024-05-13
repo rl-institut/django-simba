@@ -19,6 +19,10 @@ from fast_update.query import FastUpdateManager
 from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
 from scipy.spatial._qhull import QhullError
 
+from django.db.models import Case, When, Value
+from django.db.models.functions import Length
+from ebus_map.managers import MVTManager, X, Y
+
 MINIMAL_TRIP_DURATION_S = 60  # seconds
 
 
@@ -863,6 +867,45 @@ class Station(models.Model):
     stations = models.ManyToManyField("Route", through="AssocRouteStation")
     """Stations along this route. Ordered by `elapsed_distance`."""
 
+    objects = models.Manager()
+
+    # Make sure all annotations are part of the columns below, if the data is supposed to be
+    # delivered to the map
+    annotations = {
+        "center": models.functions.Centroid("geom"),
+        "lat": X("center", output_field=models.DecimalField()),
+        "lon": Y("center", output_field=models.DecimalField()),
+        "title_length": Length("name"),
+        "electrified": Case(
+            When(is_electrified=True, then=Value(10)),
+            default=Value(0),
+            output_field=models.IntegerField(),
+        ),
+    }
+
+    vector_tiles = MVTManager(
+        geo_col="geom", columns=["id", "geom", "name", "lat", "lon", "title_length", "electrified"]
+    )
+
+    layer = "busstop"
+    mapping = {
+        "id": "id",
+        "geom": "POINT",
+        "name": "name",
+        "geom_label": "geom_label",
+    }
+
+    @classmethod
+    def get_popup_data(cls, id):
+        obj = cls.objects.get(id=id)
+        data = {
+            "title": obj.name + " " + str(id),
+            "municipality": obj.is_electrified,
+            "lat": obj.geom.x,
+            "lon": obj.geom.y,
+        }
+        return data
+
     def save(self, *args, **kwargs):
         # Override save to make certain name_short exists
         if not self.name_short:
@@ -1020,6 +1063,11 @@ class Route(models.Model):
 
     stations = models.ManyToManyField(Station, through="AssocRouteStation")
     """Stations along this route. Ordered by `elapsed_distance`."""
+
+    vector_tiles = MVTManager(geo_col="geom", columns=["id", "geom", "name"])
+
+    # Add a default manager
+    objects = models.Manager()
 
 
 class AssocRouteStation(models.Model):
