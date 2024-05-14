@@ -24,6 +24,7 @@ from django.utils.timezone import make_aware, is_aware
 from eflips.depot.api import simulate_scenario, generate_depot_layout
 
 import core.deepcopy
+import ebustoolbox.util
 import simba.optimizer_util
 import simba.simulate
 import simba.trip
@@ -35,6 +36,7 @@ from simba.rotation import Rotation as SimbaRotation
 from simba.schedule import Schedule as SimbaSchedule
 from . import schedule_readers
 from .models import (
+    User,
     Route,
     Consumption,
     Vehicle,
@@ -992,11 +994,59 @@ def assign_new_vehicles_to_db(django_scenario: Scenario, db_name="default") -> N
         r.save()
 
 
+def deepcopy_scenario(scenario: Scenario) -> Scenario:
+    """Deepcopy a scenario.
+
+    Scenario to be deepcopied must have values which can be deepcopied without specicif knowledge
+    of implementation, e.g. if a value like the task_id has to be unique, the scenario has to
+    be mutated before being deepcopied.
+    :param scenario: Scenario to be deepcopied
+    :type scenario: Scenario
+    :return: Scenario deepcopied
+    """
+    copied_instance = core.deepcopy.deepcopy_and_sequence_reset(
+        scenario,
+        exclude_models={Scenario, User, Station, Event, Progress},
+        max_depth=1,
+    )
+    return copied_instance
+
+
+def create_parent_scenario(scenario: Scenario) -> Scenario:
+    """Creates a parent scenario and links it to a child scenario.
+
+    :param scenario: Scenario to be created.
+    :type scenario: Scenario
+    :return: Scenario created
+    """
+    old_task_id = scenario.task_id
+    scenario.task_id = ebustoolbox.util.get_unique_task_id()
+    copied_instance = deepcopy_scenario(scenario)
+    scenario.task_id = old_task_id
+    scenario.parent = copied_instance
+    scenario.save()
+    return copied_instance
+
+
 @shared_task(bind=True)
-def _run_ebus_toolchain(self, task_id):
+def _run_ebus_toolchain(self, task_id, run_parent=False):
     """Run the tool chain"""
 
     db_scenario = Scenario.objects.get(task_id=task_id)
+
+    # Always run the root parent since scenarios allow mutation this.
+    # This way task_ids / urls can be consistent with the run of the user, e.g.
+    # user starts a simulation of Scenario (A) which mutates (A) to (AB). URLS (A) should lead to
+    # (AB). If the
+    if db_scenario.parent is not None:
+        if run_parent:
+            while db_scenario.parent is not None:
+                db_scenario = db_scenario.parent
+    else:
+        # Save input scenario as parent of this scenario
+        print("Storing root scenario as parent")
+        _ = create_parent_scenario(db_scenario)
+
     progress, _ = Progress.objects.get_or_create(task_id=self.request.id, scenario=db_scenario)
     progress.reset()
 
@@ -1036,19 +1086,8 @@ def _run_ebus_toolchain(self, task_id):
             run_eflips(task_id)
             eflips_assignment = get_assigned_vehicles(task_id)
             schedule.assign_vehicles_for_django(eflips_assignment)
-            for depot in Depot.objects.filter(scenario=db_scenario):
-                station = depot.station
-                if station.is_electrified:
-                    continue
-                # ToDo get defaults from somewhere
-                station.is_electrified = True
-                station.power_total = station.power_total or 1000_000
-                station.amount_charging_places = station.amount_charging_places or 1000
-                station.power_per_charger = station.power_per_charger or 150
-                station.charge_type = EnumChargeType.DEPOT.value
-                station.voltage_level = station.voltage_level or EnumVoltageLevel.VOLTAGE_MV.value
-
-                station.save()
+            # ToDo: Keep that?
+            electrify_depot_station_w_default(db_scenario)
             #
             # get electrified stations from db, e.g. depot station from eflips with
             # power
@@ -1071,6 +1110,21 @@ def _run_ebus_toolchain(self, task_id):
         except Exception:
             traceback.print_exc()
         progress.set_failed()
+
+
+def electrify_depot_station_w_default(db_scenario):
+    for depot in Depot.objects.filter(scenario=db_scenario):
+        station = depot.station
+        if station.is_electrified:
+            continue
+        # ToDo get defaults from somewhere
+        station.is_electrified = True
+        station.power_total = station.power_total or 1000_000
+        station.amount_charging_places = station.amount_charging_places or 1000
+        station.power_per_charger = station.power_per_charger or 150
+        station.charge_type = EnumChargeType.DEPOT.value
+        station.voltage_level = station.voltage_level or EnumVoltageLevel.VOLTAGE_MV.value
+        station.save()
 
 
 def get_assigned_vehicles(task_id: str) -> List[dict]:
