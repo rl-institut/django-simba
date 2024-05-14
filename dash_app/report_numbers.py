@@ -142,6 +142,7 @@ def critical_rotations(app: Dash) -> html.Div:
         # Get the data
         lines = get_critical_rotations_and_score_as_dataframe(s.id, buses)
         df_sorted = lines.sort_values(by="soc_end")
+        df_sorted["soc_end"] = df_sorted["soc_end"].round(3)
         # Generate HTML table dynamically
         table = html.Div(
             [

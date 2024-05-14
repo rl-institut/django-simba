@@ -2,6 +2,8 @@
 
 This way data should be easily swappable, while the dash_layout allows for swapping of the design
 """
+import warnings
+
 from ebustoolbox.models import (
     Scenario,
     Event,
@@ -12,6 +14,7 @@ from ebustoolbox.models import (
     Rotation,
     Station,
     EventType,
+    Trip,
 )
 import pandas as pd
 from django.db.models import Count
@@ -21,6 +24,7 @@ from dash.exceptions import PreventUpdate
 MAX_SIZE = 10
 # stores scenario_id and finished time
 last_simulations = list()
+CRITICAL_SOC = 0.0
 
 
 def vid_for_plotting(vehicle: Vehicle):
@@ -301,15 +305,24 @@ def get_critical_rotations_as_dataframe(scenario_id, buses):
     df = result_df[result_df["V_id"].isin(buses)]
 
     df = df.explode("R_id")
-    df["R_id"] = df["R_id"].apply(lambda rotation_obj: rotation_obj.id)
+    df["R_id"] = df["R_id"].apply(apply_id)
 
     df = df.groupby(["R_id", "V_id"])["soc_end"].min().reset_index()
 
-    df["SOC_category"] = df["soc_end"].apply(lambda x: "Non-Critical" if x > 0.0 else "Critical")
+    df["SOC_category"] = df["soc_end"].apply(
+        lambda x: "Non-Critical" if x > CRITICAL_SOC else "Critical"
+    )
 
     return pd.DataFrame(
         df["SOC_category"].value_counts().reset_index().values, columns=["Category", "Count"]
     )
+
+
+def apply_id(rotation):
+    try:
+        return rotation.id
+    except AttributeError:
+        return None
 
 
 def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
@@ -321,9 +334,10 @@ def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
     df = result_df[result_df["V_id"].isin(buses)]
 
     df = df.explode("R_id")
-    df["R_id"] = df["R_id"].apply(lambda rotation_obj: rotation_obj.id)
+    df["R_id"] = df["R_id"].apply(apply_id)
 
-    df = df.groupby(["R_id", "V_id"])["soc_end"].min().reset_index()
+    # If events with no rotation should be returned dropna needs to be False
+    df = df.groupby(["R_id", "V_id"], dropna=True)["soc_end"].min().reset_index()
 
     return pd.DataFrame(df)
 
@@ -367,6 +381,17 @@ def get_all_event_info(scenario_id):
         if vehicle.id in events_by_vehicle:
             # Filter rotations for the current vehicle
             vehicle_rotations = all_rotations.filter(vehicle_id=vehicle.id)
+            # Dictionary which finds the rotation according to the event time
+
+            rotation_times = dict()
+            for rot in vehicle_rotations:
+                if rot in rotation_times:
+                    continue
+                trips = Trip.objects.filter(rotation=rot).order_by("departure_time")
+                rstart = trips.first().departure_time
+                rend = trips.last().arrival_time
+                rotation_times[rot] = rstart, rend
+
             events = events_by_vehicle[vehicle.id]
             for event in events:
                 time_start = event.time_start
@@ -374,6 +399,17 @@ def get_all_event_info(scenario_id):
                 duration = (event.time_end - event.time_start).total_seconds()
                 time_end = event.time_end
                 # Fetch events for the current rotation
+                vehicle_rotation = None
+                for rot, times in rotation_times.items():
+                    if time_start >= times[0] and time_end <= times[1]:
+                        if vehicle_rotation is not None:
+                            raise Exception("Multiple rotations detected")
+                        vehicle_rotation = rot
+                else:
+                    if vehicle_rotation is None:
+                        warnings.warn(f"No rotation detected for event {event}")
+                        vehicle_rotation = None
+
                 dfs.append(
                     {
                         "V_id": v_id,
@@ -383,7 +419,7 @@ def get_all_event_info(scenario_id):
                         "event_type": event_type,
                         "soc_start": event.soc_start,
                         "soc_end": event.soc_end,
-                        "R_id": vehicle_rotations,
+                        "R_id": vehicle_rotation,
                     }
                 )
 
