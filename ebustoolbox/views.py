@@ -209,11 +209,15 @@ def scenario_overview_view(request: HttpRequest, task_id):
             patch_cache_control(response, no_cache=True, no_store=True, must_revalidate=True)
             return response
         else:
-            html = (
-                "<html><body>This Scenario has already been simulated! "
-                "You are being forwarded to the results page in 1...2....3....</body></html>"
+            url = reverse("simba:result", args=[task_id])
+            duration = 2
+            content = "This scenario has already been simulated."
+            return render(
+                request,
+                "redirect_timer.html",
+                {"content": content, "duration": duration, "redirect_url": url},
             )
-            return HttpResponse(html)
+
     except Scenario.DoesNotExist:
         html = "<html><body>task_id is not valid</body></html>"
         return HttpResponse(html)

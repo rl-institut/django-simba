@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+    {{ content }}
+    <div> You will be redirected in <a id="countdown">{{ duration }}</a> seconds</div>
+    <div>If this does not work click <a href={{ redirect_url }}>here</a>
+    </div>
+
+    <script>
+        // Call the countdown function with the target div id and the number of seconds
+        countdown("countdown", {{duration}})
+
+        function countdown(targetId, seconds) {
+            var countdownElement = document.getElementById(targetId);
+
+            var interval = setInterval(function () {
+                countdownElement.innerHTML = seconds;
+                seconds--;
+
+                if (seconds < 0) {
+                    clearInterval(interval);
+                    countdownElement.innerHTML = "0";
+                    setTimeout(function () {
+                        window.location.href = "{{redirect_url}}";
+                    }, 1000);
+                }
+            }, 1000);
+        }
+    </script>
+
+
+{% endblock %}
