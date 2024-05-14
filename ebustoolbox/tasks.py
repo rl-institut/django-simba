@@ -1044,13 +1044,14 @@ def _run_ebus_toolchain(self, task_id, run_parent=False):
                 db_scenario = db_scenario.parent
     else:
         # Save input scenario as parent of this scenario
-        print("Storing root scenario as parent")
+        print(f"Storing root scenario as parent {datetime.now()}")
         _ = create_parent_scenario(db_scenario)
 
     progress, _ = Progress.objects.get_or_create(task_id=self.request.id, scenario=db_scenario)
     progress.reset()
 
     try:
+        print(f"Getting schedule from db {datetime.now()}")
         schedule, args = get_schedule_from_db(db_scenario)
 
         # in the first run Depots can stay un electrified
