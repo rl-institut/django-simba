@@ -17,6 +17,11 @@ import pandas as pd
 from django.db.models import Count
 from dash.exceptions import PreventUpdate
 
+# Maximum number of cached results per function
+MAX_SIZE = 10
+# stores scenario_id and finished time
+last_simulations = list()
+
 
 def vid_for_plotting(vehicle: Vehicle):
     # Create a user friendly vehicle identifier for plotting
@@ -111,7 +116,7 @@ def get_number_shortest_rot(filter_dict: dict):
         return ["No Rotations found!"]
 
 
-def recent_memoizer(function, _dcache1=dict(), _result_cache2=dict()):
+def recent_memoizer(function, scenario_id, _dcache1=dict(), _result_cache2=dict()):
     """Decorator function
 
     :param function: function do be decorated
@@ -122,8 +127,28 @@ def recent_memoizer(function, _dcache1=dict(), _result_cache2=dict()):
     :rtype function or dict
 
     """
-    # Maximum number of cached results per function
-    MAX_SIZE = 10
+    # Clean up cache if Scenario changed, i.e. finished time changed
+    scenario = Scenario.objects.get(id=scenario_id)
+    try:
+        index = [s[0] for s in last_simulations].index(scenario_id)
+        # result data is not up to date
+        if not scenario.finished == last_simulations[index][1]:
+            last_simulations.pop(index)
+            last_simulations.append((scenario_id, scenario.finished))
+            for function_key, function_arguments in _dcache1.copy().items():
+                for f_args in function_arguments:
+                    if f_args[0] == scenario_id:
+                        _dcache1[function_key].remove(f_args)
+                        del _result_cache2[function_key][f_args]
+
+            last_simulations.pop(index)
+            last_simulations.append((scenario_id, scenario.finished))
+    except ValueError:
+        last_simulations.append((scenario_id, scenario.finished))
+
+    # Cap size of list
+    if len(last_simulations) >= MAX_SIZE:
+        last_simulations.pop(0)
 
     def decorated_function(*this_args, **kwargs):
         key = function.__name__
@@ -131,12 +156,12 @@ def recent_memoizer(function, _dcache1=dict(), _result_cache2=dict()):
             _dcache1[key] = list()
             _result_cache2[key] = dict()
 
-        inputs = tuple((this_args, *list(kwargs)))
+        inputs = tuple((scenario_id, this_args, *list(kwargs)))
+
         if inputs in _dcache1[key] and inputs in _result_cache2[key]:
             _dcache1[key].remove(inputs)
             _dcache1[key].append(inputs)
             return _result_cache2[key][inputs]
-
         else:
             # Storage is full. Delete oldest storage
             if len(_dcache1[key]) >= MAX_SIZE:
@@ -163,7 +188,7 @@ def get_soc_as_dataframe(scenario_id, buses):
     :return: DataFrame containing SOC data for specified buses.
     :rtype: pandas.DataFrame
     """
-    result_df = get_all_event_info(scenario_id)
+    result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
     return result_df.query(f"V_id in {buses}")
 
 
@@ -179,7 +204,8 @@ def get_duration_as_dataframe(scenario_id, buses):
     :return: DataFrame containing duration data for specified buses.
     :rtype: pandas.DataFrame
     """
-    result_df = get_all_trip_info(scenario_id)
+    result_df = recent_memoizer(get_all_trip_info, scenario_id)(scenario_id)
+
     result_df = result_df.groupby(["R_id", "V_id"])["duration"].sum().reset_index()
     return result_df.query(f"V_id in {buses}")
 
@@ -196,7 +222,8 @@ def get_distances_as_dataframe(scenario_id, buses):
     :return: DataFrame containing distance data for specified buses.
     :rtype: pandas.DataFrame
     """
-    result_df = get_all_trip_info(scenario_id)
+    result_df = recent_memoizer(get_all_trip_info, scenario_id)(scenario_id)
+
     result_df = result_df.groupby(["R_id", "V_id"])["total_distance"].sum().reset_index()
     return result_df.query(f"V_id in {buses}")
 
@@ -213,7 +240,8 @@ def get_activities_as_dataframe(scenario_id, buses):
     :return: DataFrame containing activity data for specified buses.
     :rtype: pandas.DataFrame
     """
-    result_df = get_all_event_info(scenario_id)
+    result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
+
     return result_df.query(f"V_id in {buses}")
 
 
@@ -229,7 +257,8 @@ def get_powerdraw_as_dataframe(scenario_id, buses):
     :return: DataFrame containing power draw data for specified buses.
     :rtype: pandas.DataFrame
     """
-    result_df = get_all_powerdraw_as_dataframe(scenario_id)
+    result_df = recent_memoizer(get_all_powerdraw_as_dataframe, scenario_id)(scenario_id)
+
     return result_df.query(f"V_id in {buses}")
 
 
@@ -267,7 +296,8 @@ def get_critical_rotations_as_dataframe(scenario_id, buses):
     :return: DataFrame containing critical rotation data.
     :rtype: pandas.DataFrame
     """
-    result_df = get_all_event_info(scenario_id)
+    result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
+
     df = result_df[result_df["V_id"].isin(buses)]
 
     df = df.explode("R_id")
@@ -286,7 +316,8 @@ def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
     """
     TODO
     """
-    result_df = get_all_event_info(scenario_id)
+    result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
+
     df = result_df[result_df["V_id"].isin(buses)]
 
     df = df.explode("R_id")
@@ -297,7 +328,6 @@ def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
     return pd.DataFrame(df)
 
 
-@recent_memoizer
 def get_all_event_info(scenario_id):
     """
     Retrieves event information for all vehicles in a given scenario.
@@ -381,7 +411,6 @@ def get_all_event_info(scenario_id):
     return result_df
 
 
-@recent_memoizer
 def get_all_trip_info(scenario_id):
     """
     Retrieves trip related information for all vehicles in a given scenario.
@@ -432,7 +461,6 @@ def get_all_trip_info(scenario_id):
     return result_df
 
 
-# @recent_memoizer
 def get_all_powerdraw_as_dataframe(scenario_id):
     """
     Retrieves charging information for all vehicles in a given scenario.
