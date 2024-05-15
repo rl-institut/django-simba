@@ -18,6 +18,25 @@ Template:
 ```
 
 ## [x.x.x] - Unreleased
+
+### Changed
+- [(#93)](https://github.com/rl-institut/django-simba/pull/93)
+- Database depot stations get electrified with default values if running the toolchain, if they are not previously electrified
+- Fixes Issue with large charging powers leading to missing charge events
+- Fixes issue with vehicle naming when plotting
+- Allows missingimage warning of maplibre during testing
+
+Optimizations
+- SimBA scenario simulation is sped up by using a greedy SpiceEV simulation mode.
+- EventOutput generation is sped up by using optimized querys and data structure
+
+Features
+- Added the Mode station_optimization_single_step which runs a single step of the station optimization, i.e. electrifies a single station with the highest potential.
+- run_simba_scenario can now be used to run simba with a defined database scenario. A database url can be used to use a non-default django database
+- Scenarios are now deepcopied before being simulated, and the deepcopy is added as parent. This gurantees a non mutated scenario is stored in the database, while the original scenario can be changed, e.g. stations can be electrified
+- An option has been introduced to simulate the root parent scenario of a given scenario. In this case a child scenario is created. This feature is still work in progress
+
+
 ### Changed
 - [(#87)](https://github.com/rl-institut/django-simba/pull/87)
 - Add a working (dummy for now) eflips-ingest ingester and the code around it.
