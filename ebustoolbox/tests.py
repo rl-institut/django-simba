@@ -363,13 +363,11 @@ class WriteReadScenarioToDatabase(TestCase):
             # Recursively search the schedule for primitive data which has to be not equal to the
             # database schedule in at least ONE case
             difference_found = False
-            difference = None
             for key_stack, values in objects_digger(
                 [original_database_schedule, mut_simba_schedule]
             ):
                 try:
                     self.assertNotEqual(values[0], values[1], msg=key_stack)
-                    difference = key_stack, values
                     difference_found = True
                     break
                 except AssertionError:
@@ -393,7 +391,6 @@ class WriteReadScenarioToDatabase(TestCase):
                     continue
                 try:
                     self.assertNotEqual(values[0], values[1], msg=key_stack)
-                    difference = key_stack, values
                     difference_found = True
                     break
                 except AssertionError:
@@ -405,8 +402,6 @@ class WriteReadScenarioToDatabase(TestCase):
                     "the original one although changes to the database were made. "
                     f"The mutation was: {mutation}"
                 )
-            else:
-                print(f"Difference in scenario was found for {mutation}, {difference}")
 
 
 @override_settings(SECURE_PROXY_SSL_HEADER=None)
