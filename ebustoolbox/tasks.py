@@ -1039,9 +1039,16 @@ def _run_ebus_toolchain(self, task_id, run_parent=False):
     # user starts a simulation of Scenario (A) which mutates (A) to (AB). URLS (A) should lead to
     # (AB). If the
     if db_scenario.parent is not None:
+        db_parent = db_scenario.parent
         if run_parent:
-            while db_scenario.parent is not None:
-                db_scenario = db_scenario.parent
+            while db_parent.parent is not None:
+                db_parent = db_parent.parent
+
+            db_parent.task_id = ebustoolbox.util.get_unique_task_id()
+            child_scenario = deepcopy_scenario(db_parent)
+            child_scenario.parent = db_parent
+            child_scenario.save()
+            db_scenario = child_scenario
     else:
         # Save input scenario as parent of this scenario
         print(f"Storing root scenario as parent {datetime.now()}")

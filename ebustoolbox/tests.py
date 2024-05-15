@@ -380,8 +380,6 @@ class WriteReadScenarioToDatabase(TestCase):
                     f"The Schedule read from the database does not diverge from the original one, "
                     f"although changes to the database were made. The mutation was: {mutation}"
                 )
-            else:
-                print(f"Difference in schedule was successfully found for {mutation}, {difference}")
             mut_scen = mut_simba_schedule.run(args_db)
             # Recursively search the scenario for primitive data which has to be NOT equal to the
             # data created by the database schedule
