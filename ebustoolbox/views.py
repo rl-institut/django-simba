@@ -48,15 +48,14 @@ def show_uploads_view(request: HttpRequest, filename):
     return response
 
 
-def result_view(request: HttpRequest):
+def result_view(request: HttpRequest, task_id):
     """View controlling if the wait or success view should be shown"""
-    task_id = request.GET["task_id"]
     try:
         if Scenario.objects.get(task_id=task_id).finished:
             request.task_id = str(task_id)
             return SuccessView.as_view()(request, task_id=task_id)
         else:
-            return wait_view(request)
+            return wait_view(request, task_id)
     except Scenario.DoesNotExist:
         html = "<html><body>task_id is not valid</body></html>"
         return HttpResponse(html)
@@ -210,11 +209,15 @@ def scenario_overview_view(request: HttpRequest, task_id):
             patch_cache_control(response, no_cache=True, no_store=True, must_revalidate=True)
             return response
         else:
-            html = (
-                "<html><body>This Scenario has already been simulated! "
-                "You are being forwarded to the results page in 1...2....3....</body></html>"
+            url = reverse("simba:result", args=[task_id])
+            duration = 2
+            content = "This scenario has already been simulated."
+            return render(
+                request,
+                "redirect_timer.html",
+                {"content": content, "duration": duration, "redirect_url": url},
             )
-            return HttpResponse(html)
+
     except Scenario.DoesNotExist:
         html = "<html><body>task_id is not valid</body></html>"
         return HttpResponse(html)
@@ -268,9 +271,7 @@ def progress(request: HttpRequest, progress_id, progress_type: str):
                     task_id = progress.scenario.task_id
                     request.task_id = task_id
 
-                    response["HX-Redirect"] = reverse("simba:result") + "?task_id={}".format(
-                        task_id
-                    )
+                    response["HX-Redirect"] = reverse("simba:result", args=[task_id])
             case _:
                 raise NotImplementedError
     response["HX-Trigger"] = hx_trigger
@@ -338,8 +339,7 @@ def home_view(request: HttpRequest):
         if "ebus_map" in settings.INSTALLED_APPS:
             create_stations_for_map(django_scenario)
 
-        response = redirect("simba:result")
-        response["Location"] += "?task_id=" + django_scenario.task_id
+        response = redirect("simba:result", task_id=django_scenario.task_id)
         return response
     else:
         return HttpResponse("Method is not allowed", status=405)
@@ -403,7 +403,6 @@ def run_simulation(request: HttpRequest, task_id: str):
                 raise Http404
             # This triggers progress polling. If the toolchain is finished
             # the progress view will be triggered with the task_id and progress type
-
             async_result = tasks.run_toolchain_from_scenario(scenario, assign_vehicles=True)
 
             context["progress_id"] = async_result.task_id

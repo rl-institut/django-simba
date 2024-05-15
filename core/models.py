@@ -40,4 +40,5 @@ class Progress(models.Model):
         self.total_work = 1
         self.success = False
         self.running = True
+        self.errors = []
         self.save()
