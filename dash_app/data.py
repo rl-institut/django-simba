@@ -374,6 +374,7 @@ def get_all_event_info(scenario_id):
 
     # Initialize lists to store data
     dfs = []
+    first_warning = True
 
     # Iterate over vehicles
     for vehicle in vehicles:
@@ -406,9 +407,13 @@ def get_all_event_info(scenario_id):
                             raise Exception("Multiple rotations detected")
                         vehicle_rotation = rot
                 else:
-                    if vehicle_rotation is None:
-                        warnings.warn(f"No rotation detected for event {event}")
+                    if vehicle_rotation is None and first_warning:
+                        warnings.warn(
+                            f"No rotation detected for event {event}. "
+                            f"Similar warnings will be omitted."
+                        )
                         vehicle_rotation = None
+                        first_warning = False
 
                 dfs.append(
                     {
