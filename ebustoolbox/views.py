@@ -55,7 +55,7 @@ def result_view(request: HttpRequest, task_id):
             request.task_id = str(task_id)
             return SuccessView.as_view()(request, task_id=task_id)
         else:
-            return wait_view(request)
+            return wait_view(request, task_id)
     except Scenario.DoesNotExist:
         html = "<html><body>task_id is not valid</body></html>"
         return HttpResponse(html)

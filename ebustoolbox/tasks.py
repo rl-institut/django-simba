@@ -1429,7 +1429,7 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):  # noqa: C901
         trip = None
         if not len(vehicle_trips_arr):
             raise RuntimeError(
-                f"No trip assigned to vehicle {vehicle.name_short}/ID:{vehicle.id} found in database."
+                f"No trip assigned to vehicle {vehicle.to_simba_name()}/ID:{vehicle.id} found in database."
             )
 
         if vehicle_event.event_type == "arrival":
