@@ -1443,9 +1443,9 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):  # noqa: C901
             event_type = EventType.DRIVING
         else:
             raise NotImplementedError("Unknown vehicle event type")
-
+        timezone = aware_start_time.tzinfo
         timestamp_list = [
-            get_datetime(simba_scenario, t).astimezone().isoformat()
+            get_datetime(simba_scenario, t).astimezone(timezone).isoformat()
             for t in range(start_timestep, end_timestep + 1, int(60 / simba_scenario.stepsPerHour))
         ]
         timeseries = {
@@ -1473,8 +1473,8 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):  # noqa: C901
             trip=trip,
             soc_start=soc_start,
             soc_end=soc_end,
-            time_start=vehicle_event.start_time.astimezone(),
-            time_end=end_time.astimezone(),
+            time_start=vehicle_event.start_time.astimezone(timezone),
+            time_end=end_time.astimezone(timezone),
             timeseries=timeseries,
             event_type=event_type,
         )
