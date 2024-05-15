@@ -303,6 +303,7 @@ class SimbaScheduleReader(ScheduleReader):
             default_params = {
                 "scenario": scenario,
                 "name": name,
+                "name_short": name,
                 "battery_capacity": self.default_capacity,
                 "charging_curve": [[0, self.default_capacity], [1, self.default_capacity]],
             }
