@@ -1048,6 +1048,11 @@ def _run_ebus_toolchain(self, task_id, run_parent=False):
             child_scenario = deepcopy_scenario(db_parent)
             child_scenario.parent = db_parent
             child_scenario.save()
+            db_parent.refresh_from_db()
+            print(
+                f"Parent scenario with task_id {db_parent.task_id} will be simulated. Results will "
+                f"be saved in {child_scenario.parent}"
+            )
             db_scenario = child_scenario
     else:
         # Save input scenario as parent of this scenario
