@@ -140,10 +140,16 @@ def recent_memoizer(function, scenario_id, _dcache1=dict(), _result_cache2=dict(
             last_simulations.pop(index)
             last_simulations.append((scenario_id, scenario.finished))
             for function_key, function_arguments in _dcache1.copy().items():
+                function_arguments = filter(lambda x: x[0] == scenario_id, function_arguments)
                 for f_args in function_arguments:
-                    if f_args[0] == scenario_id:
+                    try:
                         _dcache1[function_key].remove(f_args)
+                    except ValueError:
+                        pass
+                    try:
                         del _result_cache2[function_key][f_args]
+                    except KeyError:
+                        pass
 
             last_simulations.pop(index)
             last_simulations.append((scenario_id, scenario.finished))

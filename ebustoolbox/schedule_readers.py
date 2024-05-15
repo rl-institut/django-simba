@@ -1,6 +1,6 @@
 import csv
 import inspect
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from typing import Callable, Type
@@ -208,7 +208,16 @@ class SimbaScheduleReader(ScheduleReader):
         trip_id = 1 if Trip.objects.last() is None else Trip.objects.last().id + 1
         line_id = 1 if Line.objects.last() is None else Line.objects.last().id + 1
         for rotation_id, rotation_trips in trip_data.items():
+            sorted_trips = sorted(rotation_trips, key=lambda trip: trip["departure_time"])
+            prev_arrival_time = sorted_trips[0]["departure_time"] - timedelta(hours=1)
             for trip in rotation_trips:
+                if trip["departure_time"] < prev_arrival_time:
+                    self.errors.append(
+                        f"The following trip overlaps with another. {trip} departs "
+                        f"before the previous arrival at {prev_arrival_time}"
+                    )
+                    raise self.SimbaScheduleReaderException
+                prev_arrival_time = trip["arrival_time"]
                 if trip[self.LINE] not in line_dict:
                     line = Line(scenario=scenario, name=trip[self.LINE], id=line_id)
                     line_id += 1
@@ -243,6 +252,7 @@ class SimbaScheduleReader(ScheduleReader):
 
                 routes.append(route)
                 trips.append(t)
+
         return lines, routes, trips
 
     def get_rotations(self, scenario, trip_data, vt_dict):
