@@ -2358,7 +2358,7 @@ develop = false
 type = "git"
 url = "https://github.com/rl-institut/SimBA"
 reference = "feature/django_simba"
-resolved_reference = "31546713b23948bb570582148023e227802a5b45"
+resolved_reference = "b0793396941cafe33fa9084bc93fa94dfd01e285"
 
 [[package]]
 name = "simpy"

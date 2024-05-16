@@ -590,6 +590,16 @@ def get_args(django_scenario) -> Namespace:
     # arguments relevant to SpiceEV, setting automatically to reduce clutter in config
     simba.util.mutate_args_for_spiceev(args)
 
+    # Add default optimizer config
+    p = Path(settings.STATIC_URL, __package__, "examples", "default_optimizer.cfg")
+    if settings.DEBUG:
+        # use app static folder
+        if p.is_absolute():
+            # remove first slash
+            p = Path(str(p)[1:])
+        p = Path(settings.BASE_DIR, __package__, p)
+    args.optimizer_config = p
+
     return args
 
 
@@ -627,7 +637,7 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
                 p = Path(str(p)[1:])
             p = Path(settings.BASE_DIR, __package__, p)
         if not p.exists():
-            logger.warn(f"FILE ERROR: {k} COULD NOT BE SET ({str(p)})")
+            logger.warning(f"FILE ERROR: {k} COULD NOT BE SET ({str(p)})")
             continue
         args[k] = str(p)
     scenario.simba_options = args
