@@ -1,6 +1,6 @@
 from dash import Dash, html, dcc
 from . import ids
-from dash.dependencies import Input, Output  # no fa401
+from dash.dependencies import Input, Output, State  # no fa401
 import plotly.graph_objects as go
 from . import data
 from ebustoolbox.models import Scenario
@@ -20,8 +20,12 @@ def render(app: Dash) -> html.Div:
     :rtype: html.Div
     """
 
-    @app.callback(Output(ids.SCATTER_CHART, "figure"), Input(ids.BUS_DROPDOWN, "value"))
-    def update_scatter(buses: list[str], session_state=None, dash_app=None, **kwargs):
+    @app.callback(
+        Output(ids.SCATTER_CHART, "figure"),
+        Input(ids.APPLY_DROPDOWN, "n_clicks"),
+        State(ids.BUS_DROPDOWN, "value"),
+    )
+    def update_scatter(_, buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
@@ -53,8 +57,12 @@ def render_power_draw(app: Dash) -> html.Div:
     :rtype: html.Div
     """
 
-    @app.callback(Output(ids.POWER_DRAW_CHART, "figure"), Input(ids.BUS_DROPDOWN, "value"))
-    def power_draw(buses: list[str], session_state=None, dash_app=None, **kwargs):
+    @app.callback(
+        Output(ids.POWER_DRAW_CHART, "figure"),
+        Input(ids.APPLY_DROPDOWN, "n_clicks"),
+        State(ids.BUS_DROPDOWN, "value"),
+    )
+    def power_draw(_, buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
@@ -119,8 +127,12 @@ def render_station_occupation(app: Dash) -> html.Div:
     :rtype: html.Div
     """
 
-    @app.callback(Output(ids.STATION_OCCUPATION, "figure"), Input(ids.BUS_DROPDOWN, "value"))
-    def occupation(buses: list[str], session_state=None, dash_app=None, **kwargs):
+    @app.callback(
+        Output(ids.STATION_OCCUPATION, "figure"),
+        Input(ids.APPLY_DROPDOWN, "n_clicks"),
+        State(ids.BUS_DROPDOWN, "value"),
+    )
+    def occupation(_, buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 

@@ -1,6 +1,6 @@
 from dash import Dash, html, dash_table
 from . import ids
-from dash.dependencies import Input, Output  # no fa401
+from dash.dependencies import Input, Output, State  # no fa401
 from .data import (
     get_number_longest_rot,
     get_number_shortest_rot,
@@ -21,9 +21,13 @@ def render_longest_rotation(app: Dash) -> html.Div:
     :rtype: html.Div
     """
 
-    @app.callback(Output(ids.NUMBER_LONGEST_ROTATION, "children"), Input(ids.BUS_DROPDOWN, "value"))
+    @app.callback(
+        Output(ids.NUMBER_LONGEST_ROTATION, "children"),
+        Input(ids.APPLY_DROPDOWN, "n_clicks"),
+        State(ids.BUS_DROPDOWN, "value"),
+    )
     def update_report_numbers(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+        _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
@@ -58,10 +62,12 @@ def render_shortest_rotation(app: Dash) -> html.Div:
     """
 
     @app.callback(
-        Output(ids.NUMBER_SHORTEST_ROTATION, "children"), Input(ids.BUS_DROPDOWN, "value")
+        Output(ids.NUMBER_SHORTEST_ROTATION, "children"),
+        Input(ids.APPLY_DROPDOWN, "n_clicks"),
+        State(ids.BUS_DROPDOWN, "value"),
     )
     def update_report_numbers(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+        _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
@@ -95,9 +101,13 @@ def render_number_of_buses(app: Dash) -> html.Div:
     :rtype: html.Div
     """
 
-    @app.callback(Output(ids.NUMBER_OF_BUSES, "children"), Input(ids.BUS_DROPDOWN, "value"))
+    @app.callback(
+        Output(ids.NUMBER_OF_BUSES, "children"),
+        Input(ids.APPLY_DROPDOWN, "n_clicks"),
+        State(ids.BUS_DROPDOWN, "value"),
+    )
     def update_report_numbers(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+        _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         # print("updating numbers")
         task_id = dash_app.slug
@@ -132,9 +142,13 @@ def critical_rotations(app: Dash) -> html.Div:
     :rtype: html.Div
     """
 
-    @app.callback(Output(ids.LIST_CRIT_ROTATIONS, "children"), Input(ids.BUS_DROPDOWN, "value"))
+    @app.callback(
+        Output(ids.LIST_CRIT_ROTATIONS, "children"),
+        Input(ids.APPLY_DROPDOWN, "n_clicks"),
+        State(ids.BUS_DROPDOWN, "value"),
+    )
     def update_report_numbers(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+        _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)

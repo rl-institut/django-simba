@@ -1,7 +1,7 @@
 from dash import Dash, html, dcc
 from . import ids
 from .data import get_all_buses
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 
 
 def render(app: Dash) -> html.Div:
@@ -19,10 +19,12 @@ def render(app: Dash) -> html.Div:
         [
             Output(ids.BUS_DROPDOWN, "value"),
             Output(ids.BUS_DROPDOWN, "options"),
+            Output(ids.APPLY_DROPDOWN, "n_clicks"),
         ],
         Input(ids.SELECT_ALL_BUSES_BUTTON, "n_clicks"),
+        State(ids.APPLY_DROPDOWN, "n_clicks"),
     )
-    def select_all_buses(_: int, session_state=None, dash_app=None, **kwargs):
+    def select_all_buses(_: int, n_clicks, session_state=None, dash_app=None, **kwargs):
         """
         Selects all buses when the "Select All" button is clicked and updates the dropdown menu accordingly.
 
@@ -36,6 +38,7 @@ def render(app: Dash) -> html.Div:
             - The list of dictionaries representing the options for the dropdown i.e. bus short_names
         :rtype: tuple[list, list]
         """
+        n_clicks = n_clicks or 0
         task_id = dash_app.slug
         all_buses = session_state.get(task_id, {}).get("all_buses", get_all_buses(task_id))
         try:
@@ -43,7 +46,7 @@ def render(app: Dash) -> html.Div:
         except KeyError:
             session_state[task_id] = dict()
         session_state[task_id]["all_buses"] = all_buses
-        return all_buses, [{"label": bus, "value": bus} for bus in all_buses]
+        return all_buses, [{"label": bus, "value": bus} for bus in all_buses], n_clicks + 1
 
     return html.Div(
         children=[
@@ -62,6 +65,10 @@ def render(app: Dash) -> html.Div:
             # Create a button to select all buses
             html.Button(
                 className="dropdown-button", children=["Select All"], id=ids.SELECT_ALL_BUSES_BUTTON
+            ),
+            # Create a button to select all buses
+            html.Button(
+                className="apply-button", children=["Apply Changes"], id=ids.APPLY_DROPDOWN
             ),
         ],
     )
