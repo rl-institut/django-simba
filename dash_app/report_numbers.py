@@ -109,7 +109,6 @@ def render_number_of_buses(app: Dash) -> html.Div:
     def update_report_numbers(
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
-        # print("updating numbers")
         task_id = dash_app.slug
         filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
 

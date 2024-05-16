@@ -575,6 +575,7 @@ def get_args(django_scenario) -> Namespace:
     :type django_scenario: models.Scenario
     :return:
     """
+    logger.debug(f"Setting default arguments for scenario {django_scenario.id}")
     # Get parser from SimBA
     parser = simba.util.get_parser()
     # Read the parse values, in this case the default values
@@ -844,12 +845,20 @@ def update_electrified_stations_db(electrified_stations, scenario):
         # ToDo how do we handle differences in charging power depending on oppb or depb
         if station.charge_type == EnumChargeType.OPPORTUNITY.value:
             power_per_charger = ele_station.get("cs_power_opps")
+            power_per_charger = power_per_charger or scenario.simba_options.get("cs_power_opps")
+
         else:
             power_per_charger = ele_station.get("cs_power_deps_oppb")
+            logger.warning(f"Station {station.name} does not have a power per charger")
+            if power_per_charger is None:
+                assert station.power_per_charger is None
+
         station.power_per_charger = power_per_charger
         station.power_total = ele_station.get(
-            "gc_power", scenario.simba_options.get("gc_power_" + station.charge_type)
+            "gc_power", scenario.simba_options.get("gc_power_" + charge_type)
         )
+        if station.power_total is None:
+            logger.warning(f"Station {station.name} does not have a power_total Value")
         station.save()
 
 
