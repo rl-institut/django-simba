@@ -583,6 +583,10 @@ def get_args(django_scenario) -> Namespace:
 
     # Overwrite args with scenario specific data
     if django_scenario.simba_options is not None:
+        logger.debug(
+            f"Overwritting default arguments with {len(django_scenario.simba_options)} "
+            f"values from the database"
+        )
         vars(args).update(vars(Namespace(**django_scenario.simba_options)))
 
     # turn of plotting
@@ -599,7 +603,7 @@ def get_args(django_scenario) -> Namespace:
             # remove first slash
             p = Path(str(p)[1:])
         p = Path(settings.BASE_DIR, __package__, p)
-    args.optimizer_config = p
+    args.optimizer_config = str(p)
 
     return args
 
@@ -895,11 +899,12 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
         # Read the file and write it to database
         progress.refresh_from_db()
         progress.success = schedule_reader.write_to_db(scenario.id)
+        scenario.simba_options = vars(get_args(scenario))
+        scenario.save()
         progress.save()
     except Exception as e:
-        traceback.logger.info_exc()
+        logger.error(traceback.format_exc())
         progress.status = "Failed"
-        traceback.print_exc()
         progress.errors.append(str(e))
     finally:
         try:
@@ -914,7 +919,7 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
             for file_path, file_id in files.values():
                 UploadedFile.objects.get(id=file_id).delete()
         except Exception:
-            traceback.print_exc()
+            logger.error(traceback.format_exc())
         progress.running = False
         progress.save()
 
@@ -1135,12 +1140,12 @@ def _run_ebus_toolchain(self, task_id, run_parent=False):
         db_scenario.save()
         progress.set_success()
     except Exception as e:
-        traceback.print_exc()
+        logger.error(traceback.format_exc())
         progress.refresh_from_db()
         try:
             progress.errors.append(str(e))
         except Exception:
-            traceback.print_exc()
+            logger.error(traceback.format_exc())
         progress.set_failed()
 
 
