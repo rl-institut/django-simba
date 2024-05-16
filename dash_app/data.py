@@ -3,6 +3,8 @@
 This way data should be easily swappable, while the dash_layout allows for swapping of the design
 """
 import warnings
+import logging
+
 
 from ebustoolbox.models import (
     Scenario,
@@ -25,6 +27,7 @@ MAX_SIZE = 10
 # stores scenario_id and finished time
 last_simulations = list()
 CRITICAL_SOC = 0.0
+logger = logging.getLogger("custom")
 
 
 def vid_for_plotting(vehicle: Vehicle):
@@ -141,7 +144,7 @@ def recent_memoizer(function, scenario_id, _dcache1=dict(), _result_cache2=dict(
             last_simulations.append((scenario_id, scenario.finished))
             for function_key, all_f_args in _dcache1.copy().items():
                 f_args_w_scenario_id = filter(lambda x: x[0] == scenario_id, all_f_args)
-                print("Deleting deprecated scenario ", scenario_id)
+                logger.debug("Deleting deprecated scenario ", scenario_id)
                 for f_args in f_args_w_scenario_id:
                     try:
                         _dcache1[function_key].remove(f_args)
@@ -172,12 +175,12 @@ def recent_memoizer(function, scenario_id, _dcache1=dict(), _result_cache2=dict(
             _dcache1[key].remove(inputs)
             _dcache1[key].append(inputs)
             if inputs in _result_cache2[key]:
-                print(f"Using cache for {key} for scenario {scenario_id}")
+                logger.debug(f"Using cache for {key} for scenario {scenario_id}")
                 return _result_cache2[key][inputs]
         else:
             # Storage is full. Delete oldest storage
             if len(_dcache1[key]) >= MAX_SIZE:
-                print("Storage full, deleting", scenario_id)
+                logger.debug("Storage full, deleting", scenario_id)
                 try:
                     del _result_cache2[key][_dcache1[key][0]]
                 except KeyError:
@@ -187,7 +190,7 @@ def recent_memoizer(function, scenario_id, _dcache1=dict(), _result_cache2=dict(
                 except IndexError:
                     pass
             _dcache1[key].append(inputs)
-        print(f"Calculating {key} for scenario {scenario_id}")
+        logger.debug(f"Calculating {key} for scenario {scenario_id}")
         return_value = function(*this_args, **kwargs)
         _result_cache2[key][inputs] = return_value
         return return_value

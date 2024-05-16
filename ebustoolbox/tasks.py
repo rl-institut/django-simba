@@ -6,6 +6,7 @@ from argparse import Namespace
 from copy import deepcopy, copy
 from datetime import datetime, timedelta
 from decimal import Decimal
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, List
 
@@ -62,6 +63,8 @@ from .schedule_readers import ScheduleReader
 
 if TYPE_CHECKING:
     from spice_ev.scenario import Scenario as SimbaScenario
+
+logger = logging.getLogger("custom")
 
 # ToDo: Any better solutions?
 INTEGER_INF = 9999
@@ -200,12 +203,13 @@ def filter_inconsistent_trips_and_rotations(simba_schedule):
             or rotation.trips[-1].arrival_name not in simba_schedule.stations
         ):
             del_rots.append(key)
-    print(
+    logger.info(
         f"Deleting {len(del_rots)} rotations since they dont start or end at electrified station:{del_rots}"
     )
     for rot_id in del_rots:
         del simba_schedule.rotations[rot_id]
-    print(f"{counter} trips deleted") if counter > 0 else print()
+    if counter > 0:
+        logger.info(f"{counter} trips deleted")
 
 
 def temperatures_to_db(
@@ -623,7 +627,7 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
                 p = Path(str(p)[1:])
             p = Path(settings.BASE_DIR, __package__, p)
         if not p.exists():
-            print(f"FILE ERROR: {k} COULD NOT BE SET ({str(p)})")
+            logger.warn(f"FILE ERROR: {k} COULD NOT BE SET ({str(p)})")
             continue
         args[k] = str(p)
     scenario.simba_options = args
@@ -794,7 +798,7 @@ def stations_to_db(simba_schedule: SimbaSchedule, scenario):
             except KeyError:
                 pass
         except Exception:
-            print(traceback.format_exc())
+            logger.error(traceback.format_exc())
             pass
     Station.objects.bulk_create(object_list)
 
@@ -840,11 +844,7 @@ def update_electrified_stations_db(electrified_stations, scenario):
 
 
 def generate_zipped_scenario(task_id: str):
-    if settings.CELERY_USE:
-        print("Using Celery")
-        _celery_generate_zipped_scenario.apply_async((str(task_id),), task_id=task_id)
-    else:
-        _generate_zipped_scenario(task_id)
+    _celery_generate_zipped_scenario.apply_async((str(task_id),), task_id=task_id)
 
 
 def _generate_zipped_scenario(task_id: str):
@@ -852,10 +852,10 @@ def _generate_zipped_scenario(task_id: str):
     folder_path = Path(settings.UPLOAD_PATH, task_id)
     output_path = settings.MEDIA_ROOT / (task_id + ".zip")
     if not folder_path.exists():
-        print("input folder for zipping not found")
+        logger.error("input folder for zipping not found")
         return
     if output_path.is_file():
-        print("Zip already exists")
+        logger.info("Zip already exists")
         return
     shutil.make_archive(output_path.with_suffix(""), "zip", folder_path)
 
@@ -878,7 +878,7 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
         progress.success = schedule_reader.write_to_db(scenario.id)
         progress.save()
     except Exception as e:
-        traceback.print_exc()
+        traceback.logger.info_exc()
         progress.status = "Failed"
         traceback.print_exc()
         progress.errors.append(str(e))
@@ -1049,21 +1049,21 @@ def _run_ebus_toolchain(self, task_id, run_parent=False):
             child_scenario.parent = db_parent
             child_scenario.save()
             db_parent.refresh_from_db()
-            print(
+            logger.info(
                 f"Parent scenario with task_id {db_parent.task_id} will be simulated. Results will "
                 f"be saved in {child_scenario.parent}"
             )
             db_scenario = child_scenario
     else:
         # Save input scenario as parent of this scenario
-        print(f"Storing root scenario as parent {datetime.now()}")
+        logger.info(f"Storing root scenario as parent {datetime.now()}")
         _ = create_parent_scenario(db_scenario)
 
     progress, _ = Progress.objects.get_or_create(task_id=self.request.id, scenario=db_scenario)
     progress.reset()
 
     try:
-        print(f"Getting schedule from db {datetime.now()}")
+        logger.info(f"Getting schedule from db {datetime.now()}")
         schedule, args = get_schedule_from_db(db_scenario)
 
         # in the first run Depots can stay un electrified
@@ -1198,7 +1198,7 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
 
 
 def run_simba(schedule: SimbaSchedule, args, task_id, mode=None, scenario=None):
-    print(f"Running Simba {datetime.now()}")
+    logger.info(f"Running Simba {datetime.now()}")
     # TODO don't overwrite output on multiple function calls
     args.output_directory = Path(settings.UPLOAD_PATH) / str(task_id)
     args.attach_vehicle_soc = True
@@ -1220,7 +1220,7 @@ def run_simba(schedule: SimbaSchedule, args, task_id, mode=None, scenario=None):
         case _:
             raise NotImplementedError
 
-    print(f"Creating Simba Events {datetime.now()}")
+    logger.info(f"Creating Simba Events {datetime.now()}")
     create_event_output(scenario, task_id)
 
     reset_postgres_auto_increments(apps=[Event._meta.app_label])
@@ -1272,7 +1272,7 @@ def depot_rotation_to_eflips_input(db_rotation, db_scenario, input_for_eflips, r
 
 def run_eflips(task_id) -> None:
     # ToDo Replace with logger
-    print(f"Running eflips {datetime.now()}")
+    logger.info(f"Running eflips {datetime.now()}")
     db_scenario = Scenario.objects.get(task_id=task_id)
 
     # Constructing the database URL manually
@@ -1406,8 +1406,6 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):  # noqa: C901
                 if last_arrival_time is None or arrival_time > last_arrival_time:
                     last_arrival_time = arrival_time
 
-            # print(current_rotation,last_trip.departure_time, last_arrival_time)
-
         if aware_start_time >= last_arrival_time:
             current_rotation = None
             current_vehicle = None
@@ -1455,7 +1453,7 @@ def create_event_output(simba_scenario: "SimbaScenario", task_id):  # noqa: C901
             ],
         }
         if None in timeseries["soc"]:
-            print("Warning: None Values found in timeseries")
+            logger.warn("None Values found in timeseries")
             forward_fill_last_value(timeseries["soc"])
         # grab current vehicle SoC at timestep
         soc_start = timeseries["soc"][0]
