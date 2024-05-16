@@ -1,12 +1,40 @@
 <div id="options_form" class="text-center">
     <form id='form'>{% csrf_token %}
         {#    use HX-retarget to target form instead of progess bar in cases of errors#}
-        {{ form.as_p }}
+
+        {% if reader_num == 1 %}
+            <div class="mb-3">
+                <label for="{{ form.file_path.id_for_label }}" class="form-label"></label>
+                <div class="input-group">
+                    <input type="file" class="form-control" id="{{ form.file_path.auto_id }}" required name="file_path">
+                </div>
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="radio" value="depb" name="default_charging_type" id="{{ form.default_charging_type.id_default_charging_type_0 }}">
+              <label class="form-check-label" for="{{ form.default_charging_type.id_default_charging_type_0 }}">
+                Depot
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" value="oppb" name="default_charging_type" id="{{ form.default_charging_type.id_default_charging_type_1 }}" checked>
+              <label class="form-check-label" for="{{ form.default_charging_type.id_default_charging_type_1 }}">
+                Oppertunity
+              </label>
+            </div>
+        {% endif %}
+
+
+        {% if reader_num == 2 %}
+            {{ form.as_p }}
+        {% endif %}
+
+
         {#This will be replaced by the progressbar, during server side analyzing            #}
         <div id="upload-progress_{{ task_id }}"></div>
-        <button type=submit id='button_{{ task_id }}' hx-encoding="multipart/form-data"
+        <button class="btn btn-info rounded-0" type=submit id='button_{{ task_id }}' hx-encoding="multipart/form-data"
                 hx-target="#upload-progress_{{ task_id }}"
-                hx-post='{% url 'simba:upload_trips' task_id=task_id reader_num=reader_num %}'>
+                hx-post="{% url 'simba:upload_trips' task_id=task_id reader_num=reader_num %}">
             Upload
         </button>
         {#            progress bar during upload#}
