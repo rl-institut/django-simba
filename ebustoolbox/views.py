@@ -126,7 +126,7 @@ def get_options(request: HttpRequest, task_id, reader_num: int):
         context |= {"form": form}
         response = render(request, "schedule_reader_options.html", context)
     except:  # noqa
-        traceback.print_exc()
+        logger.error(traceback.format_exc())
         # 204 - No Content https://htmx.org/docs/#requests
         response.status_code = 204
     return response
@@ -411,7 +411,7 @@ def run_simulation(request: HttpRequest, task_id: str):
             response = render(request, "progress_poll.html", context)
             response["HX-Trigger"] = "running"
     except Exception:
-        traceback.print_exc()
+        logger.error(traceback.format_exc())
         response["HX-Trigger"] = "notRunning"
     return response
 
