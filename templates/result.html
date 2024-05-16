@@ -7,9 +7,21 @@
     </script>
 {% endblock %}
 {% block content %}
-
-    <h1> Finished with id {{task_id}}</h1>
     {% load static %}
+
+    {% if finished %}
+        <h1>Finished with id {{ task_id }}</h1>
+    {% else %}
+        <form id='form' hx-target="#my_progress_bar" hx-get='{% url 'simba:run_simulation' task_id %}'>{% csrf_token %}
+            <input type="hidden" name="task_id" value="{{ task_id }}">
+            <button id="simba_submit_button" type="submit" class="btn btn-primary">Run simulation</button>
+            <div id="result">{{ task_id }}</div>
+        </form>
+        <div id="my_progress_bar">
+            <progress id='progress' value='0' max='100'></progress>
+        </div>
+    {% endif %}
+
 
   <div class="col-md-12">
     <nav>
