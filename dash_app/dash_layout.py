@@ -1,9 +1,26 @@
-from dash import Dash, html, dcc
-from . import bus_dropdown, report_numbers, scatter_chart, histograms, activities_chart, piechart
+from dash import Dash, html, dcc, Output, Input
+from . import (
+    bus_dropdown,
+    report_numbers,
+    scatter_chart,
+    histograms,
+    activities_chart,
+    piechart,
+    data,
+)
 
 
 def create_layout(app: Dash) -> html.Div:
     # App layout
+    @app.callback(
+        [Output("tab-simulation", "disabled"), Output("tab-kpi", "disabled")],
+        [Input("tab-simulation", "value")],
+        prevent_initial_call=False,  # Ensure the callback runs on page load
+    )
+    def update_tab(tab, session_state=None, dash_app=None, **kwargs):
+        disable_tabs = data.get_sim_done_status(dash_app.slug)
+        return disable_tabs, disable_tabs
+
     return html.Div(
         [
             html.Div(
@@ -16,9 +33,9 @@ def create_layout(app: Dash) -> html.Div:
                 },
             ),
             dcc.Tabs(
-                [
+                children=[
                     dcc.Tab(
-                        label="Scenario Plots",
+                        label="Pre-Simulation Plots",
                         children=[
                             html.Div(
                                 children=block_first_third(app),
@@ -59,7 +76,10 @@ def create_layout(app: Dash) -> html.Div:
                         ],
                     ),
                     dcc.Tab(
-                        label="CEO Tab",
+                        label="KPI Tab",
+                        id="tab-kpi",
+                        value="tab-kpi",
+                        disabled=True,
                         children=[
                             html.Div(
                                 children=block_top_right(app),
@@ -74,6 +94,9 @@ def create_layout(app: Dash) -> html.Div:
                     ),
                     dcc.Tab(
                         label="Simulation Plots",
+                        id="tab-simulation",
+                        value="tab-simulation",
+                        disabled=True,
                         children=[
                             html.Div(
                                 children=block_bottom_center(app),

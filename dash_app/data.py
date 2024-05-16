@@ -608,3 +608,7 @@ def get_all_powerdraw_as_dataframe(scenario_id):
         )
 
     return result_df
+
+
+def get_sim_done_status(task_id):
+    return not Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
