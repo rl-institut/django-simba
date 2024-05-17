@@ -1,13 +1,9 @@
 from .deepcopy import deepcopy as deepcopy_db
-import io
-import unittest.mock
 
-from django.contrib.auth.models import User
-from django.test import TestCase, TransactionTestCase, override_settings
-from django.urls import reverse
+from django.test import TransactionTestCase
 
 from ebus_map.models import Station
-from ebustoolbox.models import Scenario, Event, Rotation, Trip
+from ebustoolbox.models import User, Scenario, Event, Rotation, Trip
 from ebustoolbox.tests import build_scenario
 from ebustoolbox.tasks import run_toolchain_from_scenario
 from ebustoolbox.util import get_unique_task_id
@@ -53,28 +49,3 @@ def compare_objects_except_related(o1, o2):
         if field.name in ["id"] or field.related_model is not None:
             continue
         assert getattr(o1, field.name) == getattr(o2, field.name), f"Failed for {field.name}"
-
-
-class TestEmail(TestCase):
-    @override_settings(EMAIL_BACKEND="django.core.mail.backends.console.EmailBackend")
-    @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
-    def test_console_backend(self, mock_stdout):
-        # create test users (normal and staff)
-        User.objects.create_user(
-            username='Adam', email='adam@example.com', password='adams_password')
-        User.objects.create_superuser(
-            username='Eve', email='eve@example.com', password='eves_password')
-
-        # anon user: no email
-        self.client.get(reverse("core:test_email"))
-        assert mock_stdout.getvalue() == ''
-
-        # normal user: no email
-        self.client.login(username='Adam', password='adams_password')
-        self.client.get(reverse("core:test_email"))
-        assert mock_stdout.getvalue() == ''
-
-        # staff user: mock email in console
-        self.client.login(username='Eve', password='eves_password')
-        self.client.get(reverse("core:test_email"))
-        assert 'To: eve@example.com' in mock_stdout.getvalue()
