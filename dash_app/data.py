@@ -2,6 +2,8 @@
 
 This way data should be easily swappable, while the dash_layout allows for swapping of the design
 """
+import warnings
+
 from ebustoolbox.models import (
     Scenario,
     Event,
@@ -11,10 +13,23 @@ from ebustoolbox.models import (
     VehicleType,
     Rotation,
     Station,
+    EventType,
+    Trip,
 )
 import pandas as pd
 from django.db.models import Count
 from dash.exceptions import PreventUpdate
+
+# Maximum number of cached results per function
+MAX_SIZE = 10
+# stores scenario_id and finished time
+last_simulations = list()
+CRITICAL_SOC = 0.0
+
+
+def vid_for_plotting(vehicle: Vehicle):
+    # Create a user friendly vehicle identifier for plotting
+    return vehicle.id
 
 
 def get_all_buses(task_id: str) -> list[str]:
@@ -27,7 +42,7 @@ def get_all_buses(task_id: str) -> list[str]:
     :rtype: list[str]
     """
     s = Scenario.objects.get(task_id=task_id)
-    all_buses = list(Vehicle.objects.filter(scenario=s).values_list("name", flat=True))
+    all_buses = list(Vehicle.objects.filter(scenario=s).values_list("id", flat=True))
     return all_buses
 
 
@@ -35,14 +50,14 @@ def get_number_of_buses(filter_dict: dict) -> list[str]:
     """
     Gets the longest rotation distance and its associated name based on the provided filter criteria.
 
-    :param filter_dict: A dictionary containing filter criteria, task_id and vehicle__name_short__in.
+    :param filter_dict: A dictionary containing filter criteria, task_id and vehicle__id__in.
     :type filter_dict: dict
     :return: A list containing the name and distance of the longest rotation in the format:
         ["Longest Rotation rotation_name", "distance m"]
     :rtype: list[str]
     """
     task_id = filter_dict.pop("task_id")
-    vehicles = filter_dict.pop("vehicle__name__in")
+    vehicles = filter_dict.pop("vehicle__id__in")
     return [
         "Selected / Total number of Buses:",
         str(len(vehicles)) + " / " + str(len(get_all_buses(task_id))),
@@ -54,7 +69,7 @@ def get_number_longest_rot(filter_dict: dict):
     Gets the longest rotation distance and its associated name based on the provided filter criteria.
 
     Args:
-        filter_dict (dict): A dictionary containing filter criteria, task_id and vehicle__name_short__in.
+        filter_dict (dict): A dictionary containing filter criteria, task_id and vehicle__id__in.
 
     Returns:
         list[str]: A list containing the name and distance of the longest rotation in the format:
@@ -64,14 +79,14 @@ def get_number_longest_rot(filter_dict: dict):
     task_id = filter_dict.pop("task_id")
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
-    if len(filter_dict["vehicle__name__in"]) == 0:
+    if len(filter_dict["vehicle__id__in"]) == 0:
         raise PreventUpdate
 
     # Function calls annotate distance to Rotation
     longest_rotation = get_longest_distance_rotation(filter_dict)
 
     if longest_rotation:
-        return [f"Longest Rotation {longest_rotation.name}", f"{longest_rotation.distance} m"]
+        return [f"Longest Rotation {longest_rotation.name}", f"{longest_rotation.distance:.1f} m"]
     else:
         return ["No Rotations found!"]
 
@@ -80,7 +95,7 @@ def get_number_shortest_rot(filter_dict: dict):
     """
     Gets the shortest rotation distance and its associated name based on the provided filter criteria.
 
-    :param filter_dict: A dictionary containing filter criteria, task_id and vehicle__name_short__in.
+    :param filter_dict: A dictionary containing filter criteria, task_id and vehicle__id__in.
     :type filter_dict: dict
     :return: A list containing the name and distance of the shortest rotation in the format:
         ["Shortest Rotation rotation_name", "distance m"]
@@ -89,7 +104,7 @@ def get_number_shortest_rot(filter_dict: dict):
     task_id = filter_dict.pop("task_id")
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
-    if len(filter_dict["vehicle__name__in"]) == 0:
+    if len(filter_dict["vehicle__id__in"]) == 0:
         raise PreventUpdate
 
     # Function calls annotate distance to Rotation
@@ -97,12 +112,15 @@ def get_number_shortest_rot(filter_dict: dict):
 
     # Add style if text should have special style
     if shortest_rotation:
-        return [f"Shortest Rotation {shortest_rotation.name}", f"{shortest_rotation.distance} m"]
+        return [
+            f"Shortest Rotation {shortest_rotation.name}",
+            f"{shortest_rotation.distance:.1f} m",
+        ]
     else:
         return ["No Rotations found!"]
 
 
-def recent_memoizer(function, _dcache1=dict(), _result_cache2=dict()):
+def recent_memoizer(function, scenario_id, _dcache1=dict(), _result_cache2=dict()):
     """Decorator function
 
     :param function: function do be decorated
@@ -113,8 +131,34 @@ def recent_memoizer(function, _dcache1=dict(), _result_cache2=dict()):
     :rtype function or dict
 
     """
-    # Maximum number of cached results per function
-    MAX_SIZE = 10
+    # Clean up cache if Scenario changed, i.e. finished time changed
+    scenario = Scenario.objects.get(id=scenario_id)
+    try:
+        index = [s[0] for s in last_simulations].index(scenario_id)
+        # result data is not up to date
+        if not scenario.finished == last_simulations[index][1]:
+            last_simulations.pop(index)
+            last_simulations.append((scenario_id, scenario.finished))
+            for function_key, function_arguments in _dcache1.copy().items():
+                function_arguments = filter(lambda x: x[0] == scenario_id, function_arguments)
+                for f_args in function_arguments:
+                    try:
+                        _dcache1[function_key].remove(f_args)
+                    except ValueError:
+                        pass
+                    try:
+                        del _result_cache2[function_key][f_args]
+                    except KeyError:
+                        pass
+
+            last_simulations.pop(index)
+            last_simulations.append((scenario_id, scenario.finished))
+    except ValueError:
+        last_simulations.append((scenario_id, scenario.finished))
+
+    # Cap size of list
+    if len(last_simulations) >= MAX_SIZE:
+        last_simulations.pop(0)
 
     def decorated_function(*this_args, **kwargs):
         key = function.__name__
@@ -122,12 +166,12 @@ def recent_memoizer(function, _dcache1=dict(), _result_cache2=dict()):
             _dcache1[key] = list()
             _result_cache2[key] = dict()
 
-        inputs = tuple((this_args, *list(kwargs)))
+        inputs = tuple((scenario_id, this_args, *list(kwargs)))
+
         if inputs in _dcache1[key] and inputs in _result_cache2[key]:
             _dcache1[key].remove(inputs)
             _dcache1[key].append(inputs)
             return _result_cache2[key][inputs]
-
         else:
             # Storage is full. Delete oldest storage
             if len(_dcache1[key]) >= MAX_SIZE:
@@ -154,7 +198,7 @@ def get_soc_as_dataframe(scenario_id, buses):
     :return: DataFrame containing SOC data for specified buses.
     :rtype: pandas.DataFrame
     """
-    result_df = get_all_event_info(scenario_id)
+    result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
     return result_df.query(f"V_id in {buses}")
 
 
@@ -170,7 +214,8 @@ def get_duration_as_dataframe(scenario_id, buses):
     :return: DataFrame containing duration data for specified buses.
     :rtype: pandas.DataFrame
     """
-    result_df = get_all_trip_info(scenario_id)
+    result_df = recent_memoizer(get_all_trip_info, scenario_id)(scenario_id)
+
     result_df = result_df.groupby(["R_id", "V_id"])["duration"].sum().reset_index()
     return result_df.query(f"V_id in {buses}")
 
@@ -187,7 +232,8 @@ def get_distances_as_dataframe(scenario_id, buses):
     :return: DataFrame containing distance data for specified buses.
     :rtype: pandas.DataFrame
     """
-    result_df = get_all_trip_info(scenario_id)
+    result_df = recent_memoizer(get_all_trip_info, scenario_id)(scenario_id)
+
     result_df = result_df.groupby(["R_id", "V_id"])["total_distance"].sum().reset_index()
     return result_df.query(f"V_id in {buses}")
 
@@ -204,7 +250,8 @@ def get_activities_as_dataframe(scenario_id, buses):
     :return: DataFrame containing activity data for specified buses.
     :rtype: pandas.DataFrame
     """
-    result_df = get_all_event_info(scenario_id)
+    result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
+
     return result_df.query(f"V_id in {buses}")
 
 
@@ -220,7 +267,8 @@ def get_powerdraw_as_dataframe(scenario_id, buses):
     :return: DataFrame containing power draw data for specified buses.
     :rtype: pandas.DataFrame
     """
-    result_df = get_all_powerdraw_as_dataframe(scenario_id)
+    result_df = recent_memoizer(get_all_powerdraw_as_dataframe, scenario_id)(scenario_id)
+
     return result_df.query(f"V_id in {buses}")
 
 
@@ -258,37 +306,48 @@ def get_critical_rotations_as_dataframe(scenario_id, buses):
     :return: DataFrame containing critical rotation data.
     :rtype: pandas.DataFrame
     """
-    result_df = get_all_event_info(scenario_id)
+    result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
+
     df = result_df[result_df["V_id"].isin(buses)]
 
     df = df.explode("R_id")
-    df["R_id"] = df["R_id"].apply(lambda rotation_obj: rotation_obj.id)
+    df["R_id"] = df["R_id"].apply(apply_id)
 
     df = df.groupby(["R_id", "V_id"])["soc_end"].min().reset_index()
 
-    df["SOC_category"] = df["soc_end"].apply(lambda x: "Non-Critical" if x > 0.0 else "Critical")
+    df["SOC_category"] = df["soc_end"].apply(
+        lambda x: "Non-Critical" if x > CRITICAL_SOC else "Critical"
+    )
 
     return pd.DataFrame(
         df["SOC_category"].value_counts().reset_index().values, columns=["Category", "Count"]
     )
 
 
+def apply_id(rotation):
+    try:
+        return rotation.id
+    except AttributeError:
+        return None
+
+
 def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
     """
     TODO
     """
-    result_df = get_all_event_info(scenario_id)
+    result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
+
     df = result_df[result_df["V_id"].isin(buses)]
 
     df = df.explode("R_id")
-    df["R_id"] = df["R_id"].apply(lambda rotation_obj: rotation_obj.id)
+    df["R_id"] = df["R_id"].apply(apply_id)
 
-    df = df.groupby(["R_id", "V_id"])["soc_end"].min().reset_index()
+    # If events with no rotation should be returned dropna needs to be False
+    df = df.groupby(["R_id", "V_id"], dropna=True)["soc_end"].min().reset_index()
 
     return pd.DataFrame(df)
 
 
-@recent_memoizer
 def get_all_event_info(scenario_id):
     """
     Retrieves event information for all vehicles in a given scenario.
@@ -321,13 +380,25 @@ def get_all_event_info(scenario_id):
 
     # Initialize lists to store data
     dfs = []
+    first_warning = True
 
     # Iterate over vehicles
     for vehicle in vehicles:
-        v_id = vehicle.name
+        v_id = vid_for_plotting(vehicle)
         if vehicle.id in events_by_vehicle:
             # Filter rotations for the current vehicle
             vehicle_rotations = all_rotations.filter(vehicle_id=vehicle.id)
+            # Dictionary which finds the rotation according to the event time
+
+            rotation_times = dict()
+            for rot in vehicle_rotations:
+                if rot in rotation_times:
+                    continue
+                trips = Trip.objects.filter(rotation=rot).order_by("departure_time")
+                rstart = trips.first().departure_time
+                rend = trips.last().arrival_time
+                rotation_times[rot] = rstart, rend
+
             events = events_by_vehicle[vehicle.id]
             for event in events:
                 time_start = event.time_start
@@ -335,6 +406,21 @@ def get_all_event_info(scenario_id):
                 duration = (event.time_end - event.time_start).total_seconds()
                 time_end = event.time_end
                 # Fetch events for the current rotation
+                vehicle_rotation = None
+                for rot, times in rotation_times.items():
+                    if time_start >= times[0] and time_end <= times[1]:
+                        if vehicle_rotation is not None:
+                            raise Exception("Multiple rotations detected")
+                        vehicle_rotation = rot
+                else:
+                    if vehicle_rotation is None and first_warning:
+                        warnings.warn(
+                            f"No rotation detected for event {event}. "
+                            f"Similar warnings will be omitted."
+                        )
+                        vehicle_rotation = None
+                        first_warning = False
+
                 dfs.append(
                     {
                         "V_id": v_id,
@@ -344,7 +430,7 @@ def get_all_event_info(scenario_id):
                         "event_type": event_type,
                         "soc_start": event.soc_start,
                         "soc_end": event.soc_end,
-                        "R_id": vehicle_rotations,
+                        "R_id": vehicle_rotation,
                     }
                 )
 
@@ -372,7 +458,6 @@ def get_all_event_info(scenario_id):
     return result_df
 
 
-@recent_memoizer
 def get_all_trip_info(scenario_id):
     """
     Retrieves trip related information for all vehicles in a given scenario.
@@ -398,7 +483,10 @@ def get_all_trip_info(scenario_id):
     # Iterate over rotations in the scenario
     for rotation in scenario.rotation_set.all():
         # Get vehicle ID for the rotation
-        v_id = rotation.vehicle.name
+        try:
+            v_id = vid_for_plotting(rotation.vehicle)
+        except AttributeError:
+            v_id = None
         r_id = rotation.id
         # Iterate over trips in the rotation
         for trip in rotation.trip_set.all():
@@ -420,7 +508,6 @@ def get_all_trip_info(scenario_id):
     return result_df
 
 
-@recent_memoizer
 def get_all_powerdraw_as_dataframe(scenario_id):
     """
     Retrieves charging information for all vehicles in a given scenario.
@@ -455,9 +542,9 @@ def get_all_powerdraw_as_dataframe(scenario_id):
     }
 
     # Fetch all events for the scenario with prefetching
-    all_events = Event.objects.filter(
-        scenario=scenario, vehicle__isnull=False, station_id__isnull=False
-    ).prefetch_related("vehicle")
+    all_events = Event.objects.filter(scenario=scenario, vehicle__isnull=False).prefetch_related(
+        "vehicle"
+    )
 
     # Initialize list to store DataFrames
     dfs = []
@@ -468,26 +555,46 @@ def get_all_powerdraw_as_dataframe(scenario_id):
         batterycapacity = battery_capacities[v_id]
         charge_eff = charging_efficiencies[v_id]
 
-        # Filter events for the current vehicle from the prefetched queryset
-        events = [event for event in all_events if event.vehicle_id == v_id]
+        # Filter events for the current vehicle from the prefetched queryset and
+        # charging in some way
+        events = []
+        for event in all_events:
+            if event.vehicle_id == v_id and event.event_type in [
+                EventType.CHARGING_DEPOT,
+                EventType.CHARGING_OPPORTUNITY,
+            ]:
+                events.append(event)
+
         for event in events:
-            soc_start = event.soc_start
-            station = event.station_id
             time_start = event.time_start
             time_end = event.time_end
+
+            if event.event_type == EventType.CHARGING_DEPOT:
+                station = event.area.depot.station
+            else:
+                station = event.station
+
+            soc_start = event.soc_start
             soc_end = event.soc_end
             if soc_end > soc_start:
                 energy = (soc_end - soc_start) * charge_eff * batterycapacity
                 # Append data to the list
+                if len(dfs) > 0:
+                    # update the last disconnection of the dataframe with new start event time
+                    dfs[-1]["time_end"] = time_start
                 dfs.append(
                     {
-                        "V_id": vehicle.name,
+                        "V_id": vid_for_plotting(vehicle),
                         "time_start": time_start,
                         "time_end": time_end,
-                        "Energy": energy,
-                        "Station_id": stations_name_short_dict.get(station),
+                        "Power": energy / ((time_end - time_start).total_seconds() / 3600),
+                        "Station_id": stations_name_short_dict.get(station.id),
                     }
                 )
+                # Disconnection of vehicle after event. Copy last event and change power
+                dfs.append(dfs[-1].copy())
+                dfs[-1]["time_start"] = time_end
+                dfs[-1]["Power"] = 0
 
     # Create DataFrame from collected data
     if dfs:

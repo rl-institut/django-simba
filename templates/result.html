@@ -29,11 +29,8 @@
             {% plotly_app  slug=task_id ratio=5 %}
       </div>
         <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
-              {% with this_id=request.GET.task_id %}
-          {% with image_path=this_id|add:'/report_1/run_overview.png' %}
-              <img src="{% static image_path %}" alt="Scenario Overview">
-          {% endwith %}
-        {% endwith %}
+            Simba / SpiceEV plotting is deprecated. No image is generated.
+
       </div>
       <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">
         {% include 'minimal_mapengine.html'%}
