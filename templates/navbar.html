@@ -63,10 +63,11 @@
                   {% if user.is_authenticated %}
                       <a href="{% url 'simba:scenarios' %}">Meine Szenarios</a>
                       <a href="{% url 'simba:usergroups' %}">Meine Nutzergruppen</a>
-                      <a href="{% url 'logout' %}">Abmelden</a>
                       {% if user.is_staff %}
                           <a href="/admin">Admin</a>
+                          <a href="{% url 'core:test_email' %}?path={{request.get_full_path}}">Test Email</a>
                       {% endif %}
+                      <a href="{% url 'logout' %}">Abmelden</a>
                   {% else %}
                       <a href="{% url 'login' %}">Anmelden</a>
                       <!--<a href="{% url 'core:signup' %}">Registrieren</a>-->
