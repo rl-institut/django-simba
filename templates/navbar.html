@@ -61,7 +61,7 @@
                                   <li><a class="dropdown-item" href="{% url 'simba:usergroups' %}">Meine Nutzergruppen</a></li>
                                   <li><a class="dropdown-item" href="{% url 'logout' %}">Abmelden</a></li>
                                   {% if user.is_staff %}
-                                      <li><a href="/admin">Admin</a></li>
+                                      <li><a class="dropdown-item" href="/admin">Admin</a></li>
                                   {% endif %}
                               {% else %}
                                   <li><a class="dropdown-item" href="{% url 'login' %}">Anmelden</a></li>
@@ -93,8 +93,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Initialisieren Sie den Dropdown-Menü
-    var dropdown = new bootstrap.Dropdown(document.getElementById('navbarCollapse'));
-    dropdown.addEventListener('show.bs.dropdown', function () {
+    var dropdownElement = document.getElementById('navbarCollapse');
+    var dropdown = new bootstrap.Dropdown(dropdownElement);
+
+    // Verwenden Sie das native addEventListener auf dem Dropdown-Element
+    dropdownElement.addEventListener('show.bs.dropdown', function () {
         // Hier können Sie die ausgewählte Sprache basierend auf Benutzereinstellungen oder anderen Logik festlegen
         // Für dieses Beispiel setzen wir es auf DE
         changeLanguage('DE');
@@ -108,4 +111,5 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+
 </script>
