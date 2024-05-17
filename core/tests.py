@@ -2,17 +2,18 @@ from .deepcopy import deepcopy as deepcopy_db
 import io
 import unittest.mock
 
-from django.contrib.auth.models import AnonymousUser, User
+from django.contrib.auth.models import User
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from ebus_map.models import Station
-from ebustoolbox.models import User, Scenario, Event, Rotation, Trip
+from ebustoolbox.models import Scenario, Event, Rotation, Trip
 from ebustoolbox.tests import build_scenario
 from ebustoolbox.tasks import run_toolchain_from_scenario
 from ebustoolbox.util import get_unique_task_id
 
 from .models import Progress
+
 
 class TestDeepCopy(TransactionTestCase):
     def test_deepcopy(self):
@@ -58,10 +59,10 @@ class TestEmail(TestCase):
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.console.EmailBackend")
     @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
     def test_console_backend(self, mock_stdout):
-        # create test users
-        user_normal = User.objects.create_user(
+        # create test users (normal and staff)
+        User.objects.create_user(
             username='Adam', email='adam@example.com', password='adams_password')
-        user_staff = User.objects.create_superuser(
+        User.objects.create_superuser(
             username='Eve', email='eve@example.com', password='eves_password')
 
         # anon user: no email
