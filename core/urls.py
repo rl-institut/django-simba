@@ -9,5 +9,6 @@ urlpatterns = [
     path('password_reset/', PasswordResetView.as_view(form_class=forms.PWReset), name='password_reset'),
     path('password_change/', views.changePassword, name='password_change'),
     path('register/', views.signup, name='signup'),
+    path('test_email/', views.test_email, name='test_email'),
     path("", views.LandingPageView.as_view(), name="home"),
 ]

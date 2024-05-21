@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     # Django plotly dash
     "django_plotly_dash.apps.DjangoPlotlyDashConfig",
     "bootstrap4",
+    "eflips_depot_results",
 ]
 
 
@@ -102,7 +103,15 @@ WSGI_APPLICATION = "ebusdjango.wsgi.application"
 
 # Email
 # dummy: write to console until real server exists
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# real: django.core.mail.backends.smtp.EmailBackend
+# for Exchange, use core.email.NoCheckEmailBackend to work with missing/self-cert SSL
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST = env('EMAIL_HOST', default=None)
+EMAIL_PORT = env('EMAIL_PORT', default=587)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default=None)
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default=None)
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 LOGIN_REDIRECT_URL = "/"  # redirect to landing page after login
 LOGOUT_REDIRECT_URL = "/login/"  # redirect to login after logout
@@ -118,7 +127,6 @@ CELERY_USE = env("CELERY_USE", default="False").lower() == "true"
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=True)
 if CELERY_TASK_ALWAYS_EAGER:
     CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=True)
-EFLIPS_USE = env("EFLIPS_USE", default="True").lower() == "true"
 # Make sure there is a celery broker url provided if celery should be used
 if CELERY_USE:
     assert CELERY_BROKER_URL, (

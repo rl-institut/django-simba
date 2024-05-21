@@ -13,6 +13,7 @@ from django.db.transaction import atomic
 from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest, Http404
 from django.shortcuts import render, redirect
 from django.urls import reverse
+from django.utils.cache import patch_cache_control
 from django.views.generic import TemplateView
 from django.views.decorators.http import require_GET, require_POST
 from eflips.depot.api import simulate_scenario  # noqa
@@ -47,25 +48,24 @@ def show_uploads_view(request: HttpRequest, filename):
     return response
 
 
-def result_view(request: HttpRequest):
+def result_view(request: HttpRequest, task_id):
     """View controlling if the wait or success view should be shown"""
-    task_id = request.GET["task_id"]
     try:
         if Scenario.objects.get(task_id=task_id).finished:
             request.task_id = str(task_id)
             return SuccessView.as_view()(request, task_id=task_id)
         else:
-            return wait_view(request)
+            return wait_view(request, task_id)
     except Scenario.DoesNotExist:
         html = "<html><body>task_id is not valid</body></html>"
         return HttpResponse(html)
 
 
-def wait_view(request):
+def wait_view(request, task_id):
     """View while waiting for results. Will trigger success view as soon as long-running task
     returns pending"""
     print("SimBA is calculating. Showing wait view")
-    return render(request, "wait.html")
+    return render(request, "wait.html", {"task_id": task_id})
 
 
 class SuccessView(TemplateView, MapEngineMixin):
@@ -190,9 +190,57 @@ def set_station_values(request: HttpRequest, task_id):
         return HttpResponse("Method is not allowed", status=405)
 
 
-def scenario_overview(request: HttpRequest, task_id):
-    # TODO add more context for rendering?
-    return render(request, "scenario_overview.html", {"task_id": task_id})
+def scenario_overview_view(request: HttpRequest, task_id):
+    """View controlling if the wait or success view should be shown"""
+
+    try:
+        if (
+            Scenario.objects.get(task_id=task_id)
+            and not Scenario.objects.get(task_id=task_id).finished
+        ):
+            request.task_id = str(task_id)
+            session = request.session
+            from dash_app.dash_app import create_app
+
+            # By creating a specific app for this task ID, the app "knows" which data to load
+            # ToDO make sure only authorized users can view this
+            create_app(task_id=str(task_id))
+            # the dictionary in "django_plotly_dash" appears in the session_state of the app, which
+            # is an optional kwarg in app.callbacks
+            session["django_plotly_dash"] = {"task_id": str(task_id)}
+
+            response = ScenarioOverview.as_view()(request, task_id=task_id)
+
+            # Setting Cache-Control header
+            patch_cache_control(response, no_cache=True, no_store=True, must_revalidate=True)
+            return response
+        else:
+            url = reverse("simba:result", args=[task_id])
+            duration = 2
+            content = "This scenario has already been simulated."
+            return render(
+                request,
+                "redirect_timer.html",
+                {"content": content, "duration": duration, "redirect_url": url},
+            )
+
+    except Scenario.DoesNotExist:
+        html = "<html><body>task_id is not valid</body></html>"
+        return HttpResponse(html)
+
+
+class ScenarioOverview(TemplateView, MapEngineMixin):
+    template_name = "scenario_overview.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(ScenarioOverview, self).get_context_data(**kwargs)
+        task_id = kwargs.get("task_id")
+        if task_id is None:
+            raise Http404
+        task_id = str(task_id)
+        context["task_id"] = task_id
+
+        return context
 
 
 def progress(request: HttpRequest, progress_id, progress_type: str):
@@ -228,7 +276,8 @@ def progress(request: HttpRequest, progress_id, progress_type: str):
                     create_stations_for_map(scenario)
                     task_id = progress.scenario.task_id
                     request.task_id = task_id
-                    response = SuccessView.as_view()(request, task_id=task_id)
+
+                    response["HX-Redirect"] = reverse("simba:result", args=[task_id])
             case _:
                 raise NotImplementedError
     response["HX-Trigger"] = hx_trigger
@@ -296,8 +345,7 @@ def home_view(request: HttpRequest):
         if "ebus_map" in settings.INSTALLED_APPS:
             create_stations_for_map(django_scenario)
 
-        response = redirect("simba:result")
-        response["Location"] += "?task_id=" + django_scenario.task_id
+        response = redirect("simba:result", task_id=django_scenario.task_id)
         return response
     else:
         return HttpResponse("Method is not allowed", status=405)

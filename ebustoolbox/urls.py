@@ -14,7 +14,7 @@ urlpatterns = [
     ),
     path("scenarios/", views.scenarios, name="scenarios"),
     path("usergroups/", views.usergroups, name="usergroups"),
-    path("result/", views.result_view, name="result"),
+    path("result/<uuid:task_id>/", views.result_view, name="result"),
     path("", views.home_view, name="home"),
 
     path("input/schedule/", views.schedule, name="schedule"),
@@ -26,7 +26,9 @@ urlpatterns = [
     path("input/vehicle_types/<uuid:task_id>", views.get_vehicle_types, name="vehicle_types"),
     path("input/stations/<uuid:task_id>", views.get_stations, name="stations"),
     path(
-        "input/scenario_overview/<uuid:task_id>", views.scenario_overview, name="scenario_overview"
+        "input/scenario_overview/<uuid:task_id>",
+        views.scenario_overview_view,
+        name="scenario_overview",
     ),
     path("set_station_values/<uuid:task_id>", views.set_station_values, name="set_station_values"),
     path(
