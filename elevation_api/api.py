@@ -6,18 +6,62 @@ import pandas as pd
 import pyproj
 from typing import List, Iterable
 from pathlib import Path
-
+import requests
+import zipfile
+from io import BytesIO
 
 from scipy.interpolate import LinearNDInterpolator
 from scipy.spatial import cKDTree
 
-# Path to your PRJ file
-local_path = Path(__file__).parent
-prj_file_path = local_path / Path("static/elevation_api/dgm200_utm32s.prj")
-data_file = local_path / Path("static/elevation_api/dgm200_utm32s.xyz")
+
+def get_sources():
+    print("First time getting sources for elevation data")
+    # Get the directory of the script
+    # Path to your PRJ file
+    local_path = Path(__file__).parent
+    # Create the full path for the extraction location
+    extract_path = local_path / Path("static/elevation_api")
+    # Ensure the extraction directory exists
+    extract_path.mkdir(exist_ok=True)
+
+    # Download the file
+    url = "https://daten.gdz.bkg.bund.de/produkte/dgm/dgm200/aktuell/dgm200.utm32s.xyzascii.zip"
+    response = requests.get(url)
+    response.raise_for_status()  # Check that the request was successful
+
+    # Unzip the file
+    with zipfile.ZipFile(BytesIO(response.content)) as thezip:
+
+        for source_file in ["dgm200_utm32s.prj", "dgm200_utm32s.xyz"]:
+            # Check if the target file is in the zip
+            source_path = "dgm200.utm32s.xyzascii/dgm200/" + source_file
+            if source_path in thezip.namelist():
+                # Extract the specific file
+                with thezip.open(source_path) as source, open(
+                    extract_path / source_file, "wb"
+                ) as target:
+                    target.write(source.read())
+                print(f"File '{source_file}' has been moved to: {extract_path}")
+        else:
+            print(f"File '{source_file}' not found in the zip archive.")
+
+    print(f"Files have been extracted to: {extract_path}")
+
+    prj_file_path = local_path / Path("static/elevation_api/dgm200_utm32s.prj")
+    data_file = local_path / Path("static/elevation_api/dgm200_utm32s.xyz")
+    global TRANSFORMER
+    TRANSFORMER = get_transformer(prj_file_path)
+    global df
+    df = pd.read_csv(data_file, sep=" ", header=None)
+    df.columns = ["x", "y", "z"]
+    data = np.array((df.x, df.y)).T
+    global CKDTREE
+    CKDTREE = cKDTree(data)
 
 
 def get_elevation(lats: List[float], lons: List[float]) -> dict:
+    if TRANSFORMER is None:
+        get_sources()
     transformer = TRANSFORMER
     if TRANSFORMER is None:
         raise Exception("Transformer not available")
@@ -43,7 +87,7 @@ def get_elevation(lats: List[float], lons: List[float]) -> dict:
     return elevations
 
 
-def get_transformer():
+def get_transformer(prj_file_path):
     # Read PRJ file and create coordinate transformation
     try:
         with open(prj_file_path, "r") as prj_file:
@@ -56,8 +100,6 @@ def get_transformer():
         return None
 
 
-TRANSFORMER = get_transformer()
-df = pd.read_csv(data_file, sep=" ", header=None)
-df.columns = ["x", "y", "z"]
-data = np.array((df.x, df.y)).T
-CKDTREE = cKDTree(data)
+TRANSFORMER = None
+CKDTREE = None
+df = None
