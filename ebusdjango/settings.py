@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     # custom apps
     "core",
     "ebustoolbox",
+    "elevation_api",
     "django_mapengine",
     "ebus_map",
     "dash_app",
