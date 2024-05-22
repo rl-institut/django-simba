@@ -14,14 +14,19 @@ def create_layout(app: Dash) -> html.Div:
     # App layout
     @app.callback(
         [Output("tab-simulation", "disabled"), Output("tab-kpi", "disabled")],
-        [Input("tab-simulation", "value")],
-        prevent_initial_call=False,  # Ensure the callback runs on page load
+        [Input("tab-simulation", "value")]
     )
-    def update_tab(tab, session_state=None, dash_app=None, **kwargs):
+    def update_tab(_, session_state=None, dash_app=None, **kwargs):
         disable_tabs = data.get_sim_done_status(dash_app.slug)
         return disable_tabs, disable_tabs
 
-    return html.Div(
+    return html.Div(dcc.Loading(html.Div(
+        id="_dash_app_container",
+        style={
+            "display": "inline-block",
+            "width": "100%",
+            "verticalAlign": "top",
+        }, children=
         [
             html.Div(
                 children=block_top_center(app),
@@ -29,7 +34,6 @@ def create_layout(app: Dash) -> html.Div:
                     "display": "inline-block",
                     "width": "100%",
                     "verticalAlign": "top",
-                    "height": "20%",
                 },
             ),
             dcc.Tabs(
@@ -43,7 +47,6 @@ def create_layout(app: Dash) -> html.Div:
                                     "display": "inline-block",
                                     "width": "33%",
                                     "verticalAlign": "top",
-                                    "height": "100px",
                                 },
                             ),
                             html.Div(
@@ -52,7 +55,6 @@ def create_layout(app: Dash) -> html.Div:
                                     "display": "inline-block",
                                     "width": "33%",
                                     "verticalAlign": "top",
-                                    "height": "100px",
                                 },
                             ),
                             html.Div(
@@ -61,7 +63,6 @@ def create_layout(app: Dash) -> html.Div:
                                     "display": "inline-block",
                                     "width": "33%",
                                     "verticalAlign": "top",
-                                    "height": "100px",
                                 },
                             ),
                             html.Div(
@@ -70,7 +71,6 @@ def create_layout(app: Dash) -> html.Div:
                                     "display": "inline-block",
                                     "width": "50%",
                                     "verticalAlign": "top",
-                                    "height": "200px",
                                 },
                             ),
                         ],
@@ -87,7 +87,6 @@ def create_layout(app: Dash) -> html.Div:
                                     "display": "inline-block",
                                     "width": "49%",
                                     "verticalAlign": "top",
-                                    "height": "400px",
                                 },
                             ),
                         ],
@@ -103,7 +102,6 @@ def create_layout(app: Dash) -> html.Div:
                                 style={
                                     "display": "inline-block",
                                     "width": "100%",
-                                    "height": "600px",
                                 },
                             ),
                         ],
@@ -111,6 +109,8 @@ def create_layout(app: Dash) -> html.Div:
                 ]
             ),
         ]
+    )
+    )
     )
 
 

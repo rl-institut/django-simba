@@ -23,7 +23,7 @@ def render_longest_rotation(app: Dash) -> html.Div:
 
     @app.callback(Output(ids.NUMBER_LONGEST_ROTATION, "children"), Input(ids.BUS_DROPDOWN, "value"))
     def update_report_numbers(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+            buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
@@ -61,7 +61,7 @@ def render_shortest_rotation(app: Dash) -> html.Div:
         Output(ids.NUMBER_SHORTEST_ROTATION, "children"), Input(ids.BUS_DROPDOWN, "value")
     )
     def update_report_numbers(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+            buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
@@ -97,7 +97,7 @@ def render_number_of_buses(app: Dash) -> html.Div:
 
     @app.callback(Output(ids.NUMBER_OF_BUSES, "children"), Input(ids.BUS_DROPDOWN, "value"))
     def update_report_numbers(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+            buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         # print("updating numbers")
         task_id = dash_app.slug
@@ -134,7 +134,7 @@ def critical_rotations(app: Dash) -> html.Div:
 
     @app.callback(Output(ids.LIST_CRIT_ROTATIONS, "children"), Input(ids.BUS_DROPDOWN, "value"))
     def update_report_numbers(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+            buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -151,6 +151,7 @@ def critical_rotations(app: Dash) -> html.Div:
                     id="table",
                     columns=[{"name": i, "id": i} for i in df_sorted.columns],
                     data=df_sorted.to_dict("records"),
+                    page_size=10  # set the maximum number of rows per page
                 ),
                 html.Div(style={"height": "75px"}),  # Spacing div after table
             ]
