@@ -20,7 +20,7 @@
       <!-- Navbar Title -->
       <div class="center-element">
         <h1>
-          <div class="title">E-Bus 2030+</div>
+          <a href="/" class="title unselectable">E-Bus 2030+</a>
         </h1>
       </div>
 
@@ -44,16 +44,10 @@
           <ul class="dropdown-menu dropdown-menu-end">
 
             <li class="dropdown-item">
-              <a href="#" class="nav-link active" aria-current="page">Simulate</a>
+              <a href="#" class="nav-link active" aria-current="page">Simulation</a>
             </li>
             <li class="dropdown-item">
-              <a href="#" class="nav-link active">Docs</a>
-            </li>
-            <li class="dropdown-item">
-              <a href="#" class="nav-link active">About</a>
-            </li>
-            <li class="dropdown-item">
-              <a href="#" class="nav-link active">Contact</a>
+              <a href="#" class="nav-link active">Hilfe</a>
             </li>
 
             <li><hr class="dropdown-divider"></li>
@@ -63,7 +57,7 @@
               <li><a class="dropdown-item" href="{% url 'simba:usergroups' %}">Meine Nutzergruppen</a></li>
               {% if user.is_staff %}
                 <li><a class="dropdown-item" href="/admin">Admin</a></li>
-                <a href="{% url 'core:test_email' %}?path={{request.get_full_path}}">Test Email</a>
+                <a class="dropdown-item" href="{% url 'core:test_email' %}?path={{request.get_full_path}}">Test Email</a>
               {% endif %}
               <li><a class="dropdown-item" href="{% url 'logout' %}">Abmelden</a></li>
             {% else %}

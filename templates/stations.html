@@ -76,8 +76,8 @@
                                           value="{{ station.id }}"
                                           onclick="updateStationCounter();"
                                           initial="{{station.is_electrified}}"
+                                          {% if station.is_electrified %} checked {% endif %}
                                         >
-                                        {% if station.is_electrified %} checked {% endif %}
                                         <label class="form-check-label" for="station_{{ station.id }}">{{ station.name }}</label>
                                     </div>
                                 </div>

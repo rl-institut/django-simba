@@ -5,21 +5,23 @@ document.addEventListener("DOMContentLoaded", function() {
     var progressBar = document.querySelector('#progress-wizard');
 
     const path = String(window.location.pathname);
-    console.log(path);
 
-    var progress = 0
-    if(path.includes("input/schedule/")) {
-        var progress = 1 / navItems.length * 100;
-    } else if(path.includes("input/vehicle_types")) {
-        var progress = 2 / navItems.length * 100;
-    } else if(path.includes("input/stations")) {
-        var progress = 3 / navItems.length * 100;
-    } else if(path.includes("input/depot")) {
-        var progress = 4 / navItems.length * 100;
-    } else if(path.includes("input/scenario_overview")) {
-        var progress = 5 / navItems.length * 100;
-    } else {
-        progress = 0;
+    var progress = 0;
+    const tabs = ["schedule", "vehicle_types", "stations", "depot", "scenario_overview"];
+    // disable all navitems by default
+    for (let nav of navItems)
+        nav.firstElementChild.classList.add('disabled');
+    // set progress bar, enable prior navitems
+    for (let i=0; i<navItems.length; i++) {
+        if (path.includes('/' + tabs[i] + '/')) {
+            // found current tab
+            // update progress
+            progress = (i + 1) * 100 / navItems.length;
+            // enable all prior nav links
+            for (j=0; j<=i; j++)
+                document.getElementById("nav-link-" + tabs[j]).firstElementChild.classList.remove('disabled');
+            break;
+        }
     }
 
     // Calculate progress based on the number of nav items
@@ -35,20 +37,20 @@ document.addEventListener("DOMContentLoaded", function() {
     <div class="container-fluid">
         <div class="collapse navbar-collapse">
             <ul class="navbar-nav justify-content-between w-100">
-                <li class="nav-item">
-                    <a class="nav-link active" href="#">Fahrplan</a>
+                <li id="nav-link-schedule" class="nav-item">
+                    <a class="nav-link active" href="{% url 'simba:schedule' %}">Fahrplan</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">Fahrzeugtypen</a>
+                <li id="nav-link-vehicle_types" class="nav-item">
+                    <a class="nav-link" href="{% url 'simba:vehicle_types' task_id=task_id %}">Fahrzeugtypen</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">Stationen</a>
+                <li id="nav-link-stations" class="nav-item">
+                    <a class="nav-link" href="{% url 'simba:stations' task_id=task_id %}">Stationen</a>
                 </li>
-                <li class="nav-item">
+                <li id="nav-link-depot" class="nav-item">
                     <a class="nav-link " href="#" tabindex="-1" aria-disabled="false">Depot</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">Übersicht</a>
+                <li id="nav-link-scenario_overview" class="nav-item">
+                    <a class="nav-link" href="{% url 'simba:scenario_overview' task_id=task_id %}">Übersicht</a>
                 </li>
             </ul>
         </div>
