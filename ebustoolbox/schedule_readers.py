@@ -409,7 +409,7 @@ class SimbaScheduleReader(ScheduleReader):
     def get_options_form(cls):
         class ScheduleReaderForm(forms.Form):
             # basics
-            file_path = forms.FileField(label="Trips Datei (.csv)", required=True)
+            file_path = forms.FileField(label="Fahrplan Datei (.csv)", required=True)
             default_charging_type = forms.CharField(
                 label="Default Ladetyp",
                 widget=forms.RadioSelect(choices=EnumChargeType.choices),
