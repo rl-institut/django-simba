@@ -80,6 +80,8 @@ def render_soc(app: Dash) -> html.Div:
         fig.update_coloraxes(showscale=False)
         fig.update_xaxes(title_text="SOC")
         fig.update_yaxes(title_text="Relative Häufigkeit in %")
+        fig.update_layout(margin=dict(l=20, r=20, t=40, b=20))
+
 
         return html.Div(dcc.Graph(figure=fig), id=ids.SOC_HISTOGRAM)
 
@@ -138,6 +140,8 @@ def render_dist_dur(app: Dash) -> html.Div:
             title_text="Durchschnittsgeschwindigkeit für Umlauf (inkl. Stillstand, Pausen) in m/s"
         )
         fig.update_yaxes(title_text="Relative Häufigkeit in %")
+        fig.update_layout(margin=dict(l=20, r=20, t=40, b=20))
+
 
         return html.Div(dcc.Graph(figure=fig), id=ids.DIST_DUR_HISTOGRAM)
 
@@ -196,6 +200,7 @@ def render_rotation_distance(app: Dash) -> html.Div:
         fig.update_coloraxes(showscale=False)
         fig.update_xaxes(title_text="Distanz (Nur Trips)")
         fig.update_yaxes(title_text="Absolute Häufigkeit")
+        fig.update_layout(margin=dict(l=20, r=20, t=40, b=20))
 
         return html.Div(dcc.Graph(figure=fig), id=ids.DIST_HISTOGRAM)
 
@@ -246,6 +251,8 @@ def render_rotation_duration(app: Dash) -> html.Div:
         fig.update_coloraxes(showscale=False)
         fig.update_xaxes(title_text="Dauer (Nur Trips)")
         fig.update_yaxes(title_text="Absolute Häufigkeit")
+        fig.update_layout(margin=dict(l=20, r=20, t=40, b=20))
+
 
         return html.Div(dcc.Graph(figure=fig), id=ids.DUR_HISTOGRAM)
 
@@ -296,6 +303,8 @@ def render_minimal_soc(app: Dash) -> html.Div:
         fig.update_coloraxes(showscale=False)
         fig.update_xaxes(title_text="minimal SOC")
         fig.update_yaxes(title_text="Relative Häufigkeit in %")
+        fig.update_layout(margin=dict(l=20, r=20, t=40, b=20))
+
 
         return html.Div(dcc.Graph(figure=fig), id=ids.MIN_SOC_HISTOGRAM)
 

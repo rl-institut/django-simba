@@ -1,5 +1,6 @@
 from dash import Dash, html, dcc, Output, Input
 from dash.dcc import Loading
+from dash.html import Div
 
 from ebustoolbox.models import Scenario
 from . import (
@@ -13,7 +14,7 @@ from . import (
 )
 
 
-def create_layout(app: Dash) -> Loading:
+def create_layout(app: Dash) -> Div:
     # App layout
     @app.callback(
         [Output("tab-simulation", "disabled"), Output("tab-kpi", "disabled")],
@@ -34,26 +35,26 @@ def create_layout(app: Dash) -> Loading:
         _ = data.recent_memoizer(data.get_all_trip_info, scenario_id)(scenario_id)
         return True, buses
 
-    return dcc.Loading([
+    return html.Div([
         dcc.Store(id=ids.MEMOIZER_DONE, data=False),  # Store to keep track of memoizer status
         dcc.Store(id=ids.BUS_DROPDOWN, data=[]),
         html.Div(
-            html.Div(
-                id="_dash_app_container",
-                style={
-                    "display": "inline-block",
-                    "width": "100%",
-                    "verticalAlign": "top",
-                },
-                children=[
-                    html.Div(
-                        children=block_top_center(app),
-                        style={
-                            "display": "inline-block",
-                            "width": "100%",
-                            "verticalAlign": "top",
-                        },
-                    ),
+            id="_dash_app_container",
+            style={
+                "display": "inline-block",
+                "width": "100%",
+                "verticalAlign": "top",
+            },
+            children=[
+                html.Div(
+                    children=block_top_center(app),
+                    style={
+                        "display": "inline-block",
+                        "width": "100%",
+                        "verticalAlign": "top",
+                    },
+                ),
+                dcc.Loading(
                     dcc.Tabs(
                         children=[
                             dcc.Tab(
@@ -126,8 +127,8 @@ def create_layout(app: Dash) -> Loading:
                             ),
                         ]
                     ),
-                ]
-            )
+                )
+            ]
         )
     ]
     )

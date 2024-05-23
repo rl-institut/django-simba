@@ -52,8 +52,23 @@ def render(app: Dash) -> html.Div:
             y="V_id",
             hover_data="event_type",
             color="event_type",
-            height=800,
+            height=max(200, 10 * df['V_id'].nunique()),
         )
+        fig.update_layout(
+            title_text="Aktivitätsdiagram",
+            xaxis_title="Zeit",
+            yaxis_title="Fahrzeug",
+            showlegend=True,
+            margin=dict(l=20, r=20, t=40, b=20),
+        )
+        fig.update_layout(legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ))
+        fig.update_yaxes(visible=True, showticklabels=False)
 
         return html.Div(dcc.Graph(figure=fig), id=ids.BAR_CHART)
 
