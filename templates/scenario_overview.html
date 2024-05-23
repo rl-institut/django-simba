@@ -12,7 +12,7 @@
       <form id='form' hx-target="#my_progress_bar" hx-get='{% url 'simba:run_simulation' task_id %}'>{% csrf_token %}
         <input hidden="hidden" name="task_id" value="{{ task_id }}">
         <button id="simba_submit_button" type="submit" class="btn btn-primary"
-        >Run simulation</button>
+        >Starte Simulation</button>
         <div id="result">{{ task_id }}</div>
       </form>
     <div id="my_progress_bar">
