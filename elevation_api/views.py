@@ -1,9 +1,13 @@
-import traceback
-from django.http import JsonResponse
+from django.conf import settings
+from django.http import JsonResponse, HttpResponse
 from .api import get_elevation
 
 
 def elevation_view(request, lat_long_query: str = None):
+    token = request.GET.get("token")
+    if token != settings.DJANGO_ELEVATION_TOKEN and settings.DJANGO_ELEVATION_TOKEN:
+        return HttpResponse("Invalid token", 403)
+
     if lat_long_query is None:
         lat_long_query = request.GET.get("locations", None)
 
@@ -18,23 +22,17 @@ def elevation_view(request, lat_long_query: str = None):
         lats.append(float(lat_longs.split(",")[0]))
         longs.append(float(lat_longs.split(",")[1]))
 
-    error = False
-    error_text = ""
-    try:
-        elevations = get_elevation(lats, longs)
-    except Exception as e:
-        error_text = str(e)
-        traceback.print_exc()
-        error = True
-        elevations = [0 for _ in range(len(lats))]
+    elevations, errors = get_elevation(lats, longs)
 
-    results = [
-        {"latitude": lat, "longitude": long, "elevation": ele}
-        for lat, long, ele in zip(lats, longs, elevations)
-    ]
-    if error:
-        for result in results:
+    results = []
+    for lat, long, ele, error in zip(lats, longs, elevations, errors):
+        result = {"latitude": lat, "longitude": long, "elevation": ele}
+        if error is None:
+            result["error"] = False
+        else:
             result["error"] = True
-            result["error_text"] = error_text
+            result["error_text"] = error
+        results.append(result)
+
     results = {"results": results}
     return JsonResponse(results)
