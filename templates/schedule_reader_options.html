@@ -4,8 +4,10 @@
 
         {% if reader_num == 1 %}
             <div class="mb-3">
+
                 <label for="{{ form.file_path.id_for_label }}" class="form-label"></label>
                 <div class="input-group">
+                    <span class="input-group-text">{{form.file_path.label }}</span>
                     <input type="file" class="form-control" id="{{ form.file_path.auto_id }}" required name="file_path">
                 </div>
             </div>

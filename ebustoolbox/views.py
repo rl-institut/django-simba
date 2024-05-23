@@ -126,7 +126,7 @@ def get_options(request: HttpRequest, task_id, reader_num: int):
     context = {"reader_num": reader_num, "task_id": task_id}
     response = HttpResponse(context)
     try:
-        form = schedule_readers.get_options_form(reader_num)
+        form = schedule_readers.get_options_form(reader_num)()
         context |= {"form": form}
         response = render(request, "schedule_reader_options.html", context)
     except:  # noqa

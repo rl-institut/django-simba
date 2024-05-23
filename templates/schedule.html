@@ -16,7 +16,7 @@
     <form id="uploadForm" class="text-center">
         <div class="input-item row m-5">
             <div class="col-6" id="ScheduleReaderChoice">
-                    <button class="btn btn-primary" type="button" hx-target="#ScheduleReaderChoice" hx-get="{% url 'simba:get_options' task_id 1 %}">
+                    <button class="btn btn-primary" type="button" hx-target="#uploadForm" hx-get="{% url 'simba:get_options' task_id 1 %}">
                         SimBA-Fahrplan hochladen
                     </button>
             </div>
@@ -27,7 +27,7 @@
 
         <div class="input-item row m-5">
             <div class="col-6">
-                <button class="btn btn-primary" type="button" hx-target="#ScheduleReaderChoice" hx-get="{% url 'simba:get_options' task_id 2 %}">
+                <button class="btn btn-primary" type="button" hx-target="#uploadForm" hx-get="{% url 'simba:get_options' task_id 2 %}">
                     EflipsDummyIngest hochladen
                 </button>
             </div>
@@ -55,7 +55,7 @@
 </div>
 
 
-{% include 'continue_button.html' %}
+{#{% include 'continue_button.html' %}#}
 
 
 {% endblock %}
