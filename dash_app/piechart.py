@@ -17,7 +17,7 @@ def render_critical_rotations(app: Dash) -> html.Div:
     :rtype: html.Div
     """
 
-    @app.callback(Output(ids.PIE_CRITICAL, "figure"), Input(ids.BUS_DROPDOWN, "value"))
+    @app.callback(Output(ids.PIE_CRITICAL, "figure"), Input(ids.BUS_DROPDOWN, "data"))
     def update_pie(buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -50,7 +50,7 @@ def render_bustype(app: Dash) -> html.Div:
     :rtype: html.Div
     """
 
-    @app.callback(Output(ids.PIE_BUSTYPE, "figure"), Input(ids.BUS_DROPDOWN, "value"))
+    @app.callback(Output(ids.PIE_BUSTYPE, "figure"), Input(ids.BUS_DROPDOWN, "data"))
     def update_pie(buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)

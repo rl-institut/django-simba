@@ -23,7 +23,7 @@ def render_soc(app: Dash) -> html.Div:
 
     @app.callback(
         Output(ids.SOC_HISTOGRAM, "children"),
-        Input(ids.BUS_DROPDOWN, "value"),
+        Input(ids.BUS_DROPDOWN, "data"),
     )
     def update_soc_histogram(
         buses: list[str], session_state=None, dash_app=None, **kwargs
@@ -99,7 +99,7 @@ def render_dist_dur(app: Dash) -> html.Div:
 
     @app.callback(
         Output(ids.DIST_DUR_HISTOGRAM, "children"),
-        Input(ids.BUS_DROPDOWN, "value"),
+        Input(ids.BUS_DROPDOWN, "data"),
     )
     def dist_dur_histogram(
         buses: list[str], session_state=None, dash_app=None, **kwargs
@@ -157,7 +157,7 @@ def render_rotation_distance(app: Dash) -> html.Div:
 
     @app.callback(
         Output(ids.DIST_HISTOGRAM, "children"),
-        Input(ids.BUS_DROPDOWN, "value"),
+        Input(ids.BUS_DROPDOWN, "data"),
     )
     def update_distances_histogram(
         buses: list[str], session_state=None, dash_app=None, **kwargs
@@ -215,7 +215,7 @@ def render_rotation_duration(app: Dash) -> html.Div:
 
     @app.callback(
         Output(ids.DUR_HISTOGRAM, "children"),
-        Input(ids.BUS_DROPDOWN, "value"),
+        Input(ids.BUS_DROPDOWN, "data"),
     )
     def update_distances_histogram(
         buses: list[str], session_state=None, dash_app=None, **kwargs
@@ -265,7 +265,7 @@ def render_minimal_soc(app: Dash) -> html.Div:
 
     @app.callback(
         Output(ids.MIN_SOC_HISTOGRAM, "children"),
-        Input(ids.BUS_DROPDOWN, "value"),
+        Input(ids.BUS_DROPDOWN, "data"),
     )
     def update_soc_histogram(
         buses: list[str], session_state=None, dash_app=None, **kwargs

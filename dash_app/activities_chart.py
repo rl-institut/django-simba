@@ -20,7 +20,7 @@ def render(app: Dash) -> html.Div:
 
     @app.callback(
         Output(ids.BAR_CHART, "children"),
-        Input(ids.BUS_DROPDOWN, "value"),
+        Input(ids.BUS_DROPDOWN, "data"),
     )
     def update_timeline_chart(
         buses: list[str], session_state=None, dash_app=None, **kwargs
@@ -73,7 +73,7 @@ def render_performance(app: Dash) -> html.Div:
 
     @app.callback(
         Output(ids.ACTIVITY_PERFORMANCE, "children"),
-        Input(ids.BUS_DROPDOWN, "value"),
+        Input(ids.BUS_DROPDOWN, "data"),
     )
     def update(buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
         """

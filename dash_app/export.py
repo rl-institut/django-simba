@@ -10,7 +10,7 @@ import pandas as pd
 def export(app: Dash) -> html.Div:
     @app.callback(
         Output("output", "children"),
-        [Input(ids.EXPORT_BUTTON, "n_clicks"), Input(ids.BUS_DROPDOWN, "value")],
+        [Input(ids.EXPORT_BUTTON, "n_clicks"), Input(ids.BUS_DROPDOWN, "data")],
     )
     def update_output(n_clicks, buses: list[str], session_state=None, dash_app=None, **kwargs):
         if n_clicks:

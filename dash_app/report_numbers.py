@@ -21,7 +21,7 @@ def render_longest_rotation(app: Dash) -> html.Div:
     :rtype: html.Div
     """
 
-    @app.callback(Output(ids.NUMBER_LONGEST_ROTATION, "children"), Input(ids.BUS_DROPDOWN, "value"))
+    @app.callback(Output(ids.NUMBER_LONGEST_ROTATION, "children"), Input(ids.BUS_DROPDOWN, "data"))
     def update_report_numbers(
             buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
@@ -58,7 +58,7 @@ def render_shortest_rotation(app: Dash) -> html.Div:
     """
 
     @app.callback(
-        Output(ids.NUMBER_SHORTEST_ROTATION, "children"), Input(ids.BUS_DROPDOWN, "value")
+        Output(ids.NUMBER_SHORTEST_ROTATION, "children"), Input(ids.BUS_DROPDOWN, "data")
     )
     def update_report_numbers(
             buses: list[str], session_state=None, dash_app=None, **kwargs
@@ -95,7 +95,7 @@ def render_number_of_buses(app: Dash) -> html.Div:
     :rtype: html.Div
     """
 
-    @app.callback(Output(ids.NUMBER_OF_BUSES, "children"), Input(ids.BUS_DROPDOWN, "value"))
+    @app.callback(Output(ids.NUMBER_OF_BUSES, "children"), Input(ids.BUS_DROPDOWN, "data"))
     def update_report_numbers(
             buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
@@ -132,7 +132,7 @@ def critical_rotations(app: Dash) -> html.Div:
     :rtype: html.Div
     """
 
-    @app.callback(Output(ids.LIST_CRIT_ROTATIONS, "children"), Input(ids.BUS_DROPDOWN, "value"))
+    @app.callback(Output(ids.LIST_CRIT_ROTATIONS, "children"), Input(ids.BUS_DROPDOWN, "data"))
     def update_report_numbers(
             buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:

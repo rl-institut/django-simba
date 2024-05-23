@@ -24,7 +24,7 @@ def create_layout(app: Dash) -> Loading:
         return disable_tabs, disable_tabs
 
     @app.callback(
-        [Output(ids.MEMOIZER_DONE, 'value'), Output(ids.BUS_DROPDOWN, 'value')],
+        [Output(ids.MEMOIZER_DONE, 'data'), Output(ids.BUS_DROPDOWN, 'data')],
         [Input(ids.BUS_DROPDOWN_RAW, "value")]
     )
     def memoize_all_data(buses: list[str], session_state=None, dash_app=None, **kwargs):
@@ -38,15 +38,14 @@ def create_layout(app: Dash) -> Loading:
         dcc.Store(id=ids.MEMOIZER_DONE, data=False),  # Store to keep track of memoizer status
         dcc.Store(id=ids.BUS_DROPDOWN, data=[]),
         html.Div(
-            # dcc.Input(id='task-id-input', type='text', placeholder='Enter task ID'),
             html.Div(
                 id="_dash_app_container",
                 style={
                     "display": "inline-block",
                     "width": "100%",
                     "verticalAlign": "top",
-                }, children=
-                [
+                },
+                children=[
                     html.Div(
                         children=block_top_center(app),
                         style={
