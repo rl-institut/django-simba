@@ -581,6 +581,19 @@ def get_args(django_scenario) -> Namespace:
     # Read the parse values, in this case the default values
     args, _ = parser.parse_known_args()
 
+    # Add default optimizer config
+    p = Path(settings.STATIC_URL, __package__, "examples", "default_optimizer.cfg")
+    if p.is_file():
+        if settings.DEBUG:
+            # use app static folder
+            if p.is_absolute():
+                # remove first slash
+                p = Path(str(p)[1:])
+            p = Path(settings.BASE_DIR, __package__, p)
+        args.optimizer_config = str(p)
+    else:
+        logger.info("default_optimizer.cfg not found. Optimizer config will use default values")
+
     # Overwrite args with scenario specific data
     if django_scenario.simba_options is not None:
         logger.debug(
@@ -594,16 +607,6 @@ def get_args(django_scenario) -> Namespace:
 
     # arguments relevant to SpiceEV, setting automatically to reduce clutter in config
     simba.util.mutate_args_for_spiceev(args)
-
-    # Add default optimizer config
-    p = Path(settings.STATIC_URL, __package__, "examples", "default_optimizer.cfg")
-    if settings.DEBUG:
-        # use app static folder
-        if p.is_absolute():
-            # remove first slash
-            p = Path(str(p)[1:])
-        p = Path(settings.BASE_DIR, __package__, p)
-    args.optimizer_config = str(p)
 
     return args
 
@@ -1255,7 +1258,7 @@ def opportunity_rotation_to_eflips_input(
     db_rotation, db_scenario, input_for_eflips, rot_id, rotation, scenario, schedule
 ):
     input_for_eflips = copy(input_for_eflips)
-    v_soc, start, end = simba.optimizer_util.get_rotation_soc_util(
+    v_soc, start, end = simba.optimizer_util.get_rotation_soc(
         rot_id=rot_id, schedule=schedule, scenario=scenario
     )
     # Start is the first index during the rotation, with a decreased soc already, therefore
