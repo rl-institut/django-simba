@@ -1,4 +1,5 @@
 from dash import Dash, html, dcc, Output, Input
+from dash.dcc import Loading
 
 from ebustoolbox.models import Scenario
 from . import (
@@ -12,7 +13,7 @@ from . import (
 )
 
 
-def create_layout(app: Dash) -> html.Div:
+def create_layout(app: Dash) -> Loading:
     # App layout
     @app.callback(
         [Output("tab-simulation", "disabled"), Output("tab-kpi", "disabled")],
@@ -33,10 +34,10 @@ def create_layout(app: Dash) -> html.Div:
         _ = data.recent_memoizer(data.get_all_trip_info, scenario_id)(scenario_id)
         return True, buses
 
-    return html.Div([
+    return dcc.Loading([
         dcc.Store(id=ids.MEMOIZER_DONE, data=False),  # Store to keep track of memoizer status
         dcc.Store(id=ids.BUS_DROPDOWN, data=[]),
-        dcc.Loading(
+        html.Div(
             # dcc.Input(id='task-id-input', type='text', placeholder='Enter task ID'),
             html.Div(
                 id="_dash_app_container",
