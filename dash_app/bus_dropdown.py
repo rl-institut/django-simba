@@ -17,8 +17,8 @@ def render(app: Dash) -> html.Div:
 
     @app.callback(
         [
-            Output(ids.BUS_DROPDOWN, "value"),
-            Output(ids.BUS_DROPDOWN, "options"),
+            Output(ids.BUS_DROPDOWN_RAW, "value"),
+            Output(ids.BUS_DROPDOWN_RAW, "options"),
         ],
         Input(ids.SELECT_ALL_BUSES_BUTTON, "n_clicks"),
     )
@@ -50,7 +50,7 @@ def render(app: Dash) -> html.Div:
             html.H6("Select one or multiple Buses:"),
             dcc.Dropdown(
                 # Id with which this dropdown can be called
-                id=ids.BUS_DROPDOWN,
+                id=ids.BUS_DROPDOWN_RAW,
                 # Options are set by first select_all_buses call at page_load
                 options=[{"label": bus, "value": bus} for bus in []],
                 # initial Value
