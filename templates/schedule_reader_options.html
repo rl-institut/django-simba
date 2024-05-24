@@ -1,59 +1,70 @@
 <div id="options_form" class="text-center">
-    <form id='form'>{% csrf_token %}
-        {#    use HX-retarget to target form instead of progess bar in cases of errors#}
+  <form id='form'>{% csrf_token %}
+    {#    use HX-retarget to target form instead of progess bar in cases of errors#}
 
-        {% if reader_num == 1 %}
-            <div class="mb-3">
+    {% if reader_num == 1 %}
+      <fieldset class="form-group">
+        <div class="container">
+          <div class="row mb-3 px-4 justify-content-center">
 
-                <label for="{{ form.file_path.id_for_label }}" class="form-label"></label>
-                <div  style="list-style: none">{{ form.file_path.errors }}</div>
-                <div class="input-group">
-                    <span class="input-group-text">{{ form.file_path.label }}</span>
-                    <input type="file" class="form-control" id="{{ form.file_path.auto_id }}" required name="file_path">
-                </div>
+            <div class="input-group">
+              <input type="file" class="form-control col-sm-2" id="{{ form.file_path.auto_id }}" required
+                     name="file_path">
+              <span class="input-group-text">{{ form.file_path.label }}</span>
+              <div>{{ form.file_path.errors }}</div>
             </div>
-
-            <div class="form-check">
+          </div>
+        </div>
+        <div class="container">
+          <div class="row px-4 pb-4 justify-content-center">
+            <div class="col-auto">
+              <div class="form-check">
                 <input class="form-check-input" type="radio" value="depb" name="default_charging_type" id="inp-depb">
                 <label class="form-check-label" for="inp-depb">
-                    Depotlader
+                  Depotlader
                 </label>
-            </div>
-            <div class="form-check">
+              </div>
+              <div class="form-check">
                 <input class="form-check-input" type="radio" value="oppb" name="default_charging_type" id="inp-oppb"
                        checked>
                 <label class="form-check-label" for="inp-oppb">
-                    Gelegenheitslader
+                  Gelegenheitslader
                 </label>
+              </div>
             </div>
-        {% endif %}
+            <span class="col-auto">Welcher Standard-Ladetyp soll angenommen werden?</span>
+          </div>
+
+        </div>
+      </fieldset>
+    {% endif %}
 
 
-        {% if reader_num == 2 %}
-            {{ form.as_p }}
-        {% endif %}
+    {% if reader_num == 2 %}
+      {{ form.as_p }}
+    {% endif %}
 
 
-        {#This will be replaced by the progressbar, during server side analyzing            #}
-        <div id="upload-progress_{{ task_id }}"></div>
-        <button class="btn btn-primary" type=submit id='button_{{ task_id }}' hx-encoding="multipart/form-data"
-                hx-target="#upload-progress_{{ task_id }}"
-                hx-post="{% url 'simba:upload_trips' task_id=task_id reader_num=reader_num %}">
-            Upload
-        </button>
-        {#            progress bar during upload#}
-        <progress id='progress' value='0' max='100'></progress>
-    </form>
-    <script>
-        {# set the first progressbar accodring to the upload progress#}
-        htmx.on('#options_form', 'htmx:xhr:progress', function (evt) {
-            htmx.find('#progress').setAttribute('value', evt.detail.loaded / evt.detail.total * 100)
-        });
-        {# After submitting file disable button#}
-        {# TODO change this script to work with all of the buttons?#}
-        htmx.on('#options_form', 'htmx:confirm', function (evt) {
-            htmx.find('#button_{{task_id}}').disabled = true;
-            console.log("disabled button")
-        });
-    </script>
+    {#This will be replaced by the progressbar, during server side analyzing            #}
+    <div id="upload-progress_{{ task_id }}"></div>
+    <button class="btn btn-primary" type=submit id='button_{{ task_id }}' hx-encoding="multipart/form-data"
+            hx-target="#upload-progress_{{ task_id }}"
+            hx-post="{% url 'simba:upload_trips' task_id=task_id reader_num=reader_num %}">
+      Upload
+    </button>
+    {#            progress bar during upload#}
+    <progress id='progress' value='0' max='100'></progress>
+  </form>
+  <script>
+      {# set the first progressbar accodring to the upload progress#}
+      htmx.on('#options_form', 'htmx:xhr:progress', function (evt) {
+          htmx.find('#progress').setAttribute('value', evt.detail.loaded / evt.detail.total * 100)
+      });
+      {# After submitting file disable button#}
+      {# TODO change this script to work with all of the buttons?#}
+      htmx.on('#options_form', 'htmx:confirm', function (evt) {
+          htmx.find('#button_{{task_id}}').disabled = true;
+          console.log("disabled button")
+      });
+  </script>
 </div>
