@@ -188,6 +188,7 @@ STATICFILES_DIRS = [
     BASE_DIR,
     BASE_DIR / "templates/js",
     BASE_DIR / "templates/css",
+    BASE_DIR / "templates/img",
     BASE_DIR / UPLOAD_PATH,
 ]
 # Default primary key field type

@@ -124,7 +124,6 @@ class SimbaScheduleReader(ScheduleReader):
         self.default_charging_type = default_charging_type
         self.encoding = "utf-8"
         self.progress: Progress = None
-        # self.file_path: Path = None
 
         self.DEPARTURE_NAME = "departure_name"
         self.DEPARTURE_TIME = "departure_time"
@@ -408,31 +407,16 @@ class SimbaScheduleReader(ScheduleReader):
 
     @classmethod
     def get_options_form(cls):
-        function = cls.__init__
-        sig = signature(function)
-
-        def ScheduleReaderOptionsFormFactory(classname, fields: dict):
-            return type(
-                f"{classname}",
-                (forms.Form,),
-                fields,
+        class ScheduleReaderForm(forms.Form):
+            # basics
+            file_path = forms.FileField(label="Fahrplan Datei (.csv)", required=True)
+            default_charging_type = forms.CharField(
+                label="Default Ladetyp",
+                widget=forms.RadioSelect(choices=EnumChargeType.choices),
+                initial=EnumChargeType.choices[0],
             )
 
-        fields = dict()
-        field = forms.FileField(required=True)
-        fields["file_path"] = field
-        field = forms.CharField(
-            widget=forms.RadioSelect(choices=EnumChargeType.choices),
-            initial=EnumChargeType.choices[0],
-        )
-        fields["default_charging_type"] = field
-        parameters = {name: argument for name, argument in sig.parameters.items()}
-        del parameters["self"]
-        for name, argument in parameters.items():
-            assert name in fields.keys(), "Missing required field {}".format(name)
-
-        form = ScheduleReaderOptionsFormFactory("ScheduleReaderOptionsForm", fields)
-        return form
+        return ScheduleReaderForm
 
 
 class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):

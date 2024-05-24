@@ -109,7 +109,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
             error for error in errors if not any([(e in error["message"]) for e in allowed_errors])
         ]
         self.assertEqual(len(errors), 0, f"404 errors detected: {errors}")
-        self.assertContains(response, "Finished")
+        self.assertContains(response, "erfolgreich")
 
 
 def castable_to_dict(objects: Iterable):
