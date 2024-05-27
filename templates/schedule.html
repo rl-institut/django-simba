@@ -35,6 +35,17 @@
                 <small class="form-text text-muted"></small>
             </div>
         </div>
+                <div class="input-item row m-5">
+            <div class="col-6">
+                <button class="btn btn-primary" type="button" hx-target="#uploadForm" hx-get="{% url 'simba:get_options' task_id 3 %}">
+                    VDV .x10 Daten hochladen
+                </button>
+            </div>
+            <div class="col-6">
+                <small class="form-text text-muted"></small>
+            </div>
+        </div>
+
     </form>
 
     <div id="runner"
