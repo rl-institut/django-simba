@@ -427,7 +427,6 @@ def get_electrified_stations_from_db(django_scenario) -> dict:
     """
     stations_dict = dict()
     for station in Station.objects.filter(scenario=django_scenario, is_electrified=True):
-
         stat_dict = {
             "type": charge_type_from_db_to_station(station.charge_type.lower(), is_station=True),
             "n_charging_stations": station.amount_charging_places,

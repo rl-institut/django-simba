@@ -110,6 +110,12 @@ def long_running_task_status_view(request):
     return JsonResponse({"success": False})
 
 
+def schedule(request: HttpRequest):
+    """Generate the home view of the tool chain with input forms"""
+    task_id = get_unique_task_id()
+    return render(request, "schedule.html", {"task_id": task_id})
+
+
 def home_prototype(request: HttpRequest):
     """Generate the home view of the tool chain with input forms"""
     task_id = get_unique_task_id()
@@ -120,7 +126,7 @@ def get_options(request: HttpRequest, task_id, reader_num: int):
     context = {"reader_num": reader_num, "task_id": task_id}
     response = HttpResponse(context)
     try:
-        form = schedule_readers.get_options_form(reader_num)
+        form = schedule_readers.get_options_form(reader_num)()
         context |= {"form": form}
         response = render(request, "schedule_reader_options.html", context)
     except:  # noqa
@@ -344,6 +350,10 @@ def home_view(request: HttpRequest):
     else:
         return HttpResponse("Method is not allowed", status=405)
     return render(request, "index.html", {"form": form})
+
+
+def landing_page(request: HttpRequest):
+    return render(request, "landing_page.html")
 
 
 @atomic()
