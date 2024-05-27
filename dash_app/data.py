@@ -32,15 +32,25 @@ def vid_for_plotting(vehicle: Vehicle):
     return vehicle.id
 
 
-def vid_human_readable(vehicle: Vehicle, rotation: Rotation = None):
+def vid_human_readable(vehicle: Vehicle, offset=0, name="", c_type=False, rotation=None) -> str:
     # Create a user friendly vehicle identifier for plotting
-    if rotation:
-        return "Fahrzeug " + str(vehicle.id) + " in Rotation " + str(rotation.id)
+
+    if c_type:
+        c_type_str = "OPPS"
     else:
-        return "Fahrzeug " + str(vehicle.id) + " in unbekannter Rotation"
+        c_type_str = "DEPOT"
+
+    running_id = int(vehicle.id) - offset
+
+    identifier = str(name) + "_" + c_type_str + "_" + str(running_id) + "_" + str(vehicle.id)
+
+    if rotation:
+        return identifier + " in Rotation " + str(rotation.id)
+    else:
+        return identifier
 
 
-def get_total_consumtion(s: Scenario):
+def get_total_consumption(s: Scenario):
     vehicles = Vehicle.objects.filter(scenario_id=s.id)
 
     df = get_all_event_info(s.id)
@@ -67,7 +77,7 @@ def get_total_consumtion(s: Scenario):
     for index, event in driving_events.iterrows():
         # Calculate the difference between soc_end and soc_start
         total_soc_difference += (
-            abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
+                abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
         )
     return total_soc_difference
 
@@ -84,6 +94,46 @@ def get_all_buses(task_id: str) -> list[str]:
     s = Scenario.objects.get(task_id=task_id)
     all_buses = list(Vehicle.objects.filter(scenario=s).values_list("id", flat=True))
     return all_buses
+
+
+def get_all_buses_labeled(task_id: str) -> list[str]:
+    """
+    Retrieves a list of all buses associated with a specific task ID.
+
+    :param task_id: The ID of the task.
+    :type task_id: str
+    :return: A list of short names of all buses associated with the task.
+    :rtype: list[str]
+    """
+    s = Scenario.objects.get(task_id=task_id)
+    vehicles = Vehicle.objects.filter(scenario_id=s.id)
+    all_buses = list(vehicles.values_list("id", flat=True))
+
+    # Fetch all vehicle types
+    vehicle_types = VehicleType.objects.in_bulk([vehicle.vehicle_type_id for vehicle in vehicles])
+    vehicle_type_dict = {
+        v_id: {
+            'name': vehicle_types[v_type_id].name,
+            'c_type': vehicle_types[v_type_id].opportunity_charging_capable
+        }
+        for v_id, v_type_id in zip(
+            vehicles.values_list("id", flat=True),
+            vehicles.values_list("vehicle_type_id", flat=True),
+        )
+    }
+
+    # Get the starting vehicle ID for this scenario
+    assert (max(list(all_buses)) - min(list(all_buses))) + 1 == Vehicle.objects.filter(scenario=s).count()
+    vehicle_number_offset = min(list(all_buses))
+
+    labels = [vid_human_readable(bus,
+                                 vehicle_number_offset,
+                                 vehicle_type_dict[bus.id]["name"],
+                                 vehicle_type_dict[bus.id]["c_type"])
+              for bus in vehicles
+              ]
+
+    return labels, all_buses
 
 
 def get_number_of_buses(filter_dict: dict) -> list[str]:
@@ -431,6 +481,24 @@ def get_all_event_info(scenario_id):
     dfs = []
     first_warning = True
 
+    # Fetch all vehicle types
+    vehicle_types = VehicleType.objects.in_bulk([vehicle.vehicle_type_id for vehicle in vehicles])
+    vehicle_type_dict = {
+        v_id: {
+            'name': vehicle_types[v_type_id].name,
+            'c_type': vehicle_types[v_type_id].opportunity_charging_capable
+        }
+        for v_id, v_type_id in zip(
+            vehicles.values_list("id", flat=True),
+            vehicles.values_list("vehicle_type_id", flat=True),
+        )
+    }
+
+    # Get the starting vehicle ID for this scenario
+    queryset = Vehicle.objects.filter(scenario=scenario).values_list("id", flat=True)
+    assert (max(list(queryset)) - min(list(queryset))) + 1 == Vehicle.objects.filter(scenario=scenario).count()
+    vehicle_number_offset = min(list(queryset))
+
     # Iterate over vehicles
     for vehicle in vehicles:
         v_id = vid_for_plotting(vehicle)
@@ -480,7 +548,11 @@ def get_all_event_info(scenario_id):
                         "soc_start": event.soc_start,
                         "soc_end": event.soc_end,
                         "R_id": vehicle_rotation,
-                        "readable_name": vid_human_readable(vehicle, vehicle_rotation),
+                        "readable_name": vid_human_readable(vehicle,
+                                                            vehicle_number_offset,
+                                                            vehicle_type_dict[v_id]["name"],
+                                                            vehicle_type_dict[v_id]["c_type"],
+                                                            vehicle_rotation),
                     }
                 )
 

@@ -7,7 +7,7 @@ from .data import (
     get_number_of_buses,
     get_critical_rotations_and_score_as_dataframe,
     get_distances_as_dataframe,
-    get_total_consumtion,
+    get_total_consumption,
     get_number_of_stations,
 )
 from ebustoolbox.models import Scenario
@@ -229,7 +229,7 @@ def render_avg_consumption(app: Dash) -> html.Div:
         s = Scenario.objects.get(task_id=task_id)
 
         # Get the data
-        total_consumption = get_total_consumtion(s)
+        total_consumption = get_total_consumption(s)
         dist_df = get_distances_as_dataframe(s.id, buses)
 
         lines = [

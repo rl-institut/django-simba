@@ -1,6 +1,6 @@
 from dash import Dash, html, dcc
 from . import ids
-from .data import get_all_buses
+from .data import get_all_buses_labeled
 from dash.dependencies import Input, Output
 
 
@@ -37,13 +37,14 @@ def render(app: Dash) -> html.Div:
         :rtype: tuple[list, list]
         """
         task_id = dash_app.slug
-        all_buses = session_state.get(task_id, {}).get("all_buses", get_all_buses(task_id))
+        all_busses_labels, all_buses_v_ids = session_state.get(task_id, {}).get("all_buses", get_all_buses_labeled(task_id))
         try:
             session_state[task_id]
         except KeyError:
             session_state[task_id] = dict()
-        session_state[task_id]["all_buses"] = all_buses
-        return all_buses, [{"label": bus, "value": bus} for bus in all_buses]
+        session_state[task_id]["all_buses"] = all_buses_v_ids
+        return all_buses_v_ids, \
+            [{"label": bus_label, "value": bus_id} for bus_label, bus_id in zip(all_busses_labels, all_buses_v_ids)]
 
     return html.Div(
         children=[
