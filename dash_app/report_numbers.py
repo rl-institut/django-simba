@@ -190,7 +190,7 @@ def render_total_distance(app: Dash) -> html.Div:
         dist_df = get_distances_as_dataframe(s.id, buses)
 
         lines = [
-            "Total driven Distance:",
+            "Gesamtstrecke:",
             str(round(dist_df["total_distance"].sum() / 1000, 3)) + " km",
         ]
 
@@ -233,7 +233,7 @@ def render_avg_consumption(app: Dash) -> html.Div:
         dist_df = get_distances_as_dataframe(s.id, buses)
 
         lines = [
-            "Average Energy consumption:",
+            "Durchschnittlicher Energieverbrauch:",
             str(round(total_consumption / (dist_df["total_distance"].sum() / 1000), 3)) + " kWh/km",
         ]
 

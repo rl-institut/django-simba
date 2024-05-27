@@ -92,7 +92,7 @@ def get_number_of_buses(filter_dict: dict) -> list[str]:
     vehicles = filter_dict.pop("vehicle__id__in")
 
     return [
-        "Selected / Total number of Buses:",
+        "Ausgewählte / Gesamt Anzahl an Bussen:",
         str(len(vehicles)) + " / " + str(len(get_all_buses(task_id))),
     ]
 
@@ -106,7 +106,7 @@ def get_number_of_stations(task_id: str) -> list[str]:
     electrified_stations = Station.objects.filter(scenario_id=s.id, is_electrified=True).count()
 
     return [
-        "Number of Stations / Number of electrified Stations: ",
+        "Anzahl Stationen / Anzahl elektrifizierter Stationen ",
         f"{total_stations} / {electrified_stations}",
     ]
 
@@ -133,9 +133,9 @@ def get_number_longest_rot(filter_dict: dict):
     longest_rotation = get_longest_distance_rotation(filter_dict)
 
     if longest_rotation:
-        return [f"Longest Rotation {longest_rotation.name}", f"{longest_rotation.distance:.1f} m"]
+        return [f"Längste Rotation {longest_rotation.name}", f"{longest_rotation.distance:.1f} m"]
     else:
-        return ["No Rotations found!"]
+        return ["Keine Rotation gefunden!"]
 
 
 def get_number_shortest_rot(filter_dict: dict):
@@ -160,11 +160,11 @@ def get_number_shortest_rot(filter_dict: dict):
     # Add style if text should have special style
     if shortest_rotation:
         return [
-            f"Shortest Rotation {shortest_rotation.name}",
+            f"Kürzeste Rotation {shortest_rotation.name}",
             f"{shortest_rotation.distance:.1f} m",
         ]
     else:
-        return ["No Rotations found!"]
+        return ["Keine Rotation gefunden!"]
 
 
 def recent_memoizer(function, scenario_id, _dcache1=dict(), _result_cache2=dict()):
@@ -357,7 +357,7 @@ def get_critical_rotations_as_dataframe(scenario_id, buses):
     df = df.groupby(["R_id", "V_id"])["soc_end"].min().reset_index()
 
     df["SOC_category"] = df["soc_end"].apply(
-        lambda x: "Non-Critical" if x > CRITICAL_SOC else "Critical"
+        lambda x: "Nicht kritisch" if x > CRITICAL_SOC else "kritisch"
     )
 
     return pd.DataFrame(

@@ -47,7 +47,7 @@ def render(app: Dash) -> html.Div:
 
     return html.Div(
         children=[
-            html.H6("Select one or multiple Buses:"),
+            html.H6("Einen oder mehrere Bus(se) auswählen:"),
             dcc.Dropdown(
                 # Id with which this dropdown can be called
                 id=ids.BUS_DROPDOWN_RAW,
@@ -61,7 +61,7 @@ def render(app: Dash) -> html.Div:
             ),
             # Create a button to select all buses
             html.Button(
-                className="dropdown-button", children=["Select All"], id=ids.SELECT_ALL_BUSES_BUTTON
+                className="dropdown-button", children=["Alle auswählen"], id=ids.SELECT_ALL_BUSES_BUTTON
             ),
         ],
     )
