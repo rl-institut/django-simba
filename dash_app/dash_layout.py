@@ -101,7 +101,15 @@ def create_layout(app: Dash) -> Div:
                                 disabled=True,
                                 children=[
                                     html.Div(
-                                        children=block_top_right(app),
+                                        children=block_top_left_KPI(app),
+                                        style={
+                                            "display": "inline-block",
+                                            "width": "49%",
+                                            "verticalAlign": "top",
+                                        },
+                                    ),
+                                    html.Div(
+                                        children=block_top_right_KPI(app),
                                         style={
                                             "display": "inline-block",
                                             "width": "49%",
@@ -156,8 +164,8 @@ def block_bottom_center(app):
         scatter_chart.render(app),
         scatter_chart.render_power_draw(app),
         scatter_chart.render_station_occupation(app),
-        histograms.render_minimal_soc(app),
         activities_chart.render(app),
+        histograms.render_minimal_soc(app),
         histograms.render_rotation_duration(app),
         histograms.render_rotation_distance(app),
         histograms.render_dist_dur(app),
@@ -168,9 +176,13 @@ def block_top_left(app) -> list[html.Div]:
     return [piechart.render_bustype(app)]
 
 
-def block_lower_left(app) -> list[html.Div]:
-    return []
+def block_top_left_KPI(app) -> list[html.Div]:
+    return [report_numbers.render_total_distance(app),
+            report_numbers.render_avg_consumption(app),
+            report_numbers.render_number_stations(app),
+            report_numbers.render_bus_utilization(app),
+            ]
 
 
-def block_top_right(app):
+def block_top_right_KPI(app):
     return [piechart.render_critical_rotations(app)]
