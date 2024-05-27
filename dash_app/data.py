@@ -31,18 +31,18 @@ def vid_for_plotting(vehicle: Vehicle):
     # Create a user friendly vehicle identifier for plotting
     return vehicle.id
 
-def get_total_consumtion(s: Scenario):
 
+def get_total_consumtion(s: Scenario):
     vehicles = Vehicle.objects.filter(scenario_id=s.id)
 
     df = get_all_event_info(s.id)
 
     # Convert time columns to datetime
-    df['time_start'] = pd.to_datetime(df['time_start'])
-    df['time_end'] = pd.to_datetime(df['time_end'])
+    df["time_start"] = pd.to_datetime(df["time_start"])
+    df["time_end"] = pd.to_datetime(df["time_end"])
 
     # Filter the dataframe for 'DRIVING' events
-    driving_events = df[df['event_type'] == 'DRIVING']
+    driving_events = df[df["event_type"] == "DRIVING"]
 
     # Fetch battery capacity and charging efficiency for all vehicle types
     vehicle_types = VehicleType.objects.in_bulk([vehicle.vehicle_type_id for vehicle in vehicles])
@@ -58,8 +58,11 @@ def get_total_consumtion(s: Scenario):
 
     for index, event in driving_events.iterrows():
         # Calculate the difference between soc_end and soc_start
-        total_soc_difference += abs(event['soc_start'] - event['soc_end']) * battery_capacities[event["V_id"]]
+        total_soc_difference += (
+            abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
+        )
     return total_soc_difference
+
 
 def get_all_buses(task_id: str) -> list[str]:
     """
@@ -87,10 +90,13 @@ def get_number_of_buses(filter_dict: dict) -> list[str]:
     """
     task_id = filter_dict.pop("task_id")
     vehicles = filter_dict.pop("vehicle__id__in")
+
     return [
         "Selected / Total number of Buses:",
         str(len(vehicles)) + " / " + str(len(get_all_buses(task_id))),
     ]
+
+
 def get_number_of_stations(task_id: str) -> list[str]:
     s = Scenario.objects.get(task_id=task_id)
     # Count all Station objects for the scenario
@@ -100,9 +106,10 @@ def get_number_of_stations(task_id: str) -> list[str]:
     electrified_stations = Station.objects.filter(scenario_id=s.id, is_electrified=True).count()
 
     return [
-            f"Number of Stations / Number of electrified Stations: ",
-            f"{total_stations} / {electrified_stations}",
-        ]
+        "Number of Stations / Number of electrified Stations: ",
+        f"{total_stations} / {electrified_stations}",
+    ]
+
 
 def get_number_longest_rot(filter_dict: dict):
     """

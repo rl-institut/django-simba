@@ -7,7 +7,8 @@ from .data import (
     get_number_of_buses,
     get_critical_rotations_and_score_as_dataframe,
     get_distances_as_dataframe,
-    get_total_consumtion, get_number_of_stations,
+    get_total_consumtion,
+    get_number_of_stations,
 )
 from ebustoolbox.models import Scenario
 
@@ -25,7 +26,7 @@ def render_longest_rotation(app: Dash) -> html.Div:
 
     @app.callback(Output(ids.NUMBER_LONGEST_ROTATION, "children"), Input(ids.BUS_DROPDOWN, "data"))
     def update_report_numbers(
-            buses: list[str], session_state=None, dash_app=None, **kwargs
+        buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
@@ -59,11 +60,9 @@ def render_shortest_rotation(app: Dash) -> html.Div:
     :rtype: html.Div
     """
 
-    @app.callback(
-        Output(ids.NUMBER_SHORTEST_ROTATION, "children"), Input(ids.BUS_DROPDOWN, "data")
-    )
+    @app.callback(Output(ids.NUMBER_SHORTEST_ROTATION, "children"), Input(ids.BUS_DROPDOWN, "data"))
     def update_report_numbers(
-            buses: list[str], session_state=None, dash_app=None, **kwargs
+        buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
@@ -99,7 +98,7 @@ def render_number_of_buses(app: Dash) -> html.Div:
 
     @app.callback(Output(ids.NUMBER_OF_BUSES, "children"), Input(ids.BUS_DROPDOWN, "data"))
     def update_report_numbers(
-            buses: list[str], session_state=None, dash_app=None, **kwargs
+        buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         # print("updating numbers")
         task_id = dash_app.slug
@@ -136,7 +135,7 @@ def critical_rotations(app: Dash) -> html.Div:
 
     @app.callback(Output(ids.LIST_CRIT_ROTATIONS, "children"), Input(ids.BUS_DROPDOWN, "data"))
     def update_report_numbers(
-            buses: list[str], session_state=None, dash_app=None, **kwargs
+        buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -154,10 +153,10 @@ def critical_rotations(app: Dash) -> html.Div:
                     columns=[
                         {"name": "Rotations id", "id": "R_id"},
                         {"name": "Fahrzeug id", "id": "V_id"},
-                        {"name": "Minimaler SOC", "id": "soc_end"}
+                        {"name": "Minimaler SOC", "id": "soc_end"},
                     ],
                     data=df_sorted.to_dict("records"),
-                    page_size=10  # set the maximum number of rows per page
+                    page_size=10,  # set the maximum number of rows per page
                 ),
                 html.Div(style={"height": "75px"}),  # Spacing div after table
             ]
@@ -170,12 +169,18 @@ def critical_rotations(app: Dash) -> html.Div:
 
 def render_total_distance(app: Dash) -> html.Div:
     """
+    Renders a Div element displaying the total driven distance.
 
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered total driven distance.
+    :rtype: html.Div
     """
 
     @app.callback(Output(ids.NUMBER_TOTAL_DIST, "children"), Input(ids.BUS_DROPDOWN, "data"))
     def update_total_distance(
-            buses: list[str], session_state=None, dash_app=None, **kwargs
+        buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         # print("updating numbers")
         task_id = dash_app.slug
@@ -184,7 +189,10 @@ def render_total_distance(app: Dash) -> html.Div:
         # Get the data
         dist_df = get_distances_as_dataframe(s.id, buses)
 
-        lines = ["Total driven Distance:", str(round(dist_df["total_distance"].sum()/1000, 3)) + " km"]
+        lines = [
+            "Total driven Distance:",
+            str(round(dist_df["total_distance"].sum() / 1000, 3)) + " km",
+        ]
 
         styles = [
             {"fontSize": "25px", "position": "relative", "top": "0", "left": "0"},
@@ -201,16 +209,20 @@ def render_total_distance(app: Dash) -> html.Div:
     return html.Div(id=ids.NUMBER_TOTAL_DIST)
 
 
-
-
 def render_avg_consumption(app: Dash) -> html.Div:
     """
+    Renders a Div element displaying the average energy consumption.
 
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered average energy consumption.
+    :rtype: html.Div
     """
 
     @app.callback(Output(ids.NUMBER_AVG_CONSUM, "children"), Input(ids.BUS_DROPDOWN, "data"))
     def update_avg_consumption(
-            buses: list[str], session_state=None, dash_app=None, **kwargs
+        buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         # print("updating numbers")
         task_id = dash_app.slug
@@ -220,7 +232,10 @@ def render_avg_consumption(app: Dash) -> html.Div:
         total_consumption = get_total_consumtion(s)
         dist_df = get_distances_as_dataframe(s.id, buses)
 
-        lines = ["Average Energy consumption:", str(round(total_consumption/(dist_df["total_distance"].sum() / 1000), 3)) + " kWh/km"]
+        lines = [
+            "Average Energy consumption:",
+            str(round(total_consumption / (dist_df["total_distance"].sum() / 1000), 3)) + " kWh/km",
+        ]
 
         styles = [
             {"fontSize": "25px", "position": "relative", "top": "0", "left": "0"},
@@ -239,12 +254,18 @@ def render_avg_consumption(app: Dash) -> html.Div:
 
 def render_number_stations(app: Dash) -> html.Div:
     """
+    Renders a Div element displaying the number of (electrified) stations.
 
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered number of stations.
+    :rtype: html.Div
     """
 
     @app.callback(Output(ids.NUMBER_STATIONS, "children"), Input(ids.BUS_DROPDOWN, "data"))
     def update_number_stations(
-            buses: list[str], session_state=None, dash_app=None, **kwargs
+        buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         # print("updating numbers")
         task_id = dash_app.slug
@@ -267,21 +288,19 @@ def render_number_stations(app: Dash) -> html.Div:
 
     return html.Div(id=ids.NUMBER_STATIONS)
 
-def render_bus_utilization(app: Dash) -> html.Div:
-    """
 
-    """
+def render_bus_utilization(app: Dash) -> html.Div:
+    """ """
 
     @app.callback(Output(ids.BUS_UTILIZATION, "children"), Input(ids.BUS_DROPDOWN, "data"))
     def update_bus_utilization(
-            buses: list[str], session_state=None, dash_app=None, **kwargs
+        buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         # print("updating numbers")
-        task_id = dash_app.slug
-        filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
+        # task_id = dash_app.slug
 
         # Get the data
-        lines = get_number_of_buses(filter_dict)
+        lines = ["TODO", "TODO"]
 
         styles = [
             {"fontSize": "25px", "position": "relative", "top": "0", "left": "0"},
@@ -296,4 +315,3 @@ def render_bus_utilization(app: Dash) -> html.Div:
         return html.Div(number_divs, id=ids.BUS_UTILIZATION)
 
     return html.Div(id=ids.BUS_UTILIZATION)
-
