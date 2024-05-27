@@ -38,6 +38,9 @@ Features
 
 
 ### Changed
+- [(#95)](https://github.com/rl-institut/django-simba/pull/95)
+- Add support for email backends, including Microsoft Exchange with self-signed certificates.
+
 - [(#87)](https://github.com/rl-institut/django-simba/pull/87)
 - Add a working (dummy for now) eflips-ingest ingester and the code around it.
 - Change the models to use db_default values for compatibility with eflips-model

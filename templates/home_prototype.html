@@ -25,18 +25,6 @@
             </div>
     </div>
 
-            <div id="runner"
-                {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
-             hx-trigger="notRunning from:body">
-        </div>
 
-        <script>
-            {# Activate button if the server finished handling the previous file#}
-            let task_id = '{{ task_id }}';
-            htmx.on('#runner', 'htmx:trigger', function (evt) {
-                htmx.find('#button_{{task_id}}').disabled= false;
-                console.log("turning on button")
-            });
-        </script>
     </div>
 {% endblock %}

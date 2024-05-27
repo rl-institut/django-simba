@@ -1,80 +1,118 @@
-<style>
-.dropdown .dropbtn {
-  background: none;
-  border: none;
-}
+{% load static %}
+<header>
+  <nav class="navbar navbar-expand-lg navbar-light border-bottom sticky-top container-fluid d-flex">
+    <div id="navbar" class="container-fluid p-0">
+      <!-- Logos -->
+      <div class="navbar-brand p-0 m-0">
+        <a href="https://www.rl-institut.de" >
+          <img src="{% static 'templates/img/RLI_Logo.png' %}" width="55" height="40" class="d-inline-block align-top" alt="Reiner Lemoine Institut">
+        </a>
+        <a href="https://www.tu.berlin/mpm" class="navbar-brand p-0 m-0">
+          <img src="{% static 'templates/img/tu_icon.png' %}" width="70" height="40" class="d-inline-block align-top" alt="TU Berlin">
+        </a>
+        <a href="https://www.bvg.de" class="navbar-brand p-0 m-0">
+          <img src="{% static 'templates/img/bvg_icon.png' %}" width="50" height="40" class="d-inline-block align-top" alt="BVG">
+        </a>
+      </div>
 
-.dropdown-content {
-  display: none;
-  position: fixed;
-  z-index: 1;
-}
+      <!-- Collapsing Element -->
+      <button
+        class="navbar-toggler" type="button"
+        data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
+        aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
 
-.dropdown-content a {
-  display: block;
-  text-decoration: none;
-}
-
-.dropdown:hover .dropdown-content {display: block;}
-.dropdown:hover .dropbtn {background-color: #eee;}
-</style>
-
-<header class="d-flex justify-content-between align-items-md-center pb-3 mb-5 border-bottom">
-  <div class="row w-100">
-    <!-- Left Section: Takes 35% width and left-aligned content -->
-    <div class="col-4">
-      <div class="navbar-text">
-        <h1 class="h4">
-          <a href="/" class="d-flex align-items-center text-dark text-decoration-none">
-            <div class="logo">
-              <img class="img-fluid" id="logo"
-                src="https://reiner-lemoine-institut.de//wp-content/uploads/2015/09/rlilogo.png"
-                data-retina=""
-                data-height="" alt="Reiner Lemoine Institut" data-no-retina="">
-            </div>
-            <span>RLI</span>
-          </a>
+      <!-- Navbar Title -->
+      <div class="center-element">
+        <h1>
+          <a href="/" class="title unselectable">E-Bus 2030+</a>
         </h1>
       </div>
-    </div>
 
-    <!-- Middle Section: Takes 30% width and centered content -->
-    <div class="col-4 text-center">
-      <div class="navbar-text">
-        <div class="container mt-0 text-center">
-          <div class="callout tiny primary">
-            <div class="row column text-center">
-              <h1>
-                <div class="title">E-Bus 2030+</div>
-              </h1>
-            </div>
-          </div>
+      <!-- Dropdown Elements on the right Side -->
+      <div class="d-flex justify-content-evenly" id="navbarCollapse">
+        <div class="dropdown" >
+          <button class="btn btn-dark rounded-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            DE
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#">ENG</a></li>
+            <li><a class="dropdown-item" href="#">DE</a></li>
+          </ul>
         </div>
-      </div>
-    </div>
 
-    <!-- Right Section: Takes 35% width and right-aligned content -->
-    <div class="col-4 d-flex justify-content-end">
-      <div class="navbar-text">
         <div class="dropdown">
-          <button class="dropbtn">Menü</button>
-          <div class="dropdown-content">
-              <nav>
-                  {% if user.is_authenticated %}
-                      <a href="{% url 'simba:scenarios' %}">Meine Szenarios</a>
-                      <a href="{% url 'simba:usergroups' %}">Meine Nutzergruppen</a>
-                      <a href="{% url 'logout' %}">Abmelden</a>
-                      {% if user.is_staff %}
-                          <a href="/admin">Admin</a>
-                      {% endif %}
-                  {% else %}
-                      <a href="{% url 'login' %}">Anmelden</a>
-                      <!--<a href="{% url 'core:signup' %}">Registrieren</a>-->
-                  {% endif %}
-              </nav>
-          </div>
+          <button class="btn btn-light dropdown-toggle rounded-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Menü
+          </button>
+
+          <ul class="dropdown-menu dropdown-menu-end">
+
+            <li class="dropdown-item">
+              <a href="#" class="nav-link active" aria-current="page">Simulation</a>
+            </li>
+            <li class="dropdown-item">
+              <a href="#" class="nav-link active">Hilfe</a>
+            </li>
+
+            <li><hr class="dropdown-divider"></li>
+
+            {% if user.is_authenticated %}
+              <li><a class="dropdown-item" href="{% url 'simba:scenarios' %}">Meine Szenarien</a></li>
+              <li><a class="dropdown-item" href="{% url 'simba:usergroups' %}">Meine Nutzergruppen</a></li>
+              {% if user.is_staff %}
+                <li><a class="dropdown-item" href="/admin">Admin</a></li>
+                <a class="dropdown-item" href="{% url 'core:test_email' %}?path={{request.get_full_path}}">Test Email</a>
+              {% endif %}
+              <li><a class="dropdown-item" href="{% url 'logout' %}">Abmelden</a></li>
+            {% else %}
+              <li><a class="dropdown-item" href="{% url 'login' %}">Anmelden</a></li>
+              <!--<a href="{% url 'core:signup' %}">Registrieren</a>-->
+            {% endif %}
+          </ul>
         </div>
       </div>
     </div>
-  </div>
+  </nav>
 </header>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Setzen Sie den Standardwert auf DE
+    var selectedLanguage = 'DE';
+
+    // Funktion zum Aktualisieren des Button-Texts
+    function updateButtonText() {
+        var button = document.querySelector('#navbarCollapse button');
+        var buttonText = selectedLanguage.toUpperCase();
+        button.textContent = buttonText;
+    }
+
+    // Funktion zum Ändern der ausgewählten Sprache
+    function changeLanguage(lang) {
+        selectedLanguage = lang;
+        updateButtonText();
+    }
+
+    // Initialisieren Sie den Dropdown-Menü
+    var dropdownElement = document.getElementById('navbarCollapse');
+    var dropdown = new bootstrap.Dropdown(dropdownElement);
+
+    // Verwenden Sie das native addEventListener auf dem Dropdown-Element
+    dropdownElement.addEventListener('show.bs.dropdown', function () {
+        // Hier können Sie die ausgewählte Sprache basierend auf Benutzereinstellungen oder anderen Logik festlegen
+        // Für dieses Beispiel setzen wir es auf DE
+        changeLanguage('DE');
+    });
+
+    // Event-Handler für die Auswahl einer Sprache
+    document.querySelector('.dropdown-menu').addEventListener('click', function(event) {
+        if (event.target.matches('.dropdown-item')) {
+            var lang = event.target.textContent.toUpperCase();
+            changeLanguage(lang);
+        }
+    });
+});
+
+</script>

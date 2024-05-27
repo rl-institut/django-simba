@@ -1,11 +1,13 @@
-# Create your tests here.
 from .deepcopy import deepcopy as deepcopy_db
+
+from django.test import TransactionTestCase
+
+from ebus_map.models import Station
+from ebustoolbox.models import User, Scenario, Event, Rotation, Trip
 from ebustoolbox.tests import build_scenario
 from ebustoolbox.tasks import run_toolchain_from_scenario
 from ebustoolbox.util import get_unique_task_id
-from django.test import TransactionTestCase
-from ebustoolbox.models import User, Scenario, Event, Rotation, Trip
-from ebus_map.models import Station
+
 from .models import Progress
 
 
