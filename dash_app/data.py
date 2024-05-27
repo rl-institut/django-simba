@@ -77,7 +77,7 @@ def get_total_consumption(s: Scenario):
     for index, event in driving_events.iterrows():
         # Calculate the difference between soc_end and soc_start
         total_soc_difference += (
-                abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
+            abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
         )
     return total_soc_difference
 
@@ -109,12 +109,31 @@ def get_all_buses_labeled(task_id: str) -> list[str]:
     vehicles = Vehicle.objects.filter(scenario_id=s.id)
     all_buses = list(vehicles.values_list("id", flat=True))
 
+    vehicle_number_offset, vehicle_type_dict = get_info_for_labeling(s)
+
+    labels = [
+        vid_human_readable(
+            bus,
+            vehicle_number_offset,
+            vehicle_type_dict[bus.id]["name"],
+            vehicle_type_dict[bus.id]["c_type"],
+        )
+        for bus in vehicles
+    ]
+
+    return labels, all_buses
+
+
+def get_info_for_labeling(s: Scenario):
+    vehicles = Vehicle.objects.filter(scenario_id=s.id)
+    all_buses = list(vehicles.values_list("id", flat=True))
+
     # Fetch all vehicle types
     vehicle_types = VehicleType.objects.in_bulk([vehicle.vehicle_type_id for vehicle in vehicles])
     vehicle_type_dict = {
         v_id: {
-            'name': vehicle_types[v_type_id].name,
-            'c_type': vehicle_types[v_type_id].opportunity_charging_capable
+            "name": vehicle_types[v_type_id].name,
+            "c_type": vehicle_types[v_type_id].opportunity_charging_capable,
         }
         for v_id, v_type_id in zip(
             vehicles.values_list("id", flat=True),
@@ -123,17 +142,12 @@ def get_all_buses_labeled(task_id: str) -> list[str]:
     }
 
     # Get the starting vehicle ID for this scenario
-    assert (max(list(all_buses)) - min(list(all_buses))) + 1 == Vehicle.objects.filter(scenario=s).count()
+    assert (max(list(all_buses)) - min(list(all_buses))) + 1 == Vehicle.objects.filter(
+        scenario=s
+    ).count()
     vehicle_number_offset = min(list(all_buses))
 
-    labels = [vid_human_readable(bus,
-                                 vehicle_number_offset,
-                                 vehicle_type_dict[bus.id]["name"],
-                                 vehicle_type_dict[bus.id]["c_type"])
-              for bus in vehicles
-              ]
-
-    return labels, all_buses
+    return vehicle_number_offset, vehicle_type_dict
 
 
 def get_number_of_buses(filter_dict: dict) -> list[str]:
@@ -481,23 +495,7 @@ def get_all_event_info(scenario_id):
     dfs = []
     first_warning = True
 
-    # Fetch all vehicle types
-    vehicle_types = VehicleType.objects.in_bulk([vehicle.vehicle_type_id for vehicle in vehicles])
-    vehicle_type_dict = {
-        v_id: {
-            'name': vehicle_types[v_type_id].name,
-            'c_type': vehicle_types[v_type_id].opportunity_charging_capable
-        }
-        for v_id, v_type_id in zip(
-            vehicles.values_list("id", flat=True),
-            vehicles.values_list("vehicle_type_id", flat=True),
-        )
-    }
-
-    # Get the starting vehicle ID for this scenario
-    queryset = Vehicle.objects.filter(scenario=scenario).values_list("id", flat=True)
-    assert (max(list(queryset)) - min(list(queryset))) + 1 == Vehicle.objects.filter(scenario=scenario).count()
-    vehicle_number_offset = min(list(queryset))
+    vehicle_number_offset, vehicle_type_dict = get_info_for_labeling(scenario)
 
     # Iterate over vehicles
     for vehicle in vehicles:
@@ -548,11 +546,13 @@ def get_all_event_info(scenario_id):
                         "soc_start": event.soc_start,
                         "soc_end": event.soc_end,
                         "R_id": vehicle_rotation,
-                        "readable_name": vid_human_readable(vehicle,
-                                                            vehicle_number_offset,
-                                                            vehicle_type_dict[v_id]["name"],
-                                                            vehicle_type_dict[v_id]["c_type"],
-                                                            vehicle_rotation),
+                        "readable_name": vid_human_readable(
+                            vehicle,
+                            vehicle_number_offset,
+                            vehicle_type_dict[v_id]["name"],
+                            vehicle_type_dict[v_id]["c_type"],
+                            vehicle_rotation,
+                        ),
                     }
                 )
 

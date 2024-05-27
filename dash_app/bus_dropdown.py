@@ -37,14 +37,18 @@ def render(app: Dash) -> html.Div:
         :rtype: tuple[list, list]
         """
         task_id = dash_app.slug
-        all_busses_labels, all_buses_v_ids = session_state.get(task_id, {}).get("all_buses", get_all_buses_labeled(task_id))
+        all_busses_labels, all_buses_v_ids = session_state.get(task_id, {}).get(
+            "all_buses", get_all_buses_labeled(task_id)
+        )
         try:
             session_state[task_id]
         except KeyError:
             session_state[task_id] = dict()
         session_state[task_id]["all_buses"] = all_buses_v_ids
-        return all_buses_v_ids, \
-            [{"label": bus_label, "value": bus_id} for bus_label, bus_id in zip(all_busses_labels, all_buses_v_ids)]
+        return all_buses_v_ids, [
+            {"label": bus_label, "value": bus_id}
+            for bus_label, bus_id in zip(all_busses_labels, all_buses_v_ids)
+        ]
 
     return html.Div(
         children=[
