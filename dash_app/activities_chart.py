@@ -50,6 +50,7 @@ def render(app: Dash) -> html.Div:
             x_start="time_start",
             x_end="time_end",
             y="V_id",
+            hover_name="readable_name",
             hover_data="event_type",
             color="event_type",
             height=max(200, 10 * df["V_id"].nunique()),

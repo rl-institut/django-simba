@@ -32,6 +32,14 @@ def vid_for_plotting(vehicle: Vehicle):
     return vehicle.id
 
 
+def vid_human_readable(vehicle: Vehicle, rotation: Rotation = None):
+    # Create a user friendly vehicle identifier for plotting
+    if rotation:
+        return "Fahrzeug " + str(vehicle.id) + " in Rotation " + str(rotation.id)
+    else:
+        return "Fahrzeug " + str(vehicle.id) + " in unbekannter Rotation"
+
+
 def get_total_consumtion(s: Scenario):
     vehicles = Vehicle.objects.filter(scenario_id=s.id)
 
@@ -59,7 +67,7 @@ def get_total_consumtion(s: Scenario):
     for index, event in driving_events.iterrows():
         # Calculate the difference between soc_end and soc_start
         total_soc_difference += (
-            abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
+                abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
         )
     return total_soc_difference
 
@@ -472,6 +480,7 @@ def get_all_event_info(scenario_id):
                         "soc_start": event.soc_start,
                         "soc_end": event.soc_end,
                         "R_id": vehicle_rotation,
+                        "readable_name": vid_human_readable(vehicle, vehicle_rotation)
                     }
                 )
 

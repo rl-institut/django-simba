@@ -31,7 +31,7 @@ def render(app: Dash) -> html.Div:
         # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template="plotly"))
         df["soc_end_prc"] = df["soc_end"] * 100
-        fig = px.line(df, x="time_end", y="soc_end_prc", color="V_id", title="Buses SOC over Time")
+        fig = px.line(df, x="time_end", y="soc_end_prc", color="V_id", hover_name="readable_name")
         fig.update_layout(
             margin=dict(l=20, r=20, t=40, b=20),
         )
