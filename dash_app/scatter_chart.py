@@ -152,8 +152,8 @@ def render_station_occupation(app: Dash) -> html.Div:
             for time_point in all_times:
                 # Count the number of vehicles charging at this time point
                 charging_vehicles = (
-                        ((df["time_start"] <= time_point) & (df["time_end"] > time_point))
-                        & (df["Power"] > 0)
+                    ((df["time_start"] <= time_point) & (df["time_end"] > time_point))
+                    & (df["Power"] > 0)
                 ).sum()
                 charging_status.append({"time": time_point, "vehicles_charging": charging_vehicles})
 

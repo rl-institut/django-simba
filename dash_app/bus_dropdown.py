@@ -61,7 +61,9 @@ def render(app: Dash) -> html.Div:
             ),
             # Create a button to select all buses
             html.Button(
-                className="dropdown-button", children=["Alle auswählen"], id=ids.SELECT_ALL_BUSES_BUTTON
+                className="dropdown-button",
+                children=["Alle auswählen"],
+                id=ids.SELECT_ALL_BUSES_BUTTON,
             ),
         ],
     )
