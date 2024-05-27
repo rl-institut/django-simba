@@ -101,8 +101,8 @@ def long_running_task_status_view(request):
     task_id = request.GET.get("task_id")
     task_result = AsyncResult(task_id)
     if (
-            task_result.ready()
-            or Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
+        task_result.ready()
+        or Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
     ):
         print("Task is finished")
         return JsonResponse({"success": True})
@@ -195,8 +195,8 @@ def scenario_overview_view(request: HttpRequest, task_id):
 
     try:
         if (
-                Scenario.objects.get(task_id=task_id)
-                and not Scenario.objects.get(task_id=task_id).finished
+            Scenario.objects.get(task_id=task_id)
+            and not Scenario.objects.get(task_id=task_id).finished
         ):
             request.task_id = str(task_id)
             session = request.session
@@ -375,7 +375,7 @@ def create_stations_for_map(django_scenario: Scenario):
 
 
 def save_and_simulate(
-        form: UploadFileForm | None = None, request: HttpRequest | None = None
+    form: UploadFileForm | None = None, request: HttpRequest | None = None
 ) -> Scenario:
     print(f"Running TOOLCHAIN {datetime.now()}")
     if form is None:
