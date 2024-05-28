@@ -1,4 +1,5 @@
-from dash import Dash, html, dcc, Output, Input
+import dash.exceptions
+from dash import Dash, html, dcc, Output, Input, State
 from dash.html import Div
 
 from ebustoolbox.models import Scenario
@@ -36,6 +37,16 @@ def create_layout(app: Dash) -> Div:
         _ = data.recent_memoizer(data.get_vehicle_dictionaries, scenario.id)(scenario.id)
         _ = data.recent_memoizer(data.get_rotation_dictionaries, scenario.id)(scenario.id)
         return True, buses
+
+    @app.callback(
+        Output(ids.APPLY_DROPDOWN, "n_clicks"),
+        Input(ids.BUS_DROPDOWN, "data"),
+        State(ids.APPLY_DROPDOWN, "n_clicks"),
+    )
+    def trigger_apply_once(_, n_clicks, session_state=None, dash_app=None, **kwargs):
+        if n_clicks is None:
+            return 0
+        raise dash.exceptions.PreventUpdate
 
     return html.Div(
         [

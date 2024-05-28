@@ -1,7 +1,7 @@
+import logging
 import random
 import traceback
 import warnings
-from datetime import datetime
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -41,6 +41,8 @@ from ebustoolbox.models import (
     EnumChargeType,
 )
 
+logger = logging.getLogger("custom")
+
 
 def show_uploads_view(request: HttpRequest, filename):
     file = open("uploads/" + filename, "rb")
@@ -64,7 +66,7 @@ def result_view(request: HttpRequest, task_id):
 def wait_view(request, task_id):
     """View while waiting for results. Will trigger success view as soon as long-running task
     returns pending"""
-    print("SimBA is calculating. Showing wait view")
+    logger.info("SimBA is calculating. Showing wait view")
     return render(request, "wait.html", {"task_id": task_id})
 
 
@@ -104,9 +106,9 @@ def long_running_task_status_view(request):
         task_result.ready()
         or Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
     ):
-        print("Task is finished")
+        logger.info("Task is finished")
         return JsonResponse({"success": True})
-    print("Task is pending")
+    logger.info("Task is pending")
     return JsonResponse({"success": False})
 
 
@@ -130,7 +132,7 @@ def get_options(request: HttpRequest, task_id, reader_num: int):
         context |= {"form": form}
         response = render(request, "schedule_reader_options.html", context)
     except:  # noqa
-        traceback.print_exc()
+        logger.error(traceback.format_exc())
         # 204 - No Content https://htmx.org/docs/#requests
         response.status_code = 204
     return response
@@ -377,7 +379,7 @@ def create_stations_for_map(django_scenario: Scenario):
 def save_and_simulate(
     form: UploadFileForm | None = None, request: HttpRequest | None = None
 ) -> Scenario:
-    print(f"Running TOOLCHAIN {datetime.now()}")
+    logger.info("Saving scenario and simulating")
     if form is None:
         new_form = UploadFileForm()
         # If this function is called without a request and a form,  use the initial values as
@@ -386,27 +388,27 @@ def save_and_simulate(
     else:
         cleaned_data = form.cleaned_data
 
-    print(f"Writing to db {datetime.now()}")
+    logger.info("Writing to db")
     django_scenario, simba_schedule, args = tasks.input_files_to_database(cleaned_data, request)
     if request.user.is_authenticated:
         django_scenario.manager = request.user
     # start computation
     task_id = get_unique_task_id()
-    print(f"{task_id=}")
+    logger.info(f"{task_id=}")
     django_scenario.task_id = task_id
     django_scenario.save()
     tasks.run_ebus_toolchain(task_id)
-    print(f"Simulation Finished {datetime.now()}")
+    logger.info("Simulation Finished.")
     return django_scenario
 
 
 def run_simulation(request: HttpRequest, task_id: str):
     context = {"task_id": task_id, "progress_type": "simulation"}
-    print(context)
+    logger.debug(context)
     response = HttpResponse(context)
     try:
         if request.method == "GET":
-            print(f"Running TOOLCHAIN {datetime.now()}")
+            logger.info("Running Toolchain.")
             try:
                 scenario = Scenario.objects.get(task_id=task_id)
             except Scenario.DoesNotExist:
@@ -419,7 +421,7 @@ def run_simulation(request: HttpRequest, task_id: str):
             response = render(request, "progress_poll.html", context)
             response["HX-Trigger"] = "running"
     except Exception:
-        traceback.print_exc()
+        logger.error(traceback.format_exc())
         response["HX-Trigger"] = "notRunning"
     return response
 

@@ -64,5 +64,9 @@ def render(app: Dash) -> html.Div:
                 children=["Alle auswählen"],
                 id=ids.SELECT_ALL_BUSES_BUTTON,
             ),
+            # Create a button to select all buses
+            html.Button(
+                className="apply-button", children=["Auswahl bestätigen"], id=ids.APPLY_DROPDOWN
+            ),
         ],
     )

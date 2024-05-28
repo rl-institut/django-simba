@@ -18,9 +18,25 @@ Template:
 ```
 
 ## [x.x.x] - Unreleased
-
 ### Changed
 - [(#97)](https://github.com/rl-institut/django-simba/pull/97)
+- Updates SimBA and eflips-ingest
+- Implement VDV Ingester of eflips-ingest
+- Properly populate scenario.simba_options with values after every call of a ScheduleReader
+- Implement local elevation_api with similar spec to openelvation_api
+  - Calling the api the first time will download the necessary dgm200m files
+- Secure this api with an optional token DJANGO_ELEVATION_TOKEN in .env
+  - In this case, a request must contain the key "token" with the given value
+- Pass prints to logger instead
+- Add default_optimizer.cfg file
+- Add apply button for filtering vehicles in plots
+- Fix issue with result cache for plotting
+
+
+
+
+### Changed
+- [(#98)](https://github.com/rl-institut/django-simba/pull/98)
 - Fixed issuses from PR#76
 - Fixed and added plots
 - translation of plots and labels

@@ -955,10 +955,12 @@ version = "1.1.1"
 description = "A collection of import scripts for converting bus schedule data into the [eflips-model](https://github.com/mpm-tu-berlin/eflips-model) data format."
 optional = false
 python-versions = "<4.0,>=3.10"
-files = [
-    {file = "eflips_ingest-1.1.1-py3-none-any.whl", hash = "sha256:4a806a86fa0595d364ea48b9d5393827799367a6a556bfe1280f867e6fc2dfb9"},
-    {file = "eflips_ingest-1.1.1.tar.gz", hash = "sha256:e757f494c559338bcd45c5ea9ea91b9c028b742df7d6bc65e5e0fadb2b4033d7"},
-]
+
+[package.source]
+type = "git"
+url = "https://github.com/mpm-tu-berlin/eflips-ingest.git"
+reference = "main"
+resolved_reference = "6cfbcee80716e2af5437d2a4f9ca870c429e0b57"
 
 [package.dependencies]
 eflips-model = ">=3.1.1,<4.0.0"
@@ -2358,7 +2360,7 @@ develop = false
 type = "git"
 url = "https://github.com/rl-institut/SimBA"
 reference = "feature/django_simba"
-resolved_reference = "31546713b23948bb570582148023e227802a5b45"
+resolved_reference = "3a33dcc572fc48d0028af9b740af7811ba9875e5"
 
 [[package]]
 name = "simpy"

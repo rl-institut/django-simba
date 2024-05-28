@@ -3,6 +3,8 @@
 This way data should be easily swappable, while the dash_layout allows for swapping of the design
 """
 import warnings
+import logging
+
 
 from ebustoolbox.models import (
     Scenario,
@@ -25,6 +27,7 @@ MAX_SIZE = 10
 # stores scenario_id and finished time
 last_simulations = list()
 CRITICAL_SOC = 0.0
+logger = logging.getLogger("custom")
 
 
 def vid_human_readable(vehicle: Vehicle, counter, name="", c_type=False, rotation=None) -> str:
@@ -228,7 +231,7 @@ def get_number_shortest_rot(filter_dict: dict):
         return ["Keine Rotation gefunden!"]
 
 
-def recent_memoizer(function, scenario_id, _dcache1=dict(), _result_cache2=dict()):
+def recent_memoizer(function, scenario_id, _dcache1=dict(), _result_cache2=dict()):  # noqa
     """Decorator function
 
     :param function: function do be decorated
@@ -247,9 +250,10 @@ def recent_memoizer(function, scenario_id, _dcache1=dict(), _result_cache2=dict(
         if not scenario.finished == last_simulations[index][1]:
             last_simulations.pop(index)
             last_simulations.append((scenario_id, scenario.finished))
-            for function_key, function_arguments in _dcache1.copy().items():
-                function_arguments = filter(lambda x: x[0] == scenario_id, function_arguments)
-                for f_args in function_arguments:
+            for function_key, all_f_args in _dcache1.copy().items():
+                f_args_w_scenario_id = filter(lambda x: x[0] == scenario_id, all_f_args)
+                logger.debug("Deleting deprecated scenario ", scenario_id)
+                for f_args in f_args_w_scenario_id:
                     try:
                         _dcache1[function_key].remove(f_args)
                     except ValueError:
@@ -258,7 +262,6 @@ def recent_memoizer(function, scenario_id, _dcache1=dict(), _result_cache2=dict(
                         del _result_cache2[function_key][f_args]
                     except KeyError:
                         pass
-
             last_simulations.pop(index)
             last_simulations.append((scenario_id, scenario.finished))
     except ValueError:
@@ -276,17 +279,26 @@ def recent_memoizer(function, scenario_id, _dcache1=dict(), _result_cache2=dict(
 
         inputs = tuple((scenario_id, this_args, *list(kwargs)))
 
-        if inputs in _dcache1[key] and inputs in _result_cache2[key]:
+        if inputs in _dcache1[key]:
             _dcache1[key].remove(inputs)
             _dcache1[key].append(inputs)
-            return _result_cache2[key][inputs]
+            if inputs in _result_cache2[key]:
+                logger.debug(f"Using cache for {key} for scenario {scenario_id}")
+                return _result_cache2[key][inputs]
         else:
             # Storage is full. Delete oldest storage
             if len(_dcache1[key]) >= MAX_SIZE:
-                del _result_cache2[key][_dcache1[key][0]]
-                del _dcache1[key][0]
+                logger.debug("Storage full, deleting", scenario_id)
+                try:
+                    del _result_cache2[key][_dcache1[key][0]]
+                except KeyError:
+                    pass
+                try:
+                    del _dcache1[key][0]
+                except IndexError:
+                    pass
             _dcache1[key].append(inputs)
-
+        logger.debug(f"Calculating {key} for scenario {scenario_id}")
         return_value = function(*this_args, **kwargs)
         _result_cache2[key][inputs] = return_value
         return return_value

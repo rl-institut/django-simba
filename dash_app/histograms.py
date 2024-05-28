@@ -1,7 +1,7 @@
 from dash import Dash, html, dcc
 import plotly.express as px
 from . import ids
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 from ebustoolbox.models import Scenario
 import pandas as pd
 import numpy as np
@@ -23,10 +23,11 @@ def render_soc(app: Dash) -> html.Div:
 
     @app.callback(
         Output(ids.SOC_HISTOGRAM, "children"),
-        Input(ids.BUS_DROPDOWN, "data"),
+        Input(ids.APPLY_DROPDOWN, "n_clicks"),
+        State(ids.BUS_DROPDOWN, "data"),
     )
     def update_soc_histogram(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+        _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -100,10 +101,11 @@ def render_dist_dur(app: Dash) -> html.Div:
 
     @app.callback(
         Output(ids.DIST_DUR_HISTOGRAM, "children"),
-        Input(ids.BUS_DROPDOWN, "data"),
+        Input(ids.APPLY_DROPDOWN, "n_clicks"),
+        State(ids.BUS_DROPDOWN, "data"),
     )
     def dist_dur_histogram(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+        _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -159,10 +161,11 @@ def render_rotation_distance(app: Dash) -> html.Div:
 
     @app.callback(
         Output(ids.DIST_HISTOGRAM, "children"),
-        Input(ids.BUS_DROPDOWN, "data"),
+        Input(ids.APPLY_DROPDOWN, "n_clicks"),
+        State(ids.BUS_DROPDOWN, "data"),
     )
     def update_distances_histogram(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+        _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -218,10 +221,11 @@ def render_rotation_duration(app: Dash) -> html.Div:
 
     @app.callback(
         Output(ids.DUR_HISTOGRAM, "children"),
-        Input(ids.BUS_DROPDOWN, "data"),
+        Input(ids.APPLY_DROPDOWN, "n_clicks"),
+        State(ids.BUS_DROPDOWN, "data"),
     )
     def update_distances_histogram(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+        _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -269,10 +273,11 @@ def render_minimal_soc(app: Dash) -> html.Div:
 
     @app.callback(
         Output(ids.MIN_SOC_HISTOGRAM, "children"),
-        Input(ids.BUS_DROPDOWN, "data"),
+        Input(ids.APPLY_DROPDOWN, "n_clicks"),
+        State(ids.BUS_DROPDOWN, "data"),
     )
     def update_soc_histogram(
-        buses: list[str], session_state=None, dash_app=None, **kwargs
+        _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
