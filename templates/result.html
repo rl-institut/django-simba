@@ -7,21 +7,27 @@
     </script>
 {% endblock %}
 {% block content %}
-
-    <h1> Simulation {{task_id}} erfolgreich</h1>
     {% load static %}
+
+    {% if finished %}
+        <h1>Simulation {{ task_id }} erfolgreich</h1>
+    {% else %}
+        <form id='form' hx-target="#my_progress_bar" hx-get='{% url 'simba:run_simulation' task_id %}'>{% csrf_token %}
+            <input type="hidden" name="task_id" value="{{ task_id }}">
+            <button id="simba_submit_button" type="submit" class="btn btn-primary">Run simulation</button>
+        </form>
+        <div id="my_progress_bar">
+            <progress id='progress' value='0' max='100'></progress>
+        </div>
+    {% endif %}
+
 
   <div class="col-md-12">
     <nav>
       <div class="nav nav-tabs" id="tab" role="tablist">
         <button class="nav-link active" id="nav-0-tab" data-bs-toggle="tab" data-bs-target="#nav-0" type="button" role="tab" aria-controls="nav-0" aria-selected="true">SimBA Plots</button>
-        <button class="nav-link" id="nav-1-tab" data-bs-toggle="tab" data-bs-target="#nav-1" type="button" role="tab" aria-controls="nav-1" aria-selected="false">SoC-Verlauf</button>
-        <button class="nav-link" id="nav-2-tab" data-bs-toggle="tab" data-bs-target="#nav-2" type="button" role="tab" aria-controls="nav-2" aria-selected="false">Karte</button>
-        <button class="nav-link" id="nav-3-tab" data-bs-toggle="tab" data-bs-target="#nav-3" type="button" role="tab" aria-controls="nav-3" aria-selected="false">Depot-Verhalten</button>
-<!--
-        <button class="nav-link" id="nav-4-tab" data-bs-toggle="tab" data-bs-target="#nav-4" type="button" role="tab" aria-controls="nav-4" aria-selected="false" disabled>5</button>
-        <button class="nav-link" id="nav-5-tab" data-bs-toggle="tab" data-bs-target="#nav-5" type="button" role="tab" aria-controls="nav-5" aria-selected="false" disabled>6</button>
--->
+        <button class="nav-link" id="nav-1-tab" data-bs-toggle="tab" data-bs-target="#nav-1" type="button" role="tab" aria-controls="nav-1" aria-selected="false">Karte</button>
+        <button class="nav-link{% if not finished %} disabled{% endif %}" id="nav-2-tab" data-bs-toggle="tab" data-bs-target="#nav-2" type="button" role="tab" aria-controls="nav-2" aria-selected="false">Depot-Verhalten</button>
       </div>
     </nav>
     <div class="tab-content"  id="tabContent">
@@ -30,15 +36,11 @@
             {% load plotly_dash %}
             {% plotly_app  slug=task_id ratio=5 %}
       </div>
-        <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
-            Simba / SpiceEV plotting is deprecated. No image is generated.
-
-      </div>
-      <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">
+      <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
         {% include 'minimal_mapengine.html'%}
             <div id="buttonContainer"></div>
       </div>
-      <div class="tab-pane" id="nav-3" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="3">
+      <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">
           {% load plotly_dash %}
 
                {% plotly_app name="EflipsDepotResults" ratio=3.6 %}

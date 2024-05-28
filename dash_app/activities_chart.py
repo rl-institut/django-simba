@@ -21,7 +21,7 @@ def render(app: Dash) -> html.Div:
     @app.callback(
         Output(ids.BAR_CHART, "children"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
-        State(ids.BUS_DROPDOWN, "value"),
+        State(ids.BUS_DROPDOWN, "data"),
     )
     def update_timeline_chart(
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
@@ -51,10 +51,22 @@ def render(app: Dash) -> html.Div:
             x_start="time_start",
             x_end="time_end",
             y="V_id",
+            hover_name="readable_name",
             hover_data="event_type",
             color="event_type",
-            height=800,
+            height=max(200, 10 * df["V_id"].nunique()),
         )
+        fig.update_layout(
+            title_text="Aktivitätsdiagramm",
+            xaxis_title="Zeit",
+            yaxis_title="Fahrzeug",
+            showlegend=True,
+            margin=dict(l=20, r=20, t=40, b=20),
+        )
+        fig.update_layout(
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        fig.update_yaxes(visible=True, showticklabels=False)
 
         return html.Div(dcc.Graph(figure=fig), id=ids.BAR_CHART)
 
@@ -75,7 +87,7 @@ def render_performance(app: Dash) -> html.Div:
     @app.callback(
         Output(ids.ACTIVITY_PERFORMANCE, "children"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
-        State(ids.BUS_DROPDOWN, "value"),
+        State(ids.BUS_DROPDOWN, "data"),
     )
     def update(_, buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
         """

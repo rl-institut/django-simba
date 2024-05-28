@@ -20,7 +20,7 @@ def render_critical_rotations(app: Dash) -> html.Div:
     @app.callback(
         Output(ids.PIE_CRITICAL, "figure"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
-        State(ids.BUS_DROPDOWN, "value"),
+        State(ids.BUS_DROPDOWN, "data"),
     )
     def update_pie(_, buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
@@ -35,7 +35,7 @@ def render_critical_rotations(app: Dash) -> html.Div:
             df,
             values="Count",
             names="Category",
-            title="Counts of Critical and Non-Critical SOC Values",
+            title="Anteil Rotationen mit kritischen SOC Werten",
         )
 
         return fig
@@ -57,7 +57,7 @@ def render_bustype(app: Dash) -> html.Div:
     @app.callback(
         Output(ids.PIE_BUSTYPE, "figure"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
-        State(ids.BUS_DROPDOWN, "value"),
+        State(ids.BUS_DROPDOWN, "data"),
     )
     def update_pie(_, buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
@@ -67,8 +67,7 @@ def render_bustype(app: Dash) -> html.Div:
 
         # Create a pie chart following line is needed due to plotly bug,
         # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
-        fig = go.Figure(layout=dict(template="plotly"))
-        fig = px.pie(df, values="count", names="name", title="Vehicle Type Distribution")
+        fig = px.pie(df, values="count", names="name", title="Zusammensetzung der Fahrzeugtypen")
         return fig
 
     return html.Div(dcc.Graph(id=ids.PIE_BUSTYPE), style={"verticalAlign": "top"})

@@ -24,7 +24,7 @@ def render_soc(app: Dash) -> html.Div:
     @app.callback(
         Output(ids.SOC_HISTOGRAM, "children"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
-        State(ids.BUS_DROPDOWN, "value"),
+        State(ids.BUS_DROPDOWN, "data"),
     )
     def update_soc_histogram(
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
@@ -81,6 +81,7 @@ def render_soc(app: Dash) -> html.Div:
         fig.update_coloraxes(showscale=False)
         fig.update_xaxes(title_text="SOC")
         fig.update_yaxes(title_text="Relative Häufigkeit in %")
+        fig.update_layout(margin=dict(l=20, r=20, t=40, b=20))
 
         return html.Div(dcc.Graph(figure=fig), id=ids.SOC_HISTOGRAM)
 
@@ -101,7 +102,7 @@ def render_dist_dur(app: Dash) -> html.Div:
     @app.callback(
         Output(ids.DIST_DUR_HISTOGRAM, "children"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
-        State(ids.BUS_DROPDOWN, "value"),
+        State(ids.BUS_DROPDOWN, "data"),
     )
     def dist_dur_histogram(
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
@@ -139,7 +140,8 @@ def render_dist_dur(app: Dash) -> html.Div:
         fig.update_xaxes(
             title_text="Durchschnittsgeschwindigkeit für Umlauf (inkl. Stillstand, Pausen) in m/s"
         )
-        fig.update_yaxes(title_text="Relative Häufigkeit in %")
+        fig.update_yaxes(title_text="Absolute Häufigkeit")
+        fig.update_layout(margin=dict(l=20, r=20, t=40, b=20))
 
         return html.Div(dcc.Graph(figure=fig), id=ids.DIST_DUR_HISTOGRAM)
 
@@ -160,7 +162,7 @@ def render_rotation_distance(app: Dash) -> html.Div:
     @app.callback(
         Output(ids.DIST_HISTOGRAM, "children"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
-        State(ids.BUS_DROPDOWN, "value"),
+        State(ids.BUS_DROPDOWN, "data"),
     )
     def update_distances_histogram(
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
@@ -199,6 +201,7 @@ def render_rotation_distance(app: Dash) -> html.Div:
         fig.update_coloraxes(showscale=False)
         fig.update_xaxes(title_text="Distanz (Nur Trips)")
         fig.update_yaxes(title_text="Absolute Häufigkeit")
+        fig.update_layout(margin=dict(l=20, r=20, t=40, b=20))
 
         return html.Div(dcc.Graph(figure=fig), id=ids.DIST_HISTOGRAM)
 
@@ -219,7 +222,7 @@ def render_rotation_duration(app: Dash) -> html.Div:
     @app.callback(
         Output(ids.DUR_HISTOGRAM, "children"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
-        State(ids.BUS_DROPDOWN, "value"),
+        State(ids.BUS_DROPDOWN, "data"),
     )
     def update_distances_histogram(
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
@@ -250,6 +253,7 @@ def render_rotation_duration(app: Dash) -> html.Div:
         fig.update_coloraxes(showscale=False)
         fig.update_xaxes(title_text="Dauer (Nur Trips)")
         fig.update_yaxes(title_text="Absolute Häufigkeit")
+        fig.update_layout(margin=dict(l=20, r=20, t=40, b=20))
 
         return html.Div(dcc.Graph(figure=fig), id=ids.DUR_HISTOGRAM)
 
@@ -270,7 +274,7 @@ def render_minimal_soc(app: Dash) -> html.Div:
     @app.callback(
         Output(ids.MIN_SOC_HISTOGRAM, "children"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
-        State(ids.BUS_DROPDOWN, "value"),
+        State(ids.BUS_DROPDOWN, "data"),
     )
     def update_soc_histogram(
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
@@ -289,7 +293,7 @@ def render_minimal_soc(app: Dash) -> html.Div:
         fig = px.histogram(
             min_soc_per_v_id,
             x="soc_end",
-            title="Minimum SOC per Vehicle",
+            title="Minimaler SOC pro Fahrzeug",
             nbins=20,
             barmode="overlay",
             color_discrete_sequence=color_scheme,
@@ -299,8 +303,9 @@ def render_minimal_soc(app: Dash) -> html.Div:
         fig.update_layout(barmode="overlay")
         fig.update_layout(showlegend=False)
         fig.update_coloraxes(showscale=False)
-        fig.update_xaxes(title_text="minimal SOC")
-        fig.update_yaxes(title_text="Relative Häufigkeit in %")
+        fig.update_xaxes(title_text="Minimaler SOC")
+        fig.update_yaxes(title_text="Absolute Häufigkeit")
+        fig.update_layout(margin=dict(l=20, r=20, t=40, b=20))
 
         return html.Div(dcc.Graph(figure=fig), id=ids.MIN_SOC_HISTOGRAM)
 

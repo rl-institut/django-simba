@@ -1,7 +1,7 @@
 from dash import Dash, html, dcc
 from . import ids
-from .data import get_all_buses
-from dash.dependencies import Input, Output, State
+from .data import get_all_buses_labeled
+from dash.dependencies import Input, Output
 
 
 def render(app: Dash) -> html.Div:
@@ -17,14 +17,12 @@ def render(app: Dash) -> html.Div:
 
     @app.callback(
         [
-            Output(ids.BUS_DROPDOWN, "value"),
-            Output(ids.BUS_DROPDOWN, "options"),
-            Output(ids.APPLY_DROPDOWN, "n_clicks"),
+            Output(ids.BUS_DROPDOWN_RAW, "value"),
+            Output(ids.BUS_DROPDOWN_RAW, "options"),
         ],
         Input(ids.SELECT_ALL_BUSES_BUTTON, "n_clicks"),
-        State(ids.APPLY_DROPDOWN, "n_clicks"),
     )
-    def select_all_buses(_: int, n_clicks, session_state=None, dash_app=None, **kwargs):
+    def select_all_buses(_: int, session_state=None, dash_app=None, **kwargs):
         """
         Selects all buses when the "Select All" button is clicked and updates the dropdown menu accordingly.
 
@@ -38,22 +36,20 @@ def render(app: Dash) -> html.Div:
             - The list of dictionaries representing the options for the dropdown i.e. bus short_names
         :rtype: tuple[list, list]
         """
-        n_clicks = n_clicks or 0
         task_id = dash_app.slug
-        all_buses = session_state.get(task_id, {}).get("all_buses", get_all_buses(task_id))
-        try:
-            session_state[task_id]
-        except KeyError:
-            session_state[task_id] = dict()
-        session_state[task_id]["all_buses"] = all_buses
-        return all_buses, [{"label": bus, "value": bus} for bus in all_buses], n_clicks + 1
+        vehicle_name_dict, vehicle_name_dict_reverse = get_all_buses_labeled(task_id)
+
+        return list(vehicle_name_dict.keys()), [
+            {"label": bus_label, "value": bus_id}
+            for bus_label, bus_id in vehicle_name_dict_reverse.items()
+        ]
 
     return html.Div(
         children=[
-            html.H6("Select one or multiple Buses:"),
+            html.H6("Einen oder mehrere Bus(se) auswählen:"),
             dcc.Dropdown(
                 # Id with which this dropdown can be called
-                id=ids.BUS_DROPDOWN,
+                id=ids.BUS_DROPDOWN_RAW,
                 # Options are set by first select_all_buses call at page_load
                 options=[{"label": bus, "value": bus} for bus in []],
                 # initial Value
@@ -64,11 +60,13 @@ def render(app: Dash) -> html.Div:
             ),
             # Create a button to select all buses
             html.Button(
-                className="dropdown-button", children=["Select All"], id=ids.SELECT_ALL_BUSES_BUTTON
+                className="dropdown-button",
+                children=["Alle auswählen"],
+                id=ids.SELECT_ALL_BUSES_BUTTON,
             ),
             # Create a button to select all buses
             html.Button(
-                className="apply-button", children=["Apply Changes"], id=ids.APPLY_DROPDOWN
+                className="apply-button", children=["Auswahl bestätigen"], id=ids.APPLY_DROPDOWN
             ),
         ],
     )
