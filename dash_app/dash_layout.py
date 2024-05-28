@@ -29,10 +29,12 @@ def create_layout(app: Dash) -> Div:
         [Input(ids.BUS_DROPDOWN_RAW, "value")],
     )
     def memoize_all_data(buses: list[str], session_state=None, dash_app=None, **kwargs):
-        scenario_id = Scenario.objects.get(task_id=dash_app.slug).id
-        _ = data.recent_memoizer(data.get_all_event_info, scenario_id)(scenario_id)
-        _ = data.recent_memoizer(data.get_all_powerdraw_as_dataframe, scenario_id)(scenario_id)
-        _ = data.recent_memoizer(data.get_all_trip_info, scenario_id)(scenario_id)
+        scenario = Scenario.objects.get(task_id=dash_app.slug)
+        _ = data.recent_memoizer(data.get_all_event_info, scenario.id)(scenario.id)
+        _ = data.recent_memoizer(data.get_all_powerdraw_as_dataframe, scenario.id)(scenario.id)
+        _ = data.recent_memoizer(data.get_all_trip_info, scenario.id)(scenario.id)
+        _ = data.recent_memoizer(data.get_vehicle_dictionaries, scenario.id)(scenario.id)
+        _ = data.recent_memoizer(data.get_rotation_dictionaries, scenario.id)(scenario.id)
         return True, buses
 
     return html.Div(

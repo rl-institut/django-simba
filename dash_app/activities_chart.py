@@ -56,7 +56,7 @@ def render(app: Dash) -> html.Div:
             height=max(200, 10 * df["V_id"].nunique()),
         )
         fig.update_layout(
-            title_text="Aktivitätsdiagram",
+            title_text="Aktivitätsdiagramm",
             xaxis_title="Zeit",
             yaxis_title="Fahrzeug",
             showlegend=True,

@@ -135,43 +135,44 @@ def render_station_occupation(app: Dash) -> html.Div:
         df = data.get_powerdraw_as_dataframe(s.id, buses)
         # Group by 'Station_id' and 'time_start', count unique 'V_id'
 
-        fig = go.Figure(layout=dict(template="plotly"))
-        if len(df["Station_id"].unique()) >= 1:
-            # Get unique Station_ids
-            df["time_start"] = pd.to_datetime(df["time_start"])
-            df["time_end"] = pd.to_datetime(df["time_end"])
+        if len(df["Station_id"].unique()) < 1:
+            return go.Figure(layout=dict(template="plotly"))
 
-            # Create a DataFrame representing the charging status at different points in time
-            charging_status = []
+        # Get unique Station_ids
+        df["time_start"] = pd.to_datetime(df["time_start"])
+        df["time_end"] = pd.to_datetime(df["time_end"])
 
-            # Generate all time points between the minimum and maximum time_start and time_end
-            all_times = pd.date_range(
-                start=df["time_start"].min(), end=df["time_end"].max(), freq="min"
-            )
+        # Create a DataFrame representing the charging status at different points in time
+        charging_status = []
 
-            for time_point in all_times:
-                # Count the number of vehicles charging at this time point
-                charging_vehicles = (
-                    ((df["time_start"] <= time_point) & (df["time_end"] > time_point))
-                    & (df["Power"] > 0)
-                ).sum()
-                charging_status.append({"time": time_point, "vehicles_charging": charging_vehicles})
+        # Generate all time points between the minimum and maximum time_start and time_end
+        all_times = pd.date_range(
+            start=df["time_start"].min(), end=df["time_end"].max(), freq="min"
+        )
 
-            charging_status_df = pd.DataFrame(charging_status)
-            fig = px.line(
-                charging_status_df,
-                x="time",
-                y="vehicles_charging",
-                title="Number of Vehicles Charging Over Time",
-            )
+        for time_point in all_times:
+            # Count the number of vehicles charging at this time point
+            charging_vehicles = (
+                ((df["time_start"] <= time_point) & (df["time_end"] > time_point))
+                & (df["Power"] > 0)
+            ).sum()
+            charging_status.append({"time": time_point, "vehicles_charging": charging_vehicles})
 
-            fig.update_layout(
-                title_text="Anzahl der Ladenden Busse im Szenario",
-                xaxis_title="Zeit",
-                yaxis_title="Anzahl Busse",
-                showlegend=False,
-                margin=dict(l=20, r=20, t=40, b=20),
-            )
+        charging_status_df = pd.DataFrame(charging_status)
+        fig = px.line(
+            charging_status_df,
+            x="time",
+            y="vehicles_charging",
+            title="Number of Vehicles Charging Over Time",
+        )
+
+        fig.update_layout(
+            title_text="Anzahl der ladenden Busse im Szenario",
+            xaxis_title="Zeit",
+            yaxis_title="Anzahl Busse",
+            showlegend=False,
+            margin=dict(l=20, r=20, t=40, b=20),
+        )
         return fig
 
     return html.Div(dcc.Graph(id=ids.STATION_OCCUPATION), style={"verticalAlign": "top"})

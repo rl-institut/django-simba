@@ -27,20 +27,15 @@ last_simulations = list()
 CRITICAL_SOC = 0.0
 
 
-def vid_for_plotting(vehicle: Vehicle):
-    # Create a user friendly vehicle identifier for plotting
-    return vehicle.id
-
-
-def vid_human_readable(vehicle: Vehicle, offset=0, name="", c_type=False, rotation=None) -> str:
+def vid_human_readable(vehicle: Vehicle, counter, name="", c_type=False, rotation=None) -> str:
     # Create a user friendly vehicle identifier for plotting
 
     if c_type:
-        c_type_str = "OPPS"
+        c_type_str = "Oppb"
     else:
-        c_type_str = "DEPOT"
+        c_type_str = "Depb"
 
-    running_id = int(vehicle.id) - offset
+    running_id = counter
 
     identifier = str(name) + "_" + c_type_str + "_" + str(running_id) + "_" + str(vehicle.id)
 
@@ -72,14 +67,14 @@ def get_total_consumption(s: Scenario):
         )
     }
 
-    total_soc_difference = 0
+    total_energy_difference = 0
 
     for index, event in driving_events.iterrows():
         # Calculate the difference between soc_end and soc_start
-        total_soc_difference += (
+        total_energy_difference += (
             abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
         )
-    return total_soc_difference
+    return total_energy_difference
 
 
 def get_all_buses(task_id: str) -> list[str]:
@@ -96,58 +91,50 @@ def get_all_buses(task_id: str) -> list[str]:
     return all_buses
 
 
-def get_all_buses_labeled(task_id: str) -> list[str]:
+def get_all_buses_labeled(task_id: str) -> list[dict]:
     """
-    Retrieves a list of all buses associated with a specific task ID.
+    Retrieves two dictionaries with all buses and their labels in both directions.
 
     :param task_id: The ID of the task.
     :type task_id: str
     :return: A list of short names of all buses associated with the task.
-    :rtype: list[str]
+    :rtype: tuple[dict, dict]
     """
     s = Scenario.objects.get(task_id=task_id)
-    vehicles = Vehicle.objects.filter(scenario_id=s.id)
-    all_buses = list(vehicles.values_list("id", flat=True))
-
-    vehicle_number_offset, vehicle_type_dict = get_info_for_labeling(s)
-
-    labels = [
-        vid_human_readable(
-            bus,
-            vehicle_number_offset,
-            vehicle_type_dict[bus.id]["name"],
-            vehicle_type_dict[bus.id]["c_type"],
-        )
-        for bus in vehicles
-    ]
-
-    return labels, all_buses
+    v_name_dict, v_name_dict_reverse = recent_memoizer(get_vehicle_dictionaries, s.id)(s.id)
+    return [v_name_dict, v_name_dict_reverse]
 
 
-def get_info_for_labeling(s: Scenario):
-    vehicles = Vehicle.objects.filter(scenario_id=s.id)
-    all_buses = list(vehicles.values_list("id", flat=True))
+def get_rotation_dictionaries(scenario_id: int) -> tuple[dict, dict]:
+    rotations = Rotation.objects.filter(scenario_id=scenario_id)
 
+    rotation_name_dict = dict()
+    rotation_name_dict_reverse = dict()
+    for r in rotations:
+        label_name = f"{r.name}_{r.id}"
+        rotation_name_dict[r.id] = label_name
+        rotation_name_dict_reverse[label_name] = r.id
+
+    assert len(rotation_name_dict) == len(rotation_name_dict_reverse)
+    return rotation_name_dict, rotation_name_dict_reverse
+
+
+def get_vehicle_dictionaries(scenario_id: int) -> tuple[dict, dict]:
+    vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
     # Fetch all vehicle types
-    vehicle_types = VehicleType.objects.in_bulk([vehicle.vehicle_type_id for vehicle in vehicles])
-    vehicle_type_dict = {
-        v_id: {
-            "name": vehicle_types[v_type_id].name,
-            "c_type": vehicle_types[v_type_id].opportunity_charging_capable,
-        }
-        for v_id, v_type_id in zip(
-            vehicles.values_list("id", flat=True),
-            vehicles.values_list("vehicle_type_id", flat=True),
-        )
-    }
+    vehicle_types = VehicleType.objects.in_bulk({vehicle.vehicle_type_id for vehicle in vehicles})
+    vehicles = sorted(vehicles, key=lambda v: v.vehicle_type_id)
 
-    # Get the starting vehicle ID for this scenario
-    assert (max(list(all_buses)) - min(list(all_buses))) + 1 == Vehicle.objects.filter(
-        scenario=s
-    ).count()
-    vehicle_number_offset = min(list(all_buses))
+    vehicle_name_dict = dict()
+    vehicle_name_dict_reverse = dict()
+    for i, v in enumerate(vehicles):
+        vt: VehicleType = vehicle_types[v.vehicle_type_id]
+        label_name = vid_human_readable(v, i, name=vt.name, c_type=vt.opportunity_charging_capable)
+        vehicle_name_dict[v.id] = label_name
+        vehicle_name_dict_reverse[label_name] = v.id
 
-    return vehicle_number_offset, vehicle_type_dict
+    assert len(vehicle_name_dict) == len(vehicle_name_dict_reverse)
+    return vehicle_name_dict, vehicle_name_dict_reverse
 
 
 def get_number_of_buses(filter_dict: dict) -> list[str]:
@@ -178,8 +165,8 @@ def get_number_of_stations(task_id: str) -> list[str]:
     electrified_stations = Station.objects.filter(scenario_id=s.id, is_electrified=True).count()
 
     return [
-        "Anzahl Stationen / Anzahl elektrifizierter Stationen ",
-        f"{total_stations} / {electrified_stations}",
+        "Anzahl elektrifizierter Stationen / Anzahl Stationen",
+        f"{electrified_stations} / {total_stations}",
     ]
 
 
@@ -317,8 +304,10 @@ def get_soc_as_dataframe(scenario_id, buses):
     :return: DataFrame containing SOC data for specified buses.
     :rtype: pandas.DataFrame
     """
+
     result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
-    return result_df.query(f"V_id in {buses}")
+    filtered_df = result_df.query(f"V_id in {buses}")
+    return filtered_df
 
 
 def get_duration_as_dataframe(scenario_id, buses):
@@ -336,7 +325,8 @@ def get_duration_as_dataframe(scenario_id, buses):
     result_df = recent_memoizer(get_all_trip_info, scenario_id)(scenario_id)
 
     result_df = result_df.groupby(["R_id", "V_id"])["duration"].sum().reset_index()
-    return result_df.query(f"V_id in {buses}")
+    filtered_df = result_df.query(f"V_id in {buses}")
+    return filtered_df
 
 
 def get_distances_as_dataframe(scenario_id, buses):
@@ -354,7 +344,8 @@ def get_distances_as_dataframe(scenario_id, buses):
     result_df = recent_memoizer(get_all_trip_info, scenario_id)(scenario_id)
 
     result_df = result_df.groupby(["R_id", "V_id"])["total_distance"].sum().reset_index()
-    return result_df.query(f"V_id in {buses}")
+    filtered_df = result_df.query(f"V_id in {buses}")
+    return filtered_df
 
 
 def get_activities_as_dataframe(scenario_id, buses):
@@ -370,8 +361,10 @@ def get_activities_as_dataframe(scenario_id, buses):
     :rtype: pandas.DataFrame
     """
     result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
+    vehicle_labels, _ = recent_memoizer(get_vehicle_dictionaries, scenario_id)(scenario_id)
 
-    return result_df.query(f"V_id in {buses}")
+    filtered_df = result_df.query(f"V_id in {buses}")
+    return filtered_df
 
 
 def get_powerdraw_as_dataframe(scenario_id, buses):
@@ -387,8 +380,8 @@ def get_powerdraw_as_dataframe(scenario_id, buses):
     :rtype: pandas.DataFrame
     """
     result_df = recent_memoizer(get_all_powerdraw_as_dataframe, scenario_id)(scenario_id)
-
-    return result_df.query(f"V_id in {buses}")
+    filtered_df = result_df.query(f"V_id in {buses}")
+    return filtered_df
 
 
 def get_vehicle_types(scenario_id, buses):
@@ -463,8 +456,14 @@ def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
 
     # If events with no rotation should be returned dropna needs to be False
     df = df.groupby(["R_id", "V_id"], dropna=True)["soc_end"].min().reset_index()
+    df = pd.DataFrame(df)
+    v_dict, _ = recent_memoizer(get_vehicle_dictionaries, scenario_id)(scenario_id)
+    r_dict, _ = recent_memoizer(get_rotation_dictionaries, scenario_id)(scenario_id)
 
-    return pd.DataFrame(df)
+    df["V_id"] = df["V_id"].apply(lambda x: v_dict[x])
+    df["R_id"] = df["R_id"].apply(lambda x: r_dict[x])
+
+    return df
 
 
 def get_all_event_info(scenario_id):
@@ -472,7 +471,7 @@ def get_all_event_info(scenario_id):
     Retrieves event information for all vehicles in a given scenario.
 
     :param scenario_id: The ID of the scenario.
-    :type scenario_id: str
+    :type scenario_id: int
 
     :return: DataFrame containing event information for all vehicles.
     :rtype: pandas.DataFrame
@@ -497,15 +496,16 @@ def get_all_event_info(scenario_id):
             events_by_vehicle[vehicle_id] = []
         events_by_vehicle[vehicle_id].append(event)
 
+    # Get the translations from v.id to readable vehicle_name
+    vehicle_name_dict, _ = recent_memoizer(get_vehicle_dictionaries, scenario_id)(scenario_id)
+
     # Initialize lists to store data
     dfs = []
     first_warning = True
 
-    vehicle_number_offset, vehicle_type_dict = get_info_for_labeling(scenario)
-
     # Iterate over vehicles
     for vehicle in vehicles:
-        v_id = vid_for_plotting(vehicle)
+        v_id = vehicle.id
         if vehicle.id in events_by_vehicle:
             # Filter rotations for the current vehicle
             vehicle_rotations = all_rotations.filter(vehicle_id=vehicle.id)
@@ -552,13 +552,7 @@ def get_all_event_info(scenario_id):
                         "soc_start": event.soc_start,
                         "soc_end": event.soc_end,
                         "R_id": vehicle_rotation,
-                        "readable_name": vid_human_readable(
-                            vehicle,
-                            vehicle_number_offset,
-                            vehicle_type_dict[v_id]["name"],
-                            vehicle_type_dict[v_id]["c_type"],
-                            vehicle_rotation,
-                        ),
+                        "readable_name": vehicle_name_dict[vehicle.id],
                     }
                 )
 
@@ -611,10 +605,7 @@ def get_all_trip_info(scenario_id):
     # Iterate over rotations in the scenario
     for rotation in scenario.rotation_set.all():
         # Get vehicle ID for the rotation
-        try:
-            v_id = vid_for_plotting(rotation.vehicle)
-        except AttributeError:
-            v_id = None
+        v_id = rotation.vehicle_id
         r_id = rotation.id
         # Iterate over trips in the rotation
         for trip in rotation.trip_set.all():
@@ -712,7 +703,7 @@ def get_all_powerdraw_as_dataframe(scenario_id):
                     dfs[-1]["time_end"] = time_start
                 dfs.append(
                     {
-                        "V_id": vid_for_plotting(vehicle),
+                        "V_id": vehicle.id,
                         "time_start": time_start,
                         "time_end": time_end,
                         "Power": energy / ((time_end - time_start).total_seconds() / 3600),
