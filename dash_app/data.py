@@ -129,7 +129,9 @@ def get_vehicle_dictionaries(scenario_id: int) -> tuple[dict, dict]:
     vehicle_name_dict_reverse = dict()
     for i, v in enumerate(vehicles):
         vt: VehicleType = vehicle_types[v.vehicle_type_id]
-        label_name = vid_human_readable(v, i, name=vt.name, c_type=vt.opportunity_charging_capable)
+        label_name = vid_human_readable(
+            v, i + 1, name=vt.name, c_type=vt.opportunity_charging_capable
+        )
         vehicle_name_dict[v.id] = label_name
         vehicle_name_dict_reverse[label_name] = v.id
 

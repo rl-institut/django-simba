@@ -10,7 +10,7 @@
     {% load static %}
 
     {% if finished %}
-        <h1>Finished with id {{ task_id }}</h1>
+        <h1>Simulation {{ task_id }} erfolgreich</h1>
     {% else %}
         <form id='form' hx-target="#my_progress_bar" hx-get='{% url 'simba:run_simulation' task_id %}'>{% csrf_token %}
             <input type="hidden" name="task_id" value="{{ task_id }}">
