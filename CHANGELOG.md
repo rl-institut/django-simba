@@ -20,6 +20,14 @@ Template:
 ## [x.x.x] - Unreleased
 
 ### Changed
+- [(#97)](https://github.com/rl-institut/django-simba/pull/97)
+- Fixed issuses from PR#76
+- Fixed and added plots
+- translation of plots and labels
+- more readable Bus IDs
+
+
+### Changed
 - [(#93)](https://github.com/rl-institut/django-simba/pull/93)
 - Database depot stations get electrified with default values if running the toolchain, if they are not previously electrified
 - Fixes Issue with large charging powers leading to missing charge events
