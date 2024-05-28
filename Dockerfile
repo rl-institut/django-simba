@@ -31,5 +31,5 @@ WORKDIR /app
 # Since ebustoolbox and mapengine are installed as well, copy whole directory first
 COPY . /app
 RUN poetry install
-# startup_command=poetry run python -c 'print(\"Started\")' && poetry run python manage.py makemigrations && poetry run python manage.py migrate && poetry run python manage.py runserver 0.0.0.0:8000
-CMD ["sh", "-c", "${STARTUP_COMMAND}"]
+#startup_command=poetry run python -c 'print(\"Started\")' && poetry run python manage.py makemigrations && poetry run python manage.py migrate && poetry run python manage.py runserver 0.0.0.0:8000
+CMD ["sh", "-c", "poetry run python -c 'print(\"Started\")' && poetry run python manage.py makemigrations && poetry run python manage.py migrate && poetry run python manage.py runserver 0.0.0.0:8000"]
