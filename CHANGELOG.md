@@ -36,7 +36,7 @@ Template:
 
 
 ### Changed
-- [(#97)](https://github.com/rl-institut/django-simba/pull/97)
+- [(#98)](https://github.com/rl-institut/django-simba/pull/98)
 - Fixed issuses from PR#76
 - Fixed and added plots
 - translation of plots and labels
