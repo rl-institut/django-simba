@@ -65,10 +65,15 @@
                 <li><a class="dropdown-item" href="/admin">Admin</a></li>
                 <a class="dropdown-item" href="{% url 'core:test_email' %}?path={{request.get_full_path}}">Test Email</a>
               {% endif %}
-              <li><a class="dropdown-item" href="{% url 'logout' %}">Abmelden</a></li>
+              <li>
+                <form action="{% url 'logout' %}" method="post">
+                  {% csrf_token %}
+                  <button class="dropdown-item" type="submit">Abmelden</button>
+                </form>
+              </li>
             {% else %}
               <li><a class="dropdown-item" href="{% url 'login' %}">Anmelden</a></li>
-              <!--<a href="{% url 'core:signup' %}">Registrieren</a>-->
+              <!-- <a class="dropdown-item" href="{% url 'core:signup' %}">Registrieren</a> -->
             {% endif %}
           </ul>
         </div>

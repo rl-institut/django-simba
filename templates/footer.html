@@ -1,5 +1,8 @@
+{% load i18n %}
 <footer class="bg-body-tertiary text-center py-3">
-        <div class="container">
-            <p>&copy; 2024 RLI. All rights reserved.</p>
-        </div>
+  <div class="container">
+    <span>&copy; 2024 RLI. All rights reserved.</span>
+    <a class="footer-link" href="{% url 'legal' %}">{% translate "Impressum" %}</a>
+    <a class="footer-link" href="{% url 'privacy' %}">{% translate "Datenschutz" %}</a>
+  </div>
 </footer>
