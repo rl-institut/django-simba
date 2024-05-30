@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block content %}
+
+
+<div class="container bg-light" style="min-height: 80vh;">
+
+    <!-- wizard -->
+    {% include 'wizard.html' %}
+
+    <!-- Main Content -->
+
+    <div class="row lead justify-content-center d-flex m-5 p-5">
+        Wähle einen Zeitplan aus deinen Dateien aus. Verwende jedoch ein zulässiges Format.
+    </div>
+
+    <form id="uploadForm" class="text-center">
+        <div class="input-item row m-5">
+            <div class="col-6" id="ScheduleReaderChoice">
+                    <button class="btn btn-primary" type="button" hx-target="#uploadForm" hx-get="{% url 'simba:get_options' task_id 1 %}">
+                        SimBA-Fahrplan hochladen
+                    </button>
+            </div>
+            <div class="col-6">
+                <small class="form-text text-muted">Wählen Sie eine Option aus</small>
+            </div>
+        </div>
+
+        <div class="input-item row m-5">
+            <div class="col-6">
+                <button class="btn btn-primary" type="button" hx-target="#uploadForm" hx-get="{% url 'simba:get_options' task_id 2 %}">
+                    EflipsDummyIngest hochladen
+                </button>
+            </div>
+            <div class="col-6">
+                <small class="form-text text-muted"></small>
+            </div>
+        </div>
+                <div class="input-item row m-5">
+            <div class="col-6">
+                <button class="btn btn-primary" type="button" hx-target="#uploadForm" hx-get="{% url 'simba:get_options' task_id 3 %}">
+                    VDV .x10 Daten hochladen
+                </button>
+            </div>
+            <div class="col-6">
+                <small class="form-text text-muted"></small>
+            </div>
+        </div>
+
+    </form>
+
+    <div id="runner"
+                {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
+             hx-trigger="notRunning from:body">
+        </div>
+
+        <script>
+            {# Activate button if the server finished handling the previous file#}
+            let task_id = '{{ task_id }}';
+            htmx.on('#runner', 'htmx:trigger', function (evt) {
+                htmx.find('#button_{{task_id}}').disabled= false;
+                console.log("turning on button")
+            });
+        </script>
+
+
+</div>
+
+
+{#{% include 'continue_button.html' %}#}
+
+
+{% endblock %}

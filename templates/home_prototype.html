@@ -4,32 +4,27 @@
         {{ task_id }}
         <div id="ScheduleReaderChoice" >
             <div>
-                    <button hx-target="#ScheduleReaderChoice" hx-get='{% url 'simba:get_options' task_id 1 %}'>
-                        Supply SimBA Inputs
-                    </button>
+                <button hx-target="#ScheduleReaderChoice" hx-get='{% url 'simba:get_options' task_id 1 %}'>
+                    Supply SimBA Inputs
+                </button>
             </div>
 
-                {#            replace 1 witch reader number #}
-            <div >
-                    <button hx-target="#ScheduleReaderChoice" hx-get='{% url 'simba:get_options' task_id 2 %}'>
-                        Supply EflipsDummyIngest Inputs
-                    </button>
+            {#            replace 1 witch reader number #}
+            <div>
+                <button hx-target="#ScheduleReaderChoice" hx-get='{% url 'simba:get_options' task_id 2 %}'>
+                    Supply EflipsDummyIngest Inputs
+                </button>
+
+            </div>
+            <div>
+                <button hx-target="#ScheduleReaderChoice" hx-get='{% url 'simba:get_options' task_id 3 %}'>
+                    Supply EflipsVDVIngest Inputs
+                </button>
+
             </div>
             </div>
     </div>
 
-            <div id="runner"
-                {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
-             hx-trigger="notRunning from:body">
-        </div>
 
-        <script>
-            {# Activate button if the server finished handling the previous file#}
-            let task_id = '{{ task_id }}';
-            htmx.on('#runner', 'htmx:trigger', function (evt) {
-                htmx.find('#button_{{task_id}}').disabled= false;
-                console.log("turning on button")
-            });
-        </script>
     </div>
 {% endblock %}

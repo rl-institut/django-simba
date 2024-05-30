@@ -46,7 +46,7 @@
       <td>{{ scenario.name }}</td>
       <td>
         {% if scenario.finished %}
-          <a href="{% url 'simba:result' %}?task_id={{scenario.task_id}}">{{ scenario.finished }}</a>
+          <a href="{% url 'simba:result' task_id=scenario.task_id %}">{{ scenario.finished }}</a>
         {% else %}
           <span>---</span>
         {% endif %}

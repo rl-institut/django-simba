@@ -1,9 +1,9 @@
 from django.contrib import messages
-from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import update_session_auth_hash, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
-from django.core import signing
+from django.core import signing, mail
 from django.http import HttpResponse, Http404
 from django.shortcuts import render, redirect
 from django.urls import reverse
@@ -14,7 +14,7 @@ from .forms import SignUpForm
 
 # Create your views here.
 class LandingPageView(TemplateView):
-    template_name = "core/landing_page.html"
+    template_name = "core/landing_page_updated.html"
 
 
 # ******** User management ******** #
@@ -34,6 +34,7 @@ def signup(request):
         user.username = user.email.lower()  # force lowercase for username
         user.is_active = True
         user.save()
+        login(request, user)
         return redirect(reverse("core:home"))
     elif request.GET.get("token"):
         # GET: present registration form, fill in email from token
@@ -63,3 +64,16 @@ def changePassword(request):
         form = PasswordChangeForm(request.user)
     # return view
     return render(request, "registration/password_change.html", {"form": form})
+
+
+@login_required(login_url="/login/")
+def test_email(request):
+    if request.user.is_staff:
+        mail.send_mail(
+            subject="TEST",
+            message="Wenn Sie das lesen können, ist die Email angekommen.",
+            from_email=None,
+            recipient_list=[request.user.email],
+            fail_silently=False,
+        )
+    return redirect(request.GET.get("path", "/"))

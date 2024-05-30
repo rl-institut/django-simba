@@ -3,11 +3,8 @@
 {% load static %}
 
 <body>
-    <div style="height: 900px;">
-    {% include 'minimal_mapengine.html'%}
-    </div>
-    {% load plotly_dash %}
-    {% plotly_app  slug=task_id ratio=0.6 %}
+    <!-- wizard -->
+    {% include 'wizard.html' %}
 
     {#  <p>Add scenario overview here :)</p>#}
     {#  This page shows all selected attributes of the scenario, or at least a summary (maybe don't list all el stations, but say how many there are)#}
@@ -15,12 +12,20 @@
       <form id='form' hx-target="#my_progress_bar" hx-get='{% url 'simba:run_simulation' task_id %}'>{% csrf_token %}
         <input hidden="hidden" name="task_id" value="{{ task_id }}">
         <button id="simba_submit_button" type="submit" class="btn btn-primary"
-        >Run simulation</button>
+        >Starte Simulation</button>
         <div id="result">{{ task_id }}</div>
       </form>
     <div id="my_progress_bar">
         <progress id='progress' value='0' max='100'></progress>
     </div>
+
+    <div style="height: 900px;">
+    {% include 'minimal_mapengine.html'%}
+    </div>
+    {% load plotly_dash %}
+    {% plotly_app  slug=task_id ratio=0.6 %}
+
+
 
     <script>
         var task_id = "{{task_id }}";

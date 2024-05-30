@@ -1,11 +1,15 @@
-# Create your tests here.
+from datetime import datetime
+
 from .deepcopy import deepcopy as deepcopy_db
+
+from django.test import TransactionTestCase
+
+from ebus_map.models import Station
+from ebustoolbox.models import User, Scenario, Event, Rotation, Trip, EventType, Vehicle
 from ebustoolbox.tests import build_scenario
 from ebustoolbox.tasks import run_toolchain_from_scenario
 from ebustoolbox.util import get_unique_task_id
-from django.test import TransactionTestCase
-from ebustoolbox.models import User, Scenario, Event, Rotation, Trip
-from ebus_map.models import Station
+
 from .models import Progress
 
 
@@ -15,7 +19,23 @@ class TestDeepCopy(TransactionTestCase):
         s1.task_id = get_unique_task_id()
         s1.save()
         run_toolchain_from_scenario(s1)
-
+        event = Event(
+            scenario=s1,
+            vehicle_type=Vehicle.objects.filter(scenario=s1).first().vehicle_type,
+            vehicle=Vehicle.objects.filter(scenario=s1).first(),
+            station=None,
+            trip=Trip.objects.filter(scenario=s1).first(),
+            area=None,
+            subloc_no=1,
+            time_start=datetime.now(),
+            time_end=datetime.now(),
+            soc_start=0.2,
+            soc_end=0.8,
+            event_type=EventType.CHARGING_DEPOT.value,
+            description="Charging Event",
+            timeseries={"time": [0, 1, 2], "soc": [0.2, 0.5, 0.8]},
+        )
+        event.save()
         s1.task_id = None
         s2, _ = deepcopy_db(
             s1,

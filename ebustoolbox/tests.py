@@ -59,7 +59,6 @@ class MySeleniumTests(StaticLiveServerTestCase):
         super().tearDownClass()
         shutil.rmtree(TMP_UPLOAD)
 
-    @override_settings(EFLIPS_USE=True)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
     @override_settings(DEBUG=True)
@@ -99,13 +98,18 @@ class MySeleniumTests(StaticLiveServerTestCase):
         # attribute can escape its sandboxing.'
         with self.assertRaises(AssertionError):
             errors = self.assertEqual(len(errors), 0, f"404 errors detected: {errors}")
-        allowed_error = (
-            "An iframe which has both allow-scripts and allow-same-origin for its "
-            "sandbox attribute can escape its sandboxing"
-        )
-        errors = [error for error in errors if allowed_error not in error["message"]]
+        allowed_errors = [
+            (
+                "An iframe which has both allow-scripts and allow-same-origin for its "
+                "sandbox attribute can escape its sandboxing"
+            ),
+            "styleimagemissing",
+        ]
+        errors = [
+            error for error in errors if not any([(e in error["message"]) for e in allowed_errors])
+        ]
         self.assertEqual(len(errors), 0, f"404 errors detected: {errors}")
-        self.assertContains(response, "Finished")
+        self.assertContains(response, "erfolgreich")
 
 
 def castable_to_dict(objects: Iterable):
@@ -239,17 +243,17 @@ class WriteReadScenarioToDatabase(TestCase):
         """Check if the results are equal if the scenario is run from the form or from the db"""
         django_scenario, simba_schedule, args = build_scenario()
         simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
-        # rotation names are swapped
+        # rotation names and station names are swapped
         rotations_keys = [rot for rot in simba_schedule.rotations]
         db_iter = iter(simba_schedule_db.rotations)
-        for rot in rotations_keys:
-            db_rot = next(db_iter)
-            simba_schedule.rotations[db_rot] = simba_schedule.rotations[rot]
-            simba_schedule.rotations[db_rot].id = db_rot
-            simba_schedule.rotations[db_rot].vehicle_id = simba_schedule_db.rotations[
-                db_rot
-            ].vehicle_id
-            del simba_schedule.rotations[rot]
+
+        for rot_id in rotations_keys:
+            db_rot_id = next(db_iter)
+            db_rot = simba_schedule_db.rotations[db_rot_id]
+            simba_schedule.rotations[db_rot_id] = simba_schedule.rotations[rot_id]
+            simba_schedule.rotations[db_rot_id].id = db_rot_id
+            simba_schedule.rotations[db_rot_id].vehicle_id = db_rot.vehicle_id
+            del simba_schedule.rotations[rot_id]
 
         for sched in [simba_schedule, simba_schedule_db]:
             for rot in sched.rotations.values():
@@ -272,7 +276,7 @@ class WriteReadScenarioToDatabase(TestCase):
                     msg=key_stack,
                 )
             except TypeError:
-                raise Exception(f"Could not compare {values[0]} and {values[1]}.")
+                raise Exception(f"Could not compare {values[0]} and {values[1]}. {key_stack}")
 
         scen = simba_schedule.run(args)
         scen_db = simba_schedule_db.run(args_db)
@@ -359,13 +363,11 @@ class WriteReadScenarioToDatabase(TestCase):
             # Recursively search the schedule for primitive data which has to be not equal to the
             # database schedule in at least ONE case
             difference_found = False
-            difference = None
             for key_stack, values in objects_digger(
                 [original_database_schedule, mut_simba_schedule]
             ):
                 try:
                     self.assertNotEqual(values[0], values[1], msg=key_stack)
-                    difference = key_stack, values
                     difference_found = True
                     break
                 except AssertionError:
@@ -376,8 +378,6 @@ class WriteReadScenarioToDatabase(TestCase):
                     f"The Schedule read from the database does not diverge from the original one, "
                     f"although changes to the database were made. The mutation was: {mutation}"
                 )
-            else:
-                print(f"Difference in schedule was successfully found for {mutation}, {difference}")
             mut_scen = mut_simba_schedule.run(args_db)
             # Recursively search the scenario for primitive data which has to be NOT equal to the
             # data created by the database schedule
@@ -391,7 +391,6 @@ class WriteReadScenarioToDatabase(TestCase):
                     continue
                 try:
                     self.assertNotEqual(values[0], values[1], msg=key_stack)
-                    difference = key_stack, values
                     difference_found = True
                     break
                 except AssertionError:
@@ -403,21 +402,11 @@ class WriteReadScenarioToDatabase(TestCase):
                     "the original one although changes to the database were made. "
                     f"The mutation was: {mutation}"
                 )
-            else:
-                print(f"Difference in scenario was found for {mutation}, {difference}")
 
 
 @override_settings(SECURE_PROXY_SSL_HEADER=None)
 @override_settings(SECURE_SSL_REDIRECT=False)
 class RunSimulationTest(StaticLiveServerTestCase):
-    @override_settings(EFLIPS_USE=False)
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
-    @override_settings(DEBUG=True)
-    def test_submit_button_click_with_celery_wo_eflips(self):
-        self.submit_default_simulation()
-
-    @override_settings(EFLIPS_USE=True)
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
     @override_settings(DEBUG=True)

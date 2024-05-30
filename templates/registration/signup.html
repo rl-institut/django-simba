@@ -18,7 +18,7 @@
       {% endfor %}
       <p>
         <label>
-          <input type="checkbox" required name="accepts_terms" id="id_accepts_terms">Ich habe die <a target="_blank" rel="noopener noreferrer" href="link_zum_datenschutz"> Datenschutzerklärung</a> gelesen und bin mit dieser einverstanden.*
+          <input type="checkbox" required name="accepts_terms" id="id_accepts_terms">Ich habe die <a target="_blank" rel="noopener noreferrer" href="{% url 'privacy' %}"> Datenschutzerklärung</a> gelesen und bin mit dieser einverstanden.*
         </label>
       </p>
 

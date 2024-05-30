@@ -1,4 +1,3 @@
-import os
 from typing import Dict, Any
 
 import sqlalchemy
@@ -61,6 +60,7 @@ def _create_engine_from_postgis_url() -> sqlalchemy.engine.Engine:
     Replace the 'postgis' scheme with 'postgresql'
     """
     from ebustoolbox.tasks import create_db_url
+
     db_url = create_db_url()
 
     return sqlalchemy.create_engine(db_url)
@@ -112,6 +112,7 @@ def get_ganttchart_scenario(color_scheme_dropdown: str, session_state: Dict[str,
 
         fig.update_layout(height=num_vehicles * 10 + 250)
 
+    engine.dispose()
     return fig, scenario_name, f"Total number of vehicles:{num_vehicles}", session_state["task_id"]
 
 
@@ -140,6 +141,7 @@ def get_vehicle_soc_plot(vehicle_id: int):
         vehicle_soc, descriptions = prepare_vehicle_soc(vehicle_id, session)
         fig = visualize_vehicle_soc(vehicle_soc, descriptions)
 
+    engine.dispose()
     return fig
 
 
@@ -150,9 +152,7 @@ def get_vehicle_soc_plot(vehicle_id: int):
 def get_power_and_occupancy_plot(task_id: str):
     from ebustoolbox.models import Scenario as ebusScenario
 
-
     engine = _create_engine_from_postgis_url()
-
 
     with Session(engine) as session:
         scenario = ebusScenario.objects.get(task_id=task_id)
@@ -166,4 +166,5 @@ def get_power_and_occupancy_plot(task_id: str):
             fig = visualize_power_and_occupancy(prepared_data)
         except ValueError:
             fig = go.Figure(layout=dict(template="plotly"))
+    engine.dispose()
     return fig

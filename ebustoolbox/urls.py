@@ -14,9 +14,10 @@ urlpatterns = [
     ),
     path("scenarios/", views.scenarios, name="scenarios"),
     path("usergroups/", views.usergroups, name="usergroups"),
-    path("result/", views.result_view, name="result"),
+    path("result/<uuid:task_id>/", views.result_view, name="result"),
     path("", views.home_view, name="home"),
-    path("input/schedule/", views.home_prototype, name="home_prototype"),
+    path("input/schedule/", views.schedule, name="schedule"),
+    path("input/home_prototype/", views.home_prototype, name="home_prototype"),
     path(
         "input/get_options/<uuid:task_id>/<int:reader_num>", views.get_options, name="get_options"
     ),

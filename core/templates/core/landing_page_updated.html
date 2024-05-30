@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div id="landing-page">
+
+  <!-- Hero Section-->
+  <section class="min-vh-100 d-flex align-items-center text-center mx-auto">
+    <div class="container-fluid gap-0 p-0">
+      <!-- Hero Headline and lead Paragraph -->
+      <div class="row p-0">
+        <div class="col-12 p-0">
+          <h1 class="display-1 text-primary fw-normal unselectable">E-Bus 2030+</h1>
+          <p class="lead p-5 mb-5">Entwicklung und Analyse von Strategien zur vollständigen Dekarbonisierung des Berliner Busverkehrs bis 2030</p>
+        </div>
+      </div>
+      <!-- Hero Buttons -->
+      <div class="row justify-content-center m-2">
+        <div class="d-grid gap-3 justify-content-center">
+          <a href="{% url 'simba:schedule' %}" class="btn btn-primary btn-lg custom-btn d-flex justify-content-between align-items-center">
+            Tool
+            <i class="bi bi-arrow-right-short"></i>
+          </a>
+          <a href="#" class="btn btn-primary btn-lg custom-btn d-flex justify-content-between align-items-center">
+            Lerne mehr
+            <i class="bi bi-arrow-right-short"></i>
+          </a>
+          <a href="{% url 'simba:scenarios' %}" class="btn btn-primary btn-lg custom-btn d-flex justify-content-between align-items-center">
+            Meine Projekte
+            <i class="bi bi-arrow-right-short"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About Section-->
+  <section class="page-section bg-primary text-white mx-auto">
+    <div class="container-fluid">
+      <!-- About Section Heading-->
+      <h2 class="page-section-heading text-center text-uppercase text-white">Konsortium</h2>
+      <hr>
+      <!-- About Section Content-->
+      <div class="row">
+        <!-- RLI -->
+        {% load static %}
+        <div class="col-lg-6 d-flex justify-content-center align-items-center">
+          <img src="{% static 'templates/img/RLI_Logo.png' %}" width="110" height="80" class="d-inline-block align-top" alt="Reiner Lemoine Institut">
+        </div>
+        <div class="col-lg-6">
+          <p class="lead">Amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi.</p>
+        </div>
+        <!-- TU -->
+        <div class="col-lg-6">
+          <p class="lead">Amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi.</p>
+        </div>
+        <div class="col-lg-6 d-flex justify-content-center align-items-center">
+          <img src="{% static 'templates/img/tu_icon.png' %}" width="140" height="80" class="d-inline-block align-top" alt="..">
+        </div>
+        <!-- BVG -->
+        <div class="col-lg-6 d-flex justify-content-center align-items-center">
+          <img src="{% static 'templates/img/bvg_icon.png' %}" width="100" height="80" class="d-inline-block align-top" alt="..">
+        </div>
+        <div class="col-lg-6">
+          <p class="lead">Amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dev Section -->
+  <section class="container-fluid mt-5 bg-body-tertiary">
+    <div class="features_heading text-primary text-center">
+      <h2>Das EBus2030+ Tool ist immernoch in Entwicklung</h2>
+    </div>
+    <div class="row">
+      <!-- Kategorie: Publications -->
+      <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">Publications</h5>
+            <p class="card-text">Beschreibung oder kurze Zusammenfassung der Kategorie Publications.</p>
+            <a href="#" class="btn btn-primary">Zur Kategorie</a>
+          </div>
+        </div>
+      </div>
+      <!-- Kategorie: GitHub -->
+      <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">GitHub</h5>
+            <p class="card-text">Beschreibung oder kurze Zusammenfassung der Kategorie GitHub.</p>
+            <a href="#" class="btn btn-primary">Zur Kategorie</a>
+          </div>
+        </div>
+      </div>
+      <!-- Kategorie: Read the Docs -->
+      <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">Read the Docs</h5>
+            <p class="card-text">Beschreibung oder kurze Zusammenfassung der Kategorie Read the Docs.</p>
+            <a href="#" class="btn btn-primary">Zur Kategorie</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature Section -->
+  <section class="container-fluid mt-5 bg-primary">
+    <div class="features_heading text-white text-center">
+      <h2>Features</h2>
+    </div>
+    <div class="row">
+      <!-- Kategorie 1 -->
+      <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-body d-flex flex-column">
+            <i class="fas fa-book fa-3x mb-2"></i> <!-- Icon -->
+            <h5 class="card-title">Kategorie 1</h5>
+            <p class="card-text">Beschreibung oder kurze Zusammenfassung der Kategorie 1.</p>
+          </div>
+        </div>
+      </div>
+      <!-- Kategorie 2 -->
+      <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-body d-flex flex-column">
+            <i class="fas fa-code fa-3x mb-2"></i> <!-- Icon -->
+            <h5 class="card-title">Kategorie 2</h5>
+            <p class="card-text">Beschreibung oder kurze Zusammenfassung der Kategorie 2.</p>
+          </div>
+        </div>
+      </div>
+      <!-- Kategorie 3 -->
+      <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-body d-flex flex-column">
+            <i class="fas fa-globe fa-3x mb-2"></i> <!-- Icon -->
+            <h5 class="card-title">Kategorie 3</h5>
+            <p class="card-text">Beschreibung oder kurze Zusammenfassung der Kategorie 3.</p>
+          </div>
+        </div>
+      </div>
+      <!-- Kategorie 4 -->
+      <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-body d-flex flex-column">
+            <i class="fas fa-lightbulb fa-3x mb-2"></i> <!-- Icon -->
+            <h5 class="card-title">Kategorie 4</h5>
+            <p class="card-text">Beschreibung oder kurze Zusammenfassung der Kategorie 4.</p>
+          </div>
+        </div>
+      </div>
+      <!-- Kategorie 5 -->
+      <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-body d-flex flex-column">
+            <i class="fas fa-heart fa-3x mb-2"></i> <!-- Icon -->
+            <h5 class="card-title">Kategorie 5</h5>
+            <p class="card-text">Beschreibung oder kurze Zusammenfassung der Kategorie 5.</p>
+          </div>
+        </div>
+      </div>
+      <!-- Kategorie 6 -->
+      <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-body d-flex flex-column">
+            <i class="fas fa-rocket fa-3x mb-2"></i> <!-- Icon -->
+            <h5 class="card-title">Kategorie 6</h5>
+            <p class="card-text">Beschreibung oder kurze Zusammenfassung der Kategorie 6.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+{% endblock %}

@@ -1,11 +1,12 @@
 import csv
 import inspect
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from typing import Callable, Type
 from abc import ABC, abstractmethod
 from uuid import UUID
+from tqdm.auto import tqdm
 
 import eflips
 from django import forms
@@ -14,6 +15,7 @@ from inspect import signature
 
 from eflips.ingest import DummyIngester, AbstractIngester
 from eflips.ingest.dummy import BusType
+from eflips.ingest.vdv import VdvIngester
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
@@ -37,6 +39,8 @@ def get_options_form(reader_num: int):
             return SimbaScheduleReader.get_options_form()
         case 2:
             return EflipsIngestScheduleReaderDummy.get_options_form(DummyIngester)
+        case 3:
+            return EflipsIngestScheduleReaderVDV.get_options_form(VdvIngester)
     raise NotImplementedError
 
 
@@ -106,6 +110,9 @@ def get_schedule_reader_factory(reader_num: int) -> type(ScheduleReader):
             return SimbaScheduleReader
         case 2:
             return EflipsIngestScheduleReaderDummy
+        case 3:
+            return EflipsIngestScheduleReaderVDV
+
     raise NotImplementedError(f"Schedule Reader with {reader_num} not found")
 
 
@@ -124,7 +131,6 @@ class SimbaScheduleReader(ScheduleReader):
         self.default_charging_type = default_charging_type
         self.encoding = "utf-8"
         self.progress: Progress = None
-        # self.file_path: Path = None
 
         self.DEPARTURE_NAME = "departure_name"
         self.DEPARTURE_TIME = "departure_time"
@@ -207,8 +213,24 @@ class SimbaScheduleReader(ScheduleReader):
         route_id = 1 if Route.objects.last() is None else Route.objects.last().id + 1
         trip_id = 1 if Trip.objects.last() is None else Trip.objects.last().id + 1
         line_id = 1 if Line.objects.last() is None else Line.objects.last().id + 1
-        for rotation_id, rotation_trips in trip_data.items():
-            for trip in rotation_trips:
+        for rotation_id, rotation_trips in tqdm(trip_data.items()):
+            sorted_trips = sorted(rotation_trips, key=lambda trip: trip["departure_time"])
+            prev_arrival_time = sorted_trips[0]["departure_time"] - timedelta(hours=1)
+            prev_arrival_name = sorted_trips[0]["departure_name"]
+            for trip in sorted_trips:
+                if trip["departure_time"] < prev_arrival_time:
+                    self.errors.append(
+                        f"The following trip overlaps with another. {trip} departs "
+                        f"before the previous arrival at {prev_arrival_time}"
+                    )
+                    raise self.SimbaScheduleReaderException
+                if trip["departure_name"] != prev_arrival_name:
+                    self.errors.append(
+                        f"The following trip does not end at the previous arrival station {prev_arrival_name}: {trip} "
+                    )
+                    raise self.SimbaScheduleReaderException
+                prev_arrival_time = trip["arrival_time"]
+                prev_arrival_name = trip["arrival_name"]
                 if trip[self.LINE] not in line_dict:
                     line = Line(scenario=scenario, name=trip[self.LINE], id=line_id)
                     line_id += 1
@@ -243,6 +265,7 @@ class SimbaScheduleReader(ScheduleReader):
 
                 routes.append(route)
                 trips.append(t)
+
         return lines, routes, trips
 
     def get_rotations(self, scenario, trip_data, vt_dict):
@@ -293,6 +316,7 @@ class SimbaScheduleReader(ScheduleReader):
             default_params = {
                 "scenario": scenario,
                 "name": name,
+                "name_short": name,
                 "battery_capacity": self.default_capacity,
                 "charging_curve": [[0, self.default_capacity], [1, self.default_capacity]],
             }
@@ -398,31 +422,16 @@ class SimbaScheduleReader(ScheduleReader):
 
     @classmethod
     def get_options_form(cls):
-        function = cls.__init__
-        sig = signature(function)
-
-        def ScheduleReaderOptionsFormFactory(classname, fields: dict):
-            return type(
-                f"{classname}",
-                (forms.Form,),
-                fields,
+        class ScheduleReaderForm(forms.Form):
+            # basics
+            file_path = forms.FileField(label="Fahrplan Datei (.csv)", required=True)
+            default_charging_type = forms.CharField(
+                label="Default Ladetyp",
+                widget=forms.RadioSelect(choices=EnumChargeType.choices),
+                initial=EnumChargeType.choices[0],
             )
 
-        fields = dict()
-        field = forms.FileField(required=True)
-        fields["file_path"] = field
-        field = forms.CharField(
-            widget=forms.RadioSelect(choices=EnumChargeType.choices),
-            initial=EnumChargeType.choices[0],
-        )
-        fields["default_charging_type"] = field
-        parameters = {name: argument for name, argument in sig.parameters.items()}
-        del parameters["self"]
-        for name, argument in parameters.items():
-            assert name in fields.keys(), "Missing required field {}".format(name)
-
-        form = ScheduleReaderOptionsFormFactory("ScheduleReaderOptionsForm", fields)
-        return form
+        return ScheduleReaderForm
 
 
 class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
@@ -639,5 +648,26 @@ class EflipsIngestScheduleReaderDummy(EflipsIngestScheduleReaderBase):
             "rotation_per_line": rotation_per_line,
             "opportunity_charging": opportunity_charging,
             "bus_type": bus_type,
+            "progress_callback": None,
+        }
+
+
+class EflipsIngestScheduleReaderVDV(EflipsIngestScheduleReaderBase):
+    """
+    This class is a dummy shim for the eflips-ingest DummyIngester class. It is used for testing the shim system.
+    """
+
+    def __init__(
+        self,
+        x10_zip_file: str,
+    ):
+        super().__init__()
+        self._ingester = VdvIngester(self._database_url)
+
+        # random_text_file is a Path as string, we need to convert it to a Path
+        x10_zip_file = Path(x10_zip_file)
+
+        self._kwargs = {
+            "x10_zip_file": x10_zip_file,
             "progress_callback": None,
         }

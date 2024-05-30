@@ -1,18 +1,8 @@
 {% load i18n %}
-<style>
-  .footer-div {
-    margin-top: auto;
-    width: 100%;
-    text-align: center;
-  }
-  .footer-link {
-    text-decoration: none;
-  }
-</style>
-<footer>
-  <div class="footer-div">
-    <a class="footer-link" href="#">{% translate "Kontakt" %}</a>
-    <a class="footer-link" href="https://wam.rl-institut.de/impressum.html">{% translate "Impressum" %}</a>
-    <a class="footer-link" href="https://wam.rl-institut.de/datenschutz.html">{% translate "Datenschutz" %}</a>
+<footer class="bg-body-tertiary text-center py-3">
+  <div class="container">
+    <span>&copy; 2024 RLI. All rights reserved.</span>
+    <a class="footer-link" href="{% url 'legal' %}">{% translate "Impressum" %}</a>
+    <a class="footer-link" href="{% url 'privacy' %}">{% translate "Datenschutz" %}</a>
   </div>
 </footer>

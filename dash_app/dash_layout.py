@@ -1,91 +1,156 @@
-from dash import Dash, html, dcc
-from . import bus_dropdown, report_numbers, scatter_chart, histograms, activities_chart, piechart
+import dash.exceptions
+from dash import Dash, html, dcc, Output, Input, State
+from dash.html import Div
+
+from ebustoolbox.models import Scenario
+from . import (
+    bus_dropdown,
+    report_numbers,
+    scatter_chart,
+    histograms,
+    activities_chart,
+    piechart,
+    data,
+    ids,
+)
 
 
-def create_layout(app: Dash) -> html.Div:
+def create_layout(app: Dash) -> Div:
     # App layout
+    @app.callback(
+        [Output("tab-simulation", "disabled"), Output("tab-kpi", "disabled")],
+        [Input("tab-simulation", "value")],
+    )
+    def update_tab(_, session_state=None, dash_app=None, **kwargs):
+        disable_tabs = data.get_sim_done_status(dash_app.slug)
+        return disable_tabs, disable_tabs
+
+    @app.callback(
+        [Output(ids.MEMOIZER_DONE, "data"), Output(ids.BUS_DROPDOWN, "data")],
+        [Input(ids.BUS_DROPDOWN_RAW, "value")],
+    )
+    def memoize_all_data(buses: list[str], session_state=None, dash_app=None, **kwargs):
+        scenario = Scenario.objects.get(task_id=dash_app.slug)
+        _ = data.recent_memoizer(data.get_all_event_info, scenario.id)(scenario.id)
+        _ = data.recent_memoizer(data.get_all_powerdraw_as_dataframe, scenario.id)(scenario.id)
+        _ = data.recent_memoizer(data.get_all_trip_info, scenario.id)(scenario.id)
+        _ = data.recent_memoizer(data.get_vehicle_dictionaries, scenario.id)(scenario.id)
+        _ = data.recent_memoizer(data.get_rotation_dictionaries, scenario.id)(scenario.id)
+        return True, buses
+
+    @app.callback(
+        Output(ids.APPLY_DROPDOWN, "n_clicks"),
+        Input(ids.BUS_DROPDOWN, "data"),
+        State(ids.APPLY_DROPDOWN, "n_clicks"),
+    )
+    def trigger_apply_once(_, n_clicks, session_state=None, dash_app=None, **kwargs):
+        if n_clicks is None:
+            return 0
+        raise dash.exceptions.PreventUpdate
+
     return html.Div(
         [
+            dcc.Store(id=ids.MEMOIZER_DONE, data=False),  # Store to keep track of memoizer status
+            dcc.Store(id=ids.BUS_DROPDOWN, data=[]),
             html.Div(
-                children=block_top_center(app),
+                id="_dash_app_container",
                 style={
                     "display": "inline-block",
                     "width": "100%",
                     "verticalAlign": "top",
-                    "height": "20%",
                 },
-            ),
-            dcc.Tabs(
-                [
-                    dcc.Tab(
-                        label="Scenario Plots",
-                        children=[
-                            html.Div(
-                                children=block_first_third(app),
-                                style={
-                                    "display": "inline-block",
-                                    "width": "33%",
-                                    "verticalAlign": "top",
-                                    "height": "100px",
-                                },
-                            ),
-                            html.Div(
-                                children=block_second_third(app),
-                                style={
-                                    "display": "inline-block",
-                                    "width": "33%",
-                                    "verticalAlign": "top",
-                                    "height": "100px",
-                                },
-                            ),
-                            html.Div(
-                                children=block_third_third(app),
-                                style={
-                                    "display": "inline-block",
-                                    "width": "33%",
-                                    "verticalAlign": "top",
-                                    "height": "100px",
-                                },
-                            ),
-                            html.Div(
-                                children=block_top_left(app),
-                                style={
-                                    "display": "inline-block",
-                                    "width": "50%",
-                                    "verticalAlign": "top",
-                                    "height": "200px",
-                                },
-                            ),
-                        ],
+                children=[
+                    html.Div(
+                        children=block_top_center(app),
+                        style={
+                            "display": "inline-block",
+                            "width": "100%",
+                            "verticalAlign": "top",
+                        },
                     ),
-                    dcc.Tab(
-                        label="CEO Tab",
-                        children=[
-                            html.Div(
-                                children=block_top_right(app),
-                                style={
-                                    "display": "inline-block",
-                                    "width": "49%",
-                                    "verticalAlign": "top",
-                                    "height": "400px",
-                                },
-                            ),
-                        ],
+                    dcc.Loading(
+                        dcc.Tabs(
+                            children=[
+                                dcc.Tab(
+                                    label="Pre-Simulation Plots",
+                                    children=[
+                                        html.Div(
+                                            children=block_first_third(app),
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "33%",
+                                                "verticalAlign": "top",
+                                            },
+                                        ),
+                                        html.Div(
+                                            children=block_second_third(app),
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "33%",
+                                                "verticalAlign": "top",
+                                            },
+                                        ),
+                                        html.Div(
+                                            children=block_third_third(app),
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "33%",
+                                                "verticalAlign": "top",
+                                            },
+                                        ),
+                                        html.Div(
+                                            children=block_top_left(app),
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "50%",
+                                                "verticalAlign": "top",
+                                            },
+                                        ),
+                                    ],
+                                ),
+                                dcc.Tab(
+                                    label="KPI Tab",
+                                    id="tab-kpi",
+                                    value="tab-kpi",
+                                    disabled=True,
+                                    children=[
+                                        html.Div(
+                                            children=block_top_left_KPI(app),
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "49%",
+                                                "verticalAlign": "top",
+                                            },
+                                        ),
+                                        html.Div(
+                                            children=block_top_right_KPI(app),
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "49%",
+                                                "verticalAlign": "top",
+                                            },
+                                        ),
+                                    ],
+                                ),
+                                dcc.Tab(
+                                    label="Simulation Plots",
+                                    id="tab-simulation",
+                                    value="tab-simulation",
+                                    disabled=True,
+                                    children=[
+                                        html.Div(
+                                            children=block_bottom_center(app),
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "100%",
+                                            },
+                                        ),
+                                    ],
+                                ),
+                            ]
+                        ),
                     ),
-                    dcc.Tab(
-                        label="Simulation Plots",
-                        children=[
-                            html.Div(
-                                children=block_bottom_center(app),
-                                style={
-                                    "display": "inline-block",
-                                    "width": "100%",
-                                    "height": "600px",
-                                },
-                            ),
-                        ],
-                    ),
-                ]
+                ],
             ),
         ]
     )
@@ -113,8 +178,8 @@ def block_bottom_center(app):
         scatter_chart.render(app),
         scatter_chart.render_power_draw(app),
         scatter_chart.render_station_occupation(app),
-        histograms.render_minimal_soc(app),
         activities_chart.render(app),
+        histograms.render_minimal_soc(app),
         histograms.render_rotation_duration(app),
         histograms.render_rotation_distance(app),
         histograms.render_dist_dur(app),
@@ -125,9 +190,14 @@ def block_top_left(app) -> list[html.Div]:
     return [piechart.render_bustype(app)]
 
 
-def block_lower_left(app) -> list[html.Div]:
-    return []
+def block_top_left_KPI(app) -> list[html.Div]:
+    return [
+        report_numbers.render_total_distance(app),
+        report_numbers.render_avg_consumption(app),
+        report_numbers.render_number_stations(app),
+        # report_numbers.render_bus_utilization(app),
+    ]
 
 
-def block_top_right(app):
+def block_top_right_KPI(app):
     return [piechart.render_critical_rotations(app)]
