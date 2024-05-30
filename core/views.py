@@ -76,4 +76,4 @@ def test_email(request):
             recipient_list=[request.user.email],
             fail_silently=False,
         )
-    return redirect(request.GET.get('path', '/'))
+    return redirect(request.GET.get("path", "/"))

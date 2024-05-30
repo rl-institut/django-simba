@@ -24,8 +24,8 @@ urlpatterns = [
     path("", include("core.urls")),
     path("django_plotly_dash/", include("django_plotly_dash.urls")),
     path("map/", include("django_mapengine.urls")),
-    path("impressum/", TemplateView.as_view(template_name='legal.html'), name='legal'),
-    path("datenschutz/", TemplateView.as_view(template_name='privacy.html'), name='privacy'),
+    path("impressum/", TemplateView.as_view(template_name="legal.html"), name="legal"),
+    path("datenschutz/", TemplateView.as_view(template_name="privacy.html"), name="privacy"),
     # Admin and authentification urls
     path("", include("django.contrib.auth.urls")),
     path("admin/", admin.site.urls),
