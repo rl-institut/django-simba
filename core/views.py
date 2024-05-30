@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import update_session_auth_hash, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
@@ -34,6 +34,7 @@ def signup(request):
         user.username = user.email.lower()  # force lowercase for username
         user.is_active = True
         user.save()
+        login(request, user)
         return redirect(reverse("core:home"))
     elif request.GET.get("token"):
         # GET: present registration form, fill in email from token
