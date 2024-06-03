@@ -5,7 +5,6 @@ This way data should be easily swappable, while the dash_layout allows for swapp
 import warnings
 import logging
 
-
 from ebustoolbox.models import (
     Scenario,
     Event,
@@ -51,7 +50,7 @@ def vid_human_readable(vehicle: Vehicle, counter, name="", c_type=False, rotatio
 def get_total_consumption(s: Scenario):
     vehicles = Vehicle.objects.filter(scenario_id=s.id)
 
-    df = get_all_event_info(s.id)
+    df = recent_memoizer(get_all_event_info, s.id)(s.id)
 
     # Convert time columns to datetime
     df["time_start"] = pd.to_datetime(df["time_start"])
@@ -75,7 +74,7 @@ def get_total_consumption(s: Scenario):
     for index, event in driving_events.iterrows():
         # Calculate the difference between soc_end and soc_start
         total_energy_difference += (
-            abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
+                abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
         )
     return total_energy_difference
 
@@ -177,7 +176,6 @@ def get_number_of_stations(task_id: str) -> list[str]:
 
 def get_frequently_served_station(task_id: str) -> list[str]:
     s = Scenario.objects.get(task_id=task_id)
-    # Count all Station objects for the scenario
     df = recent_memoizer(get_all_routes, s.id)(s.id)
 
     # Finding the most common item in a specific column
@@ -191,6 +189,26 @@ def get_frequently_served_station(task_id: str) -> list[str]:
         f"{station.name},  {frequency} mal",
     ]
 
+
+def get_scenario_duration(task_id: str) -> dict:
+    s = Scenario.objects.get(task_id=task_id)
+    df = recent_memoizer(get_all_event_info, s.id)(s.id)
+
+    # Convert time columns to datetime
+    df["time_start"] = pd.to_datetime(df["time_start"])
+    df["time_end"] = pd.to_datetime(df["time_end"])
+
+    start = df["time_start"].min()
+    end = df["time_end"].max()
+
+    duration = end - start
+
+    result_dict = {
+        "start": start,
+        "end": end,
+        "duration": duration
+    }
+    return result_dict
 
 
 def get_number_longest_rot(filter_dict: dict):
@@ -496,6 +514,7 @@ def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
     df["R_id"] = df["R_id"].apply(lambda x: r_dict[x])
 
     return df
+
 
 def get_all_routes(scenario_id):
     qs = Route.objects.filter(scenario_id=scenario_id)

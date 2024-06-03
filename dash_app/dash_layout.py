@@ -265,7 +265,7 @@ def block_top_left_KPI(app) -> list[html.Div]:
         report_numbers.render_avg_consumption(app),
         report_numbers.render_number_stations(app),
         report_numbers.render_station_most_served(app),
-        # report_numbers.render_bus_utilization(app),
+        report_numbers.render_bus_utilization(app),
     ]
 
 

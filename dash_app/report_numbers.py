@@ -30,7 +30,7 @@ def render_longest_rotation(app: Dash) -> html.Div:
         State(ids.BUS_DROPDOWN, "data"),
     )
     def update_report_numbers(
-        _, buses: list[str], session_state=None, dash_app=None, **kwargs
+            _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
@@ -70,7 +70,7 @@ def render_shortest_rotation(app: Dash) -> html.Div:
         State(ids.BUS_DROPDOWN, "data"),
     )
     def update_report_numbers(
-        _, buses: list[str], session_state=None, dash_app=None, **kwargs
+            _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
@@ -110,7 +110,7 @@ def render_number_of_buses(app: Dash) -> html.Div:
         State(ids.BUS_DROPDOWN, "data"),
     )
     def update_report_numbers(
-        _, buses: list[str], session_state=None, dash_app=None, **kwargs
+            _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
@@ -150,7 +150,7 @@ def critical_rotations(app: Dash) -> html.Div:
         State(ids.BUS_DROPDOWN, "data"),
     )
     def update_report_numbers(
-        _, buses: list[str], session_state=None, dash_app=None, **kwargs
+            _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -199,7 +199,7 @@ def render_total_distance(app: Dash) -> html.Div:
         State(ids.BUS_DROPDOWN, "data"),
     )
     def update_total_distance(
-        _, buses: list[str], session_state=None, dash_app=None, **kwargs
+            _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         # print("updating numbers")
         task_id = dash_app.slug
@@ -245,7 +245,7 @@ def render_avg_consumption(app: Dash) -> html.Div:
         State(ids.BUS_DROPDOWN, "data"),
     )
     def update_avg_consumption(
-        _, buses: list[str], session_state=None, dash_app=None, **kwargs
+            _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         # print("updating numbers")
         task_id = dash_app.slug
@@ -294,7 +294,7 @@ def render_number_stations(app: Dash) -> html.Div:
         State(ids.BUS_DROPDOWN, "data"),
     )
     def update_number_stations(
-        _, buses: list[str], session_state=None, dash_app=None, **kwargs
+            _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         # print("updating numbers")
         task_id = dash_app.slug
@@ -327,13 +327,20 @@ def render_bus_utilization(app: Dash) -> html.Div:
         State(ids.BUS_DROPDOWN, "data"),
     )
     def update_bus_utilization(
-        _, buses: list[str], session_state=None, dash_app=None, **kwargs
+            _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         # print("updating numbers")
-        # task_id = dash_app.slug
+        task_id = dash_app.slug
+        s = Scenario.objects.get(task_id=task_id)
+
+        result_dict = data.get_scenario_duration(task_id)
+
+        df = data.get_duration_as_dataframe(s.id, buses)
+        all_rotations_duration = df["duration"].sum()
 
         # Get the data
-        lines = ["TODO", "TODO"]
+        lines = ["Durchschnittliche Busauslastung:",
+                 str(round((result_dict["duration"].total_seconds() / all_rotations_duration)*100, 3)) + " %"]
 
         styles = [
             {"fontSize": "25px", "position": "relative", "top": "0", "left": "0"},
@@ -359,13 +366,12 @@ def render_station_most_served(app: Dash) -> html.Div:
         State(ids.BUS_DROPDOWN, "data"),
     )
     def update_station_most_served(
-        _, buses: list[str], session_state=None, dash_app=None, **kwargs
+            _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         # print("updating numbers")
         task_id = dash_app.slug
 
         lines = data.get_frequently_served_station(task_id)
-        print(lines)
         styles = [
             {"fontSize": "25px", "position": "relative", "top": "0", "left": "0"},
             {"fontSize": "48px", "textAlign": "center"},
