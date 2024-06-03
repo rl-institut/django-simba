@@ -348,3 +348,34 @@ def render_bus_utilization(app: Dash) -> html.Div:
         return html.Div(number_divs, id=ids.BUS_UTILIZATION)
 
     return html.Div(id=ids.BUS_UTILIZATION)
+
+
+def render_station_most_served(app: Dash) -> html.Div:
+    """ """
+
+    @app.callback(
+        Output(ids.STATION_MOST_SERVED, "children"),
+        Input(ids.APPLY_DROPDOWN, "n_clicks"),
+        State(ids.BUS_DROPDOWN, "data"),
+    )
+    def update_station_most_served(
+        _, buses: list[str], session_state=None, dash_app=None, **kwargs
+    ) -> html.Div:
+        # print("updating numbers")
+        task_id = dash_app.slug
+
+        lines = data.get_frequently_served_station(task_id)
+        print(lines)
+        styles = [
+            {"fontSize": "25px", "position": "relative", "top": "0", "left": "0"},
+            {"fontSize": "48px", "textAlign": "center"},
+        ]
+
+        html_div = []
+
+        for line, style in zip(lines, styles):
+            html_div.append(html.H2(line, style=style))
+        number_divs = html.Div(html_div)
+        return html.Div(number_divs, id=ids.STATION_MOST_SERVED)
+
+    return html.Div(id=ids.STATION_MOST_SERVED)

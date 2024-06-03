@@ -96,11 +96,13 @@ def create_layout(app: Dash) -> Div:
         progress = 0
         _ = data.recent_memoizer(data.get_all_event_info, scenario.id)(scenario.id)
         progress = 20
-        _ = data.recent_memoizer(data.get_all_powerdraw_as_dataframe, scenario.id)(scenario.id)
+        _ = data.recent_memoizer(data.get_vehicle_dictionaries, scenario.id)(scenario.id)
         progress = 40
         _ = data.recent_memoizer(data.get_all_trip_info, scenario.id)(scenario.id)
         progress = 60
-        _ = data.recent_memoizer(data.get_vehicle_dictionaries, scenario.id)(scenario.id)
+        _ = data.recent_memoizer(data.get_all_routes, scenario.id)(scenario.id)
+        progress = 70
+        _ = data.recent_memoizer(data.get_all_powerdraw_as_dataframe, scenario.id)(scenario.id)
         progress = 80
         _ = data.recent_memoizer(data.get_rotation_dictionaries, scenario.id)(scenario.id)
         progress = 100
@@ -262,6 +264,7 @@ def block_top_left_KPI(app) -> list[html.Div]:
         report_numbers.render_total_distance(app),
         report_numbers.render_avg_consumption(app),
         report_numbers.render_number_stations(app),
+        report_numbers.render_station_most_served(app),
         # report_numbers.render_bus_utilization(app),
     ]
 

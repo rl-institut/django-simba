@@ -16,7 +16,7 @@ from ebustoolbox.models import (
     Rotation,
     Station,
     EventType,
-    Trip,
+    Trip, Route,
 )
 import pandas as pd
 from django.db.models import Count
@@ -173,6 +173,24 @@ def get_number_of_stations(task_id: str) -> list[str]:
         "Anzahl elektrifizierter Stationen / Anzahl Stationen",
         f"{electrified_stations} / {total_stations}",
     ]
+
+
+def get_frequently_served_station(task_id: str) -> list[str]:
+    s = Scenario.objects.get(task_id=task_id)
+    # Count all Station objects for the scenario
+    df = recent_memoizer(get_all_routes, s.id)(s.id)
+
+    # Finding the most common item in a specific column
+    most_common_station = df['departure_station_id'].mode()[0]
+    frequency = df['arrival_station_id'].value_counts()[most_common_station]
+
+    station = Station.objects.get(scenario_id=s.id, id=most_common_station)
+
+    return [
+        "Am häufigsten angefahrene Station:",
+        f"{station.name},  {frequency} mal",
+    ]
+
 
 
 def get_number_longest_rot(filter_dict: dict):
@@ -476,6 +494,15 @@ def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
 
     df["V_id"] = df["V_id"].apply(lambda x: v_dict[x])
     df["R_id"] = df["R_id"].apply(lambda x: r_dict[x])
+
+    return df
+
+def get_all_routes(scenario_id):
+    qs = Route.objects.filter(scenario_id=scenario_id)
+
+    # Convert the QuerySet to a DataFrame
+    data = list(qs.values())
+    df = pd.DataFrame(data)
 
     return df
 
