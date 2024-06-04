@@ -153,13 +153,17 @@ def get_vehicle_types(request: HttpRequest, task_id):
 
 
 def get_stations(request: HttpRequest | None, task_id, form=None):
-    if form is None:
-        form = ChargingStationDefaultsForm()
-    context = {"task_id": task_id, "form": form}
     try:
         scenario = Scenario.objects.get(task_id=task_id)
     except Scenario.DoesNotExist:
-        raise Http404("Scenario with this task_id does not exist")
+        raise Http404
+        # if the scenario has a manager, only this User can run the simulation
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
+
+    if form is None:
+        form = ChargingStationDefaultsForm()
+    context = {"task_id": task_id, "form": form}
     stations = (
         Station.objects.filter(scenario=scenario)
         .exclude(charge_type=EnumChargeType.DEPOT)
@@ -194,12 +198,16 @@ def set_station_values(request: HttpRequest, task_id):
 
 def scenario_overview_view(request: HttpRequest, task_id):
     """View controlling if the wait or success view should be shown"""
+    try:
+        scenario = Scenario.objects.get(task_id=task_id)
+    except Scenario.DoesNotExist:
+        raise Http404
+        # if the scenario has a manager, only this User can run the simulation
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
 
     try:
-        if (
-            Scenario.objects.get(task_id=task_id)
-            and not Scenario.objects.get(task_id=task_id).finished
-        ):
+        if not scenario.finished:
             request.task_id = str(task_id)
             session = request.session
             from dash_app.dash_app import create_app
@@ -330,10 +338,17 @@ def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
 
 
 def assign_vehicle_types(request: HttpRequest, task_id: str):
+    try:
+        scenario = Scenario.objects.get(task_id=task_id)
+    except Scenario.DoesNotExist:
+        raise Http404
+    # if the scenario has a manager, only this User can run the simulation
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
+
     if request.method == "POST":
         vehicle_type_pairs = request.POST.getlist("vehicle_type_dropdown")
         tasks.update_vehicle_types_with_defaults(vehicle_type_pairs, task_id)
-
     return redirect(reverse("simba:stations", args=[str(task_id)]))
 
 
