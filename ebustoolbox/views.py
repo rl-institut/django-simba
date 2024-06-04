@@ -299,6 +299,10 @@ def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
             return response
 
         s, _ = Scenario.objects.get_or_create(task_id=task_id)
+        if request.user.is_authenticated:
+            s.manager = request.user
+            s.save()
+
         # todo check size
         cleaned_data = form.cleaned_data
 
@@ -406,15 +410,19 @@ def run_simulation(request: HttpRequest, task_id: str):
     context = {"task_id": task_id, "progress_type": "simulation"}
     logger.debug(context)
     response = HttpResponse(context)
+
     try:
         if request.method == "GET":
-            logger.info("Running Toolchain.")
             try:
                 scenario = Scenario.objects.get(task_id=task_id)
             except Scenario.DoesNotExist:
                 raise Http404
-            # This triggers progress polling. If the toolchain is finished
+            # if the scenario has a manager, only this User can run the simulation
+            if scenario.manager and scenario.manager != request.user:
+                raise Http404
+            # This triggers progress polling. If the toolchain is finished,
             # the progress view will be triggered with the task_id and progress type
+            logger.info("Running Toolchain.")
             async_result = tasks.run_toolchain_from_scenario(scenario, assign_vehicles=True)
 
             context["progress_id"] = async_result.task_id
