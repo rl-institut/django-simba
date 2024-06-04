@@ -1,15 +1,18 @@
 {% load static %}
 <div id="options_form" class="text-center">
   <form id='form'>{% csrf_token %}
+          <div class="container">
     {#    use HX-retarget to target form instead of progess bar in cases of errors#}
-    <div class="form-group mb-3">
-      <label for="scenarioName">Name des Szenarios</label>
-      <input type="text" class="form-control " id="scenarioName" name="scenario_name" aria-describedby="scenarioNameHelp"
-             placeholder="Mein Szenario">
+    <div class="form-group p-4 mb-2">
+      <div class="input-group">
+        <input type="text" class="form-control " id="scenarioName" name="scenario_name"
+               aria-describedby="scenarioNameHelp"
+               placeholder="Mein Szenario"> <span class="input-group-text">Name des Szenarios</span>
+      </div>
       <small id="scenarioNameHelp" class="form-text text-muted">Gib deinem Szenario einen Namen. So findest du es
         später
-        hier <a
-                href="{% url "simba:scenarios" %}">'Meine Szenarien'</a> </small>
+        hier <a href="{% url "simba:scenarios" %}">'Meine Szenarien'</a> </small>
+    </div>
     </div>
     {% if reader_num == 1 %}
       <fieldset class="form-group">
@@ -22,7 +25,8 @@
                      name="file_path">
               <span class="input-group-text">{{ form.file_path.label }}</span>
               <div>{{ form.file_path.errors }}</div>
-              <a href="{% static 'ebustoolbox/examples/trips_example.csv' %}" class="input-group-text" download>Download Beispiel-Fahrplan</a>
+              <a href="{% static 'ebustoolbox/examples/trips_example.csv' %}" class="input-group-text" download>Download
+                Beispiel-Fahrplan</a>
             </div>
 
           </div>
