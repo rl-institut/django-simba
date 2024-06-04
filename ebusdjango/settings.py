@@ -81,6 +81,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # if the header and footer tags are in use this setting should be used. No problem if not in use
     "django_plotly_dash.middleware.BaseMiddleware",
+    "core.middleware.TimezoneMiddleware",
 ]
 
 ROOT_URLCONF = "ebusdjango.urls"

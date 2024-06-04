@@ -14,3 +14,15 @@
 {#classes or data-classes attribute. This functionality allows you to apply CSS Transitions to your HTML without #}
 {#resorting to javascript.#}
 <script src="https://unpkg.com/htmx.org/dist/ext/class-tools.js"></script>
+
+<script>
+    // Timezone settings
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // e.g. "America/New_York"
+
+    // Create the cookie string with SameSite attribute
+    document.cookie = "django_timezone=" + timezone + "; SameSite=Strict; path=/";
+
+    // You can adjust the SameSite attribute as per your requirement
+    // document.cookie = "django_timezone=" + timezone + "; SameSite=Strict; path=/";
+    // document.cookie = "django_timezone=" + timezone + "; SameSite=None; Secure; path=/";
+</script>

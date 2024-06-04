@@ -14,6 +14,7 @@ from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest, H
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.utils.cache import patch_cache_control
+from django.utils import timezone
 from django.views.generic import TemplateView
 from django.views.decorators.http import require_GET, require_POST
 from eflips.depot.api import simulate_scenario  # noqa
@@ -300,6 +301,12 @@ def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
     context = {"task_id": task_id, "progress_type": "vehicle_types"}
     try:
         form = schedule_readers.get_options_form(reader_num)(request.POST, request.FILES)
+        # set in TimezoneMiddleware in core.middleware
+        now = timezone.localtime()
+        now_str = now.strftime(format="%Y-%m-%d %H:%M")
+        scenario_name = request.POST.get("scenario_name")
+        if scenario_name == "":
+            scenario_name = f"Mein Szenario vom {now_str}"
         if not form.is_valid():
             context = {"form": form, "reader_num": reader_num, "task_id": task_id}
             response = render(request, "schedule_reader_options.html", context)
@@ -307,9 +314,11 @@ def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
             return response
 
         s, _ = Scenario.objects.get_or_create(task_id=task_id)
+        s.name = scenario_name
         if request.user.is_authenticated:
             s.manager = request.user
-            s.save()
+
+        s.save()
 
         # todo check size
         cleaned_data = form.cleaned_data
