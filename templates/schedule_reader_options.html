@@ -1,3 +1,4 @@
+{% load static %}
 <div id="options_form" class="text-center">
   <form id='form'>{% csrf_token %}
     {#    use HX-retarget to target form instead of progess bar in cases of errors#}
@@ -8,24 +9,31 @@
           <div class="row mb-3 px-4 justify-content-center">
 
             <div class="input-group">
-              <input type="file" class="form-control col-sm-2" id="{{ form.file_path.auto_id }}" required
+              <input {% if form.file_path.help_text %}title="{{ form.file_path.help_text }}"{% endif %} type="file"
+                     class="form-control col-sm-2" id="{{ form.file_path.auto_id }}" required
                      name="file_path">
               <span class="input-group-text">{{ form.file_path.label }}</span>
               <div>{{ form.file_path.errors }}</div>
+              <a href="{% static 'ebustoolbox/examples/trips_example.csv' %}" class="input-group-text" download>Download Beispiel-Fahrplan</a>
             </div>
+
           </div>
         </div>
+
+
         <div class="container">
           <div class="row px-4 pb-4 justify-content-center">
             <div class="col-auto">
               <div class="form-check">
-                <input class="form-check-input" type="radio" value="depb" name="default_charging_type" id="inp-depb">
+                <input {% if form.default_charging_type.help_text %}title="{{ form.default_charging_type.help_text }}"{% endif %}
+                       class="form-check-input" type="radio" value="depb" name="default_charging_type" id="inp-depb">
                 <label class="form-check-label" for="inp-depb">
                   Depotlader
                 </label>
               </div>
               <div class="form-check">
-                <input class="form-check-input" type="radio" value="oppb" name="default_charging_type" id="inp-oppb"
+                <input {% if form.default_charging_type.help_text %}title="{{ form.default_charging_type.help_text }}"{% endif %}class="form-check-input"
+                       type="radio" value="oppb" name="default_charging_type" id="inp-oppb"
                        checked>
                 <label class="form-check-label" for="inp-oppb">
                   Gelegenheitslader
@@ -40,7 +48,7 @@
     {% endif %}
 
 
-    {% if reader_num > 1%}
+    {% if reader_num > 1 %}
       {{ form.as_p }}
     {% endif %}
 
