@@ -132,10 +132,24 @@
     }
 
     map.on('idle', function () {
-        getRouteIds()
+        getRouteIds();
+        StationPowerFilter()
         createButtons();
     });
 
+    function StationPowerFilter(){
+        const layerId = 'station';
+        if (map.getLayer(layerId)) {
+            const features = map.queryRenderedFeatures({ layers: [layerId] });
+            const numberOfFeatures = features.length;
+            for (let i = 0; i < numberOfFeatures; i++) {
+                console.log(features[i]);
+            }
+        } else {
+            console.log('Layer "routes" does not exist.');
+        }
+
+    }
 
 </script>
 {% endblock %}
