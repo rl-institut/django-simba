@@ -47,7 +47,8 @@ def render(app: Dash) -> html.Div:
             xaxis_title="Zeit",
             yaxis_title="SOC [%]",
             showlegend=False,
-            xaxis=dict(range=[time_dict["start"], time_dict["end"]])  # Set the x-axis range here
+            xaxis=dict(range=[time_dict["start"], time_dict["end"]]),  # Set the x-axis range here
+            separators=', '
         )
 
         return fig
@@ -117,12 +118,13 @@ def render_power_draw(app: Dash) -> html.Div:
 
         # Update layout
         fig.update_layout(
-            title_text="Ladeenergie über Zeit, pro Stations ID",
+            title_text="Ladeenergie über Zeit, pro Station",
             xaxis_title="Zeit",
             yaxis_title="Energie [kW]",
             showlegend=False,
             margin=dict(l=20, r=20, t=40, b=20),
-            xaxis=dict(range=[time_dict["start"], time_dict["end"]])  # Set the x-axis range here
+            xaxis=dict(range=[time_dict["start"], time_dict["end"]]),  # Set the x-axis range here
+            height=max(300, 150 * i),
         )
 
         return fig
