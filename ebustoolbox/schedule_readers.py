@@ -171,39 +171,40 @@ class SimbaScheduleReader(ScheduleReader):
                 raise self.SimbaScheduleReaderException
 
             self.set_total_work(5)
-            self.set_progress(0, "Reading File")
+            self.set_progress(0, "Lese Datei")
             trip_data = self.file_data_to_dict()
 
-            self.set_progress(1, "Finding Stations")
+            self.set_progress(1, "Finde Stationen")
             # Create Stations
             scenario = Scenario.objects.get(id=scenario_id)
             stations, station_dict = self.get_stations(scenario, trip_data)
             Station.objects.bulk_create(stations)
 
-            self.set_progress(2, "Finding Vehicle Types")
+            self.set_progress(2, "Finde Fahrzeugtypen")
             # Create empty vehicle_types
             vt_dict, vts = self.get_vehicles(scenario, trip_data)
             VehicleType.objects.bulk_create(vts)
 
-            self.set_progress(3, "Finding Rotations")
+            self.set_progress(3, "Finde Umläufe")
             # Create Rotations
             rotations, rotations_dict = self.get_rotations(scenario, trip_data, vt_dict)
             Rotation.objects.bulk_create(rotations)
 
-            self.set_progress(4, "Finding Trips")
+            self.set_progress(4, "Finde Fahrten")
 
             # Create Trips and Routes
             lines, routes, trips = self.get_lines_routes_trips(
                 rotations_dict, scenario, station_dict, trip_data
             )
 
-            Line.objects.bulk_create(lines)
-            Route.objects.bulk_create(routes)
-            Trip.objects.bulk_create(trips)
-            self.set_progress(5, "Trips created")
+            if not self.errors:
+                Line.objects.bulk_create(lines)
+                Route.objects.bulk_create(routes)
+                Trip.objects.bulk_create(trips)
+            self.set_progress(5, "Fahrten erstellt")
         except self.SimbaScheduleReaderException:
             return False
-        return True
+        return len(self.errors) == 0
 
     def get_lines_routes_trips(self, rotations_dict, scenario, station_dict, trip_data):
         trips = []
@@ -220,15 +221,15 @@ class SimbaScheduleReader(ScheduleReader):
             for trip in sorted_trips:
                 if trip["departure_time"] < prev_arrival_time:
                     self.errors.append(
-                        f"The following trip overlaps with another. {trip} departs "
-                        f"before the previous arrival at {prev_arrival_time}"
+                        f"Fahrt {trip} überschneidet sich "
+                        f"(startet vor der vorherigen Ankunft um {prev_arrival_time})"
                     )
-                    raise self.SimbaScheduleReaderException
+                    continue
                 if trip["departure_name"] != prev_arrival_name:
                     self.errors.append(
-                        f"The following trip does not end at the previous arrival station {prev_arrival_name}: {trip} "
+                        f"Fahrt {trip} endet nicht an der vorherigen Station {prev_arrival_name}"
                     )
-                    raise self.SimbaScheduleReaderException
+                    continue
                 prev_arrival_time = trip["arrival_time"]
                 prev_arrival_name = trip["arrival_name"]
                 if trip[self.LINE] not in line_dict:
@@ -277,14 +278,15 @@ class SimbaScheduleReader(ScheduleReader):
         for rotation_id, trips in trip_data.items():
             i += 1
             if not (len({t[self.VEHICLE_TYPE] for t in trip_data[rotation_id]}) == 1):
-                self.errors.append(f"Rotation {rotation_id} contains multiple vehicle types")
-                raise self.SimbaScheduleReaderException
+                self.errors.append(f"Umlauf {rotation_id} enthält mehrere Fahrzeugtypen")
+                continue
             if not (len({t[self.CHARGING_TYPE] for t in trip_data[rotation_id]}) == 1):
-                self.errors.append(f"Rotation {rotation_id} contains multiple charging types")
-                raise self.SimbaScheduleReaderException
+                self.errors.append(f"Umlauf {rotation_id} enthält mehrere Ladetypen")
+                continue
             first_trip = trips[0]
             vt = vt_dict[first_trip[self.VEHICLE_TYPE]]
-            match str(first_trip[self.CHARGING_TYPE]).lower():
+            ct = str(first_trip[self.CHARGING_TYPE])
+            match ct.lower():
                 case EnumChargeType.OPPORTUNITY.value:
                     rot = Rotation(
                         scenario=scenario,
@@ -302,7 +304,8 @@ class SimbaScheduleReader(ScheduleReader):
                         vehicle_type=vt[1],
                     )
                 case _:
-                    raise NotImplementedError
+                    self.errors.append(f"Umlauf {rotation_id} entält ungültigen Ladetyp: {ct}")
+                    continue
             rotations.append(rot)
             rotations_dict[rotation_id] = rot
         return rotations, rotations_dict
@@ -369,7 +372,7 @@ class SimbaScheduleReader(ScheduleReader):
         trip_data = dict()
 
         # Possible error texts
-        duration_error = "has no duration. Remove it from the schedule"
+        duration_error = "hat keine Umlaufdauer, bitte aus dem Zeitplan entfernen"
 
         with open(self.file_path, encoding=self.encoding) as file:
             trip_reader = csv.DictReader(file)
@@ -387,7 +390,7 @@ class SimbaScheduleReader(ScheduleReader):
             ]:
                 if column not in trip.keys():
                     missing_column = True
-                    self.errors.append(f"Column {column} is missing.")
+                    self.errors.append(f"Spalte {column} fehlt")
 
             if missing_column:
                 raise self.SimbaScheduleReaderException
@@ -587,7 +590,7 @@ class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
                     label=form_name, help_text=form_description
                 )
             else:
-                raise NotImplementedError(f"Parameter type {entry.annotation} not implemented.")
+                raise NotImplementedError(f"Parametertyp {entry.annotation} nicht unterstützt.")
 
         return ScheduleReaderOptionsFormFactory(for_class.__name__ + "OptionsForm", fields)
 
