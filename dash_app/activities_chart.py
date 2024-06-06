@@ -43,6 +43,8 @@ def render(app: Dash) -> html.Div:
 
         df = data.get_activities_as_dataframe(s.id, buses)
 
+        time_dict = data.get_scenario_duration(task_id)
+
         # following line is needed due to plotly bug,
         # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template="plotly"))
@@ -61,11 +63,12 @@ def render(app: Dash) -> html.Div:
             xaxis_title="Zeit",
             yaxis_title="Fahrzeug",
             showlegend=True,
-            margin=dict(l=20, r=20, t=40, b=20),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            margin=dict(l=45, r=20, t=40, b=20),
+            xaxis=dict(range=[time_dict["start"], time_dict["end"]])  # Set the x-axis range here
+
         )
-        fig.update_layout(
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-        )
+
         fig.update_yaxes(visible=True, showticklabels=False)
 
         return html.Div(dcc.Graph(figure=fig), id=ids.BAR_CHART)

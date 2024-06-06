@@ -31,6 +31,8 @@ def render(app: Dash) -> html.Div:
 
         df = data.get_soc_as_dataframe(s.id, buses)
 
+        time_dict = data.get_scenario_duration(task_id)
+
         # following line is needed due to plotly bug,
         # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template="plotly"))
@@ -45,6 +47,7 @@ def render(app: Dash) -> html.Div:
             xaxis_title="Zeit",
             yaxis_title="SOC [%]",
             showlegend=False,
+            xaxis=dict(range=[time_dict["start"], time_dict["end"]])  # Set the x-axis range here
         )
 
         return fig
@@ -73,6 +76,8 @@ def render_power_draw(app: Dash) -> html.Div:
         s = Scenario.objects.get(task_id=task_id)
 
         df = data.get_powerdraw_as_dataframe(s.id, buses)
+
+        time_dict = data.get_scenario_duration(task_id)
 
         fig = go.Figure(layout=dict(template="plotly"))
 
@@ -117,6 +122,7 @@ def render_power_draw(app: Dash) -> html.Div:
             yaxis_title="Energie [kW]",
             showlegend=False,
             margin=dict(l=20, r=20, t=40, b=20),
+            xaxis=dict(range=[time_dict["start"], time_dict["end"]])  # Set the x-axis range here
         )
 
         return fig
@@ -146,6 +152,8 @@ def render_station_occupation(app: Dash) -> html.Div:
 
         df = data.get_powerdraw_as_dataframe(s.id, buses)
         # Group by 'Station_id' and 'time_start', count unique 'V_id'
+
+        time_dict = data.get_scenario_duration(task_id)
 
         if len(df["Station_id"].unique()) < 1:
             return go.Figure(layout=dict(template="plotly"))
@@ -184,6 +192,7 @@ def render_station_occupation(app: Dash) -> html.Div:
             yaxis_title="Anzahl Busse",
             showlegend=False,
             margin=dict(l=20, r=20, t=40, b=20),
+            xaxis=dict(range=[time_dict["start"], time_dict["end"]])  # Set the x-axis range here
         )
         return fig
 
