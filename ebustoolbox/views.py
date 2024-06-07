@@ -220,7 +220,7 @@ def scenario_overview_view(request: HttpRequest, task_id):
             # is an optional kwarg in app.callbacks
             session["django_plotly_dash"] = {"task_id": str(task_id)}
 
-            response = SuccessView.as_view()(request, task_id=task_id, finished=False)
+            response = ScenarioOverview.as_view()(request, task_id=task_id, finished=False)
 
             # Setting Cache-Control header
             patch_cache_control(response, no_cache=True, no_store=True, must_revalidate=True)
