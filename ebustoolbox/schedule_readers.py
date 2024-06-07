@@ -282,7 +282,7 @@ class SimbaScheduleReader(ScheduleReader):
         for station, trip_lines in trip_previous_station_errors.items():
             self.errors.append(
                 f"Fahrt in Zeile {', '.join(map(str, trip_lines))} "
-                f"endet nicht an der vorherigen Station {station}"
+                f"startet nicht an der vorherigen Station {station}"
             )
         return lines, routes, trips
 
