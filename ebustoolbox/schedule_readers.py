@@ -221,13 +221,13 @@ class SimbaScheduleReader(ScheduleReader):
             for trip in sorted_trips:
                 if trip["departure_time"] < prev_arrival_time:
                     self.errors.append(
-                        f"Fahrt {trip} überschneidet sich "
+                        f"Fahrt in Zeile {trip['row']} überschneidet sich "
                         f"(startet vor der vorherigen Ankunft um {prev_arrival_time})"
                     )
                     continue
                 if trip["departure_name"] != prev_arrival_name:
                     self.errors.append(
-                        f"Fahrt {trip} endet nicht an der vorherigen Station {prev_arrival_name}"
+                        f"Fahrt in Zeile {trip['row']} endet nicht an der vorherigen Station {prev_arrival_name}"
                     )
                     continue
                 prev_arrival_time = trip["arrival_time"]
@@ -304,7 +304,7 @@ class SimbaScheduleReader(ScheduleReader):
                         vehicle_type=vt[1],
                     )
                 case _:
-                    self.errors.append(f"Umlauf {rotation_id} entält ungültigen Ladetyp: {ct}")
+                    self.errors.append(f"Umlauf {rotation_id} enthält ungültigen Ladetyp: {ct}")
                     continue
             rotations.append(rot)
             rotations_dict[rotation_id] = rot
@@ -372,7 +372,7 @@ class SimbaScheduleReader(ScheduleReader):
         trip_data = dict()
 
         # Possible error texts
-        duration_error = "hat keine Umlaufdauer, bitte aus dem Zeitplan entfernen"
+        duration_error = "hat keine Fahrtdauer. Bitte ergänzen oder aus dem Zeitplan entfernen"
 
         with open(self.file_path, encoding=self.encoding) as file:
             trip_reader = csv.DictReader(file)
@@ -403,18 +403,20 @@ class SimbaScheduleReader(ScheduleReader):
                 rotation_id = trip[self.ROTATION_ID]
                 if rotation_id not in trip_data:
                     trip_data[rotation_id] = []
-                trip_d = dict()
-                trip_d[self.DEPARTURE_NAME] = trip[self.DEPARTURE_NAME]
-                trip_d[self.DEPARTURE_TIME] = datetime.fromisoformat(trip[self.DEPARTURE_TIME])
-                trip_d[self.ARRIVAL_TIME] = datetime.fromisoformat(trip[self.ARRIVAL_TIME])
-                trip_d[self.ARRIVAL_NAME] = trip[self.ARRIVAL_NAME]
-                trip_d[self.DISTANCE] = float(trip[self.DISTANCE])
-                trip_d[self.VEHICLE_TYPE] = trip[self.VEHICLE_TYPE]
+                trip_d = {
+                    self.DEPARTURE_NAME: trip[self.DEPARTURE_NAME],
+                    self.DEPARTURE_TIME: datetime.fromisoformat(trip[self.DEPARTURE_TIME]),
+                    self.ARRIVAL_TIME: datetime.fromisoformat(trip[self.ARRIVAL_TIME]),
+                    self.ARRIVAL_NAME: trip[self.ARRIVAL_NAME],
+                    self.DISTANCE: float(trip[self.DISTANCE]),
+                    self.VEHICLE_TYPE: trip[self.VEHICLE_TYPE],
+                    self.LINE: trip[self.LINE],
+                    "row": i + 1,
+                }
                 if trip[self.CHARGING_TYPE] != "":
                     trip_d[self.CHARGING_TYPE] = trip[self.CHARGING_TYPE]
                 else:
                     trip_d[self.CHARGING_TYPE] = self.default_charging_type
-                trip_d[self.LINE] = trip[self.LINE]
 
                 assert (
                     trip_d[self.DEPARTURE_TIME] < trip_d[self.ARRIVAL_TIME]
