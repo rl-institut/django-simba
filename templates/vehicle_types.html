@@ -17,7 +17,7 @@
     <!-- Main Content -->
 
     <div class="row lead justify-content-center d-flex p-5">
-      Ordne jedem Fahrzeug in dem Zeitplan ein Default-Fahrzeug zu.
+      Ordne jedem Fahrzeug in dem Zeitplan ein Standard-Fahrzeug zu.
     </div>
 
     <form class="text-center" enctype="multipart/form-data" method="POST"
@@ -25,7 +25,7 @@
       {% csrf_token %}
       <div class="row">
         <div class="col-3"><h4>Fahrzeuge aus dem Zeitplan</h4></div>
-        <div class="col-3"><h4>Default-Fahrzeuge</h4></div>
+        <div class="col-3"><h4>Standard-Fahrzeuge</h4></div>
         <div class="col-6"><h4>Hier können die Fahrzeuge, die aus dem hochgeladenen Zeitplan extrahiert
           wurden, den verfügbaren Default-Fahrzeugen zugeordnet werden.</h4></div>
       </div>
@@ -127,14 +127,6 @@
                   if (source) {
                       {#source.classList.add('d-flex');#}
                       source.style.display = 'block';
-                  }
-              }
-
-              var infoDivId = "vehicle_type_" + secondInt + "_info_chart"
-              if (infoDivId) {
-                  var source = document.getElementById(infoDivId);
-                  if (source) {
-                      source.resize()
                   }
               }
 

@@ -4,7 +4,6 @@ function create_chart(data, label, div_id, x_axis_label, y_axis_label) {
 
     // Create the chart
     const ctx = document.getElementById(div_id).getContext('2d');
-    // ctx.height = 400;
     const myChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -18,6 +17,9 @@ function create_chart(data, label, div_id, x_axis_label, y_axis_label) {
             }]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
             scales: {
                 x: {
                     beginAtZero: true,
