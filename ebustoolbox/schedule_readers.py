@@ -211,6 +211,8 @@ class SimbaScheduleReader(ScheduleReader):
         lines = []
         line_dict = dict()
         routes = list()
+        trip_overlap_errors = []  # collect trips that overlap
+        trip_previous_station_errors = {}  # collect trips that don't end at their previous depot
         route_id = 1 if Route.objects.last() is None else Route.objects.last().id + 1
         trip_id = 1 if Trip.objects.last() is None else Trip.objects.last().id + 1
         line_id = 1 if Line.objects.last() is None else Line.objects.last().id + 1
@@ -220,15 +222,16 @@ class SimbaScheduleReader(ScheduleReader):
             prev_arrival_name = sorted_trips[0]["departure_name"]
             for trip in sorted_trips:
                 if trip["departure_time"] < prev_arrival_time:
-                    self.errors.append(
-                        f"Fahrt in Zeile {trip['row']} überschneidet sich "
-                        f"(startet vor der vorherigen Ankunft um {prev_arrival_time})"
-                    )
+                    # trip overlaps with another (departs before previous arrival)
+                    trip_overlap_errors.append(trip["row"])
                     continue
                 if trip["departure_name"] != prev_arrival_name:
-                    self.errors.append(
-                        f"Fahrt in Zeile {trip['row']} endet nicht an der vorherigen Station {prev_arrival_name}"
-                    )
+                    # trip does not end where it started from
+                    # aggregate by expected station
+                    try:
+                        trip_previous_station_errors[prev_arrival_name].append(trip["row"])
+                    except KeyError:
+                        trip_previous_station_errors[prev_arrival_name] = [trip["row"]]
                     continue
                 prev_arrival_time = trip["arrival_time"]
                 prev_arrival_name = trip["arrival_name"]
@@ -267,6 +270,17 @@ class SimbaScheduleReader(ScheduleReader):
                 routes.append(route)
                 trips.append(t)
 
+        # handle collected errors
+        if trip_overlap_errors:
+            self.errors.append(
+                f"Fahrt in Zeile {', '.join(map(str, trip_overlap_errors))} überschneidet sich "
+                f"(startet vor der vorherigen Ankunft)"
+            )
+        for station, trip_lines in trip_previous_station_errors.items():
+            self.errors.append(
+                f"Fahrt in Zeile {', '.join(map(str, trip_lines))} "
+                f"endet nicht an der vorherigen Station {station}"
+            )
         return lines, routes, trips
 
     def get_rotations(self, scenario, trip_data, vt_dict):
@@ -411,7 +425,7 @@ class SimbaScheduleReader(ScheduleReader):
                     self.DISTANCE: float(trip[self.DISTANCE]),
                     self.VEHICLE_TYPE: trip[self.VEHICLE_TYPE],
                     self.LINE: trip[self.LINE],
-                    "row": i + 1,
+                    "row": i + 2,  # line numbers start at 1 instead of 0, skip header
                 }
                 if trip[self.CHARGING_TYPE] != "":
                     trip_d[self.CHARGING_TYPE] = trip[self.CHARGING_TYPE]
