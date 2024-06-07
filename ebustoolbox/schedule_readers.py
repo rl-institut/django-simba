@@ -221,11 +221,16 @@ class SimbaScheduleReader(ScheduleReader):
             prev_arrival_time = sorted_trips[0]["departure_time"] - timedelta(hours=1)
             prev_arrival_name = sorted_trips[0]["departure_name"]
             for trip in sorted_trips:
-                if trip["departure_time"] < prev_arrival_time:
+                # copy/update previous arrival name and time in case of error
+                saved_arrival_time = prev_arrival_time
+                saved_arrival_name = prev_arrival_name
+                prev_arrival_time = trip["arrival_time"]
+                prev_arrival_name = trip["arrival_name"]
+                if trip["departure_time"] < saved_arrival_time:
                     # trip overlaps with another (departs before previous arrival)
                     trip_overlap_errors.append(trip["row"])
                     continue
-                if trip["departure_name"] != prev_arrival_name:
+                if trip["departure_name"] != saved_arrival_name:
                     # trip does not end where it started from
                     # aggregate by expected station
                     try:
@@ -233,8 +238,6 @@ class SimbaScheduleReader(ScheduleReader):
                     except KeyError:
                         trip_previous_station_errors[prev_arrival_name] = [trip["row"]]
                     continue
-                prev_arrival_time = trip["arrival_time"]
-                prev_arrival_name = trip["arrival_name"]
                 if trip[self.LINE] not in line_dict:
                     line = Line(scenario=scenario, name=trip[self.LINE], id=line_id)
                     line_id += 1
