@@ -212,6 +212,7 @@ class SimbaScheduleReader(ScheduleReader):
         line_dict = dict()
         routes = list()
         trip_overlap_errors = []  # collect trips that overlap
+        duration_errors = []  # collect trips that have no or negative duration
         trip_previous_station_errors = {}  # collect trips that don't end at their previous depot
         route_id = 1 if Route.objects.last() is None else Route.objects.last().id + 1
         trip_id = 1 if Trip.objects.last() is None else Trip.objects.last().id + 1
@@ -226,6 +227,10 @@ class SimbaScheduleReader(ScheduleReader):
                 saved_arrival_name = prev_arrival_name
                 prev_arrival_time = trip["arrival_time"]
                 prev_arrival_name = trip["arrival_name"]
+
+                if not trip[self.DEPARTURE_TIME] < trip[self.ARRIVAL_TIME]:
+                    # trip arrives before it departs
+                    duration_errors.append(trip["row"])
                 if trip["departure_time"] < saved_arrival_time:
                     # trip overlaps with another (departs before previous arrival)
                     trip_overlap_errors.append(trip["row"])
@@ -274,6 +279,12 @@ class SimbaScheduleReader(ScheduleReader):
                 trips.append(t)
 
         # handle collected errors
+        if duration_errors:
+            self.errors.append(
+                f"Fahrt(en) in Zeile {', '.join(map(str, duration_errors))} haben keine oder eine "
+                "negative Fahrtdauer. Bitte ergänzen Sie Fahrzeiten oder entfernen Sie die Fahrten."
+            )
+
         if trip_overlap_errors:
             self.errors.append(
                 f"Fahrt in Zeile {', '.join(map(str, trip_overlap_errors))} überschneidet sich "
@@ -388,7 +399,6 @@ class SimbaScheduleReader(ScheduleReader):
     def file_data_to_dict(self) -> dict[str, []]:
         trip_data = dict()
 
-        duration_errors = []
         with open(self.file_path, encoding=self.encoding) as file:
             trip_reader = csv.DictReader(file)
             trip = next(iter(trip_reader))
@@ -418,7 +428,6 @@ class SimbaScheduleReader(ScheduleReader):
                 rotation_id = trip[self.ROTATION_ID]
                 if rotation_id not in trip_data:
                     trip_data[rotation_id] = []
-                row_nr = i + 2  # line numbers start at 1 instead of 0, skip header
                 trip_d = {
                     self.DEPARTURE_NAME: trip[self.DEPARTURE_NAME],
                     self.DEPARTURE_TIME: datetime.fromisoformat(trip[self.DEPARTURE_TIME]),
@@ -427,23 +436,15 @@ class SimbaScheduleReader(ScheduleReader):
                     self.DISTANCE: float(trip[self.DISTANCE]),
                     self.VEHICLE_TYPE: trip[self.VEHICLE_TYPE],
                     self.LINE: trip[self.LINE],
-                    "row": row_nr,
+                    "row": i + 2,  # line numbers start at 1 instead of 0, skip header
                 }
                 if trip[self.CHARGING_TYPE] != "":
                     trip_d[self.CHARGING_TYPE] = trip[self.CHARGING_TYPE]
                 else:
                     trip_d[self.CHARGING_TYPE] = self.default_charging_type
 
-                if not trip_d[self.DEPARTURE_TIME] < trip_d[self.ARRIVAL_TIME]:
-                    duration_errors.append(row_nr)
                 trip_data[rotation_id].append(trip_d)
 
-        # handle collected errors
-        if duration_errors:
-            self.errors.append(
-                f"Fahrt(en) in Zeile {', '.join(map(str, duration_errors))} haben keine oder eine "
-                "negative Fahrtdauer. Bitte ergänzen Sie Fahrzeiten oder entfernen Sie die Fahrten."
-            )
         return trip_data
 
     @classmethod
