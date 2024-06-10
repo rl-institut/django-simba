@@ -17,6 +17,14 @@ function create_chart(data, label, div_id, x_axis_label, y_axis_label) {
             }]
         },
         options: {
+            // possible plot title
+            // plugins: {
+            //     title: {
+            //         display: true,
+            //         text: label,
+            //     }
+            // },
+
             responsive: true,
             maintainAspectRatio: false,
 

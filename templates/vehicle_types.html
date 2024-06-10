@@ -17,17 +17,18 @@
     <!-- Main Content -->
 
     <div class="row lead justify-content-center d-flex p-5">
-      Ordne jedem Fahrzeug in dem Zeitplan ein Standard-Fahrzeug zu.
+Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu.
     </div>
 
     <form class="text-center" enctype="multipart/form-data" method="POST"
-          action="{% url 'simba:assign_vehicle_types' task_id %}">
+          action="{% url 'simba:vehicle_types' task_id %}">
       {% csrf_token %}
       <div class="row">
         <div class="col-3"><h4>Fahrzeuge aus dem Zeitplan</h4></div>
         <div class="col-3"><h4>Standard-Fahrzeuge</h4></div>
-        <div class="col-6"><h4>Hier können die Fahrzeuge, die aus dem hochgeladenen Zeitplan extrahiert
-          wurden, den verfügbaren Default-Fahrzeugen zugeordnet werden.</h4></div>
+        <div class="col-6">
+{#          <h4>Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standardfahrzeug zu.</h4>#}
+        </div>
       </div>
       <div class="row" style="min-height:200px">
         <div class="col-6 d-grid align-items-center">
@@ -43,7 +44,7 @@
                       </div>
                       <div class="col-6 d-flex align-center">
                         <select id="vehicle_type_dropdown_{{ vehicle_type.id }}"
-                                name="vehicle_type_dropdown_{{ vehicle_type.id }}" class="form-select">
+                                name="vehicle_type_dropdown" class="form-select">
                           {% for default_vehicle_type in default_vehicle_types %}
                             {% if vehicle_type.opportunity_charging_capable == default_vehicle_type.opportunity_charging_capable %}
                               <option value="{{ vehicle_type.id }}_{{ default_vehicle_type.id }}">
@@ -74,15 +75,34 @@
               <div class="row">
                 <div class="col text-start">
                   <h5>{{ default_vehicle_type.name }}</h5>
-                  Der Fahrzeugtyp besitzt eine Batteriekapazität von {{ default_vehicle_type.battery_capacity }} kWh und
+                  Der Fahrzeugtyp besitzt eine Standard-Batteriekapazität von {{ default_vehicle_type.battery_capacity }} kWh und
                   einen
-                  Verbrauch von {{ default_vehicle_type.consumption }} kWh/km.
+                  Verbrauch von {{ default_vehicle_type.consumption }} kWh/km. Er ist von der Bauweise {% if default_vehicle_type.opportunity_charging_capable %}
+                        Gelegenheitslader{% else %}Depotlader{% endif %}.
                 </div>
                 <div class="col-6">
-                  <div class="chart-container">
+                  <div class="chart-container" style="min-height: 20vh">
                     <canvas id="vehicle_type_{{ default_vehicle_type.id }}_info_chart"></canvas>
                   </div>
                 </div>
+              </div>
+
+              <div class="row mt-1">
+                {% with field=default_vehicle_types_adjustment_form.battery_capacity %}
+                  <div class="text-start">{{ field.label }}:<input class="col-3" type="number"
+                                                                   name="{{ field.name }}_{{ default_vehicle_type.id }}" value={{ default_vehicle_type.battery_capacity| floatformat:0 }}
+                                                                   min={{ field.min_value }} max={{ field.max_value }}
+                          {% if field.field.required %} required="" {% endif %}
+                                                                   aria-describedby="id_{{ field.name }}_help_text_{{ default_vehicle_type.id }}"
+                                                                   id="id_{{ field.name }}_{{ default_vehicle_type.id }}">kWh
+
+                    <div class="row">
+                      <small id="id_{{ field.name }}_help_text_{{ default_vehicle_type.id }}"> {{ field.help_text }}
+                      </small>
+
+                    </div>
+                  </div>
+                {% endwith %}
               </div>
 
             </div>

@@ -1553,20 +1553,20 @@ def electrify_db_stations(scenario: Scenario, station_id_list, unelectrify=True)
         )
 
 
-def update_vehicle_types_with_defaults(vehicle_type_pairs, task_id):
+def update_vehicle_types_with_defaults(vehicle_type_pairs, task_id, vt_adjustments):
     """Update info of a VehicleType with a paired VehicleType from DefaultScenario"""
     scenario = Scenario.objects.get(task_id=task_id)
     vehicle_types_db = VehicleType.objects.filter(scenario=scenario)
     default_scenario = DefaultScenario.objects.first().scenario
     vehicle_types_default = VehicleType.objects.filter(scenario=default_scenario)
     for vehicle_type_pair in vehicle_type_pairs:
-        vehicle_types = vehicle_type_pair.split("_")
-        vt = vehicle_types_db.get(pk=vehicle_types[0])
-        vt_default = vehicle_types_default.get(pk=vehicle_types[1])
+        vt = vehicle_types_db.get(pk=vehicle_type_pair[0])
+        vt_default = vehicle_types_default.get(pk=vehicle_type_pair[1])
         vt_default.scenario = scenario
-        vt_default.pk = vehicle_types[0]
+        vt_default.battery_capacity = vt_adjustments[vt_default.id]["battery_capacity"]
+        vt_default.pk = vehicle_type_pair[0]
         # Do not overwrite this, since both capabilties might be needed
-        vt_default.opportunity_charging_capable = vt.opportunity_charging_capable
+        assert vt_default.opportunity_charging_capable == vt.opportunity_charging_capable
         vt_default.name = vt.name
         vt_default.name_short = vt.name_short
         vt_default.save()

@@ -27,7 +27,7 @@ from celery.result import AsyncResult
 from dash_app import dash_app, ids  # noqa: F401
 from django_mapengine.views import MapEngineMixin
 from . import tasks, schedule_readers
-from .forms import UploadFileForm, ChargingStationDefaultsForm
+from .forms import UploadFileForm, ChargingStationDefaultsForm, VehicleTypesAdjustmentForm
 from .tasks import create_db_url  # noqa
 from .util import get_unique_task_id
 
@@ -141,15 +141,50 @@ def get_options(request: HttpRequest, task_id, reader_num: int):
 
 def get_vehicle_types(request: HttpRequest, task_id):
     context = {"task_id": task_id}
+
     try:
         scenario = Scenario.objects.get(task_id=task_id)
     except Scenario.DoesNotExist:
-        raise Http404("Scenario with this task_id does not exist")
+        raise Http404
+    # if the scenario has a manager, only this User can run the simulation
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
+
     default_scenario = DefaultScenario.objects.first().scenario
     vehicle_types = VehicleType.objects.filter(scenario=scenario)
     default_vehicle_types = VehicleType.objects.filter(scenario=default_scenario)
+
     context["vehicle_types"] = vehicle_types
     context["default_vehicle_types"] = default_vehicle_types
+    context["default_vehicle_types_adjustment_form"] = VehicleTypesAdjustmentForm()
+    if request.method == "POST":
+        vehicle_type_pairs = request.POST.getlist("vehicle_type_dropdown")
+        if not vehicle_type_pairs:
+            return render(request, "vehicle_types.html", context)
+
+        for i, pair in enumerate(vehicle_type_pairs):
+            pair = pair.split("_")
+            vehicle_type_pairs[i] = int(pair[0]), int(pair[-1])
+
+        # make sure only vehicles of this scenario are affected
+        for vehicle_type_pair in vehicle_type_pairs:
+            assert vehicle_type_pair[0] in vehicle_types.values_list("id", flat=True)
+
+        vt_adjustments = {}
+        for dvt in default_vehicle_types:
+            val = request.POST.get(f"battery_capacity_{dvt.id}")
+            form = VehicleTypesAdjustmentForm({"battery_capacity": val})
+            if not form.is_valid():
+                break
+            try:
+                vt_adjustments[dvt.id]
+            except KeyError:
+                vt_adjustments[dvt.id] = dict()
+            vt_adjustments[dvt.id]["battery_capacity"] = form.cleaned_data["battery_capacity"]
+        tasks.update_vehicle_types_with_defaults(vehicle_type_pairs, task_id, vt_adjustments)
+
+        return redirect(reverse("simba:stations", args=[str(task_id)]))
+
     return render(request, "vehicle_types.html", context)
 
 
@@ -351,21 +386,6 @@ def cancel_upload(request: HttpRequest, task_id: str):
     # cause a SoftTimeLimitExceeded in task and redirect to schedule upload
     AsyncResult(task_id).revoke(terminate=True, signal="SIGUSR1")
     return redirect(reverse("simba:schedule"))
-
-
-def assign_vehicle_types(request: HttpRequest, task_id: str):
-    try:
-        scenario = Scenario.objects.get(task_id=task_id)
-    except Scenario.DoesNotExist:
-        raise Http404
-    # if the scenario has a manager, only this User can run the simulation
-    if scenario.manager and scenario.manager != request.user:
-        raise Http404
-
-    if request.method == "POST":
-        vehicle_type_pairs = request.POST.getlist("vehicle_type_dropdown")
-        tasks.update_vehicle_types_with_defaults(vehicle_type_pairs, task_id)
-    return redirect(reverse("simba:stations", args=[str(task_id)]))
 
 
 def home_view(request: HttpRequest):
