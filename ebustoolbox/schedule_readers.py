@@ -161,13 +161,13 @@ class SimbaScheduleReader(ScheduleReader):
             self.progress.save()
 
     def write_to_db(self, scenario_id: int) -> bool:
-        """This is help text
+        """Write data to the database using the initialized SimbaScheduleReader.
         :param: scenario_id: this is the id of the scenario
         """
         try:
             # raise Errors which might have happened earlier / during init
             if self.default_charging_type not in [EnumChargeType.DEPOT, EnumChargeType.OPPORTUNITY]:
-                self.errors.append("""Default charging type has to be of type "depb" or "oppb" """)
+                self.errors.append("""Standard-Ladetype muss entweder "depb" oder "oppb" sein.""")
                 raise self.SimbaScheduleReaderException
 
             self.set_total_work(5)
@@ -388,9 +388,7 @@ class SimbaScheduleReader(ScheduleReader):
     def file_data_to_dict(self) -> dict[str, []]:
         trip_data = dict()
 
-        # Possible error texts
-        duration_error = "hat keine Fahrtdauer. Bitte ergänzen oder aus dem Zeitplan entfernen"
-
+        duration_errors = []
         with open(self.file_path, encoding=self.encoding) as file:
             trip_reader = csv.DictReader(file)
             trip = next(iter(trip_reader))
@@ -420,6 +418,7 @@ class SimbaScheduleReader(ScheduleReader):
                 rotation_id = trip[self.ROTATION_ID]
                 if rotation_id not in trip_data:
                     trip_data[rotation_id] = []
+                row_nr = i + 2  # line numbers start at 1 instead of 0, skip header
                 trip_d = {
                     self.DEPARTURE_NAME: trip[self.DEPARTURE_NAME],
                     self.DEPARTURE_TIME: datetime.fromisoformat(trip[self.DEPARTURE_TIME]),
@@ -428,18 +427,23 @@ class SimbaScheduleReader(ScheduleReader):
                     self.DISTANCE: float(trip[self.DISTANCE]),
                     self.VEHICLE_TYPE: trip[self.VEHICLE_TYPE],
                     self.LINE: trip[self.LINE],
-                    "row": i + 2,  # line numbers start at 1 instead of 0, skip header
+                    "row": row_nr,
                 }
                 if trip[self.CHARGING_TYPE] != "":
                     trip_d[self.CHARGING_TYPE] = trip[self.CHARGING_TYPE]
                 else:
                     trip_d[self.CHARGING_TYPE] = self.default_charging_type
 
-                assert (
-                    trip_d[self.DEPARTURE_TIME] < trip_d[self.ARRIVAL_TIME]
-                ), f"Line {i+1}: Trip {trip_d} {duration_error}"
-
+                if not trip_d[self.DEPARTURE_TIME] < trip_d[self.ARRIVAL_TIME]:
+                    duration_errors.append(row_nr)
                 trip_data[rotation_id].append(trip_d)
+
+        # handle collected errors
+        if duration_errors:
+            self.errors.append(
+                f"Fahrt(en) in Zeile {', '.join(map(str, duration_errors))} haben keine oder eine "
+                "negative Fahrtdauer. Bitte ergänzen Sie Fahrzeiten oder entfernen Sie die Fahrten."
+            )
         return trip_data
 
     @classmethod
