@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
 
-
   <div class="container bg-light" style="min-height: 80vh;">
 
     <!-- wizard -->
@@ -51,19 +50,12 @@
     </div>
 
     <script>
-        {# Activate button if the server finished handling the previous file#}
-        let task_id = '{{ task_id }}';
+        // Activate button if the server finished handling the previous file
         htmx.on('#runner', 'htmx:trigger', function (evt) {
-            htmx.find('#button_{{task_id}}').disabled = false;
-            console.log("turning on button")
+            htmx.find('#upload_btn_{{task_id}}').style.display = "initial";
+            htmx.find('#cancel_btn_{{task_id}}').style.display = "none";
         });
     </script>
-
-
   </div>
-
-
-  {#{% include 'continue_button.html' %}#}
-
 
 {% endblock %}

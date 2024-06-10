@@ -346,6 +346,13 @@ def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
         return response
 
 
+@require_POST
+def cancel_upload(request: HttpRequest, task_id: str):
+    # cause a SoftTimeLimitExceeded in task and redirect to schedule upload
+    AsyncResult(task_id).revoke(terminate=True, signal="SIGUSR1")
+    return redirect(reverse("simba:schedule"))
+
+
 def assign_vehicle_types(request: HttpRequest, task_id: str):
     try:
         scenario = Scenario.objects.get(task_id=task_id)
