@@ -24,6 +24,8 @@
                      class="form-control col-sm-2" id="{{ form.file_path.auto_id }}" required
                      name="file_path">
               <span class="input-group-text">{{ form.file_path.label }}</span>
+              <a href="{% static 'ebustoolbox/examples/trips_example.csv' %}" class="input-group-text" download>Download
+                Beispiel-Fahrplan</a>
               <div>
                 <ul>
                   {% for error in form.file_path.errors %}
@@ -31,8 +33,6 @@
                   {% endfor %}
                 </ul>
               </div>
-              <a href="{% static 'ebustoolbox/examples/trips_example.csv' %}" class="input-group-text" download>Download
-                Beispiel-Fahrplan</a>
             </div>
           </div>
         </div>
@@ -72,12 +72,12 @@
     <div id="upload-progress_{{ task_id }}"></div>
     <div>
       <button
-        id='button_{{ task_id }}'
-        class="btn btn-primary"
-        type=submit
-        hx-encoding="multipart/form-data"
-        hx-target="#upload-progress_{{ task_id }}"
-        hx-post="{% url 'simba:upload_trips' task_id=task_id reader_num=reader_num %}">
+              id='button_{{ task_id }}'
+              class="btn btn-primary"
+              type=submit
+              hx-encoding="multipart/form-data"
+              hx-target="#upload-progress_{{ task_id }}"
+              hx-post="{% url 'simba:upload_trips' task_id=task_id reader_num=reader_num %}">
         Hochladen
       </button>
       {# progress bar during upload#}
