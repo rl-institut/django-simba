@@ -33,6 +33,10 @@ COPY --chown=django:django ./start /start
 RUN sed -i 's/\r$//g' /start
 RUN chmod +x /start
 
+COPY --chown=django:django ./start_celery /start_celery
+RUN sed -i 's/\r$//g' /start_celery
+RUN chmod +x /start_celery
+
 WORKDIR /app
 # Install dependencies
 # Since ebustoolbox and mapengine are installed as well, copy whole directory first
