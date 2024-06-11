@@ -6,6 +6,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from simba.ids import INCLINE, LEVEL_OF_LOADING, SPEED, T_AMB, CONSUMPTION
+
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
@@ -316,6 +318,20 @@ class Consumption(models.Model):
     """
     Model representing Consumption data associated with a specific scenario.
 
+    If Consumption is used with SimBA the vehicle_types float consumption field needs to be set to
+    None. The vehicle_types are linked to this Consumption instance through a vehicle_class.
+    Consumption.name needs to be unique for the linked scenario, e.g. two Consumption instances
+    of the same scenario cannot share a name.
+    The following columns are expected for SimBA consumption calculation.
+    "incline". height-difference/Distance [-]
+    "level_of_loading": loaded_mass/max. loaded mass [-]
+    "mean_speed_kmh": mean speed of trip [km/h]
+    "t_amb": ambient temperature [°C]
+
+    "consumption_kwh_per_km" is expected to be passed as values.
+    Passing a pandas.DataFrame for Consumption construction is possible via the Consumption.from_df
+    method
+
     Attributes:
         name (str): name of the Consumption data, indicating its source or intention
             (e.g., 'ConsumptionData of 12m Bus'). Cannot be blank
@@ -365,6 +381,31 @@ class Consumption(models.Model):
         return pd.DataFrame(
             columns=self.columns + ["consumption_kwh_per_km"],
             data=np.hstack((np.array(self.data_points), np.expand_dims(self.values, axis=1))),
+        )
+
+    @staticmethod
+    def from_df(df, name="My_Consumption") -> "Consumption":
+        """Create a Consumption object from a pandas DataFrame.
+
+        To use the Consumption in a scenario, link it with a scenario and vehicle_class.
+        A vehicle_class should only be pointed at by one consumption.
+        Vehicle_types which should use this Consumption need to be linked with the vehicle_class,
+        e.g. vehicle_class.add(vehicle_type).
+        Make sure the vehicle_type has a consumption of None. Only in this case the Consumption
+        interpolation is used..
+        """
+
+        for expected_col in [INCLINE, T_AMB, LEVEL_OF_LOADING, SPEED, CONSUMPTION]:
+            assert expected_col in df.columns, f"Consumption data is missing {expected_col}"
+
+        columns = [INCLINE, T_AMB, LEVEL_OF_LOADING, SPEED]
+        data_points = np.array(df.loc[:, columns].values).tolist()
+        values = np.array(df.loc[:, CONSUMPTION].values).tolist()
+        return Consumption(
+            name=name,
+            columns=columns,
+            data_points=data_points,
+            values=values,
         )
 
     def get_consumption(self, input_point: dict | list) -> float:
