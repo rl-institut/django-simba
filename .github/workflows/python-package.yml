@@ -96,6 +96,7 @@ jobs:
           poetry run python manage.py test
         env:
           DJANGO_SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DJANGO_ADMIN_PASSWORD: ${{ secrets.DJANGO_ADMIN_PASSWORD }}
           DJANGO_DEBUG: True
           # Replace with your own database info
           DATABASE_URL: postgis://postgres:postgres@localhost/DbName
