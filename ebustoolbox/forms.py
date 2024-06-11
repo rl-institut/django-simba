@@ -84,7 +84,6 @@ class VehicleTypesAdjustmentForm(forms.Form):
     battery_capacity = forms.IntegerField(
         min_value=0,
         max_value=1000000,
-        initial=200,
         label="Nutzbare Batteriekapazität",
         help_text="Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen.",
     )
