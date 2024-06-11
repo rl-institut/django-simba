@@ -994,7 +994,7 @@ def run_simba_scenario(django_scenario: Scenario | int, assign_vehicles=False, d
         if assign_vehicles:
             assign_new_vehicles_to_db(django_scenario, db_url)
         simba_schedule_db, args_db = get_schedule_from_db(django_scenario)
-        run_simba(simba_schedule_db, args_db, django_scenario.task_id)
+        run_simba(simba_schedule_db, args_db, django_scenario)
     finally:
         # Always reset the database to default
         for model in django.apps.apps.app_configs["ebustoolbox"].models.values():
@@ -1118,7 +1118,7 @@ def _run_ebus_toolchain(self, task_id, run_parent=False):
             Event.objects.filter(scenario=db_scenario).delete()
 
             schedule, simba_scenario = run_simba(
-                schedule, args, task_id, mode=mode, scenario=simba_scenario
+                schedule, args, db_scenario, mode=mode, scenario=simba_scenario
             )
 
             # Event.objects.filter(scenario=db_scenario).order_by("soc_end").first().soc_end
@@ -1132,7 +1132,7 @@ def _run_ebus_toolchain(self, task_id, run_parent=False):
             # power
             stations_dict = get_electrified_stations_from_db(db_scenario)
             schedule.stations = stations_dict.copy()
-            schedule, simba_scenario = run_simba(schedule, args, task_id, mode="sim")
+            schedule, simba_scenario = run_simba(schedule, args, db_scenario, mode="sim")
 
             progress.current_work += 90 // (len(wanted_modes) - 1)
             progress.save()
@@ -1223,12 +1223,12 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
     return vehicle_assigns
 
 
-def run_simba(schedule: SimbaSchedule, args, task_id, mode=None, scenario=None):
+def run_simba(schedule: SimbaSchedule, args, db_scenario, mode=None, scenario=None):
     logger.info(f"Running Simba {datetime.now()}")
     # TODO don't overwrite output on multiple function calls
+    task_id = db_scenario.task_id
     args.output_directory = Path(settings.UPLOAD_PATH) / str(task_id)
     args.attach_vehicle_soc = True
-    db_scenario = Scenario.objects.get(task_id=task_id)
 
     # Default mode is greedy simulation
     if mode is None or mode == "sim":
@@ -1247,7 +1247,7 @@ def run_simba(schedule: SimbaSchedule, args, task_id, mode=None, scenario=None):
             raise NotImplementedError
 
     logger.info(f"Creating Simba Events {datetime.now()}")
-    create_event_output(scenario, task_id)
+    create_event_output(scenario, db_scenario)
 
     reset_postgres_auto_increments(apps=[Event._meta.app_label])
     return schedule, scenario
@@ -1336,9 +1336,8 @@ def get_datetime(simba_scenario: "SimbaScenario", timestep: int) -> datetime:
     return simba_scenario.start_time + timedelta(minutes=minutes)
 
 
-def create_event_output(simba_scenario: "SimbaScenario", task_id):  # noqa: C901
+def create_event_output(simba_scenario: "SimbaScenario", db_scenario):  # noqa: C901
     # collect data from DB
-    db_scenario = Scenario.objects.get(task_id=task_id)
     # Delete old simba events
     Event.objects.filter(
         scenario=db_scenario,
