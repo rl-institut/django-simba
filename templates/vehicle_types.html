@@ -9,7 +9,7 @@
 {% endblock %}
 {% block content %}
 
-  <div class="container bg-light" style="min-height: 80vh;">
+  <div class="container bg-light d-grid" style="min-height: 80vh;">
 
     <!-- wizard -->
     {% include 'wizard.html' %}
@@ -23,22 +23,20 @@ Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu
     <form class="text-center" enctype="multipart/form-data" method="POST"
           action="{% url 'simba:vehicle_types' task_id %}">
       {% csrf_token %}
-      <div class="row">
+      <div class="row mx-1">
         <div class="col-3"><h4>Fahrzeuge aus dem Zeitplan</h4></div>
         <div class="col-3"><h4>Standard-Fahrzeuge</h4></div>
         <div class="col-6">
 {#          <h4>Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standardfahrzeug zu.</h4>#}
         </div>
       </div>
-      <div class="row min-vh-25">
-        <div class="col-6 d-grid align-items-center">
-          <div id="schedule-vehicle-types-container">
+      <div class="row" style="min-height: 30vh">
+        <div class="col-6 d-flex flex-column justify-content-evenly">
+
             {% if vehicle_types %}
-              <ul class="list-unstyled">
                 {% for vehicle_type in vehicle_types %}
-                  <li class="list-group-item p-2">
-                    <div class="row">
-                      <div class="col-6 bg-primary text-white rounded">
+                    <div class="row mx-1">
+                      <div class="col-6 bg-primary text-white rounded text-center align-content-center">
                         {{ vehicle_type.name }} [{% if vehicle_type.opportunity_charging_capable %}
                         Gelegenheitslader{% else %}Depotlader{% endif %}]
                       </div>
@@ -56,14 +54,11 @@ Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu
                         </select>
                       </div>
                     </div>
-                  </li>
                 {% endfor %}
-              </ul>
             {% else %}
               <p>Keine Fahrzeugtypen verfügbar.</p>
             {% endif %}
           </div>
-        </div>
         <div class="col-6 d-grid align-items-center" id="infobox_place_holder">
           <div id="infobox_place_holder_text"><small class="form-text text-muted">Hier erscheint eine
             Zusammenfassung
