@@ -1,5 +1,9 @@
 FROM python:3.11
 
+# Add django as user and group
+RUN addgroup --system django \
+    && adduser --system --ingroup django django
+
 # Configure Poetry
 ENV POETRY_VERSION=1.4.2
 ENV POETRY_HOME=/opt/poetry
@@ -25,10 +29,14 @@ RUN apt-get update &&\
 # Add `poetry` to PATH
 ENV PATH="${PATH}:${POETRY_VENV}/bin"
 
+COPY --chown=django:django ./start /start
+RUN sed -i 's/\r$//g' /start
+RUN chmod +x /start
+
 WORKDIR /app
 # Install dependencies
 # Since ebustoolbox and mapengine are installed as well, copy whole directory first
 COPY . /app
 RUN poetry install
 #startup_command=poetry run python -c 'print(\"Started\")' && poetry run python manage.py makemigrations && poetry run python manage.py migrate && poetry run python manage.py runserver 0.0.0.0:8000
-CMD ["sh", "-c", ${STARTUP_CMD}]
+CMD ${STARTUP_COMMAND}
