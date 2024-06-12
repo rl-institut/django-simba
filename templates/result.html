@@ -78,18 +78,26 @@
         }
     }
 
-    function filterBy(id) {
-            id = parseInt(id);
+    function filterByInt(key, value) {
+            value = parseInt(value);
             var filters = [
                 'all',
-                ["==", 'id', id]
+                ["==", key, value]
             ];
-            map.setFilter('routes', filters);
+            return filters
         }
 
-    function removeFilters(){
+    function filterByBool(key, value) {
+            value = (value === 'true' || value === true);
+            var filters = [
+                'all',
+                ["==", key, value]
+            ];
+            return filters;
+        }
+
+    function removeFilters(layerId){
         // this is actually how it is supposed to be done according to the docs!!
-        const layerId = 'routes';
         if (map.getLayer(layerId)) {
             // Layer exists, remove filters
             map.setFilter(layerId, null);
@@ -104,10 +112,26 @@
         // Clear any existing buttons
         buttonContainer.innerHTML = '';
 
+        const DepotButton = document.createElement('button');
+        DepotButton.classList.add('btn', 'btn-primary', 'm-2');
+        DepotButton.textContent = `Show Depots only`;
+        DepotButton.addEventListener('click', showDepots);
+        buttonContainer.appendChild(DepotButton);
+
+        const AllStationButton = document.createElement('button');
+        AllStationButton.classList.add('btn', 'btn-primary', 'm-2');
+        AllStationButton.textContent = `Show Stations`;
+        AllStationButton.addEventListener('click', function() {
+                removeFilters('station');
+            });
+        buttonContainer.appendChild(AllStationButton);
+
         const button = document.createElement('button');
         button.classList.add('btn', 'btn-primary', 'm-2');
         button.textContent = `Show All`;
-        button.addEventListener('click', removeFilters);
+        button.addEventListener('click', function() {
+                removeFilters('routes');
+            });
         buttonContainer.appendChild(button);
 
         // Create buttons based on the given number
@@ -128,7 +152,14 @@
 
     // Function to show route based on data-id
     function showRoute(dataId) {
-        filterBy(dataId);
+        filters = filterByInt("id", dataId);
+        map.setFilter('routes', filters);
+    }
+
+        // Function to show route based on data-id
+    function showDepots() {
+        filters = filterByBool("is_depot", true);
+        map.setFilter('station', filters);
     }
 
     map.on('idle', function () {

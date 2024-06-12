@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.db.models import QuerySet, Sum, Q, F, Count, Func, IntegerField, Subquery, OuterRef
-from django.db.models.expressions import RawSQL
+from django.db.models.expressions import RawSQL, Exists
 from django.db.models.functions import Now, Cast
 from django.db.models.constraints import UniqueConstraint
 from django.dispatch import receiver
@@ -802,11 +802,9 @@ def assert_is_type(obj, check_type: type):
     if not isinstance(obj, check_type):
         raise AttributeError(f"{obj} is not of type {check_type}")
 
-
 class CountBusServices(Func):
     function = 'COUNT'
     output_field = IntegerField()
-
     def __init__(self, **extra):
         # Call the super class constructor with F('id') as the first argument
         super().__init__(F('id'), **extra)
@@ -815,9 +813,22 @@ class CountBusServices(Func):
         # We override the as_sql method to generate our custom SQL
         # Get the SQL representation of the first source expression, which is F('id')
         expression_sql, expression_params = self.source_expressions[0].as_sql(compiler, connection)
-
-        # Construct the custom SQL using the expression for arrival_station_id
         sql = f'(SELECT COUNT(*) FROM mydbzwo.public."Route" WHERE arrival_station_id = {expression_sql})'
+
+        return sql, expression_params
+
+
+class IsDepot(Func):
+    function = 'EXIST'
+    def __init__(self, **extra):
+        # Call the super class constructor with F('id') as the first argument
+        super().__init__(F('id'), **extra)
+
+    def as_sql(self, compiler, connection):
+        # We override the as_sql method to generate our custom SQL
+        # Get the SQL representation of the first source expression, which is F('id')
+        expression_sql, expression_params = self.source_expressions[0].as_sql(compiler, connection)
+        sql = f'(SELECT EXISTS (SELECT 1 FROM mydbzwo.public."Depot" WHERE station_id = {expression_sql}))'
 
         return sql, expression_params
 
@@ -902,11 +913,12 @@ class Station(models.Model):
         ),
         "power_total_ann": F('power_total'),
         "num_arrivals": CountBusServices(),
+        "is_depot": IsDepot()
     }
 
     vector_tiles = MVTManager(
         geo_col="geom",
-        columns=["id", "geom", "name", "lat", "lon", "title_length", "electrified", "power_total_ann", "num_arrivals"]
+        columns=["id", "geom", "name", "lat", "lon", "title_length", "electrified", "power_total_ann", "num_arrivals","is_depot"]
     )
 
     layer = "busstop"
@@ -1403,7 +1415,6 @@ class Event(models.Model):
                 )
         super().save(*args, **kwargs)
 
-
 class Depot(models.Model):
     """
     The Depot represents a place where vehicles not engaged in a schedule are parked,
@@ -1413,12 +1424,13 @@ class Depot(models.Model):
     class Meta:
         db_table = "Depot"
 
-    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    scenario = models.ForeignKey("Scenario", null=False, on_delete=models.CASCADE)
     name = models.TextField(null=False, blank=False)
     name_short = models.TextField(null=True, blank=True)
-    station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE)  # Added in schema v3
+    station = models.ForeignKey("Station", null=False, on_delete=models.CASCADE)  # Added in schema v3
 
     default_plan = models.OneToOneField("Plan", null=False, on_delete=models.CASCADE)
+
 
 
 class Plan(models.Model):
