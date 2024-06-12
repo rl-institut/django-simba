@@ -189,6 +189,7 @@ def get_vehicle_types(request: HttpRequest, task_id):
 
 
 def get_stations(request: HttpRequest | None, task_id, form=None):
+
     try:
         scenario = Scenario.objects.get(task_id=task_id)
     except Scenario.DoesNotExist:
@@ -196,7 +197,6 @@ def get_stations(request: HttpRequest | None, task_id, form=None):
         # if the scenario has a manager, only this User can run the simulation
     if scenario.manager and scenario.manager != request.user:
         raise Http404
-
     if form is None:
         form = ChargingStationDefaultsForm()
     context = {"task_id": task_id, "form": form}
@@ -298,7 +298,7 @@ def progress(request: HttpRequest, progress_id, progress_type: str):
         response = render(request, "progress.html", context)
         return response
 
-    context["current_progress"] = progress.get_progress()
+    context["current_progress"] = max(progress.get_progress(), 1)
     context["status"] = progress.status
     status_code = 200
     hx_trigger = "running"

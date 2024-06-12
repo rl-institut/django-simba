@@ -965,7 +965,13 @@ def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False
     return run_ebus_toolchain(django_scenario.task_id)
 
 
-def run_simba_scenario(django_scenario: Scenario | int, assign_vehicles=False, db_url=None):
+def run_simba_scenario(
+    django_scenario: Scenario | int,
+    assign_vehicles=False,
+    db_url=None,
+    simba_scenario=None,
+    mode=None,
+):
     """Run a Scenario from the database with SimBA
 
     The provided scenario must contain all information including Temperatures, Vehicle_Types,
@@ -994,15 +1000,19 @@ def run_simba_scenario(django_scenario: Scenario | int, assign_vehicles=False, d
         if assign_vehicles:
             assign_new_vehicles_to_db(django_scenario, db_url)
         simba_schedule_db, args_db = get_schedule_from_db(django_scenario)
-        run_simba(simba_schedule_db, args_db, django_scenario)
+        simba_schedule, scenario = run_simba(
+            simba_schedule_db, args_db, django_scenario, mode=mode, scenario=simba_scenario
+        )
     finally:
         # Always reset the database to default
         for model in django.apps.apps.app_configs["ebustoolbox"].models.values():
             model.objects = model.objects.using("default")
+    return simba_schedule, scenario
 
 
 def assign_new_vehicles_to_db(django_scenario: Scenario, db_name="default") -> None:
     """Assign a new vehicle to every rotation
+
 
     Already assigned vehicles are deleted
     :param django_scenario: Scenario that gets added vehicles and rotation assignments.
@@ -1223,7 +1233,9 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
     return vehicle_assigns
 
 
-def run_simba(schedule: SimbaSchedule, args, db_scenario, mode=None, scenario=None):
+def run_simba(
+    schedule: SimbaSchedule, args, db_scenario, mode=None, scenario=None
+) -> (SimbaSchedule, "SimbaScenario"):
     logger.info(f"Running Simba {datetime.now()}")
     # TODO don't overwrite output on multiple function calls
     task_id = db_scenario.task_id
@@ -1334,6 +1346,61 @@ def get_datetime(simba_scenario: "SimbaScenario", timestep: int) -> datetime:
     # calculate the corresponding datetime
     minutes = timestep * (60 / simba_scenario.stepsPerHour)
     return simba_scenario.start_time + timedelta(minutes=minutes)
+
+
+def is_consistent(scenario: Scenario) -> bool:
+    for rotation in Rotation.objects.filter(scenario=scenario):
+        trips = list(Trip.objects.filter(rotation=rotation).order_by("departure_time"))
+        if len(trips) < 2:
+            continue
+        trip = trips[0]
+        for next_trip in trips[1:]:
+            if trip.arrival_time > next_trip.departure_time:
+                logger.error("A trip arrives after the departure of the next trip.")
+                return False
+
+    if VehicleType.objects.filter(scenario=scenario, consumption=None).count() > 0:
+        if Trip.objects.filter(scenario=scenario, loaded_mass=None).count() > 0:
+            logger.error("Scenario has trips without a loaded mass.")
+            return False
+
+    if VehicleType.objects.filter(scenario=scenario, consumption=None).count() > 0:
+        if not Temperatures.objects.filter(scenario=scenario).count() == 1:
+            logger.error(
+                "VehicleTypes have no constant consumption.\n"
+                "This makes adding 'Temperatures' to the scenario mandatory.\n "
+                "Use temperatures_to_db('ebustoolbox/static/ebustoolbox/"
+                "examples/temperature_time_series.csv',django_scenario, True) "
+                "to add a default temperature series"
+            )
+            return False
+
+    for vt in VehicleType.objects.filter(scenario=scenario):
+        if vt.charging_curve is None:
+            return False
+        if vt[0][0] != 0:
+            logger.error("Charging curve should start at SoC=0")
+            return False
+        if vt[-1][0] != 1:
+            logger.error("Charging curve should ent at SoC=1")
+            return False
+    return True
+
+
+def example_single_step_optimization(scenario: Scenario):
+    """
+
+    :param scenario: Scenario to be optimized
+    :type scenario: ebustoolbox.models.Scenario
+    :return: None
+    """
+    # Check that the scenario is consistent.
+    assert is_consistent(scenario)
+    schedule, simbascenario = run_simba_scenario(scenario, assign_vehicles=True)
+
+    schedule, simbascenario = run_simba_scenario(
+        scenario, simba_scenario=simbascenario, mode="station_optimization_single_step"
+    )
 
 
 def create_event_output(simba_scenario: "SimbaScenario", db_scenario):  # noqa: C901
