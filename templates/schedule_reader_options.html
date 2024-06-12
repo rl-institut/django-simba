@@ -72,7 +72,7 @@
     <div id="upload-progress_{{ task_id }}"></div>
     <div>
       <button
-              id='button_{{ task_id }}'
+              id='upload_btn_{{ task_id }}'
               class="btn btn-primary"
               type=submit
               hx-encoding="multipart/form-data"
@@ -84,6 +84,7 @@
       <progress id='progress' value='0' max='100'></progress>
     </div>
   </form>
+
   <form action="{% url 'simba:cancel_upload' task_id=task_id %}" method="post">
     {% csrf_token %}
     <button
