@@ -1,6 +1,9 @@
 {% extends 'base.html'%}
 {% block title %}Simulation Results{% endblock %}
 {% block header %}
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.6.3/nouislider.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.6.3/nouislider.min.js"></script>
+
   <script>
   var task_id = "{{task_id }}";
   console.log(task_id);
@@ -38,6 +41,9 @@
       </div>
       <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
         {% include 'minimal_mapengine.html'%}
+            <div id="sliderContainer">
+                <div id="rangeSlider"></div>
+            </div>
             <div id="buttonContainer"></div>
       </div>
       <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">
@@ -76,6 +82,15 @@
         } else {
             console.log('Layer "routes" does not exist.');
         }
+    }
+
+    function filterByIntRange(key, minValue, maxValue) {
+        var filters = [
+            'all',
+            [">=", key, minValue],
+            ["<=", key, maxValue]
+        ];
+        return filters;
     }
 
     function filterByInt(key, value) {
@@ -166,6 +181,7 @@
         getRouteIds();
         StationPowerFilter()
         createButtons();
+
     });
 
     function StationPowerFilter(){
@@ -182,5 +198,37 @@
 
     }
 
+    function applyRangeFilter(layerId, key, minValue, maxValue) {
+        if (map.getLayer(layerId)) {
+            var filters = filterByIntRange(key, minValue, maxValue);
+            map.setFilter(layerId, filters);
+        } else {
+            console.log(`Layer "${layerId}" does not exist.`);
+        }
+    }
+
+    function createRangeSlider() {
+        const sliderContainer = document.getElementById('sliderContainer');
+        const rangeSlider = document.createElement('div');
+        rangeSlider.id = 'rangeSlider';
+        sliderContainer.appendChild(rangeSlider);
+
+        noUiSlider.create(rangeSlider, {
+            start: [0, 100], // Initial range values
+            connect: true,
+            range: {
+                'min': 0,
+                'max': 100
+            }
+        });
+
+        rangeSlider.noUiSlider.on('update', function (values, handle) {
+            const minValue = parseInt(values[0]);
+            const maxValue = parseInt(values[1]);
+            applyRangeFilter('station', 'num_arrivals', minValue, maxValue);
+        });
+    }
+
+    createRangeSlider();
 </script>
 {% endblock %}
