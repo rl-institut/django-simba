@@ -307,10 +307,8 @@ class SimbaScheduleReader(ScheduleReader):
             i += 1
             if not (len({t[self.VEHICLE_TYPE] for t in trip_data[rotation_id]}) == 1):
                 self.errors.append(f"Umlauf {rotation_id} enthält mehrere Fahrzeugtypen")
-                continue
             if not (len({t[self.CHARGING_TYPE] for t in trip_data[rotation_id]}) == 1):
                 self.errors.append(f"Umlauf {rotation_id} enthält mehrere Ladetypen")
-                continue
             first_trip = trips[0]
             vt = vt_dict[first_trip[self.VEHICLE_TYPE]]
             ct = str(first_trip[self.CHARGING_TYPE])
@@ -333,7 +331,14 @@ class SimbaScheduleReader(ScheduleReader):
                     )
                 case _:
                     self.errors.append(f"Umlauf {rotation_id} enthält ungültigen Ladetyp: {ct}")
-                    continue
+                    # Placeholder - rotation which so lookup will work
+                    rot = Rotation(
+                        scenario=scenario,
+                        name=rotation_id,
+                        pk=last_id + i,
+                        allow_opportunity_charging=False,
+                        vehicle_type=vt[1],
+                    )
             rotations.append(rot)
             rotations_dict[rotation_id] = rot
         return rotations, rotations_dict
