@@ -26,7 +26,7 @@
 
     <div id="dynamic-content">
         <div id="dynamic-list">
-            <form class="text-center" enctype="multipart/form-data" method="POST" action="{% url 'simba:set_station_values' task_id %}">
+            <form class="text-center px-4" enctype="multipart/form-data" method="POST" action="{% url 'simba:set_station_values' task_id %}">
                 {% csrf_token %}
                 <!-- {{ form }} -->
                 <div class="input-item row m-5">
