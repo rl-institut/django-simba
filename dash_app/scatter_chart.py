@@ -7,6 +7,7 @@ from ebustoolbox.models import Scenario
 import plotly.express as px
 from plotly.subplots import make_subplots
 import pandas as pd
+from .style import set_styling
 
 
 def render(app: Dash) -> html.Div:
@@ -51,7 +52,7 @@ def render(app: Dash) -> html.Div:
             separators=', '
         )
 
-        return fig
+        return set_styling(fig)
 
     return html.Div(dcc.Graph(id=ids.SCATTER_CHART), style={"verticalAlign": "top"})
 
