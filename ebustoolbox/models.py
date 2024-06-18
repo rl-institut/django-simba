@@ -1107,9 +1107,6 @@ class Route(models.Model):
 
     vector_tiles = MVTManager(geo_col="geom", columns=["id", "geom", "name"])
 
-    # Add a default manager
-    objects = models.Manager()
-
 
 class AssocRouteStation(models.Model):
     """
@@ -1121,6 +1118,8 @@ class AssocRouteStation(models.Model):
     class Meta:
         db_table = "AssocRouteStation"
         ordering = ["elapsed_distance"]
+
+    objects = FastUpdateManager()
 
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
