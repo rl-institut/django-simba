@@ -38,7 +38,7 @@ tqdm = "^4.66.1"
 eflips-depot = "^3.0"
 django-fast-update = "^0.2.3"
 scipy = "^1.12.0"
-eflips-ingest = { git = "https://github.com/mpm-tu-berlin/eflips-ingest", rev = "main"}
+eflips-ingest = "^1.2.3"
 eflips-eval = "^1.0.6"
 redis = "^5.0.5"
 

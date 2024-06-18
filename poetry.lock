@@ -971,24 +971,20 @@ name = "eflips-ingest"
 version = "1.2.3"
 description = "A collection of import scripts for converting bus schedule data into the [eflips-model](https://github.com/mpm-tu-berlin/eflips-model) data format."
 optional = false
-python-versions = "^3.10"
-files = []
-develop = false
+python-versions = "<4.0,>=3.10"
+files = [
+    {file = "eflips_ingest-1.2.3-py3-none-any.whl", hash = "sha256:1fb10cf29bc5f01305bd985354b0f4e350d278ca70decedfaf6aeebafedae8f6"},
+    {file = "eflips_ingest-1.2.3.tar.gz", hash = "sha256:04278f1869223e428a991c6e4f749bf272a04d1ded72aefa9a97a2c8e018897c"},
+]
 
 [package.dependencies]
-eflips-model = "^3.1.1"
-fire = "^0.5.0"
-lxml = "^5.1.0"
-pyproj = "^3.6.1"
-pytz = "^2024.1"
-requests = "^2.31.0"
-tqdm = "^4.66.1"
-
-[package.source]
-type = "git"
-url = "https://github.com/mpm-tu-berlin/eflips-ingest"
-reference = "main"
-resolved_reference = "94780b42a1fd575ca1049a9125c79ca2b646cd84"
+eflips-model = ">=3.1.1,<4.0.0"
+fire = ">=0.5.0,<0.6.0"
+lxml = ">=5.1.0,<6.0.0"
+pyproj = ">=3.6.1,<4.0.0"
+pytz = ">=2024.1,<2025.0"
+requests = ">=2.31.0,<3.0.0"
+tqdm = ">=4.66.1,<5.0.0"
 
 [[package]]
 name = "eflips-model"
@@ -2812,4 +2808,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4.0"
-content-hash = "cb9ed39deea33daaa1faf4d49ced79ea71318e4862e1790196e33b56d75ef254"
+content-hash = "f67589b38dd999c50e6c53bb8ba7190d9b0f0d0e0ac9c4e1426e4de5d437c9d5"
