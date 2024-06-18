@@ -3,6 +3,7 @@ from typing import Type
 
 import django.db
 from django.db import models
+from django.db.models import Max
 from django.db.transaction import atomic
 from django.core.management import call_command
 from os import devnull
@@ -127,7 +128,9 @@ def deepcopy(  # noqa
         try:
             model_pks[object.__class__] += 1
         except KeyError:
-            model_pks[object.__class__] = object.__class__.objects.last().id + 1
+            model_pks[object.__class__] = (
+                object.__class__.objects.aggregate(Max("id"))["id__max"] + 1
+            )
         new_pk = model_pks[object.__class__]
         # Create new reference
         copied_obj = copy(object)
@@ -176,6 +179,7 @@ def deepcopy(  # noqa
                     )
         return new_pk
 
+    # links old_pk-> new_pk for each class
     stack = dict()
     already_copied = dict()
     copies = dict()
@@ -204,7 +208,7 @@ def deepcopy(  # noqa
     counter = 0
     while counter < 100:
         counter += 1
-        # Bulk create the objects to speed up a writing process
+        # Bulk create the objects to speed up the writing process
         failed_classes = bulk_create_objects(copies)
         # Replace the foreign keys of the copied objects. This can only be done after they were created
         # to ensure they do not point to not created objects <-- Error
@@ -253,7 +257,6 @@ def revert_stack(stack, write_multi_dict):
 def bulk_create_objects(copies) -> []:
     @atomic
     def atomic_creation(inner_object_class):
-        # all_objects = [obj for obj in copies[inner_object_class].values()]
         inner_object_class.objects.bulk_create(copies[inner_object_class].values())
 
     failed_copies = []
@@ -303,7 +306,7 @@ def replace_keys_and_get_managers(already_copied, copies, rev_stack, stack, excl
                         f, obj_copy, org_foreign_values, stack, exclude_models=exclude_models
                     )
                 else:
-                    create_m2m_managers(f, managers, obj_copy, org_foreign_values, stack)
+                    managers.append(create_m2m_managers(f, obj_copy, org_foreign_values, stack))
         if len(fnames) > 0:
             try:
                 obj_class.objects.fast_update(all_copies, fnames)
@@ -326,13 +329,13 @@ def get_keys_factory(m2m):
     return get_keys
 
 
-def create_m2m_managers(f, managers, obj_copy, org_foreign_values, stack):
+def create_m2m_managers(f, obj_copy, org_foreign_values, stack):
     new_foreign_values = []
     # Replace all foreign keys with the copy/pk translation of the objects
     for old_foreign in org_foreign_values:
         new_foreign_values.append(stack[f.related_model][old_foreign.pk])
     manager = getattr(obj_copy, f.name)
-    managers.append((manager, new_foreign_values))
+    return manager, new_foreign_values
 
 
 def set_new_foreign_value(f, obj_copy, org_foreign_values, stack, exclude_models):
