@@ -1019,15 +1019,21 @@ def assign_new_vehicles_to_db(django_scenario: Scenario, db_name="default") -> N
     :return: None
     """
     Vehicle.objects.using(db_name).filter(scenario=django_scenario).delete()
-    # ToDo bulk updating. replace with independent simba vehicle naming
+    rotations = []
+    vehicles = []
+    vehicle_last_id = Vehicle.objects.aggregate(Max("id"))["id__max"]
     for i, r in enumerate(Rotation.objects.using(db_name).filter(scenario=django_scenario)):
+        vehicle_last_id += 1
         vt = r.vehicle_type
         v_name = "Vehicle_" + str(i)
-        vehicle = Vehicle.objects.using(db_name).create(
-            scenario=django_scenario, vehicle_type=vt, name=v_name
+        vehicle = Vehicle(
+            id=vehicle_last_id, scenario=django_scenario, vehicle_type=vt, name=v_name
         )
+        vehicles.append(vehicle)
         r.vehicle = vehicle
-        r.save()
+        rotations.append(r)
+    Vehicle.objects.bulk_create(vehicles)
+    Rotation.objects.bulk_update(rotations, ["vehicle"])
 
 
 def deepcopy_scenario(scenario: Scenario) -> Scenario:
@@ -1042,7 +1048,7 @@ def deepcopy_scenario(scenario: Scenario) -> Scenario:
     """
     copied_instance = core.deepcopy.deepcopy_and_sequence_reset(
         scenario,
-        exclude_models={Scenario, User, Station, Event, Progress},
+        exclude_models={Scenario, User, Event, Progress},
         max_depth=1,
     )
     return copied_instance
@@ -1348,16 +1354,27 @@ def get_datetime(simba_scenario: "SimbaScenario", timestep: int) -> datetime:
     return simba_scenario.start_time + timedelta(minutes=minutes)
 
 
+def is_consistent_rotation(rotation: Rotation) -> bool:
+    trips = list(Trip.objects.filter(rotation=rotation).order_by("departure_time"))
+    for trip in trips:
+        if trip.arrival_time <= trip.departure_time:
+            logger.error("A trip must have a duration.")
+            return False
+
+    if len(trips) < 2:
+        return True
+    trip = trips[0]
+    for next_trip in trips[1:]:
+        if trip.arrival_time > next_trip.departure_time:
+            logger.error("A trip arrives after the departure of the next trip.")
+            return False
+        trip = next_trip
+    return True
+
+
 def is_consistent(scenario: Scenario) -> bool:
     for rotation in Rotation.objects.filter(scenario=scenario):
-        trips = list(Trip.objects.filter(rotation=rotation).order_by("departure_time"))
-        if len(trips) < 2:
-            continue
-        trip = trips[0]
-        for next_trip in trips[1:]:
-            if trip.arrival_time > next_trip.departure_time:
-                logger.error("A trip arrives after the departure of the next trip.")
-                return False
+        is_consistent_rotation(rotation)
 
     if VehicleType.objects.filter(scenario=scenario, consumption=None).count() > 0:
         if Trip.objects.filter(scenario=scenario, loaded_mass=None).count() > 0:
@@ -1378,10 +1395,10 @@ def is_consistent(scenario: Scenario) -> bool:
     for vt in VehicleType.objects.filter(scenario=scenario):
         if vt.charging_curve is None:
             return False
-        if vt[0][0] != 0:
+        if vt.charging_curve[0][0] != 0:
             logger.error("Charging curve should start at SoC=0")
             return False
-        if vt[-1][0] != 1:
+        if vt.charging_curve[-1][0] != 1:
             logger.error("Charging curve should ent at SoC=1")
             return False
     return True
@@ -1439,7 +1456,8 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario):  # noqa: 
         if last_id != e.vehicle_id:
             counter = 0
             last_id = e.vehicle_id
-        assert e.event_type == ["departure", "arrival"][counter % 2], str(i) + str(counter)
+        if not e.event_type == ["departure", "arrival"][counter % 2]:
+            raise AssertionError(str(i), str(counter))
         counter += 1
 
     vehicle_trips_dict = dict()
