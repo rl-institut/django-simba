@@ -8,6 +8,7 @@ readme = "README.md"
 packages = [{include = "ebustoolbox"},
             {include = "django_mapengine"},
             {include = "ebus_map"},
+            {include = "elevation_api"},
             {include = "core"}]
 
 [tool.poetry.dependencies]

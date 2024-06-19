@@ -11,6 +11,7 @@ import requests
 import zipfile
 from io import BytesIO
 
+from django.conf import settings
 from scipy.interpolate import LinearNDInterpolator
 from scipy.spatial import cKDTree, QhullError
 
@@ -36,8 +37,8 @@ def get_and_set_sources():
         logger.info("Elevation files exist and downloading is skipped.")
     else:
         # Download the files
-        # Todo expose to env
-        url = "https://daten.gdz.bkg.bund.de/produkte/dgm/dgm200/aktuell/dgm200.utm32s.xyzascii.zip"
+
+        url = settings.ELEVATION_SOURCE_URL
         logger.info(f"First time getting sources for elevation data from {url}")
         try:
             response = requests.get(url)

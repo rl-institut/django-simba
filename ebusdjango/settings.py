@@ -43,6 +43,12 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
 SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
 
+# Source to xyzascii zip of elevations
+ELEVATION_SOURCE_URL = env.str(
+    "ELEVATION_SOURCE_URL",
+    "https://daten.gdz.bkg.bund.de/produkte/dgm/dgm200/aktuell/dgm200.utm32s.xyzascii.zip",
+)
+
 if env.bool("DJANGO_LOCAL_DEVELOPMENT", default=False):
     SECURE_PROXY_SSL_HEADER = None
     # https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
