@@ -13,6 +13,7 @@ MAP_ENGINE_IMAGES = [
 # MAP_ENGINE_API_MVTS = {}
 MAP_ENGINE_API_MVTS = {
     "stations_mvt": [
+        # create layer called station, from app ebus_map with the model data from station
         setup.MVTAPI("station", "ebustoolbox", "station"),
         # setup.MVTAPI("routes", "ebustoolbox", "route"),
     ],

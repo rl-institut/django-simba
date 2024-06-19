@@ -43,7 +43,7 @@ def get_popup(request: HttpRequest, lookup: str, id: int) -> response.JsonRespon
     JsonResponse
         containing HTML to render popup and chart options to be used in E-Chart.
     """
-    data = apps.get_model(app_label="ebus_map", model_name=lookup).get_popup_data(id)
+    data = apps.get_model(app_label="ebustoolbox", model_name=lookup).get_popup_data(id)
     print(data, lookup)
     try:
         html = render_to_string(f"popups/{lookup}.html", context=data)

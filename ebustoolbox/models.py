@@ -908,8 +908,11 @@ class Station(models.Model):
     stations = models.ManyToManyField("Route", through="AssocRouteStation")
     """Stations along this route. Ordered by `elapsed_distance`."""
 
-    objects = models.Manager()
+    objects = FastUpdateManager()
 
+    vector_tiles = MVTManager(
+        geo_col="geom", columns=["id", "geom", "name", "lat", "lon", "title_length", "electrified"]
+    )
     # Make sure all annotations are part of the columns below, if the data is supposed to be
     # delivered to the map
     annotations = {
@@ -924,10 +927,6 @@ class Station(models.Model):
         ),
     }
 
-    vector_tiles = MVTManager(
-        geo_col="geom", columns=["id", "geom", "name", "lat", "lon", "title_length", "electrified"]
-    )
-
     layer = "busstop"
     mapping = {
         "id": "id",
@@ -941,7 +940,7 @@ class Station(models.Model):
         obj = cls.objects.get(id=id)
         data = {
             "title": obj.name + " " + str(id),
-            "municipality": obj.is_electrified,
+            "Electrified": obj.is_electrified,
             "lat": obj.geom.x,
             "lon": obj.geom.y,
         }

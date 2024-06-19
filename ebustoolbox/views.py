@@ -415,20 +415,17 @@ def landing_page(request: HttpRequest):
 
 @atomic()
 def create_stations_for_map(django_scenario: Scenario):
-    from ebus_map.models import Station as MapStation
-
     stations = ebustoolbox.models.Station.objects.filter(scenario=django_scenario)
     warned = False
+    stations_with_geo = []
     for station in stations:
-        map_stat = MapStation()
-        map_stat.__dict__.update(station.__dict__)
         if station.geom is None:
             if not warned:
                 warnings.warn("At least one Station has no geometry and is placed randomly")
                 warned = True
-            map_stat.geom = Point(x=13.0 + random.random(), y=52.0 + random.random(), z=0)
-        # Cannot bulk create multi inherited model
-        map_stat.save()
+            station.geom = Point(x=13.0 + random.random(), y=52.0 + random.random(), z=0)
+            stations_with_geo.append(station)
+    Station.objects.bulk_update(stations_with_geo, ["geom"])
 
 
 def save_and_simulate(

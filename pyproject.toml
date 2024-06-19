@@ -7,6 +7,7 @@ license = "AGPLv3"
 readme = "README.md"
 packages = [{include = "ebustoolbox"},
             {include = "django_mapengine"},
+            {include = "ebus_map"},
             {include = "core"}]
 
 [tool.poetry.dependencies]
