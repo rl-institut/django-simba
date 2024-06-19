@@ -23,6 +23,7 @@ from scipy.spatial._qhull import QhullError
 from django.db.models import Case, When, Value
 from django.db.models.functions import Length
 from ebus_map.managers import MVTManager, X, Y
+import environ
 
 MINIMAL_TRIP_DURATION_S = 60  # seconds
 
@@ -812,14 +813,16 @@ class CountBusServices(Func):
     def as_sql(self, compiler, connection):
         # We override the as_sql method to generate our custom SQL
         # Get the SQL representation of the first source expression, which is F('id')
+        env = environ.Env()
         expression_sql, expression_params = self.source_expressions[0].as_sql(compiler, connection)
-        sql = f'(SELECT COUNT(*) FROM mydbzwo.public."Route" WHERE arrival_station_id = {expression_sql})'
+        sql = f'(SELECT COUNT(*) FROM {env.db("DATABASE_URL")["NAME"]}.public."Route" WHERE arrival_station_id = {expression_sql})'
 
         return sql, expression_params
 
 
 class IsDepot(Func):
     function = 'EXIST'
+
     def __init__(self, **extra):
         # Call the super class constructor with F('id') as the first argument
         super().__init__(F('id'), **extra)
@@ -827,8 +830,9 @@ class IsDepot(Func):
     def as_sql(self, compiler, connection):
         # We override the as_sql method to generate our custom SQL
         # Get the SQL representation of the first source expression, which is F('id')
+        env = environ.Env()
         expression_sql, expression_params = self.source_expressions[0].as_sql(compiler, connection)
-        sql = f'(SELECT EXISTS (SELECT 1 FROM mydbzwo.public."Depot" WHERE station_id = {expression_sql}))'
+        sql = f'(SELECT EXISTS (SELECT 1 FROM {env.db("DATABASE_URL")["NAME"]}.public."Depot" WHERE station_id = {expression_sql}))'
 
         return sql, expression_params
 
