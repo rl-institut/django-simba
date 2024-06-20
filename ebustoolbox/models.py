@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.db.models import QuerySet, Sum, Q, F, Count, Func, IntegerField, Subquery, OuterRef
-from django.db.models.expressions import RawSQL, Exists
+from django.db import connections
 from django.db.models.functions import Now, Cast
 from django.db.models.constraints import UniqueConstraint
 from django.dispatch import receiver
@@ -813,9 +813,9 @@ class CountBusServices(Func):
     def as_sql(self, compiler, connection):
         # We override the as_sql method to generate our custom SQL
         # Get the SQL representation of the first source expression, which is F('id')
-        env = environ.Env()
+        db = connections.databases
         expression_sql, expression_params = self.source_expressions[0].as_sql(compiler, connection)
-        sql = f'(SELECT COUNT(*) FROM {env.db("DATABASE_URL")["NAME"]}.public."Route" WHERE arrival_station_id = {expression_sql})'
+        sql = f'(SELECT COUNT(*) FROM {db["default"]["NAME"]}.public."Route" WHERE arrival_station_id = {expression_sql})'
 
         return sql, expression_params
 
@@ -830,9 +830,9 @@ class IsDepot(Func):
     def as_sql(self, compiler, connection):
         # We override the as_sql method to generate our custom SQL
         # Get the SQL representation of the first source expression, which is F('id')
-        env = environ.Env()
+        db = connections.databases
         expression_sql, expression_params = self.source_expressions[0].as_sql(compiler, connection)
-        sql = f'(SELECT EXISTS (SELECT 1 FROM {env.db("DATABASE_URL")["NAME"]}.public."Depot" WHERE station_id = {expression_sql}))'
+        sql = f'(SELECT EXISTS (SELECT 1 FROM {db["default"]["NAME"]}.public."Depot" WHERE station_id = {expression_sql}))'
 
         return sql, expression_params
 
