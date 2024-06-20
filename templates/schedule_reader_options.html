@@ -34,8 +34,10 @@
             </div>
           </div>
         </div>
-        <div class="mb-4">
-          <div class="col-auto">
+        <div class="row mb-4">
+{# Pushes next column into center        #}
+          <div class="col-3"></div>
+          <div class="col-6">
             <div class="form-check">
               <input {% if form.default_charging_type.help_text %}title="{{ form.default_charging_type.help_text }}"{% endif %}
                      class="form-check-input" type="radio" value="depb" name="default_charging_type" id="inp-depb">
@@ -52,7 +54,7 @@
               </label>
             </div>
           </div>
-          <span class="col-auto">Welcher Standard-Ladetyp soll angenommen werden?</span>
+                  <span class="col-auto">Welcher Standard-Ladetyp soll angenommen werden?</span>
         </div>
 
       </fieldset>
