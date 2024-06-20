@@ -7,4 +7,6 @@ class ElevationApiConfig(AppConfig):
 
     def ready(self) -> None:
         """Content in here is run when app is ready."""
-        pass
+        from elevation_api.models import Elevation
+
+        Elevation.objects.all().delete()
