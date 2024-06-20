@@ -35,7 +35,7 @@ def get_and_set_sources():
     extract_path = settings.BASE_DIR / settings.MEDIA_ROOT
     # Ensure the extraction directory exists
     extract_path.mkdir(exist_ok=True)
-    needed_files = ["dgm200_utm32s.prj", "dgm200_utm32s.xyz"]
+    needed_files = ["dgm200_utm32s.prj", "dgm200_utm32s.asc"]
 
     if all([(extract_path / nfile).is_file() for nfile in needed_files]):
         logger.info("Elevation files exist and downloading is skipped.")

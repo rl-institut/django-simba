@@ -12,6 +12,11 @@
          - on Windows via [OSGeo4W](https://trac.osgeo.org/osgeo4w/) (select the `gdal` package)
     3. The software requires a PostgreSQL database with the PostGIS package.
          - The software is found [here](https://www.postgresql.org/download/) and [here](https://postgis.net/documentation/getting_started/) or via your system's (or server's) package manager (e.g. `apt install postgis`)
+         - When the elevation_api is used postgis_raster is needed
+           - can be installed by connecting to your database and running
+           ```bash
+           create extension postgis_raster;
+           ```
          - The credentials for the database are set in `ebusdjango/settings.py` in the `DATABASES`variable. **SECURITY WARNING: Do not commit your passwords to GitHub!**
          - In order to set up PostGIS, the user you created needs to have 'superuser' privileges.
     4. The software can optionally use [backend for Celery](https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html) to be available. Its address is set in the `CELERY_BROKER_URL` in the `.env` file.
@@ -44,6 +49,9 @@
      DJANGO_SETTINGS_MODULE=ebusdjango.settings
      # If you are developing locally set this to true. It disables production security features.
      DJANGO_LOCAL_DEVELOPMENT=True
+     # for api usage
+     DJANGO_ELEVATION_TOKEN=YOUR_TOKEN_ELEVATION_TOKEN
+     OPENELEVATION_URL=http://127.0.0.1:8000/elevation_api/YOUR_TOKEN_ELEVATION_TOKEN
      ````
 
 3. Set up django (inside the virtual environment)
