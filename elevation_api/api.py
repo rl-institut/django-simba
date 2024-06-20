@@ -53,7 +53,7 @@ def get_and_set_sources():
 
                 for source_file in needed_files:
                     # Check if the target file is in the zip
-                    source_path = "dgm200.utm32s.xyzascii/dgm200/" + source_file
+                    source_path = "dgm200.utm32s.gridascii/dgm200/" + source_file
                     # Extract the specific file
                     with thezip.open(source_path) as source, open(
                         extract_path / source_file, "wb"
