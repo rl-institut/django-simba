@@ -61,18 +61,22 @@ def get_and_set_sources():
     prj_file_path = extract_path / "dgm200_utm32s.prj"
     data_file = extract_path / "dgm200_utm32s.xyz"
     global DF
+    logger.info("Reading data_file")
     DF = pd.read_csv(data_file, sep=" ", header=None)
     DF.columns = ["x", "y", "z"]
 
     data = np.array((DF.x, DF.y)).T
     global CKDTREE
+    logger.info("Creating Tree")
     CKDTREE = cKDTree(data)
 
     global TRANSFORMER
+    logger.info("Creating Transformer")
     TRANSFORMER = get_transformer(prj_file_path)
 
 
 def get_elevation(lats: List[float], lons: List[float]) -> tuple[list[float], list[Any]]:
+
     if TRANSFORMER is None:
         get_and_set_sources()
     if TRANSFORMER is None:

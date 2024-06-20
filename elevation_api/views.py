@@ -1,3 +1,5 @@
+import traceback
+
 from django.conf import settings
 from django.http import JsonResponse, HttpResponse, Http404
 from .api import get_elevation
@@ -37,8 +39,11 @@ def elevation_json(request, lat_long_query: str = None):
             longs.append(float(lat_longs.split(",")[1]))
     except ValueError:
         raise Http404("Latitudes and longitudes must be numbers")
-
-    elevations, errors = get_elevation(lats, longs)
+    try:
+        elevations, errors = get_elevation(lats, longs)
+    except:  # noqa
+        traceback.print_exc()
+        raise Http404("Elevation error")
     results = []
     for lat, long, ele, error in zip(lats, longs, elevations, errors):
         result = {"latitude": lat, "longitude": long, "elevation": ele}
