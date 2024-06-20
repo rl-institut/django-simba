@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import pyproj
 from typing import List, Iterable, Any
-from pathlib import Path
 import requests
 import zipfile
 from io import BytesIO
@@ -25,10 +24,8 @@ class NanValueException(Exception):
 def get_and_set_sources():
     """Download elevation data files"""
     # Get the directory of the script
-    # Path to your PRJ file
-    local_path = Path(__file__).parent
     # Create the full path for the extraction location
-    extract_path = local_path / Path("static/elevation_api")
+    extract_path = settings.BASE_DIR / settings.MEDIA_ROOT
     # Ensure the extraction directory exists
     extract_path.mkdir(exist_ok=True)
     needed_files = ["dgm200_utm32s.prj", "dgm200_utm32s.xyz"]

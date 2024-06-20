@@ -991,7 +991,7 @@ def run_simba_scenario(
         connections.databases[db_url] |= environ.Env().db_url_config(db_url)
     try:
         if db_url is not None:
-            # overwrite all managers so they use the specicied db
+            # overwrite all managers so they use the specified db
             for model in django.apps.apps.app_configs["ebustoolbox"].models.values():
                 model.objects = model.objects.using(db_url)
 
