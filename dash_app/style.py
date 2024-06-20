@@ -1,27 +1,29 @@
-import plotly.graph_objects as go
+from dash import dash
+import plotly.graph_objs as go
 
 
-def set_styling(fig, font_family="Helvetica", title_font_size=25, axis_font_size=15, hover_font_size=20):
-    """
-    Updates the font properties in a Plotly figure.
+def set_styling(func):
+    def wrapper(*args, **kwargs):
 
-    Parameters:
-    fig (go.Figure): The Plotly figure object to update.
-    font_family (str): The font family to apply to the figure.
-    title_font_family (str): The font family to apply to the title.
-    axis_font_size (int): The font size for the axis titles and labels.
-    title_font_size (int): The font size for the plot title.
-    hover_font_size (int): The font size for the hover labels.
+        font_family = "Helvetica"
+        title_font_size = 25
+        axis_font_size = 15
+        hover_font_size = 20
+        print("HERER")
 
-    Returns:
-    go.Figure: The updated Plotly figure object with the specified font settings.
-    """
-    fig.update_layout(
-        font_family=font_family,
-        font=dict(size=axis_font_size),
-        title_font=dict(family=font_family, size=title_font_size),
-        xaxis_title_font=dict(family=font_family, size=axis_font_size),
-        yaxis_title_font=dict(family=font_family, size=axis_font_size),
-        hoverlabel=dict(font=dict(family=font_family, size=hover_font_size))
-    )
-    return fig
+        fig = func(*args, **kwargs)
+        print(type(fig))
+        # Check if fig is of type plotly.graph_objs.Figure
+        if not isinstance(fig, go.Figure):
+            return fig
+
+        fig.update_layout(
+            font_family=font_family,
+            font=dict(size=axis_font_size),
+            title_font=dict(family=font_family, size=title_font_size),
+            xaxis_title_font=dict(family=font_family, size=axis_font_size),
+            yaxis_title_font=dict(family=font_family, size=axis_font_size),
+            hoverlabel=dict(font=dict(family=font_family, size=hover_font_size))
+        )
+        return fig
+    return wrapper

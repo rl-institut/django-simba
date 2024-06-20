@@ -30,7 +30,7 @@
       <div class="nav nav-tabs" id="tab" role="tablist">
         <button class="nav-link active" id="nav-0-tab" data-bs-toggle="tab" data-bs-target="#nav-0" type="button" role="tab" aria-controls="nav-0" aria-selected="true">SimBA Plots</button>
         <button class="nav-link" id="nav-1-tab" data-bs-toggle="tab" data-bs-target="#nav-1" type="button" role="tab" aria-controls="nav-1" aria-selected="false">Karte</button>
-        <button class="nav-link{% if not finished %} disabled{% endif %}" id="nav-2-tab" data-bs-toggle="tab" data-bs-target="#nav-2" type="button" role="tab" aria-controls="nav-2" aria-selected="false">Depot-Verhalten</button>
+{#        <button class="nav-link{% if not finished %} disabled{% endif %}" id="nav-2-tab" data-bs-toggle="tab" data-bs-target="#nav-2" type="button" role="tab" aria-controls="nav-2" aria-selected="false">Depot-Verhalten</button>#}
       </div>
     </nav>
     <div class="tab-content"  id="tabContent">
@@ -46,11 +46,11 @@
             </div>
             <div id="buttonContainer"></div>
       </div>
-      <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">
-          {% load plotly_dash %}
-
-               {% plotly_app name="EflipsDepotResults" ratio=3.6 %}
-      </div>
+{#      <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">#}
+{#          {% load plotly_dash %}#}
+{##}
+{#               {% plotly_app name="EflipsDepotResults" ratio=3.6 %}#}
+{#      </div>#}
       <!-- End Tab Content -->
     </div>
 

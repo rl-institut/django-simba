@@ -21,11 +21,13 @@ def render(app: Dash) -> html.Div:
     :rtype: html.Div
     """
 
+
     @app.callback(
         Output(ids.SCATTER_CHART, "figure"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
         State(ids.BUS_DROPDOWN, "data"),
     )
+    @set_styling
     def update_scatter(_, buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -52,9 +54,10 @@ def render(app: Dash) -> html.Div:
             separators=', '
         )
 
-        return set_styling(fig)
+        return fig
 
     return html.Div(dcc.Graph(id=ids.SCATTER_CHART), style={"verticalAlign": "top"})
+
 
 
 def render_power_draw(app: Dash) -> html.Div:
@@ -68,11 +71,13 @@ def render_power_draw(app: Dash) -> html.Div:
     :rtype: html.Div
     """
 
+
     @app.callback(
         Output(ids.POWER_DRAW_CHART, "figure"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
         State(ids.BUS_DROPDOWN, "data"),
     )
+    @set_styling
     def power_draw(_, buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -133,6 +138,7 @@ def render_power_draw(app: Dash) -> html.Div:
     return html.Div(dcc.Graph(id=ids.POWER_DRAW_CHART), style={"verticalAlign": "top"})
 
 
+
 def render_station_occupation(app: Dash) -> html.Div:
     """
     Renders a Div element containing a line chart showing power draw over time by station ID for selected buses.
@@ -144,11 +150,13 @@ def render_station_occupation(app: Dash) -> html.Div:
     :rtype: html.Div
     """
 
+
     @app.callback(
         Output(ids.STATION_OCCUPATION, "figure"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
         State(ids.BUS_DROPDOWN, "data"),
     )
+    @set_styling
     def occupation(_, buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -176,8 +184,8 @@ def render_station_occupation(app: Dash) -> html.Div:
         for time_point in all_times:
             # Count the number of vehicles charging at this time point
             charging_vehicles = (
-                ((df["time_start"] <= time_point) & (df["time_end"] > time_point))
-                & (df["Power"] > 0)
+                    ((df["time_start"] <= time_point) & (df["time_end"] > time_point))
+                    & (df["Power"] > 0)
             ).sum()
             charging_status.append({"time": time_point, "vehicles_charging": charging_vehicles})
 

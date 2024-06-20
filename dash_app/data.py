@@ -18,7 +18,7 @@ from ebustoolbox.models import (
     Trip, Route,
 )
 import pandas as pd
-from django.db.models import Count
+from django.db.models import Count, Q
 from dash.exceptions import PreventUpdate
 
 # Maximum number of cached results per function
@@ -179,7 +179,7 @@ def get_frequently_served_station(task_id: str) -> list[str]:
     df = recent_memoizer(get_all_routes, s.id)(s.id)
 
     # Finding the most common item in a specific column
-    most_common_station = df['departure_station_id'].mode()[0]
+    most_common_station = df['arrival_station_id'].mode()[0]
     frequency = df['arrival_station_id'].value_counts()[most_common_station]
 
     station = Station.objects.get(scenario_id=s.id, id=most_common_station)
