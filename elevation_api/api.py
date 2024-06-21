@@ -66,9 +66,6 @@ def get_and_set_sources():
             raise e
 
     data_file = extract_path / "dgm200_utm32s.asc"
-    logger.info("Reading data_file")
-    logger.info("Creating Transformer")
-
     # transforms which ever source into WGS84
     # dest_code = 4326
     # projection_transformer = get_transformer(prj_file_path, dest_code)
@@ -117,13 +114,13 @@ def get_elevation(lats: List[float], lons: List[float]) -> tuple[list[float], li
         lons = [lons]
 
     rast = get_and_set_sources()
-    # Load the entire dataset into one numpy array.
-    image = np.array(rast.bands[0].data()).astype(np.int16)
+    # # Load the entire dataset into one numpy array.
+    # image = np.array(rast.bands[0].data()).astype(np.int16)
 
     # Initialize errors expecting no errors
     errors = [None for _ in lats]
     try:
-        elevations = _get_elevation_interpolated(lats, lons, image, rast)
+        elevations = _get_elevation_interpolated(lats, lons, rast)
         if any((math.isnan(ele) for ele in elevations)):
             raise NanValueException
     except (NanValueException, QhullError, ValueError):
@@ -132,7 +129,7 @@ def get_elevation(lats: List[float], lons: List[float]) -> tuple[list[float], li
         errors = []
         for lat, lon in zip(lats, lons):
             try:
-                elevation = _get_elevation_interpolated([lat], [lon], image, rast)
+                elevation = _get_elevation_interpolated([lat], [lon], rast)
                 if any((math.isnan(ele) for ele in elevation)):
                     raise NanValueException
                 errors.append(None)
@@ -149,11 +146,11 @@ def get_elevation(lats: List[float], lons: List[float]) -> tuple[list[float], li
     return elevations, errors
 
 
-def _get_elevation_interpolated(lats, lons, image, raster):
+def _get_elevation_interpolated(lats, lons, raster):
     nodata, relevant_x, relevant_y, xs, ys = get_relevant_pixels(lats, lons, raster)
 
     try:
-        relevant_z = image[(relevant_y, relevant_x)]
+        relevant_z = raster.bands[0].data()[(relevant_y, relevant_x)]
     except IndexError:
         raise NanValueException
     if nodata in relevant_z:
