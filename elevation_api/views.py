@@ -2,7 +2,7 @@ import traceback
 
 from django.conf import settings
 from django.http import JsonResponse, HttpResponse, Http404
-from .api import get_elevation
+from .api import get_elevation_pseudo
 
 
 def elevation_token_view(request, lat_long_query: str = None):
@@ -40,7 +40,7 @@ def elevation_json(request, lat_long_query: str = None):
     except ValueError:
         raise Http404("Latitudes and longitudes must be numbers")
     try:
-        elevations, errors = get_elevation(lats, longs)
+        elevations, errors = get_elevation_pseudo(lats, longs)
     except:  # noqa
         traceback.print_exc()
         raise Http404("Elevation error")
