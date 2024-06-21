@@ -12,7 +12,7 @@ from io import BytesIO
 from django.conf import settings
 from django.http import Http404
 from scipy.interpolate import LinearNDInterpolator
-from scipy.spatial import QhullError
+from scipy.spatial import QhullError  # noqa
 from elevation_api.models import Elevation
 
 logger = logging.getLogger("custom")
@@ -113,37 +113,46 @@ def get_elevation(lats: List[float], lons: List[float]) -> tuple[list[float], li
         lats = [lats]
         lons = [lons]
 
-    rast = get_and_set_sources()
-    # # Load the entire dataset into one numpy array.
-    # image = np.array(rast.bands[0].data()).astype(np.int16)
-
-    # Initialize errors expecting no errors
-    errors = [None for _ in lats]
-    try:
-        elevations = _get_elevation_interpolated(lats, lons, rast)
-        if any((math.isnan(ele) for ele in elevations)):
-            raise NanValueException
-    except (NanValueException, QhullError, ValueError):
-        # Something went wrong. Check all single requests one by one
-        elevations = []
-        errors = []
-        for lat, lon in zip(lats, lons):
-            try:
-                elevation = _get_elevation_interpolated([lat], [lon], rast)
-                if any((math.isnan(ele) for ele in elevation)):
-                    raise NanValueException
-                errors.append(None)
-            except (NanValueException, QhullError):
-                elevation = [0]
-                errors.append("Could not interpolate elevation for this coordinate. Returned 0.")
-            except ValueError:
-                elevation = [0]
-                errors.append(
-                    "Values for latitude and longitude must be float values between -90 and +90."
-                    "Returned 0."
-                )
-            elevations.extend(elevation)
+    # pseudo implementation since loading rast into memory breaks docker container at the moment
+    elevations = []
+    errors = []
+    for lat, lon in zip(lats, lons):
+        elevation = [0]
+        errors.append("Pseudo Implementation. Returned 0.")
+        elevations.extend(elevation)
     return elevations, errors
+    #
+    # rast = get_and_set_sources()
+    # # # Load the entire dataset into one numpy array.
+    # # image = np.array(rast.bands[0].data()).astype(np.int16)
+    #
+    # # Initialize errors expecting no errors
+    # errors = [None for _ in lats]
+    # try:
+    #     elevations = _get_elevation_interpolated(lats, lons, rast)
+    #     if any((math.isnan(ele) for ele in elevations)):
+    #         raise NanValueException
+    # except (NanValueException, QhullError, ValueError):
+    #     # Something went wrong. Check all single requests one by one
+    #     elevations = []
+    #     errors = []
+    #     for lat, lon in zip(lats, lons):
+    #         try:
+    #             elevation = _get_elevation_interpolated([lat], [lon], rast)
+    #             if any((math.isnan(ele) for ele in elevation)):
+    #                 raise NanValueException
+    #             errors.append(None)
+    #         except (NanValueException, QhullError):
+    #             elevation = [0]
+    #             errors.append("Could not interpolate elevation for this coordinate. Returned 0.")
+    #         except ValueError:
+    #             elevation = [0]
+    #             errors.append(
+    #                 "Values for latitude and longitude must be float values between -90 and +90."
+    #                 "Returned 0."
+    #             )
+    #         elevations.extend(elevation)
+    # return elevations, errors
 
 
 def _get_elevation_interpolated(lats, lons, raster):
