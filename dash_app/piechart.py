@@ -4,6 +4,7 @@ from dash.dependencies import Input, Output, State  # no fa401
 import plotly.graph_objects as go
 import plotly.express as px
 from ebustoolbox.models import Scenario
+from .style import set_styling
 
 
 def render_critical_rotations(app: Dash) -> html.Div:
@@ -22,6 +23,7 @@ def render_critical_rotations(app: Dash) -> html.Div:
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
         State(ids.BUS_DROPDOWN, "data"),
     )
+    @set_styling
     def update_pie(_, buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
@@ -59,6 +61,7 @@ def render_bustype(app: Dash) -> html.Div:
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
         State(ids.BUS_DROPDOWN, "data"),
     )
+    @set_styling
     def update_pie(_, buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)

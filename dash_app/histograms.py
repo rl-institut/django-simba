@@ -8,6 +8,7 @@ import numpy as np
 from . import data
 from .colorscheme import color_scheme
 import plotly.graph_objects as go
+from .style import set_styling
 
 
 def render_soc(app: Dash) -> html.Div:
@@ -26,6 +27,7 @@ def render_soc(app: Dash) -> html.Div:
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
         State(ids.BUS_DROPDOWN, "data"),
     )
+    @set_styling
     def update_soc_histogram(
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
@@ -104,6 +106,7 @@ def render_dist_dur(app: Dash) -> html.Div:
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
         State(ids.BUS_DROPDOWN, "data"),
     )
+    @set_styling
     def dist_dur_histogram(
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
@@ -164,6 +167,7 @@ def render_rotation_distance(app: Dash) -> html.Div:
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
         State(ids.BUS_DROPDOWN, "data"),
     )
+    @set_styling
     def update_distances_histogram(
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
@@ -224,6 +228,7 @@ def render_rotation_duration(app: Dash) -> html.Div:
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
         State(ids.BUS_DROPDOWN, "data"),
     )
+    @set_styling
     def update_distances_histogram(
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
@@ -276,6 +281,7 @@ def render_minimal_soc(app: Dash) -> html.Div:
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
         State(ids.BUS_DROPDOWN, "data"),
     )
+    @set_styling
     def update_soc_histogram(
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:

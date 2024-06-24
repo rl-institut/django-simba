@@ -5,6 +5,7 @@ from dash.dependencies import Input, Output, State
 from ebustoolbox.models import Scenario
 import plotly.graph_objects as go
 import time
+from .style import set_styling
 
 
 def render(app: Dash) -> html.Div:
@@ -23,6 +24,7 @@ def render(app: Dash) -> html.Div:
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
         State(ids.BUS_DROPDOWN, "data"),
     )
+    @set_styling
     def update_timeline_chart(
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
@@ -92,6 +94,7 @@ def render_performance(app: Dash) -> html.Div:
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
         State(ids.BUS_DROPDOWN, "data"),
     )
+    @set_styling
     def update(_, buses: list[str], session_state=None, dash_app=None, **kwargs) -> html.Div:
         """
         Updates the performance timeline based on selected bus values.
