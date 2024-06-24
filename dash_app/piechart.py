@@ -37,7 +37,7 @@ def render_critical_rotations(app: Dash) -> html.Div:
             df,
             values="Count",
             names="Category",
-            title="Anteil Rotationen mit kritischen SOC Werten",
+            title="Verteilung der kritischen und unkritischen Umläufe",
         )
 
         return fig
