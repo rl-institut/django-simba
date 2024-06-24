@@ -1,6 +1,7 @@
 BUS_DROPDOWN = "bus-dropdown"
 BUS_DROPDOWN_RAW = "bus-dropdown-raw"
 SELECT_ALL_BUSES_BUTTON = "select-all-buses-button"
+SELECT_NO_BUSES_BUTTON = "select-no-buses-button"
 BAR_CHART = "bar-chart"
 NUMBER_REPORT = "number-report"
 SCATTER_CHART = "scatter-chart"
