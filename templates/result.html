@@ -21,7 +21,6 @@
         </div>
     {% endif %}
 
-
   <div class="col-md-12">
     <nav>
       <div class="nav nav-tabs" id="tab" role="tablist">
@@ -33,25 +32,20 @@
     <div class="tab-content"  id="tabContent">
       <!-- Start Tab Content -->
       <div class="tab-pane active" id="nav-0" role="tabpanel" aria-labelledby="nav-0-tab" tabindex="0" style="height: auto;">
-            {% load plotly_dash %}
-            {% plotly_app  slug=task_id ratio=5 %}
+        {% load plotly_dash %}
+        {% plotly_app  slug=task_id ratio=5 %}
       </div>
       <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
         {% include 'minimal_mapengine.html'%}
-            <div id="buttonContainer"></div>
+        <div id="buttonContainer"></div>
       </div>
       <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">
-          {% load plotly_dash %}
-
-               {% plotly_app name="EflipsDepotResults" ratio=3.6 %}
+        {% load plotly_dash %}
+        {% plotly_app name="EflipsDepotResults" ratio=3.6 %}
       </div>
       <!-- End Tab Content -->
     </div>
-
-
         {% include 'generate_download.html'%}
-
-
   </div>
 <script>
 
