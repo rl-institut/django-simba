@@ -43,7 +43,7 @@ def render_dist_dur(app: Dash) -> html.Div:
         dur_df["avg_speed_kmh"] = (dist_df["total_distance"] / 1000) / (dur_df["duration"] / 3600)
 
         # Set the desired bin width in km/h
-        bin_width_kmh = 5  # Specify your desired bin width in km/h here
+        bin_width_kmh = 2.5  # Specify your desired bin width in km/h here
 
         # Calculate the number of bins based on the bin width
         max_speed_kmh = dur_df["avg_speed_kmh"].max()
@@ -69,7 +69,7 @@ def render_dist_dur(app: Dash) -> html.Div:
             coloraxis_showscale=False,
             xaxis_title="Durchschnittsgeschwindigkeit (km/h)",
             yaxis_title="Absolute Häufigkeit",
-            title="Verteilung der Durchschnittsgeschwindigkeit für Route inkl. Stops, Pausen",
+            title="Verteilung der Durchschnittsgeschwindigkeit der Umläufe inkl. Stops, Pausen",
             margin=dict(l=20, r=20, t=40, b=20)
         )
 

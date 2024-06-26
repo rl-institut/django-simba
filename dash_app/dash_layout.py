@@ -290,6 +290,8 @@ def block_bottom_center(app):
         report_numbers.critical_rotations(app),
         scatter_chart.render(app),
         scatter_chart.render_power_draw(app),
+        scatter_chart.render_scenario_powerdraw(app),
+        scatter_chart.render_single_station_occupation(app),
         scatter_chart.render_station_occupation(app),
         activities_chart.render(app),
         histograms.render_minimal_soc(app),
