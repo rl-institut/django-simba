@@ -293,6 +293,7 @@ def block_bottom_center(app):
         scatter_chart.render_station_occupation(app),
         activities_chart.render(app),
         histograms.render_minimal_soc(app),
+        histograms.render_minimal_soc_per_rotation(app),
         histograms.render_rotation_duration(app),
         histograms.render_rotation_distance(app),
         histograms.render_dist_dur(app),

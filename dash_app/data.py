@@ -593,6 +593,7 @@ def get_all_event_info(scenario_id):
                         if vehicle_rotation is not None:
                             raise Exception("Multiple rotations detected")
                         vehicle_rotation = rot
+
                 else:
                     if vehicle_rotation is None and first_warning:
                         warnings.warn(
