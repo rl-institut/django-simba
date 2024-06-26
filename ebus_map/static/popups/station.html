@@ -28,14 +28,16 @@
             <td>Anschlüsse</td>
             <td>{{ amount_charging_places }}</td>
           </tr>
-          <tr>
-            <td>Leistung pro Anschluss</td>
-            <td>{{ power_per_charger|floatformat:"0" }} kW</td>
-          </tr>
-          <tr>
-            <td>Gesamtleistung</td>
-            <td>{{ power_total|floatformat:"0" }} kW</td>
-          </tr>
+          {% if amount_charging_places > 0 %}
+            <tr>
+              <td>Leistung pro Anschluss</td>
+              <td>{{ power_per_charger|floatformat:"0" }} kW</td>
+            </tr>
+            <tr>
+              <td>Gesamtleistung</td>
+              <td>{{ power_total|floatformat:"0" }} kW</td>
+            </tr>
+          {% endif %}
         </table>
       {% else %}
         Nicht elektrifiziert.

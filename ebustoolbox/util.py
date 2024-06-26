@@ -40,7 +40,7 @@ def get_charge_chart(station):
         x="time_start", y="Power", xlabel="Zeit", ylabel="Leistung [kW]", legend=False
     )
     buffer = BytesIO()
-    matplotlib.pyplot.savefig(buffer, format="png")
+    ax.figure.savefig(buffer, format="png")
     buffer.seek(0)
     image_png = buffer.getvalue()
     buffer.close()
