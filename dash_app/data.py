@@ -481,9 +481,17 @@ def get_critical_rotations_as_dataframe(scenario_id, buses):
         lambda x: "Nicht kritisch" if x > CRITICAL_SOC else "kritisch"
     )
 
-    return pd.DataFrame(
-        df["SOC_category"].value_counts().reset_index().values, columns=["Category", "Count"]
-    )
+    category_counts = df["SOC_category"].value_counts()
+
+    # Ensure all categories are included, even if the count is zero
+    all_categories = ["Nicht kritisch", "kritisch"]
+    category_counts = category_counts.reindex(all_categories, fill_value=0)
+
+    # Convert to DataFrame suitable for plotly
+    category_counts_df = category_counts.reset_index()
+    category_counts_df.columns = ["Category", "Count"]
+
+    return category_counts_df
 
 
 def apply_id(rotation):
