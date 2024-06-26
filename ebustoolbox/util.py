@@ -33,6 +33,9 @@ def get_charge_chart(station):
     # get power at this station
     power_df = get_powerdraw_as_dataframe(station.scenario.id)
     power_df = power_df[power_df["Station_id"] == station.name]
+    if power_df.empty:
+        return None
+
     ax = power_df.plot(
         x="time_start", y="Power", xlabel="Zeit", ylabel="Leistung [kW]", legend=False
     )

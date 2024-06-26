@@ -900,7 +900,9 @@ class Station(models.Model):
 
         obj = cls.objects.get(id=id)
         data = vars(obj)
-        data["plot"] = get_charge_chart(obj)
+        plot = get_charge_chart(obj)
+        if plot:
+            data["plot"] = plot
         return data
 
     def save(self, *args, **kwargs):
