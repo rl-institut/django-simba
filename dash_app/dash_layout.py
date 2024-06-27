@@ -78,124 +78,126 @@ def create_layout(app: Dash) -> Div:
                             "verticalAlign": "top",
                         },
                     ),
-                    dcc.Tabs(
-                        children=[
-                            dcc.Tab(
-                                label="Pre-Simulation Plots",
-                                children=[
-                                    html.Div(
-                                        children=block_first_third(app),
-                                        style={
-                                            "display": "inline-block",
-                                            "width": "33%",
-                                            "verticalAlign": "top",
-                                        },
-                                    ),
-                                    html.Div(
-                                        children=block_second_third(app),
-                                        style={
-                                            "display": "inline-block",
-                                            "width": "33%",
-                                            "verticalAlign": "top",
-                                        },
-                                    ),
-                                    html.Div(
-                                        children=block_third_third(app),
-                                        style={
-                                            "display": "inline-block",
-                                            "width": "33%",
-                                            "verticalAlign": "top",
-                                        },
-                                    ),
-                                    html.Div(
-                                        children=block_top_left(app),
-                                        style={
-                                            "display": "inline-block",
-                                            "width": "50%",
-                                            "verticalAlign": "top",
-                                        },
-                                    ),
-                                ],
-                            ),
-                            dcc.Tab(
-                                label="KPI Tab",
-                                id="tab-kpi",
-                                value="tab-kpi",
-                                disabled=True,
-                                children=[
-                                    html.Div(
-                                        children=block_top_left_KPI(app),
-                                        style={
-                                            "display": "inline-block",
-                                            "width": "49%",
-                                            "verticalAlign": "top",
-                                        },
-                                    ),
-                                    html.Div(
-                                        children=block_top_right_KPI(app),
-                                        style={
-                                            "display": "inline-block",
-                                            "width": "49%",
-                                            "verticalAlign": "top",
-                                        },
-                                    ),
-                                ],
-                            ),
-                            dcc.Tab(
-                                label="Simulation Plots",
-                                id="tab-simulation",
-                                value="tab-simulation",
-                                disabled=True,
-                                children=[
-                                    html.Div(
-                                        children=block_bottom_center(app),
-                                        style={
-                                            "display": "inline-block",
-                                            "width": "100%",
-                                        },
-                                    ),
-                                ],
-                            ),
-                            dcc.Tab(
-                                label="Depot Plots",
-                                disabled=False,
-                                children=[
-                                    register_eflips_callbacks(app),
-                                    html.H1(
-                                        children="Simulation results of eflips-depot",
-                                        style={"font": "arial"},
-                                    ),
-                                    dcc.Store(id="task_id"),
-                                    html.Div("Select a color-scheme:"),
-                                    dcc.Dropdown(
-                                        ["Event Type", "State of Charge", "Location"],
-                                        "Event Type",
-                                        id="color-scheme-dropdown",
-                                        style={"width": "30%"},
-                                    ),
-                                    html.H2(id="scenario-name"),
-                                    html.H2(id="num-vehicles"),
-                                    html.Div("Click on a bar to reveal the vehicle log."),
-                                    html.Div("Click on a group in legend to hide/show the group."),
-                                    dcc.Graph(id="gantt-chart"),
-                                    html.Div(
-                                        children=[
-                                            html.H2(children="SoC-log of vehicle:"),
-                                            html.Div(id="click-data", style={"font-size": "20"}),
-                                            dcc.Graph(id="vehicle-soc-plot"),
-                                        ]
-                                    ),
-                                    html.Div(
-                                        children=[
-                                            html.H2(
-                                                children="Power and occupancy of current depot"
-                                            ),
-                                            dcc.Graph(id="power-and-occupancy-plot"),
-                                        ]
-                                    ),
-                                ],
-                            ),
-                        ]
+                    dcc.Loading(
+                        dcc.Tabs(
+                            children=[
+                                dcc.Tab(
+                                    label="Pre-Simulation Plots",
+                                    children=[
+                                        html.Div(
+                                            children=block_first_third(app),
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "33%",
+                                                "verticalAlign": "top",
+                                            },
+                                        ),
+                                        html.Div(
+                                            children=block_second_third(app),
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "33%",
+                                                "verticalAlign": "top",
+                                            },
+                                        ),
+                                        html.Div(
+                                            children=block_third_third(app),
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "33%",
+                                                "verticalAlign": "top",
+                                            },
+                                        ),
+                                        html.Div(
+                                            children=block_top_left(app),
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "50%",
+                                                "verticalAlign": "top",
+                                            },
+                                        ),
+                                    ],
+                                ),
+                                dcc.Tab(
+                                    label="KPI Tab",
+                                    id="tab-kpi",
+                                    value="tab-kpi",
+                                    disabled=True,
+                                    children=[
+                                        html.Div(
+                                            children=block_top_left_KPI(app),
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "49%",
+                                                "verticalAlign": "top",
+                                            },
+                                        ),
+                                        html.Div(
+                                            children=block_top_right_KPI(app),
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "49%",
+                                                "verticalAlign": "top",
+                                            },
+                                        ),
+                                    ],
+                                ),
+                                dcc.Tab(
+                                    label="Simulation Plots",
+                                    id="tab-simulation",
+                                    value="tab-simulation",
+                                    disabled=True,
+                                    children=[
+                                        html.Div(
+                                            children=block_bottom_center(app),
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "100%",
+                                            },
+                                        ),
+                                    ],
+                                ),
+                                dcc.Tab(
+                                    label="Depot Plots",
+                                    disabled=False,
+                                    children=[
+                                        register_eflips_callbacks(app),
+                                        html.H1(
+                                            children="Simulation results of eflips-depot",
+                                            style={"font": "arial"},
+                                        ),
+                                        dcc.Store(id="task_id"),
+                                        html.Div("Select a color-scheme:"),
+                                        dcc.Dropdown(
+                                            ["Event Type", "State of Charge", "Location"],
+                                            "Event Type",
+                                            id="color-scheme-dropdown",
+                                            style={"width": "30%"},
+                                        ),
+                                        html.H2(id="scenario-name"),
+                                        html.H2(id="num-vehicles"),
+                                        html.Div("Click on a bar to reveal the vehicle log."),
+                                        html.Div("Click on a group in legend to hide/show the group."),
+                                        dcc.Graph(id="gantt-chart"),
+                                        html.Div(
+                                            children=[
+                                                html.H2(children="SoC-log of vehicle:"),
+                                                html.Div(id="click-data", style={"font-size": "20"}),
+                                                dcc.Graph(id="vehicle-soc-plot"),
+                                            ]
+                                        ),
+                                        html.Div(
+                                            children=[
+                                                html.H2(
+                                                    children="Power and occupancy of current depot"
+                                                ),
+                                                dcc.Graph(id="power-and-occupancy-plot"),
+                                            ]
+                                        ),
+                                    ],
+                                ),
+                            ]
+                        ),
                     ),
                 ],
             ),

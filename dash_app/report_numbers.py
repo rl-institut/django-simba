@@ -160,7 +160,6 @@ def critical_rotations(app: Dash) -> html.Div:
         df_sorted = lines.sort_values(by="soc_end")
         df_sorted["soc_end"] = df_sorted["soc_end"].round(3)
         # Generate HTML table dynamically
-        # Generate HTML table dynamically
         table = html.Div(
             [
                 html.Div(style={"height": "50px"}),  # Spacing div before table
