@@ -41,9 +41,7 @@
       </div>
       <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
         {% include 'minimal_mapengine.html'%}
-            <div id="sliderContainer">
-                <div id="rangeSlider"></div>
-            </div>
+
             <div id="buttonContainer"></div>
       </div>
 {#      <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">#}
@@ -207,28 +205,5 @@
         }
     }
 
-    function createRangeSlider() {
-        const sliderContainer = document.getElementById('sliderContainer');
-        const rangeSlider = document.createElement('div');
-        rangeSlider.id = 'rangeSlider';
-        sliderContainer.appendChild(rangeSlider);
-
-        noUiSlider.create(rangeSlider, {
-            start: [0, 100], // Initial range values
-            connect: true,
-            range: {
-                'min': 0,
-                'max': 100
-            }
-        });
-
-        rangeSlider.noUiSlider.on('update', function (values, handle) {
-            const minValue = parseInt(values[0]);
-            const maxValue = parseInt(values[1]);
-            applyRangeFilter('station', 'num_arrivals', minValue, maxValue);
-        });
-    }
-
-    createRangeSlider();
 </script>
 {% endblock %}
