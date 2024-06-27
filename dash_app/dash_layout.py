@@ -177,12 +177,16 @@ def create_layout(app: Dash) -> Div:
                                         html.H2(id="scenario-name"),
                                         html.H2(id="num-vehicles"),
                                         html.Div("Click on a bar to reveal the vehicle log."),
-                                        html.Div("Click on a group in legend to hide/show the group."),
+                                        html.Div(
+                                            "Click on a group in legend to hide/show the group."
+                                        ),
                                         dcc.Graph(id="gantt-chart"),
                                         html.Div(
                                             children=[
                                                 html.H2(children="SoC-log of vehicle:"),
-                                                html.Div(id="click-data", style={"font-size": "20"}),
+                                                html.Div(
+                                                    id="click-data", style={"font-size": "20"}
+                                                ),
                                                 dcc.Graph(id="vehicle-soc-plot"),
                                             ]
                                         ),
