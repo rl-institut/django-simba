@@ -10,9 +10,9 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
-from django.db.models import QuerySet, Sum, Q, F, Count, Func, IntegerField, Subquery, OuterRef
+from django.db.models import QuerySet, Sum, Q, F, Func, IntegerField
 from django.db import connections
-from django.db.models.functions import Now, Cast
+from django.db.models.functions import Now
 from django.db.models.constraints import UniqueConstraint
 from django.dispatch import receiver
 from django.utils.timezone import make_aware
@@ -23,7 +23,6 @@ from scipy.spatial._qhull import QhullError
 from django.db.models import Case, When, Value
 from django.db.models.functions import Length
 from ebus_map.managers import MVTManager, X, Y
-import environ
 
 MINIMAL_TRIP_DURATION_S = 60  # seconds
 
@@ -445,12 +444,12 @@ class Consumption(models.Model):
                 # Transform a list like [1,2,3] to [[1],[2],[3]]
                 self.data_points = np.expand_dims(self.data_points, 0).T.tolist()
         assert (
-                len(
-                    Consumption.objects.filter(scenario=self.scenario, name=self.name).exclude(
-                        id=self.id
-                    )
+            len(
+                Consumption.objects.filter(scenario=self.scenario, name=self.name).exclude(
+                    id=self.id
                 )
-                == 0
+            )
+            == 0
         )
         self._set_interpolators()
         super().save(*args, **kwargs)
@@ -803,38 +802,47 @@ def assert_is_type(obj, check_type: type):
     if not isinstance(obj, check_type):
         raise AttributeError(f"{obj} is not of type {check_type}")
 
+
 class CountBusServices(Func):
-    function = 'COUNT'
+    function = "COUNT"
     output_field = IntegerField()
+
     def __init__(self, **extra):
         # Call the super class constructor with F('id') as the first argument
-        super().__init__(F('id'), **extra)
+        super().__init__(F("id"), **extra)
 
     def as_sql(self, compiler, connection):
         # We override the as_sql method to generate our custom SQL
         # Get the SQL representation of the first source expression, which is F('id')
         db = connections.databases
         expression_sql, expression_params = self.source_expressions[0].as_sql(compiler, connection)
-        sql = f'(SELECT COUNT(*) FROM {db["default"]["NAME"]}.public."Route" WHERE arrival_station_id = {expression_sql})'
+        sql = (
+            f'(SELECT COUNT(*) FROM {db["default"]["NAME"]}.'
+            f'public."Route" WHERE arrival_station_id = {expression_sql})'
+        )
 
         return sql, expression_params
 
 
 class IsDepot(Func):
-    function = 'EXIST'
+    function = "EXIST"
 
     def __init__(self, **extra):
         # Call the super class constructor with F('id') as the first argument
-        super().__init__(F('id'), **extra)
+        super().__init__(F("id"), **extra)
 
     def as_sql(self, compiler, connection):
         # We override the as_sql method to generate our custom SQL
         # Get the SQL representation of the first source expression, which is F('id')
         db = connections.databases
         expression_sql, expression_params = self.source_expressions[0].as_sql(compiler, connection)
-        sql = f'(SELECT EXISTS (SELECT 1 FROM {db["default"]["NAME"]}.public."Depot" WHERE station_id = {expression_sql}))'
+        sql = (
+            f'(SELECT EXISTS (SELECT 1 FROM {db["default"]["NAME"]}.'
+            f'public."Depot" WHERE station_id = {expression_sql}))'
+        )
 
         return sql, expression_params
+
 
 class Station(models.Model):
     """
@@ -915,14 +923,25 @@ class Station(models.Model):
             default=Value(0),
             output_field=models.IntegerField(),
         ),
-        "power_total_ann": F('power_total'),
+        "power_total_ann": F("power_total"),
         "num_arrivals": CountBusServices(),
-        "is_depot": IsDepot()
+        "is_depot": IsDepot(),
     }
 
     vector_tiles = MVTManager(
         geo_col="geom",
-        columns=["id", "geom", "name", "lat", "lon", "title_length", "electrified", "power_total_ann", "num_arrivals","is_depot"]
+        columns=[
+            "id",
+            "geom",
+            "name",
+            "lat",
+            "lon",
+            "title_length",
+            "electrified",
+            "power_total_ann",
+            "num_arrivals",
+            "is_depot",
+        ],
     )
 
     layer = "busstop"
@@ -954,16 +973,16 @@ class Station(models.Model):
                 raise AttributeError(f"Station {self.name}:" + error_text)
             if self.voltage_level not in EnumVoltageLevel.values:
                 error_text = (
-                        "An electrified station needs a voltage level with one of these "
-                        "values:\n" + "\n".join(EnumChargeType.values)
+                    "An electrified station needs a voltage level with one of these "
+                    "values:\n" + "\n".join(EnumChargeType.values)
                 )
                 raise AttributeError(
                     f"Station {self.name} with {self.voltage_level}: " + error_text
                 )
             if self.charge_type not in EnumChargeType.values:
                 error_text = (
-                        "An electrified station needs a charge type with one of these "
-                        "values :\n" + "\n".join(EnumChargeType.values)
+                    "An electrified station needs a charge type with one of these "
+                    "values :\n" + "\n".join(EnumChargeType.values)
                 )
                 raise AttributeError(f"Station {self.name} with {self.charge_type}:" + error_text)
         super().save(*args, **kwargs)
@@ -1419,6 +1438,7 @@ class Event(models.Model):
                 )
         super().save(*args, **kwargs)
 
+
 class Depot(models.Model):
     """
     The Depot represents a place where vehicles not engaged in a schedule are parked,
@@ -1431,10 +1451,11 @@ class Depot(models.Model):
     scenario = models.ForeignKey("Scenario", null=False, on_delete=models.CASCADE)
     name = models.TextField(null=False, blank=False)
     name_short = models.TextField(null=True, blank=True)
-    station = models.ForeignKey("Station", null=False, on_delete=models.CASCADE)  # Added in schema v3
+    station = models.ForeignKey(
+        "Station", null=False, on_delete=models.CASCADE
+    )  # Added in schema v3
 
     default_plan = models.OneToOneField("Plan", null=False, on_delete=models.CASCADE)
-
 
 
 class Plan(models.Model):

@@ -25,9 +25,11 @@ def render(app: Dash) -> html.Div:
             Input(ids.SELECT_NO_BUSES_BUTTON, "n_clicks"),
             Input(ids.SELECT_ALL_BUSES_BUTTON, "n_clicks"),
         ],
-        prevent_initial_call=False
+        prevent_initial_call=False,
     )
-    def update_bus_selection(no_buses_clicks, all_buses_clicks, session_state=None, dash_app=None, **kwargs):
+    def update_bus_selection(
+        no_buses_clicks, all_buses_clicks, session_state=None, dash_app=None, **kwargs
+    ):
         """
         Updates the dropdown menu based on which button is clicked.
 
@@ -45,7 +47,7 @@ def render(app: Dash) -> html.Div:
         ctx = dash.callback_context
         button_id = ""
         if len(ctx.triggered) > 0:
-            button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+            button_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
         if button_id == ids.SELECT_NO_BUSES_BUTTON:
             return [], []
@@ -81,12 +83,11 @@ def render(app: Dash) -> html.Div:
             html.Button(
                 className="dropdown-button",
                 children=["Alle abwählen"],
-                id=ids.SELECT_NO_BUSES_BUTTON
+                id=ids.SELECT_NO_BUSES_BUTTON,
             ),
             # Create a button to select all buses
             html.Button(
                 className="apply-button", children=["Auswahl bestätigen"], id=ids.APPLY_DROPDOWN
             ),
-
         ],
     )

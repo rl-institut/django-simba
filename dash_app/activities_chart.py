@@ -67,8 +67,7 @@ def render(app: Dash) -> html.Div:
             showlegend=True,
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
             margin=dict(l=45, r=20, t=40, b=20),
-            xaxis=dict(range=[time_dict["start"], time_dict["end"]])  # Set the x-axis range here
-
+            xaxis=dict(range=[time_dict["start"], time_dict["end"]]),  # Set the x-axis range here
         )
 
         fig.update_yaxes(visible=True, showticklabels=False)

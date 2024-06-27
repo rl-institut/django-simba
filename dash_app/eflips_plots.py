@@ -1,4 +1,3 @@
-from django.utils import html
 from eflips.eval.output.prepare import (
     depot_event as prepare_depot_event,
     vehicle_soc as prepare_vehicle_soc,
@@ -46,8 +45,11 @@ def get_ganttchart_scenario_eflips(app: Dash):
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
         State(ids.BUS_DROPDOWN, "data"),
     )
-    def get_ganttchart_scenario(color_scheme_dropdown: str, _, busses, session_state: Dict[str, Any] | None):
-        """This function takes a value from dropdown as scenario id and returns a :class:`plotly.express.timeline` object
+    def get_ganttchart_scenario(
+        color_scheme_dropdown: str, _, busses, session_state: Dict[str, Any] | None
+    ):
+        """This function takes a value from dropdown as scenario id
+        and returns a :class:`plotly.express.timeline` object
         representing the gantt chart of the scenario to be used in a html layout.
         :param color_scheme_dropdown: A string coming from color-scheme-dropdown representing whether
         the gantt chart should be colored by event type or by SOC
@@ -74,7 +76,7 @@ def get_ganttchart_scenario_eflips(app: Dash):
             scenario_name = scenario.name
 
             depot_events = prepare_depot_event(scenario_id, session)
-            depot_events = depot_events[depot_events['vehicle_id'].astype(int).isin(busses)]
+            depot_events = depot_events[depot_events["vehicle_id"].astype(int).isin(busses)]
             num_vehicles = depot_events["vehicle_id"].nunique()
             color_scheme = {
                 "Event Type": "event_type",
@@ -87,7 +89,12 @@ def get_ganttchart_scenario_eflips(app: Dash):
             fig.update_layout(height=num_vehicles * 10 + 250)
 
         engine.dispose()
-        return fig, scenario_name, f"Total number of vehicles:{num_vehicles}", session_state["task_id"]
+        return (
+            fig,
+            scenario_name,
+            f"Total number of vehicles:{num_vehicles}",
+            session_state["task_id"],
+        )
 
 
 def get_vehicle_by_click_eflips(app: Dash):

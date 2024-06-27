@@ -21,7 +21,6 @@ def render(app: Dash) -> html.Div:
     :rtype: html.Div
     """
 
-
     @app.callback(
         Output(ids.SCATTER_CHART, "figure"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
@@ -51,13 +50,12 @@ def render(app: Dash) -> html.Div:
             yaxis_title="SOC [%]",
             showlegend=False,
             xaxis=dict(range=[time_dict["start"], time_dict["end"]]),  # Set the x-axis range here
-            separators=', '
+            separators=", ",
         )
 
         return fig
 
     return html.Div(dcc.Graph(id=ids.SCATTER_CHART), style={"verticalAlign": "top"})
-
 
 
 def render_power_draw(app: Dash) -> html.Div:
@@ -70,7 +68,6 @@ def render_power_draw(app: Dash) -> html.Div:
     :return: A Div element containing the line chart.
     :rtype: html.Div
     """
-
 
     @app.callback(
         Output(ids.STATION_POWER_DRAW_CHART, "figure"),
@@ -120,10 +117,10 @@ def render_power_draw(app: Dash) -> html.Div:
             for time_point in all_times:
                 # Filter vehicles charging at this time point
                 charging_vehicles = station_df[
-                    (station_df["time_start"] <= time_point) &
-                    (station_df["time_end"] > time_point) &
-                    (station_df["Power"] > 0)
-                    ]
+                    (station_df["time_start"] <= time_point)
+                    & (station_df["time_end"] > time_point)
+                    & (station_df["Power"] > 0)
+                ]
 
                 # Sum the power of the vehicles charging at this time point
                 total_power = charging_vehicles["Power"].sum()
@@ -169,7 +166,6 @@ def render_single_station_occupation(app: Dash) -> html.Div:
     :return: A Div element containing the line chart.
     :rtype: html.Div
     """
-
 
     @app.callback(
         Output(ids.SINGLE_STATION_OCCUPATION, "figure"),
@@ -219,8 +215,11 @@ def render_single_station_occupation(app: Dash) -> html.Div:
             for time_point in all_times:
                 # Count the number of vehicles charging at this time point
                 charging_vehicles = (
-                        ((station_df["time_start"] <= time_point) & (station_df["time_end"] > time_point))
-                        & (station_df["Power"] > 0)
+                    (
+                        (station_df["time_start"] <= time_point)
+                        & (station_df["time_end"] > time_point)
+                    )
+                    & (station_df["Power"] > 0)
                 ).sum()
                 charging_status.append({"time": time_point, "vehicles_charging": charging_vehicles})
             charging_status_df = pd.DataFrame(charging_status)
@@ -245,7 +244,6 @@ def render_single_station_occupation(app: Dash) -> html.Div:
             margin=dict(l=20, r=20, t=40, b=20),
             xaxis=dict(range=[time_dict["start"], time_dict["end"]]),  # Set the x-axis range here
             height=max(300, 150 * i),
-
         )
 
         return fig
@@ -263,7 +261,6 @@ def render_station_occupation(app: Dash) -> html.Div:
     :return: A Div element containing the line chart.
     :rtype: html.Div
     """
-
 
     @app.callback(
         Output(ids.STATION_OCCUPATION, "figure"),
@@ -298,8 +295,8 @@ def render_station_occupation(app: Dash) -> html.Div:
         for time_point in all_times:
             # Count the number of vehicles charging at this time point
             charging_vehicles = (
-                    ((df["time_start"] <= time_point) & (df["time_end"] > time_point))
-                    & (df["Power"] > 0)
+                ((df["time_start"] <= time_point) & (df["time_end"] > time_point))
+                & (df["Power"] > 0)
             ).sum()
             charging_status.append({"time": time_point, "vehicles_charging": charging_vehicles})
 
@@ -317,12 +314,11 @@ def render_station_occupation(app: Dash) -> html.Div:
             yaxis_title="Anzahl Busse",
             showlegend=False,
             margin=dict(l=20, r=20, t=40, b=20),
-            xaxis=dict(range=[time_dict["start"], time_dict["end"]])  # Set the x-axis range here
+            xaxis=dict(range=[time_dict["start"], time_dict["end"]]),  # Set the x-axis range here
         )
         return fig
 
     return html.Div(dcc.Graph(id=ids.STATION_OCCUPATION), style={"verticalAlign": "top"})
-
 
 
 def render_scenario_powerdraw(app: Dash) -> html.Div:
@@ -369,10 +365,8 @@ def render_scenario_powerdraw(app: Dash) -> html.Div:
         for time_point in all_times:
             # Filter vehicles charging at this time point
             charging_vehicles = df[
-                (df["time_start"] <= time_point) &
-                (df["time_end"] > time_point) &
-                (df["Power"] > 0)
-                ]
+                (df["time_start"] <= time_point) & (df["time_end"] > time_point) & (df["Power"] > 0)
+            ]
 
             # Sum the power of the vehicles charging at this time point
             total_power = charging_vehicles["Power"].sum()
@@ -388,12 +382,12 @@ def render_scenario_powerdraw(app: Dash) -> html.Div:
         )
 
         fig.update_layout(
-            title_text="Ladeleistung über Zeit, pro Station",
+            title_text="Ladeleistung über Zeit",
             xaxis_title="Zeit",
             yaxis_title="Leistung [kW]",
             showlegend=False,
             margin=dict(l=20, r=20, t=40, b=20),
-            xaxis=dict(range=[time_dict["start"], time_dict["end"]])  # Set the x-axis range here
+            xaxis=dict(range=[time_dict["start"], time_dict["end"]]),  # Set the x-axis range here
         )
         return fig
 

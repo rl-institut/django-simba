@@ -15,10 +15,11 @@ from ebustoolbox.models import (
     Rotation,
     Station,
     EventType,
-    Trip, Route,
+    Trip,
+    Route,
 )
 import pandas as pd
-from django.db.models import Count, Q
+from django.db.models import Count
 from dash.exceptions import PreventUpdate
 
 # Maximum number of cached results per function
@@ -74,7 +75,7 @@ def get_total_consumption(s: Scenario):
     for index, event in driving_events.iterrows():
         # Calculate the difference between soc_end and soc_start
         total_energy_difference += (
-                abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
+            abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
         )
     return total_energy_difference
 
@@ -179,8 +180,8 @@ def get_frequently_served_station(task_id: str) -> list[str]:
     df = recent_memoizer(get_all_routes, s.id)(s.id)
 
     # Finding the most common item in a specific column
-    most_common_station = df['arrival_station_id'].mode()[0]
-    frequency = df['arrival_station_id'].value_counts()[most_common_station]
+    most_common_station = df["arrival_station_id"].mode()[0]
+    frequency = df["arrival_station_id"].value_counts()[most_common_station]
 
     station = Station.objects.get(scenario_id=s.id, id=most_common_station)
 
@@ -203,11 +204,7 @@ def get_scenario_duration(task_id: str) -> dict:
 
     duration = end - start
 
-    result_dict = {
-        "start": start,
-        "end": end,
-        "duration": duration
-    }
+    result_dict = {"start": start, "end": end, "duration": duration}
     return result_dict
 
 

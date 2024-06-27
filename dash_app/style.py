@@ -1,4 +1,3 @@
-from dash import dash
 import plotly.graph_objs as go
 from dash import dcc, html
 
@@ -19,7 +18,7 @@ def set_styling(func):
                 title_font=dict(family=font_family, size=title_font_size),
                 xaxis_title_font=dict(family=font_family, size=axis_font_size),
                 yaxis_title_font=dict(family=font_family, size=axis_font_size),
-                hoverlabel=dict(font=dict(family=font_family, size=hover_font_size))
+                hoverlabel=dict(font=dict(family=font_family, size=hover_font_size)),
             )
             return fig
 
