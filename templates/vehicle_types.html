@@ -39,7 +39,7 @@ Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu
                       <div class="col-6 bg-primary text-white rounded text-center align-content-center">
                         {{ vehicle_type.name }} [{% if vehicle_type.opportunity_charging_capable %}Gelegenheitslader{% else %}Depotlader{% endif %}]
                       </div>
-                      <div class="col-6 d-flex align-center">
+                      <div class="col-5 d-flex align-center">
                         <select id="vehicle_type_dropdown_{{ vehicle_type.id }}"
                                 name="vehicle_type_dropdown" class="form-select">
                           {% for default_vehicle_type in default_vehicle_types %}
@@ -53,7 +53,9 @@ Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu
 
                         </select>
                       </div>
+                      <button type="button" id="showInfo_btn_{{ vehicle_type.id }}" class="col-1 btn btn-secondary" onclick="showInfo(this.id)"> ?</button>
                     </div>
+
                 {% endfor %}
             {% else %}
               <p>Keine Fahrzeugtypen verfügbar.</p>
@@ -115,6 +117,38 @@ Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu
           create_chart({{ default_vehicle_type.charging_curve }}, "Ladekurve", "vehicle_type_{{ default_vehicle_type.id }}_info_chart", "Ladezustand[-]", "Leistung [kW]")
       {% endfor %}
       {# When the site is fully loaded, call this function        #}
+
+      function showInfo(btnid) {
+          var vehicle_type_id = btnid.split('_').at(-1);
+          var dropdown = document.getElementById('vehicle_type_dropdown_'+vehicle_type_id);
+          var default_vehicle_type_id = dropdown.value.split('_')[1];
+
+          show_info_box(default_vehicle_type_id)
+      }
+
+      function show_info_box(default_vehicle_type_id) {
+          // Hide all info boxes
+          var infoBoxes = document.querySelectorAll('.info-box');
+          infoBoxes.forEach(function (box) {
+              box.style.display = 'none';
+          });
+
+          var help_text = document.getElementById("infobox_place_holder_text");
+          if (help_text) {
+              help_text.style.display = "none";
+          }
+
+          var infoDivId = "vehicle_type_" + default_vehicle_type_id + "_info"
+          // Show the selected info box if a value is selected
+          if (infoDivId) {
+              var source = document.getElementById(infoDivId);
+              if (source) {
+                  {#source.classList.add('d-flex');#}
+                  source.style.display = 'block';
+              }
+          }
+      }
+
       document.addEventListener('DOMContentLoaded', function () {
           {# find all dropdowns with this naming scheme in their id#}
           var dropdowns = document.querySelectorAll('[id*="vehicle_type_dropdown_"]');
@@ -122,29 +156,8 @@ Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu
           {# Define a function which makes a info box with a similar name visible.#}
 
           function updateInfoBox(selectedValue) {
-              // Hide all info boxes
-              var infoBoxes = document.querySelectorAll('.info-box');
-              infoBoxes.forEach(function (box) {
-                  box.style.display = 'none';
-              });
-
-              var help_text = document.getElementById("infobox_place_holder_text");
-              if (help_text) {
-                  help_text.style.display = "none";
-              }
-
-              var secondInt = selectedValue.split('_')[1];
-              var infoDivId = "vehicle_type_" + secondInt + "_info"
-
-              // Show the selected info box if a value is selected
-              if (infoDivId) {
-                  var source = document.getElementById(infoDivId);
-                  if (source) {
-                      {#source.classList.add('d-flex');#}
-                      source.style.display = 'block';
-                  }
-              }
-
+              var default_vehicle_type_id = selectedValue.split('_')[1];
+              show_info_box(default_vehicle_type_id)
           }
 
           {# create an event listener for changes in the dropdowns#}
