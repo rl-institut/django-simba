@@ -16,6 +16,7 @@ class Progress(models.Model):
     errors = models.JSONField([], default=list, null=True)
 
     def get_progress(self):
+        """Return a progress, which should be between 0 and 100."""
         try:
             return self.current_work / self.total_work * 100
         except ZeroDivisionError:

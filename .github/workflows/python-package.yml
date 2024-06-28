@@ -66,7 +66,7 @@ jobs:
     steps:
       - name: Create postgis extensions
         run: |
-          psql -h localhost -U postgres -c 'create extension postgis_raster;'
+          psql postgis://postgres:postgres@localhost/DbName -c 'create extension postgis_raster;'
       # Downloads a copy of the code in your repository before running CI tests
       - name: Give GH Actions access to django-simba repo
         uses: webfactory/ssh-agent@v0.8.0
