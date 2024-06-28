@@ -671,6 +671,22 @@ files = [
 ]
 
 [[package]]
+name = "dash-cytoscape"
+version = "1.0.1"
+description = "A Component Library for Dash aimed at facilitating network visualization in Python, wrapped around Cytoscape.js"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "dash_cytoscape-1.0.1.tar.gz", hash = "sha256:1bcd1587b2d8b432945585e2295e76393d3eb829f606c198693cd2b45bea6adc"},
+]
+
+[package.dependencies]
+dash = "*"
+
+[package.extras]
+leaflet = ["dash-leaflet (>=1.0.10)"]
+
+[[package]]
 name = "dash-html-components"
 version = "2.0.0"
 description = "Vanilla HTML components for Dash"
@@ -952,16 +968,17 @@ xlsxwriter = ">=3.1.9,<4.0.0"
 
 [[package]]
 name = "eflips-eval"
-version = "1.1.7"
+version = "1.2.1"
 description = ""
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "eflips_eval-1.1.7-py3-none-any.whl", hash = "sha256:e380812fad13f9a8e30444938a1a309ea1fdac60e53a80acc0662c581da818de"},
-    {file = "eflips_eval-1.1.7.tar.gz", hash = "sha256:6cebb38aad17208b634db1b244279209135b2df33a0f2a3390972d4b666fad1b"},
+    {file = "eflips_eval-1.2.1-py3-none-any.whl", hash = "sha256:47eb27eb884fefeef209df7b169e29f5e4b58d1275c20b4df5b22b39232619c1"},
+    {file = "eflips_eval-1.2.1.tar.gz", hash = "sha256:1fa282242d3bfb6038323cbce96320a73152ff8b94a8c3908b1c54cbb310c78b"},
 ]
 
 [package.dependencies]
+dash-cytoscape = ">=1.0.1,<2.0.0"
 eflips-model = ">=2.3.0,<4.0.0"
 pandas = ">=2.1.4,<3.0.0"
 plotly = ">=5.19.0,<6.0.0"
