@@ -64,10 +64,6 @@ jobs:
           - 5432:5432
 
     steps:
-      - name: Install postgres client
-        run: |
-          apt-get update
-          apt-get install --yes --no-install-recommends postgresql-client
       - name: Create postgis extensions
         run: |
           psql -h postgres -U postgres -c 'create extension postgis_raster;'
