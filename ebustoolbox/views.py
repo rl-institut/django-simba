@@ -152,6 +152,27 @@ def get_vehicle_types(request: HttpRequest, task_id):
     return render(request, "vehicle_types.html", context)
 
 
+def get_depots(request: HttpRequest | None, task_id):
+    context = {"task_id": task_id}
+    try:
+        scenario = Scenario.objects.get(task_id=task_id)
+    except Scenario.DoesNotExist:
+        raise Http404
+    # if the scenario has a manager, only this User can run the simulation
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
+    if request.method == "POST":
+        return redirect(reverse("simba:stations", args=[str(task_id)]))
+    else:
+        depots = (
+            Station.objects.filter(scenario=scenario)
+            .filter(charge_type=EnumChargeType.DEPOT)
+            .order_by("id")
+        )
+        context["depots"] = depots
+        return render(request, "depots.html", context)
+
+
 def get_stations(request: HttpRequest | None, task_id, form=None):
     if form is None:
         form = ChargingStationDefaultsForm()
@@ -330,7 +351,7 @@ def assign_vehicle_types(request: HttpRequest, task_id: str):
         vehicle_type_pairs = request.POST.getlist("vehicle_type_dropdown")
         tasks.update_vehicle_types_with_defaults(vehicle_type_pairs, task_id)
 
-    return redirect(reverse("simba:stations", args=[str(task_id)]))
+    return redirect(reverse("simba:depots", args=[str(task_id)]))
 
 
 def home_view(request: HttpRequest):

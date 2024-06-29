@@ -22,6 +22,7 @@ urlpatterns = [
         "input/get_options/<uuid:task_id>/<int:reader_num>", views.get_options, name="get_options"
     ),
     path("input/vehicle_types/<uuid:task_id>", views.get_vehicle_types, name="vehicle_types"),
+    path("input/depots/<uuid:task_id>", views.get_depots, name="depots"),
     path("input/stations/<uuid:task_id>", views.get_stations, name="stations"),
     path(
         "input/scenario_overview/<uuid:task_id>",
