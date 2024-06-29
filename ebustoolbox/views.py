@@ -39,6 +39,7 @@ from ebustoolbox.models import (
     DefaultScenario,
     Station,
     EnumChargeType,
+    Rotation,
 )
 
 logger = logging.getLogger("custom")
@@ -186,7 +187,10 @@ def get_stations(request: HttpRequest | None, task_id, form=None):
         .exclude(charge_type=EnumChargeType.DEPOT)
         .order_by("id")
     )
+    opp_count = Rotation.objects.filter(scenario=scenario).filter(allow_opportunity_charging=True)
+    is_depot_scenario = True if len(opp_count) == 0 else False
     context["stations"] = stations
+    context["is_depot_scenario"] = is_depot_scenario
     return render(request, "stations.html", context)
 
 
@@ -206,6 +210,10 @@ def set_station_values(request: HttpRequest, task_id):
             scenario.simba_options["modes"] = "sim,report"
         scenario.save()
         tasks.electrify_db_stations(scenario, station_id_list)
+        # redirect to "simulation overview" page which can start a simulation
+        response = redirect(reverse("simba:scenario_overview", args=[str(task_id)]))
+        return response
+    elif request.method == "GET":
         # redirect to "simulation overview" page which can start a simulation
         response = redirect(reverse("simba:scenario_overview", args=[str(task_id)]))
         return response

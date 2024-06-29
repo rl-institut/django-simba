@@ -15,13 +15,13 @@
   </div>
   <div class="input-item row m-5">
     <div ><h4>Aus den Eingangsdaten identifizierte Depots:</h4></div>
-  <div class="row">
-    {% for depot in depots %}
-      <li class="list-group-item p-2">
-        {{ depot.name }}
-      </li>
-    {% endfor %}
-  </div>
+    <div class="row">
+      {% for depot in depots %}
+        <li class="list-group-item p-2">
+          {{ depot.name }}
+        </li>
+      {% endfor %}
+    </div>
   </div>
 
   <form class="text-center" enctype="multipart/form-data" method="POST" action="{% url 'simba:depots' task_id %}">
