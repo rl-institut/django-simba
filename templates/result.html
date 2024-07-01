@@ -4,7 +4,7 @@
 {% endblock %}
 {% block content %}
     {% load static %}
-
+    <h1>erfolgreich</h1>
     {% if not finished %}
         <form id='form' hx-target="#my_progress_bar" hx-get='{% url 'simba:run_simulation' task_id %}'>{% csrf_token %}
             <input type="hidden" name="task_id" value="{{ task_id }}">
