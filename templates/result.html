@@ -1,20 +1,11 @@
 {% extends 'base.html'%}
 {% block title %}Simulation Results{% endblock %}
 {% block header %}
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.6.3/nouislider.min.css" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.6.3/nouislider.min.js"></script>
-
-  <script>
-  var task_id = "{{task_id }}";
-  console.log(task_id);
-    </script>
 {% endblock %}
 {% block content %}
     {% load static %}
 
-    {% if finished %}
-        <h1>Simulation {{ task_id }} erfolgreich</h1>
-    {% else %}
+    {% if not finished %}
         <form id='form' hx-target="#my_progress_bar" hx-get='{% url 'simba:run_simulation' task_id %}'>{% csrf_token %}
             <input type="hidden" name="task_id" value="{{ task_id }}">
             <button id="simba_submit_button" type="submit" class="btn btn-primary">Run simulation</button>
