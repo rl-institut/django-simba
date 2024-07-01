@@ -887,7 +887,7 @@ def _generate_zipped_scenario(task_id: str):
 
 @shared_task(bind=True)
 def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cleaned_data):
-    progress = Progress.objects.create(task_id=self.request.id, status="Starting")
+    progress = Progress.objects.create(task_id=self.request.id, status="Gestartet")
     # files is a dict with values of (path, file_id)
     file_paths = {key: value[0] for key, value in files.items()}
     try:
@@ -906,16 +906,16 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
         progress.save()
     except Exception as e:
         logger.error(traceback.format_exc())
-        progress.status = "Failed"
+        progress.status = "Fehlgeschlagen"
         progress.errors.append(str(e))
     finally:
         try:
             progress.errors.extend(schedule_reader.get_errors())
         except:  # noqa
             pass
-        progress.status = "Finished"
+        progress.status = "Fertig"
         if not progress.success:
-            progress.status = "Failed"
+            progress.status = "Fehlgeschlagen"
         # delete all uploaded files
         try:
             for file_path, file_id in files.values():

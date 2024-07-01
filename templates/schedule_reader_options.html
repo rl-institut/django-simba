@@ -11,7 +11,13 @@
               <input type="file" class="form-control col-sm-2" id="{{ form.file_path.auto_id }}" required
                      name="file_path">
               <span class="input-group-text">{{ form.file_path.label }}</span>
-              <div>{{ form.file_path.errors }}</div>
+              <div>
+                <ul>
+                  {% for error in form.file_path.errors %}
+                    <li>{{ error }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -47,24 +53,41 @@
 
     {#This will be replaced by the progressbar, during server side analyzing            #}
     <div id="upload-progress_{{ task_id }}"></div>
-    <button class="btn btn-primary" type=submit id='button_{{ task_id }}' hx-encoding="multipart/form-data"
-            hx-target="#upload-progress_{{ task_id }}"
-            hx-post="{% url 'simba:upload_trips' task_id=task_id reader_num=reader_num %}">
-      Upload
+    <div>
+      <button
+        id='upload_btn_{{ task_id }}'
+        class="btn btn-primary"
+        type=submit
+        hx-encoding="multipart/form-data"
+        hx-target="#upload-progress_{{ task_id }}"
+        hx-post="{% url 'simba:upload_trips' task_id=task_id reader_num=reader_num %}">
+        Hochladen
+      </button>
+      {# progress bar during upload #}
+      <progress id='progress' value='0' max='100'></progress>
+    </div>
+  </form>
+  <form action="{% url 'simba:cancel_upload' task_id=task_id %}" method="post">
+    {% csrf_token %}
+    <button
+      id="cancel_btn_{{ task_id }}"
+      class="btn btn-danger"
+      type=submit
+      style="display: none;"
+      >
+      Abbrechen
     </button>
-    {#            progress bar during upload#}
-    <progress id='progress' value='0' max='100'></progress>
   </form>
   <script>
-      {# set the first progressbar accodring to the upload progress#}
+      // set the first progressbar according to the upload progress
       htmx.on('#options_form', 'htmx:xhr:progress', function (evt) {
           htmx.find('#progress').setAttribute('value', evt.detail.loaded / evt.detail.total * 100)
       });
-      {# After submitting file disable button#}
-      {# TODO change this script to work with all of the buttons?#}
+      // After submitting file hide upload button, show abort button
+      // TODO change this script to work with all of the buttons?
       htmx.on('#options_form', 'htmx:confirm', function (evt) {
-          htmx.find('#button_{{task_id}}').disabled = true;
-          console.log("disabled button")
+          htmx.find('#upload_btn_{{task_id}}').style.display = "none";
+          htmx.find('#cancel_btn_{{task_id}}').style.display = "initial";
       });
   </script>
 </div>

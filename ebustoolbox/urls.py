@@ -35,6 +35,7 @@ urlpatterns = [
         name="assign_vehicle_types",
     ),
     path("upload_trips/<uuid:task_id>/<int:reader_num>", views.upload_trips, name="upload_trips"),
+    path("cancel_upload/<uuid:task_id>", views.cancel_upload, name="cancel_upload"),
     path("generate_zip/<uuid:task_id>", views.generate_zip, name="generate_zip"),
     path("download_scenario/<uuid:task_id>/", views.download_scenario, name="download_scenario"),
     path("progress/<uuid:progress_id>/<str:progress_type>", views.progress, name="progress"),
