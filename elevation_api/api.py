@@ -1,20 +1,22 @@
 import logging
-import math
 import traceback
-
+import math
 import numpy as np
-import pandas as pd
+from django.contrib.gis.gdal import GDALRaster
 import pyproj
-from typing import List, Iterable, Any
-from pathlib import Path
+from typing import List, Iterable, Any, Tuple
 import requests
 import zipfile
 from io import BytesIO
 
+from django.conf import settings
+from django.http import Http404
 from scipy.interpolate import LinearNDInterpolator
-from scipy.spatial import cKDTree, QhullError
+from scipy.spatial import QhullError  # noqa
+from elevation_api.models import Elevation
 
 logger = logging.getLogger("custom")
+INITIALIZED = False
 
 
 class NanValueException(Exception):
@@ -23,20 +25,24 @@ class NanValueException(Exception):
 
 def get_and_set_sources():
     """Download elevation data files"""
+
+    ele, created = Elevation.objects.get_or_create(name="Germany")
+    if not created:
+        return ele.raster
+
     # Get the directory of the script
-    # Path to your PRJ file
-    local_path = Path(__file__).parent
     # Create the full path for the extraction location
-    extract_path = local_path / Path("static/elevation_api")
+    extract_path = settings.BASE_DIR / settings.MEDIA_ROOT
     # Ensure the extraction directory exists
     extract_path.mkdir(exist_ok=True)
-    needed_files = ["dgm200_utm32s.prj", "dgm200_utm32s.xyz"]
+    needed_files = ["dgm200_utm32s.prj", "dgm200_utm32s.asc"]
 
     if all([(extract_path / nfile).is_file() for nfile in needed_files]):
         logger.info("Elevation files exist and downloading is skipped.")
     else:
         # Download the files
-        url = "https://daten.gdz.bkg.bund.de/produkte/dgm/dgm200/aktuell/dgm200.utm32s.xyzascii.zip"
+
+        url = settings.ELEVATION_SOURCE_URL
         logger.info(f"First time getting sources for elevation data from {url}")
         try:
             response = requests.get(url)
@@ -47,7 +53,7 @@ def get_and_set_sources():
 
                 for source_file in needed_files:
                     # Check if the target file is in the zip
-                    source_path = "dgm200.utm32s.xyzascii/dgm200/" + source_file
+                    source_path = "dgm200.utm32s.gridascii/dgm200/" + source_file
                     # Extract the specific file
                     with thezip.open(source_path) as source, open(
                         extract_path / source_file, "wb"
@@ -59,93 +65,146 @@ def get_and_set_sources():
             logger.error(traceback.format_exc())
             raise e
 
-    prj_file_path = extract_path / "dgm200_utm32s.prj"
-    data_file = extract_path / "dgm200_utm32s.xyz"
-    global DF
-    DF = pd.read_csv(data_file, sep=" ", header=None)
-    DF.columns = ["x", "y", "z"]
+    data_file = extract_path / "dgm200_utm32s.asc"
+    # transforms which ever source into WGS84
+    # dest_code = 4326
+    # projection_transformer = get_transformer(prj_file_path, dest_code)
+    rast = GDALRaster(data_file, write=True)
+    ele.raster = rast
+    ele.save()
 
-    data = np.array((DF.x, DF.y)).T
-    global CKDTREE
-    CKDTREE = cKDTree(data)
+    return rast
 
-    global TRANSFORMER
-    TRANSFORMER = get_transformer(prj_file_path)
+
+def pixelToMap(gt, pos) -> Tuple[float, float]:
+    return (gt[0] + pos[0] * gt[1] + pos[1] * gt[2], gt[3] + pos[0] * gt[4] + pos[1] * gt[5])
+
+
+# Reverses the operation of pixelToMap(), according to:
+# https://en.wikipedia.org/wiki/World_file because GDAL's Affine GeoTransform
+# uses the same values in the same order as an ESRI world file.
+# See: http://www.gdal.org/gdal_datamodel.html
+def mapToPixel(gt, pos):
+    x_map, y_map = pos
+    c, a, b, f, d, e = gt
+    s = a * e - d * b
+    x_pixel = (e * x_map - b * y_map + b * f - e * c) / s
+    y_pixel = (-d * x_map + a * y_map + d * c - a * f) / s
+    return (x_pixel, y_pixel)
+
+
+def valueAtMapPos(image, gt, pos):
+    pp = mapToPixel(gt, pos)
+    x = int(pp[0])
+    y = int(pp[1])
+
+    if x < 0 or y < 0 or x >= image.shape[1] or y >= image.shape[0]:
+        raise Exception()
+
+    # Note how we reference the y column first. This is the way numpy arrays
+    # work by default. But GDAL assumes x first.
+    return image[y, x]
+
+
+def get_elevation_pseudo(lats: List[float], lons: List[float]) -> tuple[list[float], list[Any]]:
+    if not isinstance(lats, Iterable):
+        if not isinstance(lons, Iterable):
+            raise Http404("Latitude and longitude must be iterable")
+        lats = [lats]
+        lons = [lons]
+
+    # pseudo implementation since loading rast into memory breaks docker container at the moment
+    elevations = []
+    errors = []
+    for lat, lon in zip(lats, lons):
+        elevation = [0]
+        errors.append("Pseudo Implementation. Returned 0.")
+        elevations.extend(elevation)
+    return elevations, errors
+    #
 
 
 def get_elevation(lats: List[float], lons: List[float]) -> tuple[list[float], list[Any]]:
-    if TRANSFORMER is None:
-        get_and_set_sources()
-    if TRANSFORMER is None:
-        raise Exception("Transformer not available")
     if not isinstance(lats, Iterable):
-        assert not isinstance(lons, Iterable)
+        if not isinstance(lons, Iterable):
+            raise Http404("Latitude and longitude must be iterable")
         lats = [lats]
         lons = [lons]
+
+    # Get raster
+    rast = get_and_set_sources()
+
+    # Initialize errors expecting no errors
+    errors = [None for _ in lats]
     try:
-        elevations = _get_elevation_interpolated(
-            lats, lons, ckdtree=CKDTREE, df=DF, transformer=TRANSFORMER
-        )
-        errors = [None for _ in elevations]
+        elevations = _get_elevation_interpolated(lats, lons, rast)
         if any((math.isnan(ele) for ele in elevations)):
             raise NanValueException
-    except (NanValueException, QhullError):
+    except (NanValueException, QhullError, ValueError):
+        # Something went wrong. Check all single requests one by one
         elevations = []
         errors = []
         for lat, lon in zip(lats, lons):
             try:
-                elevation = _get_elevation_interpolated(
-                    [lat], [lon], ckdtree=CKDTREE, df=DF, transformer=TRANSFORMER
-                )
+                elevation = _get_elevation_interpolated([lat], [lon], rast)
                 if any((math.isnan(ele) for ele in elevation)):
                     raise NanValueException
                 errors.append(None)
             except (NanValueException, QhullError):
-                elevation = _get_elevation_closest(
-                    [lat], [lon], ckdtree=CKDTREE, df=DF, transformer=TRANSFORMER
-                )
+                elevation = [0]
+                errors.append("Could not interpolate elevation for this coordinate. Returned 0.")
+            except ValueError:
+                elevation = [0]
                 errors.append(
-                    "Could not interpolate elevation for this coordinate. Returned "
-                    "elevation of the closest known coordinate in Germany."
+                    "Values for latitude and longitude must be float values between -90 and +90."
+                    "Returned 0."
                 )
             elevations.extend(elevation)
     return elevations, errors
 
 
-def _get_elevation_interpolated(lats, lons, ckdtree, df, transformer):
-    xs, ys = transformer.transform(lons, lats)
-    # find the 4 closest neighbors for interpolation eg=k=[1,2,3,4]
-    distance, indicies = ckdtree.query((list(zip(xs, ys))), k=[1, 2, 3, 4])
-    indicies = np.unique(np.ravel(indicies))
-    relevant_df = df.loc[indicies]
-    interp = LinearNDInterpolator(list(zip(relevant_df.x, relevant_df.y)), relevant_df.z)
+def _get_elevation_interpolated(lats, lons, raster):
+    nodata, relevant_x, relevant_y, xs, ys = get_relevant_pixels(lats, lons, raster)
+
+    try:
+        relevant_z = raster.bands[0].data()[(relevant_y, relevant_x)]
+    except IndexError:
+        raise NanValueException
+    if nodata in relevant_z:
+        raise NanValueException
+    interp = LinearNDInterpolator(list(zip(relevant_x, relevant_y)), relevant_z)
     vec_interp = np.vectorize(interp)
     elevations = vec_interp(xs, ys)
     return elevations
 
 
-def _get_elevation_closest(lats, lons, ckdtree, df, transformer):
-    xs, ys = transformer.transform(lons, lats)
-    # find the 1 closest neighbors for interpolation eg=k=[1]
-    distance, indicies = ckdtree.query((list(zip(xs, ys))), k=[1])
-    indicies = np.unique(np.ravel(indicies))
-    elevations = df.loc[indicies].z
-    return elevations
+def get_relevant_pixels(lats, lons, raster):
+    geotransform = raster.geotransform
+    # We need to nodata value for our MaskedArray later.
+    nodata = raster.bands[0].nodata_value
+    xs = []
+    relevant_x = []
+    ys = []
+    relevant_y = []
+    for lat, lon in zip(lats, lons):
+        pp = mapToPixel(geotransform, (lon, lat))
+        x = pp[0]
+        y = pp[1]
+        xs.append(x)
+        ys.append(y)
+        relevant_x.extend([math.floor(x), math.floor(x), math.ceil(x), math.ceil(x)])
+        relevant_y.extend([math.floor(y), math.ceil(y), math.floor(y), math.ceil(y)])
+    return nodata, relevant_x, relevant_y, xs, ys
 
 
-def get_transformer(prj_file_path):
+def get_transformer(prj_file_path, dest_code=4326):
     # Read PRJ file and create coordinate transformation
     try:
         with open(prj_file_path, "r") as prj_file:
             prj_contents = prj_file.read()
             src_crs = pyproj.CRS.from_string(prj_contents)
-        dst_crs = pyproj.CRS.from_epsg(4326)  # WGS84 CRS (latitude and longitude)
-        return pyproj.Transformer.from_crs(dst_crs, src_crs, always_xy=True)
+        dst_crs = pyproj.CRS.from_epsg(dest_code)  # WGS84 CRS (latitude and longitude)
+        return pyproj.Transformer.from_crs(src_crs, dst_crs, always_xy=True)
     except Exception:
         traceback.print_exc()
         return None
-
-
-TRANSFORMER = None
-CKDTREE = None
-DF = None

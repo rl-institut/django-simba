@@ -4,12 +4,7 @@ services:
   web:
     build: .
     command:
-      - sh
-      - -c
-      - |
-        poetry run python manage.py makemigrations
-        poetry run python manage.py migrate
-        poetry run python manage.py runserver 0.0.0.0:8000
+      /start
     volumes:
       - .:/app
     ports:
@@ -17,7 +12,29 @@ services:
     depends_on:
       - my-docker-postgres
 
+  celery:
+    build: .
+    command:
+      /start_celery
+    volumes:
+      - .:/app
+    depends_on:
+      - my-docker-postgres
+      - my-docker-redis
+
+
+  my-docker-redis:
+    # in .env_file
+    # CELERY_BROKER_URL=redis://my-docker-redis:6379/0
+    image: redis:7.2.4
+    ports:
+      - 6379
+    depends_on:
+      - my-docker-postgres
+
   my-docker-postgres:
+    # Settings have to be reflected in .env file when running
+    # DATABASE_URL=postgis://myprojectuser:1234@my-docker-postgres:5432/mydb
     image: postgis/postgis
     volumes:
       - postgres_data:/var/lib/postgresql/data/

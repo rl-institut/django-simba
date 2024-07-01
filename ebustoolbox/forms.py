@@ -80,6 +80,15 @@ class ChartForm(forms.Form):
             )
 
 
+class VehicleTypesAdjustmentForm(forms.Form):
+    battery_capacity = forms.IntegerField(
+        min_value=0,
+        max_value=1000000,
+        label="Nutzbare Batteriekapazität",
+        help_text="Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen.",
+    )
+
+
 class ChargingStationDefaultsForm(forms.Form):
     gc_power_opps = forms.IntegerField(
         min_value=0, max_value=1000000, initial=5000, label="Grid connector power in kVA"

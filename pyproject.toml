@@ -7,10 +7,12 @@ license = "AGPLv3"
 readme = "README.md"
 packages = [{include = "ebustoolbox"},
             {include = "django_mapengine"},
+            {include = "ebus_map"},
+            {include = "elevation_api"},
             {include = "core"}]
 
 [tool.poetry.dependencies]
-python = ">=3.11,<4.0"
+python = ">=3.10,<4.0"
 spice_ev = { git = "https://github.com/rl-institut/spice_ev", rev = "51268c639a02f2a94c418d6215376f585dd14af0"}
 simba = { git = "https://github.com/rl-institut/SimBA", rev = "feature/django_simba"}
 
@@ -36,10 +38,11 @@ setuptools = "^68.2.2"
 django-bootstrap4 = "23.4"
 tqdm = "^4.66.1"
 eflips-depot = "^3.0"
-eflips-eval = { version = "^1.0.1", python = "" }
 django-fast-update = "^0.2.3"
 scipy = "^1.12.0"
-eflips-ingest = "^1.1.1"
+eflips-ingest = "^1.2.3"
+eflips-eval = "^1.0.6"
+redis = "^5.0.5"
 
 [tool.poetry.group.dev]
 optional = true

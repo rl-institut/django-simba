@@ -52,6 +52,7 @@ jobs:
         # Provide the password for postgres
         env:
           POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: DbName
         # Set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
@@ -63,6 +64,9 @@ jobs:
           - 5432:5432
 
     steps:
+      - name: Create postgis extensions
+        run: |
+          PGPASSWORD=postgres psql -h localhost -d DbName -U postgres -c 'create extension postgis_raster;'
       # Downloads a copy of the code in your repository before running CI tests
       - name: Give GH Actions access to django-simba repo
         uses: webfactory/ssh-agent@v0.8.0
@@ -96,6 +100,7 @@ jobs:
           poetry run python manage.py test
         env:
           DJANGO_SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DJANGO_ADMIN_PASSWORD: ${{ secrets.DJANGO_ADMIN_PASSWORD }}
           DJANGO_DEBUG: True
           # Replace with your own database info
           DATABASE_URL: postgis://postgres:postgres@localhost/DbName

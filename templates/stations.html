@@ -30,13 +30,13 @@
   {% else %}
 
     <!-- Main Content -->
-    <div class="row lead justify-content-center d-flex m-5 p-5">
+    <div class="row lead justify-content-center d-flex p-5">
         Wähle alle Stationen aus, die elektrifiziert werden sollen.
     </div>
 
     <div id="dynamic-content">
         <div id="dynamic-list">
-            <form class="text-center" enctype="multipart/form-data" method="POST" action="{% url 'simba:set_station_values' task_id %}">
+            <form class="text-center px-4" enctype="multipart/form-data" method="POST" action="{% url 'simba:set_station_values' task_id %}">
                 {% csrf_token %}
                 <!-- {{ form }} -->
                 <div class="input-item row m-5">
