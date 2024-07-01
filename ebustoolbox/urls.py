@@ -29,11 +29,6 @@ urlpatterns = [
         name="scenario_overview",
     ),
     path("set_station_values/<uuid:task_id>", views.set_station_values, name="set_station_values"),
-    path(
-        "assign_vehicle_types/<uuid:task_id>",
-        views.assign_vehicle_types,
-        name="assign_vehicle_types",
-    ),
     path("upload_trips/<uuid:task_id>/<int:reader_num>", views.upload_trips, name="upload_trips"),
     path("cancel_upload/<uuid:task_id>", views.cancel_upload, name="cancel_upload"),
     path("generate_zip/<uuid:task_id>", views.generate_zip, name="generate_zip"),

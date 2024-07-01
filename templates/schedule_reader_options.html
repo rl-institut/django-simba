@@ -1,52 +1,67 @@
-<div id="options_form" class="text-center">
+{% load static %}
+<div id="options_form" class="text-center px-4">
   <form id='form'>{% csrf_token %}
     {#    use HX-retarget to target form instead of progess bar in cases of errors#}
+    <div class="form-group my-4">
+      <div class="input-group">
+        <input type="text" class="form-control " id="scenarioName" name="scenario_name"
+               aria-describedby="scenarioNameHelp"
+               placeholder="Mein Szenario"> <span class="input-group-text">Name des Szenarios</span>
+      </div>
+      <small id="scenarioNameHelp" class="form-text text-muted">Gib deinem Szenario einen Namen. So findest du es
+        später
+        hier <a href="{% url "simba:scenarios" %}">'Meine Szenarien'</a> </small>
+    </div>
 
     {% if reader_num == 1 %}
       <fieldset class="form-group">
-        <div class="container">
-          <div class="row mb-3 px-4 justify-content-center">
-
-            <div class="input-group">
-              <input type="file" class="form-control col-sm-2" id="{{ form.file_path.auto_id }}" required
-                     name="file_path">
-              <span class="input-group-text">{{ form.file_path.label }}</span>
-              <div>
+        <div class="mb-4">
+          <div class="input-group">
+            <input {% if form.file_path.help_text %}title="{{ form.file_path.help_text }}"{% endif %} type="file"
+                   class="form-control" id="{{ form.file_path.auto_id }}" required
+                   name="file_path">
+            <span class="input-group-text">{{ form.file_path.label }}</span>
+            <a href="{% static 'ebustoolbox/examples/trips_example.csv' %}" class="input-group-text" download>Download
+              Beispiel-Fahrplan</a>
+            <div>
+              {% if error in form.file_path.errors %}
                 <ul>
                   {% for error in form.file_path.errors %}
                     <li>{{ error }}</li>
                   {% endfor %}
                 </ul>
-              </div>
+              {% endif %}
             </div>
           </div>
         </div>
-        <div class="container">
-          <div class="row px-4 pb-4 justify-content-center">
-            <div class="col-auto">
-              <div class="form-check">
-                <input class="form-check-input" type="radio" value="depb" name="default_charging_type" id="inp-depb">
-                <label class="form-check-label" for="inp-depb">
-                  Depotlader
-                </label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" value="oppb" name="default_charging_type" id="inp-oppb"
-                       checked>
-                <label class="form-check-label" for="inp-oppb">
-                  Gelegenheitslader
-                </label>
-              </div>
+        <div class="row mb-4">
+{# Pushes next column into center        #}
+          <div class="col-3"></div>
+          <div class="col-6">
+            <div class="form-check">
+              <input {% if form.default_charging_type.help_text %}title="{{ form.default_charging_type.help_text }}"{% endif %}
+                     class="form-check-input" type="radio" value="depb" name="default_charging_type" id="inp-depb">
+              <label class="form-check-label" for="inp-depb">
+                Depotlader
+              </label>
             </div>
-            <span class="col-auto">Welcher Standard-Ladetyp soll angenommen werden?</span>
+            <div class="form-check">
+              <input {% if form.default_charging_type.help_text %}title="{{ form.default_charging_type.help_text }}"{% endif %}class="form-check-input"
+                     type="radio" value="oppb" name="default_charging_type" id="inp-oppb"
+                     checked>
+              <label class="form-check-label" for="inp-oppb">
+                Gelegenheitslader
+              </label>
+            </div>
           </div>
+                  <span class="col-auto">Welcher Standard-Ladetyp soll angenommen werden?</span>
+        </div>
 
-        </div>
       </fieldset>
     {% endif %}
 
 
-    {% if reader_num > 1%}
+    {% if reader_num > 1 %}
       {{ form.as_p }}
     {% endif %}
 
@@ -55,26 +70,27 @@
     <div id="upload-progress_{{ task_id }}"></div>
     <div>
       <button
-        id='upload_btn_{{ task_id }}'
-        class="btn btn-primary"
-        type=submit
-        hx-encoding="multipart/form-data"
-        hx-target="#upload-progress_{{ task_id }}"
-        hx-post="{% url 'simba:upload_trips' task_id=task_id reader_num=reader_num %}">
+              id='upload_btn_{{ task_id }}'
+              class="btn btn-primary"
+              type=submit
+              hx-encoding="multipart/form-data"
+              hx-target="#upload-progress_{{ task_id }}"
+              hx-post="{% url 'simba:upload_trips' task_id=task_id reader_num=reader_num %}">
         Hochladen
       </button>
-      {# progress bar during upload #}
+      {# progress bar during upload#}
       <progress id='progress' value='0' max='100'></progress>
     </div>
   </form>
+
   <form action="{% url 'simba:cancel_upload' task_id=task_id %}" method="post">
     {% csrf_token %}
     <button
-      id="cancel_btn_{{ task_id }}"
-      class="btn btn-danger"
-      type=submit
-      style="display: none;"
-      >
+            id="cancel_btn_{{ task_id }}"
+            class="btn btn-danger"
+            type=submit
+            style="display: none;"
+    >
       Abbrechen
     </button>
   </form>

@@ -1,66 +1,172 @@
 {% extends 'base.html' %}
 
+{% block header %}
+  <style>
+      .info-box {
+          display: none; /* Hide all divs by default */
+      }
+  </style>
+{% endblock %}
 {% block content %}
 
+  <div class="container bg-light d-grid" style="min-height: 80vh;">
 
-<div class="container bg-light" style="min-height: 80vh;">
+    <!-- wizard -->
+    {% include 'wizard.html' %}
 
-  <!-- wizard -->
-  {% include 'wizard.html' %}
+    <!-- Main Content -->
 
-  <!-- Main Content -->
-
-  <div class="row lead justify-content-center d-flex m-5 p-5">
-    Ordne jedem Fahrzeug in dem Zeitplan ein Default-Fahrzeug zu.
-  </div>
-
-  <form class="text-center" enctype="multipart/form-data" method="POST" action="{% url 'simba:assign_vehicle_types' task_id %}">
-    {% csrf_token %}
-
-    <div class="input-item row m-5">
-      <div class="col-3"><h4>Fahrzeuge aus dem Zeitplan</h4></div>
-      <div class="col-3"><h4>Default-Fahrzeuge</h4></div>
-
+    <div class="row lead justify-content-center d-flex p-5">
+Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu.
     </div>
 
-    <div class="input-item row m-5">
-      <div class="col-6">
-        <div id="schedule-vehicle-types-container">
-          {% if vehicle_types %}
-          <ul class="list-unstyled">
-            {% for vehicle_type in vehicle_types %}
-              <li class="list-group-item p-2">
-                <div class="row">
-                  <div class="col bg-primary text-white rounded">
-                    {{ vehicle_type.name }} [{% if vehicle_type.opportunity_charging_capable %}Gelegenheitslader{% else %}Depotlader{% endif %}]
-                  </div>
-                  <div class="col d-flex align-center">
-                    <select name="vehicle_type_dropdown" class="form-select">
-                      {% for default_vehicle_type in default_vehicle_types %}
-                        {% if vehicle_type.opportunity_charging_capable == default_vehicle_type.opportunity_charging_capable %}
-                        <option value="{{ vehicle_type.id }}_{{ default_vehicle_type.id }}">
-                          {{ default_vehicle_type.name }} {{ default_vehicle_type.battery_capacity }} kWh
-                        </option>
-                        {% endif %}
-                      {% endfor %}
-                    </select>
-                  </div>
-                </div>
-              </li>
-            {% endfor %}
-          </ul>
-      {% else %}
-        <p>Keine Fahrzeugtypen verfügbar.</p>
-      {% endif %}
-    </div>
-      </div>
+    <form class="text-center" enctype="multipart/form-data" method="POST"
+          action="{% url 'simba:vehicle_types' task_id %}">
+      {% csrf_token %}
+      <div class="row mx-1">
+        <div class="col-3"><h4>Fahrzeuge aus dem Zeitplan</h4></div>
+        <div class="col-3"><h4>Standard-Fahrzeuge</h4></div>
         <div class="col-6">
-        <small class="form-text text-muted">Hier können die Fahrzeugen, die aus dem hochgeladenen Zeitplan extrahiert wurden, den verfügbaren Default-Fahrzeugen zugeordent werden.</small>
+{#          <h4>Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standardfahrzeug zu.</h4>#}
         </div>
       </div>
-    <!-- dummy vehicle types get default vehicle type values -->
-    {% include 'continue_button.html' %}
-  </form>
+      <div class="row" style="min-height: 30vh">
+        <div class="col-6 d-flex flex-column justify-content-evenly">
 
-</div>
+            {% if vehicle_types %}
+                {% for vehicle_type in vehicle_types %}
+                    <div class="row mx-1">
+                      <div class="col-6 bg-primary text-white rounded text-center align-content-center">
+                        {{ vehicle_type.name }} [{% if vehicle_type.opportunity_charging_capable %}Gelegenheitslader{% else %}Depotlader{% endif %}]
+                      </div>
+                      <div class="col-5 d-flex align-center">
+                        <select id="vehicle_type_dropdown_{{ vehicle_type.id }}"
+                                name="vehicle_type_dropdown" class="form-select">
+                          {% for default_vehicle_type in default_vehicle_types %}
+                            {% if vehicle_type.opportunity_charging_capable == default_vehicle_type.opportunity_charging_capable %}
+                              <option value="{{ vehicle_type.id }}_{{ default_vehicle_type.id }}">
+                                {{ default_vehicle_type.name }} als {% if vehicle_type.opportunity_charging_capable %}
+                                Gelegenheitslader{% else %}Depotlader{% endif %}
+                              </option>
+                            {% endif %}
+                          {% endfor %}
+
+                        </select>
+                      </div>
+                      <button type="button" id="showInfo_btn_{{ vehicle_type.id }}" class="col-1 btn btn-secondary" onclick="showInfo(this.id)"> ?</button>
+                    </div>
+
+                {% endfor %}
+            {% else %}
+              <p>Keine Fahrzeugtypen verfügbar.</p>
+            {% endif %}
+          </div>
+        <div class="col-6 d-grid align-items-center" id="infobox_place_holder">
+          <div id="infobox_place_holder_text"><small class="form-text text-muted">Hier erscheint eine
+            Zusammenfassung
+            der technischen Daten des von Ihnen ausgewählten Fahrzeugs</small></div>
+
+          {#info boxes about selected vehicle Type#}
+          {% for default_vehicle_type in default_vehicle_types %}
+            <div id="vehicle_type_{{ default_vehicle_type.id }}_info" class="info-box">
+              <div class="row">
+                <div class="col text-start">
+                  <h5>{{ default_vehicle_type.name }}</h5>
+                  Der Fahrzeugtyp besitzt eine Standard-Batteriekapazität von {{ default_vehicle_type.battery_capacity }} kWh und
+                  einen
+                  Verbrauch von {{ default_vehicle_type.consumption }} kWh/km. Er ist von der Bauweise {% if default_vehicle_type.opportunity_charging_capable %}
+                        Gelegenheitslader{% else %}Depotlader{% endif %}.
+                </div>
+                <div class="col-6">
+                  <div class="chart-container" style="min-height: 20vh">
+                    <canvas id="vehicle_type_{{ default_vehicle_type.id }}_info_chart"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mt-1">
+                {% with field=default_vehicle_types_adjustment_form.battery_capacity %}
+                  <div class="text-start">{{ field.label }}:<input class="col-3" type="number"
+                                                                   name="{{ field.name }}_{{ default_vehicle_type.id }}" value={{ default_vehicle_type.battery_capacity| floatformat:0 }}
+                                                                   min={{ field.min_value }} max={{ field.max_value }}
+                          {% if field.field.required %} required="" {% endif %}
+                                                                   aria-describedby="id_{{ field.name }}_help_text_{{ default_vehicle_type.id }}"
+                                                                   id="id_{{ field.name }}_{{ default_vehicle_type.id }}">kWh
+
+                    <div class="row">
+                      <small id="id_{{ field.name }}_help_text_{{ default_vehicle_type.id }}"> {{ field.help_text }}
+                      </small>
+
+                    </div>
+                  </div>
+                {% endwith %}
+              </div>
+
+            </div>
+          {% endfor %}
+
+
+        </div>
+      </div>
+      <!-- dummy vehicle types get default vehicle type values -->
+      {% include 'continue_button.html' %}
+    </form>
+  </div>
+  <script>
+      {% for default_vehicle_type in default_vehicle_types %}
+          create_chart({{ default_vehicle_type.charging_curve }}, "Ladekurve", "vehicle_type_{{ default_vehicle_type.id }}_info_chart", "Ladezustand[-]", "Leistung [kW]")
+      {% endfor %}
+      {# When the site is fully loaded, call this function        #}
+
+      function showInfo(btnid) {
+          var vehicle_type_id = btnid.split('_').at(-1);
+          var dropdown = document.getElementById('vehicle_type_dropdown_'+vehicle_type_id);
+          var default_vehicle_type_id = dropdown.value.split('_')[1];
+
+          show_info_box(default_vehicle_type_id)
+      }
+
+      function show_info_box(default_vehicle_type_id) {
+          // Hide all info boxes
+          var infoBoxes = document.querySelectorAll('.info-box');
+          infoBoxes.forEach(function (box) {
+              box.style.display = 'none';
+          });
+
+          var help_text = document.getElementById("infobox_place_holder_text");
+          if (help_text) {
+              help_text.style.display = "none";
+          }
+
+          var infoDivId = "vehicle_type_" + default_vehicle_type_id + "_info"
+          // Show the selected info box if a value is selected
+          if (infoDivId) {
+              var source = document.getElementById(infoDivId);
+              if (source) {
+                  {#source.classList.add('d-flex');#}
+                  source.style.display = 'block';
+              }
+          }
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+          {# find all dropdowns with this naming scheme in their id#}
+          var dropdowns = document.querySelectorAll('[id*="vehicle_type_dropdown_"]');
+
+          {# Define a function which makes a info box with a similar name visible.#}
+
+          function updateInfoBox(selectedValue) {
+              var default_vehicle_type_id = selectedValue.split('_')[1];
+              show_info_box(default_vehicle_type_id)
+          }
+
+          {# create an event listener for changes in the dropdowns#}
+          dropdowns.forEach(function (dropdown) {
+              dropdown.addEventListener('change', function () {
+                  updateInfoBox(dropdown.value);
+              });
+          });
+      });
+  </script>
+
 {% endblock %}

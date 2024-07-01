@@ -14,6 +14,6 @@ urlpatterns = [
     path(
         "<str:lat_long_query>",
         views.elevation_view,
-        name="elevation_view",
+        name="elevation_view_with_get_token",
     ),
 ]

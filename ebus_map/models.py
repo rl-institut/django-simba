@@ -3,50 +3,7 @@ be part of models."""
 from django.contrib.gis.db import models
 from django.utils.translation import gettext_lazy as _
 
-from .managers import LabelMVTManager, MVTManager, X, Y
-
-import ebustoolbox.models
-
-
-class Station(ebustoolbox.models.Station):
-    # prior attributes, used for map (?)
-    objects = models.Manager()
-    from django.db.models.functions import Length
-    from django.db.models import Case, When, Value, CharField
-
-    # Make sure all annotations are part of the columns below, if the data is supposed to be
-    # delivered to the map
-    annotations = {
-        "center": models.functions.Centroid("geom"),
-        "lat": X("center", output_field=models.DecimalField()),
-        "lon": Y("center", output_field=models.DecimalField()),
-        "title_length": Length("name"),
-        "electrified": Case(
-            When(is_electrified=True, then=Value(10)),
-            default=Value(0),
-            output_field=models.IntegerField(),
-        )
-    }
-
-    vector_tiles = MVTManager(
-        geo_col="geom", columns=["id", "geom", "name", "lat", "lon", "title_length", "electrified"]
-    )
-
-    layer = "station"
-    mapping = {
-        "id": "id",
-        "geom": "POINT",
-        "name": "name",
-        "geom_label": "geom_label",
-    }
-
-    @classmethod
-    def get_popup_data(cls, id):
-        obj = cls.objects.get(id=id)
-        data = {"title": obj.name,
-                "lat": obj.geom.x,
-                "lon": obj.geom.y}
-        return data
+from .managers import LabelMVTManager, MVTManager
 
 
 class MyExampleMultiPolygon(models.Model):
