@@ -34,12 +34,12 @@ def set_default_vehicle_types(apps, scenario) -> None:
     vehicle_data_list = [
         ("Minibus", 120, 7, 0.9),
         ("Minibus_Zusatzheizung", 120, 7, 0.7),
-        ("Midibus", 325, 10, 1.8),
-        ("Midibus_Zusatzheizung", 450, 10, 1.3),
-        ("Solobus", 400, 12, 2),
-        ("Solobus_Zusatzheizung", 500, 12, 1.4),
-        ("Gelenkbus", 500, 18, 2.6),
-        ("Gelenkbus_Zusatzheizung", 650, 18, 1.8),
+        ("Midibus", 450, 10, 1.8),
+        ("Midibus_Zusatzheizung", 325, 10, 1.3),
+        ("Solobus", 500, 12, 2),
+        ("Solobus_Zusatzheizung", 400, 12, 1.4),
+        ("Gelenkbus", 650, 18, 2.6),
+        ("Gelenkbus_Zusatzheizung", 500, 18, 1.8),
     ]
     for vehicle_data in vehicle_data_list:
         set_default_vehicle_type(apps, scenario, *vehicle_data)
