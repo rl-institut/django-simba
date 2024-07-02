@@ -940,7 +940,6 @@ def trim_scenario(scenario, time_delta, start_time=None):
     for rotation in rotations:
         if rotation.trip_set.order_by("departure_time").first().departure_time > latest_start:
             rotation.delete()
-    rotations = Rotation.objects.filter(scenario=scenario)
 
 
 @atomic()
