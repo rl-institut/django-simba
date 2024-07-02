@@ -61,3 +61,9 @@ a.title {
 .footer-link {
     text-decoration: none;
 }
+
+.popup-image {
+    width: 100%; /* Standard */
+    width: -moz-available; /* Firefox */
+    width: -webkit-fill-available; /* Chrome */
+}
