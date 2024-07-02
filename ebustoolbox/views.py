@@ -40,6 +40,7 @@ from ebustoolbox.models import (
     DefaultScenario,
     Station,
     EnumChargeType,
+    Rotation,
 )
 
 logger = logging.getLogger("custom")
@@ -183,9 +184,31 @@ def get_vehicle_types(request: HttpRequest, task_id):
             vt_adjustments[dvt.id]["battery_capacity"] = form.cleaned_data["battery_capacity"]
         tasks.update_vehicle_types_with_defaults(vehicle_type_pairs, task_id, vt_adjustments)
 
-        return redirect(reverse("simba:stations", args=[str(task_id)]))
+        return redirect(reverse("simba:depots", args=[str(task_id)]))
 
     return render(request, "vehicle_types.html", context)
+
+
+def get_depots(request: HttpRequest, task_id):
+    """View for the depot input tab. Either continues to next wizard step or renders depot page."""
+    context = {"task_id": task_id}
+    try:
+        scenario = Scenario.objects.get(task_id=task_id)
+    except Scenario.DoesNotExist:
+        raise Http404
+    # if the scenario has a manager, only this User can run the simulation
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
+    if request.method == "POST":
+        return redirect(reverse("simba:stations", args=[str(task_id)]))
+    else:
+        depots = (
+            Station.objects.filter(scenario=scenario)
+            .filter(charge_type=EnumChargeType.DEPOT)
+            .order_by("id")
+        )
+        context["depots"] = depots
+        return render(request, "depots.html", context)
 
 
 def get_stations(request: HttpRequest | None, task_id, form=None):
@@ -205,7 +228,10 @@ def get_stations(request: HttpRequest | None, task_id, form=None):
         .exclude(charge_type=EnumChargeType.DEPOT)
         .order_by("id")
     )
+    opp_count = Rotation.objects.filter(scenario=scenario).filter(allow_opportunity_charging=True)
+    is_depot_scenario = True if len(opp_count) == 0 else False
     context["stations"] = stations
+    context["is_depot_scenario"] = is_depot_scenario
     return render(request, "stations.html", context)
 
 
@@ -225,6 +251,10 @@ def set_station_values(request: HttpRequest, task_id):
             scenario.simba_options["modes"] = "sim,report"
         scenario.save()
         tasks.electrify_db_stations(scenario, station_id_list)
+        # redirect to "simulation overview" page which can start a simulation
+        response = redirect(reverse("simba:scenario_overview", args=[str(task_id)]))
+        return response
+    elif request.method == "GET":
         # redirect to "simulation overview" page which can start a simulation
         response = redirect(reverse("simba:scenario_overview", args=[str(task_id)]))
         return response
