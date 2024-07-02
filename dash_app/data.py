@@ -414,7 +414,7 @@ def get_activities_as_dataframe(scenario_id, buses):
     return filtered_df
 
 
-def get_powerdraw_as_dataframe(scenario_id, buses):
+def get_powerdraw_as_dataframe(scenario_id, buses=None):
     """
     Retrieves power draw data as a DataFrame for specified buses in a given scenario.
 
@@ -426,9 +426,10 @@ def get_powerdraw_as_dataframe(scenario_id, buses):
     :return: DataFrame containing power draw data for specified buses.
     :rtype: pandas.DataFrame
     """
-    result_df = recent_memoizer(get_all_powerdraw_as_dataframe, scenario_id)(scenario_id)
-    filtered_df = result_df.query(f"V_id in {buses}")
-    return filtered_df
+    df = recent_memoizer(get_all_powerdraw_as_dataframe, scenario_id)(scenario_id)
+    if buses is not None:
+        df = df.query(f"V_id in {buses}")
+    return df
 
 
 def get_vehicle_types(scenario_id, buses):

@@ -1,11 +1,17 @@
 {% extends 'base.html'%}
 {% block title %}Simulation Results{% endblock %}
 {% block header %}
+  <script>
+  var task_id = "{{task_id }}";
+  console.log(task_id);
+    </script>
 {% endblock %}
 {% block content %}
     {% load static %}
-    <h1>erfolgreich</h1>
-    {% if not finished %}
+
+    {% if finished %}
+        <h1>Simulation erfolgreich</h1>
+    {% else %}
         <form id='form' hx-target="#my_progress_bar" hx-get='{% url 'simba:run_simulation' task_id %}'>{% csrf_token %}
             <input type="hidden" name="task_id" value="{{ task_id }}">
             <button id="simba_submit_button" type="submit" class="btn btn-primary">Run simulation</button>
@@ -14,7 +20,6 @@
             <progress id='progress' value='0' max='100'></progress>
         </div>
     {% endif %}
-
 
   <div class="col-md-12">
     <nav>
@@ -27,26 +32,27 @@
     <div class="tab-content"  id="tabContent">
       <!-- Start Tab Content -->
       <div class="tab-pane active" id="nav-0" role="tabpanel" aria-labelledby="nav-0-tab" tabindex="0" style="height: auto;">
-            {% load plotly_dash %}
-            {% plotly_app  slug=task_id ratio=5 %}
+        {% load plotly_dash %}
+        {% plotly_app  slug=task_id ratio=5 %}
       </div>
       <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
         {% include 'minimal_mapengine.html'%}
 
             <div id="buttonContainer"></div>
+        <div id="buttonContainer"></div>
       </div>
 {#      <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">#}
 {#          {% load plotly_dash %}#}
 {##}
 {#               {% plotly_app name="EflipsDepotResults" ratio=3.6 %}#}
 {#      </div>#}
+      <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">
+        {% load plotly_dash %}
+        {% plotly_app name="EflipsDepotResults" ratio=3.6 %}
+      </div>
       <!-- End Tab Content -->
     </div>
-
-
         {% include 'generate_download.html'%}
-
-
   </div>
 <script>
 

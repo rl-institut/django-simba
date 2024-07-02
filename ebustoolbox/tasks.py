@@ -902,6 +902,7 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
         progress.refresh_from_db()
         progress.success = schedule_reader.write_to_db(scenario.id)
         scenario.simba_options = vars(get_args(scenario))
+        find_and_make_depots(scenario)
         scenario.save()
         progress.save()
     except Exception as e:
@@ -1654,3 +1655,19 @@ def update_vehicle_types_with_defaults(vehicle_type_pairs, task_id, vt_adjustmen
         vt_default.name = vt.name
         vt_default.name_short = vt.name_short
         vt_default.save()
+
+
+def find_and_make_depots(scenario):
+    depot_stations = set()
+    for r in Rotation.objects.filter(scenario=scenario).prefetch_related("trip_set"):
+        trips = r.trip_set.order_by("departure_time")
+        depot_stations.add(trips.first().route.departure_station)
+        depot_stations.add(trips.last().route.arrival_station)
+
+    logger.info(f"{len(depot_stations)} Depot Stations found")
+
+    for station in depot_stations:
+        station.is_electrified = True
+        station.charge_type = EnumChargeType.DEPOT.value
+        station.voltage_level = EnumVoltageLevel.VOLTAGE_MV.value
+        station.save()

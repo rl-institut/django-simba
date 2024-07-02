@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const path = String(window.location.pathname);
 
     var progress = 0;
-    const tabs = ["schedule", "vehicle_types", "stations", "depot", "scenario_overview"];
+    const tabs = ["schedule", "vehicle_types", "depots", "stations", "scenario_overview"];
     // disable all navitems by default
     for (let nav of navItems)
         nav.firstElementChild.classList.add('disabled');
@@ -40,11 +40,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 <li id="nav-link-vehicle_types" class="nav-item">
                     <a class="nav-link" href="{% url 'simba:vehicle_types' task_id=task_id %}">Fahrzeugtypen</a>
                 </li>
+                <li id="nav-link-depots" class="nav-item">
+                    <a class="nav-link " href="{% url 'simba:depots' task_id=task_id %}">Depots</a>
+                </li>
                 <li id="nav-link-stations" class="nav-item">
                     <a class="nav-link" href="{% url 'simba:stations' task_id=task_id %}">Stationen</a>
-                </li>
-                <li id="nav-link-depot" class="nav-item">
-                    <a class="nav-link " href="#" tabindex="-1" aria-disabled="false">Depot</a>
                 </li>
                 <li id="nav-link-scenario_overview" class="nav-item">
                     <a class="nav-link" href="{% url 'simba:scenario_overview' task_id=task_id %}">Übersicht</a>

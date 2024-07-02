@@ -19,6 +19,10 @@ Template:
 
 ## [x.x.x] - Unreleased
 ### Changed
+- [(#108)](https://github.com/rl-institut/django-simba/pull/108)
+- Add depot input page
+- Add new default vehicle types
+- 
 - [(#97)](https://github.com/rl-institut/django-simba/pull/97)
 - Updates SimBA and eflips-ingest
 - Implement VDV Ingester of eflips-ingest
