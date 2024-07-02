@@ -711,7 +711,12 @@ def get_all_powerdraw_as_dataframe(scenario_id):
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
     scenario = Scenario.objects.get(id=scenario_id)
     all_stations = Station.objects.filter(scenario_id=scenario_id)
-    stations_name_short_dict = {station.id: station.name_short for station in all_stations}
+    stations_name_short_dict = {}
+    for station in all_stations:
+        if station.name_short is not None:
+            stations_name_short_dict[station.id] = station.name_short
+        else:
+            stations_name_short_dict[station.id] = station.name
 
     # Fetch battery capacity and charging efficiency for all vehicle types
     vehicle_types = VehicleType.objects.in_bulk([vehicle.vehicle_type_id for vehicle in vehicles])

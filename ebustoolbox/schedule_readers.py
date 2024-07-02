@@ -391,7 +391,7 @@ class SimbaScheduleReader(ScheduleReader):
         unique_stations = unique_arrival_stations.union(unique_departure_stations)
         last_id = 1 if Station.objects.last() is None else Station.objects.last().id + 1
         for i, name in enumerate(unique_stations):
-            station = Station(scenario=scenario, name=name, id=last_id + i)
+            station = Station(scenario=scenario, name=name, name_short=name, id=last_id + i)
             if name in depot_stations:
                 station.is_electrified = True
                 station.charge_type = EnumChargeType.DEPOT.value
