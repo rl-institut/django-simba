@@ -101,6 +101,9 @@ def render_power_draw(app: Dash) -> html.Div:
         for i, station_id in enumerate(df["Station_id"].unique()):
             station_df = df[df["Station_id"] == station_id]
 
+            if len(station_df) == 0:
+                continue
+
             # Get unique colors for V_id
             colors = px.colors.qualitative.Plotly[: len(station_df["V_id"].unique())]
 
@@ -198,7 +201,8 @@ def render_single_station_occupation(app: Dash) -> html.Div:
         # Loop through each station
         for i, station_id in enumerate(df["Station_id"].unique()):
             station_df = df[df["Station_id"] == station_id]
-
+            if len(station_df) == 0:
+                continue
             # Get unique colors for V_id
             colors = px.colors.qualitative.Plotly[: len(station_df["V_id"].unique())]
 
@@ -208,9 +212,10 @@ def render_single_station_occupation(app: Dash) -> html.Div:
             charging_status = []
 
             # Generate all time points between the minimum and maximum time_start and time_end
-            all_times = pd.date_range(
-                start=station_df["time_start"].min(), end=station_df["time_end"].max(), freq="min"
-            )
+            start_time = station_df["time_start"].min()
+            end_time = station_df["time_end"].max()
+
+            all_times = pd.date_range(start=start_time, end=end_time, freq="min")
 
             for time_point in all_times:
                 # Count the number of vehicles charging at this time point
