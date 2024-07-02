@@ -30,6 +30,8 @@ from .models import (
     Station,
     Trip,
     Temperatures,
+    Event,
+    EventType,
     Consumption,
     VehicleClass,
 )
