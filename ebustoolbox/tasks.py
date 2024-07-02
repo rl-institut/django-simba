@@ -904,6 +904,7 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
         scenario.simba_options = vars(get_args(scenario))
         find_and_make_depots(scenario)
         scenario.save()
+        trim_scenario(scenario, time_delta=timedelta(days=7))
         progress.save()
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -928,6 +929,18 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
 
         # Make sure postgres auto increment is up to date
         core.deepcopy.reset_postgres_auto_increments(["ebustoolbox"])
+
+
+def trim_scenario(scenario, time_delta, start_time=None):
+    trips = Trip.objects.filter(scenario=scenario).order_by("departure_time")
+    if start_time is None:
+        start_time = trips.first().departure_time
+    latest_start = start_time + time_delta
+
+    rotations = Rotation.objects.filter(scenario=scenario).prefetch_related("trip_set")
+    for rotation in rotations:
+        if rotation.trip_set.order_by("departure_time").first().departure_time > latest_start:
+            rotation.delete()
 
 
 @atomic()
@@ -1022,7 +1035,7 @@ def assign_new_vehicles_to_db(django_scenario: Scenario, db_name="default") -> N
     Vehicle.objects.using(db_name).filter(scenario=django_scenario).delete()
     rotations = []
     vehicles = []
-    vehicle_last_id = Vehicle.objects.aggregate(Max("id"))["id__max"]
+    vehicle_last_id = Vehicle.objects.aggregate(Max("id"))["id__max"] or 0
     for i, r in enumerate(Rotation.objects.using(db_name).filter(scenario=django_scenario)):
         vehicle_last_id += 1
         vt = r.vehicle_type
@@ -1104,6 +1117,8 @@ def _run_ebus_toolchain(self, task_id, run_parent=False):
 
     progress, _ = Progress.objects.get_or_create(task_id=self.request.id, scenario=db_scenario)
     progress.reset()
+
+    trim_scenario(db_scenario, time_delta=timedelta(days=7))
 
     try:
         logger.info(f"Getting schedule from db {datetime.now()}")
