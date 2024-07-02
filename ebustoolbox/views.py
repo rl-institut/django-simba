@@ -190,6 +190,7 @@ def get_vehicle_types(request: HttpRequest, task_id):
 
 
 def get_depots(request: HttpRequest | None, task_id):
+    """View for the depot input tab. Either continues to next wizard step or renders depot page."""
     context = {"task_id": task_id}
     try:
         scenario = Scenario.objects.get(task_id=task_id)
