@@ -1,29 +1,26 @@
-import shutil
-import warnings
 from datetime import timedelta, datetime
+from fast_update.query import FastUpdateManager
 from functools import partial
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
-from simba.ids import INCLINE, LEVEL_OF_LOADING, SPEED, T_AMB, CONSUMPTION
+from pathlib import Path
+from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
+from scipy.spatial._qhull import QhullError
+import shutil
+import warnings
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
-from django.db.models import QuerySet, Sum, Q
-from django.db.models.functions import Now
+from django.db.models import QuerySet, Sum, Q, Case, When, Value
+from django.db.models.functions import Now, Length
 from django.db.models.constraints import UniqueConstraint
 from django.dispatch import receiver
 from django.utils.timezone import make_aware
-from fast_update.query import FastUpdateManager
-from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
-from scipy.spatial._qhull import QhullError
 
-from django.db.models import Case, When, Value
-from django.db.models.functions import Length
 from ebus_map.managers import MVTManager, X, Y
+from simba.ids import INCLINE, LEVEL_OF_LOADING, SPEED, T_AMB, CONSUMPTION
 
 MINIMAL_TRIP_DURATION_S = 60  # seconds
 
@@ -937,13 +934,14 @@ class Station(models.Model):
 
     @classmethod
     def get_popup_data(cls, id):
+        # circular import
+        from .util import get_charge_chart
+
         obj = cls.objects.get(id=id)
-        data = {
-            "title": obj.name + " " + str(id),
-            "Electrified": obj.is_electrified,
-            "lat": obj.geom.x,
-            "lon": obj.geom.y,
-        }
+        data = vars(obj)
+        plot = get_charge_chart(obj)
+        if plot:
+            data["plot"] = plot
         return data
 
     def save(self, *args, **kwargs):
