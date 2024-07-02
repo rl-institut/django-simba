@@ -856,7 +856,7 @@ class CountBusServices(Func):
         expression_sql, expression_params = self.source_expressions[0].as_sql(compiler, connection)
         sql = (
             f'(SELECT COUNT(*) FROM {db["default"]["NAME"]}.'
-            f'public."Route" WHERE arrival_station_id = {expression_sql})'
+            f'public("Route") WHERE arrival_station_id = {expression_sql})'
         )
 
         return sql, expression_params
