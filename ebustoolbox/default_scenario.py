@@ -32,14 +32,14 @@ def set_default_scenario(apps, schema_editor):
 
 def set_default_vehicle_types(apps, scenario) -> None:
     vehicle_data_list = [
-        ("mini_bus", 120, 7, 0.9),
-        ("mini_bus_add_heating", 120, 7, 0.7),
-        ("midi_bus", 325, 10, 1.8),
-        ("midi_bus_add_heating", 450, 10, 1.3),
-        ("solo_bus", 400, 12, 2),
-        ("solo_bus_add_heating", 500, 12, 1.4),
-        ("articulated_bus", 500, 18, 2.6),
-        ("articulated_bus_add_heating", 650, 18, 1.8),
+        ("Minibus", 120, 7, 0.9),
+        ("Minibus_Zusatzheizung", 120, 7, 0.7),
+        ("Midibus", 325, 10, 1.8),
+        ("Midibus_Zusatzheizung", 450, 10, 1.3),
+        ("Solobus", 400, 12, 2),
+        ("Solobus_Zusatzheizung", 500, 12, 1.4),
+        ("Gelenkbus", 500, 18, 2.6),
+        ("Gelenkbus_Zusatzheizung", 650, 18, 1.8),
     ]
     for vehicle_data in vehicle_data_list:
         set_default_vehicle_type(apps, scenario, *vehicle_data)
