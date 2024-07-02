@@ -47,7 +47,7 @@
       <p>Koordinaten: {{ geom.y|floatformat:"4" }}, {{ geom.x|floatformat:"4" }}</p>
       <p>Name: {{ name }}{% if name != name_short %} ({{ name_short }}){% endif %}</p>
       {% if plot %}
-        <img src="data:image/png;base64,{{ plot|safe }}" style="width: -moz-available">
+        <img class="popup-image" src="data:image/png;base64,{{ plot|safe }}">
       {% endif %}
     </div>
   </div>
