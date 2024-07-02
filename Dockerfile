@@ -1,5 +1,9 @@
 FROM python:3.11
 
+# Add django as user and group
+RUN addgroup --system django \
+    && adduser --system --ingroup django django
+
 # Configure Poetry
 ENV POETRY_VERSION=1.4.2
 ENV POETRY_HOME=/opt/poetry
@@ -11,7 +15,6 @@ ENV POETRY_CACHE_DIR=/opt/.cache
 ENV PIP_DISABLE_PIP_VERSION_CHECK 1
 # means Python will not try to write .pyc files
 ENV PYTHONDONTWRITEBYTECODE 1
-
 
 
 # Install poetry separated from system interpreter
@@ -26,10 +29,18 @@ RUN apt-get update &&\
 # Add `poetry` to PATH
 ENV PATH="${PATH}:${POETRY_VENV}/bin"
 
+COPY --chown=django:django ./start /start
+RUN sed -i 's/\r$//g' /start
+RUN chmod +x /start
+
+COPY --chown=django:django ./start_celery /start_celery
+RUN sed -i 's/\r$//g' /start_celery
+RUN chmod +x /start_celery
+
 WORKDIR /app
 # Install dependencies
 # Since ebustoolbox and mapengine are installed as well, copy whole directory first
 COPY . /app
 RUN poetry install
 #startup_command=poetry run python -c 'print(\"Started\")' && poetry run python manage.py makemigrations && poetry run python manage.py migrate && poetry run python manage.py runserver 0.0.0.0:8000
-CMD ["sh", "-c", "poetry run python -c 'print(\"Started\")' && poetry run python manage.py makemigrations && poetry run python manage.py migrate && poetry run python manage.py runserver 0.0.0.0:8000"]
+CMD ${STARTUP_COMMAND}

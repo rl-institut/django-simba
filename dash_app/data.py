@@ -607,7 +607,9 @@ def get_all_event_info(scenario_id):
                         )
                         vehicle_rotation = None
                         first_warning = False
-
+                suffix = ""
+                if vehicle_rotation is not None:
+                    suffix = f" in Rotation {vehicle_rotation.id}"
                 dfs.append(
                     {
                         "V_id": v_id,
@@ -618,7 +620,7 @@ def get_all_event_info(scenario_id):
                         "soc_start": event.soc_start,
                         "soc_end": event.soc_end,
                         "R_id": vehicle_rotation,
-                        "readable_name": vehicle_name_dict[vehicle.id],
+                        "readable_name": vehicle_name_dict[vehicle.id] + suffix,
                     }
                 )
 
@@ -640,6 +642,7 @@ def get_all_event_info(scenario_id):
                 "event_type": [None],
                 "soc_start": [None],
                 "soc_end": [None],
+                "readable_name": [None],
             }
         )
 
