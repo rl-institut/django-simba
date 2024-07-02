@@ -50,7 +50,7 @@ def set_default_vehicle_type(apps, scenario, name, battery_capacity, length, con
         "name": name,
         "scenario": scenario,
         "battery_capacity": battery_capacity,
-        "charging_curve": [[0, battery_capacity], [1, battery_capacity]],
+        "charging_curve": [[0, 350], [0.8, 350], [1, 50]],
         "length": length,
         "empty_mass": 13_000 * length / 12,
         "allowed_mass": 19_000 * length / 12,
