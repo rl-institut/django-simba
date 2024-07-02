@@ -5,11 +5,12 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterable
 
+import pandas as pd
 from django.conf import settings
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db import transaction
 from django.http import HttpRequest
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 
 # Create your tests here.
 from django.urls import reverse
@@ -30,7 +31,9 @@ from .models import (
     Trip,
     Temperatures,
     Consumption,
+    VehicleClass,
 )
+from .tasks import run_simba_scenario
 
 TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
 TMP_STATICFILES_DIRS = settings.STATICFILES_DIRS + [settings.BASE_DIR / TMP_UPLOAD]
@@ -553,7 +556,131 @@ class ScenarioTestCase(TestCase):
         self.assertIsNone(instance_1.task_id)
 
 
-class ConsumptionTestCase(TestCase):
+class ConsumptionTestCase(TransactionTestCase):
+    def test_sim_with_consumption(self):
+        django_scenario, simba_schedule, args = build_scenario()
+        vehicle_types = VehicleType.objects.filter(scenario=django_scenario)
+        cons = Consumption.objects.filter(scenario=django_scenario)
+        for c in cons:
+            c.scenario = None
+            c.vehicle_class = None
+            c.save()
+
+        for vt in vehicle_types:
+            vt.consumption = None
+            vt.save()
+
+        # Should fail because neither vehicle_type has consumption nor a consumption points towards
+        # the vehicle via vehicle_class
+        self.assertRaises(Exception, run_simba_scenario, django_scenario=django_scenario)
+
+        for vt in vehicle_types:
+            vt.consumption = 1
+            vt.save()
+
+        # Does not fail with consumption
+        run_simba_scenario(django_scenario=django_scenario)
+        sum_consumption = 0
+        for event in Event.objects.filter(scenario=django_scenario, event_type=EventType.DRIVING):
+            sum_consumption += event.soc_end - event.soc_start
+
+        for vt in vehicle_types:
+            vt.consumption *= 2
+            vt.save()
+
+        # Does not fail with consumption
+        run_simba_scenario(django_scenario=django_scenario)
+        sum_consumption_double = 0
+        for event in Event.objects.filter(scenario=django_scenario, event_type=EventType.DRIVING):
+            sum_consumption_double += event.soc_end - event.soc_start
+
+        self.assertAlmostEquals(sum_consumption * 2, sum_consumption_double)
+
+        for c in cons:
+            c.scenario = django_scenario
+            c.vehicle_class = VehicleClass.objects.first()
+            c.save()
+
+        # Should fail because vehicle_type has consumption but also consumption objects point
+        # towards the same vehicle type
+        self.assertRaises(Exception, run_simba_scenario, django_scenario=django_scenario)
+
+        for vt in vehicle_types:
+            vt.consumption = None
+            vt.save()
+
+        # Does not fail with consumption table
+        run_simba_scenario(django_scenario=django_scenario)
+        sum_consumption = 0
+        for event in Event.objects.filter(scenario=django_scenario, event_type=EventType.DRIVING):
+            sum_consumption += event.soc_end - event.soc_start
+
+        assert Consumption.objects.all().count() == 1
+        consumption = Consumption.objects.first()
+        consumption.values = [v * 2 for v in consumption.values]
+        consumption.save()
+
+        run_simba_scenario(django_scenario=django_scenario)
+        sum_consumption_double = 0
+        for event in Event.objects.filter(scenario=django_scenario, event_type=EventType.DRIVING):
+            sum_consumption_double += event.soc_end - event.soc_start
+
+    def test_consumption_from_df(self):
+        django_scenario, simba_schedule, args = build_scenario()
+        # incline = HeightDifference/Distance
+        # level_of_loading = Load/MaxLoad of the VehicleType
+        # Speed in km/h
+        # t_amb ambient temperature in °C
+        # consumption in kWh/km
+        # eg combinations of no incline, incline, empty bus, full bus, slow bus and fast bus,
+        # low temp and high temp
+        data_points = [
+            [0, 0, 5, -6, 10],
+            [0.1, 0, 5, -6, 20],
+            [0, 1, 5, -6, 15],
+            [0.1, 1, 5, -6, 30],
+            [0, 0, 50, -6, 1],
+            [0.1, 0, 50, -6, 2],
+            [0, 1, 50, -6, 1.5],
+            [0.1, 1, 50, -6, 3],
+            [0, 0, 5, 28, 5],
+            [0.1, 0, 5, 28, 10],
+            [0, 1, 5, 28, 7.5],
+            [0.1, 1, 5, 28, 15],
+            [0, 0, 50, 28, 0.5],
+            [0.1, 0, 50, 28, 1],
+            [0, 1, 50, 28, 0.75],
+            [0.1, 1, 50, 28, 1.5],
+            # eg 10% incline, 100% full bus, 50 km/h, +28°C leads to consumption of 1.5 kWh/km
+        ]
+        df = pd.DataFrame(
+            columns=[
+                "incline",
+                "level_of_loading",
+                "mean_speed_kmh",
+                "t_amb",
+                "consumption_kwh_per_km",
+            ],
+            data=data_points,
+        )
+        run_simba_scenario(django_scenario=django_scenario)
+        sum_consumption = 0
+        for event in Event.objects.filter(scenario=django_scenario, event_type=EventType.DRIVING):
+            sum_consumption += event.soc_end - event.soc_start
+
+        consumption = Consumption.from_df(df)
+        vc = VehicleClass.objects.first()
+        Consumption.objects.filter(vehicle_class=vc).delete()
+        consumption.vehicle_class = vc
+
+        consumption.scenario = django_scenario
+        consumption.save()
+        run_simba_scenario(django_scenario=django_scenario)
+        sum_consumption_new = 0
+        for event in Event.objects.filter(scenario=django_scenario, event_type=EventType.DRIVING):
+            sum_consumption_new += event.soc_end - event.soc_start
+        assert sum_consumption_new != sum_consumption
+
     def test_get_consumption(self):
         consumption_instance = Consumption.objects.create(
             name="My Consumption",

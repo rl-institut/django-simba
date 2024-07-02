@@ -14,6 +14,7 @@ from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest, H
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.utils.cache import patch_cache_control
+from django.utils import timezone
 from django.views.generic import TemplateView
 from django.views.decorators.http import require_GET, require_POST
 from eflips.depot.api import simulate_scenario  # noqa
@@ -26,7 +27,7 @@ from celery.result import AsyncResult
 from dash_app import dash_app, ids  # noqa: F401
 from django_mapengine.views import MapEngineMixin
 from . import tasks, schedule_readers
-from .forms import UploadFileForm, ChargingStationDefaultsForm
+from .forms import UploadFileForm, ChargingStationDefaultsForm, VehicleTypesAdjustmentForm
 from .tasks import create_db_url  # noqa
 from .util import get_unique_task_id
 
@@ -140,26 +141,65 @@ def get_options(request: HttpRequest, task_id, reader_num: int):
 
 def get_vehicle_types(request: HttpRequest, task_id):
     context = {"task_id": task_id}
+
     try:
         scenario = Scenario.objects.get(task_id=task_id)
     except Scenario.DoesNotExist:
-        raise Http404("Scenario with this task_id does not exist")
+        raise Http404
+    # if the scenario has a manager, only this User can run the simulation
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
+
     default_scenario = DefaultScenario.objects.first().scenario
     vehicle_types = VehicleType.objects.filter(scenario=scenario)
     default_vehicle_types = VehicleType.objects.filter(scenario=default_scenario)
+
     context["vehicle_types"] = vehicle_types
     context["default_vehicle_types"] = default_vehicle_types
+    context["default_vehicle_types_adjustment_form"] = VehicleTypesAdjustmentForm()
+    if request.method == "POST":
+        vehicle_type_pairs = request.POST.getlist("vehicle_type_dropdown")
+        if not vehicle_type_pairs:
+            return render(request, "vehicle_types.html", context)
+
+        for i, pair in enumerate(vehicle_type_pairs):
+            pair = pair.split("_")
+            vehicle_type_pairs[i] = int(pair[0]), int(pair[-1])
+
+        # make sure only vehicles of this scenario are affected
+        for vehicle_type_pair in vehicle_type_pairs:
+            assert vehicle_type_pair[0] in vehicle_types.values_list("id", flat=True)
+
+        vt_adjustments = {}
+        for dvt in default_vehicle_types:
+            val = request.POST.get(f"battery_capacity_{dvt.id}")
+            form = VehicleTypesAdjustmentForm({"battery_capacity": val})
+            if not form.is_valid():
+                break
+            try:
+                vt_adjustments[dvt.id]
+            except KeyError:
+                vt_adjustments[dvt.id] = dict()
+            vt_adjustments[dvt.id]["battery_capacity"] = form.cleaned_data["battery_capacity"]
+        tasks.update_vehicle_types_with_defaults(vehicle_type_pairs, task_id, vt_adjustments)
+
+        return redirect(reverse("simba:stations", args=[str(task_id)]))
+
     return render(request, "vehicle_types.html", context)
 
 
 def get_stations(request: HttpRequest | None, task_id, form=None):
-    if form is None:
-        form = ChargingStationDefaultsForm()
-    context = {"task_id": task_id, "form": form}
+
     try:
         scenario = Scenario.objects.get(task_id=task_id)
     except Scenario.DoesNotExist:
-        raise Http404("Scenario with this task_id does not exist")
+        raise Http404
+        # if the scenario has a manager, only this User can run the simulation
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
+    if form is None:
+        form = ChargingStationDefaultsForm()
+    context = {"task_id": task_id, "form": form}
     stations = (
         Station.objects.filter(scenario=scenario)
         .exclude(charge_type=EnumChargeType.DEPOT)
@@ -194,12 +234,16 @@ def set_station_values(request: HttpRequest, task_id):
 
 def scenario_overview_view(request: HttpRequest, task_id):
     """View controlling if the wait or success view should be shown"""
+    try:
+        scenario = Scenario.objects.get(task_id=task_id)
+    except Scenario.DoesNotExist:
+        raise Http404
+        # if the scenario has a manager, only this User can run the simulation
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
 
     try:
-        if (
-            Scenario.objects.get(task_id=task_id)
-            and not Scenario.objects.get(task_id=task_id).finished
-        ):
+        if not scenario.finished:
             request.task_id = str(task_id)
             session = request.session
             from dash_app.dash_app import create_app
@@ -211,7 +255,7 @@ def scenario_overview_view(request: HttpRequest, task_id):
             # is an optional kwarg in app.callbacks
             session["django_plotly_dash"] = {"task_id": str(task_id)}
 
-            response = SuccessView.as_view()(request, task_id=task_id, finished=False)
+            response = ScenarioOverview.as_view()(request, task_id=task_id, finished=False)
 
             # Setting Cache-Control header
             patch_cache_control(response, no_cache=True, no_store=True, must_revalidate=True)
@@ -254,7 +298,7 @@ def progress(request: HttpRequest, progress_id, progress_type: str):
         response = render(request, "progress.html", context)
         return response
 
-    context["current_progress"] = progress.get_progress()
+    context["current_progress"] = max(progress.get_progress(), 1)
     context["status"] = progress.status
     status_code = 200
     hx_trigger = "running"
@@ -292,6 +336,12 @@ def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
     context = {"task_id": task_id, "progress_type": "vehicle_types"}
     try:
         form = schedule_readers.get_options_form(reader_num)(request.POST, request.FILES)
+        # set in TimezoneMiddleware in core.middleware
+        now = timezone.localtime()
+        now_str = now.strftime(format="%Y-%m-%d %H:%M")
+        scenario_name = request.POST.get("scenario_name")
+        if scenario_name == "":
+            scenario_name = f"Mein Szenario vom {now_str}"
         if not form.is_valid():
             context = {"form": form, "reader_num": reader_num, "task_id": task_id}
             response = render(request, "schedule_reader_options.html", context)
@@ -299,6 +349,12 @@ def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
             return response
 
         s, _ = Scenario.objects.get_or_create(task_id=task_id)
+        s.name = scenario_name
+        if request.user.is_authenticated:
+            s.manager = request.user
+
+        s.save()
+
         # todo check size
         cleaned_data = form.cleaned_data
 
@@ -332,14 +388,6 @@ def cancel_upload(request: HttpRequest, task_id: str):
     return redirect(reverse("simba:schedule"))
 
 
-def assign_vehicle_types(request: HttpRequest, task_id: str):
-    if request.method == "POST":
-        vehicle_type_pairs = request.POST.getlist("vehicle_type_dropdown")
-        tasks.update_vehicle_types_with_defaults(vehicle_type_pairs, task_id)
-
-    return redirect(reverse("simba:stations", args=[str(task_id)]))
-
-
 def home_view(request: HttpRequest):
     """Generate the home view of the tool chain with input forms"""
     if request.method == "GET":
@@ -367,20 +415,17 @@ def landing_page(request: HttpRequest):
 
 @atomic()
 def create_stations_for_map(django_scenario: Scenario):
-    from ebus_map.models import Station as MapStation
-
     stations = ebustoolbox.models.Station.objects.filter(scenario=django_scenario)
     warned = False
+    stations_with_geo = []
     for station in stations:
-        map_stat = MapStation()
-        map_stat.__dict__.update(station.__dict__)
         if station.geom is None:
             if not warned:
                 warnings.warn("At least one Station has no geometry and is placed randomly")
                 warned = True
-            map_stat.geom = Point(x=13.0 + random.random(), y=52.0 + random.random(), z=0)
-        # Cannot bulk create multi inherited model
-        map_stat.save()
+            station.geom = Point(x=13.0 + random.random(), y=52.0 + random.random(), z=0)
+            stations_with_geo.append(station)
+    Station.objects.bulk_update(stations_with_geo, ["geom"])
 
 
 def save_and_simulate(
@@ -413,15 +458,19 @@ def run_simulation(request: HttpRequest, task_id: str):
     context = {"task_id": task_id, "progress_type": "simulation"}
     logger.debug(context)
     response = HttpResponse(context)
+
     try:
         if request.method == "GET":
-            logger.info("Running Toolchain.")
             try:
                 scenario = Scenario.objects.get(task_id=task_id)
             except Scenario.DoesNotExist:
                 raise Http404
-            # This triggers progress polling. If the toolchain is finished
+            # if the scenario has a manager, only this User can run the simulation
+            if scenario.manager and scenario.manager != request.user:
+                raise Http404
+            # This triggers progress polling. If the toolchain is finished,
             # the progress view will be triggered with the task_id and progress type
+            logger.info("Running Toolchain.")
             async_result = tasks.run_toolchain_from_scenario(scenario, assign_vehicles=True)
 
             context["progress_id"] = async_result.task_id

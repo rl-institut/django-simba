@@ -9,7 +9,6 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-import os
 from pathlib import Path
 
 import environ
@@ -43,6 +42,12 @@ CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://127.0.0
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
 SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
+
+# Source to xyzascii zip of elevations
+ELEVATION_SOURCE_URL = env.str(
+    "ELEVATION_SOURCE_URL",
+    "https://daten.gdz.bkg.bund.de/produkte/dgm/dgm200/aktuell/dgm200.utm32s.gridascii.zip",
+)
 
 if env.bool("DJANGO_LOCAL_DEVELOPMENT", default=False):
     SECURE_PROXY_SSL_HEADER = None
@@ -82,6 +87,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # if the header and footer tags are in use this setting should be used. No problem if not in use
     "django_plotly_dash.middleware.BaseMiddleware",
+    "core.middleware.TimezoneMiddleware",
 ]
 
 ROOT_URLCONF = "ebusdjango.urls"
@@ -196,12 +202,12 @@ LOGGING = {
     "loggers": {
         "django": {
             "handlers": ["console", "file"],
-            "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
+            "level": env.str("DJANGO_LOG_LEVEL", "INFO"),
             "propagate": False,
         },
         "custom": {
             "handlers": ["console", "file"],
-            "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
+            "level": env.str("DJANGO_LOG_LEVEL", "INFO"),
             "propagate": False,
         },
     },
@@ -227,7 +233,7 @@ X_FRAME_OPTIONS = "SAMEORIGIN"
 
 STATIC_URL = "static/"
 UPLOAD_PATH = "uploads/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = env.str("DJANGO_MEDIA_ROOT", "media/")
 
 # while the above line checks all the app folders for static folders the below one can be a list of
 # general static file folders
