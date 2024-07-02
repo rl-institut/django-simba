@@ -17,7 +17,7 @@ import django.apps
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
 from django.db import connections
-from django.db.models import Max
+from django.db.models import Max, Count
 from django.db.transaction import atomic
 from django.http import HttpRequest
 from django.utils import timezone
@@ -1713,3 +1713,13 @@ def trim_depots(scenario):
                 r.delete()
             except:  # noqa
                 logger.info(f"Did not find {r} to delete.")
+    vehicles = Vehicle.objects.filter(rotation__isnull=True, scenario=scenario)
+    logger.info(f"Deleting {vehicles.count()} vehicles without rotations")
+    vehicles.delete()
+    (
+        Station.objects.filter(scenario=scenario)
+        .annotate(trip_count=Count("route__trip"))
+        .filter(trip_count=0)
+        .delete()
+    )
+    Route.objects.filter(scenario=scenario).annotate(count=Count("trip")).filter(count=0).count()

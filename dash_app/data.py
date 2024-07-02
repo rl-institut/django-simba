@@ -19,7 +19,6 @@ from ebustoolbox.models import (
     Route,
 )
 import pandas as pd
-from django.db.models import Count
 from dash.exceptions import PreventUpdate
 
 # Maximum number of cached results per function
@@ -445,12 +444,14 @@ def get_vehicle_types(scenario_id, buses):
     :rtype: pandas.DataFrame
     """
     filter_dict = dict(scenario_id=scenario_id)
+    vehicle_type_counts = []
+    for vt in VehicleType.objects.filter(**filter_dict):
+        count = Vehicle.objects.filter(pk__in=buses, vehicle_type=vt).count()
+        if count == 0:
+            continue
+        vehicle_type_counts.append({"name": vt.name, "count": count})
 
-    values_with_counts = (
-        VehicleType.objects.filter(**filter_dict).values("name").annotate(count=Count("name"))
-    )
-    df = pd.DataFrame(values_with_counts)
-
+    df = pd.DataFrame(vehicle_type_counts)
     return df
 
 
