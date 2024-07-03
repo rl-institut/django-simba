@@ -201,7 +201,7 @@ def get_depots(request: HttpRequest, task_id):
         raise Http404
     if request.method == "POST":
         single_depot = request.POST.get("single_depot")
-        if True or single_depot and single_depot == "on":
+        if single_depot and single_depot == "on":
             tasks.trim_depots(scenario)
         return redirect(reverse("simba:stations", args=[str(task_id)]))
     else:
