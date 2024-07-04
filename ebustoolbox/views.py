@@ -200,10 +200,22 @@ def get_depots(request: HttpRequest, task_id):
     if scenario.manager and scenario.manager != request.user:
         raise Http404
     if request.method == "POST":
-        single_depot = request.POST.get("single_depot")
-        if single_depot and single_depot == "on":
-            tasks.trim_depots(scenario)
-        return redirect(reverse("simba:stations", args=[str(task_id)]))
+        depots = (
+            Station.objects.filter(scenario=scenario)
+            .filter(charge_type=EnumChargeType.DEPOT)
+            .order_by("id")
+        )
+        all_depot_ids = [dep.id for dep in depots]
+        depots_to_remove = [dep.id for dep in depots]
+        for dep in depots:
+            if request.POST.get(f"sim_depot_{dep.id}") == "on":
+                depots_to_remove.remove(dep.id)
+        if depots_to_remove != all_depot_ids:
+            tasks.trim_depots(scenario, depots_to_remove)
+            return redirect(reverse("simba:stations", args=[str(task_id)]))
+        context["error"] = "Wähle mindestens ein Depot aus."
+        context["depots"] = depots
+        return render(request, "depots.html", context)
     else:
         depots = (
             Station.objects.filter(scenario=scenario)

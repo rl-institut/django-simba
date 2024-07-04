@@ -211,6 +211,7 @@ class SimbaScheduleReader(ScheduleReader):
         lines = []
         line_dict = dict()
         routes = list()
+        existing_routes = dict()
         trip_overlap_errors = []  # collect trips that overlap
         duration_errors = []  # collect trips that have no or negative duration
         trip_previous_station_errors = {}  # collect trips that don't end at their previous depot
@@ -250,14 +251,34 @@ class SimbaScheduleReader(ScheduleReader):
                     line_dict[trip[self.LINE]] = line
                 line = line_dict[trip[self.LINE]]
 
-                route = Route(
-                    name=trip[self.DEPARTURE_NAME] + " - " + trip[self.ARRIVAL_NAME],
-                    scenario=scenario,
-                    departure_station=station_dict[trip[self.DEPARTURE_NAME]],
-                    arrival_station=station_dict[trip[self.ARRIVAL_NAME]],
-                    distance=trip[self.DISTANCE],
-                    line=line,
+                route = existing_routes.get(
+                    (
+                        station_dict[trip[self.DEPARTURE_NAME]].id,
+                        station_dict[trip[self.ARRIVAL_NAME]].id,
+                        trip[self.DISTANCE],
+                        line,
+                    )
                 )
+                if not route:
+                    route = Route(
+                        name=trip[self.DEPARTURE_NAME] + " - " + trip[self.ARRIVAL_NAME],
+                        scenario=scenario,
+                        departure_station=station_dict[trip[self.DEPARTURE_NAME]],
+                        arrival_station=station_dict[trip[self.ARRIVAL_NAME]],
+                        distance=trip[self.DISTANCE],
+                        line=line,
+                    )
+                    existing_routes[
+                        (
+                            station_dict[trip[self.DEPARTURE_NAME]].id,
+                            station_dict[trip[self.ARRIVAL_NAME]].id,
+                            trip[self.DISTANCE],
+                            line,
+                        )
+                    ] = route
+                    route.pk = route_id
+                    route_id += 1
+                    routes.append(route)
 
                 t = Trip(
                     rotation=rotations_dict[rotation_id],
@@ -270,12 +291,7 @@ class SimbaScheduleReader(ScheduleReader):
                 )
 
                 t.pk = trip_id
-                route.pk = route_id
-
                 trip_id += 1
-                route_id += 1
-
-                routes.append(route)
                 trips.append(t)
 
         # handle collected errors

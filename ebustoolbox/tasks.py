@@ -1688,38 +1688,48 @@ def find_and_make_depots(scenario):
         station.save()
 
 
-def trim_depots(scenario):
-    depots = Station.objects.filter(scenario=scenario, charge_type=EnumChargeType.DEPOT)
-    rot_per_depot = {depot: [] for depot in depots}
-    rotations = Rotation.objects.filter(scenario=scenario).prefetch_related("trip_set")
-    for r in rotations:
-        trips = r.trip_set.order_by("departure_time")
-        try:
-            rot_per_depot[trips.first().route.departure_station].append(r)
-        except KeyError:
-            pass
-        try:
-            rot_per_depot[trips.last().route.arrival_station].append(r)
-        except KeyError:
-            pass
-    rot_per_depot = list(list(sorted(rot_per_depot.items(), key=lambda x: len(x[1]))))
+@atomic()
+def trim_depots(scenario, depot_ids: list[int]):
+    logger.info(
+        f"Trimming scenario {scenario.id} from depots {depot_ids}\n"
+        f"rotations: {Rotation.objects.filter(scenario=scenario).count()}\n"
+        f"trips: {Trip.objects.filter(scenario=scenario).count()}\n"
+        f"routes: {Route.objects.filter(scenario=scenario).count()}\n"
+        f"stations: {Station.objects.filter(scenario=scenario).count()}\n"
+        f"vehicles: {Vehicle.objects.filter(scenario=scenario).count()}\n"
+    )
+    for dep_id in depot_ids:
+        station = Station.objects.filter(
+            id=dep_id, scenario=scenario, charge_type=EnumChargeType.DEPOT
+        )
+        if station.exists():
+            station = station.first()
+            logger.info(f"Deleting station {station.name}")
+            Rotation.objects.filter(
+                scenario=scenario, trip__route__arrival_station=station
+            ).delete()
+            Rotation.objects.filter(
+                scenario=scenario, trip__route__departure_station=station
+            ).delete()
+            station.delete()
+        else:
+            logger.info(f"Station with id {dep_id} not found in scenario")
 
-    for station, rotations in rot_per_depot[:-1]:
-        logger.info(f"Deleting {station} since there are multiple depots.")
-        station.delete()
-        for r in rotations:
-            try:
-                logger.info(f"Deleting {r}")
-                r.delete()
-            except:  # noqa
-                logger.info(f"Did not find {r} to delete.")
-    vehicles = Vehicle.objects.filter(rotation__isnull=True, scenario=scenario)
-    logger.info(f"Deleting {vehicles.count()} vehicles without rotations")
-    vehicles.delete()
     (
         Station.objects.filter(scenario=scenario)
-        .annotate(trip_count=Count("route__trip"))
-        .filter(trip_count=0)
+        .annotate(departure_count=Count("route_departure_set__trip"))
+        .annotate(arrival_count=Count("route_arrival_set__trip"))
+        .filter(departure_count=0, arrival_count=0)
         .delete()
     )
-    Route.objects.filter(scenario=scenario).annotate(count=Count("trip")).filter(count=0).count()
+
+    (Route.objects.filter(scenario=scenario).annotate(count=Count("trip")).filter(count=0).delete())
+
+    logger.info(
+        f"After trimming\n"
+        f"rotations: {Rotation.objects.filter(scenario=scenario).count()}\n"
+        f"trips: {Trip.objects.filter(scenario=scenario).count()}\n"
+        f"routes: {Route.objects.filter(scenario=scenario).count()}\n"
+        f"stations: {Station.objects.filter(scenario=scenario).count()}\n"
+        f"vehicles: {Vehicle.objects.filter(scenario=scenario).count()}\n"
+    )
