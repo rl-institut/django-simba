@@ -58,6 +58,50 @@ def create_layout(app: Dash) -> Div:
             return 0
         raise dash.exceptions.PreventUpdate
 
+    # Sample data for sections (you can replace this with your actual content)
+    sections = [
+        {'title': 'Section 1: Introduction', 'id': 'section1', 'content': 'Content for Introduction...'},
+        {'title': 'Section 2: Analysis', 'id': 'section2', 'content': 'Content for Analysis...'},
+        {'title': 'Section 3: Conclusion', 'id': 'section3', 'content': 'Content for Conclusion...'},
+    ]
+
+    # Generate table of contents dynamically
+    toc_links = []
+    for section in sections:
+        toc_links.append(html.Li(dcc.Link(section['title'], href=f'#{section["id"]}')))
+
+    @app.callback(
+        Output('trigger_toc', 'value'),
+        [Input('button-to-section-1', 'n_clicks'),
+         Input('button-to-section-2', 'n_clicks'),
+         Input('button-to-section-3', 'n_clicks')]
+    )
+    def update_output(button1_clicks, button2_clicks, button3_clicks):
+        # Determine which button was clicked last
+        ctx = dash.callback_context
+        if not ctx.triggered:
+            button_id = 'button-to-section-1'
+        else:
+            button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        return button_id
+
+    app.clientside_callback(
+        """
+        function(button_id) {
+            if (button_id === 'button-to-section-1') {
+                document.getElementById('section-1').scrollIntoView({ behavior: 'smooth' });
+            } else if (button_id === 'button-to-section-2') {
+                document.getElementById('section-2').scrollIntoView({ behavior: 'smooth' });
+            } else if (button_id === 'button-to-section-3') {
+                document.getElementById('section-3').scrollIntoView({ behavior: 'smooth' });
+            }
+            return '';
+        }
+        """,
+        Output('garbage-output-0', 'children'),
+        [Input('trigger_toc', 'value')]
+    )
+
     return html.Div(
         [
             dcc.Store(id=ids.MEMOIZER_DONE, data=False),  # Store to keep track of memoizer status
@@ -148,6 +192,15 @@ def create_layout(app: Dash) -> Div:
                                     value="tab-simulation",
                                     disabled=True,
                                     children=[
+                                        html.H1('Table of Contents'),
+                                        html.Ul([
+                                            html.Li(html.Button('Section 1', id='button-to-section-1')),
+                                            html.Li(html.Button('Section 2', id='button-to-section-2')),
+                                            html.Li(html.Button('Section 3', id='button-to-section-3')),
+                                        ]),
+                                        html.Div(id='garbage-output-0', style={'display': 'none'}),
+                                        html.Div(id='trigger_toc', style={'display': 'none'}),
+                                        html.Hr(),
                                         html.Div(
                                             children=block_bottom_center(app),
                                             style={
@@ -235,12 +288,18 @@ def block_top_center(app) -> list[html.Div]:
 def block_bottom_center(app):
     return [
         report_numbers.critical_rotations(app),
+        html.H2('Section 1', id='section-1'),
+        html.P('Content of Section 1...'),
         scatter_chart.render(app),
         scatter_chart.render_power_draw(app),
         scatter_chart.render_scenario_powerdraw(app),
         scatter_chart.render_single_station_occupation(app),
         scatter_chart.render_station_occupation(app),
+        html.H2('Section 2', id='section-2'),
+        html.P('Content of Section 2...'),
         activities_chart.render(app),
+        html.H2('Section 3', id='section-3'),
+        html.P('Content of Section 3...'),
         histograms.render_minimal_soc(app),
         histograms.render_minimal_soc_per_rotation(app),
         histograms.render_rotation_duration(app),
