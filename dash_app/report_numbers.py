@@ -374,12 +374,12 @@ def render_bus_utilization(app: Dash) -> html.Div:
         result_dict = data.get_scenario_duration(task_id)
 
         df = data.get_duration_as_dataframe(s.id, buses)
-        all_rotations_duration = df["duration"].sum()
+        all_rotations_duration = df["duration"].sum()/len(buses)
 
         # Get the data
         lines = [
             "Durchschnittliche Busauslastung:",
-            str(round((result_dict["duration"].total_seconds() / all_rotations_duration) * 100, 3))
+            str(round((all_rotations_duration / result_dict["duration"].total_seconds()) * 100, 3))
             + " %",
         ]
 
