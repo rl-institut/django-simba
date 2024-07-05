@@ -206,12 +206,15 @@ def get_depots(request: HttpRequest, task_id):
             .order_by("id")
         )
         all_depot_ids = [dep.id for dep in depots]
-        depots_to_remove = [dep.id for dep in depots]
-        for dep in depots:
-            if request.POST.get(f"sim_depot_{dep.id}") == "on":
-                depots_to_remove.remove(dep.id)
+        depots_to_remove = []
+        if len(all_depot_ids) > 1:
+            depots_to_remove = [dep.id for dep in depots]
+            for dep in depots:
+                if request.POST.get(f"sim_depot_{dep.id}") == "on":
+                    depots_to_remove.remove(dep.id)
         if depots_to_remove != all_depot_ids:
-            tasks.trim_depots(scenario, depots_to_remove)
+            if depots_to_remove:
+                tasks.trim_depots(scenario, depots_to_remove)
             return redirect(reverse("simba:stations", args=[str(task_id)]))
         context["error"] = "Wähle mindestens ein Depot aus."
         context["depots"] = depots
