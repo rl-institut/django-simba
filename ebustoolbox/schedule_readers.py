@@ -1,18 +1,17 @@
-import csv
-import inspect
-from datetime import datetime, timedelta
-from enum import Enum
-from pathlib import Path
-from typing import Callable, Type
 from abc import ABC, abstractmethod
-from uuid import UUID
+import csv
+from datetime import datetime, timedelta, timezone as tz
+from enum import Enum
+import inspect
+from pathlib import Path
 from tqdm.auto import tqdm
+from typing import Callable, Type
+from uuid import UUID
+
+from django import forms
+from django.utils import timezone
 
 import eflips
-from django import forms
-from django.utils.timezone import make_aware
-from inspect import signature
-
 from eflips.ingest import DummyIngester, AbstractIngester
 from eflips.ingest.dummy import BusType
 from eflips.ingest.vdv import VdvIngester
@@ -45,7 +44,7 @@ def get_options_form(reader_num: int):
 
 
 def function_signature_to_form(function: Callable):
-    sig = signature(function)
+    sig = inspect.signature(function)
 
     def ScheduleReaderOptionsFormFactory(classname, fields: dict):
         return type(
@@ -259,12 +258,20 @@ class SimbaScheduleReader(ScheduleReader):
                     line=line,
                 )
 
+                # handle timezone-related issues: force aware in UTC. Mainly for display reasons
+                departure_time = trip[self.DEPARTURE_TIME]
+                if timezone.is_naive(departure_time):
+                    departure_time = timezone.make_aware(departure_time, timezone=tz.utc)
+                arrival_time = trip[self.ARRIVAL_TIME]
+                if timezone.is_naive(arrival_time):
+                    arrival_time = timezone.make_aware(arrival_time, timezone=tz.utc)
+
                 t = Trip(
                     rotation=rotations_dict[rotation_id],
                     route=route,
                     scenario=scenario,
-                    departure_time=make_aware(trip[self.DEPARTURE_TIME]),
-                    arrival_time=make_aware(trip[self.ARRIVAL_TIME]),
+                    departure_time=departure_time,
+                    arrival_time=arrival_time,
                     # ToDo How do we implement getting loaded masses? Ignore?
                     loaded_mass=0,
                 )
