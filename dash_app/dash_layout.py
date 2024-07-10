@@ -12,6 +12,7 @@ from . import (
     piechart,
     data,
     ids,
+    style,
 )
 from .eflips_plots import (
     get_ganttchart_scenario_eflips,
@@ -20,6 +21,10 @@ from .eflips_plots import (
     get_vehicle_by_click_eflips,
 )
 
+toc_dict = {
+        'title': ["Tablelle minimaler SOC Werte", "Zeitfolgen", "Aktivitätsdiagramme", "Histogramme"],
+        'id': ['section-1', 'section-2', 'section-3', 'section-4']
+    }
 
 def create_layout(app: Dash) -> Div:
     # App layout
@@ -58,16 +63,16 @@ def create_layout(app: Dash) -> Div:
             return 0
         raise dash.exceptions.PreventUpdate
 
+    # Dynamically generate the callback based on the number of sections
+    inputs = [Input(f'button-to-{section_id}', 'n_clicks') for section_id in toc_dict['id']]
+    inputs.append(Input('button-to-toc', 'n_clicks'))
+
     @app.callback(
         Output('trigger_toc', 'children'),
-        [Input('button-to-section-1', 'n_clicks'),
-         Input('button-to-section-2', 'n_clicks'),
-         Input('button-to-section-3', 'n_clicks'),
-         Input('button-to-toc', 'n_clicks')],
+        inputs,
         prevent_initial_call=True
     )
-    def update_output(button1_clicks, button2_clicks, button3_clicks, toc_button_clicks):
-        # Determine which button was clicked last
+    def update_output(*args):
         ctx = dash.callback_context
         if not ctx.triggered:
             button_id = 'button-to-section-1'
@@ -75,36 +80,31 @@ def create_layout(app: Dash) -> Div:
             button_id = ctx.triggered[0]['prop_id'].split('.')[0]
         return button_id
 
-    app.clientside_callback(
-        """
-        function(button_id) {
-            console.log(button_id);
-            if (button_id === 'button-to-section-1') {
-                document.getElementById('section-1').scrollIntoView({ behavior: 'smooth' });
-            } else if (button_id === 'button-to-section-2') {
-                document.getElementById('section-2').scrollIntoView({ behavior: 'smooth' });
-            } else if (button_id === 'button-to-section-3') {
-                document.getElementById('section-3').scrollIntoView({ behavior: 'smooth' });
-            } else if (button_id === 'button-to-toc') {
-                document.getElementById('toc').scrollIntoView({ behavior: 'smooth' });
+    # Generate the clientside callback dynamically using string comprehension
+    scroll_js = """
+    function(button_id) {
+        console.log(button_id);
+        const section_ids = [%s];
+        section_ids.forEach(function(section_id) {
+            if (button_id === 'button-to-' + section_id) {
+                document.getElementById(section_id).scrollIntoView({ behavior: 'smooth' });
             }
-            return '';
+        });
+        if (button_id === 'button-to-toc') {
+            document.getElementById('toc').scrollIntoView({ behavior: 'smooth' });
         }
-        """,
+        return '';
+    }
+    """ % ', '.join([f"'{section_id}'" for section_id in toc_dict['id']])
+
+    app.clientside_callback(
+        scroll_js,
         Output('garbage-output-0', 'children'),
         [Input('trigger_toc', 'children')],
         prevent_initial_call=True
     )
 
-    link_style = {
-        'background': 'none',
-        'color': 'blue',
-        'border': 'none',
-        'padding': '0',
-        'font': 'inherit',
-        'text-decoration': 'underline',
-        'cursor': 'pointer'
-    }
+
 
     return html.Div(
         [
@@ -200,13 +200,9 @@ def create_layout(app: Dash) -> Div:
                                         html.Hr(),
                                         html.H1('Inhaltsübersicht', id='toc'),
                                         html.Ul([
-                                            html.Li(
-                                                html.Button('Zeitfolgen', id='button-to-section-1', style=link_style)),
-                                            html.Li(
-                                                html.Button('Aktivitätsdiagramme', id='button-to-section-2',
-                                                            style=link_style)),
-                                            html.Li(
-                                                html.Button('Histogramme', id='button-to-section-3', style=link_style)),
+                                            html.Li(html.Button(title, id=f'button-to-{section_id}',
+                                                                style=style.link_style))
+                                            for title, section_id in zip(toc_dict['title'], toc_dict['id'])
                                         ]),
                                         html.Div(id='garbage-output-0', style={'display': 'none'}),
                                         html.Div(id='trigger_toc', style={'display': 'none'}),
@@ -297,39 +293,19 @@ def block_top_center(app) -> list[html.Div]:
 
 def block_bottom_center(app):
     return [
+        style.make_next_heading(0, toc_dict),
         report_numbers.critical_rotations(app),
-        html.Div([
-            html.H2('Zeitfolgen', id='section-1', style={'margin': '0', 'padding': '0', 'line-height': '1.5'}),
-            html.Button('Top ▲', id='button-to-toc', style={'height': 'auto', 'align-self': 'center'})
-        ], style={
-            'display': 'flex',
-            'align-items': 'center',
-            'gap': '10px'
-        }),
+        style.make_next_heading(1, toc_dict),
         # html.P('Content of Section 1...'),
         scatter_chart.render(app),
         scatter_chart.render_power_draw(app),
         scatter_chart.render_scenario_powerdraw(app),
         scatter_chart.render_single_station_occupation(app),
         scatter_chart.render_station_occupation(app),
-        html.Div([
-            html.H2('Aktivitätsdiagramme', id='section-2', style={'margin': '0', 'padding': '0', 'line-height': '1.5'}),
-            html.Button('Top ▲', id='button-to-toc', style={'height': 'auto', 'align-self': 'center'})
-        ], style={
-            'display': 'flex',
-            'align-items': 'center',
-            'gap': '10px'
-        }),
+        style.make_next_heading(2, toc_dict),
         # html.P('Content of Section 2...'),
         activities_chart.render(app),
-        html.Div([
-            html.H2('Histogramme', id='section-3', style={'margin': '0', 'padding': '0', 'line-height': '1.5'}),
-            html.Button('Top ▲', id='button-to-toc', style={'height': 'auto', 'align-self': 'center'})
-        ], style={
-            'display': 'flex',
-            'align-items': 'center',
-            'gap': '10px'
-        }),
+        style.make_next_heading(3, toc_dict),
         # html.P('Content of Section 3...'),
         histograms.render_minimal_soc(app),
         histograms.render_minimal_soc_per_rotation(app),

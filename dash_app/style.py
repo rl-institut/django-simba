@@ -1,6 +1,35 @@
 import plotly.graph_objs as go
 from dash import dcc, html
 
+link_style = {
+        'background': 'none',
+        'color': 'blue',
+        'border': 'none',
+        'padding': '0',
+        'font': 'inherit',
+        'text-decoration': 'underline',
+        'cursor': 'pointer'
+    }
+
+
+def make_heading(title, id):
+    return html.Div([
+            html.H2(title, id=id, style={'margin': '0', 'padding': '0', 'line-height': '1.5'}),
+            html.Button('Top ▲', id='button-to-toc', style={'height': 'auto', 'align-self': 'center'})
+        ], style={
+            'display': 'flex',
+            'align-items': 'center',
+            'gap': '10px'
+        })
+
+
+def make_next_heading(num, toc):
+    title = toc["title"][num]
+    id = toc["id"][num]
+
+    print(title, id)
+    return make_heading(title, id)
+
 
 def set_styling(func):
     def wrapper(*args, **kwargs):
