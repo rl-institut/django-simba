@@ -96,6 +96,16 @@ def create_layout(app: Dash) -> Div:
         prevent_initial_call=True
     )
 
+    link_style = {
+        'background': 'none',
+        'color': 'blue',
+        'border': 'none',
+        'padding': '0',
+        'font': 'inherit',
+        'text-decoration': 'underline',
+        'cursor': 'pointer'
+    }
+
     return html.Div(
         [
             dcc.Store(id=ids.MEMOIZER_DONE, data=False),  # Store to keep track of memoizer status
@@ -186,11 +196,17 @@ def create_layout(app: Dash) -> Div:
                                     value="tab-simulation",
                                     disabled=True,
                                     children=[
-                                        html.H1('Table of Contents', id='toc'),
+                                        html.Br(),
+                                        html.Hr(),
+                                        html.H1('Inhaltsübersicht', id='toc'),
                                         html.Ul([
-                                            html.Li(html.Button('Section 1', id='button-to-section-1')),
-                                            html.Li(html.Button('Section 2', id='button-to-section-2')),
-                                            html.Li(html.Button('Section 3', id='button-to-section-3')),
+                                            html.Li(
+                                                html.Button('Zeitfolgen', id='button-to-section-1', style=link_style)),
+                                            html.Li(
+                                                html.Button('Aktivitätsdiagramme', id='button-to-section-2',
+                                                            style=link_style)),
+                                            html.Li(
+                                                html.Button('Histogramme', id='button-to-section-3', style=link_style)),
                                         ]),
                                         html.Div(id='garbage-output-0', style={'display': 'none'}),
                                         html.Div(id='trigger_toc', style={'display': 'none'}),
@@ -282,20 +298,38 @@ def block_top_center(app) -> list[html.Div]:
 def block_bottom_center(app):
     return [
         report_numbers.critical_rotations(app),
-        html.H2('Section 1', id='section-1'),
-        html.Button('Top ▲', id='button-to-toc'),
+        html.Div([
+            html.H2('Zeitfolgen', id='section-1', style={'margin': '0', 'padding': '0', 'line-height': '1.5'}),
+            html.Button('Top ▲', id='button-to-toc', style={'height': 'auto', 'align-self': 'center'})
+        ], style={
+            'display': 'flex',
+            'align-items': 'center',
+            'gap': '10px'
+        }),
         # html.P('Content of Section 1...'),
         scatter_chart.render(app),
         scatter_chart.render_power_draw(app),
         scatter_chart.render_scenario_powerdraw(app),
         scatter_chart.render_single_station_occupation(app),
         scatter_chart.render_station_occupation(app),
-        html.H2('Section 2', id='section-2'),
-        html.Button('Top ▲', id='button-to-toc'),
+        html.Div([
+            html.H2('Aktivitätsdiagramme', id='section-2', style={'margin': '0', 'padding': '0', 'line-height': '1.5'}),
+            html.Button('Top ▲', id='button-to-toc', style={'height': 'auto', 'align-self': 'center'})
+        ], style={
+            'display': 'flex',
+            'align-items': 'center',
+            'gap': '10px'
+        }),
         # html.P('Content of Section 2...'),
         activities_chart.render(app),
-        html.H2('Section 3', id='section-3'),
-        html.Button('Top ▲', id='button-to-toc'),
+        html.Div([
+            html.H2('Histogramme', id='section-3', style={'margin': '0', 'padding': '0', 'line-height': '1.5'}),
+            html.Button('Top ▲', id='button-to-toc', style={'height': 'auto', 'align-self': 'center'})
+        ], style={
+            'display': 'flex',
+            'align-items': 'center',
+            'gap': '10px'
+        }),
         # html.P('Content of Section 3...'),
         histograms.render_minimal_soc(app),
         histograms.render_minimal_soc_per_rotation(app),
