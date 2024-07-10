@@ -24,11 +24,7 @@ def make_heading(title, id):
 
 
 def make_next_heading(num, toc):
-    title = toc["title"][num]
-    id = toc["id"][num]
-
-    print(title, id)
-    return make_heading(title, id)
+    return make_heading(toc["title"][num], toc["id"][num])
 
 
 def set_styling(func):
