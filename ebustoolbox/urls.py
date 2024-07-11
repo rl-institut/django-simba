@@ -33,8 +33,14 @@ urlpatterns = [
     path("input/depots/<uuid:task_id>", views.get_depots, name="depots"),
     path("input/stations/<uuid:task_id>", views.get_stations, name="stations"),
     path(
+        "input/scenario_overview/<uuid:task_id>/<str:finished>",
+        views.scenario_overview_view,
+        name="scenario_overview",
+    ),
+    path(
         "input/scenario_overview/<uuid:task_id>",
         views.scenario_overview_view,
+        {"finished": "false"},
         name="scenario_overview",
     ),
     path("set_station_values/<uuid:task_id>", views.set_station_values, name="set_station_values"),

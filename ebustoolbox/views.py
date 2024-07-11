@@ -326,7 +326,7 @@ def set_station_values(request: HttpRequest, task_id):
         return HttpResponse("Method is not allowed", status=405)
 
 
-def scenario_overview_view(request: HttpRequest, task_id):
+def scenario_overview_view(request: HttpRequest, task_id, finished=None):
     """View controlling if the wait or success view should be shown"""
     try:
         scenario = Scenario.objects.get(task_id=task_id)
@@ -335,6 +335,9 @@ def scenario_overview_view(request: HttpRequest, task_id):
         # if the scenario has a manager, only this User can run the simulation
     if scenario.manager and scenario.manager != request.user:
         raise Http404
+
+    if finished == "true":
+        return redirect(reverse("simba:result", args=[task_id]))
 
     try:
         if not scenario.finished:
@@ -534,7 +537,7 @@ def save_and_simulate(
 
 
 def run_simulation(request: HttpRequest, task_id: str):
-    context = {"task_id": task_id, "progress_type": "simulation"}
+    context = {"task_id": task_id, "progress_type": "simba:scenario_overview"}
     logger.debug(context)
     response = HttpResponse(context)
 
