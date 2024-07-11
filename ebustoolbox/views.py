@@ -2,6 +2,7 @@ import logging
 import random
 import traceback
 import warnings
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -27,7 +28,12 @@ from celery.result import AsyncResult
 from dash_app import dash_app, ids  # noqa: F401
 from django_mapengine.views import MapEngineMixin
 from . import tasks, schedule_readers
-from .forms import UploadFileForm, ChargingStationDefaultsForm, VehicleTypesAdjustmentForm
+from .forms import (
+    UploadFileForm,
+    ChargingStationDefaultsForm,
+    VehicleTypesAdjustmentForm,
+    SimulationParameters,
+)
 from .tasks import create_db_url  # noqa
 from .util import get_unique_task_id
 
@@ -41,6 +47,7 @@ from ebustoolbox.models import (
     Station,
     EnumChargeType,
     Rotation,
+    Trip,
 )
 
 logger = logging.getLogger("custom")
@@ -114,10 +121,49 @@ def long_running_task_status_view(request):
     return JsonResponse({"success": False})
 
 
-def schedule(request: HttpRequest):
+def schedule(request: HttpRequest, task_id, finished):
     """Generate the home view of the tool chain with input forms"""
-    task_id = get_unique_task_id()
-    return render(request, "schedule.html", {"task_id": task_id})
+    # Schedule uploading triggers a progress which will send finished="true" if the upload is
+    # finished
+    if finished == "true":
+        return redirect(reverse("simba:simulation_parameters", args=[str(task_id)]))
+    if task_id is None:
+        task_id = get_unique_task_id()
+    context = {
+        "task_id": task_id,
+    }
+    return render(request, "schedule.html", context)
+
+
+def get_simulation_parameters(request: HttpRequest, task_id):
+    """Generate the home view of the tool chain with input forms"""
+    try:
+        scenario = Scenario.objects.get(task_id=task_id)
+    except Scenario.DoesNotExist:
+        raise Http404
+    # if the scenario has a manager, only this User can run the simulation
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
+    context = {}
+    if request.method == "POST":
+        simulation_parameters_form = SimulationParameters(request.POST)
+        if simulation_parameters_form.is_valid():
+            time_delta = timedelta(days=simulation_parameters_form.cleaned_data["simulation_days"])
+            start_time = simulation_parameters_form.cleaned_data["simulation_start"]
+            if tasks.get_rotations_by_timespan(scenario, time_delta, start_time).count() > 0:
+                tasks.trim_scenario(scenario, time_delta, start_time)
+                return redirect(reverse("simba:vehicle_types", args=[str(task_id)]))
+            error = "Zeitspanne enthält keine Umläufe."
+            context["error"] = error
+
+    trips = Trip.objects.filter(scenario=scenario).order_by("departure_time")
+    start = trips.first().departure_time.date().isoformat()
+    end = trips.last().arrival_time.date().isoformat()
+
+    simulation_parameters_form = SimulationParameters()
+    simulation_parameters_form.fields["simulation_start"].widget.attrs |= {"min": start, "max": end}
+    context |= {"task_id": task_id, "form": simulation_parameters_form}
+    return render(request, "simulation_parameters.html", context)
 
 
 def home_prototype(request: HttpRequest):
@@ -358,22 +404,8 @@ def progress(request: HttpRequest, progress_id, progress_type: str):
         hx_trigger = "notRunning"
     response = render(request, "progress.html", context)
     if context["finished"] and len(context["errors"]) == 0:
-        match progress_type:
-            case "vehicle_types":
-                response["HX-Redirect"] = reverse(
-                    "simba:vehicle_types", args=[str(progress.scenario.task_id)]
-                )
-            case "simulation":
-                # as a result render simulation result plots in a not yet existing div/tab
-                scenario = progress.scenario
-                if "ebus_map" in settings.INSTALLED_APPS:
-                    create_stations_for_map(scenario)
-                    task_id = progress.scenario.task_id
-                    request.task_id = task_id
-
-                    response["HX-Redirect"] = reverse("simba:result", args=[task_id])
-            case _:
-                raise NotImplementedError
+        task_id = progress.scenario.task_id
+        response["HX-Redirect"] = reverse(progress_type, args=[task_id, "true"])
     response["HX-Trigger"] = hx_trigger
     response.status_code = status_code
     return response
@@ -381,7 +413,7 @@ def progress(request: HttpRequest, progress_id, progress_type: str):
 
 @require_POST
 def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
-    context = {"task_id": task_id, "progress_type": "vehicle_types"}
+    context = {"task_id": task_id, "progress_type": "simba:schedule"}
     try:
         form = schedule_readers.get_options_form(reader_num)(request.POST, request.FILES)
         # set in TimezoneMiddleware in core.middleware
@@ -395,7 +427,6 @@ def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
             response = render(request, "schedule_reader_options.html", context)
             response["HX-Retarget"] = "#options_form"
             return response
-
         s, _ = Scenario.objects.get_or_create(task_id=task_id)
         s.name = scenario_name
         if request.user.is_authenticated:

@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block content %}
+
+  <div class="container bg-light" style="min-height: 80vh;">
+
+    <!-- wizard -->
+    {% include 'wizard.html' %}
+
+        <div class="input-item text-center">
+        <div class="lead justify-content-center p-5">
+          Wähle eine Zeitspanne aus. Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.
+        </div>
+
+    <form class="p-5" enctype="multipart/form-data" method="POST"
+          action="{% url 'simba:simulation_parameters' task_id %}">
+      {% csrf_token %}
+      <div id="simulationparameters" class="text-center">
+        <h4>Simulationsparameter</h4>
+        {% if error %}
+          <div class="alert alert-danger" role="alert">
+            {{ error }}
+          </div>
+        {% endif %}
+        <div class="container text-left">
+          {% for field in form %}
+            <div class="fieldWrapper row p-2 justify-content-center">
+              {{ field.errors }}
+              <div class="col-3">{{ field.label_tag }}</div>
+              <div class="col-3">{{ field }}</div>
+              {% if field.help_text %}
+                <p class="help" id="{{ field.auto_id }}_helptext">
+                  {{ field.help_text|safe }}
+                </p>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+
+      </div>
+      <!-- dummy vehicle types get default vehicle type values -->
+      {% include 'continue_button.html' %}
+    </form>
+    </div>
+  </div>
+
+{% endblock %}

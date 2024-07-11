@@ -63,6 +63,20 @@ class UploadFileForm(forms.Form):
     use_only_time = forms.BooleanField(initial=True, required=False)
 
 
+class SimulationParameters(forms.Form):
+    help_text = (
+        "Lassen Sie das Feld frei, " "wenn Sie den Start der Simulation nicht beschneiden möchten."
+    )
+    simulation_start = forms.DateField(
+        label="Simulationsstart",
+        widget=forms.widgets.DateInput(attrs={"type": "date", "title": help_text}),
+        required=False,
+    )
+    simulation_days = forms.IntegerField(
+        label="Anzahl zu simulierender Tage", initial=1, min_value=1
+    )
+
+
 class EbusToolboxForm(forms.Form):
     title = forms.CharField(max_length=50)
     file = forms.FileField()

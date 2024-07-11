@@ -16,7 +16,15 @@ urlpatterns = [
     path("usergroups/", views.usergroups, name="usergroups"),
     path("result/<uuid:task_id>/", views.result_view, name="result"),
     path("", views.home_view, name="home"),
-    path("input/schedule/", views.schedule, name="schedule"),
+    path("input/schedule/<uuid:task_id>/<str:finished>", views.schedule, name="schedule"),
+    path(
+        "input/schedule/", views.schedule, {"task_id": None, "finished": "false"}, name="schedule"
+    ),
+    path(
+        "input/simulation_parameters/<uuid:task_id>",
+        views.get_simulation_parameters,
+        name="simulation_parameters",
+    ),
     path("input/home_prototype/", views.home_prototype, name="home_prototype"),
     path(
         "input/get_options/<uuid:task_id>/<int:reader_num>", views.get_options, name="get_options"

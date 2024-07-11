@@ -17,7 +17,7 @@ import django.apps
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
 from django.db import connections
-from django.db.models import Max, Count
+from django.db.models import Max, Count, Min, QuerySet
 from django.db.transaction import atomic
 from django.http import HttpRequest
 from django.utils import timezone
@@ -904,7 +904,6 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
         scenario.simba_options = vars(get_args(scenario))
         find_and_make_depots(scenario)
         scenario.save()
-        trim_scenario(scenario, time_delta=timedelta(days=7))
         progress.save()
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -932,15 +931,27 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
 
 
 def trim_scenario(scenario, time_delta, start_time=None):
-    trips = Trip.objects.filter(scenario=scenario).order_by("departure_time")
+    rotations = get_rotations_by_timespan(scenario, time_delta, start_time)
+    rotations_to_remove = Rotation.objects.filter(scenario=scenario).exclude(id__in=rotations)
+    for rotation in rotations_to_remove:
+        rotation.delete()
+
+
+def get_rotations_by_timespan(
+    scenario: Scenario, time_delta, start_time=None
+) -> QuerySet[Rotation]:
     if start_time is None:
+        trips = Trip.objects.filter(scenario=scenario).order_by("departure_time")
         start_time = trips.first().departure_time
     latest_start = start_time + time_delta
+    rotations = (
+        Rotation.objects.filter(scenario=scenario)
+        .annotate(first_departure=Min("trip__departure_time"))
+        .filter(first_departure__gte=start_time)
+        .filter(first_departure__lte=latest_start)
+    )
 
-    rotations = Rotation.objects.filter(scenario=scenario).prefetch_related("trip_set")
-    for rotation in rotations:
-        if rotation.trip_set.order_by("departure_time").first().departure_time > latest_start:
-            rotation.delete()
+    return rotations
 
 
 @atomic()
@@ -1117,8 +1128,6 @@ def _run_ebus_toolchain(self, task_id, run_parent=False):
 
     progress, _ = Progress.objects.get_or_create(task_id=self.request.id, scenario=db_scenario)
     progress.reset()
-
-    trim_scenario(db_scenario, time_delta=timedelta(days=7))
 
     try:
         logger.info(f"Getting schedule from db {datetime.now()}")
