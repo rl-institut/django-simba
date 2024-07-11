@@ -930,11 +930,11 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
         core.deepcopy.reset_postgres_auto_increments(["ebustoolbox"])
 
 
+@atomic()
 def trim_scenario(scenario, time_delta, start_time=None):
     rotations = get_rotations_by_timespan(scenario, time_delta, start_time)
     rotations_to_remove = Rotation.objects.filter(scenario=scenario).exclude(id__in=rotations)
-    for rotation in rotations_to_remove:
-        rotation.delete()
+    rotations_to_remove.delete()
 
 
 def get_rotations_by_timespan(
