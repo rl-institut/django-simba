@@ -1,6 +1,8 @@
 from dash import Dash, html, dcc
 import plotly.express as px
 import plotly.graph_objects as go
+from dash.exceptions import PreventUpdate
+
 from . import ids, data
 from dash.dependencies import Input, Output, State
 from ebustoolbox.models import Scenario
@@ -35,7 +37,8 @@ def render_dist_dur(app: Dash) -> html.Div:
 
         dur_df = data.get_duration_as_dataframe(s.id, buses)
         dist_df = data.get_distances_as_dataframe(s.id, buses)
-
+        if len(dur_df) == 0 or len(dist_df) == 0:
+            raise PreventUpdate
         # Calculate average speed in km/h
         dur_df["avg_speed_kmh"] = (dist_df["total_distance"] / 1000) / (dur_df["duration"] / 3600)
 
@@ -99,7 +102,8 @@ def render_rotation_distance(app: Dash) -> html.Div:
         s = Scenario.objects.get(task_id=task_id)
 
         df = data.get_distances_as_dataframe(s.id, buses)
-
+        if len(df) == 0:
+            raise PreventUpdate
         # Convert total_distance from meters to kilometers
         df["total_distance_km"] = df["total_distance"] / 1000
 
@@ -163,6 +167,8 @@ def render_rotation_duration(app: Dash) -> html.Div:
         s = Scenario.objects.get(task_id=task_id)
 
         df = data.get_duration_as_dataframe(s.id, buses)
+        if len(df) == 0:
+            raise PreventUpdate
 
         # Convert the duration from seconds to hours
         df["duration"] = df["duration"] / 3600
@@ -228,6 +234,8 @@ def render_minimal_soc(app: Dash) -> html.Div:
         pd.set_option("display.expand_frame_repr", False)  # Prevent line wrapping
 
         soc_df = data.get_soc_as_dataframe(s.id, buses)
+        if len(soc_df) == 0:
+            raise PreventUpdate
 
         min_soc_per_v_id = soc_df.groupby("V_id")["soc_end"].min().reset_index()
 
@@ -295,6 +303,8 @@ def render_minimal_soc_per_rotation(app: Dash) -> html.Div:
         pd.set_option("display.expand_frame_repr", False)  # Prevent line wrapping
 
         soc_df = get_critical_rotations_and_score_as_dataframe(s.id, buses)
+        if len(soc_df) == 0:
+            raise PreventUpdate
 
         min_soc_per_v_id = soc_df.groupby("R_id")["soc_end"].min().reset_index()
 

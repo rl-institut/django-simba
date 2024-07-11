@@ -1,4 +1,6 @@
 from dash import Dash, html, dcc
+from dash.exceptions import PreventUpdate
+
 from . import ids, data
 from dash.dependencies import Input, Output, State  # no fa401
 import plotly.graph_objects as go
@@ -67,6 +69,8 @@ def render_bustype(app: Dash) -> html.Div:
         s = Scenario.objects.get(task_id=task_id)
 
         df = data.get_vehicle_types(s.id, buses)
+        if len(df) == 0:
+            raise PreventUpdate
 
         # Create a pie chart following line is needed due to plotly bug,
         # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
