@@ -1487,7 +1487,7 @@ class Area(models.Model):
 
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     depot = models.ForeignKey(Depot, null=False, on_delete=models.CASCADE)
-    vehicle_type = models.ForeignKey(VehicleType, null=False, on_delete=models.CASCADE)
+    vehicle_type = models.ForeignKey(VehicleType, null=True, on_delete=models.CASCADE)
     name = models.TextField(null=True)
     name_short = models.TextField(null=True)
     area_type = models.CharField(max_length=15, choices=AreaType.choices, null=True, default=None)
