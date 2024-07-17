@@ -170,6 +170,20 @@ files = [
 ]
 
 [[package]]
+name = "branca"
+version = "0.7.2"
+description = "Generate complex HTML+JS pages with Python"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "branca-0.7.2-py3-none-any.whl", hash = "sha256:853a359c34d08fd06498be762d8be9932750db4049cac11e25dd6f23562e25c2"},
+    {file = "branca-0.7.2.tar.gz", hash = "sha256:ca4c94643ef31b819987ca5bd19c6009ea17b440baa3aac04628545f7a4da023"},
+]
+
+[package.dependencies]
+jinja2 = ">=3"
+
+[[package]]
 name = "celery"
 version = "5.4.0"
 description = "Distributed Task Queue."
@@ -948,18 +962,18 @@ simpy = ">=4.0.1,<5.0.0"
 
 [[package]]
 name = "eflips-depot"
-version = "3.2.5"
+version = "4.0.0"
 description = "Depot Simulation for eFLIPS"
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "eflips_depot-3.2.5-py3-none-any.whl", hash = "sha256:ad3adab18bcc10ab1c0418811aa74079dceb50ee7603cc7e95b924d9d9724cd3"},
-    {file = "eflips_depot-3.2.5.tar.gz", hash = "sha256:d2261c56d392d22c2f0e4ba5c0655d864ca0ac517f56f8adc4db06045940b219"},
+    {file = "eflips_depot-4.0.0-py3-none-any.whl", hash = "sha256:63da63b12a0ef56fabbc20ac34c7d09167d8d8943e9bfaf903275e35d32e4bbf"},
+    {file = "eflips_depot-4.0.0.tar.gz", hash = "sha256:49ee4afd7b24f00d119de0f7171d4abc5ec31e7c6485b3a19311cf87d3f5f55e"},
 ]
 
 [package.dependencies]
 eflips = ">=0.1.3,<0.2.0"
-eflips-model = ">=3.3.0,<4.0.0"
+eflips-model = ">=4.0.0a2,<5.0.0"
 pandas = ">=2.1.4,<3.0.0"
 scipy = ">=1.13.1,<2.0.0"
 simpy = ">=4.0.1,<5.0.0"
@@ -968,34 +982,37 @@ xlsxwriter = ">=3.1.9,<4.0.0"
 
 [[package]]
 name = "eflips-eval"
-version = "1.2.1"
+version = "1.3.0"
 description = ""
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "eflips_eval-1.2.1-py3-none-any.whl", hash = "sha256:47eb27eb884fefeef209df7b169e29f5e4b58d1275c20b4df5b22b39232619c1"},
-    {file = "eflips_eval-1.2.1.tar.gz", hash = "sha256:1fa282242d3bfb6038323cbce96320a73152ff8b94a8c3908b1c54cbb310c78b"},
+    {file = "eflips_eval-1.3.0-py3-none-any.whl", hash = "sha256:9354b4591e83bdc24d2e0544d6d11a6af3cd32a18b587450dd351ba7531f9a75"},
+    {file = "eflips_eval-1.3.0.tar.gz", hash = "sha256:cd13366200ed22f4e52cc2a4de574102490b633d9383c96209a44c8f8dcdf9f0"},
 ]
 
 [package.dependencies]
 dash-cytoscape = ">=1.0.1,<2.0.0"
-eflips-model = ">=2.3.0,<4.0.0"
+eflips-model = ">=2.3.0,<5.0.0"
+folium = ">=0.17.0,<0.18.0"
 pandas = ">=2.1.4,<3.0.0"
 plotly = ">=5.19.0,<6.0.0"
+seaborn = ">=0.13.2,<0.14.0"
+shapely = ">=2.0.5,<3.0.0"
 
 [[package]]
 name = "eflips-ingest"
-version = "1.2.3"
+version = "1.2.4"
 description = "A collection of import scripts for converting bus schedule data into the [eflips-model](https://github.com/mpm-tu-berlin/eflips-model) data format."
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "eflips_ingest-1.2.3-py3-none-any.whl", hash = "sha256:1fb10cf29bc5f01305bd985354b0f4e350d278ca70decedfaf6aeebafedae8f6"},
-    {file = "eflips_ingest-1.2.3.tar.gz", hash = "sha256:04278f1869223e428a991c6e4f749bf272a04d1ded72aefa9a97a2c8e018897c"},
+    {file = "eflips_ingest-1.2.4-py3-none-any.whl", hash = "sha256:953a0d8a98501bb5f8bc1d7938052becf3439b474378753e89f72ecb624496cb"},
+    {file = "eflips_ingest-1.2.4.tar.gz", hash = "sha256:9d1ec4cc36c4d63d07798dbd7f938e2bef6327b504633c1e3c182626b30e81da"},
 ]
 
 [package.dependencies]
-eflips-model = ">=3.1.1,<4.0.0"
+eflips-model = ">=3.1.1,<5.0.0"
 fire = ">=0.5.0,<0.6.0"
 lxml = ">=5.1.0,<6.0.0"
 pyproj = ">=3.6.1,<4.0.0"
@@ -1005,13 +1022,13 @@ tqdm = ">=4.66.1,<5.0.0"
 
 [[package]]
 name = "eflips-model"
-version = "3.3.0"
+version = "4.0.0a2"
 description = "A common data model for the eflips family of electric vehicle simulation & optimization tools."
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "eflips_model-3.3.0-py3-none-any.whl", hash = "sha256:6b70a839fc0125fc398af49a434ded4d5f7ad45779344f901b302800f5f57d27"},
-    {file = "eflips_model-3.3.0.tar.gz", hash = "sha256:85408f27bfbee880a86031812218bfa06e242f60a26f0977cad9361679a5c609"},
+    {file = "eflips_model-4.0.0a2-py3-none-any.whl", hash = "sha256:2a54196310fff84b8332d2f6bf822a7c767e0787cd318f7ac6b6cbc6c14ffdaa"},
+    {file = "eflips_model-4.0.0a2.tar.gz", hash = "sha256:b46f28bfc93219d060b813ccaf78f6e7a1520683079fc2b4dc19f3ed021d8df4"},
 ]
 
 [package.dependencies]
@@ -1096,6 +1113,27 @@ Werkzeug = ">=3.0.0"
 [package.extras]
 async = ["asgiref (>=3.2)"]
 dotenv = ["python-dotenv"]
+
+[[package]]
+name = "folium"
+version = "0.17.0"
+description = "Make beautiful maps with Leaflet.js & Python"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "folium-0.17.0-py2.py3-none-any.whl", hash = "sha256:14210d054e9afad6ebac037495508297d78805fcfa16f859fdee10bb7f85c2c1"},
+    {file = "folium-0.17.0.tar.gz", hash = "sha256:48385df9a3f6ceca23647c2e8d87850c8a6e05b40db63266e7b8c6d2d734d4c6"},
+]
+
+[package.dependencies]
+branca = ">=0.6.0"
+jinja2 = ">=2.9"
+numpy = "*"
+requests = "*"
+xyzservices = "*"
+
+[package.extras]
+testing = ["pytest"]
 
 [[package]]
 name = "fonttools"
@@ -2381,6 +2419,27 @@ doc = ["jupyterlite-pyodide-kernel", "jupyterlite-sphinx (>=0.12.0)", "jupytext"
 test = ["array-api-strict", "asv", "gmpy2", "hypothesis (>=6.30)", "mpmath", "pooch", "pytest", "pytest-cov", "pytest-timeout", "pytest-xdist", "scikit-umfpack", "threadpoolctl"]
 
 [[package]]
+name = "seaborn"
+version = "0.13.2"
+description = "Statistical data visualization"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "seaborn-0.13.2-py3-none-any.whl", hash = "sha256:636f8336facf092165e27924f223d3c62ca560b1f2bb5dff7ab7fad265361987"},
+    {file = "seaborn-0.13.2.tar.gz", hash = "sha256:93e60a40988f4d65e9f4885df477e2fdaff6b73a9ded434c1ab356dd57eefff7"},
+]
+
+[package.dependencies]
+matplotlib = ">=3.4,<3.6.1 || >3.6.1"
+numpy = ">=1.20,<1.24.0 || >1.24.0"
+pandas = ">=1.2"
+
+[package.extras]
+dev = ["flake8", "flit", "mypy", "pandas-stubs", "pre-commit", "pytest", "pytest-cov", "pytest-xdist"]
+docs = ["ipykernel", "nbconvert", "numpydoc", "pydata_sphinx_theme (==0.10.0rc2)", "pyyaml", "sphinx (<6.0.0)", "sphinx-copybutton", "sphinx-design", "sphinx-issues"]
+stats = ["scipy (>=1.7)", "statsmodels (>=0.12)"]
+
+[[package]]
 name = "selenium"
 version = "4.21.0"
 description = ""
@@ -2413,6 +2472,58 @@ files = [
 docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-favicon", "sphinx-hoverxref (<2)", "sphinx-inline-tabs", "sphinx-lint", "sphinx-notfound-page (>=1,<2)", "sphinx-reredirects", "sphinxcontrib-towncrier"]
 testing = ["build[virtualenv]", "filelock (>=3.4.0)", "flake8-2020", "ini2toml[lite] (>=0.9)", "jaraco.develop (>=7.21)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "pip (>=19.1)", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-mypy (>=0.9.1)", "pytest-perf", "pytest-ruff", "pytest-timeout", "pytest-xdist", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel"]
 testing-integration = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "packaging (>=23.1)", "pytest", "pytest-enabler", "pytest-xdist", "tomli", "virtualenv (>=13.0.0)", "wheel"]
+
+[[package]]
+name = "shapely"
+version = "2.0.5"
+description = "Manipulation and analysis of geometric objects"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "shapely-2.0.5-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:89d34787c44f77a7d37d55ae821f3a784fa33592b9d217a45053a93ade899375"},
+    {file = "shapely-2.0.5-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:798090b426142df2c5258779c1d8d5734ec6942f778dab6c6c30cfe7f3bf64ff"},
+    {file = "shapely-2.0.5-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:45211276900c4790d6bfc6105cbf1030742da67594ea4161a9ce6812a6721e68"},
+    {file = "shapely-2.0.5-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2e119444bc27ca33e786772b81760f2028d930ac55dafe9bc50ef538b794a8e1"},
+    {file = "shapely-2.0.5-cp310-cp310-win32.whl", hash = "sha256:9a4492a2b2ccbeaebf181e7310d2dfff4fdd505aef59d6cb0f217607cb042fb3"},
+    {file = "shapely-2.0.5-cp310-cp310-win_amd64.whl", hash = "sha256:1e5cb5ee72f1bc7ace737c9ecd30dc174a5295fae412972d3879bac2e82c8fae"},
+    {file = "shapely-2.0.5-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:5bbfb048a74cf273db9091ff3155d373020852805a37dfc846ab71dde4be93ec"},
+    {file = "shapely-2.0.5-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:93be600cbe2fbaa86c8eb70656369f2f7104cd231f0d6585c7d0aa555d6878b8"},
+    {file = "shapely-2.0.5-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0f8e71bb9a46814019f6644c4e2560a09d44b80100e46e371578f35eaaa9da1c"},
+    {file = "shapely-2.0.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d5251c28a29012e92de01d2e84f11637eb1d48184ee8f22e2df6c8c578d26760"},
+    {file = "shapely-2.0.5-cp311-cp311-win32.whl", hash = "sha256:35110e80070d664781ec7955c7de557456b25727a0257b354830abb759bf8311"},
+    {file = "shapely-2.0.5-cp311-cp311-win_amd64.whl", hash = "sha256:6c6b78c0007a34ce7144f98b7418800e0a6a5d9a762f2244b00ea560525290c9"},
+    {file = "shapely-2.0.5-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:03bd7b5fa5deb44795cc0a503999d10ae9d8a22df54ae8d4a4cd2e8a93466195"},
+    {file = "shapely-2.0.5-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:2ff9521991ed9e201c2e923da014e766c1aa04771bc93e6fe97c27dcf0d40ace"},
+    {file = "shapely-2.0.5-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1b65365cfbf657604e50d15161ffcc68de5cdb22a601bbf7823540ab4918a98d"},
+    {file = "shapely-2.0.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:21f64e647a025b61b19585d2247137b3a38a35314ea68c66aaf507a1c03ef6fe"},
+    {file = "shapely-2.0.5-cp312-cp312-win32.whl", hash = "sha256:3ac7dc1350700c139c956b03d9c3df49a5b34aaf91d024d1510a09717ea39199"},
+    {file = "shapely-2.0.5-cp312-cp312-win_amd64.whl", hash = "sha256:30e8737983c9d954cd17feb49eb169f02f1da49e24e5171122cf2c2b62d65c95"},
+    {file = "shapely-2.0.5-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:ff7731fea5face9ec08a861ed351734a79475631b7540ceb0b66fb9732a5f529"},
+    {file = "shapely-2.0.5-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ff9e520af0c5a578e174bca3c18713cd47a6c6a15b6cf1f50ac17dc8bb8db6a2"},
+    {file = "shapely-2.0.5-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:49b299b91557b04acb75e9732645428470825061f871a2edc36b9417d66c1fc5"},
+    {file = "shapely-2.0.5-cp37-cp37m-win32.whl", hash = "sha256:b5870633f8e684bf6d1ae4df527ddcb6f3895f7b12bced5c13266ac04f47d231"},
+    {file = "shapely-2.0.5-cp37-cp37m-win_amd64.whl", hash = "sha256:401cb794c5067598f50518e5a997e270cd7642c4992645479b915c503866abed"},
+    {file = "shapely-2.0.5-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:e91ee179af539100eb520281ba5394919067c6b51824e6ab132ad4b3b3e76dd0"},
+    {file = "shapely-2.0.5-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:8af6f7260f809c0862741ad08b1b89cb60c130ae30efab62320bbf4ee9cc71fa"},
+    {file = "shapely-2.0.5-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f5456dd522800306ba3faef77c5ba847ec30a0bd73ab087a25e0acdd4db2514f"},
+    {file = "shapely-2.0.5-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b714a840402cde66fd7b663bb08cacb7211fa4412ea2a209688f671e0d0631fd"},
+    {file = "shapely-2.0.5-cp38-cp38-win32.whl", hash = "sha256:7e8cf5c252fac1ea51b3162be2ec3faddedc82c256a1160fc0e8ddbec81b06d2"},
+    {file = "shapely-2.0.5-cp38-cp38-win_amd64.whl", hash = "sha256:4461509afdb15051e73ab178fae79974387f39c47ab635a7330d7fee02c68a3f"},
+    {file = "shapely-2.0.5-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:7545a39c55cad1562be302d74c74586f79e07b592df8ada56b79a209731c0219"},
+    {file = "shapely-2.0.5-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:4c83a36f12ec8dee2066946d98d4d841ab6512a6ed7eb742e026a64854019b5f"},
+    {file = "shapely-2.0.5-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:89e640c2cd37378480caf2eeda9a51be64201f01f786d127e78eaeff091ec897"},
+    {file = "shapely-2.0.5-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:06efe39beafde3a18a21dde169d32f315c57da962826a6d7d22630025200c5e6"},
+    {file = "shapely-2.0.5-cp39-cp39-win32.whl", hash = "sha256:8203a8b2d44dcb366becbc8c3d553670320e4acf0616c39e218c9561dd738d92"},
+    {file = "shapely-2.0.5-cp39-cp39-win_amd64.whl", hash = "sha256:7fed9dbfbcfec2682d9a047b9699db8dcc890dfca857ecba872c42185fc9e64e"},
+    {file = "shapely-2.0.5.tar.gz", hash = "sha256:bff2366bc786bfa6cb353d6b47d0443c570c32776612e527ee47b6df63fcfe32"},
+]
+
+[package.dependencies]
+numpy = ">=1.14,<3"
+
+[package.extras]
+docs = ["matplotlib", "numpydoc (==1.1.*)", "sphinx", "sphinx-book-theme", "sphinx-remove-toctrees"]
+test = ["pytest", "pytest-cov"]
 
 [[package]]
 name = "simba"
@@ -2825,7 +2936,18 @@ files = [
     {file = "XlsxWriter-3.2.0.tar.gz", hash = "sha256:9977d0c661a72866a61f9f7a809e25ebbb0fb7036baa3b9fe74afcfca6b3cb8c"},
 ]
 
+[[package]]
+name = "xyzservices"
+version = "2024.6.0"
+description = "Source of XYZ tiles providers"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "xyzservices-2024.6.0-py3-none-any.whl", hash = "sha256:fecb2508f0f2b71c819aecf5df2c03cef001c56a4b49302e640f3b34710d25e4"},
+    {file = "xyzservices-2024.6.0.tar.gz", hash = "sha256:58c1bdab4257d2551b9ef91cd48571f77b7c4d2bc45bf5e3c05ac97b3a4d7282"},
+]
+
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4.0"
-content-hash = "5c08c531fee2f38d686803da8d9837a27ace8228b37195e18bf534e18299e0c5"
+content-hash = "30871bf207c57303c75a6ba671c48dcde8eddf84ce425cf4aa66f9d5f5f69d7b"
