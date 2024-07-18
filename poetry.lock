@@ -962,13 +962,13 @@ simpy = ">=4.0.1,<5.0.0"
 
 [[package]]
 name = "eflips-depot"
-version = "4.0.1"
+version = "4.0.2"
 description = "Depot Simulation for eFLIPS"
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "eflips_depot-4.0.1-py3-none-any.whl", hash = "sha256:3867447a09ed885ba1f3fa5104b969f9982a322d958592d04a42fd5aaebea4e7"},
-    {file = "eflips_depot-4.0.1.tar.gz", hash = "sha256:f813c525b71b7f9f554eb91f31dee5a3adfd130e8f0b87667069174a118ea185"},
+    {file = "eflips_depot-4.0.2-py3-none-any.whl", hash = "sha256:2c9eba79057313cdc44fed1fcb36bde51ebaa0a5b34ea480a0568edc7e1c6253"},
+    {file = "eflips_depot-4.0.2.tar.gz", hash = "sha256:fab84b352958fa12bf4bd8d85b5cf6e3ad61afb000605bf3d955a50c920f9c5b"},
 ]
 
 [package.dependencies]
@@ -1947,11 +1947,7 @@ files = [
 ]
 
 [package.dependencies]
-numpy = [
-    {version = ">=1.22.4", markers = "python_version < \"3.11\""},
-    {version = ">=1.23.2", markers = "python_version == \"3.11\""},
-    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
-]
+numpy = {version = ">=1.22.4", markers = "python_version < \"3.11\""}
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
 tzdata = ">=2022.7"
@@ -2949,5 +2945,5 @@ files = [
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.10,<4.0"
-content-hash = "e71a6e4409518ddd38a07ac8ea42c7cb9e62e1d394c3df1238e17aee1da074c3"
+python-versions = ">=3.10, <3.11"
+content-hash = "399705754f5f22ed77456b290b78a9b298b5010f8a715b5e2085011386fe42ac"
