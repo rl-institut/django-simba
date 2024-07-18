@@ -9,7 +9,9 @@ packages = [{include = "ebustoolbox"},
             {include = "django_mapengine"},
             {include = "ebus_map"},
             {include = "elevation_api"},
-            {include = "core"}]
+            {include = "core"},
+            {include = "ds_wrapper"},
+            {include = "dash_app"},]
 
 [tool.poetry.dependencies]
 python = ">=3.10, <3.11"
