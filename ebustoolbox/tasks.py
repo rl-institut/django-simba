@@ -261,8 +261,15 @@ def get_schedule_from_db(
     data_container = DataContainer()
     data_container.add_vehicle_types(vehicle_types)
     consumptions = Consumption.objects.filter(scenario__in=[django_scenario, None])
-    for consumption in consumptions:
-        data_container.add_consumption_data(consumption.name, consumption.to_df())
+    warnings.warn(
+        "I have just bypassed the non-existence of temperature with a try-except block. Please fix properly (how? maybe an external temperature file or by adding the temperature table to eflips-model?)"
+    )
+    try:
+        for consumption in consumptions:
+            data_container.add_consumption_data(consumption.name, consumption.to_df())
+    except django.db.utils.ProgrammingError:
+        logger.warning("Consumption not found in database")
+        pass
 
     # ToDo this might need refactoring since binding consumption to Trip Class is not versatile
     # in case of parallel schedules / scenarios, since both access the same Consumption
@@ -403,10 +410,17 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
 
         mileage = vehicle_type.consumption
         query = VehicleClass.objects.filter(vehicle_types=vehicle_type).exclude(consumption=None)
-        if len(query) > 0:
-            assert mileage is None
-            assert len(query) == 1
-            mileage = Consumption.objects.get(vehicle_class=query[0]).name
+        warnings.warn(
+            "I have just bypassed the non-existence of temperature with a try-except block. Please fix properly (Either by making this code compliant with the model spec or adding consumption to the model)"
+        )
+        try:
+            if len(query) > 0:
+                assert mileage is None
+                assert len(query) == 1
+                mileage = Consumption.objects.get(vehicle_class=query[0]).name
+        except django.db.utils.ProgrammingError:
+            logger.warning(f"Consumption for {vehicle_type.name} not found")
+            pass
 
         vehicle_types[vehicle_type.name_short][charge_type] = {
             "name": vehicle_type.name,
@@ -553,15 +567,25 @@ def get_schedule_from_args(
 
 
 def add_temperatures_to_trips(django_scenario, simba_schedule):
-    temperatures = Temperatures.objects.get(scenario=django_scenario)
-    # set temperatures according to temperature file
-    for rot in simba_schedule.rotations.values():
-        for trip in rot.trips:
-            # ToDo: Make times from db unaware once? so every function does not have to check
-            # for awareness? or other way around. make simba times aware early?
-            middle_time = trip.departure_time + 0.5 * (trip.arrival_time - trip.departure_time)
-            temp_time = middle_time if is_aware(middle_time) else make_aware(middle_time)
-            trip.temperature = temperatures.get_interpolated_temperature(temp_time)
+    warnings.warn(
+        "I have just bypassed the non-existence of temperature with a try-except block. Please fix properly (how? maybe an external temperature file or by adding the temperature table to eflips-model?)"
+    )
+    try:
+        temperatures = Temperatures.objects.get(scenario=django_scenario)
+        # set temperatures according to temperature file
+        for rot in simba_schedule.rotations.values():
+            for trip in rot.trips:
+                # ToDo: Make times from db unaware once? so every function does not have to check
+                # for awareness? or other way around. make simba times aware early?
+                middle_time = trip.departure_time + 0.5 * (trip.arrival_time - trip.departure_time)
+                temp_time = middle_time if is_aware(middle_time) else make_aware(middle_time)
+                trip.temperature = temperatures.get_interpolated_temperature(temp_time)
+    except django.db.utils.ProgrammingError:
+        logger.warning("Temperature file not found in database")
+        for rot in simba_schedule.rotations.values():
+            for trip in rot.trips:
+                trip.temperature = 20.0
+        pass
 
 
 def get_args(django_scenario) -> Namespace:
@@ -1283,7 +1307,10 @@ def run_simba(
     logger.info(f"Creating Simba Events {datetime.now()}")
     create_event_output(scenario, db_scenario)
 
-    reset_postgres_auto_increments(apps=[Event._meta.app_label])
+    warnings.warn(
+        "I have just commented out code which caused a crash. Please fix it properly before merging."
+    )
+    # reset_postgres_auto_increments(apps=[Event._meta.app_label])
     return schedule, scenario
 
 
