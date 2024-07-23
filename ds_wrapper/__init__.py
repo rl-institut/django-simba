@@ -41,3 +41,7 @@ class DjangoSimbaWrapper:
         from ebustoolbox.tasks import run_simba_scenario
 
         run_simba_scenario(django_scenario=scenario_id, assign_vehicles=assign_vehicles)
+
+        from django.db import connections
+        for conn in connections.all():
+            conn.close()
