@@ -122,12 +122,10 @@ class SimbaScheduleReader(ScheduleReader):
     def __init__(
         self,
         file_path: str,
-        default_charging_type: str = "oppb",
     ):
         self.errors = []
         self.file_path: Path = Path(file_path)
         self.default_capacity = 99.99
-        self.default_charging_type = default_charging_type
         self.encoding = "utf-8"
         self.progress: Progress = None
 
@@ -164,10 +162,6 @@ class SimbaScheduleReader(ScheduleReader):
         :param: scenario_id: this is the id of the scenario
         """
         try:
-            # raise Errors which might have happened earlier / during init
-            if self.default_charging_type not in [EnumChargeType.DEPOT, EnumChargeType.OPPORTUNITY]:
-                self.errors.append("""Standard-Ladetype muss entweder "depb" oder "oppb" sein.""")
-                raise self.SimbaScheduleReaderException
 
             self.set_total_work(5)
             self.set_progress(0, "Lese Datei")
@@ -318,34 +312,12 @@ class SimbaScheduleReader(ScheduleReader):
                 self.errors.append(f"Umlauf {rotation_id} enthält mehrere Ladetypen")
             first_trip = trips[0]
             vt = vt_dict[first_trip[self.VEHICLE_TYPE]]
-            ct = str(first_trip[self.CHARGING_TYPE])
-            match ct.lower():
-                case EnumChargeType.OPPORTUNITY.value:
-                    rot = Rotation(
-                        scenario=scenario,
-                        name=rotation_id,
-                        pk=last_id + i,
-                        allow_opportunity_charging=True,
-                        vehicle_type=vt[0],
-                    )
-                case EnumChargeType.DEPOT.value:
-                    rot = Rotation(
-                        scenario=scenario,
-                        name=rotation_id,
-                        pk=last_id + i,
-                        allow_opportunity_charging=False,
-                        vehicle_type=vt[1],
-                    )
-                case _:
-                    self.errors.append(f"Umlauf {rotation_id} enthält ungültigen Ladetyp: {ct}")
-                    # Placeholder - rotation which so lookup will work
-                    rot = Rotation(
-                        scenario=scenario,
-                        name=rotation_id,
-                        pk=last_id + i,
-                        allow_opportunity_charging=False,
-                        vehicle_type=vt[1],
-                    )
+            rot = Rotation(
+                scenario=scenario,
+                name=rotation_id,
+                pk=last_id + i,
+                vehicle_type=vt,
+            )
             rotations.append(rot)
             rotations_dict[rotation_id] = rot
         return rotations, rotations_dict
@@ -366,11 +338,8 @@ class SimbaScheduleReader(ScheduleReader):
             vt_opp = VehicleType(
                 **default_params, id=last_id + (i * 2) + 0, opportunity_charging_capable=True
             )
-            vt_dep = VehicleType(
-                **default_params, id=last_id + (i * 2) + 1, opportunity_charging_capable=False
-            )
-            vts.extend([vt_opp, vt_dep])
-            vt_dict[name] = (vt_opp, vt_dep)
+            vts.append(vt_opp)
+            vt_dict[name] = vt_opp
         return vt_dict, vts
 
     def get_stations(self, scenario, trip_data):
@@ -453,7 +422,7 @@ class SimbaScheduleReader(ScheduleReader):
                 if trip[self.CHARGING_TYPE] != "":
                     trip_d[self.CHARGING_TYPE] = trip[self.CHARGING_TYPE]
                 else:
-                    trip_d[self.CHARGING_TYPE] = self.default_charging_type
+                    trip_d[self.CHARGING_TYPE] = None
 
                 trip_data[rotation_id].append(trip_d)
 
@@ -468,12 +437,6 @@ class SimbaScheduleReader(ScheduleReader):
                 required=True,
                 help_text=".csv Datei mit den Spalten: rotation_id, departure_station, departure_time, "
                 "arrival_station, arrival_time, distance, vehicle_type, charging_type",
-            )
-            default_charging_type = forms.CharField(
-                label="Default Ladetyp",
-                widget=forms.RadioSelect(choices=EnumChargeType.choices),
-                initial=EnumChargeType.choices[0],
-                help_text="Fehlende Einträge in der Fahrplan-Datei werden mit diesem Wert befüllt",
             )
 
         return ScheduleReaderForm

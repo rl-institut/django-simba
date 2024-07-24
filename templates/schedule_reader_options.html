@@ -34,28 +34,6 @@
             </div>
           </div>
         </div>
-        <div class="row mb-4">
-{# Pushes next column into center        #}
-          <div class="col-3"></div>
-          <div class="col-6">
-            <div class="form-check">
-              <input {% if form.default_charging_type.help_text %}title="{{ form.default_charging_type.help_text }}"{% endif %}
-                     class="form-check-input" type="radio" value="depb" name="default_charging_type" id="inp-depb"
-                     checked>
-              <label class="form-check-label" for="inp-depb">
-                Depotlader
-              </label>
-            </div>
-            <div class="form-check">
-              <input {% if form.default_charging_type.help_text %}title="{{ form.default_charging_type.help_text }}"{% endif %}class="form-check-input"
-                     type="radio" value="oppb" name="default_charging_type" id="inp-oppb">
-              <label class="form-check-label" for="inp-oppb">
-                Gelegenheitslader
-              </label>
-            </div>
-          </div>
-                  <span class="col-auto">Welcher Standard-Ladetyp soll angenommen werden?</span>
-        </div>
 
       </fieldset>
     {% endif %}
