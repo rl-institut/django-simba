@@ -162,7 +162,6 @@ class SimbaScheduleReader(ScheduleReader):
         :param: scenario_id: this is the id of the scenario
         """
         try:
-
             self.set_total_work(5)
             self.set_progress(0, "Lese Datei")
             trip_data = self.file_data_to_dict()

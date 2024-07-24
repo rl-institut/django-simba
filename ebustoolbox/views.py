@@ -212,7 +212,6 @@ def get_depots(request: HttpRequest, task_id):
 
 
 def get_stations(request: HttpRequest | None, task_id, form=None):
-
     try:
         scenario = Scenario.objects.get(task_id=task_id)
     except Scenario.DoesNotExist:
