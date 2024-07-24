@@ -22,9 +22,10 @@ from .eflips_plots import (
 )
 
 toc_dict = {
-        'title': ["Tablelle minimaler SOC Werte", "Zeitfolgen", "Aktivitätsdiagramme", "Histogramme"],
-        'id': ['section-1', 'section-2', 'section-3', 'section-4']
-    }
+    "title": ["Tablelle minimaler SOC Werte", "Zeitfolgen", "Aktivitätsdiagramme", "Histogramme"],
+    "id": ["section-1", "section-2", "section-3", "section-4"],
+}
+
 
 def create_layout(app: Dash) -> Div:
     # App layout
@@ -64,20 +65,16 @@ def create_layout(app: Dash) -> Div:
         raise dash.exceptions.PreventUpdate
 
     # Dynamically generate the callback based on the number of sections
-    inputs = [Input(f'button-to-{section_id}', 'n_clicks') for section_id in toc_dict['id']]
-    inputs.append(Input('button-to-toc', 'n_clicks'))
+    inputs = [Input(f"button-to-{section_id}", "n_clicks") for section_id in toc_dict["id"]]
+    inputs.append(Input("button-to-toc", "n_clicks"))
 
-    @app.callback(
-        Output('trigger_toc', 'children'),
-        inputs,
-        prevent_initial_call=True
-    )
+    @app.callback(Output("trigger_toc", "children"), inputs, prevent_initial_call=True)
     def update_output(*args):
         ctx = dash.callback_context
         if not ctx.triggered:
-            button_id = 'button-to-section-1'
+            button_id = "button-to-section-1"
         else:
-            button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+            button_id = ctx.triggered[0]["prop_id"].split(".")[0]
         return button_id
 
     # Generate the clientside callback dynamically using string comprehension
@@ -95,16 +92,16 @@ def create_layout(app: Dash) -> Div:
         }
         return '';
     }
-    """ % ', '.join([f"'{section_id}'" for section_id in toc_dict['id']])
+    """ % ", ".join(
+        [f"'{section_id}'" for section_id in toc_dict["id"]]
+    )
 
     app.clientside_callback(
         scroll_js,
-        Output('garbage-output-0', 'children'),
-        [Input('trigger_toc', 'children')],
-        prevent_initial_call=True
+        Output("garbage-output-0", "children"),
+        [Input("trigger_toc", "children")],
+        prevent_initial_call=True,
     )
-
-
 
     return html.Div(
         [
@@ -198,14 +195,23 @@ def create_layout(app: Dash) -> Div:
                                     children=[
                                         html.Br(),
                                         html.Hr(),
-                                        html.H1('Inhaltsübersicht', id='toc'),
-                                        html.Ul([
-                                            html.Li(html.Button(title, id=f'button-to-{section_id}',
-                                                                style=style.link_style))
-                                            for title, section_id in zip(toc_dict['title'], toc_dict['id'])
-                                        ]),
-                                        html.Div(id='garbage-output-0', style={'display': 'none'}),
-                                        html.Div(id='trigger_toc', style={'display': 'none'}),
+                                        html.H1("Inhaltsübersicht", id="toc"),
+                                        html.Ul(
+                                            [
+                                                html.Li(
+                                                    html.Button(
+                                                        title,
+                                                        id=f"button-to-{section_id}",
+                                                        style=style.link_style,
+                                                    )
+                                                )
+                                                for title, section_id in zip(
+                                                    toc_dict["title"], toc_dict["id"]
+                                                )
+                                            ]
+                                        ),
+                                        html.Div(id="garbage-output-0", style={"display": "none"}),
+                                        html.Div(id="trigger_toc", style={"display": "none"}),
                                         html.Hr(),
                                         html.Div(
                                             children=block_bottom_center(app),

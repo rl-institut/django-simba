@@ -374,7 +374,7 @@ def render_bus_utilization(app: Dash) -> html.Div:
         result_dict = data.get_scenario_duration(task_id)
 
         df = data.get_duration_as_dataframe(s.id, buses)
-        all_rotations_duration = df["duration"].sum()/len(buses)
+        all_rotations_duration = df["duration"].sum() / len(buses)
 
         # Get the data
         lines = [
