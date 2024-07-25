@@ -62,19 +62,22 @@ class UploadFileForm(forms.Form):
     # reduced to the time?
     use_only_time = forms.BooleanField(initial=True, required=False)
 
+class DateRangeField(forms.DateField):
+    def to_python(self, value):
+        values = value.split(' - ')
+        from_date = super(DateRangeField, self).to_python(values[0])
+        to_date = super(DateRangeField, self).to_python(values[1])
+        return from_date, to_date
 
 class SimulationParameters(forms.Form):
     help_text = (
         "Lassen Sie das Feld frei, " "wenn Sie den Start der Simulation nicht beschneiden möchten."
     )
-    simulation_start = forms.DateField(
-        label="Simulationsstart",
-        widget=forms.widgets.DateInput(attrs={"type": "date", "title": help_text}),
-        required=False,
-    )
-    simulation_days = forms.IntegerField(
-        label="Anzahl zu simulierender Tage", initial=1, min_value=1
-    )
+    date_range = DateRangeField(required=False,
+                                widget=forms.TextInput(attrs={'placeholder': 'from',
+                                                              'class': 'form-control datepicker',
+                                                              'name': 'date_range',
+                                                              "title": help_text}))
 
 
 class EbusToolboxForm(forms.Form):

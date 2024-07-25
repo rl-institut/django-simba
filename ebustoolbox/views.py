@@ -148,20 +148,26 @@ def get_simulation_parameters(request: HttpRequest, task_id):
     if request.method == "POST":
         simulation_parameters_form = SimulationParameters(request.POST)
         if simulation_parameters_form.is_valid():
-            time_delta = timedelta(days=simulation_parameters_form.cleaned_data["simulation_days"])
-            start_time = simulation_parameters_form.cleaned_data["simulation_start"]
-            if tasks.get_rotations_by_timespan(scenario, time_delta, start_time).count() > 0:
-                tasks.trim_scenario(scenario, time_delta, start_time)
+            date_range = simulation_parameters_form.cleaned_data['date_range']
+            from_date, to_date = date_range  # Unpack the tuple
+
+            delta = to_date - from_date
+            time_delta = timedelta(days=delta.days + 1)
+
+            if tasks.get_rotations_by_timespan(scenario, time_delta, from_date).count() > 0:
+                tasks.trim_scenario(scenario, time_delta, from_date)
                 return redirect(reverse("simba:vehicle_types", args=[str(task_id)]))
             error = "Zeitspanne enthält keine Umläufe."
             context["error"] = error
+        else:
+            print(simulation_parameters_form.errors)  # Debug: Print form error
 
     trips = Trip.objects.filter(scenario=scenario).order_by("departure_time")
     start = trips.first().departure_time.date().isoformat()
     end = trips.last().arrival_time.date().isoformat()
 
     simulation_parameters_form = SimulationParameters()
-    simulation_parameters_form.fields["simulation_start"].widget.attrs |= {"min": start, "max": end}
+    context |= {'start_date': start, 'end_date': end}
     context |= {"task_id": task_id, "form": simulation_parameters_form}
     return render(request, "simulation_parameters.html", context)
 
