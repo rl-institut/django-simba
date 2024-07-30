@@ -1491,7 +1491,6 @@ class Area(models.Model):
     name = models.TextField(null=True)
     name_short = models.TextField(null=True)
     area_type = models.CharField(max_length=15, choices=AreaType.choices, null=True, default=None)
-    row_count = models.IntegerField(null=True)
     capacity = models.IntegerField(null=False)
     processes = models.ManyToManyField(Process, through="AssocAreaProcess")
 
