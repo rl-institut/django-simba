@@ -1,4 +1,3 @@
-from dash import DiskcacheManager
 from django_plotly_dash import DjangoDash
 from .dash_layout import create_layout
 from dash_bootstrap_components.themes import BOOTSTRAP
