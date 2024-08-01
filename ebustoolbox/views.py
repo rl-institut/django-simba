@@ -148,7 +148,7 @@ def get_simulation_parameters(request: HttpRequest, task_id):
     if request.method == "POST":
         simulation_parameters_form = SimulationParameters(request.POST)
         if simulation_parameters_form.is_valid():
-            date_range = simulation_parameters_form.cleaned_data['date_range']
+            date_range = simulation_parameters_form.cleaned_data["date_range"]
             from_date, to_date = date_range  # Unpack the tuple
 
             delta = to_date - from_date
@@ -167,7 +167,7 @@ def get_simulation_parameters(request: HttpRequest, task_id):
     end = trips.last().arrival_time.date().isoformat()
 
     simulation_parameters_form = SimulationParameters()
-    context |= {'start_date': start, 'end_date': end}
+    context |= {"start_date": start, "end_date": end}
     context |= {"task_id": task_id, "form": simulation_parameters_form}
     return render(request, "simulation_parameters.html", context)
 
@@ -282,7 +282,6 @@ def get_depots(request: HttpRequest, task_id):
 
 
 def get_stations(request: HttpRequest | None, task_id, form=None):
-
     try:
         scenario = Scenario.objects.get(task_id=task_id)
     except Scenario.DoesNotExist:
