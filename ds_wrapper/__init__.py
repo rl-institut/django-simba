@@ -1,6 +1,8 @@
 from environ import environ
 
 
+
+
 class DjangoSimbaWrapper:
     def __init__(self, database_url: str):
         # We need to replace a postgresql:// on the database URL with postgis:// for it to work over here
@@ -41,6 +43,30 @@ class DjangoSimbaWrapper:
         from ebustoolbox.tasks import run_simba_scenario
 
         run_simba_scenario(django_scenario=scenario_id, assign_vehicles=assign_vehicles)
+
+        from django.db import connections
+        for conn in connections.all():
+            conn.close()
+
+    def single_step_electrification(self, scenario_id: int) -> None:
+        """ Run single step electrification once for a scenario. One station will be electrified as long as there are
+        rotations with negative SOC
+
+        :param scenario_id: Scenario which is simulated
+        :return: None
+        """
+
+        from ebustoolbox.tasks import is_consistent
+        from ebustoolbox.models import Scenario
+
+        django_scenario = Scenario.objects.filter(id=scenario_id).first()
+        assert is_consistent(django_scenario)
+        from ebustoolbox.tasks import run_simba_scenario
+        schedule, simbascenario = run_simba_scenario(django_scenario=scenario_id, assign_vehicles=True)
+
+        schedule, simbascenario = run_simba_scenario(
+            django_scenario, simba_scenario=simbascenario, mode="station_optimization_single_step"
+        )
 
         from django.db import connections
         for conn in connections.all():
