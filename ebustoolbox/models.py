@@ -363,6 +363,7 @@ class Consumption(models.Model):
                 fields=["name"], condition=Q(scenario=None), name="unique_without_scenario"
             ),
         ]
+        db_table = "ConsumptionLut"
 
     def __str__(self):
         avg = np.array(self.values).mean()

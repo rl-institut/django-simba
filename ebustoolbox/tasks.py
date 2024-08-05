@@ -261,15 +261,9 @@ def get_schedule_from_db(
     data_container = DataContainer()
     data_container.add_vehicle_types(vehicle_types)
     consumptions = Consumption.objects.filter(scenario__in=[django_scenario, None])
-    warnings.warn(
-        "I have just bypassed the non-existence of temperature with a try-except block. Please fix properly (how? maybe an external temperature file or by adding the temperature table to eflips-model?)"
-    )
-    try:
-        for consumption in consumptions:
-            data_container.add_consumption_data(consumption.name, consumption.to_df())
-    except django.db.utils.ProgrammingError:
-        logger.warning("Consumption not found in database")
-        pass
+
+    for consumption in consumptions:
+        data_container.add_consumption_data(consumption.name, consumption.to_df())
 
     # ToDo this might need refactoring since binding consumption to Trip Class is not versatile
     # in case of parallel schedules / scenarios, since both access the same Consumption
