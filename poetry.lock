@@ -989,10 +989,12 @@ version = "1.2.3"
 description = "A collection of import scripts for converting bus schedule data into the [eflips-model](https://github.com/mpm-tu-berlin/eflips-model) data format."
 optional = false
 python-versions = "<4.0,>=3.10"
-files = [
-    {file = "eflips_ingest-1.2.3-py3-none-any.whl", hash = "sha256:1fb10cf29bc5f01305bd985354b0f4e350d278ca70decedfaf6aeebafedae8f6"},
-    {file = "eflips_ingest-1.2.3.tar.gz", hash = "sha256:04278f1869223e428a991c6e4f749bf272a04d1ded72aefa9a97a2c8e018897c"},
-]
+
+[package.source]
+type = "git"
+url = "https://github.com/mpm-tu-berlin/eflips-ingest.git"
+reference = "main"
+resolved_reference = "6cfbcee80716e2af5437d2a4f9ca870c429e0b57"
 
 [package.dependencies]
 eflips-model = ">=3.1.1,<4.0.0"

@@ -1,3 +1,4 @@
+import dash
 from dash import Dash, html, dcc
 from . import ids
 from .data import get_all_buses_labeled
@@ -20,29 +21,43 @@ def render(app: Dash) -> html.Div:
             Output(ids.BUS_DROPDOWN_RAW, "value"),
             Output(ids.BUS_DROPDOWN_RAW, "options"),
         ],
-        Input(ids.SELECT_ALL_BUSES_BUTTON, "n_clicks"),
+        [
+            Input(ids.SELECT_NO_BUSES_BUTTON, "n_clicks"),
+            Input(ids.SELECT_ALL_BUSES_BUTTON, "n_clicks"),
+        ],
+        prevent_initial_call=False,
     )
-    def select_all_buses(_: int, session_state=None, dash_app=None, **kwargs):
+    def update_bus_selection(
+        no_buses_clicks, all_buses_clicks, session_state=None, dash_app=None, **kwargs
+    ):
         """
-        Selects all buses when the "Select All" button is clicked and updates the dropdown menu accordingly.
+        Updates the dropdown menu based on which button is clicked.
 
-        :param _: The number of clicks on the "Select All" button (unused).
+        :param no_buses_clicks: The number of clicks on the "Select None" button.
+        :param all_buses_clicks: The number of clicks on the "Select All" button.
         :param session_state: State of the session.
         :param dash_app: Dash application instance.
         :param **kwargs: Additional keyword arguments.
 
         :return: A tuple containing two elements:
-            - The list of all buses.
+            - The list of selected bus values.
             - The list of dictionaries representing the options for the dropdown i.e. bus short_names
         :rtype: tuple[list, list]
         """
-        task_id = dash_app.slug
-        vehicle_name_dict, vehicle_name_dict_reverse = get_all_buses_labeled(task_id)
+        ctx = dash.callback_context
+        button_id = ""
+        if len(ctx.triggered) > 0:
+            button_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
-        return list(vehicle_name_dict.keys()), [
-            {"label": bus_label, "value": bus_id}
-            for bus_label, bus_id in vehicle_name_dict_reverse.items()
-        ]
+        if button_id == ids.SELECT_NO_BUSES_BUTTON:
+            return [], []
+        else:
+            task_id = dash_app.slug
+            vehicle_name_dict, vehicle_name_dict_reverse = get_all_buses_labeled(task_id)
+            return list(vehicle_name_dict.keys()), [
+                {"label": bus_label, "value": bus_id}
+                for bus_label, bus_id in vehicle_name_dict_reverse.items()
+            ]
 
     return html.Div(
         children=[
@@ -63,6 +78,12 @@ def render(app: Dash) -> html.Div:
                 className="dropdown-button",
                 children=["Alle auswählen"],
                 id=ids.SELECT_ALL_BUSES_BUTTON,
+            ),
+            # Create a button to select all buses
+            html.Button(
+                className="dropdown-button",
+                children=["Alle abwählen"],
+                id=ids.SELECT_NO_BUSES_BUTTON,
             ),
             # Create a button to select all buses
             html.Button(

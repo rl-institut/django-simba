@@ -106,11 +106,16 @@
   "station": {
     "type": "symbol",
     "layout": {
-      "icon-image": ["step",
-        ["get","electrified"],
-        "busstop",
-        5,"busstop_blue"],
-      "icon-size":  ["interpolate", ["linear"], ["zoom"], 10,0.5, 17, 1],
+      "icon-image": [
+        "case",
+        ["boolean", ["get", "is_depot"], false], "busstop_red",
+        ["step",
+          ["get", "electrified"],
+          "busstop",
+          5, "busstop_blue"
+        ]
+      ],
+      "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.5, 17, 1],
       "icon-allow-overlap": true
     }
   },

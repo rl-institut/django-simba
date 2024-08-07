@@ -36,6 +36,7 @@ from .models import (
     VehicleClass,
 )
 from .tasks import run_simba_scenario
+from .util import get_unique_task_id
 
 TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
 TMP_STATICFILES_DIRS = settings.STATICFILES_DIRS + [settings.BASE_DIR / TMP_UPLOAD]
@@ -66,24 +67,11 @@ class MySeleniumTests(StaticLiveServerTestCase):
     @override_settings(DEBUG=True)
     def test_result_generation_w_celery(self):
         # Get the URL using reverse
-        url = reverse("simba:home")
-        # Simulate a GET request to the URL
-        response = self.client.get(url)
-        # Check response status code (200 OK)
-        self.assertEqual(response.status_code, 200)
-        # Check if the button is present in the response content
-        self.assertContains(response, "simba_submit_button", html=False)
-        form = UploadFileForm()
-        # Use all the initial and set values from the form as post data
-        post_data = {
-            f: form.fields[f].initial if form.fields[f].initial is not None else ""
-            for f in form.fields
-        }
-        # Simulate clicking the button (POST request)
-        response = self.client.post(url, post_data)
-        # Check response status code. Have you been redirected
-        self.assertEqual(response.status_code, 302)
-        url = response.url
+        django_scenario, simba_schedule, args = build_scenario()
+        django_scenario.task_id = get_unique_task_id()
+        django_scenario.save()
+        tasks.run_toolchain_from_scenario(django_scenario, assign_vehicles=True)
+        url = reverse("simba:result", kwargs={"task_id": django_scenario.task_id})
         response = self.client.get(url)
         self.selenium.get(f"{self.live_server_url}{url}")
         time.sleep(2)
