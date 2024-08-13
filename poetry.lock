@@ -962,18 +962,18 @@ simpy = ">=4.0.1,<5.0.0"
 
 [[package]]
 name = "eflips-depot"
-version = "4.0.2"
+version = "4.3.7"
 description = "Depot Simulation for eFLIPS"
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "eflips_depot-4.0.2-py3-none-any.whl", hash = "sha256:2c9eba79057313cdc44fed1fcb36bde51ebaa0a5b34ea480a0568edc7e1c6253"},
-    {file = "eflips_depot-4.0.2.tar.gz", hash = "sha256:fab84b352958fa12bf4bd8d85b5cf6e3ad61afb000605bf3d955a50c920f9c5b"},
+    {file = "eflips_depot-4.3.7-py3-none-any.whl", hash = "sha256:b7e4abc2f906a488597356a82172f8545cedb88f3f52bc80d1b7845e0a807374"},
+    {file = "eflips_depot-4.3.7.tar.gz", hash = "sha256:1899a69d144fd411daa229e346119f2e59e69c48bd5ad99c17e815d4490a445a"},
 ]
 
 [package.dependencies]
 eflips = ">=0.1.3,<0.2.0"
-eflips-model = ">=4.0.0a2,<5.0.0"
+eflips-model = ">=5.0.0,<6.0.0"
 pandas = ">=2.1.4,<3.0.0"
 scipy = ">=1.13.1,<2.0.0"
 simpy = ">=4.0.1,<5.0.0"
@@ -982,19 +982,20 @@ xlsxwriter = ">=3.1.9,<4.0.0"
 
 [[package]]
 name = "eflips-eval"
-version = "1.3.0"
+version = "1.5.2"
 description = ""
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "eflips_eval-1.3.0-py3-none-any.whl", hash = "sha256:9354b4591e83bdc24d2e0544d6d11a6af3cd32a18b587450dd351ba7531f9a75"},
-    {file = "eflips_eval-1.3.0.tar.gz", hash = "sha256:cd13366200ed22f4e52cc2a4de574102490b633d9383c96209a44c8f8dcdf9f0"},
+    {file = "eflips_eval-1.5.2-py3-none-any.whl", hash = "sha256:b965d8b12e1bb6876564820b127130bd5fd1eb2ad060739f5aedabdf5eb2fffb"},
+    {file = "eflips_eval-1.5.2.tar.gz", hash = "sha256:580c7da8893bb80f982e70bc4f676a2225a698ae02a108339f0cdb3915b8e35a"},
 ]
 
 [package.dependencies]
 dash-cytoscape = ">=1.0.1,<2.0.0"
-eflips-model = ">=2.3.0,<5.0.0"
+eflips-model = ">=5.0.0,<6.0.0"
 folium = ">=0.17.0,<0.18.0"
+matplotlib = ">=3.9.0,<4.0.0"
 pandas = ">=2.1.4,<3.0.0"
 plotly = ">=5.19.0,<6.0.0"
 seaborn = ">=0.13.2,<0.14.0"
@@ -1002,17 +1003,17 @@ shapely = ">=2.0.5,<3.0.0"
 
 [[package]]
 name = "eflips-ingest"
-version = "1.2.4"
+version = "1.2.76"
 description = "A collection of import scripts for converting bus schedule data into the [eflips-model](https://github.com/mpm-tu-berlin/eflips-model) data format."
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "eflips_ingest-1.2.4-py3-none-any.whl", hash = "sha256:953a0d8a98501bb5f8bc1d7938052becf3439b474378753e89f72ecb624496cb"},
-    {file = "eflips_ingest-1.2.4.tar.gz", hash = "sha256:9d1ec4cc36c4d63d07798dbd7f938e2bef6327b504633c1e3c182626b30e81da"},
+    {file = "eflips_ingest-1.2.76-py3-none-any.whl", hash = "sha256:7ded6f7253a049c65eb8ec53308d33ccfab006958d4f5657732f9d516374288b"},
+    {file = "eflips_ingest-1.2.76.tar.gz", hash = "sha256:78b2fff3f13a3dfdc9d6d48f9e2e0236f22f735d284d2eee0a34bab9acba515b"},
 ]
 
 [package.dependencies]
-eflips-model = ">=3.1.1,<5.0.0"
+eflips-model = ">=3.1.1,<6.0.0"
 fire = ">=0.5.0,<0.6.0"
 lxml = ">=5.1.0,<6.0.0"
 pyproj = ">=3.6.1,<4.0.0"
@@ -1022,18 +1023,20 @@ tqdm = ">=4.66.1,<5.0.0"
 
 [[package]]
 name = "eflips-model"
-version = "4.0.0a2"
+version = "5.1.4"
 description = "A common data model for the eflips family of electric vehicle simulation & optimization tools."
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "eflips_model-4.0.0a2-py3-none-any.whl", hash = "sha256:2a54196310fff84b8332d2f6bf822a7c767e0787cd318f7ac6b6cbc6c14ffdaa"},
-    {file = "eflips_model-4.0.0a2.tar.gz", hash = "sha256:b46f28bfc93219d060b813ccaf78f6e7a1520683079fc2b4dc19f3ed021d8df4"},
+    {file = "eflips_model-5.1.4-py3-none-any.whl", hash = "sha256:f0f0c7b5b4d606bc96d236bb2b01dfef47840aa0fac7366b2811b68d08f943bb"},
+    {file = "eflips_model-5.1.4.tar.gz", hash = "sha256:8bd837950bdd718fb79c4de166146bf9b30e548d43dbcf1be74447f9e5b7624c"},
 ]
 
 [package.dependencies]
 alembic = ">=1.12.1,<2.0.0"
 geoalchemy2 = ">=0.14.2,<0.15.0"
+numpy = ">=2.0.0,<3.0.0"
+pandas = ">=2.2.2,<3.0.0"
 psycopg2-binary = ">=2.9.9,<3.0.0"
 sqlalchemy = ">=2.0.23,<3.0.0"
 
@@ -2949,4 +2952,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10, <3.12"
-content-hash = "817f616e21d92f0f8c4d1114049288f4adcbe40b1d25a78c58c968ba683b363c"
+content-hash = "1195df2d950eb159d3f8694bc9f136e55bebb484de5e9cb0ff4f0c5775b657ee"
