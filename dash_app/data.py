@@ -196,7 +196,7 @@ def get_number_longest_rot(filter_dict: dict):
     # Function calls annotate distance to Rotation
     longest_rotation = get_longest_distance_rotation(filter_dict)
 
-    if longest_rotation:
+    if longest_rotation and longest_rotation.distance:
         return [f"Längste Rotation {longest_rotation.name}", f"{longest_rotation.distance:.1f} m"]
     else:
         return ["Keine Rotation gefunden!"]
@@ -222,7 +222,7 @@ def get_number_shortest_rot(filter_dict: dict):
     shortest_rotation = get_shortest_distance_rotation(filter_dict)
 
     # Add style if text should have special style
-    if shortest_rotation:
+    if shortest_rotation and shortest_rotation.distance:
         return [
             f"Kürzeste Rotation {shortest_rotation.name}",
             f"{shortest_rotation.distance:.1f} m",

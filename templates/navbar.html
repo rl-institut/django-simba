@@ -71,34 +71,27 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Setzen Sie den Standardwert auf DE
+    // default for selected language
     var selectedLanguage = 'DE';
+    var dropdownElement = document.getElementById('navbarCollapse');
+    var dropdown = new bootstrap.Dropdown(dropdownElement);
 
-    // Funktion zum Aktualisieren des Button-Texts
+    // function to update language button to selected language
     function updateButtonText() {
         var button = document.querySelector('#navbarCollapse button');
-        var buttonText = selectedLanguage.toUpperCase();
-        button.textContent = buttonText;
+        button.textContent = selectedLanguage.toUpperCase();;
     }
 
-    // Funktion zum Ändern der ausgewählten Sprache
     function changeLanguage(lang) {
         selectedLanguage = lang;
         updateButtonText();
     }
 
-    // Initialisieren Sie den Dropdown-Menü
-    var dropdownElement = document.getElementById('navbarCollapse');
-    var dropdown = new bootstrap.Dropdown(dropdownElement);
-
-    // Verwenden Sie das native addEventListener auf dem Dropdown-Element
     dropdownElement.addEventListener('show.bs.dropdown', function () {
-        // Hier können Sie die ausgewählte Sprache basierend auf Benutzereinstellungen oder anderen Logik festlegen
-        // Für dieses Beispiel setzen wir es auf DE
         changeLanguage('DE');
     });
 
-    // Event-Handler für die Auswahl einer Sprache
+    // handle language change
     document.querySelector('.dropdown-menu').addEventListener('click', function(event) {
         if (event.target.matches('.dropdown-item')) {
             var lang = event.target.textContent.toUpperCase();

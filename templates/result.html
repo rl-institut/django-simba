@@ -1,14 +1,9 @@
-{% extends 'base.html'%}
+{% extends 'base.html' %}
 {% block title %}Simulation Results{% endblock %}
 {% block header %}
-  <script>
-  var task_id = "{{task_id }}";
-  console.log(task_id);
-    </script>
 {% endblock %}
 {% block content %}
     {% load static %}
-
     {% if finished %}
         <h1>Simulation {{ task_id }} erfolgreich</h1>
     {% else %}
