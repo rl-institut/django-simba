@@ -32,10 +32,9 @@ Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu
       </div>
       <div class="row" style="min-height: 30vh">
         <div class="col-6 d-flex flex-column justify-content-evenly">
-
             {% if vehicle_types %}
                 {% for vehicle_type in vehicle_types %}
-                    <div class="row mx-1">
+                    <div class="row m-1">
                       <div class="col-6 bg-primary text-white rounded text-center align-content-center">
                         {{ vehicle_type.name }} [{% if vehicle_type.opportunity_charging_capable %}Gelegenheitslader{% else %}Depotlader{% endif %}]
                       </div>

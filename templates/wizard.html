@@ -7,14 +7,18 @@ document.addEventListener("DOMContentLoaded", function() {
     const path = String(window.location.pathname);
 
     var progress = 0;
-    const tabs = ["schedule", "vehicle_types", "depots", "stations", "scenario_overview"];
-    // disable all navitems by default
-    for (let nav of navItems)
+    const tabs = ["schedule","simulation_parameters", "vehicle_types", "depots", "stations", "scenario_overview"];
+    // disable all navitems by default and make them not active
+    for (let nav of navItems) {
         nav.firstElementChild.classList.add('disabled');
+        nav.firstElementChild.classList.remove('active');
+    }
     // set progress bar, enable prior navitems
     for (let i=0; i<navItems.length; i++) {
         if (path.includes('/' + tabs[i] + '/')) {
             // found current tab
+            // activate the tab
+            document.getElementById("nav-link-" + tabs[i]).firstElementChild.classList.add('active');
             // update progress
             progress = (i + 1) * 100 / navItems.length;
             // enable all prior nav links
@@ -26,7 +30,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Calculate progress based on the number of nav items
     progressBar.style.width = progress + '%';
-    progressBar.classList.add('active');
 });
 </script>
 
@@ -36,6 +39,9 @@ document.addEventListener("DOMContentLoaded", function() {
             <ul class="navbar-nav justify-content-between w-100">
                 <li id="nav-link-schedule" class="nav-item">
                     <a class="nav-link active" href="{% url 'simba:schedule' %}">Fahrplan</a>
+                </li>
+                              <li id="nav-link-simulation_parameters" class="nav-item">
+                    <a class="nav-link" href="{% url 'simba:simulation_parameters' task_id=task_id%}">Simulations Parameter</a>
                 </li>
                 <li id="nav-link-vehicle_types" class="nav-item">
                     <a class="nav-link" href="{% url 'simba:vehicle_types' task_id=task_id %}">Fahrzeugtypen</a>

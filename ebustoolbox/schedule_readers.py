@@ -210,6 +210,7 @@ class SimbaScheduleReader(ScheduleReader):
         lines = []
         line_dict = dict()
         routes = list()
+        existing_routes = dict()
         trip_overlap_errors = []  # collect trips that overlap
         duration_errors = []  # collect trips that have no or negative duration
         trip_previous_station_errors = {}  # collect trips that don't end at their previous depot
@@ -249,14 +250,34 @@ class SimbaScheduleReader(ScheduleReader):
                     line_dict[trip[self.LINE]] = line
                 line = line_dict[trip[self.LINE]]
 
-                route = Route(
-                    name=trip[self.DEPARTURE_NAME] + " - " + trip[self.ARRIVAL_NAME],
-                    scenario=scenario,
-                    departure_station=station_dict[trip[self.DEPARTURE_NAME]],
-                    arrival_station=station_dict[trip[self.ARRIVAL_NAME]],
-                    distance=trip[self.DISTANCE],
-                    line=line,
+                route = existing_routes.get(
+                    (
+                        station_dict[trip[self.DEPARTURE_NAME]].id,
+                        station_dict[trip[self.ARRIVAL_NAME]].id,
+                        trip[self.DISTANCE],
+                        line,
+                    )
                 )
+                if not route:
+                    route = Route(
+                        name=trip[self.DEPARTURE_NAME] + " - " + trip[self.ARRIVAL_NAME],
+                        scenario=scenario,
+                        departure_station=station_dict[trip[self.DEPARTURE_NAME]],
+                        arrival_station=station_dict[trip[self.ARRIVAL_NAME]],
+                        distance=trip[self.DISTANCE],
+                        line=line,
+                    )
+                    existing_routes[
+                        (
+                            station_dict[trip[self.DEPARTURE_NAME]].id,
+                            station_dict[trip[self.ARRIVAL_NAME]].id,
+                            trip[self.DISTANCE],
+                            line,
+                        )
+                    ] = route
+                    route.pk = route_id
+                    route_id += 1
+                    routes.append(route)
 
                 # handle timezone-related issues: force aware in UTC. Mainly for display reasons
                 departure_time = trip[self.DEPARTURE_TIME]
@@ -277,12 +298,7 @@ class SimbaScheduleReader(ScheduleReader):
                 )
 
                 t.pk = trip_id
-                route.pk = route_id
-
                 trip_id += 1
-                route_id += 1
-
-                routes.append(route)
                 trips.append(t)
 
         # handle collected errors
@@ -398,7 +414,7 @@ class SimbaScheduleReader(ScheduleReader):
         unique_stations = unique_arrival_stations.union(unique_departure_stations)
         last_id = 1 if Station.objects.last() is None else Station.objects.last().id + 1
         for i, name in enumerate(unique_stations):
-            station = Station(scenario=scenario, name=name, id=last_id + i)
+            station = Station(scenario=scenario, name=name, name_short=name, id=last_id + i)
             if name in depot_stations:
                 station.is_electrified = True
                 station.charge_type = EnumChargeType.DEPOT.value

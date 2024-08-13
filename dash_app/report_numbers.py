@@ -1,4 +1,6 @@
 from dash import Dash, html, dash_table
+from dash.exceptions import PreventUpdate
+
 from . import ids, data
 from dash.dependencies import Input, Output, State  # no fa401
 from .data import (
@@ -39,8 +41,14 @@ def render_longest_rotation(app: Dash) -> html.Div:
         lines = get_number_longest_rot(filter_dict)
 
         styles = [
-            {"fontSize": "25px", "position": "relative", "top": "0", "left": "0"},
-            {"fontSize": "48px", "textAlign": "center"},
+            {
+                "fontFamily": "Helvetica",
+                "fontSize": "25px",
+                "position": "relative",
+                "top": "0",
+                "left": "0",
+            },
+            {"fontFamily": "Helvetica", "fontSize": "48px", "textAlign": "center"},
         ]
 
         html_div = []
@@ -79,8 +87,14 @@ def render_shortest_rotation(app: Dash) -> html.Div:
         lines = get_number_shortest_rot(filter_dict)
 
         styles = [
-            {"fontSize": "25px", "position": "relative", "top": "0", "left": "0"},
-            {"fontSize": "48px", "textAlign": "center"},
+            {
+                "fontFamily": "Helvetica",
+                "fontSize": "25px",
+                "position": "relative",
+                "top": "0",
+                "left": "0",
+            },
+            {"fontFamily": "Helvetica", "fontSize": "48px", "textAlign": "center"},
         ]
 
         html_div = []
@@ -119,8 +133,14 @@ def render_number_of_buses(app: Dash) -> html.Div:
         lines = get_number_of_buses(filter_dict)
 
         styles = [
-            {"fontSize": "25px", "position": "relative", "top": "0", "left": "0"},
-            {"fontSize": "48px", "textAlign": "center"},
+            {
+                "fontFamily": "Helvetica",
+                "fontSize": "25px",
+                "position": "relative",
+                "top": "0",
+                "left": "0",
+            },
+            {"fontFamily": "Helvetica", "fontSize": "48px", "textAlign": "center"},
         ]
 
         html_div = []
@@ -162,7 +182,7 @@ def critical_rotations(app: Dash) -> html.Div:
         # Generate HTML table dynamically
         table = html.Div(
             [
-                html.Div(style={"height": "50px"}),  # Spacing div after table
+                html.Div(style={"height": "50px"}),  # Spacing div before table
                 dash_table.DataTable(
                     id="table",
                     columns=[
@@ -172,9 +192,11 @@ def critical_rotations(app: Dash) -> html.Div:
                     ],
                     data=df_sorted.to_dict("records"),
                     page_size=10,  # set the maximum number of rows per page
+                    style_cell={"font-family": "Helvetica"},  # set font to Helvetica
                 ),
                 html.Div(style={"height": "75px"}),  # Spacing div after table
-            ]
+            ],
+            style={"font-family": "Helvetica"},  # set font to Helvetica
         )
 
         return table
@@ -214,8 +236,14 @@ def render_total_distance(app: Dash) -> html.Div:
         ]
 
         styles = [
-            {"fontSize": "25px", "position": "relative", "top": "0", "left": "0"},
-            {"fontSize": "48px", "textAlign": "center"},
+            {
+                "fontFamily": "Helvetica",
+                "fontSize": "25px",
+                "position": "relative",
+                "top": "0",
+                "left": "0",
+            },
+            {"fontFamily": "Helvetica", "fontSize": "48px", "textAlign": "center"},
         ]
 
         html_div = []
@@ -247,7 +275,6 @@ def render_avg_consumption(app: Dash) -> html.Div:
     def update_avg_consumption(
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
-        # print("updating numbers")
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
@@ -255,16 +282,24 @@ def render_avg_consumption(app: Dash) -> html.Div:
         total_consumption = get_total_consumption(s)
         vehicle_name_dict, vehicle_name_dict_reverse = data.get_all_buses_labeled(task_id)
         buses = list(vehicle_name_dict.keys())
-        dist_df = get_distances_as_dataframe(s.id, buses)
 
+        dist_df = get_distances_as_dataframe(s.id, buses)
+        if len(buses) == 0 or len(dist_df) == 0:
+            raise PreventUpdate
         lines = [
             "Durchschnittlicher Energieverbrauch:",
             str(round(total_consumption / (dist_df["total_distance"].sum() / 1000), 3)) + " kWh/km",
         ]
 
         styles = [
-            {"fontSize": "25px", "position": "relative", "top": "0", "left": "0"},
-            {"fontSize": "48px", "textAlign": "center"},
+            {
+                "fontFamily": "Helvetica",
+                "fontSize": "25px",
+                "position": "relative",
+                "top": "0",
+                "left": "0",
+            },
+            {"fontFamily": "Helvetica", "fontSize": "48px", "textAlign": "center"},
         ]
 
         html_div = []
@@ -304,8 +339,14 @@ def render_number_stations(app: Dash) -> html.Div:
         lines = get_number_of_stations(task_id)
 
         styles = [
-            {"fontSize": "25px", "position": "relative", "top": "0", "left": "0"},
-            {"fontSize": "48px", "textAlign": "center"},
+            {
+                "fontFamily": "Helvetica",
+                "fontSize": "25px",
+                "position": "relative",
+                "top": "0",
+                "left": "0",
+            },
+            {"fontFamily": "Helvetica", "fontSize": "48px", "textAlign": "center"},
         ]
 
         html_div = []
@@ -330,14 +371,30 @@ def render_bus_utilization(app: Dash) -> html.Div:
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         # print("updating numbers")
-        # task_id = dash_app.slug
+        task_id = dash_app.slug
+        s = Scenario.objects.get(task_id=task_id)
+
+        result_dict = data.get_scenario_duration(task_id)
+
+        df = data.get_duration_as_dataframe(s.id, buses)
+        all_rotations_duration = df["duration"].sum()
 
         # Get the data
-        lines = ["TODO", "TODO"]
+        lines = [
+            "Durchschnittliche Busauslastung:",
+            str(round((result_dict["duration"].total_seconds() / all_rotations_duration) * 100, 3))
+            + " %",
+        ]
 
         styles = [
-            {"fontSize": "25px", "position": "relative", "top": "0", "left": "0"},
-            {"fontSize": "48px", "textAlign": "center"},
+            {
+                "fontFamily": "Helvetica",
+                "fontSize": "25px",
+                "position": "relative",
+                "top": "0",
+                "left": "0",
+            },
+            {"fontFamily": "Helvetica", "fontSize": "48px", "textAlign": "center"},
         ]
 
         html_div = []
@@ -348,3 +405,39 @@ def render_bus_utilization(app: Dash) -> html.Div:
         return html.Div(number_divs, id=ids.BUS_UTILIZATION)
 
     return html.Div(id=ids.BUS_UTILIZATION)
+
+
+def render_station_most_served(app: Dash) -> html.Div:
+    """ """
+
+    @app.callback(
+        Output(ids.STATION_MOST_SERVED, "children"),
+        Input(ids.APPLY_DROPDOWN, "n_clicks"),
+        State(ids.BUS_DROPDOWN, "data"),
+    )
+    def update_station_most_served(
+        _, buses: list[str], session_state=None, dash_app=None, **kwargs
+    ) -> html.Div:
+        # print("updating numbers")
+        task_id = dash_app.slug
+
+        lines = data.get_frequently_served_station(task_id)
+        styles = [
+            {
+                "fontFamily": "Helvetica",
+                "fontSize": "25px",
+                "position": "relative",
+                "top": "0",
+                "left": "0",
+            },
+            {"fontFamily": "Helvetica", "fontSize": "48px", "textAlign": "center"},
+        ]
+
+        html_div = []
+
+        for line, style in zip(lines, styles):
+            html_div.append(html.H2(line, style=style))
+        number_divs = html.Div(html_div)
+        return html.Div(number_divs, id=ids.STATION_MOST_SERVED)
+
+    return html.Div(id=ids.STATION_MOST_SERVED)

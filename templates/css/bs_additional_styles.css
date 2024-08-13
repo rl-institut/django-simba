@@ -2,6 +2,9 @@ body {
   padding: 1.5rem;
 }
 
+input{
+    width: 100%;
+}
 
 .custom-btn {
     display: flex;
