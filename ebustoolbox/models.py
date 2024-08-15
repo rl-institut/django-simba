@@ -590,7 +590,7 @@ class Rotation(models.Model):
 
     # SimBA specific data to make SimBA simulations reproducible
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_DEFAULT, default=None, null=True)
-    allow_opportunity_charging = models.BooleanField(default=None, null=False)
+    allow_opportunity_charging = models.BooleanField(default=True, null=False)
 
     def get_distance(self):
         return Route.objects.filter(trip__rotation=self).aggregate(Sum("distance"))
