@@ -107,15 +107,17 @@ Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu
 
         </div>
       </div>
-      <!-- dummy vehicle types get default vehicle type values -->
-      {% include 'continue_button.html' %}
+      <div>
+        {% include 'continue_button.html' %}
+        <!-- dummy vehicle types get default vehicle type values -->
+        {% if skippable %}
+          <div class="container d-flex justify-content-center p-0 bg-light">
+                <!-- Move Forward Button -->
+                <a class="btn btn-secondary" href="{% url 'simba:depots' task_id %}">Überspringen</a>
+          </div>
+        {% endif %}
+      </div>
     </form>
-  {% if skippable %}
-    <div class="container d-flex justify-content-center p-0 bg-light">
-          <!-- Move Forward Button -->
-          <a class="btn btn-secondary" href="{% url 'simba:depots' task_id %}">Überspringen</a>
-    </div>
-  {% endif %}
   </div>
   <script>
       {% for default_vehicle_type in default_vehicle_types %}

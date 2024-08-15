@@ -48,7 +48,7 @@
         {% if scenario.finished %}
           <a href="{% url 'simba:result' task_id=scenario.task_id %}">{{ scenario.name }}</a>
         {% else %}
-          <a href="{% url 'simba:vehicle_types' task_id=scenario.task_id %}">{{ scenario.name }}</a>
+          <a href="{% url 'simba:simulation_parameters' task_id=scenario.task_id %}">{{ scenario.name }}</a>
         {% endif %}
       </td>
       <td>
