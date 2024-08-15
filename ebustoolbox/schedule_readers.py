@@ -128,6 +128,7 @@ class SimbaScheduleReader(ScheduleReader):
         self.default_capacity = 99.99
         self.encoding = "utf-8"
         self.progress: Progress = None
+        self.vehicles_opportunity_charging_capable = True
 
         self.DEPARTURE_NAME = "departure_name"
         self.DEPARTURE_TIME = "departure_time"
@@ -135,7 +136,6 @@ class SimbaScheduleReader(ScheduleReader):
         self.ARRIVAL_NAME = "arrival_name"
         self.DISTANCE = "distance"
         self.VEHICLE_TYPE = "vehicle_type"
-        self.CHARGING_TYPE = "charging_type"
         self.LINE = "line"
         self.ROTATION_ID = "rotation_id"
 
@@ -323,8 +323,6 @@ class SimbaScheduleReader(ScheduleReader):
             i += 1
             if not (len({t[self.VEHICLE_TYPE] for t in trip_data[rotation_id]}) == 1):
                 self.errors.append(f"Umlauf {rotation_id} enthält mehrere Fahrzeugtypen")
-            if not (len({t[self.CHARGING_TYPE] for t in trip_data[rotation_id]}) == 1):
-                self.errors.append(f"Umlauf {rotation_id} enthält mehrere Ladetypen")
             first_trip = trips[0]
             vt = vt_dict[first_trip[self.VEHICLE_TYPE]]
             rot = Rotation(
@@ -351,7 +349,8 @@ class SimbaScheduleReader(ScheduleReader):
                 "charging_curve": [[0, self.default_capacity], [1, self.default_capacity]],
             }
             vt_opp = VehicleType(
-                **default_params, id=last_id + (i * 2) + 0, opportunity_charging_capable=True
+                **default_params, id=last_id + i,
+                opportunity_charging_capable=self.vehicles_opportunity_charging_capable
             )
             vts.append(vt_opp)
             vt_dict[name] = vt_opp
@@ -406,7 +405,6 @@ class SimbaScheduleReader(ScheduleReader):
                 self.ARRIVAL_NAME,
                 self.ROTATION_ID,
                 self.VEHICLE_TYPE,
-                self.CHARGING_TYPE,
                 self.LINE,
             ]:
                 if column not in trip.keys():
@@ -434,10 +432,6 @@ class SimbaScheduleReader(ScheduleReader):
                     self.LINE: trip[self.LINE],
                     "row": i + 2,  # line numbers start at 1 instead of 0, skip header
                 }
-                if trip[self.CHARGING_TYPE] != "":
-                    trip_d[self.CHARGING_TYPE] = trip[self.CHARGING_TYPE]
-                else:
-                    trip_d[self.CHARGING_TYPE] = None
 
                 trip_data[rotation_id].append(trip_d)
 
@@ -451,7 +445,7 @@ class SimbaScheduleReader(ScheduleReader):
                 label="Fahrplan Datei (.csv)",
                 required=True,
                 help_text=".csv Datei mit den Spalten: rotation_id, departure_station, departure_time, "
-                "arrival_station, arrival_time, distance, vehicle_type, charging_type",
+                "arrival_station, arrival_time, distance, vehicle_type",
             )
 
         return ScheduleReaderForm
