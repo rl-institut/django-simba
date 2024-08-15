@@ -19,6 +19,13 @@ Template:
 
 ## [x.x.x] - Unreleased
 ### Changed
+- [(#124)](https://github.com/rl-institut/django-simba/pull/108)
+- Make Area.VehicleType nullable (a None VehicleType represents "any").
+
+
+
+## [x.x.x] - Unreleased
+### Changed
 - [(#108)](https://github.com/rl-institut/django-simba/pull/108)
 - Add depot input page
 - Add new default vehicle types
