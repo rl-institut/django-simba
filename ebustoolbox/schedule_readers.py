@@ -349,8 +349,9 @@ class SimbaScheduleReader(ScheduleReader):
                 "charging_curve": [[0, self.default_capacity], [1, self.default_capacity]],
             }
             vt_opp = VehicleType(
-                **default_params, id=last_id + i,
-                opportunity_charging_capable=self.vehicles_opportunity_charging_capable
+                **default_params,
+                id=last_id + i,
+                opportunity_charging_capable=self.vehicles_opportunity_charging_capable,
             )
             vts.append(vt_opp)
             vt_dict[name] = vt_opp
