@@ -9,5 +9,11 @@
 
         <!-- Move Forward Button -->
         <button class="btn btn-primary" type="submit">Weiter</button>
+        {% if skippable %}
+          <div class="container d-flex justify-content-center p-0 bg-light">
+                <!-- Move Forward Button -->
+                <a class="btn btn-secondary" href="{{ skippable }}">Überspringen</a>
+          </div>
+        {% endif %}
     </div>
 </div>
