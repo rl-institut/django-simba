@@ -212,7 +212,7 @@ def get_vehicle_types(request: HttpRequest, task_id):
     context["default_vehicle_types_adjustment_form"] = VehicleTypesAdjustmentForm()
 
     # check if can be skipped by seeing if vehicle types have relevant data
-    skippable = True
+    skippable = reverse("simba:depots", args=[str(task_id)])
     for vt in vehicle_types:
         if vt.consumption is None:
             skippable = False
