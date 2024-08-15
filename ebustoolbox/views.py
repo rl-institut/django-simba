@@ -210,6 +210,15 @@ def get_vehicle_types(request: HttpRequest, task_id):
     context["vehicle_types"] = vehicle_types
     context["default_vehicle_types"] = default_vehicle_types
     context["default_vehicle_types_adjustment_form"] = VehicleTypesAdjustmentForm()
+
+    # check if can be skipped by seeing if vehicle types have relevant data
+    skippable = True
+    for vt in vehicle_types:
+        if vt.consumption is None:
+            skippable = False
+            break
+    context["skippable"] = skippable
+
     if request.method == "POST":
         vehicle_type_pairs = request.POST.getlist("vehicle_type_dropdown")
         if not vehicle_type_pairs:
