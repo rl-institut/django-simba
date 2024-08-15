@@ -1349,7 +1349,12 @@ def run_eflips(task_id) -> None:
     generate_depot_layout(
         db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=True
     )
-    simulate_scenario(db_scenario, database_url=db_url)
+
+    # calculate total scenario time for eflips repetition period
+    last_trip_time = Trip.objects.filter(scenario=db_scenario).aggregate(Max("arrival_time"))
+    first_trip_time = Trip.objects.filter(scenario=db_scenario).aggregate(Min("departure_time"))
+    period = last_trip_time["arrival_time__max"] - first_trip_time["departure_time__min"]
+    simulate_scenario(db_scenario, database_url=db_url, repetition_period=period)
 
 
 def create_db_url():
