@@ -568,6 +568,8 @@ def run_simulation(request: HttpRequest, task_id: str):
             # the progress view will be triggered with the task_id and progress type
             logger.info("Running Toolchain.")
             async_result = tasks.run_toolchain_from_scenario(scenario, assign_vehicles=True)
+            if "ebus_map" in settings.INSTALLED_APPS:
+                create_stations_for_map(scenario)
 
             context["progress_id"] = async_result.task_id
             response = render(request, "progress_poll.html", context)
