@@ -155,7 +155,10 @@ def get_simulation_parameters(request: HttpRequest, task_id):
             time_delta = timedelta(days=delta.days + 1)
 
             if tasks.get_rotations_by_timespan(scenario, time_delta, from_date).count() > 0:
+                # Remove rotations from the timespan
                 tasks.trim_scenario(scenario, time_delta, from_date)
+                # Used for clearing up depots without rotations
+                tasks.trim_depots(scenario, [])
                 return redirect(reverse("simba:vehicle_types", args=[str(task_id)]))
             error = "Zeitspanne enthält keine Umläufe."
             context["error"] = error
