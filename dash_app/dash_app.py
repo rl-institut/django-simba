@@ -4,6 +4,8 @@ from dash_bootstrap_components.themes import BOOTSTRAP
 from django.apps import apps
 
 # create basic stateless app
+
+
 app = DjangoDash(
     "SimpleExampleApp", add_bootstrap_links=True, external_stylesheets=[BOOTSTRAP]
 )  # replaces dash.Dash

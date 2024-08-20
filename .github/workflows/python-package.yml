@@ -7,8 +7,7 @@ on:
     branches:
       - dev
 env:
-  PYTHON_VERSION: "3.11"
-  POETRY_VERSION: "1.4.2"
+  POETRY_VERSION: "1.8.3"
   POETRY_URL: https://install.python-poetry.org
 
 jobs:
@@ -19,13 +18,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, windows-latest ]
-        python-version: [ "3.11" ]
+        python-version: [ "3.10", "3.11" ]
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -40,6 +39,10 @@ jobs:
           black ebustoolbox/*.py --check
   Runner-job-of-Django-Tests-with-DB-Setup:
     needs: dev-tools
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.10", "3.11" ]
     # You must use a Linux environment when using service containers or container jobs
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -74,7 +77,7 @@ jobs:
           ssh-private-key: |
             ${{ secrets.EFLIPS_DEPOT_KEY }}
       - name: Check out repository code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set Up Gdal
         run: |
           sudo apt-get update
@@ -83,10 +86,10 @@ jobs:
 
       - name: setup-chromedriver
         uses: nanasess/setup-chromedriver@v2.2.0
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ matrix.python-version }}
       - name: Install poetry
         run: |
           python -m pip install --upgrade pip

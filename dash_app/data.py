@@ -5,7 +5,6 @@ This way data should be easily swappable, while the dash_layout allows for swapp
 import warnings
 import logging
 
-
 from ebustoolbox.models import (
     Scenario,
     Event,
@@ -17,9 +16,9 @@ from ebustoolbox.models import (
     Station,
     EventType,
     Trip,
+    Route,
 )
 import pandas as pd
-from django.db.models import Count
 from dash.exceptions import PreventUpdate
 
 # Maximum number of cached results per function
@@ -51,7 +50,7 @@ def vid_human_readable(vehicle: Vehicle, counter, name="", c_type=False, rotatio
 def get_total_consumption(s: Scenario):
     vehicles = Vehicle.objects.filter(scenario_id=s.id)
 
-    df = get_all_event_info(s.id)
+    df = recent_memoizer(get_all_event_info, s.id)(s.id)
 
     # Convert time columns to datetime
     df["time_start"] = pd.to_datetime(df["time_start"])
@@ -175,6 +174,39 @@ def get_number_of_stations(task_id: str) -> list[str]:
     ]
 
 
+def get_frequently_served_station(task_id: str) -> list[str]:
+    s = Scenario.objects.get(task_id=task_id)
+    df = recent_memoizer(get_all_routes, s.id)(s.id)
+
+    # Finding the most common item in a specific column
+    most_common_station = df["arrival_station_id"].mode()[0]
+    frequency = df["arrival_station_id"].value_counts()[most_common_station]
+
+    station = Station.objects.get(scenario_id=s.id, id=most_common_station)
+
+    return [
+        "Am häufigsten angefahrene Station:",
+        f"{station.name},  {frequency} mal",
+    ]
+
+
+def get_scenario_duration(task_id: str) -> dict:
+    s = Scenario.objects.get(task_id=task_id)
+    df = recent_memoizer(get_all_event_info, s.id)(s.id)
+
+    # Convert time columns to datetime
+    df["time_start"] = pd.to_datetime(df["time_start"])
+    df["time_end"] = pd.to_datetime(df["time_end"])
+
+    start = df["time_start"].min()
+    end = df["time_end"].max()
+
+    duration = end - start
+
+    result_dict = {"start": start, "end": end, "duration": duration}
+    return result_dict
+
+
 def get_number_longest_rot(filter_dict: dict):
     """
     Gets the longest rotation distance and its associated name based on the provided filter criteria.
@@ -196,7 +228,7 @@ def get_number_longest_rot(filter_dict: dict):
     # Function calls annotate distance to Rotation
     longest_rotation = get_longest_distance_rotation(filter_dict)
 
-    if longest_rotation:
+    if longest_rotation and longest_rotation.distance:
         return [f"Längste Rotation {longest_rotation.name}", f"{longest_rotation.distance:.1f} m"]
     else:
         return ["Keine Rotation gefunden!"]
@@ -222,7 +254,7 @@ def get_number_shortest_rot(filter_dict: dict):
     shortest_rotation = get_shortest_distance_rotation(filter_dict)
 
     # Add style if text should have special style
-    if shortest_rotation:
+    if shortest_rotation and shortest_rotation.distance:
         return [
             f"Kürzeste Rotation {shortest_rotation.name}",
             f"{shortest_rotation.distance:.1f} m",
@@ -412,12 +444,14 @@ def get_vehicle_types(scenario_id, buses):
     :rtype: pandas.DataFrame
     """
     filter_dict = dict(scenario_id=scenario_id)
+    vehicle_type_counts = []
+    for vt in VehicleType.objects.filter(**filter_dict):
+        count = Vehicle.objects.filter(pk__in=buses, vehicle_type=vt).count()
+        if count == 0:
+            continue
+        vehicle_type_counts.append({"name": vt.name, "count": count})
 
-    values_with_counts = (
-        VehicleType.objects.filter(**filter_dict).values("name").annotate(count=Count("name"))
-    )
-    df = pd.DataFrame(values_with_counts)
-
+    df = pd.DataFrame(vehicle_type_counts)
     return df
 
 
@@ -446,9 +480,17 @@ def get_critical_rotations_as_dataframe(scenario_id, buses):
         lambda x: "Nicht kritisch" if x > CRITICAL_SOC else "kritisch"
     )
 
-    return pd.DataFrame(
-        df["SOC_category"].value_counts().reset_index().values, columns=["Category", "Count"]
-    )
+    category_counts = df["SOC_category"].value_counts()
+
+    # Ensure all categories are included, even if the count is zero
+    all_categories = ["Nicht kritisch", "kritisch"]
+    category_counts = category_counts.reindex(all_categories, fill_value=0)
+
+    # Convert to DataFrame suitable for plotly
+    category_counts_df = category_counts.reset_index()
+    category_counts_df.columns = ["Category", "Count"]
+
+    return category_counts_df
 
 
 def apply_id(rotation):
@@ -477,6 +519,16 @@ def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
 
     df["V_id"] = df["V_id"].apply(lambda x: v_dict[x])
     df["R_id"] = df["R_id"].apply(lambda x: r_dict[x])
+
+    return df
+
+
+def get_all_routes(scenario_id):
+    qs = Route.objects.filter(scenario_id=scenario_id)
+
+    # Convert the QuerySet to a DataFrame
+    data = list(qs.values())
+    df = pd.DataFrame(data)
 
     return df
 
@@ -548,6 +600,7 @@ def get_all_event_info(scenario_id):
                         if vehicle_rotation is not None:
                             raise Exception("Multiple rotations detected")
                         vehicle_rotation = rot
+
                 else:
                     if vehicle_rotation is None and first_warning:
                         warnings.warn(
@@ -659,7 +712,12 @@ def get_all_powerdraw_as_dataframe(scenario_id):
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
     scenario = Scenario.objects.get(id=scenario_id)
     all_stations = Station.objects.filter(scenario_id=scenario_id)
-    stations_name_short_dict = {station.id: station.name_short for station in all_stations}
+    stations_name_short_dict = {}
+    for station in all_stations:
+        if station.name_short is not None:
+            stations_name_short_dict[station.id] = station.name_short
+        else:
+            stations_name_short_dict[station.id] = station.name
 
     # Fetch battery capacity and charging efficiency for all vehicle types
     vehicle_types = VehicleType.objects.in_bulk([vehicle.vehicle_type_id for vehicle in vehicles])

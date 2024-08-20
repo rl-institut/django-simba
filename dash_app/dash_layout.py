@@ -1,5 +1,5 @@
 import dash.exceptions
-from dash import Dash, html, dcc, Output, Input, State
+from dash import Dash, State, html, dcc, Input, Output
 from dash.html import Div
 
 from ebustoolbox.models import Scenario
@@ -12,6 +12,12 @@ from . import (
     piechart,
     data,
     ids,
+)
+from .eflips_plots import (
+    get_ganttchart_scenario_eflips,
+    get_vehicle_soc_plot_eflips,
+    get_power_and_occupancy_plot_eflips,
+    get_vehicle_by_click_eflips,
 )
 
 
@@ -32,11 +38,15 @@ def create_layout(app: Dash) -> Div:
     def memoize_all_data(buses: list[str], session_state=None, dash_app=None, **kwargs):
         scenario = Scenario.objects.get(task_id=dash_app.slug)
         _ = data.recent_memoizer(data.get_all_event_info, scenario.id)(scenario.id)
-        _ = data.recent_memoizer(data.get_all_powerdraw_as_dataframe, scenario.id)(scenario.id)
-        _ = data.recent_memoizer(data.get_all_trip_info, scenario.id)(scenario.id)
         _ = data.recent_memoizer(data.get_vehicle_dictionaries, scenario.id)(scenario.id)
+        _ = data.recent_memoizer(data.get_all_trip_info, scenario.id)(scenario.id)
+        _ = data.recent_memoizer(data.get_all_routes, scenario.id)(scenario.id)
+        _ = data.recent_memoizer(data.get_all_powerdraw_as_dataframe, scenario.id)(scenario.id)
         _ = data.recent_memoizer(data.get_rotation_dictionaries, scenario.id)(scenario.id)
-        return True, buses
+        return (
+            True,
+            buses,
+        )
 
     @app.callback(
         Output(ids.APPLY_DROPDOWN, "n_clicks"),
@@ -66,6 +76,7 @@ def create_layout(app: Dash) -> Div:
                             "display": "inline-block",
                             "width": "100%",
                             "verticalAlign": "top",
+                            "display": "none",
                         },
                     ),
                     dcc.Loading(
@@ -147,6 +158,49 @@ def create_layout(app: Dash) -> Div:
                                         ),
                                     ],
                                 ),
+                                dcc.Tab(
+                                    label="Depot Plots",
+                                    disabled=False,
+                                    children=[
+                                        register_eflips_callbacks(app),
+                                        html.H1(
+                                            children="Simulation results of eflips-depot",
+                                            style={"font": "arial"},
+                                        ),
+                                        dcc.Store(id="task_id"),
+                                        html.Div("Select a color-scheme:"),
+                                        dcc.Dropdown(
+                                            ["Event Type", "State of Charge", "Location"],
+                                            "Event Type",
+                                            id="color-scheme-dropdown",
+                                            style={"width": "30%"},
+                                        ),
+                                        html.H2(id="scenario-name"),
+                                        html.H2(id="num-vehicles"),
+                                        html.Div("Click on a bar to reveal the vehicle log."),
+                                        html.Div(
+                                            "Click on a group in legend to hide/show the group."
+                                        ),
+                                        dcc.Graph(id="gantt-chart"),
+                                        html.Div(
+                                            children=[
+                                                html.H2(children="SoC-log of vehicle:"),
+                                                html.Div(
+                                                    id="click-data", style={"font-size": "20"}
+                                                ),
+                                                dcc.Graph(id="vehicle-soc-plot"),
+                                            ]
+                                        ),
+                                        html.Div(
+                                            children=[
+                                                html.H2(
+                                                    children="Power and occupancy of current depot"
+                                                ),
+                                                dcc.Graph(id="power-and-occupancy-plot"),
+                                            ]
+                                        ),
+                                    ],
+                                ),
                             ]
                         ),
                     ),
@@ -154,6 +208,13 @@ def create_layout(app: Dash) -> Div:
             ),
         ]
     )
+
+
+def register_eflips_callbacks(app):
+    get_ganttchart_scenario_eflips(app)
+    get_vehicle_by_click_eflips(app)
+    get_vehicle_soc_plot_eflips(app)
+    get_power_and_occupancy_plot_eflips(app)
 
 
 def block_first_third(app) -> list[html.Div]:
@@ -176,10 +237,13 @@ def block_bottom_center(app):
     return [
         report_numbers.critical_rotations(app),
         scatter_chart.render(app),
-        scatter_chart.render_power_draw(app),
-        scatter_chart.render_station_occupation(app),
+        # scatter_chart.render_power_draw(app),
+        # scatter_chart.render_scenario_powerdraw(app),
+        # scatter_chart.render_single_station_occupation(app),
+        # scatter_chart.render_station_occupation(app),
         activities_chart.render(app),
         histograms.render_minimal_soc(app),
+        histograms.render_minimal_soc_per_rotation(app),
         histograms.render_rotation_duration(app),
         histograms.render_rotation_distance(app),
         histograms.render_dist_dur(app),
@@ -195,7 +259,8 @@ def block_top_left_KPI(app) -> list[html.Div]:
         report_numbers.render_total_distance(app),
         report_numbers.render_avg_consumption(app),
         report_numbers.render_number_stations(app),
-        # report_numbers.render_bus_utilization(app),
+        report_numbers.render_station_most_served(app),
+        report_numbers.render_bus_utilization(app),
     ]
 
 

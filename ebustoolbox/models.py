@@ -13,7 +13,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
-from django.db.models import QuerySet, Sum, Q, Case, When, Value
+from django.db.models import QuerySet, Sum, Q, Case, When, Value, IntegerField, Func, F
 from django.db.models.functions import Now, Length
 from django.db.models.constraints import UniqueConstraint
 from django.dispatch import receiver
@@ -591,7 +591,7 @@ class Rotation(models.Model):
 
     # SimBA specific data to make SimBA simulations reproducible
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_DEFAULT, default=None, null=True)
-    allow_opportunity_charging = models.BooleanField(default=None, null=False)
+    allow_opportunity_charging = models.BooleanField(default=True, null=False)
 
     def get_distance(self):
         return Route.objects.filter(trip__rotation=self).aggregate(Sum("distance"))
@@ -841,6 +841,39 @@ def assert_is_type(obj, check_type: type):
         raise AttributeError(f"{obj} is not of type {check_type}")
 
 
+class CountBusServices(Func):
+    function = "COUNT"
+    output_field = IntegerField()
+
+    def __init__(self, **extra):
+        # Call the super class constructor with F('id') as the first argument
+        super().__init__(F("id"), **extra)
+
+    def as_sql(self, compiler, connection):
+        # We override the as_sql method to generate our custom SQL
+        # Get the SQL representation of the first source expression, which is F('id')
+        expression_sql, expression_params = self.source_expressions[0].as_sql(compiler, connection)
+        sql = f'(SELECT COUNT(*) FROM public."Route" WHERE arrival_station_id = {expression_sql})'
+
+        return sql, expression_params
+
+
+class IsDepot(Func):
+    function = "EXIST"
+
+    def __init__(self, **extra):
+        # Call the super class constructor with F('id') as the first argument
+        super().__init__(F("id"), **extra)
+
+    def as_sql(self, compiler, connection):
+        # We override the as_sql method to generate our custom SQL
+        # Get the SQL representation of the first source expression, which is F('id')
+        expression_sql, expression_params = self.source_expressions[0].as_sql(compiler, connection)
+        sql = f'(SELECT EXISTS (SELECT 1 FROM public."Depot" WHERE station_id = {expression_sql}))'
+
+        return sql, expression_params
+
+
 class Station(models.Model):
     """
     Model representing a station associated with a scenario.
@@ -908,9 +941,6 @@ class Station(models.Model):
 
     objects = FastUpdateManager()
 
-    vector_tiles = MVTManager(
-        geo_col="geom", columns=["id", "geom", "name", "lat", "lon", "title_length", "electrified"]
-    )
     # Make sure all annotations are part of the columns below, if the data is supposed to be
     # delivered to the map
     annotations = {
@@ -923,7 +953,26 @@ class Station(models.Model):
             default=Value(0),
             output_field=models.IntegerField(),
         ),
+        "power_total_ann": F("power_total"),
+        "num_arrivals": CountBusServices(),
+        "is_depot": IsDepot(),
     }
+
+    vector_tiles = MVTManager(
+        geo_col="geom",
+        columns=[
+            "id",
+            "geom",
+            "name",
+            "lat",
+            "lon",
+            "title_length",
+            "electrified",
+            "power_total_ann",
+            "num_arrivals",
+            "is_depot",
+        ],
+    )
 
     layer = "busstop"
     mapping = {
@@ -1492,7 +1541,6 @@ class Area(models.Model):
     name = models.TextField(null=True)
     name_short = models.TextField(null=True)
     area_type = models.CharField(max_length=15, choices=AreaType.choices, null=True, default=None)
-    row_count = models.IntegerField(null=True)
     capacity = models.IntegerField(null=False)
     processes = models.ManyToManyField(Process, through="AssocAreaProcess")
 

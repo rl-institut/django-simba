@@ -32,12 +32,11 @@ Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu
       </div>
       <div class="row" style="min-height: 30vh">
         <div class="col-6 d-flex flex-column justify-content-evenly">
-
             {% if vehicle_types %}
                 {% for vehicle_type in vehicle_types %}
-                    <div class="row mx-1">
+                    <div class="row m-1">
                       <div class="col-6 bg-primary text-white rounded text-center align-content-center">
-                        {{ vehicle_type.name }} [{% if vehicle_type.opportunity_charging_capable %}Gelegenheitslader{% else %}Depotlader{% endif %}]
+                        {{ vehicle_type.name }}
                       </div>
                       <div class="col-5 d-flex align-center">
                         <select id="vehicle_type_dropdown_{{ vehicle_type.id }}"
@@ -45,8 +44,8 @@ Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu
                           {% for default_vehicle_type in default_vehicle_types %}
                             {% if vehicle_type.opportunity_charging_capable == default_vehicle_type.opportunity_charging_capable %}
                               <option value="{{ vehicle_type.id }}_{{ default_vehicle_type.id }}">
-                                {{ default_vehicle_type.name }} als {% if vehicle_type.opportunity_charging_capable %}
-                                Gelegenheitslader{% else %}Depotlader{% endif %}
+                                {{ default_vehicle_type.name }}{% if vehicle_type.opportunity_charging_capable %}
+                                {% else %} als Depotlader{% endif %}
                               </option>
                             {% endif %}
                           {% endfor %}
@@ -108,8 +107,10 @@ Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu
 
         </div>
       </div>
-      <!-- dummy vehicle types get default vehicle type values -->
-      {% include 'continue_button.html' %}
+      <div>
+        <!-- dummy vehicle types get default vehicle type values -->
+        {% include 'continue_button.html' %}
+      </div>
     </form>
   </div>
   <script>

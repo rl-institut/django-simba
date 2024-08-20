@@ -1,16 +1,11 @@
-{% extends 'base.html'%}
+{% extends 'base.html' %}
 {% block title %}Simulation Results{% endblock %}
 {% block header %}
-  <script>
-  var task_id = "{{task_id }}";
-  console.log(task_id);
-    </script>
 {% endblock %}
 {% block content %}
     {% load static %}
-
     {% if finished %}
-        <h1>Simulation {{ task_id }} erfolgreich</h1>
+        <h1>Simulation erfolgreich</h1>
     {% else %}
         <form id='form' hx-target="#my_progress_bar" hx-get='{% url 'simba:run_simulation' task_id %}'>{% csrf_token %}
             <input type="hidden" name="task_id" value="{{ task_id }}">
@@ -26,7 +21,7 @@
       <div class="nav nav-tabs" id="tab" role="tablist">
         <button class="nav-link active" id="nav-0-tab" data-bs-toggle="tab" data-bs-target="#nav-0" type="button" role="tab" aria-controls="nav-0" aria-selected="true">SimBA Plots</button>
         <button class="nav-link" id="nav-1-tab" data-bs-toggle="tab" data-bs-target="#nav-1" type="button" role="tab" aria-controls="nav-1" aria-selected="false">Karte</button>
-        <button class="nav-link{% if not finished %} disabled{% endif %}" id="nav-2-tab" data-bs-toggle="tab" data-bs-target="#nav-2" type="button" role="tab" aria-controls="nav-2" aria-selected="false">Depot-Verhalten</button>
+{#        <button class="nav-link{% if not finished %} disabled{% endif %}" id="nav-2-tab" data-bs-toggle="tab" data-bs-target="#nav-2" type="button" role="tab" aria-controls="nav-2" aria-selected="false">Depot-Verhalten</button>#}
       </div>
     </nav>
     <div class="tab-content"  id="tabContent">
@@ -37,8 +32,15 @@
       </div>
       <div class="tab-pane" id="nav-1" role="tabpanel" aria-labelledby="nav-1-tab" tabindex="1">
         {% include 'minimal_mapengine.html'%}
+
+            <div id="buttonContainer"></div>
         <div id="buttonContainer"></div>
       </div>
+{#      <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">#}
+{#          {% load plotly_dash %}#}
+{##}
+{#               {% plotly_app name="EflipsDepotResults" ratio=3.6 %}#}
+{#      </div>#}
       <div class="tab-pane" id="nav-2" role="tabpanel" aria-labelledby="nav-2-tab" tabindex="2">
         {% load plotly_dash %}
         {% plotly_app name="EflipsDepotResults" ratio=3.6 %}
@@ -72,18 +74,35 @@
         }
     }
 
-    function filterBy(id) {
-            id = parseInt(id);
+    function filterByIntRange(key, minValue, maxValue) {
+        var filters = [
+            'all',
+            [">=", key, minValue],
+            ["<=", key, maxValue]
+        ];
+        return filters;
+    }
+
+    function filterByInt(key, value) {
+            value = parseInt(value);
             var filters = [
                 'all',
-                ["==", 'id', id]
+                ["==", key, value]
             ];
-            map.setFilter('routes', filters);
+            return filters
         }
 
-    function removeFilters(){
+    function filterByBool(key, value) {
+            value = (value === 'true' || value === true);
+            var filters = [
+                'all',
+                ["==", key, value]
+            ];
+            return filters;
+        }
+
+    function removeFilters(layerId){
         // this is actually how it is supposed to be done according to the docs!!
-        const layerId = 'routes';
         if (map.getLayer(layerId)) {
             // Layer exists, remove filters
             map.setFilter(layerId, null);
@@ -98,10 +117,26 @@
         // Clear any existing buttons
         buttonContainer.innerHTML = '';
 
+        const DepotButton = document.createElement('button');
+        DepotButton.classList.add('btn', 'btn-primary', 'm-2');
+        DepotButton.textContent = `Show Depots only`;
+        DepotButton.addEventListener('click', showDepots);
+        buttonContainer.appendChild(DepotButton);
+
+        const AllStationButton = document.createElement('button');
+        AllStationButton.classList.add('btn', 'btn-primary', 'm-2');
+        AllStationButton.textContent = `Show Stations`;
+        AllStationButton.addEventListener('click', function() {
+                removeFilters('station');
+            });
+        buttonContainer.appendChild(AllStationButton);
+
         const button = document.createElement('button');
         button.classList.add('btn', 'btn-primary', 'm-2');
         button.textContent = `Show All`;
-        button.addEventListener('click', removeFilters);
+        button.addEventListener('click', function() {
+                removeFilters('routes');
+            });
         buttonContainer.appendChild(button);
 
         // Create buttons based on the given number
@@ -122,14 +157,45 @@
 
     // Function to show route based on data-id
     function showRoute(dataId) {
-        filterBy(dataId);
+        filters = filterByInt("id", dataId);
+        map.setFilter('routes', filters);
+    }
+
+        // Function to show route based on data-id
+    function showDepots() {
+        filters = filterByBool("is_depot", true);
+        map.setFilter('station', filters);
     }
 
     map.on('idle', function () {
-        getRouteIds()
+        getRouteIds();
+        StationPowerFilter()
         createButtons();
+
     });
 
+    function StationPowerFilter(){
+        const layerId = 'station';
+        if (map.getLayer(layerId)) {
+            const features = map.queryRenderedFeatures({ layers: [layerId] });
+            const numberOfFeatures = features.length;
+            for (let i = 0; i < numberOfFeatures; i++) {
+                console.log(features[i]);
+            }
+        } else {
+            console.log('Layer "routes" does not exist.');
+        }
+
+    }
+
+    function applyRangeFilter(layerId, key, minValue, maxValue) {
+        if (map.getLayer(layerId)) {
+            var filters = filterByIntRange(key, minValue, maxValue);
+            map.setFilter(layerId, filters);
+        } else {
+            console.log(`Layer "${layerId}" does not exist.`);
+        }
+    }
 
 </script>
 {% endblock %}
