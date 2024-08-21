@@ -10,20 +10,85 @@
       <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.min.js"></script>
 -->
+      <link rel="stylesheet" type="text/css" href="{% static 'templates/css/styles2.css' %}">
       <script src="https://cdnjs.cloudflare.com/ajax/libs/pubsub-js/1.9.4/pubsub.js"></script>
   </head>
 
   <body>
+   <script src="{% static 'templates/js/layers-box.js' %}"></script>
   {% include 'django_mapengine/map.html' %}
     {% include 'django_mapengine/map_json.html' %}
+  <!-- Toggle map/results views -->
+{#  {% include 'components/toggle_view.html' %}#}
     <script>
       // This is needed as mapengine checks for eventTopics value (bug in mapengine!)
       let eventTopics = {};
     </script>
     {% include 'django_mapengine/map_js.html' %}
+
+   <!-- Pass the Django context variable to JavaScript -->
+    <script>
+        // Define a JavaScript variable and assign the Django context variable to it
+        var djangoVariable = "{{ area_switches|escapejs }}";
+    </script>
+
     <script>
       // This is needed, as otherwise map height is zero and therefore not visible (bug in mapengine!)
       document.getElementById("map").style = "height: 800px"
+
+      document.addEventListener("DOMContentLoaded", function() {
+        // Create the button element
+        var button = document.createElement('div');
+        button.id = 'map-button';
+
+        // Create the button content
+        var buttonContent = `
+            <button class="layers-btn" style="cursor: pointer; width: 3rem; height: 3rem; background-color: white; border: none; border-radius: 50%; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);">
+                <svg width="20" height="20" version="1.1" fill="currentColor" viewBox="0 0 16.933 16.933" xmlns="http://www.w3.org/2000/svg">
+                    <path d="m8.4667 0.053743-0.23616 0.11731-8.1855 4.0933 8.4217 4.2111 8.4222-4.2111-8.4222-4.2106zm0 1.1813 6.057 3.0293-6.057 3.0277-6.0565-3.0277 6.0565-3.0293zm-8.4217 7.2404 8.4222 4.2111 8.4217-4.2111h-2.3652l-6.0565 3.0277-6.057-3.0277h-2.3652zm-5.1676e-4 4.2468 8.4222 4.2111 8.4217-4.2111h-2.3652l-6.0565 3.0277-6.057-3.0277h-2.3652z"/>
+                </svg>
+            </button>
+        `;
+        button.innerHTML = buttonContent;
+
+        // Append the button to the map section
+        var mapSection = document.getElementById('map');
+        mapSection.appendChild(button);
+
+        $.get("{% static 'templates/components/layer_box.html' %}", function(data) {
+            var $overlay = $(data);
+
+            // Append the overlay to the map section
+            $('#map').append($overlay);
+
+            // Event handlers
+            $('#map-button button').click(function() {
+                $('#map-overlay').show();
+            });
+
+            $('#js-map-layers-box-close').click(function() {
+                $('#map-overlay').hide();
+            });
+        });
+
+
+        // Apply CSS styles to the button
+        button.style.position = 'absolute';
+        button.style.top = '10px'; // Adjust as needed
+        button.style.right = '10px'; // Adjust as needed
+        button.style.zIndex = '1000'; // Ensure it's above other elements
+
+        // Add an event listener to log a message when the button is clicked
+        var buttonElement = button.querySelector('button'); // Select the actual button inside the div
+        buttonElement.addEventListener('click', function() {
+            console.log('Button was clicked!', djangoVariable);
+        });
+    });
+
+      // Load and insert overlay content
+
+
+
     </script>
   </body>
 </html>
