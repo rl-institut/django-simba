@@ -4,8 +4,23 @@
                 aria-label="Close"></button>
       </div>
       <div class="map-overlay-content">
-          <div id="buttonContainer"></div>
-          <script>
+
+            <div class="basemaps__btn">
+    <button id="basemaps__default" class="btn" onclick="toggleBasemap(null);">
+      <img src="{% static 'django_mapengine/images/layer_ctrl_default.svg' %}" alt="Default basemap view">
+      <span>{% trans "default"|title %}</span>
+    </button>
+  </div>
+  <div class="basemaps__btn">
+    <button id="basemaps__satellite" class="btn" onclick="toggleBasemap('satellite');">
+      <img src="{% static 'django_mapengine/images/layer_ctrl_satellite.svg' %}" alt="Satellite basemap view">
+      <span>{% trans "satellite"|title %}</span>
+    </button>
+  </div>
+
+
+      <div id="buttonContainer"></div>
+    <script>
 
     let routesIDList = [];
 
