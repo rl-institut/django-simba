@@ -18,6 +18,8 @@ from .eflips_plots import (
     get_vehicle_soc_plot_eflips,
     get_power_and_occupancy_plot_eflips,
     get_vehicle_by_click_eflips,
+    get_specific_energy_eflips,
+    get_animation_eflips
 )
 
 
@@ -199,7 +201,7 @@ def create_layout(app: Dash) -> Div:
                                                 dcc.Graph(id="gantt-chart")],
                                             style={
                                                 "display": "inline-block",
-                                                "width": "50%",
+                                                "width": "100%",
                                             }
                                         ),
                                         html.Div(
@@ -219,6 +221,24 @@ def create_layout(app: Dash) -> Div:
                                                 dcc.Graph(id="power-and-occupancy-plot"),
                                             ]
                                         ),
+                                        html.Div(
+                                            children=[
+                                                html.P("Click on a group in legend to hide/show the group."),
+                                                dcc.Graph(id="specific-energy-plot")],
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "100%",
+                                            }
+                                        ),
+                                        html.Div(
+                                            children=[
+                                                html.P("Click on a group in legend to hide/show the group."),
+                                                dcc.Graph(id="animation")],
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "100%",
+                                            }
+                                        ),
                                     ],
                                 ),
                             ]
@@ -235,6 +255,8 @@ def register_eflips_callbacks(app):
     get_vehicle_by_click_eflips(app)
     get_vehicle_soc_plot_eflips(app)
     get_power_and_occupancy_plot_eflips(app)
+    get_specific_energy_eflips(app)
+    get_animation_eflips(app)
 
 
 def block_first_third(app) -> list[html.Div]:
