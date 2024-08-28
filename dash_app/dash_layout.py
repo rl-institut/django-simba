@@ -234,20 +234,27 @@ def block_top_center(app) -> list[html.Div]:
 
 
 def block_bottom_center(app):
-    return [
-        report_numbers.critical_rotations(app),
-        scatter_chart.render(app),
-        # scatter_chart.render_power_draw(app),
-        # scatter_chart.render_scenario_powerdraw(app),
-        # scatter_chart.render_single_station_occupation(app),
-        # scatter_chart.render_station_occupation(app),
-        activities_chart.render(app),
-        histograms.render_minimal_soc(app),
-        histograms.render_minimal_soc_per_rotation(app),
-        histograms.render_rotation_duration(app),
-        histograms.render_rotation_distance(app),
-        histograms.render_dist_dur(app),
-    ]
+
+    ###
+    #TODO: get task_id
+
+    if not data.get_sim_done_status(task_id):
+        return [
+            report_numbers.critical_rotations(app),
+            scatter_chart.render(app),
+            # scatter_chart.render_power_draw(app),
+            # scatter_chart.render_scenario_powerdraw(app),
+            # scatter_chart.render_single_station_occupation(app),
+            # scatter_chart.render_station_occupation(app),
+            activities_chart.render(app),
+            histograms.render_minimal_soc(app),
+            histograms.render_minimal_soc_per_rotation(app),
+            histograms.render_rotation_duration(app),
+            histograms.render_rotation_distance(app),
+            histograms.render_dist_dur(app),
+        ]
+    else:
+        return []
 
 
 def block_top_left(app) -> list[html.Div]:
