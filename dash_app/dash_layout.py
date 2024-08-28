@@ -29,7 +29,18 @@ def create_layout(app: Dash) -> Div:
     )
     def update_tab(_, session_state=None, dash_app=None, **kwargs):
         disable_tabs = data.get_sim_done_status(dash_app.slug)
-        return disable_tabs, disable_tabs
+        return disable_tabs, disable_tabs,
+
+    @app.callback(
+        Output('simulation-plots-container', 'children'),
+        Input('sim_not_done', 'data'),
+    )
+    def update_simulation_plots(_, session_state=None, dash_app=None, **kwargs):
+        sim_not_done = data.get_sim_done_status(dash_app.slug)
+
+        print(sim_not_done)
+
+        return block_bottom_center(app, sim_not_done)
 
     @app.callback(
         [Output(ids.MEMOIZER_DONE, "data"), Output(ids.BUS_DROPDOWN, "data")],
@@ -62,6 +73,7 @@ def create_layout(app: Dash) -> Div:
         [
             dcc.Store(id=ids.MEMOIZER_DONE, data=False),  # Store to keep track of memoizer status
             dcc.Store(id=ids.BUS_DROPDOWN, data=[]),
+            dcc.Store(id='sim_not_done', data=None),
             html.Div(
                 id="_dash_app_container",
                 style={
@@ -150,7 +162,8 @@ def create_layout(app: Dash) -> Div:
                                     disabled=True,
                                     children=[
                                         html.Div(
-                                            children=block_bottom_center(app),
+                                            id='simulation-plots-container',  # Empty div for dynamic content
+                                            # children=block_bottom_center(app, dcc.Store(id="sim_not_done").data),
                                             style={
                                                 "display": "inline-block",
                                                 "width": "100%",
@@ -165,7 +178,9 @@ def create_layout(app: Dash) -> Div:
                                         register_eflips_callbacks(app),
                                         html.H1(
                                             children="Simulation results of eflips-depot",
-                                            style={"font": "arial"},
+                                            style={
+                                                "font": "arial",
+                                            },
                                         ),
                                         dcc.Store(id="task_id"),
                                         html.Div("Select a color-scheme:"),
@@ -179,9 +194,14 @@ def create_layout(app: Dash) -> Div:
                                         html.H2(id="num-vehicles"),
                                         html.Div("Click on a bar to reveal the vehicle log."),
                                         html.Div(
-                                            "Click on a group in legend to hide/show the group."
+                                            children=[
+                                                html.P("Click on a group in legend to hide/show the group."),
+                                                dcc.Graph(id="gantt-chart")],
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "50%",
+                                            }
                                         ),
-                                        dcc.Graph(id="gantt-chart"),
                                         html.Div(
                                             children=[
                                                 html.H2(children="SoC-log of vehicle:"),
@@ -233,12 +253,10 @@ def block_top_center(app) -> list[html.Div]:
     return [bus_dropdown.render(app)]
 
 
-def block_bottom_center(app):
-
-    ###
-    #TODO: get task_id
-
-    if not data.get_sim_done_status(task_id):
+def block_bottom_center(app, sim_not_done):
+    if sim_not_done:
+        return []
+    else:
         return [
             report_numbers.critical_rotations(app),
             scatter_chart.render(app),
@@ -253,8 +271,6 @@ def block_bottom_center(app):
             histograms.render_rotation_distance(app),
             histograms.render_dist_dur(app),
         ]
-    else:
-        return []
 
 
 def block_top_left(app) -> list[html.Div]:
