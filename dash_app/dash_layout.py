@@ -87,8 +87,8 @@ def create_layout(app: Dash) -> Div:
                         style={
                             "display": "inline-block",
                             "width": "100%",
-                            "verticalAlign": "top",
-                            "display": "none",
+                            "maxHeight": "500px",  # Specify the maximum height
+                            "overflowY": "auto",   # Add this to enable scrolling if content exceeds maxHeight
                         },
                     ),
                     dcc.Loading(

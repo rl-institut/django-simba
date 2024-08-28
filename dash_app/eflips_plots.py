@@ -44,7 +44,7 @@ def _create_engine_from_postgis_url() -> sqlalchemy.engine.Engine:
 
 
 def get_rotated_rectangle_corners(rect):
-
+    # Only needed to convert eflips' matplotlib to plotly
     import numpy as np
     """
     Calculate the corners of a rotated rectangle.
@@ -53,9 +53,6 @@ def get_rotated_rectangle_corners(rect):
     width = rect.get_width()
     height = rect.get_height()
     angle = np.deg2rad(-45)
-
-
-
 
     # Define the corners of the rectangle before rotation
     corners = np.array([
@@ -79,6 +76,8 @@ def get_rotated_rectangle_corners(rect):
     return rotated_corners
 
 def matplotlib_to_plotly(fig, ax):
+    # Only needed to convert eflips' matplotlib to plotly
+
     import plotly.graph_objects as go
     import matplotlib.patches as patches
 
@@ -223,14 +222,11 @@ def get_ganttchart_scenario_eflips(app: Dash):
             )
 
             area_blocks = output_prepare.depot_layout(depot_id, session)
+            print(area_blocks)
             ad, fig6 = output_visualize.depot_layout(area_blocks)
 
-            fig6.savefig("lol.png")
-
-            print(ad)
 
             ax = fig6.gca()
-
             # Convert to Plotly
             plotly_fig = matplotlib_to_plotly(fig6, ax)
 
