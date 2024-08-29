@@ -26,12 +26,12 @@ from .eflips_plots import (
 def create_layout(app: Dash) -> Div:
     # App layout
     @app.callback(
-        [Output("tab-simulation", "disabled"), Output("tab-kpi", "disabled")],
+        [Output("tab-simulation", "disabled"), Output("tab-kpi", "disabled"), Output("tab-eflips", "disabled")],
         [Input("tab-simulation", "value")],
     )
     def update_tab(_, session_state=None, dash_app=None, **kwargs):
         disable_tabs = data.get_sim_done_status(dash_app.slug)
-        return disable_tabs, disable_tabs,
+        return disable_tabs, disable_tabs, disable_tabs,
 
     @app.callback(
         Output('simulation-plots-container', 'children'),
@@ -175,7 +175,8 @@ def create_layout(app: Dash) -> Div:
                                 ),
                                 dcc.Tab(
                                     label="Depot Plots",
-                                    disabled=False,
+                                    id="tab-eflips",
+                                    disabled=True,
                                     children=[
                                         register_eflips_callbacks(app),
                                         html.H1(
@@ -256,7 +257,7 @@ def register_eflips_callbacks(app):
     get_vehicle_soc_plot_eflips(app)
     get_power_and_occupancy_plot_eflips(app)
     get_specific_energy_eflips(app)
-    get_animation_eflips(app)
+   # get_animation_eflips(app)
 
 
 def block_first_third(app) -> list[html.Div]:
