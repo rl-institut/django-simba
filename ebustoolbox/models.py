@@ -649,9 +649,7 @@ class Temperatures(models.Model):
     Attributes:
         scenario (Scenario): The scenario to which the temperature data is associated. Foreign key
                              to the Scenario model.
-        name (str): The name of the temperature data, indicating its source or intention
-                    (e.g., 'Max. Temperatures Berlin'). Cannot be blank.
-        use_only_time (bool): Determines whether the datetime should be interpreted as both date
+        is_one_repeating_day (bool): Determines whether the datetime should be interpreted as both date
                               and time or only time.
                               Defaults to True, indicating only time is considered.
         datetimes (list): A list of datetimes associated with temperature data. Can be null.
@@ -694,11 +692,9 @@ class Temperatures(models.Model):
         db_table = "Temperatures"
 
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
-    # Name of Temperature data, to indicate a source or intention, e.g. 'Max. Temperatures Berlin'
-    name = models.TextField(blank=False)
 
     # Should the datetime be interpreted as datetime or only time.
-    use_only_time = models.BooleanField(null=False, default=True)
+    is_one_repeating_day = models.BooleanField(null=False, default=True)
     # datetimes and associated data
     datetimes = ArrayField(models.DateTimeField(), default=list)
     data = ArrayField(models.FloatField(), default=list)
@@ -717,7 +713,7 @@ class Temperatures(models.Model):
         Overrides the save method to perform data validation and initialize the
         interpolation function.
         """
-        if self.use_only_time:
+        if self.is_one_repeating_day:
             dates = {(date.year, date.month, date.day) for date in self.datetimes}
             if len(dates) != 1:
                 raise AttributeError(
@@ -738,7 +734,7 @@ class Temperatures(models.Model):
             self.temperature_interpolation = get_datetime_interpolation_function(
                 self.datetimes, self.data
             )
-        if self.use_only_time:
+        if self.is_one_repeating_day:
             date = date_time.fromisoformat(str(next(iter(self.datetimes))))
             date_time = date_time.replace(year=date.year, month=date.month, day=date.day)
         return self.temperature_interpolation(date_time)
@@ -751,7 +747,7 @@ class Temperatures(models.Model):
             self.temperature_closest_function = get_datetime_closest_function(
                 self.datetimes, self.data
             )
-        if self.use_only_time:
+        if self.is_one_repeating_day:
             date = date_time.fromisoformat(str(next(iter(self.datetimes))))
             date_time = date_time.replace(year=date.year, month=date.month, day=date.day)
         return self.temperature_closest_function(date_time)
