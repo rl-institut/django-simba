@@ -34,17 +34,6 @@ def create_layout(app: Dash) -> Div:
         return disable_tabs, disable_tabs, disable_tabs,
 
     @app.callback(
-        Output('simulation-plots-container', 'children'),
-        Input('sim_not_done', 'data'),
-    )
-    def update_simulation_plots(_, session_state=None, dash_app=None, **kwargs):
-        sim_not_done = data.get_sim_done_status(dash_app.slug)
-
-        print(sim_not_done)
-
-        return block_bottom_center(app, sim_not_done)
-
-    @app.callback(
         [Output(ids.MEMOIZER_DONE, "data"), Output(ids.BUS_DROPDOWN, "data")],
         [Input(ids.BUS_DROPDOWN_RAW, "value")],
     )
@@ -75,7 +64,6 @@ def create_layout(app: Dash) -> Div:
         [
             dcc.Store(id=ids.MEMOIZER_DONE, data=False),  # Store to keep track of memoizer status
             dcc.Store(id=ids.BUS_DROPDOWN, data=[]),
-            dcc.Store(id='sim_not_done', data=None),
             html.Div(
                 id="_dash_app_container",
                 style={
@@ -165,7 +153,8 @@ def create_layout(app: Dash) -> Div:
                                     children=[
                                         html.Div(
                                             id='simulation-plots-container',  # Empty div for dynamic content
-                                            # children=block_bottom_center(app, dcc.Store(id="sim_not_done").data),
+                                            children=block_bottom_center(app),
+                                            #children=[dcc.Graph(id=ids.DIST_DUR_HISTOGRAM)],
                                             style={
                                                 "display": "inline-block",
                                                 "width": "100%",
@@ -257,7 +246,7 @@ def register_eflips_callbacks(app):
     get_vehicle_soc_plot_eflips(app)
     get_power_and_occupancy_plot_eflips(app)
     get_specific_energy_eflips(app)
-   # get_animation_eflips(app)
+    #get_animation_eflips(app)
 
 
 def block_first_third(app) -> list[html.Div]:
@@ -276,24 +265,23 @@ def block_top_center(app) -> list[html.Div]:
     return [bus_dropdown.render(app)]
 
 
-def block_bottom_center(app, sim_not_done):
-    if sim_not_done:
-        return []
-    else:
-        return [
-            report_numbers.critical_rotations(app),
-            scatter_chart.render(app),
-            # scatter_chart.render_power_draw(app),
-            # scatter_chart.render_scenario_powerdraw(app),
-            # scatter_chart.render_single_station_occupation(app),
-            # scatter_chart.render_station_occupation(app),
-            activities_chart.render(app),
-            histograms.render_minimal_soc(app),
-            histograms.render_minimal_soc_per_rotation(app),
-            histograms.render_rotation_duration(app),
-            histograms.render_rotation_distance(app),
-            histograms.render_dist_dur(app),
-        ]
+def block_bottom_center(app):
+    print("here")
+
+    return [
+        report_numbers.critical_rotations(app),
+        scatter_chart.render(app),
+        # scatter_chart.render_power_draw(app),
+        # scatter_chart.render_scenario_powerdraw(app),
+        # scatter_chart.render_single_station_occupation(app),
+        # scatter_chart.render_station_occupation(app),
+        activities_chart.render(app),
+        histograms.render_minimal_soc(app),
+        histograms.render_minimal_soc_per_rotation(app),
+        histograms.render_rotation_duration(app),
+        histograms.render_rotation_distance(app),
+        histograms.render_dist_dur(app),
+    ]
 
 
 def block_top_left(app) -> list[html.Div]:
