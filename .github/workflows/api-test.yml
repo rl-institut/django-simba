@@ -1,0 +1,75 @@
+name: Code tests
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
+env:
+  POETRY_VERSION: "1.8.3"
+  POETRY_URL: https://install.python-poetry.org
+
+jobs:
+  # Label of the runner job
+  Test-API:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+        python-version: [ "3.11" ]
+    timeout-minutes: 10
+
+    # Service containers to run with `runner-job`
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgis/postgis
+        # Provide the password for postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: DbName
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
+
+
+    steps:
+      - name: Set Up Gdal
+        run: |
+          sudo apt-get update
+          sudo apt-get install gdal-bin
+          echo ogrinfo --version
+      - name: Give GH Actions access to django-simba repo
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.EFLIPS_DEPOT_KEY }}
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install poetry
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry config experimental.system-git-client true
+      - name: Install Dependency
+        run: |
+          poetry install --no-root --with dev
+      - name: Run Tests
+        run: |
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          export EFLIPS_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/DbName
+          poetry run python test_api/test_api.py
