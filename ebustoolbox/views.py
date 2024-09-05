@@ -2,7 +2,7 @@ import logging
 import random
 import traceback
 import warnings
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone as tz
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -48,6 +48,8 @@ from ebustoolbox.models import (
     EnumChargeType,
     Rotation,
     Trip,
+    SimulationRange,
+    DepotSelection,
 )
 
 logger = logging.getLogger("custom")
@@ -155,10 +157,18 @@ def get_simulation_parameters(request: HttpRequest, task_id):
             time_delta = timedelta(days=delta.days + 1)
 
             if tasks.get_rotations_by_timespan(scenario, time_delta, from_date).count() > 0:
-                # Remove rotations from the timespan
-                tasks.trim_scenario(scenario, time_delta, from_date)
-                # Used for clearing up depots without rotations
-                tasks.trim_depots(scenario, [])
+                sim_range = SimulationRange.objects.filter(scenario=scenario).first()
+                if sim_range is None:
+                    sim_range = SimulationRange(scenario=scenario)
+                from_datetime = datetime.combine(from_date, datetime.min.time())
+                sim_range.start = timezone.make_aware(from_datetime, timezone=tz.utc)
+                to_datetime = datetime.combine(to_date, datetime.max.time())
+                sim_range.end = timezone.make_aware(to_datetime, timezone=tz.utc)
+                sim_range.save()
+                # # Remove rotations from the timespan
+                # tasks.trim_scenario(scenario, time_delta, from_date)
+                # # Used for clearing up depots without rotations
+                # tasks.trim_depots(scenario, [])
                 return redirect(reverse("simba:vehicle_types", args=[str(task_id)]))
             error = "Zeitspanne enthält keine Umläufe."
             context["error"] = error
@@ -235,16 +245,12 @@ def get_vehicle_types(request: HttpRequest, task_id):
         for vehicle_type_pair in vehicle_type_pairs:
             assert vehicle_type_pair[0] in vehicle_types.values_list("id", flat=True)
 
-        vt_adjustments = {}
+        vt_adjustments = {dvt.id: dict() for dvt in default_vehicle_types}
         for dvt in default_vehicle_types:
             val = request.POST.get(f"battery_capacity_{dvt.id}")
             form = VehicleTypesAdjustmentForm({"battery_capacity": val})
             if not form.is_valid():
-                break
-            try:
-                vt_adjustments[dvt.id]
-            except KeyError:
-                vt_adjustments[dvt.id] = dict()
+                continue
             vt_adjustments[dvt.id]["battery_capacity"] = form.cleaned_data["battery_capacity"]
         tasks.update_vehicle_types_with_defaults(vehicle_type_pairs, task_id, vt_adjustments)
 
@@ -269,23 +275,39 @@ def get_depots(request: HttpRequest, task_id):
             .filter(charge_type=EnumChargeType.DEPOT)
             .order_by("id")
         )
-        all_depot_ids = [dep.id for dep in depots]
-        depots_to_remove = []
-        if len(all_depot_ids) > 1:
-            depots_to_remove = [dep.id for dep in depots]
+        depot_ids = [dep.id for dep in depots]
+        if len(depot_ids) > 1:
+            depot_ids = []
             for dep in depots:
                 if request.POST.get(f"sim_depot_{dep.id}") == "on":
-                    depots_to_remove.remove(dep.id)
-        if depots_to_remove != all_depot_ids:
-            if depots_to_remove:
-                tasks.trim_depots(scenario, depots_to_remove)
+                    depot_ids.append(dep.id)
+        if len(depot_ids) > 1:
+            dep_sel = DepotSelection(scenario=scenario)
+            dep_sel.save()
+            dep_sel.depots.add(*depot_ids)
+            # tasks.trim_depots(scenario, depots_to_remove)
             return redirect(reverse("simba:stations", args=[str(task_id)]))
         context["error"] = "Wähle mindestens ein Depot aus."
         context["depots"] = depots
         return render(request, "depots.html", context)
     else:
+        sim_range = SimulationRange.objects.filter(scenario=scenario).first()
+        if sim_range:
+            # If a simulation range is given, only allow filtering of depots which service rotations
+            assert SimulationRange.objects.filter(scenario=scenario).count() == 1
+            td = sim_range.end - sim_range.start
+            rots = tasks.get_rotations_by_timespan(scenario, td, sim_range.start)
+            station_ids = (
+                Trip.objects.filter(rotation__in=rots)
+                .values_list("route__departure_station", "route__arrival_station")
+                .distinct()
+            )
+            station_ids = set(x for pair in station_ids for x in pair)
+            depots_query = Station.objects.filter(id__in=station_ids)
+        else:
+            depots_query = Station.objects.all()
         depots = (
-            Station.objects.filter(scenario=scenario)
+            depots_query.filter(scenario=scenario)
             .filter(charge_type=EnumChargeType.DEPOT)
             .order_by("id")
         )

@@ -1570,3 +1570,34 @@ class AssocAreaProcess(models.Model):
 
     area = models.ForeignKey(Area, on_delete=models.CASCADE)
     process = models.ForeignKey(Process, on_delete=models.CASCADE)
+
+
+# Models for forms which do not mutate the scenario while in the wizard
+class VehicleTypeForm(VehicleType):
+    pass
+
+
+class SimulationRange(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    start = models.DateTimeField(null=False)
+    end = models.DateTimeField(null=False)
+
+
+class DepotSelection(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    depots = models.ManyToManyField(Station)
+
+
+class ElectrificationOptions(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    number_charging_points = models.IntegerField(
+        default=2, help_text="Number of charging points per electrified Station"
+    )
+    power_per_charging_point = models.IntegerField(
+        default=300, help_text="Charging power per point in kW"
+    )
+    power_per_grid_connection = models.IntegerField(
+        default=300, help_text="Charging power per grid connection in kW"
+    )
+    station_optimization = models.BooleanField(default=False)
+    electrified_stations = models.ManyToManyField(Station)

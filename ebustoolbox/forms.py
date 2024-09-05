@@ -1,5 +1,5 @@
 from django import forms
-from .models import Vehicle, EnumChargeType, EnumVoltageLevel
+from .models import EnumChargeType, EnumVoltageLevel
 
 
 class UploadFileForm(forms.Form):
@@ -73,7 +73,7 @@ class DateRangeField(forms.DateField):
 
 class SimulationParameters(forms.Form):
     help_text = (
-        "Lassen Sie das Feld frei, " "wenn Sie den Start der Simulation nicht beschneiden möchten."
+        "Lassen Sie das Feld frei, wenn Sie den Start der Simulation nicht beschneiden möchten."
     )
     date_range = DateRangeField(
         required=False,
@@ -87,23 +87,6 @@ class SimulationParameters(forms.Form):
         ),
         label="Zeitspanne",
     )
-
-
-class EbusToolboxForm(forms.Form):
-    title = forms.CharField(max_length=50)
-    file = forms.FileField()
-
-
-class ChartForm(forms.Form):
-    vehicles = forms.ModelMultipleChoiceField(queryset=Vehicle.objects.all())
-
-    def __init__(self, *args, **kwargs):
-        scenario = kwargs.pop("scenario", None)
-        super().__init__(*args, **kwargs)
-        if scenario:
-            self.fields["vehicles"].queryset = Vehicle.objects.filter(
-                vehicle_type__scenario=scenario
-            )
 
 
 class VehicleTypesAdjustmentForm(forms.Form):

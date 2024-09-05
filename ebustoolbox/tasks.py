@@ -1677,7 +1677,8 @@ def update_vehicle_types_with_defaults(vehicle_type_pairs, task_id, vt_adjustmen
         vt = vehicle_types_db.get(pk=vehicle_type_pair[0])
         vt_default = vehicle_types_default.get(pk=vehicle_type_pair[1])
         vt_default.scenario = scenario
-        vt_default.battery_capacity = vt_adjustments[vt_default.id]["battery_capacity"]
+        if vt_adjustments[vt_default.id].get("battery_capacity"):
+            vt_default.battery_capacity = vt_adjustments[vt_default.id]["battery_capacity"]
         vt_default.pk = vehicle_type_pair[0]
         # Do not overwrite this, since both capabilties might be needed
         assert vt_default.opportunity_charging_capable == vt.opportunity_charging_capable
@@ -1704,14 +1705,11 @@ def find_and_make_depots(scenario):
 
 @atomic()
 def trim_depots(scenario, depot_ids: list[int]):
-    logger.info(
-        f"Trimming scenario {scenario.id} from depots {depot_ids}\n"
-        f"rotations: {Rotation.objects.filter(scenario=scenario).count()}\n"
-        f"trips: {Trip.objects.filter(scenario=scenario).count()}\n"
-        f"routes: {Route.objects.filter(scenario=scenario).count()}\n"
-        f"stations: {Station.objects.filter(scenario=scenario).count()}\n"
-        f"vehicles: {Vehicle.objects.filter(scenario=scenario).count()}\n"
-    )
+    rot_before_count = Rotation.objects.filter(scenario=scenario).count()
+    trip_before_count = Trip.objects.filter(scenario=scenario).count()
+    route_before_count = Route.objects.filter(scenario=scenario).count()
+    station_before_count = Station.objects.filter(scenario=scenario).count()
+    vehicle_before_count = Vehicle.objects.filter(scenario=scenario).count()
     for dep_id in depot_ids:
         station = Station.objects.filter(
             id=dep_id, scenario=scenario, charge_type=EnumChargeType.DEPOT
@@ -1728,7 +1726,6 @@ def trim_depots(scenario, depot_ids: list[int]):
             station.delete()
         else:
             logger.info(f"Station with id {dep_id} not found in scenario")
-
     (
         Station.objects.filter(scenario=scenario)
         .annotate(departure_count=Count("route_departure_set__trip"))
@@ -1736,14 +1733,12 @@ def trim_depots(scenario, depot_ids: list[int]):
         .filter(departure_count=0, arrival_count=0)
         .delete()
     )
-
     (Route.objects.filter(scenario=scenario).annotate(count=Count("trip")).filter(count=0).delete())
-
     logger.info(
-        f"After trimming\n"
-        f"rotations: {Rotation.objects.filter(scenario=scenario).count()}\n"
-        f"trips: {Trip.objects.filter(scenario=scenario).count()}\n"
-        f"routes: {Route.objects.filter(scenario=scenario).count()}\n"
-        f"stations: {Station.objects.filter(scenario=scenario).count()}\n"
-        f"vehicles: {Vehicle.objects.filter(scenario=scenario).count()}\n"
+        f"Before -> After trimming\n"
+        f"rotations:{rot_before_count} -> {Rotation.objects.filter(scenario=scenario).count()}\n"
+        f"trips: {trip_before_count} ->{Trip.objects.filter(scenario=scenario).count()}\n"
+        f"routes: {route_before_count} ->{Route.objects.filter(scenario=scenario).count()}\n"
+        f"stations: {station_before_count} ->{Station.objects.filter(scenario=scenario).count()}\n"
+        f"vehicles: {vehicle_before_count} ->{Vehicle.objects.filter(scenario=scenario).count()}\n"
     )
