@@ -1,8 +1,6 @@
 from environ import environ
 
 
-
-
 class DjangoSimbaWrapper:
     def __init__(self, database_url: str):
         # We need to replace a postgresql:// on the database URL with postgis:// for it to work over here
@@ -11,6 +9,7 @@ class DjangoSimbaWrapper:
         from ds_wrapper import settings
 
         import os
+
         # Allow unsafe async operations (for Juptyer Notebook)
         # https://stackoverflow.com/questions/61926359/django-synchronousonlyoperation-you-cannot-call-this-from-an-async-context-u
 
@@ -19,7 +18,6 @@ class DjangoSimbaWrapper:
         os.environ["DJANGO_SIMBA_DATABASE_URL"] = database_url
         settings.DATABASES["default"] = environ.Env().db("DJANGO_SIMBA_DATABASE_URL")
 
-
         os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ds_wrapper.settings")
         # You may also want to set the DATABASE_URL env variable if it's not set from the outside.
         import django
@@ -27,7 +25,7 @@ class DjangoSimbaWrapper:
         django.setup()
 
     def run_simba_scenario(
-            self,
+        self,
         scenario_id: int,
         assign_vehicles=False,
     ):
@@ -45,11 +43,12 @@ class DjangoSimbaWrapper:
         run_simba_scenario(django_scenario=scenario_id, assign_vehicles=assign_vehicles)
 
         from django.db import connections
+
         for conn in connections.all():
             conn.close()
 
     def single_step_electrification(self, scenario_id: int) -> None:
-        """ Run single step electrification once for a scenario. One station will be electrified as long as there are
+        """Run single step electrification once for a scenario. One station will be electrified as long as there are
         rotations with negative SOC
 
         :param scenario_id: Scenario which is simulated
@@ -62,12 +61,16 @@ class DjangoSimbaWrapper:
         django_scenario = Scenario.objects.filter(id=scenario_id).first()
         assert is_consistent(django_scenario)
         from ebustoolbox.tasks import run_simba_scenario
-        schedule, simbascenario = run_simba_scenario(django_scenario=scenario_id, assign_vehicles=True)
+
+        schedule, simbascenario = run_simba_scenario(
+            django_scenario=scenario_id, assign_vehicles=True
+        )
 
         schedule, simbascenario = run_simba_scenario(
             django_scenario, simba_scenario=simbascenario, mode="station_optimization_single_step"
         )
 
         from django.db import connections
+
         for conn in connections.all():
             conn.close()

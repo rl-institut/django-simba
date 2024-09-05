@@ -30,7 +30,6 @@ import simba.optimizer_util
 import simba.simulate
 import simba.trip
 import simba.util
-from core.deepcopy import reset_postgres_auto_increments
 from core.models import Progress
 from simba.data_container import DataContainer
 from simba.rotation import Rotation as SimbaRotation
