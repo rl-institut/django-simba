@@ -246,7 +246,7 @@ def register_eflips_callbacks(app):
     get_vehicle_soc_plot_eflips(app)
     get_power_and_occupancy_plot_eflips(app)
     get_specific_energy_eflips(app)
-    #get_animation_eflips(app)
+    get_animation_eflips(app)
 
 
 def block_first_third(app) -> list[html.Div]:
@@ -266,8 +266,6 @@ def block_top_center(app) -> list[html.Div]:
 
 
 def block_bottom_center(app):
-    print("here")
-
     return [
         report_numbers.critical_rotations(app),
         scatter_chart.render(app),

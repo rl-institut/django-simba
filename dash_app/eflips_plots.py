@@ -338,27 +338,6 @@ def get_animation_eflips(app: Dash):
         with Session(engine) as session:
             scenario = ebusScenario.objects.get(task_id=session_state["task_id"])
             scenario_id = scenario.id
-            scenario_name = scenario.name
-
-            depot_events = output_prepare.depot_event(scenario_id, session)
-            df = depot_events[depot_events["vehicle_id"].astype(int).isin(busses)]
-
-            # Convert the columns to datetime if they aren't already
-            df['time_start'] = pd.to_datetime(df['time_start'])
-            df['time_end'] = pd.to_datetime(df['time_end'])
-
-            # Find the minimum time_start and maximum time_end
-            min_time_start = df['time_start'].min()
-            max_time_end = df['time_end'].max()
-
-            # Define the timezone
-            tz = pytz.timezone("Europe/Berlin")
-
-            # Localize the times
-            animation_range = (
-                min_time_start.astimezone(tz),
-                max_time_end.astimezone(tz),
-            )
 
             depot_id = (
                 session.query(Depot.id)
@@ -367,70 +346,12 @@ def get_animation_eflips(app: Dash):
                 .one()[0]
             )
 
-            depot_activity = output_prepare.depot_activity(depot_id, session, animation_range)
             area_blocks = output_prepare.depot_layout(depot_id, session)
-            area_dict, _ = output_visualize.depot_layout(area_blocks)
+            _, fig = output_visualize.depot_layout(area_blocks)
 
-            print(depot_activity)
+            fig.savefig("test")
 
-            # Define the initial frame with the rectangles
-            fig = go.Figure()
-
-            # Add rectangles to the figure
-            frames = []
-
-            time_resolution = 12
-
-            frame = 0
-
-            list_dep = []
-
-            for area_id, slots in area_dict.items():
-                for slot_id, slot in enumerate(slots):
-                    slot_occupancy = depot_activity[(area_id, slot_id)]
-                    print(slot_id, slot_occupancy)
-                    slot_occupancy = [
-                        (int(s[0] / time_resolution), int(s[1] / time_resolution))
-                        for s in slot_occupancy
-                    ]
-
-                    slot.set_facecolor(
-                        "green" if _is_occupied(frame, slot_occupancy) else "lightgrey"
-                    )
-                    frame += 1
-
-                    list_dep.append(slot)
-
-            # Add frames to the figure
-            fig.frames = frames
-
-            print(list_dep)
-
-            # Define animation settings
-            fig.update_layout(
-                updatemenus=[{
-                    'buttons': [
-                        {
-                            'args': [None, {'frame': {'duration': 500, 'redraw': True}, 'fromcurrent': True}],
-                            'label': 'Play',
-                            'method': 'animate'
-                        },
-                        {
-                            'args': [[None], {'frame': {'duration': 0, 'redraw': True}, 'mode': 'immediate'}],
-                            'label': 'Pause',
-                            'method': 'animate'
-                        }
-                    ],
-                    'direction': 'left',
-                    'pad': {'r': 10, 't': 87},
-                    'showactive': False,
-                    'type': 'buttons',
-                    'x': 0.1,
-                    'xanchor': 'right',
-                    'y': 0,
-                    'yanchor': 'top'
-                }]
-            )
+            fig = matplotlib_to_plotly(fig, fig.gca())
 
         engine.dispose()
         return fig
