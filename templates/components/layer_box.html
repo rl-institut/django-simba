@@ -1,4 +1,15 @@
+
 <div class="map-overlay" id="map-overlay">
+
+    <style>
+        .slider-container {
+            width: 90%;
+        }
+        #slider-range {
+            margin-top: 20px;
+        }
+    </style>
+
       <div class="map__layers-close">
         <button type="button" class="btn-close" id="js-map-layers-box-close"
                 aria-label="Close"></button>
@@ -20,7 +31,44 @@
 
 
       <div id="buttonContainer"></div>
+
+          <div class="slider-container">
+    <label>Min: <span id="minValueDisplay">0</span></label> -
+    <label>Max: <span id="maxValueDisplay">100</span></label>
+    <div id="slider-range"></div>
+</div>
     <script>
+
+        // Create the slider with two handles (for min and max)
+    var slider = document.getElementById('slider-range');
+
+    noUiSlider.create(slider, {
+        start: [0, 100],    // Initial values for min and max
+        connect: true,      // Color the range between the handles
+        range: {
+            'min': 0,       // Minimum possible value
+            'max': 100      // Maximum possible value
+        },
+        step: 1,            // Increment step
+        tooltips: [true, true],  // Show tooltips with current values
+        format: {
+            to: value => Math.round(value),
+            from: value => Math.round(value)
+        }
+    });
+
+    // Function to update the displayed values and call the filter function
+    slider.noUiSlider.on('update', function(values, handle) {
+        const minRange = values[0];   // First knob (min value)
+        const maxRange = values[1];   // Second knob (max value)
+
+        // Update displayed values
+        document.getElementById("minValueDisplay").textContent = minRange;
+        document.getElementById("maxValueDisplay").textContent = maxRange;
+
+        // Trigger the applyRangeFilter function with updated values
+        applyRangeFilter('station', 'num_arrivals', parseInt(minRange), parseInt(maxRange));
+    });
 
     let routesIDList = [];
 
@@ -102,11 +150,17 @@
             });
         buttonContainer.appendChild(AllStationButton);
 
+        const Electrified = document.createElement('button');
+        Electrified.classList.add('btn', 'btn-primary', 'm-2');
+        Electrified.textContent = `Show Electrified`;
+        Electrified.addEventListener('click', showElectrified);
+        buttonContainer.appendChild(Electrified);
+
         const button = document.createElement('button');
         button.classList.add('btn', 'btn-primary', 'm-2');
         button.textContent = `Show All`;
         button.addEventListener('click', function() {
-                removeFilters('routes');
+                removeFilters('station');
             });
         buttonContainer.appendChild(button);
 
@@ -135,6 +189,11 @@
         // Function to show route based on data-id
     function showDepots() {
         filters = filterByBool("is_depot", true);
+        map.setFilter('station', filters);
+    }
+
+    function showElectrified() {
+        filters = filterByIntRange("electrified", 9,11);
         map.setFilter('station', filters);
     }
 
