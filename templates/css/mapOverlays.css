@@ -32,6 +32,75 @@
 }
 
 .map-overlay-content {
+  padding-left: 1.5rem;        /* Adjust as needed */
   padding-top: 0.5rem;   /* Adjust the value as needed */
-  padding-right: 1rem;   /* Adjust the value as needed */
+  padding-right: 0rem;   /* Adjust the value as needed */
+  justify-content: center; /* Centers the slider within the container */
+  align-items: center;
+
 }
+
+.slider-container {
+    width: 100%;
+    margin: 0 auto; /* Centers the container horizontally */
+    justify-content: center; /* Centers the slider within the container */
+}
+.label-container {
+    font-size: 18px; /* Ensure labels and spans have larger text */
+    text-align: left;
+    width: 100%;
+}
+#slider-num_arrival {
+    margin-top: 20px;
+}
+
+
+.layer-item {
+            margin-bottom: 10px;
+        }
+        .layer-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .layer-table td {
+            padding: 5px;
+            text-align: left;
+            vertical-align: middle; /* Aligns content vertically in the middle */
+        }
+        .layer-table .checkbox-cell {
+            width: 40px; /* Set a fixed width for the checkbox column */
+        }
+        .layer-table .label-cell {
+            width: calc(100% - 40px); /* Take the remaining width for the label column */
+        }
+        .layer-table input[type="checkbox"] {
+            /* Custom styling for the toggle */
+            width: 30px;
+            height: 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            appearance: none;
+            background: #ddd;
+            position: relative;
+            outline: none;
+        }
+        .layer-table input[type="checkbox"]:checked {
+            background: #4caf50;
+        }
+        .layer-table input[type="checkbox"]:before {
+            content: '';
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #fff;
+            left: 0;
+            transition: 0.3s;
+        }
+        .layer-table input[type="checkbox"]:checked:before {
+            left: 15px;
+        }
+        .layer-table label {
+            font-size: 18px; /* Increase font size for labels */
+            margin: 0; /* Remove default margin for alignment */
+        }
