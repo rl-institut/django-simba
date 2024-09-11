@@ -5,7 +5,7 @@
         .slider-container {
             width: 90%;
         }
-        #slider-range {
+        #slider-num_arrival {
             margin-top: 20px;
         }
     </style>
@@ -35,34 +35,34 @@
           <div class="slider-container">
     <label>Min: <span id="minValueDisplay">0</span></label> -
     <label>Max: <span id="maxValueDisplay">100</span></label>
-    <div id="slider-range"></div>
+    <div id="slider-num_arrival"></div>
 </div>
     <script>
 
-        // Create the slider with two handles (for min and max)
-    var slider = document.getElementById('slider-range');
+        let sliderMinDefault = 0;
+        let sliderMaxDefault = 100;
 
-  /*  const features = map.queryRenderedFeatures({ layers: "station" });
-    const numberOfFeatures = features.length;
-    for (let i = 0; i < numberOfFeatures; i++) {
-        console.log(features[i].num_arrivals);
-    }*/
+        const sliders = ['slider-num_arrival'];
 
-    noUiSlider.create(slider, {
-        start: [0, 100],    // Initial values for min and max
-        connect: true,      // Color the range between the handles
-        range: {
-            'min': 0,       // Minimum possible value
-            'max': 100      // Maximum possible value
-        },
-        step: 1,            // Increment step
-        tooltips: [true, true],  // Show tooltips with current values
-        format: {
-            to: value => Math.round(value),
-            from: value => Math.round(value)
+        for (const slider_name of sliders) {
+            var slider = document.getElementById(slider_name);
+
+            noUiSlider.create(slider, {
+                start: [sliderMinDefault, sliderMaxDefault],    // Initial values for min and max
+                connect: true,      // Color the range between the handles
+                range: {
+                    'min': sliderMinDefault,       // Minimum possible value
+                    'max': sliderMaxDefault      // Maximum possible value
+                },
+                step: 1,            // Increment step
+                tooltips: [true, true],  // Show tooltips with current values
+                format: {
+                    to: value => Math.round(value),
+                    from: value => Math.round(value)
+                }
+            });
         }
-    });
-
+var slider = document.getElementById('slider-num_arrival');
     // Function to update the displayed values and call the filter function
     slider.noUiSlider.on('update', function(values, handle) {
         const minRange = values[0];   // First knob (min value)
@@ -202,26 +202,48 @@
         filters = filterByIntRange("electrified", 9,11);
         map.setFilter('station', filters);
     }
-
+    let stationPowerFilterTriggered = false;  // Flag to track if StationPowerFilter was triggered
     map.on('idle', function () {
-        getRouteIds();
-        StationPowerFilter()
+        if (!stationPowerFilterTriggered) {
+            StationArrivalFilter();
+        }
         createButtons();
-
     });
 
-    function StationPowerFilter(){
-        const layerId = 'station';
-        if (map.getLayer(layerId)) {
-            const features = map.queryRenderedFeatures({ layers: [layerId] });
-            const numberOfFeatures = features.length;
-            for (let i = 0; i < numberOfFeatures; i++) {
-                console.log(features[i]);
+    function StationArrivalFilter() {
+        const sources = map.getStyle().sources;
+        console.log('Available source IDs:', Object.keys(sources));  // List available source IDs
+
+        const sourceId = 'stations_mvt';  // Replace with the correct source ID from the above list
+
+        if (map.getSource(sourceId)) {  // Check if the source exists
+            const features = map.querySourceFeatures(sourceId, {
+                sourceLayer: 'station'  // Replace with the actual source layer if needed
+            });
+
+            if (features.length > 0) {
+                // Collect all num_arrivals values
+                const arrivals = features.map(feature => feature.properties.num_arrivals);
+
+                // Find min and max values
+                const minArrivals = Math.min(...arrivals);
+                const maxArrivals = Math.max(...arrivals);
+
+                slider = document.getElementById('slider-num_arrival');
+                // Update the slider with new min and max values
+                slider.noUiSlider.updateOptions({
+                    range: {
+                        'min': minArrivals,  // New minimum value
+                        'max': maxArrivals   // New maximum value
+                    }
+                });
+                stationPowerFilterTriggered = true;  // Set flag to true after first call
+            } else {
+                console.log('No features found in source.');
             }
         } else {
-            console.log('Layer "routes" does not exist.');
+            console.log('Source does not exist.');
         }
-
     }
 
     function applyRangeFilter(layerId, key, minValue, maxValue) {
