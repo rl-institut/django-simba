@@ -42,6 +42,12 @@
         // Create the slider with two handles (for min and max)
     var slider = document.getElementById('slider-range');
 
+  /*  const features = map.queryRenderedFeatures({ layers: "station" });
+    const numberOfFeatures = features.length;
+    for (let i = 0; i < numberOfFeatures; i++) {
+        console.log(features[i].num_arrivals);
+    }*/
+
     noUiSlider.create(slider, {
         start: [0, 100],    // Initial values for min and max
         connect: true,      // Color the range between the handles
