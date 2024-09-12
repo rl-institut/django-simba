@@ -15,6 +15,7 @@
     {% include 'wizard.html' %}
 
     <!-- Main Content -->
+
     <div class="row lead justify-content-center d-flex p-5">
       Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu.
     </div>
@@ -31,111 +32,98 @@
       </div>
       <div class="row" style="min-height: 30vh">
         <div class="col-6 d-flex flex-column justify-content-evenly">
-          {{ formset_vt.management_form }}
-          {% for form in formset_vt %}
-            <div class="row m-1">
-              <div class="col-6 bg-primary text-white rounded text-center align-content-center">
-                {{ form.instance.vehicle_type.name }}
+          {% if vehicle_types %}
+            {{ formset_vt.management_form }}
+            {% for form in formset_vt %}
+              <div class="row m-1">
+                <div class="col-6 bg-primary text-white rounded text-center align-content-center">
+                  {{ form.instance.vehicle_type.name }}
+                </div>
+                <div class="col-5 d-flex align-center">
+                  <select id="{{ form.default_vehicle_type.auto_id }}"
+                          name="{{ form.default_vehicle_type.html_name }}" class="form-select">
+                    {% for default_vehicle_type in default_vehicle_types %}
+                      <option value="{{ default_vehicle_type.id }}" {% if default_vehicle_type.id == form.default_vehicle_type.initial %}selected{% endif %}>
+                        {% if default_vehicle_type.opportunity_charging_capable %}{{ default_vehicle_type.name }}
+                        {% else %} als Depotlader{% endif %}
+                      </option>
+                    {% endfor %}
+
+                  </select>
+                  {#            this lets django now which form the upper input belongs to, since each form is coupled with the vehicle type#}
+                  <input type="hidden" name="{{ form.id.html_name }}"
+                         value={{ form.id.value }} id="{{ form.id.auto_id }}">
+                </div>
+                <button type="button" id="showInfo_btn_{{ form.default_vehicle_type.auto_id }}"
+                        class="col-1 btn btn-secondary"
+                        onclick="showInfo(this.id)"> ?
+                </button>
               </div>
-              <select id='{{ form.default_vehicle_type.auto_id }}'
-                      name="{{ form.default_vehicle_type.html_name }}" class="form-select">
-                {% for default_vehicle_type in default_vehicle_types %}
-                  <option value="{{ default_vehicle_type.id }}">
-                    {{ default_vehicle_type.name }}
-                  </option>
+
+            {% endfor %}
+          {% else %}
+            <p>Keine Fahrzeugtypen verfügbar.</p>
+          {% endif %}
+        </div>
+        <div class="col-6 d-grid align-items-center" id="infobox_place_holder">
+          <div id="infobox_place_holder_text"><small class="form-text text-muted">Hier erscheint eine
+            Zusammenfassung
+            der technischen Daten des von Ihnen ausgewählten Fahrzeugs</small></div>
+
+          {#info boxes about selected vehicle Type#}
+                {{ formset_dvt.management_form }}
+          {% for form in formset_dvt %}
+            <div id="vehicle_type_{{ form.instance.id }}_info" class="info-box">
+              <div class="row">
+                <div class="col text-start">
+                  <h5>{{ form.instance.name }}</h5>
+                  Der Fahrzeugtyp besitzt eine Standard-Batteriekapazität
+                  von {{ form.instance.battery_capacity }} kWh und
+                  einen
+                  Verbrauch von {{ form.instance.consumption }} kWh/km. Er ist von der Bauweise
+                  {% if form.instance.opportunity_charging_capable %}
+                    Gelegenheitslader{% else %}Depotlader{% endif %}.
+                </div>
+                <div class="col-6">
+                  <div class="chart-container" style="min-height: 20vh">
+                    <canvas id="vehicle_type_{{ form.instance.id }}_info_chart"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mt-1">
+                {% for field in form.visible_fields %}
+                  <div class="text-start">{{ field.label }}:<input class="col-3" type="number"
+                                                                   name="{{ field.html_name }}"
+                                                                   value={{ field.initial| floatformat:0 }}
+                                                                           min={{ field.min_value }}
+                                                                   max={{ field.max_value }}
+                                                                           {% if field.field.required %} required="" {% endif %}
+                                                                   aria-describedby="id_{{ field.name }}_help_text_{{ field.auto_id }}"
+                                                                   id="{{ field.auto_id }}">
+
+                    <div class="row">
+                      <small id="id_{{ field.name }}_help_text_{{ field.auto_id }}"> {{ field.help_text }}
+                      </small>
+
+                    </div>
+                  </div>
                 {% endfor %}
-              </select>
-              {#            this lets django now which form the upper input belongs to, since each form is coupled with the vehicle type#}
-              <input type="hidden" name="{{ form.id.html_name }}" value={{ form.id.value }} id="{{ form.id.auto_id }}">
+                {#            this lets django now which form the upper input belongs to, since each form is coupled with the vehicle type#}
+                <input type="hidden" name="{{ form.id.html_name }}"
+                       value={{ form.id.value }} id="{{ form.id.auto_id }}">
+
+              </div>
+
             </div>
           {% endfor %}
-          {#    </div>#}
-          {#          {% if vehicle_types %}#}
-          {#            {% for form in formset_vt %}#}
-          {#              <div class="row m-1">#}
-          {#                <div class="col-6 bg-primary text-white rounded text-center align-content-center">#}
-          {#                  {{ form.instance.vehicle_type.name }}#}
-          {#                </div>#}
-          {#                                <div class="col-5 d-flex align-center">#}
-          {#                                  <select id='{{ form.default_vehicle_type.auto_id}}'#}
-          {#                                          name="{{ form.default_vehicle_type.html_name }}" class="form-select">#}
-          {#                                    {% for default_vehicle_type in default_vehicle_types %}#}
-          {#                                      {% if form.instance.vehicle_type.opportunity_charging_capable == default_vehicle_type.opportunity_charging_capable %}#}
-          {#                                        <option value={{ default_vehicle_type.id }}>#}
-          {#                                          {{ default_vehicle_type.name }}{% if form.instance.vehicle_type.opportunity_charging_capable %}#}
-          {#                                          {% else %} als Depotlader{% endif %}#}
-          {#                                        </option>#}
-          {#                                      {% endif %}#}
-          {#                                    {% endfor %}#}
-          {##}
-          {#                                  </select>#}
-          {#                                </div>#}
-          {#                <button type="button" id="showInfo_btn_{{ form.instance.id }}" class="col-1 btn btn-secondary"#}
-          {#                        onclick="showInfo(this.id)"> ?#}
-          {#                </button>#}
-          {#              </div>#}
-          {##}
-          {#            {% endfor %}#}
-          {#          {% else %}#}
-          {#            <p>Keine Fahrzeugtypen verfügbar.</p>#}
-          {#          {% endif %}#}
-          {#        </div>#}
-          {#        <div class="col-6 d-grid align-items-center" id="infobox_place_holder">#}
-          {#          <div id="infobox_place_holder_text"><small class="form-text text-muted">Hier erscheint eine#}
-          {#            Zusammenfassung#}
-          {#            der technischen Daten des von Ihnen ausgewählten Fahrzeugs</small></div>#}
-          {##}
-          {#info boxes about selected vehicle Type#}
-          {#          {% for default_vehicle_type in default_vehicle_types %}#}
-          {#            <div id="vehicle_type_{{ default_vehicle_type.id }}_info" class="info-box">#}
-          {#              <div class="row">#}
-          {#                <div class="col text-start">#}
-          {#                  <h5>{{ default_vehicle_type.name }}</h5>#}
-          {#                  Der Fahrzeugtyp besitzt eine Standard-Batteriekapazität#}
-          {#                  von {{ default_vehicle_type.battery_capacity }} kWh und#}
-          {#                  einen#}
-          {#                  Verbrauch von {{ default_vehicle_type.consumption }} kWh/km. Er ist von der Bauweise#}
-          {#                  {% if default_vehicle_type.opportunity_charging_capable %}#}
-          {#                    Gelegenheitslader{% else %}Depotlader{% endif %}.#}
-          {#                </div>#}
-          {#                <div class="col-6">#}
-          {#                  <div class="chart-container" style="min-height: 20vh">#}
-          {#                    <canvas id="vehicle_type_{{ default_vehicle_type.id }}_info_chart"></canvas>#}
-          {#                  </div>#}
-          {#                </div>#}
-          {#              </div>#}
-          {##}
-          {#              <div class="row mt-1">#}
-          {#                {% with field=default_vehicle_types_adjustment_form.battery_capacity %}#}
-          {#                  <div class="text-start">{{ field.label }}:<input class="col-3" type="number"#}
-          {#                                                                   name="{{ field.name }}_{{ default_vehicle_type.id }}"#}
-          {#                                                                   value={{ default_vehicle_type.battery_capacity| floatformat:0 }}#}
-          {#                                                                           min={{ field.min_value }}#}
-          {#                                                                   max={{ field.max_value }}#}
-          {#                                                                           {% if field.field.required %} required="" {% endif %}#}
-          {#                                                                   aria-describedby="id_{{ field.name }}_help_text_{{ default_vehicle_type.id }}"#}
-          {#                                                                   id="id_{{ field.name }}_{{ default_vehicle_type.id }}">kWh#}
-          {##}
-          {#                    <div class="row">#}
-          {#                      <small id="id_{{ field.name }}_help_text_{{ default_vehicle_type.id }}"> {{ field.help_text }}#}
-          {#                      </small>#}
-          {##}
-          {#                    </div>#}
-          {#                  </div>#}
-          {#                {% endwith %}#}
-          {#              </div>#}
-          {##}
-          {#            </div>#}
-          {#          {% endfor %}#}
-          {##}
-          {##}
-          {#        </div>#}
-          {#      </div>#}
-          {#      <div>#}
-          <!-- dummy vehicle types get default vehicle type values -->
-          {% include 'continue_button.html' %}
-          {#      </div>#}
+
+
         </div>
+      </div>
+      <div>
+        <!-- dummy vehicle types get default vehicle type values -->
+        {% include 'continue_button.html' %}
       </div>
     </form>
   </div>
@@ -146,9 +134,14 @@
       {# When the site is fully loaded, call this function        #}
 
       function showInfo(btnid) {
-          var vehicle_type_id = btnid.split('_').at(-1);
-          var dropdown = document.getElementById('vehicle_type_dropdown_' + vehicle_type_id);
-          var default_vehicle_type_id = dropdown.value.split('_')[1];
+          var first_part = "showInfo_btn_"
+          if (!btnid.startsWith(first_part)) {
+              console.error("unexpected button name")
+              return
+          }
+          var dropdown_id = btnid.substring(first_part.length);
+          var dropdown = document.getElementById(dropdown_id);
+          var default_vehicle_type_id = dropdown.value;
 
           show_info_box(default_vehicle_type_id)
       }
@@ -178,13 +171,12 @@
 
       document.addEventListener('DOMContentLoaded', function () {
           {# find all dropdowns with this naming scheme in their id#}
-          var dropdowns = document.querySelectorAll('[id*="vehicle_type_dropdown_"]');
+          var dropdowns = document.querySelectorAll('[id*="default_vehicle_type"]');
 
           {# Define a function which makes a info box with a similar name visible.#}
 
           function updateInfoBox(selectedValue) {
-              var default_vehicle_type_id = selectedValue.split('_')[1];
-              show_info_box(default_vehicle_type_id)
+              show_info_box(selectedValue)
           }
 
           {# create an event listener for changes in the dropdowns#}

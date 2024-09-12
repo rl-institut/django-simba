@@ -20,7 +20,7 @@
   {% include 'wizard.html' %}
 
   {% if is_depot_scenario %}
-    <form class="text-center" enctype="multipart/form-data" method="GET" action="{% url 'simba:set_station_values' task_id %}">
+    <form class="text-center" enctype="multipart/form-data" method="POST" action="{% url 'simba:electrification' task_id %}">
       {% csrf_token %}
       <div class="input-item row m-5">
         <div><h4>In diesem Szenario gibt es nur Depotlader, daher kann die Stationselektrifizierung übersprungen werden.</h4></div>
@@ -36,12 +36,11 @@
 
     <div id="dynamic-content">
         <div id="dynamic-list">
-            <form class="text-center px-4" enctype="multipart/form-data" method="POST" action="{% url 'simba:set_station_values' task_id %}">
+            <form class="text-center px-4" enctype="multipart/form-data" method="POST" action="{% url 'simba:electrification' task_id %}">
                 {% csrf_token %}
-                <!-- {{ form }} -->
                 <div class="input-item row m-5">
                     <div class="col-6 d-flex justify-content-between align-items-center">{{ form.amount_charging_places }}</div>
-                    <div class="col-6 text-start">Anzahl der Ladepunkte pro elektrifizierter Station. Diese legen fest, wie viele Fahrzeuge parallel an der selben Station laden können.</div>
+                    <div class="helptext col-6 text-start">Anzahl der Ladepunkte pro elektrifizierter Station. Diese legen fest, wie viele Fahrzeuge parallel an der selben Station laden können.</div>
                 </div>
                 <div class="input-item row m-5">
                     <div class="col-6 d-flex justify-content-between align-items-center">{{ form.cs_power_opps }}</div>
@@ -49,7 +48,7 @@
                 </div>
                 <div class="input-item row m-5">
                     <div class="col-6 d-flex justify-content-between align-items-center">{{ form.gc_power_opps }}</div>
-                    <div class="col-6 text-start">Dies legt fest, wie hoch die Ladeleistung jedes Gridconnectors (Netzverbindung) in kiloVoltAmpere (kVA) ist.</div>
+                    <div class="helptext col-6 text-start">Dies legt fest, wie hoch die Ladeleistung jedes Gridconnectors (Netzverbindung) in kiloVoltAmpere (kVA) ist.</div>
                 </div>
                 <div class="input-item row m-5">
                     <div class="col-6 d-flex justify-content-between align-items-center">
@@ -59,7 +58,7 @@
                             <label class="form-check-label" for="flexSwitchCheckDefault"></label>
                         </div>
                     </div>
-                    <div class="col-6 text-start">
+                    <div class="helptext col-6 text-start">
                         "Station Optimization" ist ein Modus, der den Anwender bei der Suche nach optimalen Lösungen für sein eBus-System unterstützt
                         und daher die Stationen automatisch auswählt, die elektrifiziert werden sollen.
                     </div>

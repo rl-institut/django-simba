@@ -897,6 +897,9 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
         scenario = Scenario.objects.get(id=scenario_id)
         progress.scenario = scenario
         progress.save()
+        # parent scenario has all the content. "normal scenario" has the mutation. Simulation
+        # Scenario is parent scenario with mutation applied
+
         delete_old_scenario_data(scenario)
         # Read the file and write it to database
         progress.refresh_from_db()

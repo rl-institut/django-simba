@@ -1,5 +1,5 @@
 from django import forms
-from .models import EnumChargeType, EnumVoltageLevel
+from .models import EnumChargeType, EnumVoltageLevel, ElectrificationOptions, VehicleType
 
 
 class UploadFileForm(forms.Form):
@@ -89,26 +89,25 @@ class SimulationParameters(forms.Form):
     )
 
 
-class VehicleTypesAdjustmentForm(forms.Form):
-    battery_capacity = forms.IntegerField(
-        min_value=0,
-        max_value=1000000,
-        label="Nutzbare Batteriekapazität",
-        help_text="Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen.",
-    )
+class ElectrificationOptionsForm(forms.ModelForm):
+    class Meta:
+        model = ElectrificationOptions
+        exclude = ("scenario", "electrified_stations")
+        help_texts = {
+            "gc_power_opps": "Grid connector power in kVA",
+            "cs_power_opps": "Charging point power in kW",
+            "amount_charging_places": "Number of charging points per electrified station",
+        }
 
 
-class ChargingStationDefaultsForm(forms.Form):
-    gc_power_opps = forms.IntegerField(
-        min_value=0, max_value=1000000, initial=5000, label="Grid connector power in kVA"
-    )
-    cs_power_opps = forms.IntegerField(
-        min_value=0, max_value=10000, initial=300, label="Charging point power in kW"
-    )
-    amount_charging_places = forms.IntegerField(
-        min_value=0,
-        max_value=1000,
-        initial=2,
-        label="Number of charging points per electrified station",
-    )
-    station_optimization = forms.BooleanField(initial=False, required=False)
+class VehicleTypeForm(forms.ModelForm):
+    class Meta:
+        model = VehicleType
+        fields = ["battery_capacity"]
+
+        help_texts = {
+            "battery_capacity": "Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen.",
+        }
+        labels = {
+            "battery_capacity": "Batteriekapazität [kWh]",
+        }
