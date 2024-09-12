@@ -179,7 +179,7 @@ def create_layout(app: Dash) -> Div:
                                         dcc.Dropdown(
                                             ["Event Type", "State of Charge", "Location"],
                                             "Event Type",
-                                            id="color-scheme-dropdown",
+                                            id=ids.EFLIPS_COLORSCHEME_DROPDOWN,
                                             style={"width": "30%"},
                                         ),
                                         html.H2(id="scenario-name"),
@@ -188,7 +188,7 @@ def create_layout(app: Dash) -> Div:
                                         html.Div(
                                             children=[
                                                 html.P("Click on a group in legend to hide/show the group."),
-                                                dcc.Graph(id="gantt-chart")],
+                                                dcc.Graph(id=ids.EFLIPS_GANTT)],
                                             style={
                                                 "display": "inline-block",
                                                 "width": "100%",
@@ -198,9 +198,9 @@ def create_layout(app: Dash) -> Div:
                                             children=[
                                                 html.H2(children="SoC-log of vehicle:"),
                                                 html.Div(
-                                                    id="click-data", style={"font-size": "20"}
+                                                    id=ids.EFLIPS_CLICK_DATA, style={"font-size": "20"}
                                                 ),
-                                                dcc.Graph(id="vehicle-soc-plot"),
+                                                dcc.Graph(id=ids.EFLIPS_VEHICLE_SOC),
                                             ]
                                         ),
                                         html.Div(
@@ -208,13 +208,13 @@ def create_layout(app: Dash) -> Div:
                                                 html.H2(
                                                     children="Power and occupancy of current depot"
                                                 ),
-                                                dcc.Graph(id="power-and-occupancy-plot"),
+                                                dcc.Graph(id=ids.EFLIPS_POWER_AND_OCCUPANCY),
                                             ]
                                         ),
                                         html.Div(
                                             children=[
                                                 html.P("Click on a group in legend to hide/show the group."),
-                                                dcc.Graph(id="specific-energy-plot")],
+                                                dcc.Graph(id=ids.EFLIPS_SPECIFIC_ENERGY)],
                                             style={
                                                 "display": "inline-block",
                                                 "width": "100%",
@@ -223,7 +223,7 @@ def create_layout(app: Dash) -> Div:
                                         html.Div(
                                             children=[
                                                 html.P("Click on a group in legend to hide/show the group."),
-                                                dcc.Graph(id="animation")],
+                                                dcc.Graph(id=ids.EFLIPS_ANIMATION)],
                                             style={
                                                 "display": "inline-block",
                                                 "width": "100%",

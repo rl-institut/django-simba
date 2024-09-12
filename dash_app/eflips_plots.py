@@ -1,17 +1,3 @@
-import pandas as pd
-import pytz
-from eflips.eval.output.prepare import (
-    depot_event as prepare_depot_event,
-    vehicle_soc as prepare_vehicle_soc,
-    power_and_occupancy as prepare_power_and_occupancy,
-)
-from eflips.eval.output.util import _is_occupied
-from eflips.eval.output.visualize import (
-    depot_event as visualize_depot_event,
-    vehicle_soc as visualize_vehicle_soc,
-    power_and_occupancy as visualize_power_and_occupancy,
-)
-
 import eflips.eval.output.prepare as output_prepare
 import eflips.eval.output.visualize as output_visualize
 
@@ -146,11 +132,11 @@ def matplotlib_to_plotly(fig, ax):
 
 def get_ganttchart_scenario_eflips(app: Dash):
     @app.callback(
-        Output("gantt-chart", "figure"),
+        Output(ids.EFLIPS_GANTT, "figure"),
         Output("scenario-name", "children"),
         Output("num-vehicles", "children"),
         Output("task_id", "data"),
-        Input("color-scheme-dropdown", "value"),
+        Input(ids.EFLIPS_COLORSCHEME_DROPDOWN, "value"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
         State(ids.BUS_DROPDOWN, "data"),
     )
@@ -178,43 +164,43 @@ def get_ganttchart_scenario_eflips(app: Dash):
         # Check the simulation status
         if data.get_sim_done_status(task_id):
             return go.Figure(layout=dict(template="plotly")), "", "", task_id
+        else:
+            # Create a connection to the database
+            engine = _create_engine_from_postgis_url()
 
-        # Create a connection to the database
-        engine = _create_engine_from_postgis_url()
+            try:
+                with Session(engine) as session:
+                    scenario = ebusScenario.objects.get(task_id=task_id)
+                    scenario_id = scenario.id
+                    scenario_name = scenario.name
 
-        try:
-            with Session(engine) as session:
-                scenario = ebusScenario.objects.get(task_id=task_id)
-                scenario_id = scenario.id
-                scenario_name = scenario.name
+                    depot_events = output_prepare.depot_event(scenario_id, session)
+                    depot_events = depot_events[depot_events["vehicle_id"].astype(int).isin(busses)]
+                    num_vehicles = depot_events["vehicle_id"].nunique()
 
-                depot_events = output_prepare.depot_event(scenario_id, session)
-                depot_events = depot_events[depot_events["vehicle_id"].astype(int).isin(busses)]
-                num_vehicles = depot_events["vehicle_id"].nunique()
+                    color_scheme = {
+                        "Event Type": "event_type",
+                        "State of Charge": "soc",
+                        "Location": "location",
+                    }
 
-                color_scheme = {
-                    "Event Type": "event_type",
-                    "State of Charge": "soc",
-                    "Location": "location",
-                }
+                    fig = output_visualize.depot_event(depot_events, color_scheme[color_scheme_dropdown])
 
-                fig = output_visualize.depot_event(depot_events, color_scheme[color_scheme_dropdown])
+            finally:
+                engine.dispose()
 
-        finally:
-            engine.dispose()
-
-        return (
-            fig,
-            scenario_name,
-            f"Total number of vehicles: {num_vehicles}",
-            task_id,
-        )
+            return (
+                fig,
+                scenario_name,
+                f"Total number of vehicles: {num_vehicles}",
+                task_id,
+            )
 
 
 def get_vehicle_by_click_eflips(app: Dash):
     @app.callback(
-        Output("click-data", "children"),
-        Input("gantt-chart", "clickData"),
+        Output(ids.EFLIPS_CLICK_DATA, "children"),
+        Input(ids.EFLIPS_GANTT, "clickData"),
     )
     def get_vehicle_by_click(clickData):
         if clickData is None:
@@ -225,8 +211,8 @@ def get_vehicle_by_click_eflips(app: Dash):
 
 def get_vehicle_soc_plot_eflips(app: Dash):
     @app.callback(
-        Output("vehicle-soc-plot", "figure"),
-        Input("click-data", "children"),
+        Output(ids.EFLIPS_VEHICLE_SOC, "figure"),
+        Input(ids.EFLIPS_CLICK_DATA, "children"),
         Input("task_id", "data"),
     )
     def get_vehicle_soc_plot(vehicle_id: int, task_id: str):
@@ -250,7 +236,7 @@ def get_vehicle_soc_plot_eflips(app: Dash):
 
 def get_power_and_occupancy_plot_eflips(app: Dash):
     @app.callback(
-        Output("power-and-occupancy-plot", "figure"),
+        Output(ids.EFLIPS_POWER_AND_OCCUPANCY, "figure"),
         Input("task_id", "data"),
     )
     def get_power_and_occupancy_plot(task_id: str):
@@ -278,9 +264,9 @@ def get_power_and_occupancy_plot_eflips(app: Dash):
 
 def get_specific_energy_eflips(app: Dash):
     @app.callback(
-        Output("specific-energy-plot", "figure"),
-        Input("click-data", "children"),
-        Input("color-scheme-dropdown", "value"),
+        Output(ids.EFLIPS_SPECIFIC_ENERGY, "figure"),
+        Input(ids.EFLIPS_CLICK_DATA, "children"),
+        Input(ids.EFLIPS_COLORSCHEME_DROPDOWN, "value"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
     )
     def get_specific_energy_plot(
@@ -315,9 +301,9 @@ def get_specific_energy_eflips(app: Dash):
 
 def get_animation_eflips(app: Dash):
     @app.callback(
-        Output("animation", "figure"),
-        Input("click-data", "children"),
-        Input("color-scheme-dropdown", "value"),
+        Output(ids.EFLIPS_ANIMATION, "figure"),
+        Input(ids.EFLIPS_CLICK_DATA, "children"),
+        Input(ids.EFLIPS_COLORSCHEME_DROPDOWN, "value"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
     )
     def get_animation(
@@ -336,8 +322,10 @@ def get_animation_eflips(app: Dash):
 
         engine = _create_engine_from_postgis_url()
 
-        if ebusScenario.objects.filter(task_id=session_state["task_id"], finished__isnull=False).exists():
+        if data.get_sim_done_status(session_state["task_id"]):
+            return go.Figure(layout=dict(template="plotly"))
 
+        else:
             with Session(engine) as session:
                 scenario = ebusScenario.objects.get(task_id=session_state["task_id"])
                 scenario_id = scenario.id
@@ -358,5 +346,3 @@ def get_animation_eflips(app: Dash):
 
             engine.dispose()
             return fig
-        else:
-            return go.Figure(layout=dict(template="plotly"))
