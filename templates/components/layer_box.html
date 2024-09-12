@@ -6,20 +6,21 @@
                 aria-label="Close"></button>
     </div>
     <div class="map-overlay-content">
-
-        <div class="basemaps__btn">
-            <button id="basemaps__default" class="btn" onclick="toggleBasemap(null);">
-                <img src="{% static 'django_mapengine/images/layer_ctrl_default.svg' %}" alt="Default basemap view">
-                <span>{% trans "default"|title %}</span>
-            </button>
+        <div class="buttons-container">
+            <div class="basemaps__btn">
+                <button id="basemaps__default" class="btn" onclick="toggleBasemap(null);">
+                    <img src="/static/django_mapengine/images/layer_ctrl_default.svg" alt="Default basemap view">
+                    <span>Kartenansicht</span>
+                </button>
+            </div>
+            <div class="basemaps__btn">
+                <button id="basemaps__satellite" class="btn" onclick="toggleBasemap('satellite');">
+                    <img src="/static/django_mapengine/images/layer_ctrl_satellite.svg" alt="Satellite basemap view">
+                    <span>Stellitenansicht</span>
+                </button>
+            </div>
         </div>
-        <div class="basemaps__btn">
-            <button id="basemaps__satellite" class="btn" onclick="toggleBasemap('satellite');">
-                <img src="{% static 'django_mapengine/images/layer_ctrl_satellite.svg' %}" alt="Satellite basemap view">
-                <span>{% trans "satellite"|title %}</span>
-            </button>
-        </div>
-
+        <br><br>
         <div id="layers">
             <!-- Layer items will be inserted here -->
         </div>

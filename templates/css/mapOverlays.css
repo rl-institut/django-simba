@@ -39,6 +39,34 @@
     align-items: center;
 }
 
+.buttons-container {
+    font-size: 18px; /* Ensure labels and spans have larger text */
+    width: 100%;
+    text-align: left;
+    padding: 0;
+    margin-left: -10px; /* Adjust this value to move the container left */
+}
+
+.basemaps__btn {
+    display: inline-block; /* Ensure buttons align properly in a row or column */
+    margin: 5px 0; /* Add spacing between buttons */
+}
+
+button.btn {
+    display: inline-flex; /* Align image and text horizontally */
+    align-items: center; /* Vertically center the content */
+    justify-content: flex-start; /* Align button content to the left */
+    padding: 5px 10px; /* Adjust padding inside the button */
+    border: none; /* Optional: Remove default border */
+    background: none; /* Optional: Remove default background */
+}
+
+button.btn img {
+    margin-right: 10px; /* Space between the image and the text */
+    margin-left: 0; /* Ensure image is fully left-aligned */
+    padding: 0; /* Remove any padding from the image */
+}
+
 .slider-container {
     width: 100%;
     margin: 0 auto; /* Centers the container horizontally */
