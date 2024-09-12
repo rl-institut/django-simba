@@ -316,11 +316,12 @@ def get_specific_energy_eflips(app: Dash):
 def get_animation_eflips(app: Dash):
     @app.callback(
         Output("animation", "figure"),
+        Input("click-data", "children"),
+        Input("color-scheme-dropdown", "value"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
-        State(ids.BUS_DROPDOWN, "data"),
     )
     def get_animation(
-            _, busses, session_state: Dict[str, Any] | None
+            _, busses, __, session_state: Dict[str, Any] | None
     ):
 
         from ebustoolbox.models import Scenario as ebusScenario
@@ -335,23 +336,27 @@ def get_animation_eflips(app: Dash):
 
         engine = _create_engine_from_postgis_url()
 
-        with Session(engine) as session:
-            scenario = ebusScenario.objects.get(task_id=session_state["task_id"])
-            scenario_id = scenario.id
+        if ebusScenario.objects.filter(task_id=session_state["task_id"], finished__isnull=False).exists():
 
-            depot_id = (
-                session.query(Depot.id)
-                .filter(Depot.scenario_id == scenario_id)
-                .limit(1)
-                .one()[0]
-            )
+            with Session(engine) as session:
+                scenario = ebusScenario.objects.get(task_id=session_state["task_id"])
+                scenario_id = scenario.id
 
-            area_blocks = output_prepare.depot_layout(depot_id, session)
-            _, fig = output_visualize.depot_layout(area_blocks)
+                depot_id = (
+                    session.query(Depot.id)
+                    .filter(Depot.scenario_id == scenario_id)
+                    .limit(1)
+                    .one()[0]
+                )
 
-            fig.savefig("test")
+                area_blocks = output_prepare.depot_layout(depot_id, session)
+                _, fig = output_visualize.depot_layout(area_blocks)
 
-            fig = matplotlib_to_plotly(fig, fig.gca())
+                fig.savefig("test")
 
-        engine.dispose()
-        return fig
+                fig = matplotlib_to_plotly(fig, fig.gca())
+
+            engine.dispose()
+            return fig
+        else:
+            return go.Figure(layout=dict(template="plotly"))
