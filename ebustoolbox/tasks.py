@@ -17,7 +17,7 @@ import django.apps
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
 from django.db import connections
-from django.db.models import Max, Count
+from django.db.models import Max, Count, Min, QuerySet
 from django.db.transaction import atomic
 from django.http import HttpRequest
 from django.utils import timezone
@@ -904,7 +904,6 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
         scenario.simba_options = vars(get_args(scenario))
         find_and_make_depots(scenario)
         scenario.save()
-        trim_scenario(scenario, time_delta=timedelta(days=7))
         progress.save()
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -931,16 +930,28 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
         core.deepcopy.reset_postgres_auto_increments(["ebustoolbox"])
 
 
+@atomic()
 def trim_scenario(scenario, time_delta, start_time=None):
-    trips = Trip.objects.filter(scenario=scenario).order_by("departure_time")
+    rotations = get_rotations_by_timespan(scenario, time_delta, start_time)
+    rotations_to_remove = Rotation.objects.filter(scenario=scenario).exclude(id__in=rotations)
+    rotations_to_remove.delete()
+
+
+def get_rotations_by_timespan(
+    scenario: Scenario, time_delta, start_time=None
+) -> QuerySet[Rotation]:
     if start_time is None:
+        trips = Trip.objects.filter(scenario=scenario).order_by("departure_time")
         start_time = trips.first().departure_time
     latest_start = start_time + time_delta
+    rotations = (
+        Rotation.objects.filter(scenario=scenario)
+        .annotate(first_departure=Min("trip__departure_time"))
+        .filter(first_departure__gte=start_time)
+        .filter(first_departure__lte=latest_start)
+    )
 
-    rotations = Rotation.objects.filter(scenario=scenario).prefetch_related("trip_set")
-    for rotation in rotations:
-        if rotation.trip_set.order_by("departure_time").first().departure_time > latest_start:
-            rotation.delete()
+    return rotations
 
 
 @atomic()
@@ -1117,8 +1128,6 @@ def _run_ebus_toolchain(self, task_id, run_parent=False):
 
     progress, _ = Progress.objects.get_or_create(task_id=self.request.id, scenario=db_scenario)
     progress.reset()
-
-    trim_scenario(db_scenario, time_delta=timedelta(days=7))
 
     try:
         logger.info(f"Getting schedule from db {datetime.now()}")
@@ -1340,7 +1349,12 @@ def run_eflips(task_id) -> None:
     generate_depot_layout(
         db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=True
     )
-    simulate_scenario(db_scenario, database_url=db_url)
+
+    # calculate total scenario time for eflips repetition period
+    last_trip_time = Trip.objects.filter(scenario=db_scenario).aggregate(Max("arrival_time"))
+    first_trip_time = Trip.objects.filter(scenario=db_scenario).aggregate(Min("departure_time"))
+    period = last_trip_time["arrival_time__max"] - first_trip_time["departure_time__min"]
+    simulate_scenario(db_scenario, database_url=db_url, repetition_period=period)
 
 
 def create_db_url():
@@ -1688,38 +1702,48 @@ def find_and_make_depots(scenario):
         station.save()
 
 
-def trim_depots(scenario):
-    depots = Station.objects.filter(scenario=scenario, charge_type=EnumChargeType.DEPOT)
-    rot_per_depot = {depot: [] for depot in depots}
-    rotations = Rotation.objects.filter(scenario=scenario).prefetch_related("trip_set")
-    for r in rotations:
-        trips = r.trip_set.order_by("departure_time")
-        try:
-            rot_per_depot[trips.first().route.departure_station].append(r)
-        except KeyError:
-            pass
-        try:
-            rot_per_depot[trips.last().route.arrival_station].append(r)
-        except KeyError:
-            pass
-    rot_per_depot = list(list(sorted(rot_per_depot.items(), key=lambda x: len(x[1]))))
+@atomic()
+def trim_depots(scenario, depot_ids: list[int]):
+    logger.info(
+        f"Trimming scenario {scenario.id} from depots {depot_ids}\n"
+        f"rotations: {Rotation.objects.filter(scenario=scenario).count()}\n"
+        f"trips: {Trip.objects.filter(scenario=scenario).count()}\n"
+        f"routes: {Route.objects.filter(scenario=scenario).count()}\n"
+        f"stations: {Station.objects.filter(scenario=scenario).count()}\n"
+        f"vehicles: {Vehicle.objects.filter(scenario=scenario).count()}\n"
+    )
+    for dep_id in depot_ids:
+        station = Station.objects.filter(
+            id=dep_id, scenario=scenario, charge_type=EnumChargeType.DEPOT
+        )
+        if station.exists():
+            station = station.first()
+            logger.info(f"Deleting station {station.name}")
+            Rotation.objects.filter(
+                scenario=scenario, trip__route__arrival_station=station
+            ).delete()
+            Rotation.objects.filter(
+                scenario=scenario, trip__route__departure_station=station
+            ).delete()
+            station.delete()
+        else:
+            logger.info(f"Station with id {dep_id} not found in scenario")
 
-    for station, rotations in rot_per_depot[:-1]:
-        logger.info(f"Deleting {station} since there are multiple depots.")
-        station.delete()
-        for r in rotations:
-            try:
-                logger.info(f"Deleting {r}")
-                r.delete()
-            except:  # noqa
-                logger.info(f"Did not find {r} to delete.")
-    vehicles = Vehicle.objects.filter(rotation__isnull=True, scenario=scenario)
-    logger.info(f"Deleting {vehicles.count()} vehicles without rotations")
-    vehicles.delete()
     (
         Station.objects.filter(scenario=scenario)
-        .annotate(trip_count=Count("route__trip"))
-        .filter(trip_count=0)
+        .annotate(departure_count=Count("route_departure_set__trip"))
+        .annotate(arrival_count=Count("route_arrival_set__trip"))
+        .filter(departure_count=0, arrival_count=0)
         .delete()
     )
-    Route.objects.filter(scenario=scenario).annotate(count=Count("trip")).filter(count=0).count()
+
+    (Route.objects.filter(scenario=scenario).annotate(count=Count("trip")).filter(count=0).delete())
+
+    logger.info(
+        f"After trimming\n"
+        f"rotations: {Rotation.objects.filter(scenario=scenario).count()}\n"
+        f"trips: {Trip.objects.filter(scenario=scenario).count()}\n"
+        f"routes: {Route.objects.filter(scenario=scenario).count()}\n"
+        f"stations: {Station.objects.filter(scenario=scenario).count()}\n"
+        f"vehicles: {Vehicle.objects.filter(scenario=scenario).count()}\n"
+    )

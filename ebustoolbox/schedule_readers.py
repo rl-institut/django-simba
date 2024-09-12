@@ -1,18 +1,17 @@
-import csv
-import inspect
-from datetime import datetime, timedelta
-from enum import Enum
-from pathlib import Path
-from typing import Callable, Type
 from abc import ABC, abstractmethod
-from uuid import UUID
+import csv
+from datetime import datetime, timedelta, timezone as tz
+from enum import Enum
+import inspect
+from pathlib import Path
 from tqdm.auto import tqdm
+from typing import Callable, Type
+from uuid import UUID
+
+from django import forms
+from django.utils import timezone
 
 import eflips
-from django import forms
-from django.utils.timezone import make_aware
-from inspect import signature
-
 from eflips.ingest import DummyIngester, AbstractIngester
 from eflips.ingest.dummy import BusType
 from eflips.ingest.vdv import VdvIngester
@@ -45,7 +44,7 @@ def get_options_form(reader_num: int):
 
 
 def function_signature_to_form(function: Callable):
-    sig = signature(function)
+    sig = inspect.signature(function)
 
     def ScheduleReaderOptionsFormFactory(classname, fields: dict):
         return type(
@@ -123,14 +122,13 @@ class SimbaScheduleReader(ScheduleReader):
     def __init__(
         self,
         file_path: str,
-        default_charging_type: str = "oppb",
     ):
         self.errors = []
         self.file_path: Path = Path(file_path)
         self.default_capacity = 99.99
-        self.default_charging_type = default_charging_type
         self.encoding = "utf-8"
         self.progress: Progress = None
+        self.vehicles_opportunity_charging_capable = True
 
         self.DEPARTURE_NAME = "departure_name"
         self.DEPARTURE_TIME = "departure_time"
@@ -138,7 +136,6 @@ class SimbaScheduleReader(ScheduleReader):
         self.ARRIVAL_NAME = "arrival_name"
         self.DISTANCE = "distance"
         self.VEHICLE_TYPE = "vehicle_type"
-        self.CHARGING_TYPE = "charging_type"
         self.LINE = "line"
         self.ROTATION_ID = "rotation_id"
 
@@ -165,11 +162,6 @@ class SimbaScheduleReader(ScheduleReader):
         :param: scenario_id: this is the id of the scenario
         """
         try:
-            # raise Errors which might have happened earlier / during init
-            if self.default_charging_type not in [EnumChargeType.DEPOT, EnumChargeType.OPPORTUNITY]:
-                self.errors.append("""Standard-Ladetype muss entweder "depb" oder "oppb" sein.""")
-                raise self.SimbaScheduleReaderException
-
             self.set_total_work(5)
             self.set_progress(0, "Lese Datei")
             trip_data = self.file_data_to_dict()
@@ -211,6 +203,7 @@ class SimbaScheduleReader(ScheduleReader):
         lines = []
         line_dict = dict()
         routes = list()
+        existing_routes = dict()
         trip_overlap_errors = []  # collect trips that overlap
         duration_errors = []  # collect trips that have no or negative duration
         trip_previous_station_errors = {}  # collect trips that don't end at their previous depot
@@ -250,32 +243,55 @@ class SimbaScheduleReader(ScheduleReader):
                     line_dict[trip[self.LINE]] = line
                 line = line_dict[trip[self.LINE]]
 
-                route = Route(
-                    name=trip[self.DEPARTURE_NAME] + " - " + trip[self.ARRIVAL_NAME],
-                    scenario=scenario,
-                    departure_station=station_dict[trip[self.DEPARTURE_NAME]],
-                    arrival_station=station_dict[trip[self.ARRIVAL_NAME]],
-                    distance=trip[self.DISTANCE],
-                    line=line,
+                route = existing_routes.get(
+                    (
+                        station_dict[trip[self.DEPARTURE_NAME]].id,
+                        station_dict[trip[self.ARRIVAL_NAME]].id,
+                        trip[self.DISTANCE],
+                        line,
+                    )
                 )
+                if not route:
+                    route = Route(
+                        name=trip[self.DEPARTURE_NAME] + " - " + trip[self.ARRIVAL_NAME],
+                        scenario=scenario,
+                        departure_station=station_dict[trip[self.DEPARTURE_NAME]],
+                        arrival_station=station_dict[trip[self.ARRIVAL_NAME]],
+                        distance=trip[self.DISTANCE],
+                        line=line,
+                    )
+                    existing_routes[
+                        (
+                            station_dict[trip[self.DEPARTURE_NAME]].id,
+                            station_dict[trip[self.ARRIVAL_NAME]].id,
+                            trip[self.DISTANCE],
+                            line,
+                        )
+                    ] = route
+                    route.pk = route_id
+                    route_id += 1
+                    routes.append(route)
+
+                # handle timezone-related issues: force aware in UTC. Mainly for display reasons
+                departure_time = trip[self.DEPARTURE_TIME]
+                if timezone.is_naive(departure_time):
+                    departure_time = timezone.make_aware(departure_time, timezone=tz.utc)
+                arrival_time = trip[self.ARRIVAL_TIME]
+                if timezone.is_naive(arrival_time):
+                    arrival_time = timezone.make_aware(arrival_time, timezone=tz.utc)
 
                 t = Trip(
                     rotation=rotations_dict[rotation_id],
                     route=route,
                     scenario=scenario,
-                    departure_time=make_aware(trip[self.DEPARTURE_TIME]),
-                    arrival_time=make_aware(trip[self.ARRIVAL_TIME]),
+                    departure_time=departure_time,
+                    arrival_time=arrival_time,
                     # ToDo How do we implement getting loaded masses? Ignore?
                     loaded_mass=0,
                 )
 
                 t.pk = trip_id
-                route.pk = route_id
-
                 trip_id += 1
-                route_id += 1
-
-                routes.append(route)
                 trips.append(t)
 
         # handle collected errors
@@ -307,38 +323,14 @@ class SimbaScheduleReader(ScheduleReader):
             i += 1
             if not (len({t[self.VEHICLE_TYPE] for t in trip_data[rotation_id]}) == 1):
                 self.errors.append(f"Umlauf {rotation_id} enthält mehrere Fahrzeugtypen")
-            if not (len({t[self.CHARGING_TYPE] for t in trip_data[rotation_id]}) == 1):
-                self.errors.append(f"Umlauf {rotation_id} enthält mehrere Ladetypen")
             first_trip = trips[0]
             vt = vt_dict[first_trip[self.VEHICLE_TYPE]]
-            ct = str(first_trip[self.CHARGING_TYPE])
-            match ct.lower():
-                case EnumChargeType.OPPORTUNITY.value:
-                    rot = Rotation(
-                        scenario=scenario,
-                        name=rotation_id,
-                        pk=last_id + i,
-                        allow_opportunity_charging=True,
-                        vehicle_type=vt[0],
-                    )
-                case EnumChargeType.DEPOT.value:
-                    rot = Rotation(
-                        scenario=scenario,
-                        name=rotation_id,
-                        pk=last_id + i,
-                        allow_opportunity_charging=False,
-                        vehicle_type=vt[1],
-                    )
-                case _:
-                    self.errors.append(f"Umlauf {rotation_id} enthält ungültigen Ladetyp: {ct}")
-                    # Placeholder - rotation which so lookup will work
-                    rot = Rotation(
-                        scenario=scenario,
-                        name=rotation_id,
-                        pk=last_id + i,
-                        allow_opportunity_charging=False,
-                        vehicle_type=vt[1],
-                    )
+            rot = Rotation(
+                scenario=scenario,
+                name=rotation_id,
+                pk=last_id + i,
+                vehicle_type=vt,
+            )
             rotations.append(rot)
             rotations_dict[rotation_id] = rot
         return rotations, rotations_dict
@@ -357,13 +349,12 @@ class SimbaScheduleReader(ScheduleReader):
                 "charging_curve": [[0, self.default_capacity], [1, self.default_capacity]],
             }
             vt_opp = VehicleType(
-                **default_params, id=last_id + (i * 2) + 0, opportunity_charging_capable=True
+                **default_params,
+                id=last_id + i,
+                opportunity_charging_capable=self.vehicles_opportunity_charging_capable,
             )
-            vt_dep = VehicleType(
-                **default_params, id=last_id + (i * 2) + 1, opportunity_charging_capable=False
-            )
-            vts.extend([vt_opp, vt_dep])
-            vt_dict[name] = (vt_opp, vt_dep)
+            vts.append(vt_opp)
+            vt_dict[name] = vt_opp
         return vt_dict, vts
 
     def get_stations(self, scenario, trip_data):
@@ -415,7 +406,6 @@ class SimbaScheduleReader(ScheduleReader):
                 self.ARRIVAL_NAME,
                 self.ROTATION_ID,
                 self.VEHICLE_TYPE,
-                self.CHARGING_TYPE,
                 self.LINE,
             ]:
                 if column not in trip.keys():
@@ -443,10 +433,6 @@ class SimbaScheduleReader(ScheduleReader):
                     self.LINE: trip[self.LINE],
                     "row": i + 2,  # line numbers start at 1 instead of 0, skip header
                 }
-                if trip[self.CHARGING_TYPE] != "":
-                    trip_d[self.CHARGING_TYPE] = trip[self.CHARGING_TYPE]
-                else:
-                    trip_d[self.CHARGING_TYPE] = self.default_charging_type
 
                 trip_data[rotation_id].append(trip_d)
 
@@ -460,13 +446,7 @@ class SimbaScheduleReader(ScheduleReader):
                 label="Fahrplan Datei (.csv)",
                 required=True,
                 help_text=".csv Datei mit den Spalten: rotation_id, departure_station, departure_time, "
-                "arrival_station, arrival_time, distance, vehicle_type, charging_type",
-            )
-            default_charging_type = forms.CharField(
-                label="Default Ladetyp",
-                widget=forms.RadioSelect(choices=EnumChargeType.choices),
-                initial=EnumChargeType.choices[0],
-                help_text="Fehlende Einträge in der Fahrplan-Datei werden mit diesem Wert befüllt",
+                "arrival_station, arrival_time, distance, vehicle_type",
             )
 
         return ScheduleReaderForm

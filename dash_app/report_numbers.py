@@ -1,4 +1,6 @@
 from dash import Dash, html, dash_table
+from dash.exceptions import PreventUpdate
+
 from . import ids, data
 from dash.dependencies import Input, Output, State  # no fa401
 from .data import (
@@ -273,7 +275,6 @@ def render_avg_consumption(app: Dash) -> html.Div:
     def update_avg_consumption(
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
-        # print("updating numbers")
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
@@ -281,8 +282,10 @@ def render_avg_consumption(app: Dash) -> html.Div:
         total_consumption = get_total_consumption(s)
         vehicle_name_dict, vehicle_name_dict_reverse = data.get_all_buses_labeled(task_id)
         buses = list(vehicle_name_dict.keys())
-        dist_df = get_distances_as_dataframe(s.id, buses)
 
+        dist_df = get_distances_as_dataframe(s.id, buses)
+        if len(buses) == 0 or len(dist_df) == 0:
+            raise PreventUpdate
         lines = [
             "Durchschnittlicher Energieverbrauch:",
             str(round(total_consumption / (dist_df["total_distance"].sum() / 1000), 3)) + " kWh/km",

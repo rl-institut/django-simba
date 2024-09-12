@@ -2,6 +2,9 @@
 {% block header %}
 <title>Szenarios</title>
 <style>
+  table {
+    width: 100%;
+  }
   th {
     text-align: center;
     padding: 1rem;
@@ -36,40 +39,25 @@
   <tr>
     <th>Name</th>
     <th>Ergebnis</th>
-    <th>User Groups</th>
-    <th>Manager?</th>
     <th>Erstellt</th>
     <th></th>
   </tr>
   {% for scenario in scenarios %}
     <tr>
-      <td>{{ scenario.name }}</td>
       <td>
         {% if scenario.finished %}
-          <a href="{% url 'simba:result' task_id=scenario.task_id %}">{{ scenario.finished }}</a>
+          <a href="{% url 'simba:result' task_id=scenario.task_id %}">{{ scenario.name }}</a>
+        {% else %}
+          <a href="{% url 'simba:simulation_parameters' task_id=scenario.task_id %}">{{ scenario.name }}</a>
+        {% endif %}
+      </td>
+      <td>
+        {% if scenario.finished %}
+          {{ scenario.finished }}
         {% else %}
           <span>---</span>
         {% endif %}
       </td>
-      <td>
-        {% if scenario.manager == user %}
-        <select scenario='{{scenario.id}}' multiple onchange="updateUserGroup(this);">
-          <option value='0'>---</option>
-          {% for ug in user.usergroup_set.all %}
-            <option value='{{ug.id}}' {% if scenario in ug.scenarios.all %}selected{% endif %}>{{ug.name}}</option>
-          {% endfor %}
-        </select>
-        {% else %}
-        <ul class="no-bullets">
-          {% for ug in user.usergroup_set.all %}
-            {% if scenario in ug.scenarios.all %}
-              <li>{{ ug.name }}</li>
-            {% endif %}
-          {% endfor %}
-        </ul>
-        {% endif %}
-      </td>
-      <td>{% if scenario.manager == user %}✅️{% else %}❌️{% endif %}</td>
       <td>{{ scenario.created }}</td>
       <td>
         {% if scenario.manager == user %}
@@ -83,19 +71,4 @@
 </table>
 {% endif %}
 
-<script>
-function updateUserGroup(elem) {
-  // update a scenario's user groups in backend without refreshing page
-  const scenario = elem.attributes.scenario.value;
-  let selected = Array.from(elem.selectedOptions).map(({ value }) => value);
-  const form_data = new FormData();
-  form_data.append("csrfmiddlewaretoken", "{{ csrf_token }}");
-  form_data.append("update", scenario);
-  form_data.append("values", selected.join(','));
-  fetch("{% url 'simba:scenarios' %}", {
-    method: 'POST',
-    body: form_data,
-  });
-}
-</script>
 {% endblock %}
