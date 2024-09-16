@@ -454,11 +454,14 @@ def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
 
         s.save()
 
-        # todo check size
         cleaned_data = form.cleaned_data
 
         files = dict()
         for name, file in request.FILES.items():
+            # check file size
+            if file.multiple_chunks():
+                # file too large
+                raise Exception("Datei zu groß")
             uploaded_file = UploadedFile.objects.create(scenario=s, file=file)
             files[name] = uploaded_file.file.path, uploaded_file.id
             del cleaned_data[name]

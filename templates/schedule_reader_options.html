@@ -1,16 +1,25 @@
 {% load static %}
 <div id="options_form" class="text-center px-4">
-  <form id='form'>{% csrf_token %}
+  <form id='form'
+    hx-encoding="multipart/form-data"
+    hx-target="#upload-progress_{{ task_id }}"
+    hx-post="{% url 'simba:upload_trips' task_id=task_id reader_num=reader_num %}"
+  >
+    {% csrf_token %}
     {#    use HX-retarget to target form instead of progess bar in cases of errors#}
     <div class="form-group my-4">
       <div class="input-group">
-        <input type="text" class="form-control " id="scenarioName" name="scenario_name"
-               aria-describedby="scenarioNameHelp"
-               placeholder="Mein Szenario"> <span class="input-group-text">Name des Szenarios</span>
+        <input
+          type="text" class="form-control " id="scenarioName" name="scenario_name"
+          aria-describedby="scenarioNameHelp"
+          placeholder="Mein Szenario"
+        >
+        <span class="input-group-text">Name des Szenarios</span>
       </div>
-      <small id="scenarioNameHelp" class="form-text text-muted">Gib deinem Szenario einen Namen. So findest du es
-        später
-        hier <a href="{% url "simba:scenarios" %}">'Meine Szenarien'</a> </small>
+      <small id="scenarioNameHelp" class="form-text text-muted">
+        Gib deinem Szenario einen Namen. So findest du es später hier
+        <a href="{% url 'simba:scenarios' %}">'Meine Szenarien'</a>
+      </small>
     </div>
 
     {% if reader_num == 1 %}
@@ -24,36 +33,30 @@
             <a href="{% static 'ebustoolbox/examples/trips_example.csv' %}" class="input-group-text" download>Download
               Beispiel-Fahrplan</a>
             <div>
-              {% if error in form.file_path.errors %}
-                <ul>
-                  {% for error in form.file_path.errors %}
-                    <li>{{ error }}</li>
-                  {% endfor %}
-                </ul>
-              {% endif %}
+              <ul>
+                {% for error in form.file_path.errors %}
+                  <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
             </div>
           </div>
         </div>
-
       </fieldset>
     {% endif %}
-
 
     {% if reader_num > 1 %}
       {{ form.as_p }}
     {% endif %}
 
-
-    {#This will be replaced by the progressbar, during server side analyzing            #}
+    {# This will be replaced by the progressbar, during server side analyzing #}
     <div id="upload-progress_{{ task_id }}"></div>
     <div>
       <button
               id='upload_btn_{{ task_id }}'
               class="btn btn-primary"
               type=submit
-              hx-encoding="multipart/form-data"
-              hx-target="#upload-progress_{{ task_id }}"
-              hx-post="{% url 'simba:upload_trips' task_id=task_id reader_num=reader_num %}">
+              onclick="checkFileSize(event)"
+      >
         Hochladen
       </button>
       {# progress bar during upload#}
@@ -83,5 +86,18 @@
           htmx.find('#upload_btn_{{task_id}}').style.display = "none";
           htmx.find('#cancel_btn_{{task_id}}').style.display = "initial";
       });
+
+      function checkFileSize(e) {
+        {% if reader_num == 1%}
+          let fileInput = document.getElementById("id_file_path");
+        {% else %}
+          let fileInput = document.getElementById("id_x10_zip_file");
+        {% endif %}
+        if (fileInput && fileInput.files[0] && fileInput.files[0].size > 64000) {
+          // file selected, but larger than 64 KB: cancel upload
+          alert("Maximalgröße von 64 KB überschritten");
+          e.preventDefault();
+        }
+      }
   </script>
 </div>
