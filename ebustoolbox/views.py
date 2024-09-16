@@ -102,10 +102,6 @@ class SuccessView(TemplateView, MapEngineMixin):
         # is an optional kwarg in app.callbacks
         session["django_plotly_dash"] = {"task_id": task_id}
 
-        context["area_switches"] = {
-            "A": "a"
-        }
-
         return context
 
 
