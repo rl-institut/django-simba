@@ -28,8 +28,8 @@ from celery.result import AsyncResult
 from dash_app import dash_app, ids  # noqa: F401
 from django_mapengine.views import MapEngineMixin
 from . import tasks, schedule_readers
-from .forms import UploadFileForm, ElectrificationOptionsForm, SimulationParameters, VehicleTypeForm
-from .tasks import create_db_url  # noqa
+from .forms import ElectrificationOptionsForm, SimulationParameters, VehicleTypeForm
+from .tasks import create_db_url, get_args  # noqa
 from .util import get_unique_task_id
 
 import ebustoolbox
@@ -47,6 +47,7 @@ from ebustoolbox.models import (
     DepotSelection,
     ElectrificationOptions,
     VehicleTypeSelection,
+    VehicleTypeMutation,
 )
 
 logger = logging.getLogger("custom")
@@ -239,9 +240,14 @@ def get_vehicle_types(request: HttpRequest, task_id):
     child_vehicle_types = VehicleType.objects.filter(scenario=scenario)
     if child_vehicle_types.count() == 0:
         for vt in vehicle_types:
+            org_vt_id = vt.id
             vt.id = None
             vt.scenario = scenario
             vt.save()
+            org_vt = VehicleType.objects.get(id=org_vt_id)
+            VehicleTypeMutation.objects.create(
+                original_vehicle_type=org_vt, mutated_vehicle_type=vt
+            )
 
     context["vehicle_types"] = vehicle_types
     # Create form for every selection of a default vehicle type
@@ -333,10 +339,10 @@ def get_depots(request: HttpRequest, task_id):
         raise Http404
 
     # Get filtered depots by simrange
-    sim_range = SimulationRange.objects.filter(scenario=parent).first()
+    sim_range = SimulationRange.objects.filter(scenario=scenario).first()
     if sim_range:
         # If a simulation range is given, only allow filtering of depots which service rotations
-        assert SimulationRange.objects.filter(scenario=parent).count() == 1
+        assert SimulationRange.objects.filter(scenario=scenario).count() == 1
         td = sim_range.end - sim_range.start
         rots = tasks.get_rotations_by_timespan(parent, td, sim_range.start)
         station_ids = (
@@ -352,8 +358,7 @@ def get_depots(request: HttpRequest, task_id):
     depots_query = depots_query.filter(charge_type=EnumChargeType.DEPOT).order_by("id")
     if request.method == "POST":
         depot_ids = [dep.id for dep in depots_query]
-        dep_sel = DepotSelection(scenario=scenario)
-        dep_sel.save()
+        dep_sel, _ = DepotSelection.objects.get_or_create(scenario=scenario)
         if len(depot_ids) == 1:
             dep_sel.depots.add(*depot_ids)
             return redirect(reverse("simba:electrification", args=[str(task_id)]))
@@ -599,30 +604,31 @@ def create_stations_for_map(django_scenario: Scenario):
     Station.objects.bulk_update(stations_with_geo, ["geom"])
 
 
-def save_and_simulate(
-    form: UploadFileForm | None = None, request: HttpRequest | None = None
-) -> Scenario:
-    logger.info("Saving scenario and simulating")
-    if form is None:
-        new_form = UploadFileForm()
-        # If this function is called without a request and a form,  use the initial values as
-        # cleaned data
-        cleaned_data = {field: new_form[field].initial for field in new_form.fields}
-    else:
-        cleaned_data = form.cleaned_data
-
-    logger.info("Writing to db")
-    django_scenario, simba_schedule, args = tasks.input_files_to_database(cleaned_data, request)
-    if request.user.is_authenticated:
-        django_scenario.manager = request.user
-    # start computation
-    task_id = get_unique_task_id()
-    logger.info(f"{task_id=}")
-    django_scenario.task_id = task_id
-    django_scenario.save()
-    tasks.run_ebus_toolchain(task_id)
-    logger.info("Simulation Finished.")
-    return django_scenario
+# deprecated
+# def save_and_simulate(
+#     form: UploadFileForm | None = None, request: HttpRequest | None = None
+# ) -> Scenario:
+#     logger.info("Saving scenario and simulating")
+#     if form is None:
+#         new_form = UploadFileForm()
+#         # If this function is called without a request and a form,  use the initial values as
+#         # cleaned data
+#         cleaned_data = {field: new_form[field].initial for field in new_form.fields}
+#     else:
+#         cleaned_data = form.cleaned_data
+#
+#     logger.info("Writing to db")
+#     django_scenario, simba_schedule, args = tasks.input_files_to_database(cleaned_data, request)
+#     if request.user.is_authenticated:
+#         django_scenario.manager = request.user
+#     # start computation
+#     task_id = get_unique_task_id()
+#     logger.info(f"{task_id=}")
+#     django_scenario.task_id = task_id
+#     django_scenario.save()
+#     tasks.run_ebus_toolchain(task_id)
+#     logger.info("Simulation Finished.")
+#     return django_scenario
 
 
 def run_simulation(request: HttpRequest, task_id: str):
@@ -634,6 +640,7 @@ def run_simulation(request: HttpRequest, task_id: str):
         if request.method == "GET":
             try:
                 scenario = Scenario.objects.get(task_id=task_id)
+                parent = scenario.parent
             except Scenario.DoesNotExist:
                 raise Http404
             # if the scenario has a manager, only this User can run the simulation
@@ -642,9 +649,66 @@ def run_simulation(request: HttpRequest, task_id: str):
             # This triggers progress polling. If the toolchain is finished,
             # the progress view will be triggered with the task_id and progress type
             logger.info("Running Toolchain.")
-            async_result = tasks.run_toolchain_from_scenario(scenario, assign_vehicles=True)
+
+            # create scenario from mutation and parent
+            parent.task_id = get_unique_task_id()
+            child, stack = tasks.deepcopy_scenario(parent)
+            parent.refresh_from_db()
+            child.parent = scenario
+            if parent.simba_options:
+                child.simba_options = parent.simba_options.copy()
+            else:
+                child.simba_options = vars(get_args(child))
+            child.save()
+
+            # Mutate child according to parent
+            # Remove rotations from the timespan
+            sim_range = SimulationRange.objects.get(scenario=scenario)
+            time_delta = sim_range.end - sim_range.start
+            tasks.trim_scenario(child, time_delta, sim_range.start)
+            # # Used for clearing up depots without rotations
+            tasks.trim_depots(child, [])
+
+            depot_selection = DepotSelection.objects.get(scenario=scenario)
+            # These depots were selected to remain
+            original_depot_ids = depot_selection.depots.all().values_list("id", flat=True)
+            copied_depot_ids = [stack[Station][org_id] for org_id in original_depot_ids]
+            all_depots = Station.objects.filter(scenario=child, charge_type=EnumChargeType.DEPOT)
+            depots_to_remove = all_depots.exclude(id__in=copied_depot_ids)
+            tasks.trim_depots(child, depots_to_remove)
+
+            ele_option = ElectrificationOptions.objects.get(scenario=scenario)
+            child.simba_options.update(vars(ele_option))
+            if ele_option.station_optimization:
+                child.simba_options["modes"] = "sim,station_optimization,report"
+            else:
+                child.simba_options["modes"] = "sim,report"
+
+            org_ele_station_ids = ele_option.electrified_stations.all().values_list("id", flat=True)
+            copied_ele_station_ids = [stack[Station][org_id] for org_id in org_ele_station_ids]
+            tasks.electrify_db_stations(child, copied_ele_station_ids)
+
+            vehicle_type_mutations = VehicleTypeMutation.objects.filter(
+                original_vehicle_type__scenario=parent, mutated_vehicle_type__scenario=scenario
+            )
+            vt_mut_list = vehicle_type_mutations.values_list("original_vehicle_type", flat=True)
+            assert len(vt_mut_list) == len({vt for vt in vt_mut_list})
+            vt_mut_list = vehicle_type_mutations.values_list("mutated_vehicle_type", flat=True)
+            assert len(vt_mut_list) == len({vt for vt in vt_mut_list})
+            assert len(vt_mut_list) == VehicleType.objects.filter(scenario=scenario).count()
+
+            for vt_mut in vehicle_type_mutations:
+                org_vt = vt_mut.original_vehicle_type
+                vt = vt_mut.mutated_vehicle_type
+                copied_vt_id = stack[VehicleType][org_vt.id]
+                vt.id = copied_vt_id
+                vt.scenario = child
+                vt.save()
+
+            async_result = tasks.run_toolchain_from_scenario(child, assign_vehicles=True)
+            context["task_id"] = child.task_id
             if "ebus_map" in settings.INSTALLED_APPS:
-                create_stations_for_map(scenario)
+                create_stations_for_map(child)
 
             context["progress_id"] = async_result.task_id
             response = render(request, "progress_poll.html", context)

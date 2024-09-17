@@ -58,6 +58,7 @@ from .models import (
     VehicleClass,
     DefaultScenario,
     Depot,
+    UserGroup,
 )
 from .schedule_readers import ScheduleReader
 
@@ -937,6 +938,7 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
 def trim_scenario(scenario, time_delta, start_time=None):
     rotations = get_rotations_by_timespan(scenario, time_delta, start_time)
     rotations_to_remove = Rotation.objects.filter(scenario=scenario).exclude(id__in=rotations)
+    print(f"deleting {rotations_to_remove.count()} rotations out of sim range")
     rotations_to_remove.delete()
 
 
@@ -990,7 +992,8 @@ def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False
     """
     if assign_vehicles:
         assign_new_vehicles_to_db(django_scenario)
-    return run_ebus_toolchain(django_scenario.task_id)
+    async_result = run_ebus_toolchain(django_scenario.task_id)
+    return async_result
 
 
 def run_simba_scenario(
@@ -1064,22 +1067,22 @@ def assign_new_vehicles_to_db(django_scenario: Scenario, db_name="default") -> N
     Rotation.objects.bulk_update(rotations, ["vehicle"])
 
 
-def deepcopy_scenario(scenario: Scenario) -> Scenario:
+def deepcopy_scenario(scenario: Scenario) -> tuple[Scenario, dict]:
     """Deepcopy a scenario.
 
-    Scenario to be deepcopied must have values which can be deepcopied without specicif knowledge
+    Scenario to be deepcopied must have values which can be deepcopied without specific knowledge
     of implementation, e.g. if a value like the task_id has to be unique, the scenario has to
     be mutated before being deepcopied.
     :param scenario: Scenario to be deepcopied
     :type scenario: Scenario
-    :return: Scenario deepcopied
+    :return: deepcopied Scenario, stack which links original with copied instances
     """
-    copied_instance = core.deepcopy.deepcopy_and_sequence_reset(
+    copied_instance, stack = core.deepcopy.deepcopy_and_sequence_reset(
         scenario,
-        exclude_models={Scenario, User, Event, Progress},
+        exclude_models={Scenario, User, Event, Progress, UserGroup},
         max_depth=1,
     )
-    return copied_instance
+    return copied_instance, stack
 
 
 def create_parent_scenario(scenario: Scenario) -> Scenario:
@@ -1091,7 +1094,7 @@ def create_parent_scenario(scenario: Scenario) -> Scenario:
     """
     old_task_id = scenario.task_id
     scenario.task_id = ebustoolbox.util.get_unique_task_id()
-    copied_instance = deepcopy_scenario(scenario)
+    copied_instance, stack = deepcopy_scenario(scenario)
     scenario.task_id = old_task_id
     scenario.parent = copied_instance
     scenario.save()
@@ -1099,36 +1102,9 @@ def create_parent_scenario(scenario: Scenario) -> Scenario:
 
 
 @shared_task(bind=True)
-def _run_ebus_toolchain(self, task_id, run_parent=False):
+def _run_ebus_toolchain(self, task_id):
     """Run the tool chain"""
-
     db_scenario = Scenario.objects.get(task_id=task_id)
-
-    # Always run the root parent since scenarios allow mutation this.
-    # This way task_ids / urls can be consistent with the run of the user, e.g.
-    # user starts a simulation of Scenario (A) which mutates (A) to (AB). URLS (A) should lead to
-    # (AB). If the
-    if db_scenario.parent is not None:
-        db_parent = db_scenario.parent
-        if run_parent:
-            while db_parent.parent is not None:
-                db_parent = db_parent.parent
-
-            db_parent.task_id = ebustoolbox.util.get_unique_task_id()
-            child_scenario = deepcopy_scenario(db_parent)
-            child_scenario.parent = db_parent
-            child_scenario.save()
-            db_parent.refresh_from_db()
-            logger.info(
-                f"Parent scenario with task_id {db_parent.task_id} will be simulated. Results will "
-                f"be saved in {child_scenario.parent}"
-            )
-            db_scenario = child_scenario
-    else:
-        # Save input scenario as parent of this scenario
-        logger.info(f"Storing root scenario as parent {datetime.now()}")
-        _ = create_parent_scenario(db_scenario)
-
     progress, _ = Progress.objects.get_or_create(task_id=self.request.id, scenario=db_scenario)
     progress.reset()
 

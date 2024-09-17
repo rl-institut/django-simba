@@ -25,18 +25,19 @@ def deepcopy_and_sequence_reset(
     :param exclude_fields: fields which are skipped during copying
     :param max_depth: maximum recursion depth. For known structures, reducing the max depth
         increases the speed of deep copying.
-    :return: copy result instance
+    :return: copy result instance, stack which links original with copied instances
     """
 
-    copied_instance, apps = deepcopy(
+    copied_instance, deepcopy_locals = deepcopy(
         instance=instance,
         exclude_models=exclude_models,
         exclude_fields=exclude_fields,
         max_depth=max_depth,
     )
-    reset_postgres_auto_increments(apps)
+    original_copy_dict = deepcopy_locals["stack"]
+    reset_postgres_auto_increments(deepcopy_locals["apps"])
 
-    return copied_instance
+    return copied_instance, original_copy_dict
 
 
 def reset_postgres_auto_increments(apps):
@@ -74,7 +75,7 @@ def deepcopy(  # noqa
     :param exclude_fields: fields which are skipped during copying
     :param max_depth: maximum recursion depth. For known structures, reducing the max depth
         increases the speed of deep copying.
-    :return: copy result instance
+    :return: copy result instance, locals of this function
     """
 
     def write_multi_dict(source: dict, keys: list, value):
@@ -224,7 +225,7 @@ def deepcopy(  # noqa
             break
     else:
         raise Exception("Deepcopying could not create Objects. Database restrictions aren't met?")
-    return instance.__class__.objects.get(pk=new_pk), apps
+    return instance.__class__.objects.get(pk=new_pk), locals()
 
 
 @time_it
