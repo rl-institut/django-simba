@@ -1,7 +1,9 @@
+import logging
 from copy import copy
 from typing import Type
 
 import django.db
+import psycopg2
 from django.db import models
 from django.db.models import Max
 from django.db.transaction import atomic
@@ -42,11 +44,15 @@ def deepcopy_and_sequence_reset(
 
 def reset_postgres_auto_increments(apps):
     # Finally fix postgres auto increments for all used apps during this deepcopy
-    postgres_reset_sql = call_command(
-        "sqlsequencereset", *apps, stdout=open(devnull, "a"), no_color=True
-    )
-    with connection.cursor() as cursor:
-        cursor.execute(postgres_reset_sql)
+    for app in apps:
+        postgres_reset_sql = call_command(
+            "sqlsequencereset", app, stdout=open(devnull, "a"), no_color=True
+        )
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(postgres_reset_sql)
+        except psycopg2.errors.UndefinedTable:
+            logging.warning("Undefined table in PostgreSQL: %s", app)
 
 
 @time_it

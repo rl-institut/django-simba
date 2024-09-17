@@ -19,6 +19,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from core.models import Progress
+from ebustoolbox import util
 from ebustoolbox.models import (
     Scenario,
     Station,
@@ -207,9 +208,9 @@ class SimbaScheduleReader(ScheduleReader):
         trip_overlap_errors = []  # collect trips that overlap
         duration_errors = []  # collect trips that have no or negative duration
         trip_previous_station_errors = {}  # collect trips that don't end at their previous depot
-        route_id = 1 if Route.objects.last() is None else Route.objects.last().id + 1
-        trip_id = 1 if Trip.objects.last() is None else Trip.objects.last().id + 1
-        line_id = 1 if Line.objects.last() is None else Line.objects.last().id + 1
+        route_id = util.get_next_id(Route)
+        trip_id = util.get_next_id(Trip)
+        line_id = util.get_next_id(Line)
         for rotation_id, rotation_trips in tqdm(trip_data.items()):
             sorted_trips = sorted(rotation_trips, key=lambda trip: trip["departure_time"])
             prev_arrival_time = sorted_trips[0]["departure_time"] - timedelta(hours=1)
@@ -316,7 +317,7 @@ class SimbaScheduleReader(ScheduleReader):
     def get_rotations(self, scenario, trip_data, vt_dict):
         rotations = list()
         rotations_dict = dict()
-        last_id = 1 if Rotation.objects.last() is None else Rotation.objects.last().id + 1
+        last_id = util.get_next_id(Rotation)
         i = -1
 
         for rotation_id, trips in trip_data.items():
@@ -339,7 +340,7 @@ class SimbaScheduleReader(ScheduleReader):
         vts = list()
         vt_dict = dict()
         unique_vts = {trips[0][self.VEHICLE_TYPE] for trips in trip_data.values()}
-        last_id = 1 if VehicleType.objects.last() is None else VehicleType.objects.last().id + 1
+        last_id = util.get_next_id(VehicleType)
         for i, name in enumerate(unique_vts):
             default_params = {
                 "scenario": scenario,
@@ -380,7 +381,7 @@ class SimbaScheduleReader(ScheduleReader):
             trip[self.DEPARTURE_NAME] for trips in trip_data.values() for trip in trips
         }
         unique_stations = unique_arrival_stations.union(unique_departure_stations)
-        last_id = 1 if Station.objects.last() is None else Station.objects.last().id + 1
+        last_id = util.get_next_id(Station)
         for i, name in enumerate(unique_stations):
             station = Station(scenario=scenario, name=name, name_short=name, id=last_id + i)
             if name in depot_stations:

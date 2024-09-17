@@ -127,16 +127,10 @@ def schedule(request: HttpRequest, task_id, finished):
     # finished
     if finished == "true":
         scenario = Scenario.objects.get(task_id=task_id)
-        upload_task_id = scenario.task_id
+        task_id = scenario.task_id
         scenario.task_id = ebustoolbox.util.get_unique_task_id()
         scenario.save()
-        new_child_scenario = Scenario.objects.create(task_id=upload_task_id)
-        new_child_scenario.manager = scenario.manager
-        new_child_scenario.name = scenario.name
-        new_child_scenario.parent = scenario
-        scenario.save()
-        new_child_scenario.save()
-
+        _ = tasks.create_empty_child_scenario(scenario, task_id=task_id)
         return redirect(reverse("simba:simulation_parameters", args=[str(task_id)]))
     if task_id is None:
         task_id = get_unique_task_id()
@@ -158,39 +152,33 @@ def get_simulation_parameters(request: HttpRequest, task_id):
     if scenario.manager and scenario.manager != request.user:
         raise Http404
     context = {}
+    simulation_parameters_form = SimulationParameters()
     if request.method == "POST":
         simulation_parameters_form = SimulationParameters(request.POST)
         if simulation_parameters_form.is_valid():
             date_range = simulation_parameters_form.cleaned_data["date_range"]
             from_date, to_date = date_range  # Unpack the tuple
+            time_delta = timedelta(days=(to_date - from_date).days + 1)
+            from_datetime = datetime.combine(from_date, datetime.min.time())
+            from_datetime_aware = timezone.make_aware(from_datetime, timezone=tz.utc)
 
-            delta = to_date - from_date
-            time_delta = timedelta(days=delta.days + 1)
-
-            if tasks.get_rotations_by_timespan(parent, time_delta, from_date).count() > 0:
+            if tasks.get_rotations_by_timespan(parent, time_delta, from_datetime_aware).count() > 0:
                 sim_range = SimulationRange.objects.filter(scenario=scenario).first()
                 if sim_range is None:
                     sim_range = SimulationRange(scenario=scenario)
-                from_datetime = datetime.combine(from_date, datetime.min.time())
-                sim_range.start = timezone.make_aware(from_datetime, timezone=tz.utc)
-                to_datetime = datetime.combine(to_date, datetime.max.time())
-                sim_range.end = timezone.make_aware(to_datetime, timezone=tz.utc)
+                sim_range.start = from_datetime_aware
+                sim_range.end = from_datetime_aware + time_delta
                 sim_range.save()
-                # # Remove rotations from the timespan
-                # tasks.trim_scenario(scenario, time_delta, from_date)
-                # # Used for clearing up depots without rotations
-                # tasks.trim_depots(scenario, [])
                 return redirect(reverse("simba:vehicle_types", args=[str(task_id)]))
             error = "Zeitspanne enthält keine Umläufe."
             context["error"] = error
         else:
-            print(simulation_parameters_form.errors)  # Debug: Print form error
+            logging.warning("Simulation parameters are invalid")
 
     trips = Trip.objects.filter(scenario=parent).order_by("departure_time")
     start = trips.first().departure_time.date().isoformat()
     end = trips.last().arrival_time.date().isoformat()
     sim_range = SimulationRange.objects.filter(scenario=scenario).first()
-    simulation_parameters_form = SimulationParameters()
     if sim_range:
         initial_start = sim_range.start.date().isoformat()
         initial_end = sim_range.end.isoformat()
@@ -263,7 +251,8 @@ def get_vehicle_types(request: HttpRequest, task_id):
         queryset=VehicleTypeSelection.objects.filter(vehicle_type__in=child_vehicle_types),
         prefix="dvt_selection",
     )
-    # Hide 'battery_capacity' field in the formset forms
+
+    # Make the choice of the default vehicle type visible
     for form in formset_vt:
         form.fields["default_vehicle_type"].queryset = default_vehicle_types
         form.fields["default_vehicle_type"].widget.attrs["type"] = "visible"
@@ -294,33 +283,17 @@ def get_vehicle_types(request: HttpRequest, task_id):
         vt_type_mutations = {form.instance.id: form.instance for form in vt_type_mutations}
         vt_selection.save()
 
+        # Change every vehicle to the selected default vehicle type properties
         for form in vt_selection:
             vt, dvt = form.instance.vehicle_type, form.instance.default_vehicle_type
             changed_dvt = vt_type_mutations[dvt.id]
             # overwrite mutation vt with the new values of the mutated default vehicle type
             changed_dvt.id = vt.id
-
             # Restore some values from original vt
             changed_dvt.name = vt.name
             changed_dvt.scenario = vt.scenario
             changed_dvt.name_short = vt.name_short
-
             changed_dvt.save()
-
-        #
-        # # make sure only vehicles of this scenario are affected
-        # for vehicle_type_pair in vehicle_type_pairs:
-        #     assert vehicle_type_pair[0] in vehicle_types.values_list("id", flat=True)
-
-        # vt_adjustments = {dvt.id: dict() for dvt in default_vehicle_types}
-        # for dvt in default_vehicle_types:
-        #     val = request.POST.get(f"battery_capacity_{dvt.id}")
-        #     form = VehicleTypesAdjustmentForm({"battery_capacity": val})
-        #     if not form.is_valid():
-        #         continue
-        #     vt_adjustments[dvt.id]["battery_capacity"] = form.cleaned_data["battery_capacity"]
-        # tasks.update_vehicle_types_with_defaults(vehicle_type_pairs, task_id, vt_adjustments)
-
         return redirect(reverse("simba:depots", args=[str(task_id)]))
 
     return render(request, "vehicle_types.html", context)
@@ -393,9 +366,11 @@ def get_electrification(request: HttpRequest, task_id):
         # if the scenario has a manager, only this User can run the simulation
     if scenario.manager and scenario.manager != request.user:
         raise Http404
-    electrification_option, _ = ElectrificationOptions.objects.get_or_create(
-        scenario=scenario, station_optimization=False
-    )
+    electrification_option = ElectrificationOptions.objects.filter(scenario=scenario).first()
+    if electrification_option is None:
+        electrification_option = ElectrificationOptions.objects.create(
+            scenario=scenario, station_optimization=False
+        )
     form = ElectrificationOptionsForm(instance=electrification_option)
     context = {"task_id": task_id, "form": form}
     stations = (
@@ -406,7 +381,9 @@ def get_electrification(request: HttpRequest, task_id):
     opp_count = Rotation.objects.filter(scenario=parent).filter(allow_opportunity_charging=True)
     is_depot_scenario = True if len(opp_count) == 0 else False
     context["stations"] = stations
+    context["electrified_stations"] = electrification_option.electrified_stations.all()
     context["is_depot_scenario"] = is_depot_scenario
+
     if request.method == "GET":
         return render(request, "input_electrification.html", context)
     elif request.method == "POST":
@@ -426,14 +403,6 @@ def get_electrification(request: HttpRequest, task_id):
         ele_option.electrified_stations.add(*electrified_stations)
         ele_option.save()
 
-        # cleaned_data = form.cleaned_data
-        # scenario.simba_options.update(cleaned_data)
-        # if cleaned_data["station_optimization"]:
-        #     scenario.simba_options["modes"] = "sim,station_optimization,report"
-        # else:
-        #     scenario.simba_options["modes"] = "sim,report"
-        # scenario.save()
-        # tasks.electrify_db_stations(scenario, station_id_list)
         # redirect to "simulation overview" page which can start a simulation
         response = redirect(reverse("simba:scenario_overview", args=[str(task_id)]))
         return response
@@ -651,59 +620,7 @@ def run_simulation(request: HttpRequest, task_id: str):
             logger.info("Running Toolchain.")
 
             # create scenario from mutation and parent
-            parent.task_id = get_unique_task_id()
-            child, stack = tasks.deepcopy_scenario(parent)
-            parent.refresh_from_db()
-            child.parent = scenario
-            if parent.simba_options:
-                child.simba_options = parent.simba_options.copy()
-            else:
-                child.simba_options = vars(get_args(child))
-            child.save()
-
-            # Mutate child according to parent
-            # Remove rotations from the timespan
-            sim_range = SimulationRange.objects.get(scenario=scenario)
-            time_delta = sim_range.end - sim_range.start
-            tasks.trim_scenario(child, time_delta, sim_range.start)
-            # # Used for clearing up depots without rotations
-            tasks.trim_depots(child, [])
-
-            depot_selection = DepotSelection.objects.get(scenario=scenario)
-            # These depots were selected to remain
-            original_depot_ids = depot_selection.depots.all().values_list("id", flat=True)
-            copied_depot_ids = [stack[Station][org_id] for org_id in original_depot_ids]
-            all_depots = Station.objects.filter(scenario=child, charge_type=EnumChargeType.DEPOT)
-            depots_to_remove = all_depots.exclude(id__in=copied_depot_ids)
-            tasks.trim_depots(child, depots_to_remove)
-
-            ele_option = ElectrificationOptions.objects.get(scenario=scenario)
-            child.simba_options.update(vars(ele_option))
-            if ele_option.station_optimization:
-                child.simba_options["modes"] = "sim,station_optimization,report"
-            else:
-                child.simba_options["modes"] = "sim,report"
-
-            org_ele_station_ids = ele_option.electrified_stations.all().values_list("id", flat=True)
-            copied_ele_station_ids = [stack[Station][org_id] for org_id in org_ele_station_ids]
-            tasks.electrify_db_stations(child, copied_ele_station_ids)
-
-            vehicle_type_mutations = VehicleTypeMutation.objects.filter(
-                original_vehicle_type__scenario=parent, mutated_vehicle_type__scenario=scenario
-            )
-            vt_mut_list = vehicle_type_mutations.values_list("original_vehicle_type", flat=True)
-            assert len(vt_mut_list) == len({vt for vt in vt_mut_list})
-            vt_mut_list = vehicle_type_mutations.values_list("mutated_vehicle_type", flat=True)
-            assert len(vt_mut_list) == len({vt for vt in vt_mut_list})
-            assert len(vt_mut_list) == VehicleType.objects.filter(scenario=scenario).count()
-
-            for vt_mut in vehicle_type_mutations:
-                org_vt = vt_mut.original_vehicle_type
-                vt = vt_mut.mutated_vehicle_type
-                copied_vt_id = stack[VehicleType][org_vt.id]
-                vt.id = copied_vt_id
-                vt.scenario = child
-                vt.save()
+            child = tasks.create_child_from_mutation(parent, scenario)
 
             async_result = tasks.run_toolchain_from_scenario(child, assign_vehicles=True)
             context["task_id"] = child.task_id

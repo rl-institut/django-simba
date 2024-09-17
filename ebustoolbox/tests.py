@@ -394,36 +394,37 @@ class WriteReadScenarioToDatabase(TestCase):
                 )
 
 
-@override_settings(SECURE_PROXY_SSL_HEADER=None)
-@override_settings(SECURE_SSL_REDIRECT=False)
-class RunSimulationTest(StaticLiveServerTestCase):
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
-    @override_settings(DEBUG=True)
-    def test_submit_button_click_with_celery_with_eflips(self):
-        self.submit_default_simulation()
-
-    def submit_default_simulation(self):
-        # Get the URL using reverse
-        url = reverse("simba:home")
-        # Simulate a GET request to the URL
-        response = self.client.get(url)
-        # Check response status code (200 OK)
-        self.assertEqual(response.status_code, 200)
-        # Check if the button is present in the response content
-        self.assertContains(response, "simba_submit_button", html=False)
-        form = UploadFileForm()
-        # Use all the initial and set values from the form as post data
-        post_data = {
-            f: form.fields[f].initial if form.fields[f].initial is not None else ""
-            for f in form.fields
-        }
-        # Simulate clicking the button (POST request)
-        response = self.client.post(url, post_data)
-        # Check response status code. Have you been redirected
-        self.assertEqual(response.status_code, 302)
-        response = self.client.get(response.url)
-        self.assertEqual(response.status_code, 200)
+#  Deprecated. Needs to be replaced with new workflow testing
+# @override_settings(SECURE_PROXY_SSL_HEADER=None)
+# @override_settings(SECURE_SSL_REDIRECT=False)
+# class RunSimulationTest(StaticLiveServerTestCase):
+#     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+#     @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
+#     @override_settings(DEBUG=True)
+#     def test_submit_button_click_with_celery_with_eflips(self):
+#         self.submit_default_simulation()
+#
+#     def submit_default_simulation(self):
+#         # Get the URL using reverse
+#         url = reverse("simba:home")
+#         # Simulate a GET request to the URL
+#         response = self.client.get(url)
+#         # Check response status code (200 OK)
+#         self.assertEqual(response.status_code, 200)
+#         # Check if the button is present in the response content
+#         self.assertContains(response, "simba_submit_button", html=False)
+#         form = UploadFileForm()
+#         # Use all the initial and set values from the form as post data
+#         post_data = {
+#             f: form.fields[f].initial if form.fields[f].initial is not None else ""
+#             for f in form.fields
+#         }
+#         # Simulate clicking the button (POST request)
+#         response = self.client.post(url, post_data)
+#         # Check response status code. Have you been redirected
+#         self.assertEqual(response.status_code, 302)
+#         response = self.client.get(response.url)
+#         self.assertEqual(response.status_code, 200)
 
 
 class ModelTests(TestCase):
