@@ -1,5 +1,6 @@
 from dash import Dash, html, dash_table
 from dash.exceptions import PreventUpdate
+import plotly.graph_objects as go
 
 from . import ids, data
 from dash.dependencies import Input, Output, State  # no fa401
@@ -129,6 +130,9 @@ def render_number_of_buses(app: Dash) -> html.Div:
         task_id = dash_app.slug
         filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
 
+        if data.get_sim_done_status(task_id):
+            return html.Div(id=ids.NUMBER_OF_BUSES)
+
         # Get the data
         lines = get_number_of_buses(filter_dict)
 
@@ -174,6 +178,9 @@ def critical_rotations(app: Dash) -> html.Div:
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
+
+        if data.get_sim_done_status(task_id):
+            return html.Div(id=ids.LIST_CRIT_ROTATIONS)
 
         # Get the data
         lines = get_critical_rotations_and_score_as_dataframe(s.id, buses)
@@ -278,6 +285,9 @@ def render_avg_consumption(app: Dash) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
+        if data.get_sim_done_status(task_id):
+            return html.Div(id=ids.NUMBER_AVG_CONSUM)
+
         # Get the data
         total_consumption = get_total_consumption(s)
         vehicle_name_dict, vehicle_name_dict_reverse = data.get_all_buses_labeled(task_id)
@@ -374,6 +384,9 @@ def render_bus_utilization(app: Dash) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
+        if data.get_sim_done_status(task_id):
+            return html.Div(id=ids.BUS_UTILIZATION)
+
         result_dict = data.get_scenario_duration(task_id)
 
         df = data.get_duration_as_dataframe(s.id, buses)
@@ -420,6 +433,9 @@ def render_station_most_served(app: Dash) -> html.Div:
     ) -> html.Div:
         # print("updating numbers")
         task_id = dash_app.slug
+
+        if data.get_sim_done_status(task_id):
+            return html.Div(id=ids.STATION_MOST_SERVED)
 
         lines = data.get_frequently_served_station(task_id)
         styles = [
