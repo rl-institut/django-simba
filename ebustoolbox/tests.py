@@ -585,7 +585,7 @@ class ConsumptionTestCase(TransactionTestCase):
         for event in Event.objects.filter(scenario=django_scenario, event_type=EventType.DRIVING):
             sum_consumption_double += event.soc_end - event.soc_start
 
-        self.assertAlmostEquals(sum_consumption * 2, sum_consumption_double)
+        self.assertAlmostEqual(sum_consumption * 2, sum_consumption_double)
 
         for c in cons:
             c.scenario = django_scenario

@@ -368,6 +368,8 @@ class Consumption(models.Model):
             ),
         ]
 
+        db_table = "ConsumptionLut"
+
     def __str__(self):
         avg = np.array(self.values).mean()
         return f"Consumption table {self.name} with average consumption of {avg:.1f} "
