@@ -1,7 +1,7 @@
 import eflips.eval.output.prepare as output_prepare
 import eflips.eval.output.visualize as output_visualize
 
-from eflips.model import Area, Vehicle, Depot
+from eflips.model import Depot
 
 from typing import Dict, Any
 
@@ -14,7 +14,8 @@ from sqlalchemy.orm import Session
 import plotly.graph_objects as go
 
 from . import (
-    ids, data,
+    ids,
+    data,
 )
 
 
@@ -33,6 +34,7 @@ def _create_engine_from_postgis_url() -> sqlalchemy.engine.Engine:
 def get_rotated_rectangle_corners(rect):
     # Only needed to convert eflips' matplotlib to plotly
     import numpy as np
+
     """
     Calculate the corners of a rotated rectangle.
     """
@@ -42,21 +44,13 @@ def get_rotated_rectangle_corners(rect):
     angle = np.deg2rad(-45)
 
     # Define the corners of the rectangle before rotation
-    corners = np.array([
-        [x, y],
-        [x + width, y],
-        [x + width, y + height],
-        [x, y + height]
-    ])
+    corners = np.array([[x, y], [x + width, y], [x + width, y + height], [x, y + height]])
 
     # Calculate the center of the rectangle for rotation
     center = np.array([x + width / 2, y + height / 2])
 
     # Rotate each corner around the center
-    rotation_matrix = np.array([
-        [np.cos(angle), -np.sin(angle)],
-        [np.sin(angle), np.cos(angle)]
-    ])
+    rotation_matrix = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
 
     rotated_corners = np.dot(corners - center, rotation_matrix) + center
 
@@ -76,18 +70,17 @@ def matplotlib_to_plotly(fig, ax):
     for patch in ax.patches:
         if isinstance(patch, patches.Rectangle):
             corners = get_rotated_rectangle_corners(patch)
-            edgecolor = patch.get_edgecolor()
             facecolor = patch.get_facecolor()
 
             # Convert colors to RGB format
-            # edgecolor_rgb = f'rgb({int(edgecolor[0]*255)}, {int(edgecolor[1]*255)}, {int(edgecolor[2]*255)})'
-            facecolor_rgb = f'rgb({int(facecolor[0] * 255)}, {int(facecolor[1] * 255)}, {int(facecolor[2] * 255)})'
+            facecolor_rgb = f"rgb({int(facecolor[0] * 255)}, {int(facecolor[1] * 255)}, {int(facecolor[2] * 255)})"
 
             # Add the polygon (rotated rectangle) to the Plotly figure
             plotly_fig.add_shape(
                 type="path",
-                path=f'M {corners[0][0]},{corners[0][1]} L {corners[1][0]},{corners[1][1]} L {corners[2][0]},{corners[2][1]} L {corners[3][0]},{corners[3][1]} Z',
-                line=dict(color='rgba(0,0,0,0)'),  # Transparent line (no border)
+                path=f"M {corners[0][0]},{corners[0][1]} L {corners[1][0]},{corners[1][1]} "
+                     f"L {corners[2][0]},{corners[2][1]} L {corners[3][0]},{corners[3][1]} Z",
+                line=dict(color="rgba(0,0,0,0)"),  # Transparent line (no border)
                 fillcolor=facecolor_rgb,
             )
 
@@ -103,19 +96,19 @@ def matplotlib_to_plotly(fig, ax):
             yref="y",
             xanchor="center",
             yanchor="middle",
-            textangle=0  # Rotate text in Plotly
+            textangle=0,  # Rotate text in Plotly
         )
 
     # Set the range of axes for better visibility
     plotly_fig.update_xaxes(
         scaleanchor="y",  # Lock the aspect ratio
         scaleratio=1,  # Ensure equal scaling
-        range=[ax.get_xlim()[0], ax.get_xlim()[1]]
+        range=[ax.get_xlim()[0], ax.get_xlim()[1]],
     )
     plotly_fig.update_yaxes(
         scaleanchor="x",  # Lock the aspect ratio
         scaleratio=1,  # Ensure equal scaling
-        range=[ax.get_ylim()[0], ax.get_ylim()[1]]
+        range=[ax.get_ylim()[0], ax.get_ylim()[1]],
     )
 
     # Set the range of axes for better visibility
@@ -123,8 +116,7 @@ def matplotlib_to_plotly(fig, ax):
     plotly_fig.update_yaxes(range=[ax.get_ylim()[0], ax.get_ylim()[1]])
 
     plotly_fig.update_layout(
-        width=1100,
-        height=1100  # Set height equal to width for a square figure
+        width=1100, height=1100  # Set height equal to width for a square figure
     )
 
     return plotly_fig
@@ -141,7 +133,7 @@ def get_ganttchart_scenario_eflips(app: Dash):
         State(ids.BUS_DROPDOWN, "data"),
     )
     def get_ganttchart_scenario(
-            color_scheme_dropdown: str, _, busses, session_state: Dict[str, Any] | None
+        color_scheme_dropdown: str, _, busses, session_state: Dict[str, Any] | None
     ):
         """
         Takes a value from the dropdown as a scenario ID and returns a plotly.express.timeline object
@@ -156,9 +148,12 @@ def get_ganttchart_scenario_eflips(app: Dash):
 
         # Check if the session state and task ID are correctly set
         if session_state is None or "task_id" not in session_state:
-            raise ValueError("The session state must be set, and the task ID must be in the session state.")
+            raise ValueError(
+                "The session state must be set, and the task ID must be in the session state."
+            )
 
         from ebustoolbox.models import Scenario as ebusScenario
+
         task_id = session_state["task_id"]
 
         # Check the simulation status
@@ -184,7 +179,9 @@ def get_ganttchart_scenario_eflips(app: Dash):
                         "Location": "location",
                     }
 
-                    fig = output_visualize.depot_event(depot_events, color_scheme[color_scheme_dropdown])
+                    fig = output_visualize.depot_event(
+                        depot_events, color_scheme[color_scheme_dropdown]
+                    )
 
             finally:
                 engine.dispose()
@@ -216,7 +213,6 @@ def get_vehicle_soc_plot_eflips(app: Dash):
         Input("task_id", "data"),
     )
     def get_vehicle_soc_plot(vehicle_id: int, task_id: str):
-
         if data.get_sim_done_status(task_id):
             return go.Figure(layout=dict(template="plotly"))
 
@@ -240,7 +236,6 @@ def get_power_and_occupancy_plot_eflips(app: Dash):
         Input("task_id", "data"),
     )
     def get_power_and_occupancy_plot(task_id: str):
-
         if data.get_sim_done_status(task_id):
             return go.Figure(layout=dict(template="plotly"))
 
@@ -270,9 +265,8 @@ def get_specific_energy_eflips(app: Dash):
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
     )
     def get_specific_energy_plot(
-            color_scheme_dropdown: str, _, busses, session_state: Dict[str, Any] | None
+        color_scheme_dropdown: str, _, busses, session_state: Dict[str, Any] | None
     ):
-
         if data.get_sim_done_status(session_state["task_id"]):
             return go.Figure(layout=dict(template="plotly"))
 
@@ -306,10 +300,7 @@ def get_animation_eflips(app: Dash):
         Input(ids.EFLIPS_COLORSCHEME_DROPDOWN, "value"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
     )
-    def get_animation(
-            _, busses, __, session_state: Dict[str, Any] | None
-    ):
-
+    def get_animation(_, busses, __, session_state: Dict[str, Any] | None):
         from ebustoolbox.models import Scenario as ebusScenario
 
         # Make sure that the session state is set and that the task id is in the session state

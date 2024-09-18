@@ -19,19 +19,27 @@ from .eflips_plots import (
     get_power_and_occupancy_plot_eflips,
     get_vehicle_by_click_eflips,
     get_specific_energy_eflips,
-    get_animation_eflips
+    get_animation_eflips,
 )
 
 
 def create_layout(app: Dash) -> Div:
     # App layout
     @app.callback(
-        [Output("tab-simulation", "disabled"), Output("tab-kpi", "disabled"), Output("tab-eflips", "disabled")],
+        [
+            Output("tab-simulation", "disabled"),
+            Output("tab-kpi", "disabled"),
+            Output("tab-eflips", "disabled"),
+        ],
         [Input("tab-simulation", "value")],
     )
     def update_tab(_, session_state=None, dash_app=None, **kwargs):
         disable_tabs = data.get_sim_done_status(dash_app.slug)
-        return disable_tabs, disable_tabs, disable_tabs,
+        return (
+            disable_tabs,
+            disable_tabs,
+            disable_tabs,
+        )
 
     @app.callback(
         [Output(ids.MEMOIZER_DONE, "data"), Output(ids.BUS_DROPDOWN, "data")],
@@ -78,7 +86,7 @@ def create_layout(app: Dash) -> Div:
                             "display": "inline-block",
                             "width": "100%",
                             "maxHeight": "500px",  # Specify the maximum height
-                            "overflowY": "auto",   # Add this to enable scrolling if content exceeds maxHeight
+                            "overflowY": "auto",  # Add this to enable scrolling if content exceeds maxHeight
                         },
                     ),
                     dcc.Loading(
@@ -152,9 +160,9 @@ def create_layout(app: Dash) -> Div:
                                     disabled=True,
                                     children=[
                                         html.Div(
-                                            id='simulation-plots-container',  # Empty div for dynamic content
+                                            id="simulation-plots-container",  # Empty div for dynamic content
                                             children=block_bottom_center(app),
-                                            #children=[dcc.Graph(id=ids.DIST_DUR_HISTOGRAM)],
+                                            # children=[dcc.Graph(id=ids.DIST_DUR_HISTOGRAM)],
                                             style={
                                                 "display": "inline-block",
                                                 "width": "100%",
@@ -187,18 +195,22 @@ def create_layout(app: Dash) -> Div:
                                         html.Div("Click on a bar to reveal the vehicle log."),
                                         html.Div(
                                             children=[
-                                                html.P("Click on a group in legend to hide/show the group."),
-                                                dcc.Graph(id=ids.EFLIPS_GANTT)],
+                                                html.P(
+                                                    "Click on a group in legend to hide/show the group."
+                                                ),
+                                                dcc.Graph(id=ids.EFLIPS_GANTT),
+                                            ],
                                             style={
                                                 "display": "inline-block",
                                                 "width": "100%",
-                                            }
+                                            },
                                         ),
                                         html.Div(
                                             children=[
                                                 html.H2(children="SoC-log of vehicle:"),
                                                 html.Div(
-                                                    id=ids.EFLIPS_CLICK_DATA, style={"font-size": "20"}
+                                                    id=ids.EFLIPS_CLICK_DATA,
+                                                    style={"font-size": "20"},
                                                 ),
                                                 dcc.Graph(id=ids.EFLIPS_VEHICLE_SOC),
                                             ]
@@ -213,21 +225,27 @@ def create_layout(app: Dash) -> Div:
                                         ),
                                         html.Div(
                                             children=[
-                                                html.P("Click on a group in legend to hide/show the group."),
-                                                dcc.Graph(id=ids.EFLIPS_SPECIFIC_ENERGY)],
+                                                html.P(
+                                                    "Click on a group in legend to hide/show the group."
+                                                ),
+                                                dcc.Graph(id=ids.EFLIPS_SPECIFIC_ENERGY),
+                                            ],
                                             style={
                                                 "display": "inline-block",
                                                 "width": "100%",
-                                            }
+                                            },
                                         ),
                                         html.Div(
                                             children=[
-                                                html.P("Click on a group in legend to hide/show the group."),
-                                                dcc.Graph(id=ids.EFLIPS_ANIMATION)],
+                                                html.P(
+                                                    "Click on a group in legend to hide/show the group."
+                                                ),
+                                                dcc.Graph(id=ids.EFLIPS_ANIMATION),
+                                            ],
                                             style={
                                                 "display": "inline-block",
                                                 "width": "100%",
-                                            }
+                                            },
                                         ),
                                     ],
                                 ),
