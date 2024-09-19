@@ -160,18 +160,25 @@ def get_number_of_buses(filter_dict: dict) -> list[str]:
     ]
 
 
-def get_number_of_stations(task_id: str) -> list[str]:
+def get_number_of_stations(task_id: str, get_electrified = True) -> list[str]:
     s = Scenario.objects.get(task_id=task_id)
     # Count all Station objects for the scenario
     total_stations = Station.objects.filter(scenario_id=s.id).count()
 
-    # Count Station objects where is_electrified is True for the scenario
-    electrified_stations = Station.objects.filter(scenario_id=s.id, is_electrified=True).count()
+    if get_electrified:
+        # Count Station objects where is_electrified is True for the scenario
+        electrified_stations = Station.objects.filter(scenario_id=s.id, is_electrified=True).count()
 
-    return [
-        "Anzahl elektrifizierter Stationen / Anzahl Stationen",
-        f"{electrified_stations} / {total_stations}",
-    ]
+        return [
+            "Anzahl elektrifizierter Stationen / Anzahl Stationen",
+            f"{electrified_stations} / {total_stations}",
+        ]
+
+    else:
+        return [
+            "Anzahl Stationen im Szenario:",
+            f"{total_stations}",
+        ]
 
 
 def get_frequently_served_station(task_id: str) -> list[str]:

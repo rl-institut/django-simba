@@ -374,6 +374,51 @@ def render_number_stations(app: Dash) -> html.Div:
 
     return html.Div(id=ids.NUMBER_STATIONS)
 
+def render_number_stations_presim(app: Dash) -> html.Div:
+    """
+    Renders a Div element displaying the number of (electrified) stations.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered number of stations.
+    :rtype: html.Div
+    """
+
+    @app.callback(
+        Output(ids.NUMBER_STATIONS_PRESIM, "children"),
+        Input(ids.APPLY_DROPDOWN, "n_clicks"),
+        State(ids.BUS_DROPDOWN, "data"),
+    )
+    def update_number_stations(
+        _, buses: list[str], session_state=None, dash_app=None, **kwargs
+    ) -> html.Div:
+        # print("updating numbers")
+        task_id = dash_app.slug
+
+        # Get the data
+
+        lines = get_number_of_stations(task_id, False)
+
+        styles = [
+            {
+                "fontFamily": "Helvetica",
+                "fontSize": "25px",
+                "position": "relative",
+                "top": "0",
+                "left": "0",
+            },
+            {"fontFamily": "Helvetica", "fontSize": "48px", "textAlign": "center"},
+        ]
+
+        html_div = []
+
+        for line, style in zip(lines, styles):
+            html_div.append(html.H2(line, style=style))
+        number_divs = html.Div(html_div)
+        return html.Div(number_divs, id=ids.NUMBER_STATIONS_PRESIM)
+
+    return html.Div(id=ids.NUMBER_STATIONS_PRESIM)
 
 def render_bus_utilization(app: Dash) -> html.Div:
     """ """

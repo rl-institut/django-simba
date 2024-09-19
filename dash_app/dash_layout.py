@@ -276,7 +276,7 @@ def block_second_third(app) -> list[html.Div]:
 
 
 def block_third_third(app) -> list[html.Div]:
-    return [report_numbers.render_number_of_buses(app)]
+    return [report_numbers.render_number_stations_presim(app)]
 
 
 def block_top_center(app) -> list[html.Div]:
@@ -301,11 +301,12 @@ def block_bottom_center(app):
 
 
 def block_top_left(app) -> list[html.Div]:
-    return [piechart.render_bustype(app)]
+    return []
 
 
 def block_top_left_KPI(app) -> list[html.Div]:
     return [
+        report_numbers.render_number_of_buses(app),
         report_numbers.render_total_distance(app),
         report_numbers.render_avg_consumption(app),
         report_numbers.render_number_stations(app),
@@ -315,4 +316,6 @@ def block_top_left_KPI(app) -> list[html.Div]:
 
 
 def block_top_right_KPI(app):
-    return [piechart.render_critical_rotations(app)]
+    return [piechart.render_critical_rotations(app),
+            piechart.render_bustype(app),
+            ]
