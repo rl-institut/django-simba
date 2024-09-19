@@ -35,7 +35,11 @@ def render_longest_rotation(app: Dash) -> html.Div:
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
-        filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
+
+        filter_dict = dict(task_id=task_id)
+
+        if buses:  # In Presim buses will ne None, if later no buses are selected, it will be empty
+            filter_dict["vehicle__id__in"] = buses
 
         # Get the data
         lines = get_number_longest_rot(filter_dict)
@@ -81,7 +85,10 @@ def render_shortest_rotation(app: Dash) -> html.Div:
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
-        filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
+        filter_dict = dict(task_id=task_id)
+
+        if buses:  # In Presim buses will ne None, if later no buses are selected, it will be empty
+            filter_dict["vehicle__id__in"] = buses
 
         # Get the data
         lines = get_number_shortest_rot(filter_dict)

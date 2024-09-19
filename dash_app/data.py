@@ -74,7 +74,7 @@ def get_total_consumption(s: Scenario):
     for index, event in driving_events.iterrows():
         # Calculate the difference between soc_end and soc_start
         total_energy_difference += (
-            abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
+                abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
         )
     return total_energy_difference
 
@@ -222,7 +222,10 @@ def get_number_longest_rot(filter_dict: dict):
     task_id = filter_dict.pop("task_id")
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
-    if len(filter_dict["vehicle__id__in"]) == 0:
+
+    if ("vehicle__id__in" in filter_dict \
+        and len(filter_dict["vehicle__id__in"]) == 0) \
+            and not get_sim_done_status(task_id):
         raise PreventUpdate
 
     # Function calls annotate distance to Rotation
@@ -247,7 +250,10 @@ def get_number_shortest_rot(filter_dict: dict):
     task_id = filter_dict.pop("task_id")
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
-    if len(filter_dict["vehicle__id__in"]) == 0:
+
+    if ("vehicle__id__in" in filter_dict \
+        and len(filter_dict["vehicle__id__in"]) == 0) \
+            and not get_sim_done_status(task_id):
         raise PreventUpdate
 
     # Function calls annotate distance to Rotation
