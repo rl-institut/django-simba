@@ -14,6 +14,7 @@ urlpatterns = [
     ),
     path("scenarios/", views.scenarios, name="scenarios"),
     path("usergroups/", views.usergroups, name="usergroups"),
+    path("copy/<uuid:task_id>/", views.copy_scenario, name="copy_scenario"),
     path("result/<uuid:task_id>/", views.result_view, name="result"),
     path("input/schedule/<uuid:task_id>/<str:finished>", views.schedule, name="schedule"),
     path(

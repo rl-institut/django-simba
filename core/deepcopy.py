@@ -220,7 +220,7 @@ def deepcopy(  # noqa
         # Replace the foreign keys of the copied objects. This can only be done after they were created
         # to ensure they do not point to not created objects <-- Error
         managers = replace_keys_and_get_managers(
-            already_copied, copies, rev_stack, stack, exclude_models
+            already_copied, copies, rev_stack, stack, exclude_models, exclude_fields
         )
         # After objects are saved to DB ManyToMany fields can be set
         replace_many2many(managers)
@@ -282,7 +282,9 @@ def replace_many2many(managers):
 
 
 @time_it
-def replace_keys_and_get_managers(already_copied, copies, rev_stack, stack, exclude_models):
+def replace_keys_and_get_managers(
+    already_copied, copies, rev_stack, stack, exclude_models, exclude_fields
+):
     managers = list()
     for obj_class in copies:
         all_copies = [c for c in copies[obj_class].values()]
@@ -310,10 +312,24 @@ def replace_keys_and_get_managers(already_copied, copies, rev_stack, stack, excl
                     if org_foreign_values is None:
                         continue
                     set_new_foreign_value(
-                        f, obj_copy, org_foreign_values, stack, exclude_models=exclude_models
+                        f,
+                        obj_copy,
+                        org_foreign_values,
+                        stack,
+                        exclude_models=exclude_models,
+                        exclude_fields=exclude_fields,
                     )
                 else:
-                    managers.append(create_m2m_managers(f, obj_copy, org_foreign_values, stack))
+                    managers.append(
+                        create_m2m_managers(
+                            f,
+                            obj_copy,
+                            org_foreign_values,
+                            stack,
+                            exclude_models=exclude_models,
+                            exclude_fields=exclude_fields,
+                        )
+                    )
         if len(fnames) > 0:
             try:
                 obj_class.objects.fast_update(all_copies, fnames)
@@ -336,18 +352,21 @@ def get_keys_factory(m2m):
     return get_keys
 
 
-def create_m2m_managers(f, obj_copy, org_foreign_values, stack):
+def create_m2m_managers(f, obj_copy, org_foreign_values, stack, exclude_models, exclude_fields):
     new_foreign_values = []
     # Replace all foreign keys with the copy/pk translation of the objects
     for old_foreign in org_foreign_values:
-        new_foreign_values.append(stack[f.related_model][old_foreign.pk])
+        try:
+            new_foreign_values.append(stack[f.related_model][old_foreign.pk])
+        except KeyError:
+            assert f in exclude_fields or f.related_model in exclude_models
     manager = getattr(obj_copy, f.name)
     return manager, new_foreign_values
 
 
-def set_new_foreign_value(f, obj_copy, org_foreign_values, stack, exclude_models):
+def set_new_foreign_value(f, obj_copy, org_foreign_values, stack, exclude_models, exclude_fields):
     try:
         new_foreign_values = stack[f.related_model][org_foreign_values]
         setattr(obj_copy, f.name + "_id", new_foreign_values)
     except KeyError:
-        assert f.related_model in exclude_models
+        assert f.related_model in exclude_models or f in exclude_fields

@@ -1,16 +1,12 @@
 import logging
-import random
 import traceback
-import warnings
 from datetime import timedelta, datetime, timezone as tz
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.contrib.gis.geos import Point
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.transaction import atomic
 from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest, Http404
 from django.shortcuts import render, redirect
 from django.urls import reverse
@@ -558,21 +554,6 @@ def landing_page(request: HttpRequest):
     return render(request, "landing_page.html")
 
 
-@atomic()
-def create_stations_for_map(django_scenario: Scenario):
-    stations = ebustoolbox.models.Station.objects.filter(scenario=django_scenario)
-    warned = False
-    stations_with_geo = []
-    for station in stations:
-        if station.geom is None:
-            if not warned:
-                warnings.warn("At least one Station has no geometry and is placed randomly")
-                warned = True
-            station.geom = Point(x=13.0 + random.random(), y=52.0 + random.random(), z=0)
-            stations_with_geo.append(station)
-    Station.objects.bulk_update(stations_with_geo, ["geom"])
-
-
 # deprecated
 # def save_and_simulate(
 #     form: UploadFileForm | None = None, request: HttpRequest | None = None
@@ -600,6 +581,20 @@ def create_stations_for_map(django_scenario: Scenario):
 #     return django_scenario
 
 
+def copy_scenario(request: HttpRequest, task_id: str):
+    try:
+        scenario = Scenario.objects.get(task_id=task_id)
+    except Scenario.DoesNotExist:
+        raise Http404
+    # if the scenario has a manager, only this User can run the simulation
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
+    copied_scenario = tasks.create_scenario_copy_for_user(scenario)
+    print(copied_scenario.task_id)
+    response = redirect(reverse("simba:scenario_overview", args=[str(copied_scenario.task_id)]))
+    return response
+
+
 def run_simulation(request: HttpRequest, task_id: str):
     context = {"task_id": task_id, "progress_type": "simba:scenario_overview"}
     logger.debug(context)
@@ -619,14 +614,15 @@ def run_simulation(request: HttpRequest, task_id: str):
             # the progress view will be triggered with the task_id and progress type
             logger.info("Running Toolchain.")
 
-            # create scenario from mutation and parent
-            child = tasks.create_child_from_mutation(parent, scenario)
-
-            async_result = tasks.run_toolchain_from_scenario(child, assign_vehicles=True)
-            context["task_id"] = child.task_id
-            if "ebus_map" in settings.INSTALLED_APPS:
-                create_stations_for_map(child)
-
+            sim_task_id = get_unique_task_id()
+            # create scenario from mutation and parent and simulate it
+            async_result = tasks.run_and_merge_scenarios.apply_async(
+                (str(sim_task_id),),
+                parent_id=parent.id,
+                mutation_id=scenario.id,
+                task_id=sim_task_id,
+            )
+            context["task_id"] = sim_task_id
             context["progress_id"] = async_result.task_id
             response = render(request, "progress_poll.html", context)
             response["HX-Trigger"] = "running"

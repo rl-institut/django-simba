@@ -1,4 +1,5 @@
 import csv
+import random
 import shutil
 import traceback
 import warnings
@@ -15,7 +16,7 @@ import tqdm
 from celery import shared_task
 import django.apps
 from django.conf import settings
-from django.contrib.gis.geos import GEOSGeometry
+from django.contrib.gis.geos import GEOSGeometry, Point
 from django.db import connections
 from django.db.models import Max, Count, Min, QuerySet
 from django.db.transaction import atomic
@@ -64,6 +65,7 @@ from .models import (
     DepotSelection,
     ElectrificationOptions,
     VehicleTypeMutation,
+    VehicleTypeSelection,
 )
 from .schedule_readers import ScheduleReader
 
@@ -985,6 +987,18 @@ def run_ebus_toolchain(task_id):
     return async_result
 
 
+@shared_task(bind=True)
+def run_and_merge_scenarios(self, parent_id: int, mutation_id: int, simulation_task_id):
+    parent_scenario = Scenario.objects.get(id=parent_id)
+    mutation_scenario = Scenario.objects.get(id=mutation_id)
+    simulation_scenario = create_child_from_mutation(parent_scenario, mutation_scenario)
+    simulation_scenario.task_id = simulation_task_id
+    simulation_scenario.save()
+    if "ebus_map" in settings.INSTALLED_APPS:
+        create_stations_for_map(simulation_scenario)
+    run_toolchain_from_scenario(simulation_scenario, assign_vehicles=True)
+
+
 def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False):
     """Run a Scenario from the database with SimBA
 
@@ -1085,25 +1099,28 @@ def deepcopy_scenario(scenario: Scenario) -> tuple[Scenario, dict]:
     copied_instance, stack = core.deepcopy.deepcopy_and_sequence_reset(
         scenario,
         exclude_models={Scenario, User, Event, Progress, UserGroup},
+        exclude_fields={
+            DepotSelection._meta.get_field("depots"),
+            ElectrificationOptions._meta.get_field("electrified_stations"),
+        },
         max_depth=1,
     )
     return copied_instance, stack
 
 
-# def create_parent_scenario(scenario: Scenario) -> Scenario:
-#     """Creates a parent scenario and links it to a child scenario.
-#
-#     :param scenario: Scenario to be created.
-#     :type scenario: Scenario
-#     :return: Scenario created
-#     """
-#     old_task_id = scenario.task_id
-#     scenario.task_id = ebustoolbox.util.get_unique_task_id()
-#     copied_instance, stack = deepcopy_scenario(scenario)
-#     scenario.task_id = old_task_id
-#     scenario.parent = copied_instance
-#     scenario.save()
-#     return copied_instance
+@atomic()
+def create_stations_for_map(django_scenario: Scenario):
+    stations = ebustoolbox.models.Station.objects.filter(scenario=django_scenario)
+    warned = False
+    stations_with_geo = []
+    for station in stations:
+        if station.geom is None:
+            if not warned:
+                warnings.warn("At least one Station has no geometry and is placed randomly")
+                warned = True
+            station.geom = Point(x=13.0 + random.random(), y=52.0 + random.random(), z=0)
+            stations_with_geo.append(station)
+    Station.objects.bulk_update(stations_with_geo, ["geom"])
 
 
 def create_empty_child_scenario(parent_scenario: Scenario, task_id):
@@ -1115,6 +1132,53 @@ def create_empty_child_scenario(parent_scenario: Scenario, task_id):
     return new_child_scenario
 
 
+def create_scenario_copy_for_user(mutation_scenario: Scenario):
+    assert isinstance(mutation_scenario, Scenario)
+    assert mutation_scenario.parent is not None
+    assert mutation_scenario.parent.parent is None
+    mutation_scenario.task_id = ebustoolbox.util.get_unique_task_id()
+    copied_scenario, stack = deepcopy_scenario(mutation_scenario)
+    vehicle_type_selections = VehicleTypeSelection.objects.filter(
+        vehicle_type__scenario=mutation_scenario
+    )
+    for vts in vehicle_type_selections:
+        new_vt_id = stack[VehicleType][vts.vehicle_type.id]
+        vts.id = None
+        vts.vehicle_type = VehicleType.objects.get(id=new_vt_id)
+        vts.save()
+
+    vehicle_type_mutation = VehicleTypeMutation.objects.filter(
+        mutated_vehicle_type__scenario=mutation_scenario
+    )
+    for vtm in vehicle_type_mutation:
+        new_vt_id = stack[VehicleType][vtm.mutated_vehicle_type.id]
+        vtm.id = None
+        vtm.mutated_vehicle_type = VehicleType.objects.get(id=new_vt_id)
+        vtm.save()
+
+    # ToDo Expand with Depot and Station Mutation if such settings will be introduced
+    #
+    # class DepotMutation(models.Model):
+    #     original_depot = models.ForeignKey(
+    #         Depot, related_name="originaldepot", null=True, on_delete=models.CASCADE
+    #     )
+    #     mutated_original_depot = models.ForeignKey(
+    #         Depot, related_name="mutateddepot", null=True, on_delete=models.CASCADE
+    #     )
+    #
+    #
+    # class StationMutation(models.Model):
+    #     original_station = models.ForeignKey(
+    #         Station, related_name="originalstation", null=True, on_delete=models.CASCADE
+    #     )
+    #     mutated_original_station = models.ForeignKey(
+    #         Station, related_name="mutatedstation", null=True, on_delete=models.CASCADE
+    #     )
+
+    return copied_scenario
+
+
+@atomic()
 def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) -> Scenario:
     """Create a child scenario from a mutation and parent scenario
 
