@@ -316,6 +316,7 @@ def block_top_left_KPI(app) -> list[html.Div]:
 
 
 def block_top_right_KPI(app):
-    return [piechart.render_critical_rotations(app),
-            piechart.render_bustype(app),
-            ]
+    return [
+        piechart.render_critical_rotations(app),
+        piechart.render_bustype(app),
+    ]

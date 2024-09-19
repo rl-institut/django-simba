@@ -374,6 +374,7 @@ def render_number_stations(app: Dash) -> html.Div:
 
     return html.Div(id=ids.NUMBER_STATIONS)
 
+
 def render_number_stations_presim(app: Dash) -> html.Div:
     """
     Renders a Div element displaying the number of (electrified) stations.
@@ -419,6 +420,7 @@ def render_number_stations_presim(app: Dash) -> html.Div:
         return html.Div(number_divs, id=ids.NUMBER_STATIONS_PRESIM)
 
     return html.Div(id=ids.NUMBER_STATIONS_PRESIM)
+
 
 def render_bus_utilization(app: Dash) -> html.Div:
     """ """

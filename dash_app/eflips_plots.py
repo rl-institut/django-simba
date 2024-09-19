@@ -79,7 +79,7 @@ def matplotlib_to_plotly(fig, ax):
             plotly_fig.add_shape(
                 type="path",
                 path=f"M {corners[0][0]},{corners[0][1]} L {corners[1][0]},{corners[1][1]} "
-                     f"L {corners[2][0]},{corners[2][1]} L {corners[3][0]},{corners[3][1]} Z",
+                f"L {corners[2][0]},{corners[2][1]} L {corners[3][0]},{corners[3][1]} Z",
                 line=dict(color="rgba(0,0,0,0)"),  # Transparent line (no border)
                 fillcolor=facecolor_rgb,
             )
