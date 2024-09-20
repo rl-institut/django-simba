@@ -941,12 +941,14 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
         core.deepcopy.reset_postgres_auto_increments(["ebustoolbox"])
 
 
-@atomic()
+# for some reason, creating the atomic savepoint in an outer atomic transaction fails.
+@atomic(savepoint=False)
 def trim_scenario(scenario, time_delta, start_time=None):
     rotations = get_rotations_by_timespan(scenario, time_delta, start_time)
     rotations_to_remove = Rotation.objects.filter(scenario=scenario).exclude(id__in=rotations)
-    print(f"deleting {rotations_to_remove.count()} rotations out of sim range")
+    logging.info(f"Deleting {rotations_to_remove.count()} rotations out of sim range")
     rotations_to_remove.delete()
+    pass
 
 
 def get_rotations_by_timespan(
@@ -1132,6 +1134,7 @@ def create_empty_child_scenario(parent_scenario: Scenario, task_id):
     return new_child_scenario
 
 
+@atomic()
 def create_scenario_copy_for_user(mutation_scenario: Scenario):
     assert isinstance(mutation_scenario, Scenario)
     assert mutation_scenario.parent is not None
@@ -1193,7 +1196,7 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     parent_scenario.task_id = ebustoolbox.util.get_unique_task_id()
     child, stack = deepcopy_scenario(parent_scenario)
     parent_scenario.refresh_from_db()
-    child.parent = parent_scenario
+    child.parent = mutation
     if parent_scenario.simba_options:
         child.simba_options = parent_scenario.simba_options
     else:
@@ -1220,6 +1223,8 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     ele_dict = model_to_dict(ele_option)
     del ele_dict["id"]
     del ele_dict["scenario"]
+    del ele_dict["electrified_stations"]
+
     child.simba_options.update(ele_dict)
     if ele_option.station_optimization:
         child.simba_options["modes"] = "sim,station_optimization,report"
@@ -1834,7 +1839,7 @@ def find_and_make_depots(scenario):
         station.save()
 
 
-@atomic()
+@atomic(savepoint=False)
 def trim_depots(scenario, depot_ids: list[int]):
     rot_before_count = Rotation.objects.filter(scenario=scenario).count()
     trip_before_count = Trip.objects.filter(scenario=scenario).count()

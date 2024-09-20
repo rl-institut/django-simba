@@ -589,7 +589,10 @@ def copy_scenario(request: HttpRequest, task_id: str):
     # if the scenario has a manager, only this User can run the simulation
     if scenario.manager and scenario.manager != request.user:
         raise Http404
-    copied_scenario = tasks.create_scenario_copy_for_user(scenario)
+    try:
+        copied_scenario = tasks.create_scenario_copy_for_user(scenario)
+    except AssertionError:
+        raise Http404
     print(copied_scenario.task_id)
     response = redirect(reverse("simba:scenario_overview", args=[str(copied_scenario.task_id)]))
     return response
@@ -617,10 +620,7 @@ def run_simulation(request: HttpRequest, task_id: str):
             sim_task_id = get_unique_task_id()
             # create scenario from mutation and parent and simulate it
             async_result = tasks.run_and_merge_scenarios.apply_async(
-                (str(sim_task_id),),
-                parent_id=parent.id,
-                mutation_id=scenario.id,
-                task_id=sim_task_id,
+                (parent.id, scenario.id, sim_task_id), task_id=str(sim_task_id)
             )
             context["task_id"] = sim_task_id
             context["progress_id"] = async_result.task_id

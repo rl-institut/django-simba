@@ -360,6 +360,8 @@ def create_m2m_managers(f, obj_copy, org_foreign_values, stack, exclude_models, 
             new_foreign_values.append(stack[f.related_model][old_foreign.pk])
         except KeyError:
             assert f in exclude_fields or f.related_model in exclude_models
+            new_foreign_values = org_foreign_values
+            break
     manager = getattr(obj_copy, f.name)
     return manager, new_foreign_values
 
