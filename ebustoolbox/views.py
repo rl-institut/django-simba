@@ -367,6 +367,14 @@ def get_electrification(request: HttpRequest, task_id):
         electrification_option = ElectrificationOptions.objects.create(
             scenario=scenario, station_optimization=False
         )
+        electrification_option.electrified_stations.add(
+            *list(
+                Station.objects.filter(
+                    scenario=parent, is_electrified=True, charge_type=EnumChargeType.OPPORTUNITY
+                )
+            )
+        )
+        electrification_option.save()
     form = ElectrificationOptionsForm(instance=electrification_option)
     context = {"task_id": task_id, "form": form}
     stations = (
