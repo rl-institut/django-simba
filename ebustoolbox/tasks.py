@@ -345,7 +345,7 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
     for rot in Rotation.objects.filter(scenario=django_scenario).select_related(
         "vehicle_type", "vehicle"
     ):
-        vehicle_type = rot.vehicle_type.name_short
+        vehicle_type = rot.vehicle_type.id
         # Use the id/pk instead of the name, since names might not be unique, when database is
         # filled with non simba ingesters
         simba_id = rot.id
@@ -405,9 +405,9 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
             else EnumChargeType.DEPOT.value
         )
         try:
-            vehicle_types[vehicle_type.name_short]
+            vehicle_types[vehicle_type.id]
         except KeyError:
-            vehicle_types[vehicle_type.name_short] = dict()
+            vehicle_types[vehicle_type.id] = dict()
 
         mileage = vehicle_type.consumption
         query = VehicleClass.objects.filter(vehicle_types=vehicle_type).exclude(consumption=None)
@@ -416,7 +416,7 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
             assert len(query) == 1
             mileage = Consumption.objects.get(vehicle_class=query[0]).name
 
-        vehicle_types[vehicle_type.name_short][charge_type] = {
+        vehicle_types[vehicle_type.id][charge_type] = {
             "name": vehicle_type.name,
             "capacity": vehicle_type.battery_capacity,
             "charging_curve": vehicle_type.charging_curve,
@@ -994,6 +994,7 @@ def run_and_merge_scenarios(self, parent_id: int, mutation_id: int, simulation_t
     parent_scenario = Scenario.objects.get(id=parent_id)
     mutation_scenario = Scenario.objects.get(id=mutation_id)
     simulation_scenario = create_child_from_mutation(parent_scenario, mutation_scenario)
+    simulation_scenario.name = "Results for " + simulation_scenario.name
     simulation_scenario.task_id = simulation_task_id
     simulation_scenario.save()
     if "ebus_map" in settings.INSTALLED_APPS:
@@ -1371,7 +1372,7 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
     all_rotations = Rotation.objects.filter(scenario=scenario)
     vehicle_assigns = []
     vehicle_counter_dict = {
-        v.vehicle_type.name_short: {EnumChargeType.OPPORTUNITY: 0, EnumChargeType.DEPOT: 0}
+        v.vehicle_type.id: {EnumChargeType.OPPORTUNITY: 0, EnumChargeType.DEPOT: 0}
         for v in used_vehicles
     }
     counted_vehicles = set()
@@ -1385,7 +1386,7 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
             else:
                 ct = EnumChargeType.DEPOT.value
 
-            vehicle_counter_dict[vt.name_short][ct] += 1
+            vehicle_counter_dict[vt.id][ct] += 1
             counted_vehicles.add(vehicle)
 
         prev_event = (
@@ -1601,9 +1602,7 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario):  # noqa: 
     vehicle_dict = Vehicle.objects.filter(scenario=db_scenario)
     vehicle_dict = {vehicle.to_simba_name(): vehicle for vehicle in vehicle_dict}
     vehicle_type_dict = VehicleType.objects.filter(scenario=db_scenario)
-    vehicle_type_dict = {
-        vehicle_type.name_short: vehicle_type for vehicle_type in vehicle_type_dict
-    }
+    vehicle_type_dict = {str(vehicle_type.id): vehicle_type for vehicle_type in vehicle_type_dict}
 
     vehicle_events = [e for e in simba_scenario.events.vehicle_events]
 

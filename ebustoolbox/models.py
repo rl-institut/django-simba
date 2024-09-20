@@ -551,7 +551,7 @@ class Vehicle(models.Model):
         ct = EnumChargeType.DEPOT.value
         if self.vehicle_type.opportunity_charging_capable:
             ct = EnumChargeType.OPPORTUNITY.value
-        return self.vehicle_type.name_short + "_" + ct + "_" + str(self.pk)
+        return str(self.vehicle_type.id) + "_" + ct + "_" + str(self.pk)
 
 
 class Rotation(models.Model):

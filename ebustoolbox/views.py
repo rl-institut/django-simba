@@ -127,6 +127,8 @@ def schedule(request: HttpRequest, task_id, finished):
         scenario.task_id = ebustoolbox.util.get_unique_task_id()
         scenario.save()
         _ = tasks.create_empty_child_scenario(scenario, task_id=task_id)
+        scenario.name = "Parent of " + scenario.name
+        scenario.save()
         return redirect(reverse("simba:simulation_parameters", args=[str(task_id)]))
     if task_id is None:
         task_id = get_unique_task_id()
