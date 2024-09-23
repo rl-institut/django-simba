@@ -345,7 +345,7 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
     for rot in Rotation.objects.filter(scenario=django_scenario).select_related(
         "vehicle_type", "vehicle"
     ):
-        vehicle_type = rot.vehicle_type.id
+        vehicle_type = str(rot.vehicle_type.id)
         # Use the id/pk instead of the name, since names might not be unique, when database is
         # filled with non simba ingesters
         simba_id = rot.id
@@ -405,9 +405,9 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
             else EnumChargeType.DEPOT.value
         )
         try:
-            vehicle_types[vehicle_type.id]
+            vehicle_types[str(vehicle_type.id)]
         except KeyError:
-            vehicle_types[vehicle_type.id] = dict()
+            vehicle_types[str(vehicle_type.id)] = dict()
 
         mileage = vehicle_type.consumption
         query = VehicleClass.objects.filter(vehicle_types=vehicle_type).exclude(consumption=None)
@@ -416,7 +416,7 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
             assert len(query) == 1
             mileage = Consumption.objects.get(vehicle_class=query[0]).name
 
-        vehicle_types[vehicle_type.id][charge_type] = {
+        vehicle_types[str(vehicle_type.id)][charge_type] = {
             "name": vehicle_type.name,
             "capacity": vehicle_type.battery_capacity,
             "charging_curve": vehicle_type.charging_curve,
