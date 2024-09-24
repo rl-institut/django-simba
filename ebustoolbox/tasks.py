@@ -1454,7 +1454,7 @@ def is_consistent(scenario: Scenario) -> bool:
     for rotation in Rotation.objects.filter(scenario=scenario):
         is_consistent_rotation(rotation)
 
-    if Vehicle.objects.filter(scenario) > 0:
+    if Vehicle.objects.filter(scenario=scenario).exists():
         for rotation in Rotation.objects.filter(scenario=scenario).select_related(
             "vehicle_type", "vehicle__vehicle_type"
         ):
