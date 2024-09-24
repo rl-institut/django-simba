@@ -1486,7 +1486,7 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario) -> list[Ev
             ],
             area__isnull=True,
         )
-        .exlude(event_type=EventType.STANDBY_DEPARTURE, station__isnull=True)
+        .exclude(event_type=EventType.STANDBY_DEPARTURE, station__isnull=True)
         .delete()
     )
 
