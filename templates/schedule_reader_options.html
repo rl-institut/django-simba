@@ -24,7 +24,7 @@
             <a href="{% static 'ebustoolbox/examples/trips_example.csv' %}" class="input-group-text" download>Download
               Beispiel-Fahrplan</a>
             <div>
-              {% if error in form.file_path.errors %}
+              {% if form.file_path.errors %}
                 <ul>
                   {% for error in form.file_path.errors %}
                     <li>{{ error }}</li>
