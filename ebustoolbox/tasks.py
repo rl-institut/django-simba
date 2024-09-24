@@ -1505,6 +1505,22 @@ def example_single_step_optimization(scenario: Scenario):
     )
 
 
+def example_electrification_optimization(scenario: Scenario):
+    """
+
+    :param scenario: Scenario to be optimized
+    :type scenario: ebustoolbox.models.Scenario
+    :return: None
+    """
+    # Check that the scenario is consistent.
+    assert is_consistent(scenario)
+    schedule, simbascenario = run_simba_scenario(scenario, assign_vehicles=True)
+
+    schedule, simbascenario = run_simba_scenario(
+        scenario, simba_scenario=simbascenario, mode="station_optimization"
+    )
+
+
 def create_event_output(simba_scenario: "SimbaScenario", db_scenario) -> list[Event]:  # noqa: C901
     # collect data from DB
     # Delete old simba events
