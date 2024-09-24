@@ -1454,6 +1454,13 @@ def is_consistent(scenario: Scenario) -> bool:
     for rotation in Rotation.objects.filter(scenario=scenario):
         is_consistent_rotation(rotation)
 
+    if Vehicle.objects.filter(scenario) > 0:
+        for rotation in Rotation.objects.filter(scenario=scenario).select_related(
+            "vehicle_type", "vehicle__vehicle_type"
+        ):
+            if rotation.vehicle is not None:
+                assert rotation.vehicle.vehicle_type == rotation.vehicle_type
+
     if VehicleType.objects.filter(scenario=scenario, consumption=None).count() > 0:
         if Trip.objects.filter(scenario=scenario, loaded_mass=None).count() > 0:
             logger.error("Scenario has trips without a loaded mass.")
@@ -1498,17 +1505,22 @@ def example_single_step_optimization(scenario: Scenario):
     )
 
 
-def create_event_output(simba_scenario: "SimbaScenario", db_scenario):  # noqa: C901
+def create_event_output(simba_scenario: "SimbaScenario", db_scenario) -> list[Event]:  # noqa: C901
     # collect data from DB
     # Delete old simba events
-    Event.objects.filter(
-        scenario=db_scenario,
-        event_type__in=[
-            EventType.CHARGING_OPPORTUNITY,
-            EventType.DRIVING,
-            EventType.STANDBY_DEPARTURE,
-        ],
-    ).delete()
+    (
+        Event.objects.filter(
+            scenario=db_scenario,
+            event_type__in=[
+                EventType.CHARGING_OPPORTUNITY,
+                EventType.DRIVING,
+                EventType.STANDBY_DEPARTURE,
+            ],
+            area__isnull=True,
+        )
+        .exlude(event_type=EventType.STANDBY_DEPARTURE, station__isnull=True)
+        .delete()
+    )
 
     vehicle_dict = Vehicle.objects.filter(scenario=db_scenario)
     vehicle_dict = {vehicle.to_simba_name(): vehicle for vehicle in vehicle_dict}
@@ -1639,7 +1651,7 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario):  # noqa: 
             ],
         }
         if None in timeseries["soc"]:
-            logger.warn("None Values found in timeseries")
+            logger.warning("None Values found in timeseries")
             forward_fill_last_value(timeseries["soc"])
         # grab current vehicle SoC at timestep
         soc_start = timeseries["soc"][0]
@@ -1665,6 +1677,7 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario):  # noqa: 
         event_id += 1
         events.append(event)
     Event.objects.bulk_create(events)
+    return events
 
 
 def forward_fill_last_value(list_with_nones):
