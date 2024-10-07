@@ -19,7 +19,6 @@ from .eflips_plots import (
     get_power_and_occupancy_plot_eflips,
     get_vehicle_by_click_eflips,
     get_specific_energy_eflips,
-    get_animation_eflips,
 )
 
 
@@ -264,8 +263,6 @@ def register_eflips_callbacks(app):
     get_vehicle_soc_plot_eflips(app)
     get_power_and_occupancy_plot_eflips(app)
     get_specific_energy_eflips(app)
-    get_animation_eflips(app)
-
 
 def block_first_third(app) -> list[html.Div]:
     return [report_numbers.render_longest_rotation(app)]
