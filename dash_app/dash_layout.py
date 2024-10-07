@@ -234,18 +234,6 @@ def create_layout(app: Dash) -> Div:
                                                 "width": "100%",
                                             },
                                         ),
-                                        html.Div(
-                                            children=[
-                                                html.P(
-                                                    "Click on a group in legend to hide/show the group."
-                                                ),
-                                                dcc.Graph(id=ids.EFLIPS_ANIMATION),
-                                            ],
-                                            style={
-                                                "display": "inline-block",
-                                                "width": "100%",
-                                            },
-                                        ),
                                     ],
                                 ),
                             ]
