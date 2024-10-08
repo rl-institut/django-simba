@@ -183,7 +183,8 @@ def home_prototype(request: HttpRequest):
 
 def get_options(request: HttpRequest, task_id, reader_num: int):
     context = {
-        "reader_num": reader_num, "task_id": task_id,
+        "reader_num": reader_num,
+        "task_id": task_id,
         "max_file_size_b": settings.MAX_FILE_SIZE_B,
     }
     response = HttpResponse(context)
