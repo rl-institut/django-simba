@@ -182,7 +182,10 @@ def home_prototype(request: HttpRequest):
 
 
 def get_options(request: HttpRequest, task_id, reader_num: int):
-    context = {"reader_num": reader_num, "task_id": task_id}
+    context = {
+        "reader_num": reader_num, "task_id": task_id,
+        "max_file_size_b": settings.MAX_FILE_SIZE_B,
+    }
     response = HttpResponse(context)
     try:
         form = schedule_readers.get_options_form(reader_num)()
@@ -443,7 +446,12 @@ def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
         if scenario_name == "":
             scenario_name = f"Mein Szenario vom {now_str}"
         if not form.is_valid():
-            context = {"form": form, "reader_num": reader_num, "task_id": task_id}
+            context = {
+                "form": form,
+                "task_id": task_id,
+                "reader_num": reader_num,
+                "max_file_size_b": settings.MAX_FILE_SIZE_B,
+            }
             response = render(request, "schedule_reader_options.html", context)
             response["HX-Retarget"] = "#options_form"
             return response
@@ -459,7 +467,7 @@ def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
         files = dict()
         for name, file in request.FILES.items():
             # check file size
-            if file.multiple_chunks():
+            if file.size > settings.MAX_FILE_SIZE_B:
                 # file too large
                 raise Exception("Datei zu groß")
             uploaded_file = UploadedFile.objects.create(scenario=s, file=file)

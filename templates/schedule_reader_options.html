@@ -93,9 +93,9 @@
         {% else %}
           let fileInput = document.getElementById("id_x10_zip_file");
         {% endif %}
-        if (fileInput && fileInput.files[0] && fileInput.files[0].size > 64000) {
-          // file selected, but larger than 64 KB: cancel upload
-          alert("Maximalgröße von 64 KB überschritten");
+        if (fileInput && fileInput.files[0] && fileInput.files[0].size > {{ max_file_size_b }}) {
+          // file selected, but too large: cancel upload
+          alert("Maximalgröße überschritten");
           e.preventDefault();
         }
       }
