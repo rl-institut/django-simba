@@ -106,24 +106,6 @@ def valueAtMapPos(image, gt, pos):
     return image[y, x]
 
 
-def get_elevation_pseudo(lats: List[float], lons: List[float]) -> tuple[list[float], list[Any]]:
-    if not isinstance(lats, Iterable):
-        if not isinstance(lons, Iterable):
-            raise Http404("Latitude and longitude must be iterable")
-        lats = [lats]
-        lons = [lons]
-
-    # pseudo implementation since loading rast into memory breaks docker container at the moment
-    elevations = []
-    errors = []
-    for lat, lon in zip(lats, lons):
-        elevation = [0]
-        errors.append("Pseudo Implementation. Returned 0.")
-        elevations.extend(elevation)
-    return elevations, errors
-    #
-
-
 def get_elevation(lats: List[float], lons: List[float]) -> tuple[list[float], list[Any]]:
     if not isinstance(lats, Iterable):
         if not isinstance(lons, Iterable):
