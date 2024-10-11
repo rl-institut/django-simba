@@ -19,6 +19,26 @@ Template:
 
 ## [x.x.x] - Unreleased
 ### Changed
+- [(#151)](https://github.com/rl-institut/django-simba/pull/151)
+- Fixes #147
+Fixes #145
+- Changes proposed in this pull request:
+
+    - Scenario handling is changed in the following way using the Wizard:
+
+    - Raw Scenario is created through a ScheduleReader
+
+    - Wizard: Saves Mutations of this scenario to a child scenario/ MutationScenario
+
+    - Links are stored between the Raw Scenario and the mutation scenario, e.g. VehicleType 5 of RawScenario will be mutated by VehicleType 6 by the mutation Scenario
+
+    - During Simulation a deepcopied RawScenario will be mutated by the Mutation scenario. This is a child Scenario of the Mutation Scenario.
+
+- MutationScenarios can be copied by calling  _simba/copy/_{_task_id_}
+
+
+
+### Changed
 - [(#124)](https://github.com/rl-institut/django-simba/pull/108)
 - Make Area.VehicleType nullable (a None VehicleType represents "any").
 
@@ -29,7 +49,7 @@ Template:
 - [(#108)](https://github.com/rl-institut/django-simba/pull/108)
 - Add depot input page
 - Add new default vehicle types
-- 
+-
 - [(#97)](https://github.com/rl-institut/django-simba/pull/97)
 - Updates SimBA and eflips-ingest
 - Implement VDV Ingester of eflips-ingest
