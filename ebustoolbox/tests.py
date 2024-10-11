@@ -228,76 +228,6 @@ def build_scenario():
 
 
 class WriteReadScenarioToDatabase(TestCase):
-    # @override_settings(DEBUG=True)
-    # Running SimbaSchedule straight from files is deprecated.
-    # Abstraction layer of database is expected.
-    # def test_schedule_from_database(self):
-    #     """Check if the results are equal if the scenario is run from the form or from the db"""
-    #     django_scenario, simba_schedule, args = build_scenario()
-    #     simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
-    #     # rotation names and station names are swapped
-    #     rotations_keys = [rot for rot in simba_schedule.rotations]
-    #     db_iter = iter(simba_schedule_db.rotations)
-    #
-    #     for rot_id in rotations_keys:
-    #         db_rot_id = next(db_iter)
-    #         db_rot = simba_schedule_db.rotations[db_rot_id]
-    #         simba_schedule.rotations[db_rot_id] = simba_schedule.rotations[rot_id]
-    #         simba_schedule.rotations[db_rot_id].id = db_rot_id
-    #         simba_schedule.rotations[db_rot_id].vehicle_id = db_rot.vehicle_id
-    #         simba_schedule.rotations[db_rot_id].vehicle_type = db_rot.vehicle_type
-    #         del simba_schedule.rotations[rot_id]
-    #
-    #     db_iter = iter(simba_schedule_db.vehicle_types)
-    #     vehicle_keys = [vt for vt in simba_schedule.vehicle_types]
-    #     for vt in vehicle_keys:
-    #         db_vt = next(db_iter)
-    #         simba_schedule.vehicle_types[db_vt] = simba_schedule.vehicle_types[vt]
-    #         del simba_schedule.vehicle_types[vt]
-    #
-    #
-    #     for sched in [simba_schedule, simba_schedule_db]:
-    #         for rot in sched.rotations.values():
-    #             rot.calculate_consumption()
-    #
-    #     for key, value in vars(args).items():
-    #         db_value = vars(args_db).get(key)
-    #         self.assertEqual(db_value, value)
-    #
-    #     # Recursively search the schedule for primitive data which has to be equal to the database
-    #     # schedule
-    #     for key_stack, values in objects_digger([simba_schedule, simba_schedule_db]):
-    #         # Skip the temperature data, since it is not part of the database schedule
-    #         self.handle_unaware_datetime(values)
-    #         try:
-    #             self.assertAlmostEqual(
-    #                 values[0],
-    #                 values[1],
-    #                 places=8,
-    #                 msg=key_stack,
-    #             )
-    #         except TypeError:
-    #             raise Exception(f"Could not compare {values[0]} and {values[1]}. {key_stack}")
-    #
-    #     scen = simba_schedule.run(args)
-    #     scen_db = simba_schedule_db.run(args_db)
-    #
-    #     # Recursively search the scenario for primitive data which has to be equal to the data
-    #     # created by the database schedule
-    #     for key_stack, values in objects_digger([scen, scen_db], early_return=False):
-    #         self.handle_unaware_datetime(values)
-    #         try:
-    #             self.assertAlmostEqual(values[0], values[1], places=8, msg=key_stack)
-    #         except TypeError:
-    #             # assume it's a date. values[0] does not come from database, so it has to be made
-    #             # aware
-    #             values[0] = make_aware(datetime.fromisoformat(values[0]))
-    #             values[1] = datetime.fromisoformat(values[1])
-    #             self.assertAlmostEqual(values[0], values[1], places=8, msg=key_stack)
-    # def handle_unaware_datetime(self, values):
-    #     if isinstance(values[0], datetime):
-    #         values[0] = make_aware(values[0])
-
     def testDatabaseEffects(self):
         """Test if a change in the database values results in changes in the schedule and scenario
 
@@ -399,39 +329,6 @@ class WriteReadScenarioToDatabase(TestCase):
                     "the original one although changes to the database were made. "
                     f"The mutation was: {mutation}"
                 )
-
-
-#  Deprecated. Needs to be replaced with new workflow testing
-# @override_settings(SECURE_PROXY_SSL_HEADER=None)
-# @override_settings(SECURE_SSL_REDIRECT=False)
-# class RunSimulationTest(StaticLiveServerTestCase):
-#     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-#     @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
-#     @override_settings(DEBUG=True)
-#     def test_submit_button_click_with_celery_with_eflips(self):
-#         self.submit_default_simulation()
-#
-#     def submit_default_simulation(self):
-#         # Get the URL using reverse
-#         url = reverse("simba:home")
-#         # Simulate a GET request to the URL
-#         response = self.client.get(url)
-#         # Check response status code (200 OK)
-#         self.assertEqual(response.status_code, 200)
-#         # Check if the button is present in the response content
-#         self.assertContains(response, "simba_submit_button", html=False)
-#         form = UploadFileForm()
-#         # Use all the initial and set values from the form as post data
-#         post_data = {
-#             f: form.fields[f].initial if form.fields[f].initial is not None else ""
-#             for f in form.fields
-#         }
-#         # Simulate clicking the button (POST request)
-#         response = self.client.post(url, post_data)
-#         # Check response status code. Have you been redirected
-#         self.assertEqual(response.status_code, 302)
-#         response = self.client.get(response.url)
-#         self.assertEqual(response.status_code, 200)
 
 
 class ModelTests(TestCase):

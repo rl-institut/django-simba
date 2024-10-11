@@ -564,33 +564,6 @@ def landing_page(request: HttpRequest):
     return render(request, "landing_page.html")
 
 
-# deprecated
-# def save_and_simulate(
-#     form: UploadFileForm | None = None, request: HttpRequest | None = None
-# ) -> Scenario:
-#     logger.info("Saving scenario and simulating")
-#     if form is None:
-#         new_form = UploadFileForm()
-#         # If this function is called without a request and a form,  use the initial values as
-#         # cleaned data
-#         cleaned_data = {field: new_form[field].initial for field in new_form.fields}
-#     else:
-#         cleaned_data = form.cleaned_data
-#
-#     logger.info("Writing to db")
-#     django_scenario, simba_schedule, args = tasks.input_files_to_database(cleaned_data, request)
-#     if request.user.is_authenticated:
-#         django_scenario.manager = request.user
-#     # start computation
-#     task_id = get_unique_task_id()
-#     logger.info(f"{task_id=}")
-#     django_scenario.task_id = task_id
-#     django_scenario.save()
-#     tasks.run_ebus_toolchain(task_id)
-#     logger.info("Simulation Finished.")
-#     return django_scenario
-
-
 def copy_scenario(request: HttpRequest, task_id: str):
     try:
         scenario = Scenario.objects.get(task_id=task_id)
