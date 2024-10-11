@@ -16,7 +16,7 @@ from scipy.spatial import QhullError  # noqa
 from elevation_api.models import Elevation
 
 logger = logging.getLogger("custom")
-INITIALIZED = False
+german_raster = None
 
 
 class NanValueException(Exception):
@@ -25,9 +25,13 @@ class NanValueException(Exception):
 
 def get_and_set_sources():
     """Download elevation data files"""
+    global german_raster
+    if german_raster is not None:
+        return german_raster
 
     ele, created = Elevation.objects.get_or_create(name="Germany")
     if not created:
+        german_raster = ele.raster
         return ele.raster
 
     # Get the directory of the script
@@ -41,7 +45,6 @@ def get_and_set_sources():
         logger.info("Elevation files exist and downloading is skipped.")
     else:
         # Download the files
-
         url = settings.ELEVATION_SOURCE_URL
         logger.info(f"First time getting sources for elevation data from {url}")
         try:
@@ -72,7 +75,7 @@ def get_and_set_sources():
     rast = GDALRaster(data_file, write=True)
     ele.raster = rast
     ele.save()
-
+    german_raster = ele.raster
     return rast
 
 
@@ -115,7 +118,6 @@ def get_elevation(lats: List[float], lons: List[float]) -> tuple[list[float], li
 
     # Get raster
     rast = get_and_set_sources()
-
     # Initialize errors expecting no errors
     errors = [None for _ in lats]
     try:
