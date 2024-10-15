@@ -72,4 +72,4 @@ jobs:
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)
           export EFLIPS_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/DbName
-          poetry run python test_api/test_api.py
+          poetry run python ds_wrapper/test_api/test_api.py
