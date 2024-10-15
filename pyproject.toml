@@ -11,7 +11,7 @@ packages = [{include = "ebustoolbox"},
             {include = "elevation_api"},
             {include = "core"},
             {include = "ds_wrapper"},
-            {include = "dash_app"},]
+           ]
 
 [tool.poetry.dependencies]
 python = ">=3.10, <3.12"

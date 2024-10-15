@@ -61,10 +61,15 @@ def clear_db():
     )
 
     # Clear the database
-    os.environ["PGPASSWORD"] = database_password
-    os.system(
-        f"psql -h {database_host} -U {database_user} -p {database_port} {database_name} -f {path_to_clear_database_sql}"
-    )
+    query_str = f"psql {database_name} -f {path_to_clear_database_sql}"
+    if database_host:
+        query_str += f" -h {database_host}"
+    if database_port:
+        query_str += f" -p {database_port}"
+    if database_user:
+        query_str += f" -U {database_user}"
+        os.environ["PGPASSWORD"] = database_password
+    os.system(query_str)
 
 def import_db():
     DATABASE_URL = os.environ["EFLIPS_DATABASE_URL"]
@@ -76,11 +81,16 @@ def import_db():
         database_url_components(DATABASE_URL)
     )
 
-
     # Import the eflips-model database
-    os.system(
-        f"psql -h {database_host} -U {database_user} -p {database_port} {database_name} -f {path_to_import_eflips_model_sql}"
-    )
+    query_str = f"psql {database_name} -f {path_to_import_eflips_model_sql}"
+    if database_host:
+        query_str += f" -h {database_host}"
+    if database_port:
+        query_str += f" -p {database_port}"
+    if database_user:
+        query_str += f" -U {database_user}"
+        os.environ["PGPASSWORD"] = database_password
+    os.system(query_str)
 
 
 def clear_and_import():
@@ -89,8 +99,6 @@ def clear_and_import():
     """
     clear_db()
     import_db()
-
-
 
 
 def test_simba_consumption_simulation():
@@ -154,22 +162,22 @@ def test_simba_consumption_simulation():
 
 
 if __name__ == "__main__":
+    # This script must be run with the project root directory as the working directory.
+    # Specifically, the "django_mapengine" folder must be in the working directory.
+    # TODO: Make this more robust. Like this, it is impossible to use the consumption simulation
+    # --- BUG ---
+    # The django-mapengine folder seems to be required to be in the working directory.
+    # This is not documented and should be fixed.
+    # Tracked in https://github.com/rl-institut/django-simba/issues/144
+    # --- BUG ---
+
+    # Check if the EFLIPS_DATABASE_URL is set
+    if "EFLIPS_DATABASE_URL" not in os.environ or os.environ["EFLIPS_DATABASE_URL"] == "":
+        raise ValueError("EFLIPS_DATABASE_URL not set")
+
     try:
-        # Check if the EFLIPS_DATABASE_URL is set
-        if "EFLIPS_DATABASE_URL" not in os.environ or os.environ["EFLIPS_DATABASE_URL"] == "":
-            raise ValueError("EFLIPS_DATABASE_URL not set")
-
-        # This script must be run with the project root directory as the working directory.
-        # Specifically, the "django_mapengine" folder must be in the working directory.
-        # TODO: Make this more robust. Like this, it is impossible to use the consumption simulation
-        # --- BUG ---
-        # The django-mapengine folder seems to be required to be in the working directory.
-        # This is not documented and should be fixed.
-        # Tracked in https://github.com/rl-institut/django-simba/issues/144
-        # --- BUG ---
-
-        # outside of the Django project.
         if not os.path.exists("django_mapengine"):
+            # outside of the Django project
             raise ValueError(
                 "This script must be run with the project root directory as the working directory."
             )

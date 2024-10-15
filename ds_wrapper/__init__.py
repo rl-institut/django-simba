@@ -1,4 +1,9 @@
+
+from django.db import connections
 from environ import environ
+import os
+
+from ds_wrapper import settings
 
 
 class DjangoSimbaWrapper:
@@ -6,9 +11,7 @@ class DjangoSimbaWrapper:
         # We need to replace a postgresql:// on the database URL with postgis:// for it to work over here
         database_url = database_url.replace("postgresql://", "postgis://")
         # Now, we put this string in the DEFAULT entry in settings.DATABASES
-        from ds_wrapper import settings
 
-        import os
 
         # Allow unsafe async operations (for Juptyer Notebook)
         # https://stackoverflow.com/questions/61926359/django-synchronousonlyoperation-you-cannot-call-this-from-an-async-context-u
@@ -19,9 +22,8 @@ class DjangoSimbaWrapper:
         settings.DATABASES["default"] = environ.Env().db("DJANGO_SIMBA_DATABASE_URL")
 
         os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ds_wrapper.settings")
-        # You may also want to set the DATABASE_URL env variable if it's not set from the outside.
+        # setting DATABASE_URL env variable might also be required
         import django
-
         django.setup()
 
     def run_simba_scenario(
@@ -38,12 +40,10 @@ class DjangoSimbaWrapper:
         Previous assignments will be deleted
         :return:
         """
+        # needs Django setup
         from ebustoolbox.tasks import run_simba_scenario
 
         run_simba_scenario(django_scenario=scenario_id, assign_vehicles=assign_vehicles)
-
-        from django.db import connections
-
         for conn in connections.all():
             conn.close()
 
@@ -54,13 +54,14 @@ class DjangoSimbaWrapper:
         :param scenario_id: Scenario which is simulated
         :return: None
         """
-
-        from ebustoolbox.tasks import is_consistent
+        # needs Django setup
         from ebustoolbox.models import Scenario
-
-        django_scenario = Scenario.objects.filter(id=scenario_id).first()
-        assert is_consistent(django_scenario)
+        from ebustoolbox.tasks import is_consistent
         from ebustoolbox.tasks import run_simba_scenario
+
+        # fetch scenario. Will fail if scenario_id is wrong
+        django_scenario = Scenario.objects.get(id=scenario_id)
+        assert is_consistent(django_scenario)
 
         schedule, simbascenario = run_simba_scenario(
             django_scenario=scenario_id, assign_vehicles=True
@@ -69,8 +70,6 @@ class DjangoSimbaWrapper:
         schedule, simbascenario = run_simba_scenario(
             django_scenario, simba_scenario=simbascenario, mode="station_optimization_single_step"
         )
-
-        from django.db import connections
 
         for conn in connections.all():
             conn.close()

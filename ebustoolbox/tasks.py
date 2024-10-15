@@ -32,6 +32,7 @@ import simba.optimizer_util
 import simba.simulate
 import simba.trip
 import simba.util
+from core.deepcopy import reset_postgres_auto_increments
 from core.models import Progress
 from simba.data_container import DataContainer
 from simba.rotation import Rotation as SimbaRotation
@@ -268,7 +269,6 @@ def get_schedule_from_db(
     data_container = DataContainer()
     data_container.add_vehicle_types(vehicle_types)
     consumptions = Consumption.objects.filter(scenario__in=[django_scenario, None])
-
     for consumption in consumptions:
         data_container.add_consumption_data(consumption.name, consumption.to_df())
 
@@ -411,7 +411,6 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
 
         mileage = vehicle_type.consumption
         query = VehicleClass.objects.filter(vehicle_types=vehicle_type).exclude(consumption=None)
-
         if len(query) > 0:
             assert mileage is None
             assert len(query) == 1
@@ -1430,10 +1429,7 @@ def run_simba(
     logger.info(f"Creating Simba Events {datetime.now()}")
     create_event_output(scenario, db_scenario)
 
-    warnings.warn(
-        "I have just commented out code which caused a crash. Please fix it properly before merging."
-    )
-    # reset_postgres_auto_increments(apps=[Event._meta.app_label])
+    reset_postgres_auto_increments(apps=[Event._meta.app_label])
     return schedule, scenario
 
 

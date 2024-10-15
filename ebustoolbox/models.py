@@ -367,7 +367,6 @@ class Consumption(models.Model):
                 fields=["name"], condition=Q(scenario=None), name="unique_without_scenario"
             ),
         ]
-        db_table = "ConsumptionLut"
 
         db_table = "ConsumptionLut"
 
