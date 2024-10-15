@@ -1,8 +1,12 @@
 import base64
+
+import django
 from celery import uuid
 from io import BytesIO
 import matplotlib
 import sys
+
+from django.db.models import Max
 
 from .models import Scenario
 from dash_app.data import get_powerdraw_as_dataframe
@@ -47,3 +51,9 @@ def get_charge_chart(station):
     plot = base64.b64encode(image_png)
     plot = plot.decode("utf-8")
     return plot
+
+
+def get_next_id(manager: django.db.models.Manager) -> int:
+    if manager.objects.exists():
+        return manager.objects.aggregate(Max("id"))["id__max"] + 1
+    return 1

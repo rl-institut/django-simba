@@ -1,4 +1,6 @@
 from datetime import timedelta, datetime
+
+from django.core.validators import MinValueValidator, MaxValueValidator
 from fast_update.query import FastUpdateManager
 from functools import partial
 import numpy as np
@@ -244,7 +246,9 @@ class VehicleType(models.Model):
     name = models.TextField(null=False, blank=False)
     name_short = models.TextField(null=True, blank=False, default=name)
     opportunity_charging_capable = models.BooleanField()
-    battery_capacity = models.FloatField()
+    battery_capacity = models.FloatField(
+        validators=[MinValueValidator(0), MaxValueValidator(1000000)]
+    )
     battery_capacity_reserve = models.FloatField(default=0, db_default=0)
     charging_efficiency = models.FloatField(default=0.95, db_default=0.95)
     minimum_charging_power = models.FloatField(default=0, db_default=0)
@@ -548,7 +552,7 @@ class Vehicle(models.Model):
         ct = EnumChargeType.DEPOT.value
         if self.vehicle_type.opportunity_charging_capable:
             ct = EnumChargeType.OPPORTUNITY.value
-        return self.vehicle_type.name_short + "_" + ct + "_" + str(self.pk)
+        return str(self.vehicle_type.id) + "_" + ct + "_" + str(self.pk)
 
 
 class Rotation(models.Model):
@@ -1573,3 +1577,70 @@ class AssocAreaProcess(models.Model):
 
     area = models.ForeignKey(Area, on_delete=models.CASCADE)
     process = models.ForeignKey(Process, on_delete=models.CASCADE)
+
+
+class SimulationRange(models.Model):
+    # Mutation Scenario
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    start = models.DateTimeField(null=False)
+    end = models.DateTimeField(null=False)
+
+
+class DepotSelection(models.Model):
+    # Mutation Scenario
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    depots = models.ManyToManyField(Station)
+
+
+class ElectrificationOptions(models.Model):
+    # Mutation Scenario
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    gc_power_opps = models.PositiveIntegerField(
+        default=5000, null=False, validators=[MinValueValidator(1), MaxValueValidator(1000000)]
+    )
+
+    cs_power_opps = models.PositiveIntegerField(
+        default=150, null=False, validators=[MinValueValidator(1), MaxValueValidator(1000000)]
+    )
+    amount_charging_places = models.PositiveIntegerField(
+        default=2, null=False, validators=[MinValueValidator(1), MaxValueValidator(9999)]
+    )
+    station_optimization = models.BooleanField(null=False)
+    electrified_stations = models.ManyToManyField(Station)
+
+
+# Models for forms which do not mutate the scenario while in the wizard
+class VehicleTypeSelection(models.Model):
+    default_vehicle_type = models.ForeignKey(
+        VehicleType, related_name="formdefaultvehicletype", null=True, on_delete=models.CASCADE
+    )
+    vehicle_type = models.ForeignKey(
+        VehicleType, related_name="formvehicletype", null=False, on_delete=models.CASCADE
+    )
+
+
+class VehicleTypeMutation(models.Model):
+    original_vehicle_type = models.ForeignKey(
+        VehicleType, related_name="originalvehicletype", null=True, on_delete=models.CASCADE
+    )
+    mutated_vehicle_type = models.ForeignKey(
+        VehicleType, related_name="mutatedvehicletype", null=True, on_delete=models.CASCADE
+    )
+
+
+class DepotMutation(models.Model):
+    original_depot = models.ForeignKey(
+        Depot, related_name="originaldepot", null=True, on_delete=models.CASCADE
+    )
+    mutated_original_depot = models.ForeignKey(
+        Depot, related_name="mutateddepot", null=True, on_delete=models.CASCADE
+    )
+
+
+class StationMutation(models.Model):
+    original_station = models.ForeignKey(
+        Station, related_name="originalstation", null=True, on_delete=models.CASCADE
+    )
+    mutated_original_station = models.ForeignKey(
+        Station, related_name="mutatedstation", null=True, on_delete=models.CASCADE
+    )

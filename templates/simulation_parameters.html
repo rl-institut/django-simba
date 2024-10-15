@@ -51,14 +51,16 @@
 $(function() {
     var startDate = "{{ start_date }}";
     var endDate = "{{ end_date }}";
+        var minDate = "{{ min_date }}";
+    var maxDate = "{{ max_date }}";
 
     console.log(startDate, startDate)
 
   $('input[name="date_range"]').daterangepicker({
     startDate: startDate,
     endDate: endDate,
-    minDate: startDate,
-    maxDate: endDate,
+    minDate: minDate,
+    maxDate: maxDate,
     opens: 'left',
     //autoApply: true,
     "locale": {
