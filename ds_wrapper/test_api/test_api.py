@@ -69,7 +69,8 @@ def clear_db():
     if database_user:
         query_str += f" -U {database_user}"
         os.environ["PGPASSWORD"] = database_password
-    os.system(query_str)
+    if os.system(query_str) != 0:
+        raise ValueError("Failed to clear the database.")
 
 def import_db():
     DATABASE_URL = os.environ["EFLIPS_DATABASE_URL"]
@@ -90,7 +91,8 @@ def import_db():
     if database_user:
         query_str += f" -U {database_user}"
         os.environ["PGPASSWORD"] = database_password
-    os.system(query_str)
+    if os.system(query_str) != 0:
+        raise ValueError("Failed to import the eflips-model database.")
 
 
 def clear_and_import():
