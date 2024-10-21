@@ -11,6 +11,7 @@ packages = [{include = "ebustoolbox"},
             {include = "elevation_api"},
             {include = "core"},
             {include = "ds_wrapper"},
+            {include = "dash_app"},
            ]
 
 [tool.poetry.dependencies]
