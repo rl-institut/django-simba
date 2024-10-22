@@ -382,7 +382,8 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
                     station_data[trip.route.arrival_station.to_simba_name()]["elevation"]
                     - station_data[trip.route.departure_station.to_simba_name()]["elevation"]
                 ),
-                "level_of_loading": trip.loaded_mass,
+                "level_of_loading": trip.loaded_mass
+                / (trip.rotation.vehicle_type.allowed_mass - trip.rotation.vehicle_type.empty_mass),
                 "mean_speed": trip.speed * 3.6,
                 "temperature": 20.0,
             }
