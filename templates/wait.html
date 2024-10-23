@@ -20,7 +20,7 @@
 
     function get_success() {
        const currentQueryString = window.location.search;
-       window.location.href = "{% url 'simba:result' %}" + currentQueryString;
+       window.location.href = "{% url 'simba:result' task_id=task_id %}" + currentQueryString;
 }
     </script>
 </head>

@@ -371,6 +371,10 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
         )
 
         for trip in query:
+            level_of_loading = 0
+            trip_vt = trip.rotation.vehicle_type
+            if trip_vt.allowed_mass is not None and trip_vt.empty is not None:
+                level_of_loading = trip.loaded_mass / (trip_vt.allowed_mass - trip_vt.empty_mass)
             simba_trip_dict = {
                 "departure_time": str(trip.departure_time),
                 "departure_name": trip.route.departure_station.to_simba_name(),
@@ -382,8 +386,7 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
                     station_data[trip.route.arrival_station.to_simba_name()]["elevation"]
                     - station_data[trip.route.departure_station.to_simba_name()]["elevation"]
                 ),
-                "level_of_loading": trip.loaded_mass
-                / (trip.rotation.vehicle_type.allowed_mass - trip.rotation.vehicle_type.empty_mass),
+                "level_of_loading": level_of_loading,
                 "mean_speed": trip.speed * 3.6,
                 "temperature": 20.0,
             }
