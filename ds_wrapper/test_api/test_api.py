@@ -177,15 +177,12 @@ if __name__ == "__main__":
     if "EFLIPS_DATABASE_URL" not in os.environ or os.environ["EFLIPS_DATABASE_URL"] == "":
         raise ValueError("EFLIPS_DATABASE_URL not set")
 
-    try:
-        if not os.path.exists("django_mapengine"):
-            # outside of the Django project
-            raise ValueError(
-                "This script must be run with the project root directory as the working directory."
-            )
+    if not os.path.exists("django_mapengine"):
+        # outside of the Django project
+        raise ValueError(
+            "This script must be run with the project root directory as the working directory."
+        )
 
-        clear_and_import()
+    clear_and_import()
 
-        test_simba_consumption_simulation()
-    finally:
-        pass
+    test_simba_consumption_simulation()
