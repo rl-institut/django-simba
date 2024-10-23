@@ -373,7 +373,7 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
         for trip in query:
             level_of_loading = 0
             trip_vt = trip.rotation.vehicle_type
-            if trip_vt.allowed_mass is not None and trip_vt.empty is not None:
+            if trip_vt.allowed_mass is not None and trip_vt.empty_mass is not None:
                 level_of_loading = trip.loaded_mass / (trip_vt.allowed_mass - trip_vt.empty_mass)
             simba_trip_dict = {
                 "departure_time": str(trip.departure_time),
