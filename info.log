@@ -1,0 +1,1463 @@
+INFO 2024-09-05 16:26:46,940 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:26:47,212 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:26:47,215 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:26:47,219 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:26:47,224 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:26:47,331 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:47,563 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:47,677 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:47,911 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:48,179 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:48,316 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:48,615 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:48,766 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:49,011 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:49,364 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:49,652 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:26:49,894 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:26:49,898 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:26:49,904 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:26:49,913 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:26:49,973 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:50,454 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:26:50,731 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:26:50,735 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:26:50,742 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:26:50,748 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:26:50,820 Storing root scenario as parent 2024-09-05 16:26:50.820702
+INFO 2024-09-05 16:26:51,082 Getting schedule from db 2024-09-05 16:26:51.082478
+INFO 2024-09-05 16:26:51,096 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:51,175 Running Simba 2024-09-05 16:26:51.175923
+INFO 2024-09-05 16:26:51,190 Creating Simba Events 2024-09-05 16:26:51.190910
+INFO 2024-09-05 16:26:51,274 Running eflips 2024-09-05 16:26:51.274488
+ERROR 2024-09-05 16:26:51,489 Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2116, in _exec_insertmany_context
+    dialect.do_execute(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 924, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/private/util.py", line 75, in create_session
+    yield session, scenario
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1227, in simulate_scenario
+    add_evaluation_to_database(scenario, ev, session)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1611, in add_evaluation_to_database
+    session.flush()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4341, in flush
+    self._flush(objects)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4476, in _flush
+    with util.safe_reraise():
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4437, in _flush
+    flush_context.execute()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 1143, in _emit_insert_statements
+    result = connection.execute(
+             ^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1418, in execute
+    return meth(
+           ^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 515, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1640, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1844, in _execute_context
+    return self._exec_insertmany_context(dialect, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2124, in _exec_insertmany_context
+    self._handle_dbapi_exception(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2353, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2116, in _exec_insertmany_context
+    dialect.do_execute(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 924, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.IntegrityError: (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+[SQL: INSERT INTO "Event" (scenario_id, vehicle_type_id, vehicle_id, station_id, area_id, subloc_no, trip_id, time_start, time_end, soc_start, soc_end, event_type, description, timeseries) SELECT p0::BIGINT, p1::BIGINT, p2::BIGINT, p3::BIGINT, p4::BIGINT,  ... 2853 characters truncated ...  p9, p10, p11, p12, p13, sen_counter) ORDER BY sen_counter RETURNING "Event".id, "Event".id AS id__1]
+[parameters: {'vehicle_id__0': 50, 'soc_start__0': -0.434668320075837, 'vehicle_type_id__0': 62, 'station_id__0': None, 'trip_id__0': None, 'event_type__0': 'SERVICE', 'description__0': '2', 'time_start__0': datetime.datetime(2022, 3, 7, 17, 3, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__0': 17, 'timeseries__0': 'null', 'subloc_no__0': 1, 'time_end__0': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__0': 4, 'soc_end__0': -0.434668320075837, 'vehicle_id__1': 50, 'soc_start__1': -0.434668320075837, 'vehicle_type_id__1': 62, 'station_id__1': None, 'trip_id__1': None, 'event_type__1': 'SERVICE', 'description__1': '1', 'time_start__1': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__1': 17, 'timeseries__1': 'null', 'subloc_no__1': 1, 'time_end__1': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__1': 3, 'soc_end__1': -0.434668320075837, 'vehicle_id__2': 50, 'soc_start__2': -0.434668320075837, 'vehicle_type_id__2': 62, 'station_id__2': None, 'trip_id__2': None, 'event_type__2': 'SERVICE', 'description__2': '5', 'time_start__2': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__2': 17, 'timeseries__2': 'null', 'subloc_no__2': 1, 'time_end__2': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__2': 5, 'soc_end__2': -0.434668320075837, 'vehicle_id__3': 50, 'soc_start__3': -0.434668320075837, 'vehicle_type_id__3': 62, 'station_id__3': None, 'trip_id__3': None, 'event_type__3': 'CHARGING_DEPOT', 'description__3': '3', 'time_start__3': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))) ... 40 parameters truncated ... 'description__6': '1', 'time_start__6': datetime.datetime(2022, 3, 8, 3, 45, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__6': 17, 'timeseries__6': 'null', 'subloc_no__6': 1, 'time_end__6': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__6': 3, 'soc_end__6': -0.434668320075837, 'vehicle_id__7': 50, 'soc_start__7': -0.434668320075837, 'vehicle_type_id__7': 62, 'station_id__7': None, 'trip_id__7': None, 'event_type__7': 'SERVICE', 'description__7': '5', 'time_start__7': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__7': 17, 'timeseries__7': 'null', 'subloc_no__7': 1, 'time_end__7': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__7': 5, 'soc_end__7': -0.434668320075837, 'vehicle_id__8': 50, 'soc_start__8': -0.434668320075837, 'vehicle_type_id__8': 62, 'station_id__8': None, 'trip_id__8': None, 'event_type__8': 'CHARGING_DEPOT', 'description__8': '3', 'time_start__8': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__8': 17, 'timeseries__8': 'null', 'subloc_no__8': 7, 'time_end__8': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__8': 2, 'soc_end__8': 1.0, 'vehicle_id__9': 50, 'soc_start__9': 1.0, 'vehicle_type_id__9': 62, 'station_id__9': None, 'trip_id__9': None, 'event_type__9': 'STANDBY_DEPARTURE', 'description__9': '4', 'time_start__9': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__9': 17, 'timeseries__9': 'null', 'subloc_no__9': 7, 'time_end__9': datetime.datetime(2022, 3, 8, 8, 2, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__9': 2, 'soc_end__9': 1.0}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 1167, in _run_ebus_toolchain
+    run_eflips(task_id)
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 1361, in run_eflips
+    simulate_scenario(db_scenario, database_url=db_url, repetition_period=period)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1220, in simulate_scenario
+    with create_session(scenario, database_url) as (session, scenario):
+  File "/opt/homebrew/Cellar/python@3.11/3.11.9_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/private/util.py", line 79, in create_session
+    session.commit()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2017, in commit
+    trans.commit(_to_root=True)
+  File "<string>", line 2, in commit
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/state_changes.py", line 103, in _go
+    self._raise_for_prerequisite_state(fn.__name__, current_state)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 973, in _raise_for_prerequisite_state
+    raise sa_exc.PendingRollbackError(
+sqlalchemy.exc.PendingRollbackError: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+[SQL: INSERT INTO "Event" (scenario_id, vehicle_type_id, vehicle_id, station_id, area_id, subloc_no, trip_id, time_start, time_end, soc_start, soc_end, event_type, description, timeseries) SELECT p0::BIGINT, p1::BIGINT, p2::BIGINT, p3::BIGINT, p4::BIGINT,  ... 2853 characters truncated ...  p9, p10, p11, p12, p13, sen_counter) ORDER BY sen_counter RETURNING "Event".id, "Event".id AS id__1]
+[parameters: {'vehicle_id__0': 50, 'soc_start__0': -0.434668320075837, 'vehicle_type_id__0': 62, 'station_id__0': None, 'trip_id__0': None, 'event_type__0': 'SERVICE', 'description__0': '2', 'time_start__0': datetime.datetime(2022, 3, 7, 17, 3, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__0': 17, 'timeseries__0': 'null', 'subloc_no__0': 1, 'time_end__0': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__0': 4, 'soc_end__0': -0.434668320075837, 'vehicle_id__1': 50, 'soc_start__1': -0.434668320075837, 'vehicle_type_id__1': 62, 'station_id__1': None, 'trip_id__1': None, 'event_type__1': 'SERVICE', 'description__1': '1', 'time_start__1': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__1': 17, 'timeseries__1': 'null', 'subloc_no__1': 1, 'time_end__1': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__1': 3, 'soc_end__1': -0.434668320075837, 'vehicle_id__2': 50, 'soc_start__2': -0.434668320075837, 'vehicle_type_id__2': 62, 'station_id__2': None, 'trip_id__2': None, 'event_type__2': 'SERVICE', 'description__2': '5', 'time_start__2': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__2': 17, 'timeseries__2': 'null', 'subloc_no__2': 1, 'time_end__2': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__2': 5, 'soc_end__2': -0.434668320075837, 'vehicle_id__3': 50, 'soc_start__3': -0.434668320075837, 'vehicle_type_id__3': 62, 'station_id__3': None, 'trip_id__3': None, 'event_type__3': 'CHARGING_DEPOT', 'description__3': '3', 'time_start__3': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))) ... 40 parameters truncated ... 'description__6': '1', 'time_start__6': datetime.datetime(2022, 3, 8, 3, 45, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__6': 17, 'timeseries__6': 'null', 'subloc_no__6': 1, 'time_end__6': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__6': 3, 'soc_end__6': -0.434668320075837, 'vehicle_id__7': 50, 'soc_start__7': -0.434668320075837, 'vehicle_type_id__7': 62, 'station_id__7': None, 'trip_id__7': None, 'event_type__7': 'SERVICE', 'description__7': '5', 'time_start__7': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__7': 17, 'timeseries__7': 'null', 'subloc_no__7': 1, 'time_end__7': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__7': 5, 'soc_end__7': -0.434668320075837, 'vehicle_id__8': 50, 'soc_start__8': -0.434668320075837, 'vehicle_type_id__8': 62, 'station_id__8': None, 'trip_id__8': None, 'event_type__8': 'CHARGING_DEPOT', 'description__8': '3', 'time_start__8': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__8': 17, 'timeseries__8': 'null', 'subloc_no__8': 7, 'time_end__8': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__8': 2, 'soc_end__8': 1.0, 'vehicle_id__9': 50, 'soc_start__9': 1.0, 'vehicle_type_id__9': 62, 'station_id__9': None, 'trip_id__9': None, 'event_type__9': 'STANDBY_DEPARTURE', 'description__9': '4', 'time_start__9': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__9': 17, 'timeseries__9': 'null', 'subloc_no__9': 7, 'time_end__9': datetime.datetime(2022, 3, 8, 8, 2, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__9': 2, 'soc_end__9': 1.0}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+
+INFO 2024-09-05 16:26:51,623 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:26:51,876 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:26:51,879 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:26:51,883 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:26:51,889 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:26:51,939 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:52,013 Running Simba 2024-09-05 16:26:52.013161
+INFO 2024-09-05 16:26:52,028 Creating Simba Events 2024-09-05 16:26:52.028021
+INFO 2024-09-05 16:26:52,140 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:52,182 Running Simba 2024-09-05 16:26:52.182901
+INFO 2024-09-05 16:26:52,201 Creating Simba Events 2024-09-05 16:26:52.201558
+INFO 2024-09-05 16:26:52,814 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:26:53,072 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:26:53,077 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:26:53,082 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:26:53,090 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:26:53,300 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:53,369 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:53,405 Running Simba 2024-09-05 16:26:53.405541
+INFO 2024-09-05 16:26:53,421 Creating Simba Events 2024-09-05 16:26:53.421648
+INFO 2024-09-05 16:26:53,516 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:53,553 Running Simba 2024-09-05 16:26:53.553478
+INFO 2024-09-05 16:26:53,571 Creating Simba Events 2024-09-05 16:26:53.571345
+INFO 2024-09-05 16:26:53,842 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:53,948 Running Simba 2024-09-05 16:26:53.948072
+INFO 2024-09-05 16:26:53,963 Creating Simba Events 2024-09-05 16:26:53.963296
+INFO 2024-09-05 16:26:54,173 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:26:54,259 Running Simba 2024-09-05 16:26:54.259483
+INFO 2024-09-05 16:26:54,277 Creating Simba Events 2024-09-05 16:26:54.277721
+INFO 2024-09-05 16:27:05,962 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:27:06,281 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:27:06,287 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:27:06,293 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:27:06,305 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:27:06,382 Storing root scenario as parent 2024-09-05 16:27:06.382677
+INFO 2024-09-05 16:27:06,617 Getting schedule from db 2024-09-05 16:27:06.617651
+INFO 2024-09-05 16:27:06,631 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:27:06,718 Running Simba 2024-09-05 16:27:06.718855
+INFO 2024-09-05 16:27:06,734 Creating Simba Events 2024-09-05 16:27:06.734780
+INFO 2024-09-05 16:27:06,911 Running eflips 2024-09-05 16:27:06.911843
+ERROR 2024-09-05 16:27:07,047 Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2116, in _exec_insertmany_context
+    dialect.do_execute(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 924, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/private/util.py", line 75, in create_session
+    yield session, scenario
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1227, in simulate_scenario
+    add_evaluation_to_database(scenario, ev, session)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1611, in add_evaluation_to_database
+    session.flush()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4341, in flush
+    self._flush(objects)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4476, in _flush
+    with util.safe_reraise():
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4437, in _flush
+    flush_context.execute()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 1143, in _emit_insert_statements
+    result = connection.execute(
+             ^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1418, in execute
+    return meth(
+           ^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 515, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1640, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1844, in _execute_context
+    return self._exec_insertmany_context(dialect, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2124, in _exec_insertmany_context
+    self._handle_dbapi_exception(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2353, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2116, in _exec_insertmany_context
+    dialect.do_execute(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 924, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.IntegrityError: (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+[SQL: INSERT INTO "Event" (scenario_id, vehicle_type_id, vehicle_id, station_id, area_id, subloc_no, trip_id, time_start, time_end, soc_start, soc_end, event_type, description, timeseries) SELECT p0::BIGINT, p1::BIGINT, p2::BIGINT, p3::BIGINT, p4::BIGINT,  ... 2853 characters truncated ...  p9, p10, p11, p12, p13, sen_counter) ORDER BY sen_counter RETURNING "Event".id, "Event".id AS id__1]
+[parameters: {'vehicle_id__0': 25, 'soc_start__0': -0.434668320075837, 'vehicle_type_id__0': 78, 'station_id__0': None, 'trip_id__0': None, 'event_type__0': 'SERVICE', 'description__0': '2', 'time_start__0': datetime.datetime(2022, 3, 7, 17, 3, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__0': 23, 'timeseries__0': 'null', 'subloc_no__0': 1, 'time_end__0': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__0': 4, 'soc_end__0': -0.434668320075837, 'vehicle_id__1': 25, 'soc_start__1': -0.434668320075837, 'vehicle_type_id__1': 78, 'station_id__1': None, 'trip_id__1': None, 'event_type__1': 'SERVICE', 'description__1': '1', 'time_start__1': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__1': 23, 'timeseries__1': 'null', 'subloc_no__1': 1, 'time_end__1': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__1': 3, 'soc_end__1': -0.434668320075837, 'vehicle_id__2': 25, 'soc_start__2': -0.434668320075837, 'vehicle_type_id__2': 78, 'station_id__2': None, 'trip_id__2': None, 'event_type__2': 'SERVICE', 'description__2': '5', 'time_start__2': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__2': 23, 'timeseries__2': 'null', 'subloc_no__2': 1, 'time_end__2': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__2': 5, 'soc_end__2': -0.434668320075837, 'vehicle_id__3': 25, 'soc_start__3': -0.434668320075837, 'vehicle_type_id__3': 78, 'station_id__3': None, 'trip_id__3': None, 'event_type__3': 'CHARGING_DEPOT', 'description__3': '3', 'time_start__3': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))) ... 40 parameters truncated ... 'description__6': '1', 'time_start__6': datetime.datetime(2022, 3, 8, 3, 45, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__6': 23, 'timeseries__6': 'null', 'subloc_no__6': 1, 'time_end__6': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__6': 3, 'soc_end__6': -0.434668320075837, 'vehicle_id__7': 25, 'soc_start__7': -0.434668320075837, 'vehicle_type_id__7': 78, 'station_id__7': None, 'trip_id__7': None, 'event_type__7': 'SERVICE', 'description__7': '5', 'time_start__7': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__7': 23, 'timeseries__7': 'null', 'subloc_no__7': 1, 'time_end__7': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__7': 5, 'soc_end__7': -0.434668320075837, 'vehicle_id__8': 25, 'soc_start__8': -0.434668320075837, 'vehicle_type_id__8': 78, 'station_id__8': None, 'trip_id__8': None, 'event_type__8': 'CHARGING_DEPOT', 'description__8': '3', 'time_start__8': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__8': 23, 'timeseries__8': 'null', 'subloc_no__8': 7, 'time_end__8': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__8': 2, 'soc_end__8': 1.0, 'vehicle_id__9': 25, 'soc_start__9': 1.0, 'vehicle_type_id__9': 78, 'station_id__9': None, 'trip_id__9': None, 'event_type__9': 'STANDBY_DEPARTURE', 'description__9': '4', 'time_start__9': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__9': 23, 'timeseries__9': 'null', 'subloc_no__9': 7, 'time_end__9': datetime.datetime(2022, 3, 8, 8, 2, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__9': 2, 'soc_end__9': 1.0}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 1167, in _run_ebus_toolchain
+    run_eflips(task_id)
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 1361, in run_eflips
+    simulate_scenario(db_scenario, database_url=db_url, repetition_period=period)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1220, in simulate_scenario
+    with create_session(scenario, database_url) as (session, scenario):
+  File "/opt/homebrew/Cellar/python@3.11/3.11.9_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/private/util.py", line 79, in create_session
+    session.commit()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2017, in commit
+    trans.commit(_to_root=True)
+  File "<string>", line 2, in commit
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/state_changes.py", line 103, in _go
+    self._raise_for_prerequisite_state(fn.__name__, current_state)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 973, in _raise_for_prerequisite_state
+    raise sa_exc.PendingRollbackError(
+sqlalchemy.exc.PendingRollbackError: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+[SQL: INSERT INTO "Event" (scenario_id, vehicle_type_id, vehicle_id, station_id, area_id, subloc_no, trip_id, time_start, time_end, soc_start, soc_end, event_type, description, timeseries) SELECT p0::BIGINT, p1::BIGINT, p2::BIGINT, p3::BIGINT, p4::BIGINT,  ... 2853 characters truncated ...  p9, p10, p11, p12, p13, sen_counter) ORDER BY sen_counter RETURNING "Event".id, "Event".id AS id__1]
+[parameters: {'vehicle_id__0': 25, 'soc_start__0': -0.434668320075837, 'vehicle_type_id__0': 78, 'station_id__0': None, 'trip_id__0': None, 'event_type__0': 'SERVICE', 'description__0': '2', 'time_start__0': datetime.datetime(2022, 3, 7, 17, 3, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__0': 23, 'timeseries__0': 'null', 'subloc_no__0': 1, 'time_end__0': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__0': 4, 'soc_end__0': -0.434668320075837, 'vehicle_id__1': 25, 'soc_start__1': -0.434668320075837, 'vehicle_type_id__1': 78, 'station_id__1': None, 'trip_id__1': None, 'event_type__1': 'SERVICE', 'description__1': '1', 'time_start__1': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__1': 23, 'timeseries__1': 'null', 'subloc_no__1': 1, 'time_end__1': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__1': 3, 'soc_end__1': -0.434668320075837, 'vehicle_id__2': 25, 'soc_start__2': -0.434668320075837, 'vehicle_type_id__2': 78, 'station_id__2': None, 'trip_id__2': None, 'event_type__2': 'SERVICE', 'description__2': '5', 'time_start__2': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__2': 23, 'timeseries__2': 'null', 'subloc_no__2': 1, 'time_end__2': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__2': 5, 'soc_end__2': -0.434668320075837, 'vehicle_id__3': 25, 'soc_start__3': -0.434668320075837, 'vehicle_type_id__3': 78, 'station_id__3': None, 'trip_id__3': None, 'event_type__3': 'CHARGING_DEPOT', 'description__3': '3', 'time_start__3': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))) ... 40 parameters truncated ... 'description__6': '1', 'time_start__6': datetime.datetime(2022, 3, 8, 3, 45, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__6': 23, 'timeseries__6': 'null', 'subloc_no__6': 1, 'time_end__6': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__6': 3, 'soc_end__6': -0.434668320075837, 'vehicle_id__7': 25, 'soc_start__7': -0.434668320075837, 'vehicle_type_id__7': 78, 'station_id__7': None, 'trip_id__7': None, 'event_type__7': 'SERVICE', 'description__7': '5', 'time_start__7': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__7': 23, 'timeseries__7': 'null', 'subloc_no__7': 1, 'time_end__7': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__7': 5, 'soc_end__7': -0.434668320075837, 'vehicle_id__8': 25, 'soc_start__8': -0.434668320075837, 'vehicle_type_id__8': 78, 'station_id__8': None, 'trip_id__8': None, 'event_type__8': 'CHARGING_DEPOT', 'description__8': '3', 'time_start__8': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__8': 23, 'timeseries__8': 'null', 'subloc_no__8': 7, 'time_end__8': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__8': 2, 'soc_end__8': 1.0, 'vehicle_id__9': 25, 'soc_start__9': 1.0, 'vehicle_type_id__9': 78, 'station_id__9': None, 'trip_id__9': None, 'event_type__9': 'STANDBY_DEPARTURE', 'description__9': '4', 'time_start__9': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__9': 23, 'timeseries__9': 'null', 'subloc_no__9': 7, 'time_end__9': datetime.datetime(2022, 3, 8, 8, 2, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__9': 2, 'soc_end__9': 1.0}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+
+INFO 2024-09-05 16:27:07,074 SimBA is calculating. Showing wait view
+ERROR 2024-09-05 16:27:07,110 Internal Server Error: /simba/result/4535e2cb-749c-468a-b78b-eae7998084be/
+Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/views.py", line 69, in result_view
+    return wait_view(request, task_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/views.py", line 79, in wait_view
+    return render(request, "wait.html", {"task_id": task_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader.py", line 62, in render_to_string
+    return template.render(context, request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/backends/django.py", line 61, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/test/utils.py", line 111, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/test/utils.py", line 111, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/defaulttags.py", line 479, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/urls/base.py", line 88, in reverse
+    return resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/urls/resolvers.py", line 851, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'result' with no arguments not found. 1 pattern(s) tried: ['simba/result/(?P<task_id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/\\Z']
+INFO 2024-09-05 16:27:07,543 Saving scenario and simulating
+INFO 2024-09-05 16:27:07,543 Writing to db
+INFO 2024-09-05 16:27:07,555 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:27:07,844 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:27:07,847 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:27:07,851 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:27:07,857 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:27:07,894 task_id='9e2d7e1e-05d1-4001-9693-7eb823a9767a'
+INFO 2024-09-05 16:27:07,895 Storing root scenario as parent 2024-09-05 16:27:07.895937
+INFO 2024-09-05 16:27:08,035 Getting schedule from db 2024-09-05 16:27:08.035084
+INFO 2024-09-05 16:27:08,047 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:27:08,127 Running Simba 2024-09-05 16:27:08.127297
+INFO 2024-09-05 16:27:08,142 Creating Simba Events 2024-09-05 16:27:08.142572
+INFO 2024-09-05 16:27:08,236 Running eflips 2024-09-05 16:27:08.236007
+ERROR 2024-09-05 16:27:08,377 Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2116, in _exec_insertmany_context
+    dialect.do_execute(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 924, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/private/util.py", line 75, in create_session
+    yield session, scenario
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1227, in simulate_scenario
+    add_evaluation_to_database(scenario, ev, session)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1611, in add_evaluation_to_database
+    session.flush()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4341, in flush
+    self._flush(objects)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4476, in _flush
+    with util.safe_reraise():
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4437, in _flush
+    flush_context.execute()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 1143, in _emit_insert_statements
+    result = connection.execute(
+             ^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1418, in execute
+    return meth(
+           ^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 515, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1640, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1844, in _execute_context
+    return self._exec_insertmany_context(dialect, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2124, in _exec_insertmany_context
+    self._handle_dbapi_exception(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2353, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2116, in _exec_insertmany_context
+    dialect.do_execute(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 924, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.IntegrityError: (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+[SQL: INSERT INTO "Event" (scenario_id, vehicle_type_id, vehicle_id, station_id, area_id, subloc_no, trip_id, time_start, time_end, soc_start, soc_end, event_type, description, timeseries) SELECT p0::BIGINT, p1::BIGINT, p2::BIGINT, p3::BIGINT, p4::BIGINT,  ... 2853 characters truncated ...  p9, p10, p11, p12, p13, sen_counter) ORDER BY sen_counter RETURNING "Event".id, "Event".id AS id__1]
+[parameters: {'vehicle_id__0': 51, 'soc_start__0': -0.434668320075837, 'vehicle_type_id__0': 86, 'station_id__0': None, 'trip_id__0': None, 'event_type__0': 'SERVICE', 'description__0': '2', 'time_start__0': datetime.datetime(2022, 3, 7, 17, 3, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__0': 25, 'timeseries__0': 'null', 'subloc_no__0': 1, 'time_end__0': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__0': 4, 'soc_end__0': -0.434668320075837, 'vehicle_id__1': 51, 'soc_start__1': -0.434668320075837, 'vehicle_type_id__1': 86, 'station_id__1': None, 'trip_id__1': None, 'event_type__1': 'SERVICE', 'description__1': '1', 'time_start__1': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__1': 25, 'timeseries__1': 'null', 'subloc_no__1': 1, 'time_end__1': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__1': 3, 'soc_end__1': -0.434668320075837, 'vehicle_id__2': 51, 'soc_start__2': -0.434668320075837, 'vehicle_type_id__2': 86, 'station_id__2': None, 'trip_id__2': None, 'event_type__2': 'SERVICE', 'description__2': '5', 'time_start__2': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__2': 25, 'timeseries__2': 'null', 'subloc_no__2': 1, 'time_end__2': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__2': 5, 'soc_end__2': -0.434668320075837, 'vehicle_id__3': 51, 'soc_start__3': -0.434668320075837, 'vehicle_type_id__3': 86, 'station_id__3': None, 'trip_id__3': None, 'event_type__3': 'CHARGING_DEPOT', 'description__3': '3', 'time_start__3': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))) ... 40 parameters truncated ... 'description__6': '1', 'time_start__6': datetime.datetime(2022, 3, 8, 3, 45, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__6': 25, 'timeseries__6': 'null', 'subloc_no__6': 1, 'time_end__6': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__6': 3, 'soc_end__6': -0.434668320075837, 'vehicle_id__7': 51, 'soc_start__7': -0.434668320075837, 'vehicle_type_id__7': 86, 'station_id__7': None, 'trip_id__7': None, 'event_type__7': 'SERVICE', 'description__7': '5', 'time_start__7': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__7': 25, 'timeseries__7': 'null', 'subloc_no__7': 1, 'time_end__7': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__7': 5, 'soc_end__7': -0.434668320075837, 'vehicle_id__8': 51, 'soc_start__8': -0.434668320075837, 'vehicle_type_id__8': 86, 'station_id__8': None, 'trip_id__8': None, 'event_type__8': 'CHARGING_DEPOT', 'description__8': '3', 'time_start__8': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__8': 25, 'timeseries__8': 'null', 'subloc_no__8': 7, 'time_end__8': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__8': 2, 'soc_end__8': 1.0, 'vehicle_id__9': 51, 'soc_start__9': 1.0, 'vehicle_type_id__9': 86, 'station_id__9': None, 'trip_id__9': None, 'event_type__9': 'STANDBY_DEPARTURE', 'description__9': '4', 'time_start__9': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__9': 25, 'timeseries__9': 'null', 'subloc_no__9': 7, 'time_end__9': datetime.datetime(2022, 3, 8, 8, 2, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__9': 2, 'soc_end__9': 1.0}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 1167, in _run_ebus_toolchain
+    run_eflips(task_id)
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 1361, in run_eflips
+    simulate_scenario(db_scenario, database_url=db_url, repetition_period=period)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1220, in simulate_scenario
+    with create_session(scenario, database_url) as (session, scenario):
+  File "/opt/homebrew/Cellar/python@3.11/3.11.9_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/private/util.py", line 79, in create_session
+    session.commit()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2017, in commit
+    trans.commit(_to_root=True)
+  File "<string>", line 2, in commit
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/state_changes.py", line 103, in _go
+    self._raise_for_prerequisite_state(fn.__name__, current_state)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 973, in _raise_for_prerequisite_state
+    raise sa_exc.PendingRollbackError(
+sqlalchemy.exc.PendingRollbackError: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+[SQL: INSERT INTO "Event" (scenario_id, vehicle_type_id, vehicle_id, station_id, area_id, subloc_no, trip_id, time_start, time_end, soc_start, soc_end, event_type, description, timeseries) SELECT p0::BIGINT, p1::BIGINT, p2::BIGINT, p3::BIGINT, p4::BIGINT,  ... 2853 characters truncated ...  p9, p10, p11, p12, p13, sen_counter) ORDER BY sen_counter RETURNING "Event".id, "Event".id AS id__1]
+[parameters: {'vehicle_id__0': 51, 'soc_start__0': -0.434668320075837, 'vehicle_type_id__0': 86, 'station_id__0': None, 'trip_id__0': None, 'event_type__0': 'SERVICE', 'description__0': '2', 'time_start__0': datetime.datetime(2022, 3, 7, 17, 3, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__0': 25, 'timeseries__0': 'null', 'subloc_no__0': 1, 'time_end__0': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__0': 4, 'soc_end__0': -0.434668320075837, 'vehicle_id__1': 51, 'soc_start__1': -0.434668320075837, 'vehicle_type_id__1': 86, 'station_id__1': None, 'trip_id__1': None, 'event_type__1': 'SERVICE', 'description__1': '1', 'time_start__1': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__1': 25, 'timeseries__1': 'null', 'subloc_no__1': 1, 'time_end__1': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__1': 3, 'soc_end__1': -0.434668320075837, 'vehicle_id__2': 51, 'soc_start__2': -0.434668320075837, 'vehicle_type_id__2': 86, 'station_id__2': None, 'trip_id__2': None, 'event_type__2': 'SERVICE', 'description__2': '5', 'time_start__2': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__2': 25, 'timeseries__2': 'null', 'subloc_no__2': 1, 'time_end__2': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__2': 5, 'soc_end__2': -0.434668320075837, 'vehicle_id__3': 51, 'soc_start__3': -0.434668320075837, 'vehicle_type_id__3': 86, 'station_id__3': None, 'trip_id__3': None, 'event_type__3': 'CHARGING_DEPOT', 'description__3': '3', 'time_start__3': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))) ... 40 parameters truncated ... 'description__6': '1', 'time_start__6': datetime.datetime(2022, 3, 8, 3, 45, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__6': 25, 'timeseries__6': 'null', 'subloc_no__6': 1, 'time_end__6': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__6': 3, 'soc_end__6': -0.434668320075837, 'vehicle_id__7': 51, 'soc_start__7': -0.434668320075837, 'vehicle_type_id__7': 86, 'station_id__7': None, 'trip_id__7': None, 'event_type__7': 'SERVICE', 'description__7': '5', 'time_start__7': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__7': 25, 'timeseries__7': 'null', 'subloc_no__7': 1, 'time_end__7': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__7': 5, 'soc_end__7': -0.434668320075837, 'vehicle_id__8': 51, 'soc_start__8': -0.434668320075837, 'vehicle_type_id__8': 86, 'station_id__8': None, 'trip_id__8': None, 'event_type__8': 'CHARGING_DEPOT', 'description__8': '3', 'time_start__8': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__8': 25, 'timeseries__8': 'null', 'subloc_no__8': 7, 'time_end__8': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__8': 2, 'soc_end__8': 1.0, 'vehicle_id__9': 51, 'soc_start__9': 1.0, 'vehicle_type_id__9': 86, 'station_id__9': None, 'trip_id__9': None, 'event_type__9': 'STANDBY_DEPARTURE', 'description__9': '4', 'time_start__9': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'scenario_id__9': 25, 'timeseries__9': 'null', 'subloc_no__9': 7, 'time_end__9': datetime.datetime(2022, 3, 8, 8, 2, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'area_id__9': 2, 'soc_end__9': 1.0}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+
+INFO 2024-09-05 16:27:08,383 Simulation Finished.
+INFO 2024-09-05 16:27:08,386 SimBA is calculating. Showing wait view
+ERROR 2024-09-05 16:27:08,403 Internal Server Error: /simba/result/9e2d7e1e-05d1-4001-9693-7eb823a9767a/
+Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/views.py", line 69, in result_view
+    return wait_view(request, task_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/views.py", line 79, in wait_view
+    return render(request, "wait.html", {"task_id": task_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader.py", line 62, in render_to_string
+    return template.render(context, request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/backends/django.py", line 61, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/test/utils.py", line 111, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/test/utils.py", line 111, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/defaulttags.py", line 479, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/urls/base.py", line 88, in reverse
+    return resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/urls/resolvers.py", line 851, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'result' with no arguments not found. 1 pattern(s) tried: ['simba/result/(?P<task_id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/\\Z']
+INFO 2024-09-05 16:30:45,755 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:30:46,042 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:30:46,045 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:30:46,058 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:30:46,081 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:30:46,159 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:46,396 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:46,509 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:46,743 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:47,005 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:47,140 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:47,430 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:47,574 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:47,813 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:48,176 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:48,474 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:30:48,718 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:30:48,724 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:30:48,728 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:30:48,734 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:30:48,802 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:49,283 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:30:49,570 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:30:49,575 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:30:49,580 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:30:49,594 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:30:49,683 Storing root scenario as parent 2024-09-05 16:30:49.683836
+INFO 2024-09-05 16:30:49,992 Getting schedule from db 2024-09-05 16:30:49.992097
+INFO 2024-09-05 16:30:50,010 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:50,100 Running Simba 2024-09-05 16:30:50.100938
+INFO 2024-09-05 16:30:50,117 Creating Simba Events 2024-09-05 16:30:50.117003
+INFO 2024-09-05 16:30:50,215 Running eflips 2024-09-05 16:30:50.215286
+ERROR 2024-09-05 16:30:50,468 Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2116, in _exec_insertmany_context
+    dialect.do_execute(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 924, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/private/util.py", line 75, in create_session
+    yield session, scenario
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1227, in simulate_scenario
+    add_evaluation_to_database(scenario, ev, session)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1611, in add_evaluation_to_database
+    session.flush()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4341, in flush
+    self._flush(objects)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4476, in _flush
+    with util.safe_reraise():
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4437, in _flush
+    flush_context.execute()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 1143, in _emit_insert_statements
+    result = connection.execute(
+             ^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1418, in execute
+    return meth(
+           ^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 515, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1640, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1844, in _execute_context
+    return self._exec_insertmany_context(dialect, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2124, in _exec_insertmany_context
+    self._handle_dbapi_exception(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2353, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2116, in _exec_insertmany_context
+    dialect.do_execute(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 924, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.IntegrityError: (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+[SQL: INSERT INTO "Event" (scenario_id, vehicle_type_id, vehicle_id, station_id, area_id, subloc_no, trip_id, time_start, time_end, soc_start, soc_end, event_type, description, timeseries) SELECT p0::BIGINT, p1::BIGINT, p2::BIGINT, p3::BIGINT, p4::BIGINT,  ... 2853 characters truncated ...  p9, p10, p11, p12, p13, sen_counter) ORDER BY sen_counter RETURNING "Event".id, "Event".id AS id__1]
+[parameters: {'station_id__0': None, 'subloc_no__0': 1, 'scenario_id__0': 17, 'event_type__0': 'SERVICE', 'soc_end__0': -0.434668320075837, 'vehicle_type_id__0': 62, 'area_id__0': 4, 'time_end__0': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__0': 50, 'time_start__0': datetime.datetime(2022, 3, 7, 17, 3, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__0': '2', 'soc_start__0': -0.434668320075837, 'trip_id__0': None, 'timeseries__0': 'null', 'station_id__1': None, 'subloc_no__1': 1, 'scenario_id__1': 17, 'event_type__1': 'SERVICE', 'soc_end__1': -0.434668320075837, 'vehicle_type_id__1': 62, 'area_id__1': 3, 'time_end__1': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__1': 50, 'time_start__1': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__1': '1', 'soc_start__1': -0.434668320075837, 'trip_id__1': None, 'timeseries__1': 'null', 'station_id__2': None, 'subloc_no__2': 1, 'scenario_id__2': 17, 'event_type__2': 'SERVICE', 'soc_end__2': -0.434668320075837, 'vehicle_type_id__2': 62, 'area_id__2': 5, 'time_end__2': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__2': 50, 'time_start__2': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__2': '5', 'soc_start__2': -0.434668320075837, 'trip_id__2': None, 'timeseries__2': 'null', 'station_id__3': None, 'subloc_no__3': 7, 'scenario_id__3': 17, 'event_type__3': 'CHARGING_DEPOT', 'soc_end__3': 1.0, 'vehicle_type_id__3': 62, 'area_id__3': 2, 'time_end__3': datetime.datetime(2022, 3, 7, 20, 6, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))) ... 40 parameters truncated ... 'area_id__6': 3, 'time_end__6': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__6': 50, 'time_start__6': datetime.datetime(2022, 3, 8, 3, 45, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__6': '1', 'soc_start__6': -0.434668320075837, 'trip_id__6': None, 'timeseries__6': 'null', 'station_id__7': None, 'subloc_no__7': 1, 'scenario_id__7': 17, 'event_type__7': 'SERVICE', 'soc_end__7': -0.434668320075837, 'vehicle_type_id__7': 62, 'area_id__7': 5, 'time_end__7': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__7': 50, 'time_start__7': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__7': '5', 'soc_start__7': -0.434668320075837, 'trip_id__7': None, 'timeseries__7': 'null', 'station_id__8': None, 'subloc_no__8': 7, 'scenario_id__8': 17, 'event_type__8': 'CHARGING_DEPOT', 'soc_end__8': 1.0, 'vehicle_type_id__8': 62, 'area_id__8': 2, 'time_end__8': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__8': 50, 'time_start__8': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__8': '3', 'soc_start__8': -0.434668320075837, 'trip_id__8': None, 'timeseries__8': 'null', 'station_id__9': None, 'subloc_no__9': 7, 'scenario_id__9': 17, 'event_type__9': 'STANDBY_DEPARTURE', 'soc_end__9': 1.0, 'vehicle_type_id__9': 62, 'area_id__9': 2, 'time_end__9': datetime.datetime(2022, 3, 8, 8, 2, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__9': 50, 'time_start__9': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__9': '4', 'soc_start__9': 1.0, 'trip_id__9': None, 'timeseries__9': 'null'}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 1167, in _run_ebus_toolchain
+    run_eflips(task_id)
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 1361, in run_eflips
+    simulate_scenario(db_scenario, database_url=db_url, repetition_period=period)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1220, in simulate_scenario
+    with create_session(scenario, database_url) as (session, scenario):
+  File "/opt/homebrew/Cellar/python@3.11/3.11.9_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/private/util.py", line 79, in create_session
+    session.commit()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2017, in commit
+    trans.commit(_to_root=True)
+  File "<string>", line 2, in commit
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/state_changes.py", line 103, in _go
+    self._raise_for_prerequisite_state(fn.__name__, current_state)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 973, in _raise_for_prerequisite_state
+    raise sa_exc.PendingRollbackError(
+sqlalchemy.exc.PendingRollbackError: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+[SQL: INSERT INTO "Event" (scenario_id, vehicle_type_id, vehicle_id, station_id, area_id, subloc_no, trip_id, time_start, time_end, soc_start, soc_end, event_type, description, timeseries) SELECT p0::BIGINT, p1::BIGINT, p2::BIGINT, p3::BIGINT, p4::BIGINT,  ... 2853 characters truncated ...  p9, p10, p11, p12, p13, sen_counter) ORDER BY sen_counter RETURNING "Event".id, "Event".id AS id__1]
+[parameters: {'station_id__0': None, 'subloc_no__0': 1, 'scenario_id__0': 17, 'event_type__0': 'SERVICE', 'soc_end__0': -0.434668320075837, 'vehicle_type_id__0': 62, 'area_id__0': 4, 'time_end__0': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__0': 50, 'time_start__0': datetime.datetime(2022, 3, 7, 17, 3, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__0': '2', 'soc_start__0': -0.434668320075837, 'trip_id__0': None, 'timeseries__0': 'null', 'station_id__1': None, 'subloc_no__1': 1, 'scenario_id__1': 17, 'event_type__1': 'SERVICE', 'soc_end__1': -0.434668320075837, 'vehicle_type_id__1': 62, 'area_id__1': 3, 'time_end__1': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__1': 50, 'time_start__1': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__1': '1', 'soc_start__1': -0.434668320075837, 'trip_id__1': None, 'timeseries__1': 'null', 'station_id__2': None, 'subloc_no__2': 1, 'scenario_id__2': 17, 'event_type__2': 'SERVICE', 'soc_end__2': -0.434668320075837, 'vehicle_type_id__2': 62, 'area_id__2': 5, 'time_end__2': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__2': 50, 'time_start__2': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__2': '5', 'soc_start__2': -0.434668320075837, 'trip_id__2': None, 'timeseries__2': 'null', 'station_id__3': None, 'subloc_no__3': 7, 'scenario_id__3': 17, 'event_type__3': 'CHARGING_DEPOT', 'soc_end__3': 1.0, 'vehicle_type_id__3': 62, 'area_id__3': 2, 'time_end__3': datetime.datetime(2022, 3, 7, 20, 6, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))) ... 40 parameters truncated ... 'area_id__6': 3, 'time_end__6': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__6': 50, 'time_start__6': datetime.datetime(2022, 3, 8, 3, 45, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__6': '1', 'soc_start__6': -0.434668320075837, 'trip_id__6': None, 'timeseries__6': 'null', 'station_id__7': None, 'subloc_no__7': 1, 'scenario_id__7': 17, 'event_type__7': 'SERVICE', 'soc_end__7': -0.434668320075837, 'vehicle_type_id__7': 62, 'area_id__7': 5, 'time_end__7': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__7': 50, 'time_start__7': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__7': '5', 'soc_start__7': -0.434668320075837, 'trip_id__7': None, 'timeseries__7': 'null', 'station_id__8': None, 'subloc_no__8': 7, 'scenario_id__8': 17, 'event_type__8': 'CHARGING_DEPOT', 'soc_end__8': 1.0, 'vehicle_type_id__8': 62, 'area_id__8': 2, 'time_end__8': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__8': 50, 'time_start__8': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__8': '3', 'soc_start__8': -0.434668320075837, 'trip_id__8': None, 'timeseries__8': 'null', 'station_id__9': None, 'subloc_no__9': 7, 'scenario_id__9': 17, 'event_type__9': 'STANDBY_DEPARTURE', 'soc_end__9': 1.0, 'vehicle_type_id__9': 62, 'area_id__9': 2, 'time_end__9': datetime.datetime(2022, 3, 8, 8, 2, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__9': 50, 'time_start__9': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__9': '4', 'soc_start__9': 1.0, 'trip_id__9': None, 'timeseries__9': 'null'}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+
+INFO 2024-09-05 16:30:50,628 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:30:50,897 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:30:50,908 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:30:50,929 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:30:50,941 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:30:51,010 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:51,090 Running Simba 2024-09-05 16:30:51.090004
+INFO 2024-09-05 16:30:51,106 Creating Simba Events 2024-09-05 16:30:51.106366
+INFO 2024-09-05 16:30:51,202 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:51,256 Running Simba 2024-09-05 16:30:51.256235
+INFO 2024-09-05 16:30:51,349 Creating Simba Events 2024-09-05 16:30:51.349423
+INFO 2024-09-05 16:30:51,992 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:30:52,245 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:30:52,248 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:30:52,252 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:30:52,257 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:30:52,443 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:52,489 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:52,531 Running Simba 2024-09-05 16:30:52.531579
+INFO 2024-09-05 16:30:52,547 Creating Simba Events 2024-09-05 16:30:52.547065
+INFO 2024-09-05 16:30:52,659 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:52,703 Running Simba 2024-09-05 16:30:52.703544
+INFO 2024-09-05 16:30:52,721 Creating Simba Events 2024-09-05 16:30:52.721376
+INFO 2024-09-05 16:30:52,950 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:53,036 Running Simba 2024-09-05 16:30:53.036600
+INFO 2024-09-05 16:30:53,052 Creating Simba Events 2024-09-05 16:30:53.052262
+INFO 2024-09-05 16:30:53,260 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:53,349 Running Simba 2024-09-05 16:30:53.349940
+INFO 2024-09-05 16:30:53,367 Creating Simba Events 2024-09-05 16:30:53.367920
+INFO 2024-09-05 16:30:54,517 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:30:54,800 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:30:54,803 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:30:54,807 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:30:54,814 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:30:54,869 Storing root scenario as parent 2024-09-05 16:30:54.869505
+INFO 2024-09-05 16:30:55,084 Getting schedule from db 2024-09-05 16:30:55.084621
+INFO 2024-09-05 16:30:55,097 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:55,179 Running Simba 2024-09-05 16:30:55.179193
+INFO 2024-09-05 16:30:55,194 Creating Simba Events 2024-09-05 16:30:55.194856
+INFO 2024-09-05 16:30:55,288 Running eflips 2024-09-05 16:30:55.288098
+ERROR 2024-09-05 16:30:55,508 Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2116, in _exec_insertmany_context
+    dialect.do_execute(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 924, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/private/util.py", line 75, in create_session
+    yield session, scenario
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1227, in simulate_scenario
+    add_evaluation_to_database(scenario, ev, session)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1611, in add_evaluation_to_database
+    session.flush()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4341, in flush
+    self._flush(objects)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4476, in _flush
+    with util.safe_reraise():
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4437, in _flush
+    flush_context.execute()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 1143, in _emit_insert_statements
+    result = connection.execute(
+             ^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1418, in execute
+    return meth(
+           ^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 515, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1640, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1844, in _execute_context
+    return self._exec_insertmany_context(dialect, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2124, in _exec_insertmany_context
+    self._handle_dbapi_exception(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2353, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2116, in _exec_insertmany_context
+    dialect.do_execute(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 924, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.IntegrityError: (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+[SQL: INSERT INTO "Event" (scenario_id, vehicle_type_id, vehicle_id, station_id, area_id, subloc_no, trip_id, time_start, time_end, soc_start, soc_end, event_type, description, timeseries) SELECT p0::BIGINT, p1::BIGINT, p2::BIGINT, p3::BIGINT, p4::BIGINT,  ... 2853 characters truncated ...  p9, p10, p11, p12, p13, sen_counter) ORDER BY sen_counter RETURNING "Event".id, "Event".id AS id__1]
+[parameters: {'station_id__0': None, 'subloc_no__0': 1, 'scenario_id__0': 23, 'event_type__0': 'SERVICE', 'soc_end__0': -0.434668320075837, 'vehicle_type_id__0': 78, 'area_id__0': 4, 'time_end__0': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__0': 25, 'time_start__0': datetime.datetime(2022, 3, 7, 17, 3, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__0': '2', 'soc_start__0': -0.434668320075837, 'trip_id__0': None, 'timeseries__0': 'null', 'station_id__1': None, 'subloc_no__1': 1, 'scenario_id__1': 23, 'event_type__1': 'SERVICE', 'soc_end__1': -0.434668320075837, 'vehicle_type_id__1': 78, 'area_id__1': 3, 'time_end__1': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__1': 25, 'time_start__1': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__1': '1', 'soc_start__1': -0.434668320075837, 'trip_id__1': None, 'timeseries__1': 'null', 'station_id__2': None, 'subloc_no__2': 1, 'scenario_id__2': 23, 'event_type__2': 'SERVICE', 'soc_end__2': -0.434668320075837, 'vehicle_type_id__2': 78, 'area_id__2': 5, 'time_end__2': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__2': 25, 'time_start__2': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__2': '5', 'soc_start__2': -0.434668320075837, 'trip_id__2': None, 'timeseries__2': 'null', 'station_id__3': None, 'subloc_no__3': 7, 'scenario_id__3': 23, 'event_type__3': 'CHARGING_DEPOT', 'soc_end__3': 1.0, 'vehicle_type_id__3': 78, 'area_id__3': 2, 'time_end__3': datetime.datetime(2022, 3, 7, 20, 6, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))) ... 40 parameters truncated ... 'area_id__6': 3, 'time_end__6': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__6': 25, 'time_start__6': datetime.datetime(2022, 3, 8, 3, 45, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__6': '1', 'soc_start__6': -0.434668320075837, 'trip_id__6': None, 'timeseries__6': 'null', 'station_id__7': None, 'subloc_no__7': 1, 'scenario_id__7': 23, 'event_type__7': 'SERVICE', 'soc_end__7': -0.434668320075837, 'vehicle_type_id__7': 78, 'area_id__7': 5, 'time_end__7': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__7': 25, 'time_start__7': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__7': '5', 'soc_start__7': -0.434668320075837, 'trip_id__7': None, 'timeseries__7': 'null', 'station_id__8': None, 'subloc_no__8': 7, 'scenario_id__8': 23, 'event_type__8': 'CHARGING_DEPOT', 'soc_end__8': 1.0, 'vehicle_type_id__8': 78, 'area_id__8': 2, 'time_end__8': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__8': 25, 'time_start__8': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__8': '3', 'soc_start__8': -0.434668320075837, 'trip_id__8': None, 'timeseries__8': 'null', 'station_id__9': None, 'subloc_no__9': 7, 'scenario_id__9': 23, 'event_type__9': 'STANDBY_DEPARTURE', 'soc_end__9': 1.0, 'vehicle_type_id__9': 78, 'area_id__9': 2, 'time_end__9': datetime.datetime(2022, 3, 8, 8, 2, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__9': 25, 'time_start__9': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__9': '4', 'soc_start__9': 1.0, 'trip_id__9': None, 'timeseries__9': 'null'}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 1167, in _run_ebus_toolchain
+    run_eflips(task_id)
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 1361, in run_eflips
+    simulate_scenario(db_scenario, database_url=db_url, repetition_period=period)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1220, in simulate_scenario
+    with create_session(scenario, database_url) as (session, scenario):
+  File "/opt/homebrew/Cellar/python@3.11/3.11.9_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/private/util.py", line 79, in create_session
+    session.commit()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2017, in commit
+    trans.commit(_to_root=True)
+  File "<string>", line 2, in commit
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/state_changes.py", line 103, in _go
+    self._raise_for_prerequisite_state(fn.__name__, current_state)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 973, in _raise_for_prerequisite_state
+    raise sa_exc.PendingRollbackError(
+sqlalchemy.exc.PendingRollbackError: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+[SQL: INSERT INTO "Event" (scenario_id, vehicle_type_id, vehicle_id, station_id, area_id, subloc_no, trip_id, time_start, time_end, soc_start, soc_end, event_type, description, timeseries) SELECT p0::BIGINT, p1::BIGINT, p2::BIGINT, p3::BIGINT, p4::BIGINT,  ... 2853 characters truncated ...  p9, p10, p11, p12, p13, sen_counter) ORDER BY sen_counter RETURNING "Event".id, "Event".id AS id__1]
+[parameters: {'station_id__0': None, 'subloc_no__0': 1, 'scenario_id__0': 23, 'event_type__0': 'SERVICE', 'soc_end__0': -0.434668320075837, 'vehicle_type_id__0': 78, 'area_id__0': 4, 'time_end__0': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__0': 25, 'time_start__0': datetime.datetime(2022, 3, 7, 17, 3, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__0': '2', 'soc_start__0': -0.434668320075837, 'trip_id__0': None, 'timeseries__0': 'null', 'station_id__1': None, 'subloc_no__1': 1, 'scenario_id__1': 23, 'event_type__1': 'SERVICE', 'soc_end__1': -0.434668320075837, 'vehicle_type_id__1': 78, 'area_id__1': 3, 'time_end__1': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__1': 25, 'time_start__1': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__1': '1', 'soc_start__1': -0.434668320075837, 'trip_id__1': None, 'timeseries__1': 'null', 'station_id__2': None, 'subloc_no__2': 1, 'scenario_id__2': 23, 'event_type__2': 'SERVICE', 'soc_end__2': -0.434668320075837, 'vehicle_type_id__2': 78, 'area_id__2': 5, 'time_end__2': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__2': 25, 'time_start__2': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__2': '5', 'soc_start__2': -0.434668320075837, 'trip_id__2': None, 'timeseries__2': 'null', 'station_id__3': None, 'subloc_no__3': 7, 'scenario_id__3': 23, 'event_type__3': 'CHARGING_DEPOT', 'soc_end__3': 1.0, 'vehicle_type_id__3': 78, 'area_id__3': 2, 'time_end__3': datetime.datetime(2022, 3, 7, 20, 6, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))) ... 40 parameters truncated ... 'area_id__6': 3, 'time_end__6': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__6': 25, 'time_start__6': datetime.datetime(2022, 3, 8, 3, 45, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__6': '1', 'soc_start__6': -0.434668320075837, 'trip_id__6': None, 'timeseries__6': 'null', 'station_id__7': None, 'subloc_no__7': 1, 'scenario_id__7': 23, 'event_type__7': 'SERVICE', 'soc_end__7': -0.434668320075837, 'vehicle_type_id__7': 78, 'area_id__7': 5, 'time_end__7': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__7': 25, 'time_start__7': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__7': '5', 'soc_start__7': -0.434668320075837, 'trip_id__7': None, 'timeseries__7': 'null', 'station_id__8': None, 'subloc_no__8': 7, 'scenario_id__8': 23, 'event_type__8': 'CHARGING_DEPOT', 'soc_end__8': 1.0, 'vehicle_type_id__8': 78, 'area_id__8': 2, 'time_end__8': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__8': 25, 'time_start__8': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__8': '3', 'soc_start__8': -0.434668320075837, 'trip_id__8': None, 'timeseries__8': 'null', 'station_id__9': None, 'subloc_no__9': 7, 'scenario_id__9': 23, 'event_type__9': 'STANDBY_DEPARTURE', 'soc_end__9': 1.0, 'vehicle_type_id__9': 78, 'area_id__9': 2, 'time_end__9': datetime.datetime(2022, 3, 8, 8, 2, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__9': 25, 'time_start__9': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__9': '4', 'soc_start__9': 1.0, 'trip_id__9': None, 'timeseries__9': 'null'}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+
+INFO 2024-09-05 16:30:55,520 SimBA is calculating. Showing wait view
+ERROR 2024-09-05 16:30:55,550 Internal Server Error: /simba/result/ee33d4f6-b4c9-448c-9bf1-fcbf312a4ec8/
+Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/views.py", line 69, in result_view
+    return wait_view(request, task_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/views.py", line 79, in wait_view
+    return render(request, "wait.html", {"task_id": task_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader.py", line 62, in render_to_string
+    return template.render(context, request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/backends/django.py", line 61, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/test/utils.py", line 111, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/test/utils.py", line 111, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/defaulttags.py", line 479, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/urls/base.py", line 88, in reverse
+    return resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/urls/resolvers.py", line 851, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'result' with no arguments not found. 1 pattern(s) tried: ['simba/result/(?P<task_id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/\\Z']
+INFO 2024-09-05 16:30:56,098 Saving scenario and simulating
+INFO 2024-09-05 16:30:56,098 Writing to db
+INFO 2024-09-05 16:30:56,108 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:30:56,388 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:30:56,391 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:30:56,395 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:30:56,401 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:30:56,448 task_id='ce796766-d81c-470c-9545-9553bf5e2117'
+INFO 2024-09-05 16:30:56,449 Storing root scenario as parent 2024-09-05 16:30:56.449386
+INFO 2024-09-05 16:30:56,626 Getting schedule from db 2024-09-05 16:30:56.626489
+INFO 2024-09-05 16:30:56,638 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:30:56,721 Running Simba 2024-09-05 16:30:56.721786
+INFO 2024-09-05 16:30:56,737 Creating Simba Events 2024-09-05 16:30:56.737004
+INFO 2024-09-05 16:30:56,824 Running eflips 2024-09-05 16:30:56.824477
+ERROR 2024-09-05 16:30:56,954 Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2116, in _exec_insertmany_context
+    dialect.do_execute(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 924, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/private/util.py", line 75, in create_session
+    yield session, scenario
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1227, in simulate_scenario
+    add_evaluation_to_database(scenario, ev, session)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1611, in add_evaluation_to_database
+    session.flush()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4341, in flush
+    self._flush(objects)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4476, in _flush
+    with util.safe_reraise():
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4437, in _flush
+    flush_context.execute()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 1143, in _emit_insert_statements
+    result = connection.execute(
+             ^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1418, in execute
+    return meth(
+           ^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 515, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1640, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1844, in _execute_context
+    return self._exec_insertmany_context(dialect, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2124, in _exec_insertmany_context
+    self._handle_dbapi_exception(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2353, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2116, in _exec_insertmany_context
+    dialect.do_execute(
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 924, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.IntegrityError: (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+[SQL: INSERT INTO "Event" (scenario_id, vehicle_type_id, vehicle_id, station_id, area_id, subloc_no, trip_id, time_start, time_end, soc_start, soc_end, event_type, description, timeseries) SELECT p0::BIGINT, p1::BIGINT, p2::BIGINT, p3::BIGINT, p4::BIGINT,  ... 2853 characters truncated ...  p9, p10, p11, p12, p13, sen_counter) ORDER BY sen_counter RETURNING "Event".id, "Event".id AS id__1]
+[parameters: {'station_id__0': None, 'subloc_no__0': 1, 'scenario_id__0': 25, 'event_type__0': 'SERVICE', 'soc_end__0': -0.434668320075837, 'vehicle_type_id__0': 86, 'area_id__0': 4, 'time_end__0': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__0': 51, 'time_start__0': datetime.datetime(2022, 3, 7, 17, 3, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__0': '2', 'soc_start__0': -0.434668320075837, 'trip_id__0': None, 'timeseries__0': 'null', 'station_id__1': None, 'subloc_no__1': 1, 'scenario_id__1': 25, 'event_type__1': 'SERVICE', 'soc_end__1': -0.434668320075837, 'vehicle_type_id__1': 86, 'area_id__1': 3, 'time_end__1': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__1': 51, 'time_start__1': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__1': '1', 'soc_start__1': -0.434668320075837, 'trip_id__1': None, 'timeseries__1': 'null', 'station_id__2': None, 'subloc_no__2': 1, 'scenario_id__2': 25, 'event_type__2': 'SERVICE', 'soc_end__2': -0.434668320075837, 'vehicle_type_id__2': 86, 'area_id__2': 5, 'time_end__2': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__2': 51, 'time_start__2': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__2': '5', 'soc_start__2': -0.434668320075837, 'trip_id__2': None, 'timeseries__2': 'null', 'station_id__3': None, 'subloc_no__3': 7, 'scenario_id__3': 25, 'event_type__3': 'CHARGING_DEPOT', 'soc_end__3': 1.0, 'vehicle_type_id__3': 86, 'area_id__3': 2, 'time_end__3': datetime.datetime(2022, 3, 7, 20, 6, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))) ... 40 parameters truncated ... 'area_id__6': 3, 'time_end__6': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__6': 51, 'time_start__6': datetime.datetime(2022, 3, 8, 3, 45, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__6': '1', 'soc_start__6': -0.434668320075837, 'trip_id__6': None, 'timeseries__6': 'null', 'station_id__7': None, 'subloc_no__7': 1, 'scenario_id__7': 25, 'event_type__7': 'SERVICE', 'soc_end__7': -0.434668320075837, 'vehicle_type_id__7': 86, 'area_id__7': 5, 'time_end__7': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__7': 51, 'time_start__7': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__7': '5', 'soc_start__7': -0.434668320075837, 'trip_id__7': None, 'timeseries__7': 'null', 'station_id__8': None, 'subloc_no__8': 7, 'scenario_id__8': 25, 'event_type__8': 'CHARGING_DEPOT', 'soc_end__8': 1.0, 'vehicle_type_id__8': 86, 'area_id__8': 2, 'time_end__8': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__8': 51, 'time_start__8': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__8': '3', 'soc_start__8': -0.434668320075837, 'trip_id__8': None, 'timeseries__8': 'null', 'station_id__9': None, 'subloc_no__9': 7, 'scenario_id__9': 25, 'event_type__9': 'STANDBY_DEPARTURE', 'soc_end__9': 1.0, 'vehicle_type_id__9': 86, 'area_id__9': 2, 'time_end__9': datetime.datetime(2022, 3, 8, 8, 2, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__9': 51, 'time_start__9': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__9': '4', 'soc_start__9': 1.0, 'trip_id__9': None, 'timeseries__9': 'null'}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 1167, in _run_ebus_toolchain
+    run_eflips(task_id)
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 1361, in run_eflips
+    simulate_scenario(db_scenario, database_url=db_url, repetition_period=period)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/__init__.py", line 1220, in simulate_scenario
+    with create_session(scenario, database_url) as (session, scenario):
+  File "/opt/homebrew/Cellar/python@3.11/3.11.9_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/eflips/depot/api/private/util.py", line 79, in create_session
+    session.commit()
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2017, in commit
+    trans.commit(_to_root=True)
+  File "<string>", line 2, in commit
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/state_changes.py", line 103, in _go
+    self._raise_for_prerequisite_state(fn.__name__, current_state)
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 973, in _raise_for_prerequisite_state
+    raise sa_exc.PendingRollbackError(
+sqlalchemy.exc.PendingRollbackError: This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "ebustoolbox_event_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+[SQL: INSERT INTO "Event" (scenario_id, vehicle_type_id, vehicle_id, station_id, area_id, subloc_no, trip_id, time_start, time_end, soc_start, soc_end, event_type, description, timeseries) SELECT p0::BIGINT, p1::BIGINT, p2::BIGINT, p3::BIGINT, p4::BIGINT,  ... 2853 characters truncated ...  p9, p10, p11, p12, p13, sen_counter) ORDER BY sen_counter RETURNING "Event".id, "Event".id AS id__1]
+[parameters: {'station_id__0': None, 'subloc_no__0': 1, 'scenario_id__0': 25, 'event_type__0': 'SERVICE', 'soc_end__0': -0.434668320075837, 'vehicle_type_id__0': 86, 'area_id__0': 4, 'time_end__0': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__0': 51, 'time_start__0': datetime.datetime(2022, 3, 7, 17, 3, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__0': '2', 'soc_start__0': -0.434668320075837, 'trip_id__0': None, 'timeseries__0': 'null', 'station_id__1': None, 'subloc_no__1': 1, 'scenario_id__1': 25, 'event_type__1': 'SERVICE', 'soc_end__1': -0.434668320075837, 'vehicle_type_id__1': 86, 'area_id__1': 3, 'time_end__1': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__1': 51, 'time_start__1': datetime.datetime(2022, 3, 7, 17, 8, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__1': '1', 'soc_start__1': -0.434668320075837, 'trip_id__1': None, 'timeseries__1': 'null', 'station_id__2': None, 'subloc_no__2': 1, 'scenario_id__2': 25, 'event_type__2': 'SERVICE', 'soc_end__2': -0.434668320075837, 'vehicle_type_id__2': 86, 'area_id__2': 5, 'time_end__2': datetime.datetime(2022, 3, 7, 17, 43, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__2': 51, 'time_start__2': datetime.datetime(2022, 3, 7, 17, 38, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__2': '5', 'soc_start__2': -0.434668320075837, 'trip_id__2': None, 'timeseries__2': 'null', 'station_id__3': None, 'subloc_no__3': 7, 'scenario_id__3': 25, 'event_type__3': 'CHARGING_DEPOT', 'soc_end__3': 1.0, 'vehicle_type_id__3': 86, 'area_id__3': 2, 'time_end__3': datetime.datetime(2022, 3, 7, 20, 6, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))) ... 40 parameters truncated ... 'area_id__6': 3, 'time_end__6': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__6': 51, 'time_start__6': datetime.datetime(2022, 3, 8, 3, 45, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__6': '1', 'soc_start__6': -0.434668320075837, 'trip_id__6': None, 'timeseries__6': 'null', 'station_id__7': None, 'subloc_no__7': 1, 'scenario_id__7': 25, 'event_type__7': 'SERVICE', 'soc_end__7': -0.434668320075837, 'vehicle_type_id__7': 86, 'area_id__7': 5, 'time_end__7': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__7': 51, 'time_start__7': datetime.datetime(2022, 3, 8, 4, 15, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__7': '5', 'soc_start__7': -0.434668320075837, 'trip_id__7': None, 'timeseries__7': 'null', 'station_id__8': None, 'subloc_no__8': 7, 'scenario_id__8': 25, 'event_type__8': 'CHARGING_DEPOT', 'soc_end__8': 1.0, 'vehicle_type_id__8': 86, 'area_id__8': 2, 'time_end__8': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__8': 51, 'time_start__8': datetime.datetime(2022, 3, 8, 4, 20, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__8': '3', 'soc_start__8': -0.434668320075837, 'trip_id__8': None, 'timeseries__8': 'null', 'station_id__9': None, 'subloc_no__9': 7, 'scenario_id__9': 25, 'event_type__9': 'STANDBY_DEPARTURE', 'soc_end__9': 1.0, 'vehicle_type_id__9': 86, 'area_id__9': 2, 'time_end__9': datetime.datetime(2022, 3, 8, 8, 2, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'vehicle_id__9': 51, 'time_start__9': datetime.datetime(2022, 3, 8, 6, 43, 28, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600))), 'description__9': '4', 'soc_start__9': 1.0, 'trip_id__9': None, 'timeseries__9': 'null'}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) (Background on this error at: https://sqlalche.me/e/20/7s2a)
+
+INFO 2024-09-05 16:30:56,961 Simulation Finished.
+INFO 2024-09-05 16:30:56,964 SimBA is calculating. Showing wait view
+ERROR 2024-09-05 16:30:56,982 Internal Server Error: /simba/result/ce796766-d81c-470c-9545-9553bf5e2117/
+Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/views.py", line 69, in result_view
+    return wait_view(request, task_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/views.py", line 79, in wait_view
+    return render(request, "wait.html", {"task_id": task_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader.py", line 62, in render_to_string
+    return template.render(context, request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/backends/django.py", line 61, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/test/utils.py", line 111, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/test/utils.py", line 111, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/defaulttags.py", line 479, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/urls/base.py", line 88, in reverse
+    return resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/urls/resolvers.py", line 851, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'result' with no arguments not found. 1 pattern(s) tried: ['simba/result/(?P<task_id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/\\Z']
+INFO 2024-09-05 16:32:34,148 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:32:34,450 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:32:34,453 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:32:34,458 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:32:34,464 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:32:34,522 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:32:34,766 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:32:34,896 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:32:35,133 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:32:35,402 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:32:35,567 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:32:35,839 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:32:36,066 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:32:36,300 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:32:36,662 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:32:36,969 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:32:37,217 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:32:37,220 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:32:37,224 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:32:37,230 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:32:37,271 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:32:37,735 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:32:38,008 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:32:38,014 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:32:38,021 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:32:38,033 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:32:38,098 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:32:38,178 Running Simba 2024-09-05 16:32:38.178358
+INFO 2024-09-05 16:32:38,193 Creating Simba Events 2024-09-05 16:32:38.193701
+INFO 2024-09-05 16:32:38,873 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:32:39,132 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:32:39,135 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:32:39,139 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:32:39,145 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:32:39,314 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:32:39,375 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:32:39,424 Running Simba 2024-09-05 16:32:39.424668
+INFO 2024-09-05 16:32:39,441 Creating Simba Events 2024-09-05 16:32:39.441324
+INFO 2024-09-05 16:32:40,635 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:32:40,943 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:32:40,946 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:32:40,951 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:32:40,956 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:32:41,031 Storing root scenario as parent 2024-09-05 16:32:41.031446
+INFO 2024-09-05 16:32:41,238 Getting schedule from db 2024-09-05 16:32:41.238364
+INFO 2024-09-05 16:32:41,248 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:32:41,334 Running Simba 2024-09-05 16:32:41.334670
+INFO 2024-09-05 16:32:41,349 Creating Simba Events 2024-09-05 16:32:41.349893
+ERROR 2024-09-05 16:32:41,437 Traceback (most recent call last):
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 1162, in _run_ebus_toolchain
+    schedule, simba_scenario = run_simba(
+                               ^^^^^^^^^^
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 1299, in run_simba
+    core.reset_postgres_auto_increments(apps=[Event._meta.app_label])
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'core' has no attribute 'reset_postgres_auto_increments'
+
+INFO 2024-09-05 16:32:41,453 SimBA is calculating. Showing wait view
+ERROR 2024-09-05 16:32:41,481 Internal Server Error: /simba/result/726a1995-3f06-487f-b5e8-78391200901c/
+Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/views.py", line 69, in result_view
+    return wait_view(request, task_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/views.py", line 79, in wait_view
+    return render(request, "wait.html", {"task_id": task_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader.py", line 62, in render_to_string
+    return template.render(context, request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/backends/django.py", line 61, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/test/utils.py", line 111, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/test/utils.py", line 111, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/defaulttags.py", line 479, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/urls/base.py", line 88, in reverse
+    return resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/urls/resolvers.py", line 851, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'result' with no arguments not found. 1 pattern(s) tried: ['simba/result/(?P<task_id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/\\Z']
+INFO 2024-09-05 16:32:42,168 Saving scenario and simulating
+INFO 2024-09-05 16:32:42,168 Writing to db
+INFO 2024-09-05 16:32:42,183 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:32:42,477 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:32:42,480 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:32:42,484 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:32:42,489 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:32:42,530 task_id='0911a26f-856c-41be-83ee-2f621fea7431'
+INFO 2024-09-05 16:32:42,531 Storing root scenario as parent 2024-09-05 16:32:42.531363
+INFO 2024-09-05 16:32:42,707 Getting schedule from db 2024-09-05 16:32:42.707080
+INFO 2024-09-05 16:32:42,718 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:32:42,804 Running Simba 2024-09-05 16:32:42.804391
+INFO 2024-09-05 16:32:42,820 Creating Simba Events 2024-09-05 16:32:42.820104
+ERROR 2024-09-05 16:32:42,982 Traceback (most recent call last):
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 1162, in _run_ebus_toolchain
+    schedule, simba_scenario = run_simba(
+                               ^^^^^^^^^^
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 1299, in run_simba
+    core.reset_postgres_auto_increments(apps=[Event._meta.app_label])
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'core' has no attribute 'reset_postgres_auto_increments'
+
+INFO 2024-09-05 16:32:42,984 Simulation Finished.
+INFO 2024-09-05 16:32:42,987 SimBA is calculating. Showing wait view
+ERROR 2024-09-05 16:32:43,003 Internal Server Error: /simba/result/0911a26f-856c-41be-83ee-2f621fea7431/
+Traceback (most recent call last):
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/views.py", line 69, in result_view
+    return wait_view(request, task_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/views.py", line 79, in wait_view
+    return render(request, "wait.html", {"task_id": task_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader.py", line 62, in render_to_string
+    return template.render(context, request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/backends/django.py", line 61, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/test/utils.py", line 111, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/test/utils.py", line 111, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 1000, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/base.py", line 961, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/template/defaulttags.py", line 479, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/urls/base.py", line 88, in reverse
+    return resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Library/Caches/pypoetry/virtualenvs/django-simba-y9ifiZB9-py3.11/lib/python3.11/site-packages/django/urls/resolvers.py", line 851, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'result' with no arguments not found. 1 pattern(s) tried: ['simba/result/(?P<task_id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/\\Z']
+INFO 2024-09-05 16:33:43,340 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:33:43,636 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:33:43,641 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:33:43,647 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:33:43,658 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:33:43,743 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:43,982 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:44,075 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:44,293 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:44,554 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:44,689 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:44,987 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:45,155 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:45,392 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:45,743 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:46,049 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:33:46,302 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:33:46,306 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:33:46,311 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:33:46,323 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:33:46,462 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:46,958 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:33:47,221 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:33:47,224 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:33:47,229 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:33:47,241 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:33:47,302 Storing root scenario as parent 2024-09-05 16:33:47.302867
+INFO 2024-09-05 16:33:47,584 Getting schedule from db 2024-09-05 16:33:47.584654
+INFO 2024-09-05 16:33:47,599 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:47,675 Running Simba 2024-09-05 16:33:47.675019
+INFO 2024-09-05 16:33:47,691 Creating Simba Events 2024-09-05 16:33:47.691488
+INFO 2024-09-05 16:33:47,810 Running eflips 2024-09-05 16:33:47.810662
+INFO 2024-09-05 16:33:48,318 Running Simba 2024-09-05 16:33:48.318402
+INFO 2024-09-05 16:33:48,336 Creating Simba Events 2024-09-05 16:33:48.336581
+INFO 2024-09-05 16:33:48,521 Running Simba 2024-09-05 16:33:48.521462
+WARNING 2024-09-05 16:33:48,544 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:33:48,552 Station Station-42 does not have a power per charger
+WARNING 2024-09-05 16:33:48,553 Station Station-0 does not have a power per charger
+INFO 2024-09-05 16:33:48,555 Creating Simba Events 2024-09-05 16:33:48.555505
+INFO 2024-09-05 16:33:48,647 Running eflips 2024-09-05 16:33:48.647934
+INFO 2024-09-05 16:33:48,996 Running Simba 2024-09-05 16:33:48.996720
+INFO 2024-09-05 16:33:49,013 Creating Simba Events 2024-09-05 16:33:49.013161
+INFO 2024-09-05 16:33:49,442 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:33:49,719 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:33:49,722 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:33:49,726 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:33:49,731 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:33:49,788 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:49,883 Running Simba 2024-09-05 16:33:49.883523
+INFO 2024-09-05 16:33:49,899 Creating Simba Events 2024-09-05 16:33:49.899433
+INFO 2024-09-05 16:33:50,012 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:50,059 Running Simba 2024-09-05 16:33:50.059088
+INFO 2024-09-05 16:33:50,076 Creating Simba Events 2024-09-05 16:33:50.076776
+INFO 2024-09-05 16:33:50,751 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:33:51,005 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:33:51,008 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:33:51,013 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:33:51,018 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:33:51,207 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:51,273 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:51,319 Running Simba 2024-09-05 16:33:51.319403
+INFO 2024-09-05 16:33:51,334 Creating Simba Events 2024-09-05 16:33:51.334863
+INFO 2024-09-05 16:33:51,449 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:51,491 Running Simba 2024-09-05 16:33:51.491843
+INFO 2024-09-05 16:33:51,509 Creating Simba Events 2024-09-05 16:33:51.509176
+INFO 2024-09-05 16:33:51,748 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:51,831 Running Simba 2024-09-05 16:33:51.831010
+INFO 2024-09-05 16:33:51,846 Creating Simba Events 2024-09-05 16:33:51.846786
+INFO 2024-09-05 16:33:52,069 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:52,143 Running Simba 2024-09-05 16:33:52.143512
+INFO 2024-09-05 16:33:52,161 Creating Simba Events 2024-09-05 16:33:52.161618
+INFO 2024-09-05 16:33:53,328 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:33:53,631 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:33:53,635 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:33:53,640 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:33:53,647 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:33:53,708 Storing root scenario as parent 2024-09-05 16:33:53.708015
+INFO 2024-09-05 16:33:53,921 Getting schedule from db 2024-09-05 16:33:53.921062
+INFO 2024-09-05 16:33:53,937 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:33:54,018 Running Simba 2024-09-05 16:33:54.018252
+INFO 2024-09-05 16:33:54,034 Creating Simba Events 2024-09-05 16:33:54.034731
+INFO 2024-09-05 16:33:54,211 Running eflips 2024-09-05 16:33:54.211365
+INFO 2024-09-05 16:33:54,565 Running Simba 2024-09-05 16:33:54.565510
+INFO 2024-09-05 16:33:54,581 Creating Simba Events 2024-09-05 16:33:54.581072
+INFO 2024-09-05 16:33:54,671 Running Simba 2024-09-05 16:33:54.671793
+WARNING 2024-09-05 16:33:54,692 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:33:54,697 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:33:54,703 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:33:54,703 Creating Simba Events 2024-09-05 16:33:54.703636
+INFO 2024-09-05 16:33:54,790 Running eflips 2024-09-05 16:33:54.790607
+INFO 2024-09-05 16:33:55,136 Running Simba 2024-09-05 16:33:55.136876
+INFO 2024-09-05 16:33:55,154 Creating Simba Events 2024-09-05 16:33:55.154804
+INFO 2024-09-05 16:34:01,982 Saving scenario and simulating
+INFO 2024-09-05 16:34:01,983 Writing to db
+INFO 2024-09-05 16:34:01,998 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-09-05 16:34:02,278 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:34:02,282 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:34:02,286 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:34:02,293 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-09-05 16:34:02,335 task_id='531e361d-a99d-4632-b0e5-e1cfed789455'
+INFO 2024-09-05 16:34:02,337 Storing root scenario as parent 2024-09-05 16:34:02.337134
+INFO 2024-09-05 16:34:02,540 Getting schedule from db 2024-09-05 16:34:02.540208
+INFO 2024-09-05 16:34:02,558 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-09-05 16:34:02,653 Running Simba 2024-09-05 16:34:02.653572
+INFO 2024-09-05 16:34:02,670 Creating Simba Events 2024-09-05 16:34:02.670583
+INFO 2024-09-05 16:34:02,790 Running eflips 2024-09-05 16:34:02.790020
+INFO 2024-09-05 16:34:03,151 Running Simba 2024-09-05 16:34:03.151362
+INFO 2024-09-05 16:34:03,168 Creating Simba Events 2024-09-05 16:34:03.168652
+INFO 2024-09-05 16:34:03,270 Running Simba 2024-09-05 16:34:03.270846
+WARNING 2024-09-05 16:34:03,291 Station Station-0 does not have a power per charger
+WARNING 2024-09-05 16:34:03,297 Station Station-22 does not have a power per charger
+WARNING 2024-09-05 16:34:03,309 Station Station-42 does not have a power per charger
+INFO 2024-09-05 16:34:03,310 Creating Simba Events 2024-09-05 16:34:03.310070
+INFO 2024-09-05 16:34:03,405 Running eflips 2024-09-05 16:34:03.405006
+INFO 2024-09-05 16:34:03,735 Running Simba 2024-09-05 16:34:03.735597
+INFO 2024-09-05 16:34:03,837 Creating Simba Events 2024-09-05 16:34:03.837728
+INFO 2024-09-05 16:34:03,928 Simulation Finished.
+INFO 2024-10-21 16:44:19,057 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-10-21 16:44:19,346 Station Station-0 does not have a power per charger
+WARNING 2024-10-21 16:44:19,349 Station Station-22 does not have a power per charger
+WARNING 2024-10-21 16:44:19,354 Station Station-42 does not have a power per charger
+INFO 2024-10-21 16:44:19,359 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-10-21 16:44:19,447 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:19,703 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:19,820 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:20,053 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:20,322 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:20,477 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:20,758 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:20,931 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:21,189 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:21,557 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:21,875 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-10-21 16:44:22,148 Station Station-0 does not have a power per charger
+WARNING 2024-10-21 16:44:22,151 Station Station-22 does not have a power per charger
+WARNING 2024-10-21 16:44:22,154 Station Station-42 does not have a power per charger
+INFO 2024-10-21 16:44:22,159 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-10-21 16:44:22,208 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:22,288 Running Simba 2024-10-21 16:44:22.288912 with mode None
+INFO 2024-10-21 16:44:22,304 Creating Simba Events 2024-10-21 16:44:22.304226
+INFO 2024-10-21 16:44:22,426 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:22,485 Running Simba 2024-10-21 16:44:22.485284 with mode None
+INFO 2024-10-21 16:44:22,505 Creating Simba Events 2024-10-21 16:44:22.505209
+INFO 2024-10-21 16:44:23,262 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-10-21 16:44:23,515 Station Station-0 does not have a power per charger
+WARNING 2024-10-21 16:44:23,518 Station Station-22 does not have a power per charger
+WARNING 2024-10-21 16:44:23,522 Station Station-42 does not have a power per charger
+INFO 2024-10-21 16:44:23,527 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-10-21 16:44:23,703 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:23,759 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:23,802 Running Simba 2024-10-21 16:44:23.802524 with mode None
+INFO 2024-10-21 16:44:23,819 Creating Simba Events 2024-10-21 16:44:23.819982
+INFO 2024-10-21 16:44:23,944 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:23,990 Running Simba 2024-10-21 16:44:23.990111 with mode None
+INFO 2024-10-21 16:44:24,007 Creating Simba Events 2024-10-21 16:44:24.006995
+INFO 2024-10-21 16:44:24,283 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:24,362 Running Simba 2024-10-21 16:44:24.362050 with mode None
+INFO 2024-10-21 16:44:24,377 Creating Simba Events 2024-10-21 16:44:24.377558
+INFO 2024-10-21 16:44:24,620 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:24,701 Running Simba 2024-10-21 16:44:24.701288 with mode None
+INFO 2024-10-21 16:44:24,719 Creating Simba Events 2024-10-21 16:44:24.719435
+INFO 2024-10-21 16:44:37,010 default_optimizer.cfg not found. Optimizer config will use default values
+WARNING 2024-10-21 16:44:37,526 Station Station-0 does not have a power per charger
+WARNING 2024-10-21 16:44:37,529 Station Station-22 does not have a power per charger
+WARNING 2024-10-21 16:44:37,533 Station Station-42 does not have a power per charger
+INFO 2024-10-21 16:44:37,553 Deleting 0 rotations since they dont start or end at electrified station:[]
+INFO 2024-10-21 16:44:37,761 Getting schedule from db 2024-10-21 16:44:37.761123
+INFO 2024-10-21 16:44:37,805 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-10-21 16:44:37,987 Running Simba 2024-10-21 16:44:37.987537 with mode sim
+INFO 2024-10-21 16:44:38,004 Creating Simba Events 2024-10-21 16:44:38.004840
+INFO 2024-10-21 16:44:38,266 Running eflips 2024-10-21 16:44:38.266648
+INFO 2024-10-21 16:44:38,793 Running Simba 2024-10-21 16:44:38.793631 with mode sim
+INFO 2024-10-21 16:44:38,809 Creating Simba Events 2024-10-21 16:44:38.809608
+INFO 2024-10-21 16:44:38,906 Running Simba 2024-10-21 16:44:38.906126 with mode station_optimization
+WARNING 2024-10-21 16:44:38,925 Station Station-0 does not have a power per charger
+WARNING 2024-10-21 16:44:38,933 Station Station-22 does not have a power per charger
+WARNING 2024-10-21 16:44:38,938 Station Station-42 does not have a power per charger
+INFO 2024-10-21 16:44:38,939 Creating Simba Events 2024-10-21 16:44:38.939117
+INFO 2024-10-21 16:44:39,028 Running eflips 2024-10-21 16:44:39.028769
+INFO 2024-10-21 16:44:39,418 Running Simba 2024-10-21 16:44:39.418618 with mode sim
+INFO 2024-10-21 16:44:39,434 Creating Simba Events 2024-10-21 16:44:39.434900
+INFO 2024-12-03 13:05:57,727 Watching for file changes with StatReloader
+INFO 2024-12-03 13:05:59,894 "GET / HTTP/1.1" 200 14838
+INFO 2024-12-03 13:05:59,924 "GET /static/templates/js/custom.js HTTP/1.1" 200 1960
+INFO 2024-12-03 13:05:59,925 "GET /static/bs_additional_styles.css HTTP/1.1" 200 1592
+INFO 2024-12-03 13:05:59,925 "GET /static/mystyle.css HTTP/1.1" 200 2621
+INFO 2024-12-03 13:05:59,926 "GET /static/styles.css HTTP/1.1" 200 180074
+INFO 2024-12-03 13:05:59,926 "GET /static/custom_scss.css HTTP/1.1" 200 216263
+INFO 2024-12-03 13:06:00,298 "GET /static/templates/img/tool-logo.png HTTP/1.1" 200 2481
+INFO 2024-12-03 13:06:00,300 "GET /static/templates/img/tu_icon.png HTTP/1.1" 200 80350
+INFO 2024-12-03 13:06:00,300 "GET /static/templates/img/bmdv_icon.jpg HTTP/1.1" 200 166037
+INFO 2024-12-03 13:06:00,301 "GET /static/templates/img/RLI_Logo.png HTTP/1.1" 200 77495
+INFO 2024-12-03 13:06:00,302 "GET /static/templates/img/bvg_icon.png HTTP/1.1" 200 41675
+INFO 2024-12-03 13:06:00,367 "GET /static/templates/img/bg_bus.png HTTP/1.1" 200 3961434
+INFO 2024-12-03 13:06:00,381 "GET /static/core/favicon.png HTTP/1.1" 200 980
+INFO 2024-12-03 13:06:02,110 "GET /simba/scenarios/ HTTP/1.1" 302 0
+INFO 2024-12-03 13:06:02,125 "GET /login/?next=/simba/scenarios/ HTTP/1.1" 200 7034
+INFO 2024-12-03 13:06:03,486 "GET / HTTP/1.1" 200 14838
+INFO 2024-12-03 13:06:04,301 "GET /simba/input/schedule/ HTTP/1.1" 200 11011
+INFO 2024-12-03 13:06:05,977 "GET /simba/input/get_options/7c81ee36-da71-40a4-b857-e9db66a400c2/1 HTTP/1.1" 200 3126
+INFO 2024-12-03 13:06:07,185 "GET /static/ebustoolbox/examples/trips_example.csv HTTP/1.1" 200 7139
+ERROR 2024-12-03 13:06:13,756 Traceback (most recent call last):
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 756, in init_db_with_trips
+    scenario.simba_options = vars(get_args(scenario))
+                                  ^^^^^^^^^^^^^^^^^^
+  File "/Users/arbeit/Documents/Arbeit/Software/django-simba/ebustoolbox/tasks.py", line 533, in get_args
+    args = simba.util.replace_deprecated_arguments(args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'simba.util' has no attribute 'replace_deprecated_arguments'
+
+INFO 2024-12-03 13:06:13,769 "POST /simba/upload_trips/7c81ee36-da71-40a4-b857-e9db66a400c2/1 HTTP/1.1" 200 184
+INFO 2024-12-03 13:06:14,429 "GET /simba/progress/1cf6f93f-00b4-4c0a-8f08-879492524b00/simba:schedule HTTP/1.1" 286 421
+INFO 2024-12-03 13:09:17,932 Watching for file changes with StatReloader
+INFO 2024-12-03 16:33:30,667 "GET / HTTP/1.1" 200 14838
+INFO 2024-12-03 16:33:32,496 "GET /simba/input/schedule/ HTTP/1.1" 200 11011
+INFO 2024-12-03 16:33:33,734 "GET /simba/input/get_options/d97f0536-a2b2-4905-bb36-ac72a07be3ff/1 HTTP/1.1" 200 3126
+INFO 2024-12-03 16:33:35,049 "GET /static/ebustoolbox/examples/trips_example.csv HTTP/1.1" 200 7139
+INFO 2024-12-03 16:33:38,436 default_optimizer.cfg not found. Optimizer config will use default values
+INFO 2024-12-03 16:33:38,472 1 Depot Stations found
+INFO 2024-12-03 16:33:38,513 "POST /simba/upload_trips/d97f0536-a2b2-4905-bb36-ac72a07be3ff/1 HTTP/1.1" 200 184
+INFO 2024-12-03 16:33:39,160 "GET /simba/progress/aef76995-1082-470f-8d6e-ea72e74230e7/simba:schedule HTTP/1.1" 286 317
+INFO 2024-12-03 16:33:39,180 "GET /simba/input/schedule/d97f0536-a2b2-4905-bb36-ac72a07be3ff/true HTTP/1.1" 302 0
+INFO 2024-12-03 16:33:39,204 "GET /simba/input/simulation_parameters/d97f0536-a2b2-4905-bb36-ac72a07be3ff HTTP/1.1" 200 12311
+INFO 2024-12-03 16:33:41,238 "POST /simba/input/simulation_parameters/d97f0536-a2b2-4905-bb36-ac72a07be3ff HTTP/1.1" 302 0
+INFO 2024-12-03 16:33:41,271 "GET /simba/input/vehicle_types/d97f0536-a2b2-4905-bb36-ac72a07be3ff HTTP/1.1" 200 33325
