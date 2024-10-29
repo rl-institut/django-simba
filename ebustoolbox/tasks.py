@@ -506,16 +506,16 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
             args[k] = float(v)
     # set default files if not given
     for k, v in {
-        "input_schedule": "trips_example.csv",
-        "electrified_stations": "electrified_stations.json",
+        "schedule_path": "trips_example.csv",
+        "electrified_stations_path": "electrified_stations.json",
         "vehicle_types_path": "vehicle_types.json",
         "station_data_path": "all_stations.csv",
         "outside_temperature_over_day_path": "default_temp_summer.csv",
         "consumption_path": "energy_consumption_example.csv",
         "temperature_time_series_path": "temperature_time_series.csv",
         "level_of_loading_over_day_path": "default_level_of_loading_over_day.csv",
-        "cost_parameters_file": "cost_params.json",
-        "optimizer_config": "default_optimizer.cfg",
+        "cost_parameters_path": "cost_params.json",
+        "optimizer_config_path": "default_optimizer.cfg",
     }.items():
         if args[k]:
             # uploaded file: store in upload folder
