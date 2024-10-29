@@ -224,6 +224,15 @@ def build_scenario():
     django_scenario, simba_schedule, args = tasks.input_files_to_database(
         form.cleaned_data, request
     )
+
+    for station in Station.objects.filter(scenario=django_scenario):
+        if station.amount_charging_places is None:
+            station.amount_charging_places = 1
+        if station.power_per_charger is None:
+            station.power_per_charger = django_scenario.simba_options["cs_power_opps"]
+        if station.power_total is None:
+            station.power_total = django_scenario.simba_options["gc_power_opps"]
+        station.save()
     return django_scenario, simba_schedule, args
 
 
@@ -242,18 +251,21 @@ class WriteReadScenarioToDatabase(TestCase):
 
         # get the schedule and args from the db
         simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
+
         # get a vehicle_type which is "used"
-        vehicle = Rotation.objects.filter(scenario=django_scenario)[0].vehicle
+        vehicle = Rotation.objects.filter(scenario=django_scenario).first().vehicle
         vehicle_type = vehicle.vehicle_type
         consumption_table = Consumption.objects.get(vehicle_class__vehicletype=vehicle_type)
 
         station = Station.objects.get(scenario=django_scenario, name="Station-0")
+        vehicle_type.charging_curve[1][1] = vehicle_type.charging_curve[0][1] * 0.8
+        vehicle_type.save()
 
         # mutate with instance, field name, value
         mutations = [
             (vehicle_type, "battery_capacity", 1),
             (vehicle_type, "charging_efficiency", 0.1),
-            (vehicle_type, "minimum_charging_power", vehicle_type.charging_curve[0][1] * 0.99),
+            (vehicle_type, "minimum_charging_power", vehicle_type.charging_curve[0][1] * 0.9),
             (
                 vehicle_type,
                 "charging_curve",
