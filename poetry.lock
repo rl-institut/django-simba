@@ -2540,8 +2540,8 @@ develop = false
 [package.source]
 type = "git"
 url = "https://github.com/rl-institut/SimBA"
-reference = "dev"
-resolved_reference = "598b02cd51eab3d3f8d1aedec7dc10b4e8b03d9c"
+reference = "hotfix/fix_mode_station_optimization"
+resolved_reference = "4468b1f2321de1e803a21d8b996f9c53558bf5ca"
 
 [[package]]
 name = "simpy"
@@ -2953,4 +2953,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10, <3.12"
-content-hash = "280c9863086ec07e5816228b987e1fb16dfba60b1480b8a00e6c2c88647d8a36"
+content-hash = "3a1b7c413d06b8a5dcf1429ddf39e30b932b83cd1f69ede145cd888a7ecb3851"
