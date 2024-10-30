@@ -65,7 +65,7 @@ def get_ganttchart_scenario_eflips(app: Dash):
         task_id = session_state["task_id"]
 
         # Check the simulation status
-        if not data.get_sim_done_status(task_id):
+        if not data.sim_is_finished(task_id):
             return go.Figure(layout=dict(template="plotly")), "", "", task_id
         else:
 
@@ -123,7 +123,7 @@ def get_vehicle_soc_plot_eflips(app: Dash):
 
         fig = go.Figure(layout=dict(template="plotly"))
 
-        if not data.get_sim_done_status(task_id):
+        if data.sim_is_finished(task_id):
             if vehicle_id is None:
                 raise PreventUpdate
 
@@ -152,7 +152,7 @@ def get_power_and_occupancy_plot_eflips(app: Dash):
 
         fig = go.Figure(layout=dict(template="plotly"))
 
-        if not data.get_sim_done_status(task_id):
+        if data.sim_is_finished(task_id):
 
             from ebustoolbox.models import Scenario as ebusScenario
 
@@ -189,7 +189,7 @@ def get_specific_energy_eflips(app: Dash):
 
         fig = go.Figure(layout=dict(template="plotly"))
 
-        if not data.get_sim_done_status(session_state["task_id"]):
+        if data.sim_is_finished(session_state["task_id"]):
 
             from ebustoolbox.models import Scenario as ebusScenario
 

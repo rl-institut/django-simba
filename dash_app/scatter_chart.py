@@ -31,7 +31,7 @@ def render(app: Dash) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
-        if data.get_sim_done_status(task_id):
+        if not data.sim_is_finished(task_id):
             return html.Div(go.Figure(layout=dict(template="plotly")))
 
         df = data.get_soc_as_dataframe(s.id, buses)
@@ -82,7 +82,7 @@ def render_power_draw(app: Dash) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
-        if data.get_sim_done_status(task_id):
+        if not data.sim_is_finished(task_id):
             return html.Div(go.Figure(layout=dict(template="plotly")))
 
         df = data.get_powerdraw_as_dataframe(s.id, buses)
@@ -186,7 +186,7 @@ def render_single_station_occupation(app: Dash) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
-        if data.get_sim_done_status(task_id):
+        if not data.sim_is_finished(task_id):
             return html.Div(go.Figure(layout=dict(template="plotly")))
 
         df = data.get_powerdraw_as_dataframe(s.id, buses)
@@ -286,7 +286,7 @@ def render_station_occupation(app: Dash) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
-        if data.get_sim_done_status(task_id):
+        if not data.sim_is_finished(task_id):
             return html.Div(go.Figure(layout=dict(template="plotly")))
 
         df = data.get_powerdraw_as_dataframe(s.id, buses)
@@ -359,7 +359,7 @@ def render_scenario_powerdraw(app: Dash) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
-        if data.get_sim_done_status(task_id):
+        if not data.sim_is_finished(task_id):
             return html.Div(go.Figure(layout=dict(template="plotly")))
 
         df = data.get_powerdraw_as_dataframe(s.id, buses)

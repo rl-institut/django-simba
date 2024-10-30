@@ -33,7 +33,7 @@ def create_layout(app: Dash) -> Div:
         [Input(ids.TAB_SIMULATION, "value")],
     )
     def update_tab(_, session_state=None, dash_app=None, **kwargs):
-        disable_tabs = data.get_sim_done_status(dash_app.slug)
+        disable_tabs = not data.sim_is_finished(dash_app.slug)
         return (
             disable_tabs,
             disable_tabs,

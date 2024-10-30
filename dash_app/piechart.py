@@ -30,7 +30,7 @@ def render_critical_rotations(app: Dash) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
-        if data.get_sim_done_status(task_id):
+        if not data.sim_is_finished(task_id):
             return html.Div(go.Figure(layout=dict(template="plotly")))
 
         df = data.get_critical_rotations_as_dataframe(s.id, buses)
@@ -71,7 +71,7 @@ def render_bustype(app: Dash) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
-        if data.get_sim_done_status(task_id):
+        if not data.sim_is_finished(task_id):
             return html.Div(go.Figure(layout=dict(template="plotly")))
 
         df = data.get_vehicle_types(s.id, buses)

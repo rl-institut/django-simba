@@ -232,7 +232,7 @@ def get_number_longest_rot(filter_dict: dict):
 
     if (
         "vehicle__id__in" in filter_dict and len(filter_dict["vehicle__id__in"]) == 0
-    ) and not get_sim_done_status(task_id):
+    ) and sim_is_finished(task_id):
         raise PreventUpdate
 
     # Function calls annotate distance to Rotation
@@ -260,7 +260,7 @@ def get_number_shortest_rot(filter_dict: dict):
 
     if (
         "vehicle__id__in" in filter_dict and len(filter_dict["vehicle__id__in"]) == 0
-    ) and not get_sim_done_status(task_id):
+    ) and sim_is_finished(task_id):
         raise PreventUpdate
 
     # Function calls annotate distance to Rotation
@@ -824,5 +824,5 @@ def get_all_powerdraw_as_dataframe(scenario_id):
     return result_df
 
 
-def get_sim_done_status(task_id):
-    return not Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
+def sim_is_finished(task_id):
+    return Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
