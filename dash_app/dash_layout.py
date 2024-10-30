@@ -26,11 +26,11 @@ def create_layout(app: Dash) -> Div:
     # App layout
     @app.callback(
         [
-            Output("tab-simulation", "disabled"),
-            Output("tab-kpi", "disabled"),
-            Output("tab-eflips", "disabled"),
+            Output(ids.TAB_SIMULATION, "disabled"),
+            Output(ids.TAB_KPI, "disabled"),
+            Output(ids.TAB_EFLIPS, "disabled"),
         ],
-        [Input("tab-simulation", "value")],
+        [Input(ids.TAB_SIMULATION, "value")],
     )
     def update_tab(_, session_state=None, dash_app=None, **kwargs):
         disable_tabs = data.get_sim_done_status(dash_app.slug)
@@ -130,8 +130,7 @@ def create_layout(app: Dash) -> Div:
                                 ),
                                 dcc.Tab(
                                     label="KPI Tab",
-                                    id="tab-kpi",
-                                    value="tab-kpi",
+                                    id=ids.TAB_KPI,
                                     disabled=True,
                                     children=[
                                         html.Div(
@@ -154,12 +153,10 @@ def create_layout(app: Dash) -> Div:
                                 ),
                                 dcc.Tab(
                                     label="Simulation Plots",
-                                    id="tab-simulation",
-                                    value="tab-simulation",
+                                    id=ids.TAB_SIMULATION,
                                     disabled=True,
                                     children=[
                                         html.Div(
-                                            id="simulation-plots-container",  # Empty div for dynamic content
                                             children=block_bottom_center(app),
                                             # children=[dcc.Graph(id=ids.DIST_DUR_HISTOGRAM)],
                                             style={
@@ -171,7 +168,7 @@ def create_layout(app: Dash) -> Div:
                                 ),
                                 dcc.Tab(
                                     label="Depot Plots",
-                                    id="tab-eflips",
+                                    id=ids.TAB_EFLIPS,
                                     disabled=True,
                                     children=[
                                         register_eflips_callbacks(app),
@@ -181,7 +178,7 @@ def create_layout(app: Dash) -> Div:
                                                 "font": "arial",
                                             },
                                         ),
-                                        dcc.Store(id="task_id"),
+                                        dcc.Store(id=ids.EFLIPS_TASK_ID),
                                         html.Div("Select a color-scheme:"),
                                         dcc.Dropdown(
                                             ["Event Type", "State of Charge", "Location"],
@@ -189,8 +186,8 @@ def create_layout(app: Dash) -> Div:
                                             id=ids.EFLIPS_COLORSCHEME_DROPDOWN,
                                             style={"width": "30%"},
                                         ),
-                                        html.H2(id="scenario-name"),
-                                        html.H2(id="num-vehicles"),
+                                        html.H2(id=ids.EFLIPS_SCENARIO_NAME),
+                                        html.H2(id=ids.EFLIPS_NUM_VEHICLES),
                                         html.Div("Click on a bar to reveal the vehicle log."),
                                         html.Div(
                                             children=[

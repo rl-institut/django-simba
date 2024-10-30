@@ -33,9 +33,9 @@ def _create_engine_from_postgis_url() -> sqlalchemy.engine.Engine:
 def get_ganttchart_scenario_eflips(app: Dash):
     @app.callback(
         Output(ids.EFLIPS_GANTT, "figure"),
-        Output("scenario-name", "children"),
-        Output("num-vehicles", "children"),
-        Output("task_id", "data"),
+        Output(ids.EFLIPS_SCENARIO_NAME, "children"),
+        Output(ids.EFLIPS_NUM_VEHICLES, "children"),
+        Output(ids.EFLIPS_TASK_ID, "data"),
         Input(ids.EFLIPS_COLORSCHEME_DROPDOWN, "value"),
         Input(ids.APPLY_DROPDOWN, "n_clicks"),
         State(ids.BUS_DROPDOWN, "data"),
@@ -65,13 +65,12 @@ def get_ganttchart_scenario_eflips(app: Dash):
         task_id = session_state["task_id"]
 
         # Check the simulation status
-        if data.get_sim_done_status(task_id):
+        if not data.get_sim_done_status(task_id):
             return go.Figure(layout=dict(template="plotly")), "", "", task_id
         else:
-            # Create a connection to the database
-            engine = _create_engine_from_postgis_url()
 
             try:
+                engine = _create_engine_from_postgis_url()
                 with Session(engine) as session:
                     scenario = ebusScenario.objects.get(task_id=task_id)
                     scenario_id = scenario.id
@@ -118,52 +117,64 @@ def get_vehicle_soc_plot_eflips(app: Dash):
     @app.callback(
         Output(ids.EFLIPS_VEHICLE_SOC, "figure"),
         Input(ids.EFLIPS_CLICK_DATA, "children"),
-        Input("task_id", "data"),
+        Input(ids.EFLIPS_TASK_ID, "data"),
     )
     def get_vehicle_soc_plot(vehicle_id: int, task_id: str):
-        if data.get_sim_done_status(task_id):
-            return go.Figure(layout=dict(template="plotly"))
 
-        else:
+        fig = go.Figure(layout=dict(template="plotly"))
+
+        if not data.get_sim_done_status(task_id):
             if vehicle_id is None:
                 raise PreventUpdate
 
-            engine = _create_engine_from_postgis_url()
+            try:
+                engine = _create_engine_from_postgis_url()
+                with Session(engine) as session:
+                    vehicle_soc, descriptions = output_prepare.vehicle_soc(vehicle_id, session)
+                    fig = output_visualize.vehicle_soc(vehicle_soc, descriptions)
 
-            with Session(engine) as session:
-                vehicle_soc, descriptions = output_prepare.vehicle_soc(vehicle_id, session)
-                fig = output_visualize.vehicle_soc(vehicle_soc, descriptions)
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                raise
 
-            engine.dispose()
-            return fig
+            finally:
+                engine.dispose()
+
+        return fig
 
 
 def get_power_and_occupancy_plot_eflips(app: Dash):
     @app.callback(
         Output(ids.EFLIPS_POWER_AND_OCCUPANCY, "figure"),
-        Input("task_id", "data"),
+        Input(ids.EFLIPS_TASK_ID, "data"),
     )
     def get_power_and_occupancy_plot(task_id: str):
-        if data.get_sim_done_status(task_id):
-            return go.Figure(layout=dict(template="plotly"))
 
-        else:
+        fig = go.Figure(layout=dict(template="plotly"))
+
+        if not data.get_sim_done_status(task_id):
+
             from ebustoolbox.models import Scenario as ebusScenario
 
-            engine = _create_engine_from_postgis_url()
+            try:
+                engine = _create_engine_from_postgis_url()
+                with Session(engine) as session:
+                    scenario = ebusScenario.objects.get(task_id=task_id)
+                    scenario_id = scenario.id
+                    all_areas = session.query(Area).filter(Area.scenario_id == scenario_id).all()
+                    all_area_ids = [area.id for area in all_areas]
 
-            with Session(engine) as session:
-                scenario = ebusScenario.objects.get(task_id=task_id)
-                scenario_id = scenario.id
-                all_areas = session.query(Area).filter(Area.scenario_id == scenario_id).all()
-                all_area_ids = [area.id for area in all_areas]
+                    prepared_data = output_prepare.power_and_occupancy(all_area_ids, session)
+                    fig = output_visualize.power_and_occupancy(prepared_data)
 
-                prepared_data = output_prepare.power_and_occupancy(all_area_ids, session)
-                fig = output_visualize.power_and_occupancy(prepared_data)
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                raise
 
-            engine.dispose()
-            return fig
+            finally:
+                engine.dispose()
 
+        return fig
 
 def get_specific_energy_eflips(app: Dash):
     @app.callback(
@@ -175,28 +186,31 @@ def get_specific_energy_eflips(app: Dash):
     def get_specific_energy_plot(
         color_scheme_dropdown: str, _, busses, session_state: Dict[str, Any] | None
     ):
-        if data.get_sim_done_status(session_state["task_id"]):
-            return go.Figure(layout=dict(template="plotly"))
 
-        else:
+        fig = go.Figure(layout=dict(template="plotly"))
+
+        if not data.get_sim_done_status(session_state["task_id"]):
+
             from ebustoolbox.models import Scenario as ebusScenario
 
-            # Make sure that the session state is set and that the task id is in the session state
             if session_state is None:
                 raise ValueError("The session state must be set")
             if "task_id" not in session_state:
                 raise ValueError("The task id must be in the session state")
 
-            # Create a connection to the database
+            try:
+                engine = _create_engine_from_postgis_url()
+                with Session(engine) as session:
+                    scenario = ebusScenario.objects.get(task_id=session_state["task_id"])
+                    scenario_id = scenario.id
+                    prepared_data = output_prepare.specific_energy_consumption(scenario_id, session)
+                    fig = output_visualize.specific_energy_consumption(prepared_data)
 
-            engine = _create_engine_from_postgis_url()
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                raise
 
-            with Session(engine) as session:
-                scenario = ebusScenario.objects.get(task_id=session_state["task_id"])
-                scenario_id = scenario.id
-                prepared_data = output_prepare.specific_energy_consumption(scenario_id, session)
-                fig = output_visualize.specific_energy_consumption(prepared_data)
+            finally:
+                engine.dispose()
 
-            engine.dispose()
-            return fig
-
+        return fig
