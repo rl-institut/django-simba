@@ -303,6 +303,7 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
     lines_dict = {line.id: line for line in Line.objects.filter(scenario=django_scenario)}
     simba_trips = list()
     temperatures = Temperatures.objects.filter(scenario=django_scenario)
+    DEFAULT_LEVEL_OF_LOADING = 0
 
     for rot in Rotation.objects.filter(scenario=django_scenario).select_related(
         "vehicle_type", "vehicle"
@@ -318,6 +319,8 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
         # filled with non simba ingesters
         simba_id = rot.id
 
+        allowed_load = rot.vehicle_type.allowed_mass - rot.vehicle_type.empty_mass
+
         # select related means later db access can be skipped
         query = (
             Trip.objects.filter(rotation=rot)
@@ -326,6 +329,9 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
         )
 
         for trip in query:
+            level_of_loading = (trip.loaded_mass or DEFAULT_LEVEL_OF_LOADING) / allowed_load
+            if 1 < level_of_loading or 0 > level_of_loading:
+                logger.warning(f"Level of loading is out of [0,1] range for {trip.id=}")
             simba_trip_dict = {
                 "rotation_id": simba_id,
                 "departure_time": trip.departure_time,
@@ -340,7 +346,7 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
                     station_data[trip.route.arrival_station.to_simba_name()]["elevation"]
                     - station_data[trip.route.departure_station.to_simba_name()]["elevation"]
                 ),
-                "level_of_loading": trip.loaded_mass,
+                "level_of_loading": level_of_loading,
                 "mean_speed": trip.speed * 3.6,
                 "temperature": 20.0,
             }
