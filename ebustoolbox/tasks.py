@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List
 
 import environ
-import tqdm
 from celery import shared_task
 import django.apps
 from django.conf import settings
@@ -76,6 +75,7 @@ logger = logging.getLogger("custom")
 # ToDo: Any better solutions?
 INTEGER_INF = 9999
 MAX_AMOUNT_VEHICLES = 10000
+DEFAULT_TEMPERATURE = 20
 
 
 @atomic()
@@ -303,7 +303,7 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
     lines_dict = {line.id: line for line in Line.objects.filter(scenario=django_scenario)}
     simba_trips = list()
     temperatures = Temperatures.objects.filter(scenario=django_scenario)
-    DEFAULT_LEVEL_OF_LOADING = 0
+    DEFAULT_LOADED_MASS = 0
 
     for rot in Rotation.objects.filter(scenario=django_scenario).select_related(
         "vehicle_type", "vehicle"
@@ -319,8 +319,23 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
         # filled with non simba ingesters
         simba_id = rot.id
 
-        allowed_load = rot.vehicle_type.allowed_mass - rot.vehicle_type.empty_mass
-
+        try:
+            allowed_load = rot.vehicle_type.allowed_mass - rot.vehicle_type.empty_mass
+        except TypeError:
+            allowed_load = None
+        vehicle_classes = VehicleClass.objects.filter(vehicle_types=vehicle_type)
+        consumption_classes = vehicle_classes.exclude(consumption__isnull=True)
+        assert len(consumption_classes) <= 1
+        lut_consumption = False
+        if len(consumption_classes) == 1:
+            lut_consumption = True
+        if lut_consumption and allowed_load is None:
+            allowed_load = 1000
+            logger.warning(
+                f"{rot.id=} is serviced by a vehicle_type with a consumption lut. "
+                "The vehicle_type does not contain the allowed and empty mass. "
+                f"The allowed load will be set to {allowed_load} kg."
+            )
         # select related means later db access can be skipped
         query = (
             Trip.objects.filter(rotation=rot)
@@ -329,9 +344,19 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
         )
 
         for trip in query:
-            level_of_loading = (trip.loaded_mass or DEFAULT_LEVEL_OF_LOADING) / allowed_load
-            if 1 < level_of_loading or 0 > level_of_loading:
-                logger.warning(f"Level of loading is out of [0,1] range for {trip.id=}")
+            loaded_mass = trip.loaded_mass
+            level_of_loading = None
+            if allowed_load is not None:
+                if lut_consumption and loaded_mass is None:
+                    loaded_mass = DEFAULT_LOADED_MASS
+                    logger.warning(
+                        f"{trip.id=} has no loaded mass but the vehicle_type which services this "
+                        "trip needs a loaded mass for consumption look up and is set to "
+                        f"{loaded_mass}."
+                    )
+                level_of_loading = loaded_mass / allowed_load
+                if 1 < level_of_loading or 0 > level_of_loading:
+                    logger.warning(f"Level of loading is out of [0,1] range for {trip.id=}")
             simba_trip_dict = {
                 "rotation_id": simba_id,
                 "departure_time": trip.departure_time,
@@ -348,7 +373,7 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
                 ),
                 "level_of_loading": level_of_loading,
                 "mean_speed": trip.speed * 3.6,
-                "temperature": 20.0,
+                "temperature": DEFAULT_TEMPERATURE,
             }
             if temperatures.exists():
                 middle_time = trip.departure_time + 0.5 * (trip.arrival_time - trip.departure_time)
@@ -472,21 +497,19 @@ def get_args(django_scenario) -> Namespace:
 
     # Add default optimizer config
     p = Path(settings.STATIC_URL, __package__, "examples", "default_optimizer.cfg")
-    if p.is_file():
-        if settings.DEBUG:
-            # use app static folder
-            if p.is_absolute():
-                # remove first slash
-                p = Path(str(p)[1:])
-            p = Path(settings.BASE_DIR, __package__, p)
-        args.optimizer_config_path = str(p)
-    else:
-        logger.info("default_optimizer.cfg not found. Optimizer config will use default values")
+    # use app static folder
+    if p.is_absolute() and not p.is_file():
+        # remove first slash
+        p = Path(str(p)[1:])
+        p = Path(settings.BASE_DIR, __package__, p)
+    args.optimizer_config_path = str(p)
+    if not p.is_file():
+        logger.info("default_optimizer.cfg not found. Optimizer config will use default values.")
 
     # Overwrite args with scenario specific data
     if django_scenario.simba_options is not None:
         logger.debug(
-            f"Overwritting default arguments with {len(django_scenario.simba_options)} "
+            f"Overwriting default arguments with {len(django_scenario.simba_options)} "
             f"values from the database"
         )
         vars(args).update(vars(Namespace(**django_scenario.simba_options)))
@@ -543,85 +566,6 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
     scenario.save()
 
     return scenario
-
-
-def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario) -> None:
-    """Takes a simba Schedule and writes it into the db with the scenario as handle
-    :param schedule: simba Schedule
-    :param scenario: django model Scenario
-    :return: None
-    """
-    model_rotations = []
-    model_trips = []
-    model_lines = []
-    model_routes = []
-    rot_id = ebustoolbox.util.get_next_id(Rotation)
-    trip_id = ebustoolbox.util.get_next_id(Trip)
-
-    station_dict = Station.objects.filter(scenario=django_scenario)
-    station_dict = {station.to_simba_name(): station for station in station_dict}
-    line_dict = {}
-    for key, rot in tqdm.tqdm(schedule.rotations.items(), total=len(schedule.rotations)):
-        assert rot.charging_type in EnumChargeType.values
-        assert rot.vehicle_id is not None
-        opportunity_charging_capable = rot.charging_type == EnumChargeType.OPPORTUNITY.value
-        vehicletype = VehicleType.objects.get(
-            scenario=django_scenario,
-            name_short=rot.vehicle_type,
-            opportunity_charging_capable=opportunity_charging_capable,
-        )
-
-        vehicle = Vehicle.objects.create(
-            vehicle_type=vehicletype, scenario=django_scenario, name=rot.vehicle_id
-        )
-        r = Rotation(
-            name=key,
-            vehicle_type=vehicletype,
-            scenario=django_scenario,
-            allow_opportunity_charging=opportunity_charging_capable,
-            vehicle=vehicle,
-        )
-        r.id = rot_id
-        rot_id += 1
-        model_rotations.append(r)
-
-        trips = sorted(rot.trips, key=lambda x: x.arrival_time)
-        for trip in trips:
-            # Get the proper Line
-            if trip.line in line_dict:
-                line = line_dict[trip.line]
-            else:
-                line = Line(scenario=django_scenario, name=trip.line)
-                line_dict[trip.line] = line
-                model_lines.append(line)
-            route = Route(
-                name=trip.departure_name + " - " + trip.arrival_name,
-                scenario=django_scenario,
-                departure_station=station_dict[trip.departure_name],
-                arrival_station=station_dict[trip.arrival_name],
-                distance=trip.distance,
-                line=line,
-            )
-            model_routes.append(route)
-            # ToDo: loaded_mass is level_of_loading * vehicle_capacity[kg]
-            # ToDo: How do we know if its a type, e.g. passanger trip or not ? Right now instance
-            #  uses default passanger_trip
-            t = Trip(
-                rotation=r,
-                route=route,
-                scenario=django_scenario,
-                departure_time=make_aware(trip.departure_time),
-                arrival_time=make_aware(trip.arrival_time),
-                loaded_mass=trip.level_of_loading,
-            )
-
-            t.id = trip_id
-            model_trips.append(t)
-            trip_id += 1
-    Line.objects.bulk_create(model_lines)
-    Route.objects.bulk_create(model_routes)
-    Rotation.objects.bulk_create(model_rotations)
-    Trip.objects.bulk_create(model_trips)
 
 
 def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
@@ -1418,6 +1362,10 @@ def is_consistent_rotation(rotation: Rotation) -> bool:
             logger.error("A trip arrives after the departure of the next trip.")
             return False
         trip = next_trip
+
+    assert trips[0].route.departure_station.charge_type == EnumChargeType.DEPOT
+    assert trips[-1].route.arrival_station.charge_type == EnumChargeType.DEPOT
+
     return True
 
 
@@ -1432,14 +1380,14 @@ def is_consistent(scenario: Scenario) -> bool:
 
     if VehicleType.objects.filter(scenario=scenario, consumption=None).count() > 0:
         if not Temperatures.objects.filter(scenario=scenario).count() == 1:
-            logger.error(
+            logger.warning(
                 "VehicleTypes have no constant consumption.\n"
                 "This makes adding 'Temperatures' to the scenario mandatory.\n "
                 "Use temperatures_to_db('ebustoolbox/static/ebustoolbox/"
                 "examples/temperature_time_series.csv',django_scenario, True) "
-                "to add a default temperature series"
+                "to add a default temperature series. Default Temperature of "
+                f"{DEFAULT_TEMPERATURE}°C will be used."
             )
-            return False
 
     for vt in VehicleType.objects.filter(scenario=scenario):
         if vt.charging_curve is None:
