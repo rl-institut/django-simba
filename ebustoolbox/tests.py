@@ -54,6 +54,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
         super().setUpClass()
         options_ = webdriver.chrome.options.Options()
         options_.add_argument("--headless=new")
+        options_.add_argument("-enable-unsafe-swiftshader")
         cls.selenium = webdriver.Chrome(options=options_)
         cls.selenium.implicitly_wait(10)
         Path(TMP_UPLOAD).mkdir(parents=True, exist_ok=True)
