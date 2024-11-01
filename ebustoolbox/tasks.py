@@ -329,6 +329,14 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
         lut_consumption = False
         if len(consumption_classes) == 1:
             lut_consumption = True
+        if lut_consumption and not temperatures.exists():
+            logger.warning(
+                f"Vehicle Type {rot.vehicle_type.id} uses a consumption LUT for "
+                "consumption calculation but the scenario has no Temperature object for "
+                "temperature lookup. Default value for temperature of "
+                f"{DEFAULT_TEMPERATURE} °C is used."
+            )
+
         if lut_consumption and allowed_load is None:
             allowed_load = 1000
             logger.warning(
@@ -376,12 +384,17 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
                 "temperature": DEFAULT_TEMPERATURE,
             }
             if temperatures.exists():
+                assert (
+                    len(temperatures) == 0
+                ), "A scenario can only have a single linked Temperature object"
+                temperature = temperatures.first()
+
                 middle_time = trip.departure_time + 0.5 * (trip.arrival_time - trip.departure_time)
                 # get pseudo mean temperature by using center and boundary temperatures
                 temp = (
-                    0.5 * temperatures.get_interpolated_temperature(middle_time)
-                    + 0.25 * temperatures.get_interpolated_temperature(trip.arrival_time)
-                    + 0.25 * temperatures.get_interpolated_temperature(trip.arrival_time)
+                    0.5 * temperature.get_interpolated_temperature(middle_time)
+                    + 0.25 * temperature.get_interpolated_temperature(trip.arrival_time)
+                    + 0.25 * temperature.get_interpolated_temperature(trip.arrival_time)
                 )
                 simba_trip_dict["temperature"] = temp
 
