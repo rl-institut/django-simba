@@ -151,7 +151,7 @@ To stop containers and remove containers, networks, volumes, and images created 
 ```bash
 sudo docker compose down
 ```
-The build as to be repeated if dependencies change. This can be fixed by rebuilding the docker or removing containers, volumes and images and running again
+The build has to be repeated if dependencies change. This can be fixed by rebuilding the docker or removing containers, volumes and images and running again
 ```bash
 sudo docker compose up
 ```
