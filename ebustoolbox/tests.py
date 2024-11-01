@@ -467,6 +467,34 @@ class ScenarioTestCase(TestCase):
 
 
 class ConsumptionTestCase(TransactionTestCase):
+    def test_missing_temperature(self):
+        django_scenario, simba_schedule, args = build_scenario()
+        missing_temp_text = (
+            "uses a consumption LUT for consumption calculation but the scenario "
+            "has no Temperature object for temperature lookup. Default value for "
+            "temperature of 20 °C is used."
+        )
+        with self.assertLogs(logger="custom") as cm:
+            schedule, args = tasks.get_schedule_from_db(django_scenario)
+            # Check if any log entry contains the substring
+            self.assertTrue(
+                any(missing_temp_text in message for message in cm.output),
+                "Expected log message not found in output",
+            )
+        # Add a temperature object
+        temp = create_temperatures(django_scenario)
+        with self.assertLogs(logger="custom") as cm:
+            schedule, args = tasks.get_schedule_from_db(django_scenario)
+            # Check if any log entry contains the substring
+            self.assertFalse(
+                any(missing_temp_text in message for message in cm.output),
+                "Expected log message not found in output",
+            )
+        temp.id += 1
+        temp.save()
+        # Two temperatures for the same scenario should raise an exception
+        self.assertRaises(Exception, tasks.get_schedule_from_db, django_scenario=django_scenario)
+
     def test_sim_with_consumption(self):
         django_scenario, simba_schedule, args = build_scenario()
         vehicle_types = VehicleType.objects.filter(scenario=django_scenario)
@@ -850,6 +878,25 @@ class AllowOppChargingTestCase(TestCase):
             ).count()
             > 0
         )
+
+
+def create_temperatures(scenario):
+    date1 = make_aware(datetime(year=2024, month=1, day=1))
+    dt = timedelta(hours=5)
+    date2 = date1 + dt
+    date3 = date1 - timedelta(days=5)
+    temp1 = 25
+    temp2 = 0
+    temp3 = 100
+    t_instance = Temperatures(
+        scenario=scenario,
+        name="First Temperatures",
+        use_only_time=False,
+        datetimes=[date1, date2, date3],
+        data=[temp1, temp2, temp3],
+    )
+    t_instance.save()
+    return t_instance
 
 
 class TemperaturesTestCase(TestCase):

@@ -385,7 +385,7 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
             }
             if temperatures.exists():
                 assert (
-                    len(temperatures) == 0
+                    len(temperatures) == 1
                 ), "A scenario can only have a single linked Temperature object"
                 temperature = temperatures.first()
 
