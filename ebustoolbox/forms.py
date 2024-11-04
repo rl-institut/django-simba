@@ -1,5 +1,5 @@
 from django import forms
-from .models import Vehicle, EnumChargeType, EnumVoltageLevel
+from .models import EnumChargeType, EnumVoltageLevel, ElectrificationOptions, VehicleType
 
 
 class UploadFileForm(forms.Form):
@@ -73,7 +73,7 @@ class DateRangeField(forms.DateField):
 
 class SimulationParameters(forms.Form):
     help_text = (
-        "Lassen Sie das Feld frei, " "wenn Sie den Start der Simulation nicht beschneiden möchten."
+        "Lassen Sie das Feld frei, wenn Sie den Start der Simulation nicht beschneiden möchten."
     )
     date_range = DateRangeField(
         required=False,
@@ -89,43 +89,25 @@ class SimulationParameters(forms.Form):
     )
 
 
-class EbusToolboxForm(forms.Form):
-    title = forms.CharField(max_length=50)
-    file = forms.FileField()
+class ElectrificationOptionsForm(forms.ModelForm):
+    class Meta:
+        model = ElectrificationOptions
+        exclude = ("scenario", "electrified_stations")
+        help_texts = {
+            "gc_power_opps": "Grid connector power in kVA",
+            "cs_power_opps": "Charging point power in kW",
+            "amount_charging_places": "Number of charging points per electrified station",
+        }
 
 
-class ChartForm(forms.Form):
-    vehicles = forms.ModelMultipleChoiceField(queryset=Vehicle.objects.all())
+class VehicleTypeForm(forms.ModelForm):
+    class Meta:
+        model = VehicleType
+        fields = ["battery_capacity"]
 
-    def __init__(self, *args, **kwargs):
-        scenario = kwargs.pop("scenario", None)
-        super().__init__(*args, **kwargs)
-        if scenario:
-            self.fields["vehicles"].queryset = Vehicle.objects.filter(
-                vehicle_type__scenario=scenario
-            )
-
-
-class VehicleTypesAdjustmentForm(forms.Form):
-    battery_capacity = forms.IntegerField(
-        min_value=0,
-        max_value=1000000,
-        label="Nutzbare Batteriekapazität",
-        help_text="Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen.",
-    )
-
-
-class ChargingStationDefaultsForm(forms.Form):
-    gc_power_opps = forms.IntegerField(
-        min_value=0, max_value=1000000, initial=5000, label="Grid connector power in kVA"
-    )
-    cs_power_opps = forms.IntegerField(
-        min_value=0, max_value=10000, initial=300, label="Charging point power in kW"
-    )
-    amount_charging_places = forms.IntegerField(
-        min_value=0,
-        max_value=1000,
-        initial=2,
-        label="Number of charging points per electrified station",
-    )
-    station_optimization = forms.BooleanField(initial=False, required=False)
+        help_texts = {
+            "battery_capacity": "Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen.",
+        }
+        labels = {
+            "battery_capacity": "Batteriekapazität [kWh]",
+        }

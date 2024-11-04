@@ -14,7 +14,7 @@ from .forms import SignUpForm
 
 # Create your views here.
 class LandingPageView(TemplateView):
-    template_name = "core/landing_page_updated.html"
+    template_name = "core/landing_page.html"
 
 
 # ******** User management ******** #
