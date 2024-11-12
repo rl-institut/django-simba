@@ -465,6 +465,10 @@ def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
 
         cleaned_data = form.cleaned_data
 
+        # check sum of file sizes
+        if sum([f.size for f in request.FILES.values()]) > settings.MAX_FILE_SIZE_B:
+            raise Exception("Upload zu groß")
+
         files = dict()
         for name, file in request.FILES.items():
             # check file size
