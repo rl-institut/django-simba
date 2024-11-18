@@ -145,7 +145,7 @@ Now running the following line, builds and starts a docker container including c
 ```bash
 sudo docker compose up
 ```
-After this the django-simba will be available under http://127.0.0.0:8000/
+After this django-simba will be available under http://127.0.0.0:8000/
 
 To stop containers and remove containers, networks, volumes, and images created by up, run
 ```bash
