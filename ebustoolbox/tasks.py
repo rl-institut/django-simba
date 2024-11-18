@@ -590,15 +590,15 @@ def get_args(django_scenario) -> Namespace:
 
     # Add default optimizer config
     p = Path(settings.STATIC_URL, __package__, "examples", "default_optimizer.cfg")
-    if p.is_file():
-        if settings.DEBUG:
-            # use app static folder
-            if p.is_absolute():
-                # remove first slash
-                p = Path(str(p)[1:])
-            p = Path(settings.BASE_DIR, __package__, p)
-        args.optimizer_config = str(p)
-    else:
+    # ToDo Use ebusdjango.util.get_static_file_path
+    if settings.DEBUG:
+        # use app static folder
+        if p.is_absolute():
+            # remove first slash
+            p = Path(str(p)[1:])
+        p = Path(settings.BASE_DIR, __package__, p)
+    args.optimizer_config = str(p)
+    if not p.is_file():
         logger.info("default_optimizer.cfg not found. Optimizer config will use default values")
 
     # Overwrite args with scenario specific data
@@ -645,6 +645,7 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
             args[k] = f.file.path
             continue
         p = Path(settings.STATIC_URL, __package__, "examples", v)
+        # ToDo Use ebusdjango.util.get_static_file_path
         if settings.DEBUG:
             # use app static folder
             if p.is_absolute():

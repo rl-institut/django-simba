@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "django_extensions",
     # custom apps
     "core",
+    "data_scrapers",
     "ebustoolbox",
     "elevation_api",
     "django_mapengine",

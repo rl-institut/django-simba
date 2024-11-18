@@ -53,7 +53,7 @@ def get_charge_chart(station):
     return plot
 
 
-def get_next_id(manager: django.db.models.Manager) -> int:
-    if manager.objects.exists():
-        return manager.objects.aggregate(Max("id"))["id__max"] + 1
+def get_next_id(model: django.db.models.Model) -> int:
+    if model.objects.exists():
+        return model.objects.aggregate(Max("id"))["id__max"] + 1
     return 1

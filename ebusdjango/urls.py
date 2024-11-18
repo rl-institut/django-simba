@@ -20,6 +20,7 @@ from django.views.generic.base import TemplateView
 
 urlpatterns = [
     path("simba/", include("ebustoolbox.urls")),
+    path("data_scrapers/", include("data_scrapers.urls")),
     path("elevation_api/", include("elevation_api.urls")),
     path("", include("core.urls")),
     path("django_plotly_dash/", include("django_plotly_dash.urls")),

@@ -43,6 +43,7 @@ scipy = "^1.12.0"
 eflips-ingest = "^1.2.3"
 eflips-eval = "^1.0.6"
 redis = "^5.0.5"
+geopy = "^2.4.1"
 
 [tool.poetry.group.dev]
 optional = true
