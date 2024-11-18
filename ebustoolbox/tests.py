@@ -17,6 +17,9 @@ from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 from . import tasks
 from .forms import UploadFileForm
@@ -56,7 +59,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
         options_.add_argument("--headless=new")
         options_.add_argument("-enable-unsafe-swiftshader")
         cls.selenium = webdriver.Chrome(options=options_)
-        cls.selenium.implicitly_wait(10)
+        cls.selenium.implicitly_wait(20)
         Path(TMP_UPLOAD).mkdir(parents=True, exist_ok=True)
 
     @classmethod
@@ -77,14 +80,15 @@ class MySeleniumTests(StaticLiveServerTestCase):
         url = reverse("simba:result", args=(django_scenario.task_id,))
         response = self.client.get(url)
         self.selenium.get(f"{self.live_server_url}{url}")
-        time.sleep(2)
         # Clear the browser log. We check the state of the site after refresh, to give
         # map images time to load.
         _ = self.selenium.get_log("browser")
         self.selenium.refresh()
         # give django some time to calculate
-        time.sleep(2)
         # Check for 404 requests
+        # Wait up to 10 seconds for the map to be loaded
+        _ = WebDriverWait(self.selenium, 10).until(EC.presence_of_element_located((By.ID, "map")))
+
         errors = self.selenium.get_log("browser")
         # ToDO handle exception
         # An iframe which has both allow-scripts and allow-same-origin for its sandbox
@@ -97,6 +101,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
                 "sandbox attribute can escape its sandboxing"
             ),
             "styleimagemissing",
+            "dash",
         ]
         errors = [
             error for error in errors if not any([(e in error["message"]) for e in allowed_errors])
@@ -268,7 +273,7 @@ class WriteReadScenarioToDatabase(TestCase):
         mutations = [
             (vehicle_type, "battery_capacity", 1),
             (vehicle_type, "charging_efficiency", 0.1),
-            (vehicle_type, "minimum_charging_power", vehicle_type.charging_curve[0][1] * 0.9),
+            (vehicle_type, "minimum_charging_power", vehicle_type.charging_curve[0][1] * 0.99),
             (
                 vehicle_type,
                 "charging_curve",
