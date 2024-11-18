@@ -1,22 +1,21 @@
 import json
 import logging
 import math
-import warnings
-from typing import Callable
-import shapely
-from shapely import Point
-from shapely.geometry import MultiPoint
+from functools import reduce
 from functools import partial
+import operator
+import shapely
+from shapely.geometry import Point, MultiPoint
+from typing import Callable
+import warnings
 
 from .models import BusStation, AdminArea
 
 from django.db.models import QuerySet
 from geopy.distance import distance as geopy_distance
 from django.contrib.postgres.search import TrigramSimilarity
-
-import operator
 from django.db.models import Q
-from functools import reduce
+
 
 BUS_SYSTEM_MAX_DISTANCE = 10  # km
 DISTANCE_THRESHOLD_M = 400  # m
