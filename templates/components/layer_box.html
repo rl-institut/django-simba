@@ -16,7 +16,7 @@
             <div class="basemaps__btn">
                 <button id="basemaps__satellite" class="btn" onclick="toggleBasemap('satellite');">
                     <img src="/static/django_mapengine/images/layer_ctrl_satellite.svg" alt="Satellite basemap view">
-                    <span>Stellitenansicht</span>
+                    <span>Satellitenansicht</span>
                 </button>
             </div>
         </div>
@@ -148,7 +148,6 @@
                 if (filter.length === 1) {
                     filter = null;  // No filter applied
                 }
-                console.log(filter)
                 // Apply the filter to the stations layer
                 map.setFilter('station', filter);
             }
@@ -170,8 +169,6 @@
                     const features = map.querySourceFeatures(sourceId, {
                         sourceLayer: 'station'  // Replace with the actual source layer if needed
                     });
-
-                    console.log(features)
 
                     if (features.length > 0) {
                         // Collect all num_arrivals values
