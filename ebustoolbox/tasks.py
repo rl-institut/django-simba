@@ -394,7 +394,7 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
                 temp = (
                     0.5 * temperature.get_interpolated_temperature(middle_time)
                     + 0.25 * temperature.get_interpolated_temperature(trip.arrival_time)
-                    + 0.25 * temperature.get_interpolated_temperature(trip.arrival_time)
+                    + 0.25 * temperature.get_interpolated_temperature(trip.departure_time)
                 )
                 simba_trip_dict["temperature"] = temp
 
