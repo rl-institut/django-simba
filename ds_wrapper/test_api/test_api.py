@@ -13,11 +13,11 @@ Additionally, since the sample database that is used is a `eflips-model` databas
 the django-simba <-> efliPS-model database compatibility.
 
 """
-import base64
 import random
 import warnings
 from typing import Tuple
 from urllib.parse import urlparse
+import os
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -48,8 +48,6 @@ def database_url_components(database_url: str) -> Tuple[str, str, str, str, str,
     return o.scheme, o.username, o.password, o.hostname, port, o.path[1:]
 
 
-import os
-
 def clear_db():
     DATABASE_URL = os.environ["EFLIPS_DATABASE_URL"]
 
@@ -71,6 +69,7 @@ def clear_db():
         os.environ["PGPASSWORD"] = database_password
     if os.system(query_str) != 0:
         raise ValueError("Failed to clear the database.")
+
 
 def import_db():
     DATABASE_URL = os.environ["EFLIPS_DATABASE_URL"]
