@@ -135,13 +135,28 @@ https://docs.docker.com/desktop/wsl/
 Go into your django-simba root containing manage.py
 
 ### With docker compose
+Make sure your .env file reflects the docker-compose.yml properties
+   ````text
+DATABASE_URL=postgis://myprojectuser:1234@my-docker-postgres:5432/mydb
+CELERY_BROKER_URL=redis://my-docker-redis:6379/0
+````
+Navigate to your cloned repo of django-simba in a terminal.
+Now running the following line, builds and starts a docker container including creating a database
 ```bash
 sudo docker compose up
 ```
-to remove this container
+After this django-simba will be available under http://127.0.0.0:8000/
+
+To stop containers and remove containers, networks, volumes, and images created by up, run
 ```bash
 sudo docker compose down
 ```
+The build has to be repeated if dependencies change. This can be fixed by rebuilding the docker or removing containers, volumes and images and running again
+```bash
+sudo docker compose up
+```
+Changes in the source code or templates are reflected live, even while running the docker container.
+
 ### Using Docker without compose
 Create a network for your postgres and django-app to communicate
 ```bash
