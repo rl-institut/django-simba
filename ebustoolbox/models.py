@@ -79,6 +79,59 @@ class Scenario(models.Model):
         )
         return scenario.pk
 
+    def get_spiceev_events(self, skip_oppb=False):
+        # Create SpiceEV-like event dictionaries for this Scenario
+
+        # get initial SoC of all vehicles
+        vehicles = self.vehicle_set.all()
+        vehicle_soc = dict()  # store current soc of vehicles
+        for vehicle in vehicles:
+            first_event = vehicle.event_set.order_by("time_start").first()
+            if first_event is not None:
+                vehicle_soc[vehicle.id] = first_event.soc_start
+
+        events = self.event_set.filter(event_type__startswith="CHARGING").order_by("time_start")
+        event_list = list()
+        for event in events:
+            if skip_oppb and event.event_type == "CHARGING_OPPORTUNITY":
+                continue
+            # get CS name
+            # station.name == CS.name?
+            name = event.station.name if event.station is not None else event.area.name
+            # create arrival event
+            event_list.append(
+                {
+                    "signal_time": event.time_start.isoformat(),  # is event known in advance?
+                    "start_time": event.time_start.isoformat(),
+                    "vehicle_id": vehicle.name,
+                    "event_type": "arrival",
+                    "update": {
+                        "connected_charging_station": name,
+                        "estimated_time_of_departure": event.time_end.isoformat(),
+                        "soc_delta": event.soc_start - vehicle_soc[event.vehicle_id],
+                        "desired_soc": event.soc_end,
+                    },
+                }
+            )
+
+            # create departure event (end of charging, not necessarily leaving station)
+            event_list.append(
+                {
+                    "signal_time": event.time_end.isoformat(),  # is event known in advance?
+                    "start_time": event.time_end.isoformat(),
+                    "vehicle_id": vehicle.name,
+                    "event_type": "departure",
+                    "update": {
+                        "estimated_time_of_arrival": None,
+                    },
+                }
+            )
+
+            # update SoC
+            vehicle_soc[event.vehicle_id] = event.soc_end
+
+        return event_list
+
 
 @receiver(models.signals.pre_delete, sender=Scenario)
 def auto_delete_results_on_delete(sender, instance, **kwargs):
