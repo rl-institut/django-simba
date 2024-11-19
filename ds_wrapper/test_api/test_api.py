@@ -116,9 +116,9 @@ def test_simba_consumption_simulation():
     # This is not enforced by the eflips-model database, so we need to set it manually.
     # Tracked in https://github.com/rl-institut/django-simba/issues/145
     # ---- BUG ----
-    for vehicle_type in session.query(eflips.model.VehicleType).all():
-        random_string = random.randbytes(16).hex()
-        vehicle_type.name_short = random_string
+    #for vehicle_type in session.query(eflips.model.VehicleType).all():
+    #    random_string = random.randbytes(16).hex()
+    #    vehicle_type.name_short = random_string
 
     # --- BUG ---
     # Apparently, a rotation with allow_opportunity_charging=False cannot be driven by a vehicle of a
@@ -126,8 +126,8 @@ def test_simba_consumption_simulation():
     # This is not documented and should be fixed.
     # Tracked in https://github.com/rl-institut/django-simba/issues/146
     # --- BUG ---
-    for vehicle_type in session.query(eflips.model.VehicleType).all():
-        vehicle_type.opportunity_charging_capable = False
+    #for vehicle_type in session.query(eflips.model.VehicleType).all():
+    #    vehicle_type.opportunity_charging_capable = False
 
     # We need to set the loaded mass for each trip
     # If we're using the smart consumption model.
