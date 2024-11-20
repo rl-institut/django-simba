@@ -82,95 +82,117 @@
             const sliders = ['slider-num_arrival'];
 
             for (const slider_name of sliders) {
-                var slider = document.getElementById(slider_name);
+                const slider = document.getElementById(slider_name);
 
-                noUiSlider.create(slider, {
-                    start: [sliderMinDefault, sliderMaxDefault],    // Initial values for min and max
-                    connect: true,      // Color the range between the handles
-                    range: {
-                        'min': sliderMinDefault,       // Minimum possible value
-                        'max': sliderMaxDefault      // Maximum possible value
-                    },
-                    step: 1,            // Increment step
-                    tooltips: [true, true],  // Show tooltips with current values
-                    format: {
-                        to: value => Math.round(value),
-                        from: value => Math.round(value)
-                    }
-                });
+                if (slider) { // Check if slider element exists
+                    noUiSlider.create(slider, {
+                        start: [sliderMinDefault, sliderMaxDefault],
+                        connect: true, // Color the range between the handles
+                        range: {
+                            'min': sliderMinDefault,
+                            'max': sliderMaxDefault
+                        },
+                        step: 1, // Increment step
+                        tooltips: [true, true], // Show tooltips with current values
+                        format: {
+                            to: value => Math.round(value),
+                            from: value => Math.round(value)
+                        }
+                    });
+
+                    // Attach the update event handler
+                    slider.noUiSlider.on('update', function (values, handle) {
+                        const minRange = values[0]; // First knob (min value)
+                        const maxRange = values[1]; // Second knob (max value)
+
+                        // Update displayed values
+                        document.getElementById("minValueDisplay").textContent = minRange;
+                        document.getElementById("maxValueDisplay").textContent = maxRange;
+
+                        // Trigger the applyRangeFilter function with updated values
+                        //applyRangeFilter('station', 'num_arrivals', parseInt(minRange), parseInt(maxRange));
+                        updateFilter();
+                    });
+                } else {
+                    console.warn(`Slider with ID "${slider_name}" not found.`);
+                }
             }
-            var slider = document.getElementById('slider-num_arrival');
-            // Function to update the displayed values and call the filter function
-            slider.noUiSlider.on('update', function (values, handle) {
-                const minRange = values[0];   // First knob (min value)
-                const maxRange = values[1];   // Second knob (max value)
-
-                // Update displayed values
-                document.getElementById("minValueDisplay").textContent = minRange;
-                document.getElementById("maxValueDisplay").textContent = maxRange;
-
-                // Trigger the applyRangeFilter function with updated values
-                applyRangeFilter('station', 'num_arrivals', parseInt(minRange), parseInt(maxRange));
-            });
 
             // Function to update the filter based on checkboxes
             function updateFilter() {
                 const isDepotChecked = document.getElementById('layer-0').checked;
                 const isElectrifiedChecked = document.getElementById('layer-1').checked;
-                const isStation = document.getElementById('layer-2').checked;
+                const isStationChecked = document.getElementById('layer-2').checked;
 
-                // Start with an empty filter array
-                var filter = ['any'];
+                const layersToCheck = ['station'];
+                const allLayersLoaded = layersToCheck.every(layer => map.getLayer(layer));
+                if (allLayersLoaded) {
 
-                // Add condition for depots if the depot checkbox is checked
-                if (isDepotChecked) {
-                    filter.push(['==', ['get', 'is_depot'], true]);
+                    // Assuming you already have a noUiSlider instance
+                    const slider = document.getElementById('slider-num_arrival'); // Replace with your slider's ID
+                    let values = [0, Infinity];
+                    if(slider){
+                        values = slider.noUiSlider.get();
+                    }
+
+                    // Start with an empty filter array
+                    let filter = ['any'];
+
+                    // Add condition for depots if the depot checkbox is checked
+                    if (isDepotChecked) {
+                        filter.push([
+                                    'all',
+                                    ['==', ['get', 'is_depot'], true],
+                                    [">=", ['get', 'num_arrivals'], values[0]],
+                                    ["<=", ['get', 'num_arrivals'], values[1]]]);
+                    }
+
+                    if (isStationChecked) {
+                        filter.push([
+                            'all',
+                            ['<', ['get', 'electrified'], 9],
+                            ['==', ['get', 'is_depot'], false],
+                            [">=", ['get', 'num_arrivals'], values[0]],
+                            ["<=", ['get', 'num_arrivals'], values[1]]
+                        ]);
+                    }
+                    // Add condition for electrified stations if the electrified checkbox is checked
+                    if (isElectrifiedChecked) {
+                        filter.push([
+                            'all',
+                            ['>', ['get', 'electrified'], 9],
+                            ['==', ['get', 'is_depot'], false],
+                            [">=", ['get', 'num_arrivals'], values[0]],
+                            ["<=", ['get', 'num_arrivals'], values[1]]
+                        ]);
+                    }
+
+                    // Apply the filter to the stations layer
+                    map.setFilter('station', filter);
                 }
-
-                if (isStation) {
-                    filter.push([
-                        'all',
-                        ['<', ['get', 'electrified'], 9],
-                        ['==', ['get', 'is_depot'], false]
-                    ]);
-                }
-
-                // Add condition for electrified stations if the electrified checkbox is checked
-                if (isElectrifiedChecked) {
-                    filter.push([
-                        'all',
-                        ['>', ['get', 'electrified'], 9],
-                        ['==', ['get', 'is_depot'], false]
-                    ]);
-                }
-
-                // If no filters are checked, reset the filter to show all features
-                if (filter.length === 1) {
-                    filter = null;  // No filter applied
-                }
-                // Apply the filter to the stations layer
-                map.setFilter('station', filter);
             }
 
             let stationPowerFilterTriggered = false;  // Flag to track if StationPowerFilter was triggered
             map.on('idle', function () {
-                if (!stationPowerFilterTriggered) {
+                // Ensure specific sources and layers are loaded
+                const layersToCheck = ['station'];
+                const allLayersLoaded = layersToCheck.every(layer => map.getLayer(layer));
+                if (allLayersLoaded && !stationPowerFilterTriggered) {
                     StationArrivalFilter();
                 }
             });
 
             function StationArrivalFilter() {
-                const sources = map.getStyle().sources;
-                console.log('Available source IDs:', Object.keys(sources));  // List available source IDs
-
                 const sourceId = 'stations_mvt';  // Replace with the correct source ID from the above list
 
                 if (map.getSource(sourceId)) {  // Check if the source exists
                     const features = map.querySourceFeatures(sourceId, {
-                        sourceLayer: 'station'  // Replace with the actual source layer if needed
+                        sourceLayer: 'station'
                     });
 
-                    if (features.length > 0) {
+                    slider = document.getElementById('slider-num_arrival');
+
+                    if (features.length > 0 && slider) {
                         // Collect all num_arrivals values
                         const arrivals = features.map(feature => feature.properties.num_arrivals);
 
@@ -178,11 +200,10 @@
                         const minArrivals = Math.min(...arrivals);
                         const maxArrivals = Math.max(...arrivals);
 
-                        slider = document.getElementById('slider-num_arrival');
                         // Update the slider with new min and max values
                         slider.noUiSlider.updateOptions({
                             range: {
-                                'min': minArrivals - 1,  // New minimum value
+                                'min': Math.max(minArrivals - 1,0),  // New minimum value
                                 'max': maxArrivals + 1   // New maximum value
                             }
                         });
@@ -192,24 +213,6 @@
                     }
                 } else {
                     console.log('Source does not exist.');
-                }
-            }
-
-            function filterByIntRange(key, minValue, maxValue) {
-                var filters = [
-                    'all',
-                    [">=", key, minValue],
-                    ["<=", key, maxValue]
-                ];
-                return filters;
-            }
-
-            function applyRangeFilter(layerId, key, minValue, maxValue) {
-                if (map.getLayer(layerId)) {
-                    var filters = filterByIntRange(key, minValue, maxValue);
-                    map.setFilter(layerId, filters);
-                } else {
-                    console.log(`Layer "${layerId}" does not exist.`);
                 }
             }
         </script>
