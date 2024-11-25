@@ -20,8 +20,8 @@ BUS_SYSTEM_MAX_DISTANCE = 10  # km
 DISTANCE_THRESHOLD_M = 400  # m
 
 # For Fuzzy Search
-SIMILARITY_THRESHOLD_W_ADMIN = 0.5  # Adjust this threshold as needed
-SIMILARITY_THRESHOLD_WO_ADMIN = 0.6  # Adjust this threshold as needed
+SIMILARITY_THRESHOLD_W_ADMIN = 0.6  # Adjust this threshold as needed
+SIMILARITY_THRESHOLD_WO_ADMIN = 0.7  # Adjust this threshold as needed
 
 logger = logging.getLogger("custom")
 
@@ -93,8 +93,7 @@ def search_station(
             return query
         ids.extend(query.values_list("id", flat=True))
 
-    # try again in the admin areas but with a fuzzy search
-    # last try with a fuzzy search in all stations
+    # Search for stations if the search name contains an admin_name
     # Filter entries based on trigram similarity
     found_ids, names = get_station_ids_contained_by_admin_area(possible_admins_names, station_name)
     for name in names:
@@ -104,6 +103,17 @@ def search_station(
         if not return_all and query.exists():
             return query
         ids.extend(query.values_list("id", flat=True))
+
+    # try again in the admin areas but with a fuzzy search
+    # last try with a fuzzy search in all stations
+    # Filter entries based on trigram similarity
+    base_query = BusStation.objects.all()
+    query = get_fuzzy_stations(base_query, SIMILARITY_THRESHOLD_WO_ADMIN, station_name)
+    query = filter_stack(query)
+    if not return_all and query.exists():
+        return query
+    ids.extend(query.values_list("id", flat=True))
+
     return base_query.filter(id__in=ids)
 
 
@@ -283,7 +293,7 @@ def search_stations(search_station_names: Iterable, use_filter: bool):
 
     # Possibly more stations can be found when applying a project specific filter,
     # which searches for stations close to previously found stations
-    if not use_filter:
+    if not use_filter or not found_stations:
         return found_stations
 
     # Some stations where not found repeat the
@@ -326,7 +336,7 @@ def search_stations(search_station_names: Iterable, use_filter: bool):
         start_query = BusStation.objects.all()
         search_query = fuzzy_filter(start_query)
         fuzzy_stations_in_hit_admin_areas = get_fuzzy_stations(
-            search_query, SIMILARITY_THRESHOLD_WO_ADMIN, station_name
+            search_query, SIMILARITY_THRESHOLD_W_ADMIN, station_name
         )
         if fuzzy_stations_in_hit_admin_areas.exists():
             query = filter_inner_distance(fuzzy_stations_in_hit_admin_areas)

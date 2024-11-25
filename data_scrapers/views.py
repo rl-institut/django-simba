@@ -40,12 +40,21 @@ class BusStationListView(ListView):
 # Create your views here.
 def json_view(request):
     search_stations_request = request.GET.get("search_stations", "").split("|")
-    use_filter = request.GET.get("filter", "true").lower() == "true"
+    use_filter = request.GET.get("filter", "false").lower() == "true"
     if len(search_stations_request) == 0:
         raise Http404(
             "search_stations must be part of the query."
             "If searching for multiple stations use | as seperator."
             "If all found stations should be returned, add &filter=False to the query"
         )
-    found_stations = search_stations(search_stations_request, use_filter=use_filter)
-    return JsonResponse(found_stations, safe=True)
+    results = {"results": dict()}
+    stations = search_stations(search_stations_request, use_filter=use_filter)
+    for search_name, stations in stations.items():
+        station_values = list(stations.values("name", "geom", "admin_area__name"))
+        for stat in station_values:
+            stat["latitude"] = stat["geom"].y
+            stat["longitude"] = stat["geom"].x
+            del stat["geom"]
+        results["results"][search_name] = station_values
+
+    return JsonResponse(results, safe=True)

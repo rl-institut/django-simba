@@ -8,8 +8,9 @@ app_name = "data_scrapers"
 
 urlpatterns = [
     path(
-        "stations/",
+        "stations/map/",
         views.BusStationListView.as_view(),
         name="busstation_station_list",
-    )
+    ),
+    path("stations/api/", views.json_view, name="busstation_api"),
 ]
