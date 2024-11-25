@@ -1,7 +1,11 @@
+from django.shortcuts import render
 from django.views.generic import ListView
-from django.http import Http404, JsonResponse
-from data_scrapers.models import BusStation
+from django.http import Http404, JsonResponse, HttpResponse
+
+import data_scrapers.models
+from data_scrapers.models import BusStation, AdminArea
 from data_scrapers.tasks import search_stations
+import pandas as pd
 
 
 # Create your views here.
@@ -58,3 +62,40 @@ def json_view(request):
         results["results"][search_name] = station_values
 
     return JsonResponse(results, safe=True)
+
+
+def import_view(request):
+    if not request.user.is_superuser:
+        raise Http404("Only admins can import data")
+    if request.method == "GET":
+        return render(request, "data_scrapers/import.html")
+
+    if request.method == "POST":
+        if AdminArea.objects.all().count() > 0 or BusStation.objects.all().count() > 0:
+            return Http404(
+                f"Data can only be imported in empty Database. "
+                f"There are AdminAreas {AdminArea.objects.all().count()} \n"
+                f"There are BusStations {BusStation.objects.all().count()}"
+            )
+
+        assert request.FILES["file_stations"]
+        assert request.FILES["file_admin_areas"]
+
+        df_areas = pd.read_csv(request.FILES["file_admin_areas"])
+        df_stations = pd.read_csv(request.FILES["file_stations"])
+        data_scrapers.models.import_data(df_areas, df_stations)
+        area_count = AdminArea.objects.all().count()
+        station_count = BusStation.objects.all().count()
+        return HttpResponse(
+            f"Success. {area_count} AdminAreas and {station_count} Stations imported"
+        )
+    return Http404("Something went wrong")
+
+
+def export_view(request):
+    if not request.user.is_superuser:
+        raise Http404("Admins can only export data")
+    zip_buffer = data_scrapers.models.create_export_buffer()
+    response = HttpResponse(zip_buffer, content_type="application/zip")
+    response["Content-Disposition"] = "attachment; filename=export.zip"
+    return response

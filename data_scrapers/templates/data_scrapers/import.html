@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="alert alert-danger" role="alert">
+Wähle Dateien aus welche in die Datenbank importiert werden. Import funktioniert momentan nur Datenbanken, welche keine AdminArea und BusStation Objekte besitzt.
+Nutze Dateien, welche von einem andern User aus der Export Funktion erstellt wurden.
+</div>
+<form method="POST" enctype="multipart/form-data">{% csrf_token %}
+  <input type="hidden" name="csrfmiddlewaretoken" value="{csrf_token}">
+  <div class="input-group">
+  <input title='csv containing BusStations' type="file" class="form-control" required="" name="file_stations"
+         accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" style="max-width: 30ch">
+  <span class="input-group-text">BusStations Datei (.csv)</span>
+  </div>
+  <div class="input-group">
+  <input title='csv containing admin areas' type="file" class="form-control" required="" name="file_admin_areas"
+         accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" style="max-width: 30ch">
+  <span class="input-group-text">Admin Areas Datei (.csv)</span>
+  </div>
+  <button type="submit">Submit</button> </form>
+{% endblock %}

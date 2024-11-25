@@ -1,9 +1,12 @@
+import io
 import traceback
+import zipfile
 from datetime import datetime
 import pandas as pd
 from django.contrib.gis.geos import Point
 from django.contrib.gis.db import models
 import requests
+from django.db.transaction import atomic
 from django.utils.timezone import make_aware
 
 from ebustoolbox.util import get_next_id
@@ -195,15 +198,15 @@ def fill_db_with_bus_stations():
             admin_area.save()
 
 
-def export_admin_areas(path, encoding="utf-8"):
+def get_admin_areas_df():
     admin_areas = AdminArea.objects.all()
     columns = ["id", "name", "osm_id", "admin_level", "upper_admin_area"]
     data = admin_areas.values_list(*columns)
     df = pd.DataFrame(columns=columns, data=data)
-    df.to_csv(path, index=False, encoding=encoding)
+    return df
 
 
-def export_bus_stations(path, encoding="utf-8"):
+def get_bus_stations_df():
     bus_stations = BusStation.objects.all()
     columns = ["id", "name", "osm_id", "geom_x", "geom_y", "geom_z", "admin_area"]
     data = bus_stations.annotate(
@@ -215,11 +218,12 @@ def export_bus_stations(path, encoding="utf-8"):
     df.loc[:, ["geom_x", "geom_y", "geom_z"]] = df.loc[:, ["geom_x", "geom_y", "geom_z"]].astype(
         float
     )
-    df.to_csv(path, index=False, encoding=encoding)
+    return df
 
 
-def import_admin_data(admin_data_path, bus_stations_path):
-    df = pd.read_csv(admin_data_path)
+@atomic()
+def import_data(df_areas, df_stations):
+    df = df_areas
     admin_areas = []
     for row in df.itertuples():
         try:
@@ -236,7 +240,7 @@ def import_admin_data(admin_data_path, bus_stations_path):
         admin_areas.append(admin_area)
     AdminArea.objects.bulk_create(admin_areas)
 
-    df = pd.read_csv(bus_stations_path)
+    df = df_stations
     bus_stations = []
     for row in df.itertuples():
         bus_station = BusStation(
@@ -248,3 +252,22 @@ def import_admin_data(admin_data_path, bus_stations_path):
         )
         bus_stations.append(bus_station)
     BusStation.objects.bulk_create(bus_stations)
+
+
+def create_export_buffer():
+    df_areas = get_admin_areas_df()
+    df_stations = get_bus_stations_df()
+    zip_buffer = io.BytesIO()
+
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        # Write the dataframe to a buffer. use this buffer to write zo a deflated zip
+        csv_buffer = io.StringIO()
+        df_areas.to_csv(csv_buffer, index=False)
+        zf.writestr("admin_areas.csv", csv_buffer.getvalue())
+
+        csv_buffer = io.StringIO()
+        df_stations.to_csv(csv_buffer, index=False)
+        zf.writestr("bus_stations.csv", csv_buffer.getvalue())
+
+    zip_buffer.seek(0)
+    return zip_buffer
