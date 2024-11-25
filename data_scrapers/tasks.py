@@ -6,8 +6,7 @@ from functools import partial
 import operator
 import shapely
 from shapely.geometry import Point, MultiPoint
-from typing import Callable
-import warnings
+from typing import Callable, Iterable
 
 from .models import BusStation, AdminArea
 
@@ -16,13 +15,13 @@ from geopy.distance import distance as geopy_distance
 from django.contrib.postgres.search import TrigramSimilarity
 from django.db.models import Q
 
-
+logger = logging.getLogger("custom")
 BUS_SYSTEM_MAX_DISTANCE = 10  # km
 DISTANCE_THRESHOLD_M = 400  # m
 
 # For Fuzzy Search
 SIMILARITY_THRESHOLD_W_ADMIN = 0.5  # Adjust this threshold as needed
-SIMILARITY_THRESHOLD_WO_ADMIN = 0.5  # Adjust this threshold as needed
+SIMILARITY_THRESHOLD_WO_ADMIN = 0.6  # Adjust this threshold as needed
 
 logger = logging.getLogger("custom")
 
@@ -66,15 +65,52 @@ def filter_query_distance(query: QuerySet, distance_threshold_m):
 
 
 def search_station(
-    station_name: str, possible_admins_names, filter_stack: Callable[[QuerySet], QuerySet]
-) -> (bool, QuerySet):
+    station_name: str,
+    possible_admins_names,
+    filter_stack: Callable[[QuerySet], QuerySet],
+    return_all=False,
+) -> QuerySet:
     # Search directly for the name, if the coordinates are close to each other
     # i.e. closer than DISTANCE_THRESHOLD, their ids are returned
+    ids = []
+    base_query = BusStation.objects.all()
+    query = search_exact_station(base_query, station_name)
+    query = filter_stack(query)
+    if not return_all and query.exists():
+        return query
+    ids.extend(query.values_list("id", flat=True))
+
+    # no stations where found, or stations with exact name are further apart than
+    # DISTANCE_THRESHOLD
+    # Check if filtering by possible admin areas gives a clear result
+
+    found_ids, names = get_station_ids_contained_by_admin_area(possible_admins_names, station_name)
+    for name in names:
+        base_query = BusStation.objects.filter(id__in=found_ids)
+        query = search_exact_station(base_query, name)
+        query = filter_stack(query)
+        if not return_all and query.exists():
+            return query
+        ids.extend(query.values_list("id", flat=True))
+
+    # try again in the admin areas but with a fuzzy search
+    # last try with a fuzzy search in all stations
+    # Filter entries based on trigram similarity
+    found_ids, names = get_station_ids_contained_by_admin_area(possible_admins_names, station_name)
+    for name in names:
+        base_query = BusStation.objects.filter(id__in=found_ids)
+        query = get_fuzzy_stations(base_query, SIMILARITY_THRESHOLD_W_ADMIN, name)
+        query = filter_stack(query)
+        if not return_all and query.exists():
+            return query
+        ids.extend(query.values_list("id", flat=True))
+    return base_query.filter(id__in=ids)
+
+
+def search_exact_station(base_query, station_name) -> QuerySet:
     address_translations = get_address_translations()
     address_translations_rev = [[x[1], x[0]] for x in address_translations]
-
-    query = BusStation.objects.none()
-    search_name = None
+    ids = []
     for first, second in address_translations + address_translations_rev:
         search_name = station_name
         if first is not None:
@@ -82,40 +118,10 @@ def search_station(
                 search_name = station_name.replace(second, first)
             else:
                 continue
-        exact_station_query = BusStation.objects.filter(name=search_name)
-        if not exact_station_query.exists():
-            continue
-        query = filter_stack(exact_station_query)
-        if query.exists():
-            break
-
-    if query.exists():
-        return True, query
-
-    # no stations where found, or stations with exact name are further apart than
-    # DISTANCE_THRESHOLD
-    # Check if filtering by possible admin areas gives a clear result
-    exact_station_query_w_admin = get_stations_by_admin_area(possible_admins_names, station_name)
-    if exact_station_query_w_admin.exists():
-        query = filter_stack(exact_station_query_w_admin)
-
-    if query.exists():
-        return True, query
-    # try again in the admin areas but with a fuzzy search
-    # last try with a fuzzy search in all stations
-    # Filter entries based on trigram similarity
-
-    found_ids = get_station_ids_contained_by_admin_area(possible_admins_names, station_name)
-    start_query = BusStation.objects.filter(id__in=found_ids)
-    fuzz_station_query_w_admin = get_fuzzy_stations(
-        start_query, SIMILARITY_THRESHOLD_W_ADMIN, station_name
-    )
-    if fuzz_station_query_w_admin.exists():
-        query = filter_stack(fuzz_station_query_w_admin)
-
-    if query.exists():
-        return True, query
-    return False, BusStation.objects.none()
+        exact_station_query = base_query.filter(name=search_name)
+        if exact_station_query.exists():
+            ids.extend(exact_station_query.values_list("id", flat=True))
+    return base_query.filter(id__in=ids)
 
 
 def filter_for_search_area(query, search_area: shapely.area):
@@ -129,6 +135,7 @@ def filter_for_search_area(query, search_area: shapely.area):
 
 def get_station_ids_contained_by_admin_area(possible_admins_names, station_name):
     found_ids = []
+    names = []
     for part in station_name.split(" "):
         if part in possible_admins_names:
             admin_name = part
@@ -136,13 +143,11 @@ def get_station_ids_contained_by_admin_area(possible_admins_names, station_name)
             admin_areas = AdminArea.objects.filter(name=admin_name)
             all_children = get_lower_admin_areas(admin_areas)
 
-            name_without_part = station_name.replace(part, "").strip()
+            names.append(station_name.replace(part, "").strip())
             found_ids.extend(
-                BusStation.objects.filter(
-                    name__contains=name_without_part, admin_area__in=all_children
-                ).values_list("id", flat=True)
+                BusStation.objects.filter(admin_area__in=all_children).values_list("id", flat=True)
             )
-    return found_ids
+    return found_ids, names
 
 
 def get_lower_admin_areas(admin_areas):
@@ -171,11 +176,6 @@ def get_fuzzy_stations(start_query: QuerySet, similarity_threshold, station_name
     fuzz_station_query_w_admin_ids = list(fuzzy_stations.values_list("id", flat=True))
     fuzzy_stations = BusStation.objects.filter(id__in=fuzz_station_query_w_admin_ids)
     return fuzzy_stations
-
-
-def get_stations_by_admin_area(possible_admins_names, station_name):
-    found_ids = get_station_ids_contained_by_admin_area(possible_admins_names, station_name)
-    return BusStation.objects.filter(id__in=found_ids)
 
 
 def get_address_translations():
@@ -249,7 +249,7 @@ def rotating_caliper(xys):
     return max_distance, point1, point2
 
 
-def search_stations(search_station_names: list):
+def search_stations(search_station_names: Iterable, use_filter: bool):
     names = list()
     for station_name in search_station_names:
         names.extend(station_name.split(" "))
@@ -261,35 +261,40 @@ def search_stations(search_station_names: list):
     possible_admins_names = list(possible_admins.values_list("name", flat=True))
     found_stations = dict()
     not_found_stations = set()
-    query = BusStation.objects.none()
     for station_name in search_station_names:
         station_name = (
             station_name.replace("Ã¤", "ä").replace("Ã¼", "ü").replace("Ã¶", "ö").replace("ÃŸ", "ß")
         )
-        f1 = partial(filter_query_distance, distance_threshold_m=DISTANCE_THRESHOLD_M)
-        found, query = search_station(station_name, possible_admins_names, filter_stack=f1)
-        if found:
+        if use_filter:
+            f1 = partial(filter_query_distance, distance_threshold_m=DISTANCE_THRESHOLD_M)
+        else:
+            f1 = lambda x: x  # noqa
+        query = search_station(
+            station_name, possible_admins_names, filter_stack=f1, return_all=False
+        )
+        if query.exists():
             found_stations[station_name] = query
         else:
             not_found_stations.add(station_name)
-    if not found_stations:
-        return {}
+
+    # Everything was found
     if not not_found_stations:
         return found_stations
-    ids = [x for q in found_stations.values() for x in q.values_list("id", flat=True)]
-    BLOCK_SIZE = 1000
-    convex_hull = shapely.Polygon()
-    while len(ids) > 0:
-        pop_ids = ids[:BLOCK_SIZE]
-        ids = ids[BLOCK_SIZE:]
-        query = query.model.objects.filter(pk__in=pop_ids)
-        convex_hull = multi_point_from_query(query).convex_hull
-        convex_hull = convex_hull.union(convex_hull)
-    max_y = max(abs(convex_hull.bounds[1]), convex_hull.bounds[3])
-    lat_lon_distance = approximate_lat_lon_distance(max_y)
-    if max_y > 80:
-        warnings.warning("Area search is not viable around the poles")
+
+    # Possibly more stations can be found when applying a project specific filter,
+    # which searches for stations close to previously found stations
+    if not use_filter:
         return found_stations
+
+    # Some stations where not found repeat the
+    ids = [x for q in found_stations.values() for x in q.values_list("id", flat=True)]
+    query = BusStation.objects.filter(pk__in=ids)
+
+    convex_hull = get_convex_hull_from_query(query)
+    max_y = max(abs(convex_hull.bounds[1]), convex_hull.bounds[3])
+    if max_y > 80:
+        logger.warning("Station lookup does not work properly at high latitudes>80.")
+    lat_lon_distance = approximate_lat_lon_distance(max_y)
     delta_lat_lon = BUS_SYSTEM_MAX_DISTANCE / lat_lon_distance
     area = convex_hull.buffer(delta_lat_lon)
     f1 = partial(filter_for_search_area, search_area=area)
@@ -297,6 +302,7 @@ def search_stations(search_station_names: list):
         filter_query_distance, distance_threshold_m=DISTANCE_THRESHOLD_M
     )
     filter_stack = partial(reduce, lambda arg, f: f(arg), [f1, filter_inner_distance])
+
     still_not_found = set()
     # Use the found stations to create a filter for the admin areas the stations are
     # contained within
@@ -306,10 +312,13 @@ def search_stations(search_station_names: list):
         get_all_bus_stations_of_admin_areas_in_query, found_stations=found_station_query
     )
     for station_name in not_found_stations:
-        found, query = search_station(
-            station_name, possible_admins_names, filter_stack=filter_stack
+        query = search_station(
+            station_name,
+            possible_admins_names,
+            filter_stack=filter_stack,
+            return_all=False,
         )
-        if found:
+        if query.count() > 0:
             found_stations[station_name] = query
             continue
         # last try with a fuzzy search in all stations
@@ -335,5 +344,17 @@ def search_stations(search_station_names: list):
         f"Not found Stations: \n"
         f"{newl.join(sorted(still_not_found))}"
     )
-
     return found_stations
+
+
+def get_convex_hull_from_query(query):
+    ids = list(query.values_list("id", flat=True))
+    BLOCK_SIZE = 1000
+    convex_hull = shapely.Polygon()
+    while len(ids) > 0:
+        pop_ids = ids[:BLOCK_SIZE]
+        ids = ids[BLOCK_SIZE:]
+        query = query.model.objects.filter(pk__in=pop_ids)
+        convex_hull = multi_point_from_query(query).convex_hull
+        convex_hull = convex_hull.union(convex_hull)
+    return convex_hull

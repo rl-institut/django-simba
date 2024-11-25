@@ -2,10 +2,15 @@ from abc import ABC, abstractmethod
 import csv
 from datetime import datetime, timedelta, timezone as tz
 from enum import Enum
+import logging
 import inspect
 from pathlib import Path
+import requests
+
+from django.contrib.gis.geos import Point
+from django.db.models import QuerySet
 from tqdm.auto import tqdm
-from typing import Callable, Type
+from typing import Callable, Type, Iterable
 from uuid import UUID
 
 from django import forms
@@ -19,6 +24,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from core.models import Progress
+from ebusdjango import settings
 from ebustoolbox import util
 from ebustoolbox.models import (
     Scenario,
@@ -31,6 +37,8 @@ from ebustoolbox.models import (
     EnumChargeType,
     EnumVoltageLevel,
 )
+
+logger = logging.getLogger("custom")
 
 
 def get_options_form(reader_num: int):
@@ -172,7 +180,8 @@ class SimbaScheduleReader(ScheduleReader):
             scenario = Scenario.objects.get(id=scenario_id)
             stations, station_dict = self.get_stations(scenario, trip_data)
             Station.objects.bulk_create(stations)
-
+            add_station_locations(Station.objects.filter(scenario=scenario))
+            add_elevations(Station.objects.filter(scenario=scenario, geom__isnull=False))
             self.set_progress(2, "Finde Fahrzeugtypen")
             # Create empty vehicle_types
             vt_dict, vts = self.get_vehicles(scenario, trip_data)
@@ -690,3 +699,65 @@ class EflipsIngestScheduleReaderVDV(EflipsIngestScheduleReaderBase):
             "x10_zip_file": x10_zip_file,
             "progress_callback": None,
         }
+
+
+def find_station_locations(station_names: Iterable) -> list[tuple]:
+    from data_scrapers.tasks import search_stations
+
+    foundStations = search_stations(station_names, use_filter=True)
+    result = []
+    for name in station_names:
+        stations = foundStations.get(name)
+        if stations is None:
+            result.append((None, None))
+            continue
+        x_avg = sum([station.geom.x for station in stations]) / len(stations)
+        y_avg = sum([station.geom.y for station in stations]) / len(stations)
+        result.append((x_avg, y_avg))
+    return result
+
+
+def add_station_locations(query: QuerySet):
+    if "data_scrapers" not in settings.INSTALLED_APPS:
+        logger.error("Data scraper not available")
+        return
+    station_names = query.values_list("name", flat=True)
+    locations = find_station_locations(station_names)
+    stations_with_geom = []
+    not_found = []
+    for station, (x, y) in zip(query, locations):
+        if x is None or y is None:
+            not_found.append(station.name)
+            continue
+        station.geom = Point(x, y, z=0)
+        stations_with_geom.append(station)
+    query.model.objects.bulk_update(stations_with_geom, ["geom"])
+
+
+def add_elevations(query: QuerySet):
+    """Look up elevation for a given geom of a queryset and add it to the database
+
+    Model needs a field of geom with a Point(x,y,z). Elevation data is searched and added to
+    the query
+    """
+    if query.count() == 0:
+        return
+    locations = query.values_list("geom", flat=True)
+    locations_lat_lon = [f"{loc.y},{loc.x}" for loc in locations]
+
+    url = settings.OPENELEVATION_URL + "/api/v1/lookup/"
+    param = {"locations": "|".join(locations_lat_lon)}
+    response = requests.get(url, params=param)
+    if response.status_code != 200:
+        logger.warning(response.status_code)
+    data = response.json()
+    changed_geom = []
+    for i, result in enumerate(data["results"]):
+        if result["error"]:
+            logger.warning(f"Elevation returned an error: {result}")
+        obj = query[i]
+        assert obj.geom.x == result["longitude"]
+        assert obj.geom.y == result["latitude"]
+        obj.geom = Point(obj.geom.x, obj.geom.y, result["elevation"])
+        changed_geom.append(obj)
+    query.model.objects.bulk_update(changed_geom, ["geom"])

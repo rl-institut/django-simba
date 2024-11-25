@@ -1,5 +1,5 @@
 from django.views.generic import ListView
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from data_scrapers.models import BusStation
 from data_scrapers.tasks import search_stations
 
@@ -10,12 +10,16 @@ class BusStationListView(ListView):
     template_name = "leaflet.html"
 
     def get_context_data(self, **kwargs):
-
         context = super().get_context_data(**kwargs)
-        search_stations_request = self.request.GET.get("search_stations").split(",")
-        found_stations = search_stations(search_stations_request)
+        search_stations_request = self.request.GET.get("search_stations").split("|")
+        use_filter = self.request.GET.get("filter", "false").lower() == "true"
+        found_stations = search_stations(search_stations_request, use_filter)
         if not len(found_stations) > 0:
-            raise Http404("No stations found")
+            raise Http404(
+                "No stations found. If searching for multiple stations use '|' as seperator."
+                " If the name contains '+' signs they need to be replaced by"
+                "'%2B'"
+            )
         geoms = []
         for key, stations in found_stations.items():
             for station in stations:
@@ -31,3 +35,17 @@ class BusStationListView(ListView):
         context["geoms"] = geoms
 
         return context
+
+
+# Create your views here.
+def json_view(request):
+    search_stations_request = request.GET.get("search_stations", "").split("|")
+    use_filter = request.GET.get("filter", "true").lower() == "true"
+    if len(search_stations_request) == 0:
+        raise Http404(
+            "search_stations must be part of the query."
+            "If searching for multiple stations use | as seperator."
+            "If all found stations should be returned, add &filter=False to the query"
+        )
+    found_stations = search_stations(search_stations_request, use_filter=use_filter)
+    return JsonResponse(found_stations, safe=True)
