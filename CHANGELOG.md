@@ -19,6 +19,41 @@ Template:
 
 ## [x.x.x] - Unreleased
 ### Changed
+- [(#161)](https://github.com/rl-institut/django-simba/pull/161)
+- Fixes #159
+- Introduces new app for getting BusSystem Related Data called "data_scrapers"
+- Contains functionality to query Busstation data from open street maps / overpass-api
+- Admin Areas from level 4 (Bundesland) to 8 (Gemeinden) for germany are queried in a hierarchical manner
+- bus_stops are queried with a guranteed relation to the highest found admin_level up to level 8. The admin area hierarchy in germany is complicated. Not every location is part of an admin area of level 8. In these cases the highest found admin area is used
+- Introduces an api and map to find bus stops by name.
+  - /data_scrapers/stations/map/?search_stations=S%2BU Alexanderplatz/Memhardstraße
+  - /data_scrapers/stations/api/?search_stations=S%2BU Alexanderplatz/Memhardstraße
+  - the api returns the results as json
+  - if querying for multiple stations use '|' as delimiter
+  - the keyword query param '&filter=true' can be added to use filters, which try to uniquely identify the searched stations. Default is filter=false
+  - /data_scrapers/stations/api/?search_stations=Alexanderplatz
+    - finds multiple Alexanderplatz bus_stops around germany
+  - /data_scrapers/stations/api/?search_stations=Alexanderplatz&filter=True
+    - finds no bus_stop since the found stations relate to different bus_stops, since the distance between each other is above a threshold
+  -/data_scrapers/stations/api/?search_stations=S%2BU%20Alexanderplatz/Memhardstra%C3%9Fe|Alexanderplatz&filter=false
+    - finds the station at Memhardstraße and several Alexanderplatz stops around germany
+    -/data_scrapers/stations/api/?search_stations=S%2BU%20Alexanderplatz/Memhardstra%C3%9Fe|Alexanderplatz&filter=true
+      - Finds the stop at Memhardstraße. Since this station is uniquly identified Alexanderplatz is found as well, since its assumed that stations of a bus system are located next to each other.
+  - Search Features:
+    - Checks for Admin area names inside of searched name up to admin_level 8
+      - /data_scrapers/stations/api/?search_stations=Berlin+Alexanderplatz
+      - will find only the Alexanderplatz which is in Berlin
+    - Fuzzy search with trigram similarity
+      - Alekanderplatz find bus_stop around germany called Alexanderplatz
+        - Only the closest matches of the fuzzy search are returned
+      - If no unique stations can be found previously found stations are used and:
+        - a convex hull of found stations is with a buffer zone is created. this area is checked for a uniquely identifiable station
+        - admin_areas which contain found stations are fuzzily searched for a  uniquely identifiable station
+  - DB import and export are possible as super user via
+  - /data_scrapers/stations/import/ and /export/
+    - import is only supported for empty tables of BusStation and AdminArea
+UPDATE admin areas!
+### Changed
 - [(#151)](https://github.com/rl-institut/django-simba/pull/151)
 - Fixes #147
 Fixes #145
