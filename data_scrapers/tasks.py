@@ -20,8 +20,8 @@ BUS_SYSTEM_MAX_DISTANCE = 10  # km
 DISTANCE_THRESHOLD_M = 400  # m
 
 # For Fuzzy Search
-SIMILARITY_THRESHOLD_W_ADMIN = 0.6  # Adjust this threshold as needed
-SIMILARITY_THRESHOLD_WO_ADMIN = 0.7  # Adjust this threshold as needed
+SIMILARITY_THRESHOLD_W_ADMIN = 0.5  # Adjust this threshold as needed
+SIMILARITY_THRESHOLD_WO_ADMIN = 0.5  # Adjust this threshold as needed
 
 logger = logging.getLogger("custom")
 
@@ -183,6 +183,10 @@ def get_fuzzy_stations(start_query: QuerySet, similarity_threshold, station_name
         .filter(similarity__gte=similarity_threshold)
         .order_by("-similarity")
     )
+    if fuzzy_stations.exists():
+        best_similarity = fuzzy_stations.first().similarity
+        # Without delta lookup fails at times
+        fuzzy_stations = fuzzy_stations.filter(similarity__gte=best_similarity - 0.01)
     fuzz_station_query_w_admin_ids = list(fuzzy_stations.values_list("id", flat=True))
     fuzzy_stations = BusStation.objects.filter(id__in=fuzz_station_query_w_admin_ids)
     return fuzzy_stations
@@ -299,14 +303,20 @@ def search_stations(search_station_names: Iterable, use_filter: bool):
     # Some stations where not found repeat the
     ids = [x for q in found_stations.values() for x in q.values_list("id", flat=True)]
     query = BusStation.objects.filter(pk__in=ids)
-
-    convex_hull = get_convex_hull_from_query(query)
-    max_y = max(abs(convex_hull.bounds[1]), convex_hull.bounds[3])
-    if max_y > 80:
-        logger.warning("Station lookup does not work properly at high latitudes>80.")
-    lat_lon_distance = approximate_lat_lon_distance(max_y)
-    delta_lat_lon = BUS_SYSTEM_MAX_DISTANCE / lat_lon_distance
-    area = convex_hull.buffer(delta_lat_lon)
+    if query.count() >= 3:
+        convex_hull = get_convex_hull_from_query(query)
+        max_y = max(abs(convex_hull.bounds[1]), convex_hull.bounds[3])
+        if max_y > 80:
+            logger.warning("Station lookup does not work properly at high latitudes>80.")
+        lat_lon_distance = approximate_lat_lon_distance(max_y)
+        delta_lat_lon = BUS_SYSTEM_MAX_DISTANCE / lat_lon_distance
+        area = convex_hull.buffer(delta_lat_lon)
+    else:
+        m_point = multi_point_from_query(query)
+        max_y = max(abs(m_point.bounds[1]), m_point.bounds[3])
+        lat_lon_distance = approximate_lat_lon_distance(max_y)
+        delta_lat_lon = BUS_SYSTEM_MAX_DISTANCE / lat_lon_distance
+        area = m_point.buffer(delta_lat_lon)
     f1 = partial(filter_for_search_area, search_area=area)
     filter_inner_distance = partial(
         filter_query_distance, distance_threshold_m=DISTANCE_THRESHOLD_M
