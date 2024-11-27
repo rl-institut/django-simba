@@ -5,16 +5,19 @@ from enum import Enum
 import logging
 import inspect
 from pathlib import Path
+from random import random
+
 import requests
 
 from django.contrib.gis.geos import Point
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Min, Max
 from tqdm.auto import tqdm
 from typing import Callable, Type, Iterable
 from uuid import UUID
 
 from django import forms
 from django.utils import timezone
+from django.contrib.gis.db import models
 
 import eflips
 from eflips.ingest import DummyIngester, AbstractIngester
@@ -36,6 +39,8 @@ from ebustoolbox.models import (
     Trip,
     EnumChargeType,
     EnumVoltageLevel,
+    X,
+    Y,
 )
 
 logger = logging.getLogger("custom")
@@ -124,6 +129,39 @@ def get_schedule_reader_factory(reader_num: int) -> type(ScheduleReader):
     raise NotImplementedError(f"Schedule Reader with {reader_num} not found")
 
 
+def place_not_found_stations(scenario):
+    stations_without_geo = Station.objects.filter(scenario=scenario, geom__isnull=True)
+    if Station.objects.filter(scenario=scenario, geom__isnull=False).count() > 1:
+        max_x = (
+            Station.objects.filter(scenario=scenario).aggregate(
+                max_x=Max(X("geom", output_field=models.DecimalField()))
+            )
+        )["max_x"]
+        min_x = (
+            Station.objects.filter(scenario=scenario).aggregate(
+                min_x=Min(X("geom", output_field=models.DecimalField()))
+            )
+        )["min_x"]
+        max_y = (
+            Station.objects.filter(scenario=scenario).aggregate(
+                max_y=Max(Y("geom", output_field=models.DecimalField()))
+            )
+        )["max_y"]
+        delta_x = min(0.1, max_x - min_x)
+        for i, station in enumerate(stations_without_geo):
+            x = float(min_x + i * delta_x / (max(1, len(stations_without_geo) - 1)))
+            y = float(max_y) + 0.05
+            station.geom = Point(x, y, 0)
+            station.save()
+    else:
+        logger.warning(
+            "Stations are placed randomly around Berlin, " "since not a single station was located."
+        )
+        for station in stations_without_geo:
+            station.geom = Point(51.5 + random(), 12.5 + random() * 10)
+            station.save()
+
+
 class SimbaScheduleReader(ScheduleReader):
     class SimbaScheduleReaderException(Exception):
         pass
@@ -181,7 +219,10 @@ class SimbaScheduleReader(ScheduleReader):
             stations, station_dict = self.get_stations(scenario, trip_data)
             Station.objects.bulk_create(stations)
             add_station_locations(Station.objects.filter(scenario=scenario))
+
             add_elevations(Station.objects.filter(scenario=scenario, geom__isnull=False))
+            place_not_found_stations(scenario)
+
             self.set_progress(2, "Finde Fahrzeugtypen")
             # Create empty vehicle_types
             vt_dict, vts = self.get_vehicles(scenario, trip_data)
