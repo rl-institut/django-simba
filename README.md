@@ -186,3 +186,22 @@ or removed
 sudo docker volume rm VOLUME_ID
 ```
 but only if the docker is not running
+
+## data_scrapers
+### stations
+- Introduces new app for getting BusSystem Related Data called "data_scrapers"
+- Contains functionality to query Busstation data from open street maps / overpass-api into the database
+- Search function provided with local db.
+- Admin Areas from level 4 (Bundesland) to 8 (Gemeinden) for germany are queried in a hierarchical manner
+- bus_stops are queried with a guaranteed relation to the highest found admin_level up to level 8. The admin area hierarchy in germany is complicated. Not every location is part of an admin area of level 8. In these cases the highest found admin area is used
+- Introduces an api and map to find bus stops by name.
+    - /data_scrapers/stations/map/?search_stations=S%2BU Alexanderplatz/Memhardstraße
+    - /data_scrapers/stations/api/?search_stations=S%2BU Alexanderplatz/Memhardstraße
+    - the api returns the results as json
+    - if querying for multiple stations use '|' as delimiter
+    - the keyword query param '&filter=true' can be added to use filters, which try to uniquely identify the searched stations. Default is filter=false
+    - /data_scrapers/stations/api/?search_stations=Alexanderplatz
+        - finds multiple Alexanderplatz bus_stops around germany
+    - /data_scrapers/stations/api/?search_stations=Alexanderplatz&filter=True
+- Further information can be found here
+- https://github.com/rl-institut/django-simba/tree/dev?tab=readme-ov-file#data_scrapers

@@ -24,7 +24,7 @@ Template:
 - Introduces new app for getting BusSystem Related Data called "data_scrapers"
 - Contains functionality to query Busstation data from open street maps / overpass-api
 - Admin Areas from level 4 (Bundesland) to 8 (Gemeinden) for germany are queried in a hierarchical manner
-- bus_stops are queried with a guranteed relation to the highest found admin_level up to level 8. The admin area hierarchy in germany is complicated. Not every location is part of an admin area of level 8. In these cases the highest found admin area is used
+- bus_stops are queried with a guaranteed relation to the highest found admin_level up to level 8. The admin area hierarchy in germany is complicated. Not every location is part of an admin area of level 8. In these cases the highest found admin area is used
 - Introduces an api and map to find bus stops by name.
   - /data_scrapers/stations/map/?search_stations=S%2BU Alexanderplatz/Memhardstraße
   - /data_scrapers/stations/api/?search_stations=S%2BU Alexanderplatz/Memhardstraße
@@ -52,7 +52,7 @@ Template:
   - DB import and export are possible as super user via
   - /data_scrapers/stations/import/ and /export/
     - import is only supported for empty tables of BusStation and AdminArea
-UPDATE admin areas!
+    -
 ### Changed
 - [(#151)](https://github.com/rl-institut/django-simba/pull/151)
 - Fixes #147
