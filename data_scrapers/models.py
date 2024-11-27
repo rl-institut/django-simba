@@ -64,7 +64,7 @@ def get_admin_areas_recursive(
     admin_level,
     area="area['ISO3166-1' = 'DE'][admin_level = 2]",
     upper_admin_area=None,
-    osm_id_set=None,
+    osm_id_dict=None,
 ):
     admin_levels = [4, 6, 8, 9]
     suffix = ""
@@ -81,11 +81,11 @@ def get_admin_areas_recursive(
         print("Error for ", overpass_query)
     data2 = response.json()
     admin_areas = []
-    if osm_id_set is None:
-        osm_id_set = set(AdminArea.objects.values_list("osm_id", flat=True))
+    if osm_id_dict is None:
+        osm_id_dict = {x: None for x in set(AdminArea.objects.values_list("osm_id", flat=True))}
     for ele in data2["elements"]:
         osm_id = ele["id"]
-        if osm_id not in osm_id_set:
+        if osm_id not in osm_id_dict:
             name = ele["tags"].get("name")
             try:
                 print(admin_level, name)
@@ -97,27 +97,31 @@ def get_admin_areas_recursive(
                     upper_admin_area=upper_admin_area,
                 )
                 admin_areas.append(admin_area)
-                osm_id_set.add(ele["id"])
+                osm_id_dict[osm_id] = admin_area
                 pk += 1
             except:  # noqa
                 traceback.print_exc()
                 continue
         else:
-            admin_area = AdminArea.objects.get(osm_id=osm_id)
+            try:
+                admin_area = AdminArea.objects.get(osm_id=osm_id)
+            except AdminArea.DoesNotExist:
+                admin_area = osm_id_dict[osm_id]
 
         # Search twice, First for Cities inside the state which might have kreise as well
-        # after that search again for kreise inside the state. This will consist of many duplicates
-        # but also some kreise (admin_level=8) which do not have a (admin_level=6)
+        # after that search again for gemeinden/kreise inside the state. This will consist of many duplicates
+        # but also some gemeinden/kreise (admin_level=8) which do not have an admin_level=6 above them
         if admin_level < max(admin_levels):
-            next_admin_level = admin_levels[admin_levels.index(admin_level) + 1]
-            inside_admin_areas, pk = get_admin_areas_recursive(
-                pk,
-                next_admin_level,
-                f"area({ele['id'] + OFFSET_CONST})",
-                upper_admin_area=admin_area,
-                osm_id_set=osm_id_set,
-            )
-            admin_areas.extend(inside_admin_areas)
+            next_levels = admin_levels[admin_levels.index(admin_level) + 1 :]
+            for next_admin_level in next_levels:
+                inside_admin_areas, pk = get_admin_areas_recursive(
+                    pk,
+                    next_admin_level,
+                    f"area({ele['id'] + OFFSET_CONST})",
+                    upper_admin_area=admin_area,
+                    osm_id_dict=osm_id_dict,
+                )
+                admin_areas.extend(inside_admin_areas)
     return admin_areas, pk
 
 
@@ -148,7 +152,13 @@ def fill_db_with_bus_stations():
     admin_areas, _ = get_admin_areas_recursive(
         pk, 4, area="area['ISO3166-1' = 'DE'][admin_level = 2]", upper_admin_area=None
     )
-    AdminArea.objects.bulk_create(admin_areas)
+    try:
+        AdminArea.objects.bulk_create(admin_areas)
+    except:  # noqa
+        fields = [x.columm for x in AdminArea._meta.fields]
+        data = list(map(lambda x: {field: getattr(x, field) for field in fields}, admin_areas))
+        df = pd.DataFrame(data)
+        df.to_csv("admin_areas_dump.csv", index=False)
 
     # this is slow since a lot of requests are fired, but it gets the job done. Only needs to be run
     # once. A faster way could be to get all geographic info from above including the boundary shapes
@@ -192,6 +202,12 @@ def fill_db_with_bus_stations():
             try:
                 BusStation.objects.bulk_create(bus_stations)
             except Exception:
+                fields = [x.columm for x in BusStation._meta.fields]
+                data = list(
+                    map(lambda x: {field: getattr(x, field) for field in fields}, admin_areas)
+                )
+                df = pd.DataFrame(data)
+                df.to_csv("bus_station_dump.csv", index=False)
                 traceback.print_exc()
             BusStation.objects.bulk_update(update_stations, fields=["admin_area"])
             admin_area.last_check = make_aware(datetime.now())

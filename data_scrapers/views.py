@@ -1,11 +1,13 @@
 from django.shortcuts import render
 from django.views.generic import ListView
 from django.http import Http404, JsonResponse, HttpResponse
-
+import logging
 import data_scrapers.models
 from data_scrapers.models import BusStation, AdminArea
 from data_scrapers.tasks import search_stations
 import pandas as pd
+
+logger = logging.getLogger("custom")
 
 
 # Create your views here.
@@ -16,6 +18,7 @@ class BusStationListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         search_stations_request = self.request.GET.get("search_stations").split("|")
+        logger.info(f"Searching for {len(search_stations_request)} stations")
         use_filter = self.request.GET.get("filter", "false").lower() == "true"
         found_stations = search_stations(search_stations_request, use_filter)
         if not len(found_stations) > 0:
@@ -34,6 +37,10 @@ class BusStationListView(ListView):
                         "popup": f"searched for {key}. Found: {station.name}",
                     }
                 )
+        logger.info(
+            f"Found {len(found_stations)} stations with {sum([len(x) for x in found_stations.values()])}"
+            f" separate stops"
+        )
         context["center_lat"] = sum(geom["lat"] for geom in geoms) / len(geoms)
         context["center_lon"] = sum(geom["lon"] for geom in geoms) / len(geoms)
         context["geoms"] = geoms
@@ -52,6 +59,7 @@ def json_view(request):
             "If all found stations should be returned, add &filter=False to the query"
         )
     results = {"results": dict()}
+    logger.info(f"Searching for {len(search_stations_request)} stations")
     stations = search_stations(search_stations_request, use_filter=use_filter)
     for search_name, stations in stations.items():
         station_values = list(stations.values("name", "geom", "admin_area__name"))
@@ -60,7 +68,10 @@ def json_view(request):
             stat["longitude"] = stat["geom"].x
             del stat["geom"]
         results["results"][search_name] = station_values
-
+    logger.info(
+        f"Found {len(results)} stations with {sum([len(x) for x in stations.values()])}"
+        f" separate stops"
+    )
     return JsonResponse(results, safe=True)
 
 
@@ -94,7 +105,7 @@ def import_view(request):
 
 def export_view(request):
     if not request.user.is_superuser:
-        raise Http404("Admins can only export data")
+        raise Http404("Only Admins can export data")
     zip_buffer = data_scrapers.models.create_export_buffer()
     response = HttpResponse(zip_buffer, content_type="application/zip")
     response["Content-Disposition"] = "attachment; filename=export.zip"

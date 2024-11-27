@@ -146,7 +146,7 @@ def filter_for_search_area(query, search_area: shapely.area):
 def get_station_ids_contained_by_admin_area(possible_admins_names, station_name):
     found_ids = []
     names = []
-    for part in station_name.split(" "):
+    for part in station_name.replace(",", " ").split(" "):
         if part in possible_admins_names:
             admin_name = part
             # Admin Area Names are not unique, especially at <= level 9
@@ -266,7 +266,7 @@ def rotating_caliper(xys):
 def search_stations(search_station_names: Iterable, use_filter: bool):
     names = list()
     for station_name in search_station_names:
-        names.extend(station_name.split(" "))
+        names.extend(station_name.replace(",", " ").split(" "))
     names_set = set(names)
     names_set_filtered = set(x for x in names_set if len(x) > 2)
     possible_admins = AdminArea.objects.filter(
