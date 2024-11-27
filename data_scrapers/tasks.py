@@ -23,8 +23,6 @@ DISTANCE_THRESHOLD_M = 400  # m
 SIMILARITY_THRESHOLD_W_ADMIN = 0.5  # Adjust this threshold as needed
 SIMILARITY_THRESHOLD_WO_ADMIN = 0.5  # Adjust this threshold as needed
 
-logger = logging.getLogger("custom")
-
 
 def geom_distance(geom1, geom2):
     """Wrapper for geopy.distance to calculate distance.
@@ -103,14 +101,16 @@ def search_station(
         if not return_all and query.exists():
             return query
         ids.extend(query.values_list("id", flat=True))
-
-    # try again in the admin areas but with a fuzzy search
-    # last try with a fuzzy search in all stations
-    # Filter entries based on trigram similarity
+    # try again everywhere. This can be slow. Optimization might be possible via
+    # indexing names or searching only unique names via a database view.
+    # Querying a subset of ids with unique names does not work since large sets of ids like
+    # ID in [...] are slow, when mixed with trigram search
     base_query = BusStation.objects.all()
     query = get_fuzzy_stations(base_query, SIMILARITY_THRESHOLD_WO_ADMIN, station_name)
     query = filter_stack(query)
     if not return_all and query.exists():
+        # Log this since it might make sense to remove this part, if it rarley finds stations
+        logger.info("Found a station via slow fuzzy search over all stations")
         return query
     ids.extend(query.values_list("id", flat=True))
 
@@ -177,9 +177,9 @@ def get_lower_admin_areas(admin_areas):
     return AdminArea.objects.filter(id__in=set(x.id for x in all_children))
 
 
-def get_fuzzy_stations(start_query: QuerySet, similarity_threshold, station_name):
+def get_fuzzy_stations(base_query: QuerySet, similarity_threshold, station_name):
     fuzzy_stations = (
-        start_query.annotate(similarity=TrigramSimilarity("name", station_name))
+        base_query.annotate(similarity=TrigramSimilarity("name", station_name))
         .filter(similarity__gte=similarity_threshold)
         .order_by("-similarity")
     )
@@ -266,7 +266,10 @@ def rotating_caliper(xys):
 def search_stations(search_station_names: Iterable, use_filter: bool):
     names = list()
     for station_name in search_station_names:
-        names.extend(station_name.replace(",", " ").split(" "))
+        search_name = (
+            station_name.replace("Ã¤", "ä").replace("Ã¼", "ü").replace("Ã¶", "ö").replace("ÃŸ", "ß")
+        )
+        names.extend(search_name.replace(",", " ").split(" "))
     names_set = set(names)
     names_set_filtered = set(x for x in names_set if len(x) > 2)
     possible_admins = AdminArea.objects.filter(
@@ -275,6 +278,7 @@ def search_stations(search_station_names: Iterable, use_filter: bool):
     possible_admins_names = list(possible_admins.values_list("name", flat=True))
     found_stations = dict()
     not_found_stations = set()
+
     for station_name in search_station_names:
         station_name = (
             station_name.replace("Ã¤", "ä").replace("Ã¼", "ü").replace("Ã¶", "ö").replace("ÃŸ", "ß")
@@ -364,6 +368,7 @@ def search_stations(search_station_names: Iterable, use_filter: bool):
         f"Not found Stations: \n"
         f"{newl.join(sorted(still_not_found))}"
     )
+
     return found_stations
 
 
