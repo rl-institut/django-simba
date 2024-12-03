@@ -13,4 +13,4 @@ UPLOAD_PATH = "uploads/"
 
 DATABASES = {"default": "THIS WILL BE REPLACED BY DjangoSimbaWrapper"}
 
-STATIC_URL = os.path.abspath(Path(BASE_DIR).joinpath("static/"))
+STATIC_URL = os.path.abspath(Path(BASE_DIR).joinpath("ebustoolbox/").joinpath("static/"))
