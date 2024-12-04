@@ -147,9 +147,9 @@ def place_not_found_stations(scenario):
                 max_y=Max(Y("geom", output_field=models.DecimalField()))
             )
         )["max_y"]
-        delta_x = min(0.1, max_x - min_x)
+        delta_x = float(min(0.1, max_x - min_x))
         for i, station in enumerate(stations_without_geo):
-            x = float(min_x + i * delta_x / (max(1, len(stations_without_geo) - 1)))
+            x = float(float(min_x) + i * delta_x / (max(1, len(stations_without_geo) - 1)))
             y = float(max_y) + 0.05
             station.geom = Point(x, y, 0)
             station.save()
