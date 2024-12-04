@@ -1122,6 +1122,7 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
 
     return event_list
 
+
 def assign_new_vehicles_to_db(django_scenario: Scenario, db_name="default") -> None:
     """Assign a new vehicle to every rotation
 
