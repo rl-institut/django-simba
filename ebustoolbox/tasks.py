@@ -1085,9 +1085,6 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
     for event in events.filter(event_type__startswith="CHARGING"):
         if skip_oppb and event.event_type == "CHARGING_OPPORTUNITY":
             continue
-        # get CS name
-        # station.name == CS.name?
-        name = event.station_id if event.station_id is not None else event.area_id  # not yet known?
         # create arrival event
         event_list.append(
             {
@@ -1096,7 +1093,7 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
                 "vehicle_id": vehicle.name,
                 "event_type": "arrival",
                 "update": {
-                    "connected_charging_station": name,
+                    "connected_charging_station": event.station.name,
                     "estimated_time_of_departure": event.time_end.isoformat(),
                     "soc_delta": event.soc_start - vehicle_soc[event.vehicle_id],
                     "desired_soc": event.soc_end,
