@@ -1081,16 +1081,22 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
         if first_vehicle_event is not None:
             vehicle_soc[vehicle.id] = first_vehicle_event.soc_start
 
+    # avoid non-station events from older simulations
+    events = events.filter(station_id__isnull=False)
+    # prefetch stations and vehicles from events (less queries, faster lookup)
+    events = events.select_related("station", "vehicle")
+    # get all charging events
+    charging_events = events.filter(event_type=EventType.CHARGING_DEPOT)
+    if not skip_oppb:
+        charging_events = charging_events.union(events.filter(event_type=EventType.CHARGING_OPPORTUNITY))
     # iterate over events in-order, creating SpiceEV event-dicts for each charging event
-    for event in events.filter(event_type__startswith="CHARGING"):
-        if skip_oppb and event.event_type == "CHARGING_OPPORTUNITY":
-            continue
+    for event in charging_events:
         # create arrival event
         event_list.append(
             {
                 "signal_time": scenario_start_time.isoformat(),
                 "start_time": event.time_start.isoformat(),
-                "vehicle_id": vehicle.name,
+                "vehicle_id": event.vehicle.name,
                 "event_type": "arrival",
                 "update": {
                     "connected_charging_station": event.station.name,
@@ -1106,7 +1112,7 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
             {
                 "signal_time": scenario_start_time.isoformat(),
                 "start_time": event.time_end.isoformat(),
-                "vehicle_id": vehicle.name,
+                "vehicle_id": event.vehicle.name,
                 "event_type": "departure",
                 "update": {
                     "estimated_time_of_arrival": None,
