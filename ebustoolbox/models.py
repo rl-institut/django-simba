@@ -734,7 +734,7 @@ class Temperatures(models.Model):
         self.temperature_closest_function = get_datetime_closest_function(self.datetimes, self.data)
         super().save(*args, **kwargs)
 
-    def get_interpolated_temperature(self, date_time: datetime):
+    def get_interpolated_temperature(self, date_time: datetime) -> float:
         """
         Retrieves the interpolated temperature for a given datetime.
         """
@@ -743,7 +743,7 @@ class Temperatures(models.Model):
                 self.datetimes, self.data
             )
         if self.use_only_time:
-            date = date_time.fromisoformat(str(next(iter(self.datetimes))))
+            date = datetime.fromisoformat(str(next(iter(self.datetimes))))
             date_time = date_time.replace(year=date.year, month=date.month, day=date.day)
         return self.temperature_interpolation(date_time)
 
