@@ -1088,7 +1088,9 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
     # get all charging events
     charging_events = events.filter(event_type=EventType.CHARGING_DEPOT)
     if not skip_oppb:
-        charging_events = charging_events.union(events.filter(event_type=EventType.CHARGING_OPPORTUNITY))
+        charging_events = charging_events.union(
+            events.filter(event_type=EventType.CHARGING_OPPORTUNITY)
+        )
     # iterate over events in-order, creating SpiceEV event-dicts for each charging event
     for event in charging_events:
         # create arrival event
