@@ -6,6 +6,7 @@ from . import views
 
 app_name = "simba"
 
+# ToDo Append "/" to all url paths
 urlpatterns = [
     path(
         "long_running_task_status/",

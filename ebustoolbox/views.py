@@ -179,7 +179,7 @@ def get_simulation_parameters(request: HttpRequest, task_id):
     sim_range = SimulationRange.objects.filter(scenario=scenario).first()
     if sim_range:
         initial_start = sim_range.start.date().isoformat()
-        initial_end = sim_range.end.isoformat()
+        initial_end = (sim_range.end - timedelta(days=1)).isoformat()
     else:
         initial_start = start
         initial_end = end
