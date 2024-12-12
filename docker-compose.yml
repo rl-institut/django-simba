@@ -35,7 +35,7 @@ services:
   my-docker-postgres:
     # Settings have to be reflected in .env file when running
     # DATABASE_URL=postgis://myprojectuser:1234@my-docker-postgres:5432/mydb
-    image: postgis/postgis
+    image: postgis/postgis:16-3.5-alpine
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:

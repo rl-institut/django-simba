@@ -13,11 +13,11 @@ Additionally, since the sample database that is used is a `eflips-model` databas
 the django-simba <-> efliPS-model database compatibility.
 
 """
-import base64
 import random
 import warnings
 from typing import Tuple
 from urllib.parse import urlparse
+import os
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -48,8 +48,6 @@ def database_url_components(database_url: str) -> Tuple[str, str, str, str, str,
     return o.scheme, o.username, o.password, o.hostname, port, o.path[1:]
 
 
-import os
-
 def clear_db():
     DATABASE_URL = os.environ["EFLIPS_DATABASE_URL"]
 
@@ -71,6 +69,7 @@ def clear_db():
         os.environ["PGPASSWORD"] = database_password
     if os.system(query_str) != 0:
         raise ValueError("Failed to clear the database.")
+
 
 def import_db():
     DATABASE_URL = os.environ["EFLIPS_DATABASE_URL"]
@@ -117,9 +116,9 @@ def test_simba_consumption_simulation():
     # This is not enforced by the eflips-model database, so we need to set it manually.
     # Tracked in https://github.com/rl-institut/django-simba/issues/145
     # ---- BUG ----
-    for vehicle_type in session.query(eflips.model.VehicleType).all():
-        random_string = random.randbytes(16).hex()
-        vehicle_type.name_short = random_string
+    #for vehicle_type in session.query(eflips.model.VehicleType).all():
+    #    random_string = random.randbytes(16).hex()
+    #    vehicle_type.name_short = random_string
 
     # --- BUG ---
     # Apparently, a rotation with allow_opportunity_charging=False cannot be driven by a vehicle of a
@@ -127,8 +126,8 @@ def test_simba_consumption_simulation():
     # This is not documented and should be fixed.
     # Tracked in https://github.com/rl-institut/django-simba/issues/146
     # --- BUG ---
-    for vehicle_type in session.query(eflips.model.VehicleType).all():
-        vehicle_type.opportunity_charging_capable = False
+    #for vehicle_type in session.query(eflips.model.VehicleType).all():
+    #    vehicle_type.opportunity_charging_capable = False
 
     # We need to set the loaded mass for each trip
     # If we're using the smart consumption model.
@@ -177,15 +176,12 @@ if __name__ == "__main__":
     if "EFLIPS_DATABASE_URL" not in os.environ or os.environ["EFLIPS_DATABASE_URL"] == "":
         raise ValueError("EFLIPS_DATABASE_URL not set")
 
-    try:
-        if not os.path.exists("django_mapengine"):
-            # outside of the Django project
-            raise ValueError(
-                "This script must be run with the project root directory as the working directory."
-            )
+    if not os.path.exists("django_mapengine"):
+        # outside of the Django project
+        raise ValueError(
+            "This script must be run with the project root directory as the working directory."
+        )
 
-        clear_and_import()
+    clear_and_import()
 
-        test_simba_consumption_simulation()
-    finally:
-        pass
+    test_simba_consumption_simulation()

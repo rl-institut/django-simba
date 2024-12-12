@@ -1,4 +1,3 @@
-
 from django.db import connections
 from environ import environ
 import os
@@ -12,7 +11,6 @@ class DjangoSimbaWrapper:
         database_url = database_url.replace("postgresql://", "postgis://")
         # Now, we put this string in the DEFAULT entry in settings.DATABASES
 
-
         # Allow unsafe async operations (for Juptyer Notebook)
         # https://stackoverflow.com/questions/61926359/django-synchronousonlyoperation-you-cannot-call-this-from-an-async-context-u
 
@@ -24,6 +22,7 @@ class DjangoSimbaWrapper:
         os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ds_wrapper.settings")
         # setting DATABASE_URL env variable might also be required
         import django
+
         django.setup()
 
     def run_simba_scenario(

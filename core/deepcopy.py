@@ -51,10 +51,13 @@ def reset_postgres_auto_increments(apps):
         )
         try:
             with connection.cursor() as cursor:
+                # Turn on auto commit to avoid transaction issues
+                # This way, we fail on the single command and not on the whole transaction
+                cursor.execute("SET autocommit = ON;")
                 cursor.execute(postgres_reset_sql)
+                cursor.execute("SET autocommit = OFF;")
         except (psycopg2.errors.UndefinedTable, ProgrammingError):
             logging.warning("Undefined table in PostgreSQL: %s", app)
-
 
 @time_it
 @atomic
