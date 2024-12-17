@@ -2656,8 +2656,8 @@ develop = false
 [package.source]
 type = "git"
 url = "https://github.com/ludgerheide/SimBA"
-reference = "111569d4c8495f586ea414bec5c7743fffeea2f8"
-resolved_reference = "111569d4c8495f586ea414bec5c7743fffeea2f8"
+reference = "478c5ff956f1b7fd573d5333776e3ec3435b33ad"
+resolved_reference = "478c5ff956f1b7fd573d5333776e3ec3435b33ad"
 
 [[package]]
 name = "simpy"
@@ -3124,4 +3124,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10, <3.12"
-content-hash = "ff8299c24db3f4037dc751d39115a1ab464e1523ad535f49ffee693f5aff205c"
+content-hash = "1342dd7cd568cfc15a7a3c36a10110db7d044997b13659399bb69f1621b016f8"
