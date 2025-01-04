@@ -915,14 +915,10 @@ def assign_new_vehicles_to_db(django_scenario: Scenario, db_name="default") -> N
     Vehicle.objects.using(db_name).filter(scenario=django_scenario).delete()
     rotations = []
     vehicles = []
-    vehicle_last_id = Vehicle.objects.aggregate(Max("id"))["id__max"] or 0
     for i, r in enumerate(Rotation.objects.using(db_name).filter(scenario=django_scenario)):
-        vehicle_last_id += 1
         vt = r.vehicle_type
         v_name = "Vehicle_" + str(i)
-        vehicle = Vehicle(
-            id=vehicle_last_id, scenario=django_scenario, vehicle_type=vt, name=v_name
-        )
+        vehicle = Vehicle(scenario=django_scenario, vehicle_type=vt, name=v_name)
         vehicles.append(vehicle)
         r.vehicle = vehicle
         rotations.append(r)
@@ -1471,7 +1467,6 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario):  # noqa: 
     vehicle_trips_dict = dict()
     current_rotation = None
     events = []
-    event_id = ebustoolbox.util.get_next_id(Event)
     last_arrival_time = None
     current_vehicle = None
     last_aware = None
@@ -1581,7 +1576,6 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario):  # noqa: 
                 f"{vehicle.to_simba_name()}/{vehicle.id} has None values in between socs"
             )
         event = Event(
-            id=event_id,
             scenario=db_scenario,
             vehicle=vehicle,
             vehicle_type=vehicle_type,
@@ -1594,7 +1588,6 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario):  # noqa: 
             timeseries=timeseries,
             event_type=event_type,
         )
-        event_id += 1
         events.append(event)
     Event.objects.bulk_create(events)
 
