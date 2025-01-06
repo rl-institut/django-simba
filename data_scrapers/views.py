@@ -10,7 +10,6 @@ import pandas as pd
 logger = logging.getLogger("custom")
 
 
-# Create your views here.
 class BusStationListView(ListView):
     model = BusStation
     template_name = "leaflet.html"
@@ -48,7 +47,6 @@ class BusStationListView(ListView):
         return context
 
 
-# Create your views here.
 def json_view(request):
     search_stations_request = request.GET.get("search_stations", "").split("|")
     use_filter = request.GET.get("filter", "false").lower() == "true"
@@ -82,11 +80,11 @@ def import_view(request):
         return render(request, "data_scrapers/import.html")
 
     if request.method == "POST":
-        if AdminArea.objects.all().count() > 0 or BusStation.objects.all().count() > 0:
+        if AdminArea.objects.all().exists() or BusStation.objects.all().exists():
             return Http404(
-                f"Data can only be imported in empty Database. "
-                f"There are AdminAreas {AdminArea.objects.all().count()} \n"
-                f"There are BusStations {BusStation.objects.all().count()}"
+                f"Data can only be imported in empty database. "
+                f"There are {AdminArea.objects.count()} AdminAreas \n"
+                f"There are {BusStation.objects.count()} BusStations"
             )
 
         assert request.FILES["file_stations"]
@@ -95,8 +93,8 @@ def import_view(request):
         df_areas = pd.read_csv(request.FILES["file_admin_areas"])
         df_stations = pd.read_csv(request.FILES["file_stations"])
         data_scrapers.models.import_data(df_areas, df_stations)
-        area_count = AdminArea.objects.all().count()
-        station_count = BusStation.objects.all().count()
+        area_count = AdminArea.objects.count()
+        station_count = BusStation.objects.count()
         return HttpResponse(
             f"Success. {area_count} AdminAreas and {station_count} Stations imported"
         )

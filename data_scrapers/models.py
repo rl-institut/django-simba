@@ -1,17 +1,24 @@
-import io
-import traceback
-import zipfile
+import logging
 from datetime import datetime
+import io
 import pandas as pd
-from django.contrib.gis.geos import Point
-from django.contrib.gis.db import models
 import requests
+import traceback
+import time
+import zipfile
+
+from django.contrib.gis.db import models
+from django.contrib.gis.geos import Point
 from django.db.transaction import atomic
 from django.utils.timezone import make_aware
 
 from ebustoolbox.util import get_next_id
 
+logger = logging.getLogger("custom")
 OVERPASS_URL = "http://overpass-api.de/api/interpreter"
+
+# Offset needed to translate OpenStreetMap Element IDs from Overpass_API
+# https://wiki.openstreetmap.org/wiki/Overpass_API/Overpass_QL#By_element_id
 OFFSET_CONST = 3600000000
 
 
@@ -54,21 +61,43 @@ def get_german_states():
     """
     response = requests.get(OVERPASS_URL, params={"data": overpass_query})
     data = response.json()
-    state_bounds = {ele["id"]: ele["tags"] for ele in data["elements"]}
+    state_bounds = {elem["id"]: elem["tags"] for elem in data["elements"]}
     # https: // wiki.openstreetmap.org / wiki / Overpass_API / Overpass_QL  # By_element_id
     return state_bounds
 
 
 def get_admin_areas_recursive(
-    pk,
-    admin_level,
-    area="area['ISO3166-1' = 'DE'][admin_level = 2]",
-    upper_admin_area=None,
-    osm_id_dict=None,
-):
+    pk: int,
+    admin_level: int,
+    area: str = "area['ISO3166-1' = 'DE'][admin_level = 2]",
+    upper_admin_area: AdminArea = None,
+    osm_id_dict: dict = None,
+    completed_searched_osm_ids: set = None,
+) -> tuple[list[AdminArea], int]:
+    """Return list of Germanys AdminAreas and the next unused primary key
+
+    Recursive search of Germany and its AdminAreas using Overpass API.
+    Starting with Germany as a whole as search area, lower AdminAreas (e.g. States) are searched up
+    to an admin level of 9 which corresponds with Gemeinden. AdminAreas exists in hierarchy but not
+    necessarily without gaps. I.e. an AdminArea of level 8 might be part of/be contained by
+    an AdminArea of level 4, without being part of an AdminArea of level 6. This means every
+    AdminArea needs to be queried for all AdminLevels below its own and not just the next lower
+    level.
+    :param pk: next unused primary key
+    :param admin_level:
+    :param area:
+    :param upper_admin_area:
+    :param osm_id_dict:
+    :param completed_searched_osm_ids:
+    :return:
+
+    """
+
     admin_levels = [4, 6, 8, 9]
     suffix = ""
     if admin_level == 4:
+        # This is needed since Overpass would retrieve States from other Countries like Switzerland
+        # or France which in some way Overlap with Germany
         suffix = """["ISO3166-2"~"^DE"]"""
     overpass_query = f"""
     [out: json];
@@ -76,19 +105,35 @@ def get_admin_areas_recursive(
     rel[admin_level = {admin_level}][boundary=administrative][type = boundary]{suffix}(area);
     out tags;
     """
-    response = requests.get(OVERPASS_URL, params={"data": overpass_query})
-    if response.status_code != 200:
-        print("Error for ", overpass_query)
-    data2 = response.json()
+    response = get_or_sleep(overpass_query)
     admin_areas = []
+    if response.status_code != 200:
+        logger.error(f"Error for {overpass_query} \n with {response.status_code=}")
+        return admin_areas, pk
+    overpass_json = response.json()
+
+    # These are Ids which have already been searched in this run of the recursive search
+    # and do not have to be searched again
+    completed_searched_osm_ids = completed_searched_osm_ids or set()
     if osm_id_dict is None:
         osm_id_dict = {x: None for x in set(AdminArea.objects.values_list("osm_id", flat=True))}
-    for ele in data2["elements"]:
-        osm_id = ele["id"]
+
+    elements = overpass_json["elements"]
+    if "Bayern" in [e["tags"]["name"] for e in elements]:
+        elements = [e for e in elements if e["tags"]["name"] == "Bayern"]
+    # for elem in overpass_json["elements"]:
+    for elem in elements:
+        # the query returned a list of AdminAreas inside the current AdminArea with the specified
+        # admin level. Iterate over this list and add AdminAreas which are not part of the DB yet
+        osm_id = elem["id"]
+        if osm_id in completed_searched_osm_ids:
+            # this id was already recursively searched and can be skipped
+            continue
         if osm_id not in osm_id_dict:
-            name = ele["tags"].get("name")
+            # an osm id was found which is not part of the database yet
+            name = elem["tags"].get("name")
             try:
-                print(admin_level, name)
+                logger.debug(f"{admin_level=}, {name=}")
                 admin_area = AdminArea(
                     id=pk,
                     name=name,
@@ -100,34 +145,65 @@ def get_admin_areas_recursive(
                 osm_id_dict[osm_id] = admin_area
                 pk += 1
             except:  # noqa
+                #
+                print("error")
+                logger.warning(f"{admin_level=}, {name=}")
                 traceback.print_exc()
                 continue
         else:
+            # The osm_id was already found in the database or is in memory to be commited later
             try:
                 admin_area = AdminArea.objects.get(osm_id=osm_id)
             except AdminArea.DoesNotExist:
+                # this admin area was created earlier but not yet commited to the db.
                 admin_area = osm_id_dict[osm_id]
 
-        # Search twice, First for Cities inside the state which might have kreise as well
-        # after that search again for gemeinden/kreise inside the state. This will consist of many duplicates
-        # but also some gemeinden/kreise (admin_level=8) which do not have an admin_level=6 above them
+        # Search the current AdminArea multiple times for child AdminAreas.
+        # First for cities(admin_level=6) inside the state(admin_level=4).
+        # Then for Gemeinden/Kreise(admin_level=8) and then for Bezirke (admin_level=9)
+        # In between each found element is searched in a similar fashion.
+
+        # this is done to find all possible relations in the hierarchy of AdminAreas, e.g.
+        # Berlin with level=4 is the direct parent of Friedrichshain-Kreuzberg of level=9
         if admin_level < max(admin_levels):
+            # if admin_level == min(admin_levels):
+            if admin_level < 7:
+                logger.info(f"Searching recursively in {admin_area.name}")
             next_levels = admin_levels[admin_levels.index(admin_level) + 1 :]
             for next_admin_level in next_levels:
+                # Search for AdminAreas with higher admin levels inside the current one.
                 inside_admin_areas, pk = get_admin_areas_recursive(
                     pk,
                     next_admin_level,
-                    f"area({ele['id'] + OFFSET_CONST})",
+                    f"area({elem['id'] + OFFSET_CONST})",
                     upper_admin_area=admin_area,
                     osm_id_dict=osm_id_dict,
+                    completed_searched_osm_ids=completed_searched_osm_ids,
                 )
                 admin_areas.extend(inside_admin_areas)
+            # This admin area was completely searched.
+            # Add it to the set to skip searching it multiple times.
+            completed_searched_osm_ids.add(admin_area.osm_id)
     return admin_areas, pk
+
+
+def get_or_sleep(overpass_query):
+    retry = True
+    while retry:
+        response = requests.get(OVERPASS_URL, params={"data": overpass_query})
+        if response.status_code == 429:
+            # Rate limited
+            sleep_duration = 120
+            logger.info(f"Getting rate limited by overpass_api. Waiting {sleep_duration}s.")
+            time.sleep(sleep_duration)
+        else:
+            retry = False
+    return response
 
 
 def search_in_area_id(area_id, search_query):
     if area_id < OFFSET_CONST:
-        print(
+        logger.warning(
             f"Warning: area id is too small. {OFFSET_CONST} is added automatically."
             " See https://wiki.openstreetmap.org/wiki/Overpass_API/Overpass_QL#By_element_id"
         )
@@ -140,14 +216,23 @@ def search_in_area_id(area_id, search_query):
     out tags;
     """
     response = requests.get(OVERPASS_URL, params={"data": overpass_query})
-    data = response.json()
-    if response.status_code != 200:
-        print(response.status_code)
-    return data, response
+    if response.status_code == 200:
+        return response.json()
+    logger.warning(f"{search_query}  resulted in the following response:\n {response.status_code}")
+    return None
 
 
 def fill_db_with_bus_stations():
-    # AdminArea.objects.all().delete()
+    """
+    Use overpass API to search Germany for BusStations and store them in the database.
+
+    Queries overpass for admin areas, which are then searched for BusStations. This allows
+    differentiating between BusStations with identical names by using the AdminArea they are located
+    in, e.g. the BusStation "MainStreet" might exist multiple times in different cities.
+    Storing this relation between Station and AdminArea allows for queries of a BusStation name but
+    only in specified AdminAreas (e.g. a specific city or district)
+    :return:
+    """
     pk = get_next_id(AdminArea)
     admin_areas, _ = get_admin_areas_recursive(
         pk, 4, area="area['ISO3166-1' = 'DE'][admin_level = 2]", upper_admin_area=None
@@ -155,43 +240,44 @@ def fill_db_with_bus_stations():
     try:
         AdminArea.objects.bulk_create(admin_areas)
     except:  # noqa
-        fields = [x.columm for x in AdminArea._meta.fields]
-        data = list(map(lambda x: {field: getattr(x, field) for field in fields}, admin_areas))
-        df = pd.DataFrame(data)
-        df.to_csv("admin_areas_dump.csv", index=False)
+        if admin_areas:
+            df = model_list_to_df(admin_areas)
 
-    # this is slow since a lot of requests are fired, but it gets the job done. Only needs to be run
-    # once. A faster way could be to get all geographic info from above including the boundary shapes
-    # request all stations at once and then filter them into the right administrations.
+            df.to_csv("admin_areas_dump.csv", index=False)
+    # This is slow, since many requests are fired, but it works. Only needs to be run once.
+    # A faster way could be to get all geographic info from above including the boundary shapes.
+    # Request all stations at once and then filter them into the right administrations.
+
     osm_id_set = set(BusStation.objects.all().values_list("osm_id", flat=True))
     update_stations = []
     for level in [9, 8, 6, 4]:
         for admin_area in AdminArea.objects.filter(admin_level=level):
-            print(f"Searching bus stations in {admin_area.name}")
-            search_query = """node["highway"="bus_stop"]"""
-            data, response = search_in_area_id(admin_area.osm_id + OFFSET_CONST, search_query)
-            if response.status_code != 200:
-                print(
-                    f"{search_query}  resulted in the following response: \n {response.status_code}"
-                )
+            logger.info(f"Searching bus stations in {admin_area.name}")
+            search_query = "node['highway'='bus_stop']"
+            response_json = search_in_area_id(admin_area.osm_id + OFFSET_CONST, search_query)
+            if response_json is None:
                 continue
-            print(f"Found {len(data['elements'])} bus stations")
+            logger.info(f"Found {len(response_json['elements'])} bus stations")
             first_id = get_next_id(BusStation)
             bus_stations = []
-            for elem in data["elements"]:
-                osm_id = elem["id"]
+            for element in response_json["elements"]:
+                osm_id = element["id"]
                 if osm_id in osm_id_set:
+                    # the BusStation already exists in the database. Check that the AdminArea
+                    # is correctly set to the highest admin level which corresponds with the
+                    # smallest area size.
                     busstation = BusStation.objects.get(osm_id=osm_id)
-                    busstation.admin_area = admin_area
-                    update_stations.append(busstation)
+                    if busstation not in update_stations:
+                        busstation.admin_area = admin_area
+                        update_stations.append(busstation)
                     continue
                 osm_id_set.add(osm_id)
                 try:
                     busstation = BusStation(
                         id=first_id,
-                        name=elem.get("tags", {}).get("name", "NoName"),
+                        name=element.get("tags", {}).get("name", "NoName"),
                         osm_id=osm_id,
-                        geom=Point(x=elem["lon"], y=elem["lat"], z=0),
+                        geom=Point(x=element["lon"], y=element["lat"], z=0),
                         admin_area=admin_area,
                     )
                 except Exception:
@@ -202,16 +288,20 @@ def fill_db_with_bus_stations():
             try:
                 BusStation.objects.bulk_create(bus_stations)
             except Exception:
-                fields = [x.columm for x in BusStation._meta.fields]
-                data = list(
-                    map(lambda x: {field: getattr(x, field) for field in fields}, admin_areas)
-                )
-                df = pd.DataFrame(data)
-                df.to_csv("bus_station_dump.csv", index=False)
+                if bus_stations:
+                    df = model_list_to_df(bus_stations)
+                    df.to_csv("bus_station_dump.csv", index=False)
                 traceback.print_exc()
             BusStation.objects.bulk_update(update_stations, fields=["admin_area"])
             admin_area.last_check = make_aware(datetime.now())
             admin_area.save()
+
+
+def model_list_to_df(model_list):
+    model_type = type(model_list[0])
+    fields = [x.column for x in model_type._meta.fields]
+    data = list(map(lambda x: {field: getattr(x, field) for field in fields}, model_list))
+    return pd.DataFrame(data)
 
 
 def get_admin_areas_df():
@@ -231,6 +321,7 @@ def get_bus_stations_df():
         geom_z=Z("geom", output_field=models.DecimalField()),
     ).values_list(*columns)
     df = pd.DataFrame(columns=columns, data=data)
+    # cast geometry columns to float
     df.loc[:, ["geom_x", "geom_y", "geom_z"]] = df.loc[:, ["geom_x", "geom_y", "geom_z"]].astype(
         float
     )
@@ -271,12 +362,16 @@ def import_data(df_areas, df_stations):
 
 
 def create_export_buffer():
+    """
+    Write admin areas and busstations as .csv to a buffer of a deflated zip.
+    """
     df_areas = get_admin_areas_df()
     df_stations = get_bus_stations_df()
     zip_buffer = io.BytesIO()
 
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         # Write the dataframe to a buffer. use this buffer to write zo a deflated zip
+        # Write dataframe to buffer and then to deflated zip.
         csv_buffer = io.StringIO()
         df_areas.to_csv(csv_buffer, index=False)
         zf.writestr("admin_areas.csv", csv_buffer.getvalue())

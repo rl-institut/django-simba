@@ -1,25 +1,26 @@
+from functools import partial
+from functools import reduce
 import json
 import logging
 import math
-from functools import reduce
-from functools import partial
 import operator
 import shapely
 from shapely.geometry import Point, MultiPoint
 from typing import Callable, Iterable
 
-from .models import BusStation, AdminArea
-
 from django.db.models import QuerySet
-from geopy.distance import distance as geopy_distance
 from django.contrib.postgres.search import TrigramSimilarity
 from django.db.models import Q
+from geopy.distance import distance as geopy_distance
+
+from .models import BusStation, AdminArea
 
 logger = logging.getLogger("custom")
 BUS_SYSTEM_MAX_DISTANCE = 10  # km
 DISTANCE_THRESHOLD_M = 400  # m
 
 # For Fuzzy Search
+# Value between [0,1]. Higher values mean that words must be more similar to be considered a match.
 SIMILARITY_THRESHOLD_W_ADMIN = 0.5  # Adjust this threshold as needed
 SIMILARITY_THRESHOLD_WO_ADMIN = 0.5  # Adjust this threshold as needed
 
@@ -27,14 +28,21 @@ SIMILARITY_THRESHOLD_WO_ADMIN = 0.5  # Adjust this threshold as needed
 def geom_distance(geom1, geom2):
     """Wrapper for geopy.distance to calculate distance.
 
-    geopy.distance will calculate the distance between two points, expecting (lat,lon)
-    coordinates while geom are converted to tuples as (lon, lat, z)
+    geopy.distance will calculate the distance between two points, expecting (lat,lon) coordinates
+    while geom are converted to tuples as (lon, lat, z)
     """
     return geopy_distance((geom1.y, geom1.x), (geom2.y, geom2.x))
 
 
 def get_upper_bound_distance(station_query: QuerySet):
-    # give a simple upper bound for distance between points
+    """Give a simple upper bound for distance between points
+
+    Finds the minimal longitude and latitude to create a helper point.
+    Does the same for the maximum longitude and latitude and calculates the distance between these
+    two points.
+    This fails in regions around long 180,-180
+    """
+
     xs = [station.geom.x for station in station_query]
     ys = [station.geom.y for station in station_query]
     x_min, x_max = min(xs), max(xs)
@@ -44,7 +52,12 @@ def get_upper_bound_distance(station_query: QuerySet):
 
 
 def filter_query_distance(query: QuerySet, distance_threshold_m):
-    """Filter a object query by finding the max"""
+    """Return the QuerySet if the maximum found distance is below the distance threshold.
+
+    The max distance is found using the 2d convex hull of a QuerySet.
+    Only hull elements are checked for their distance by applying a rotating caliper.
+    The distance might be inaccurate if the points span more than half of the globe.
+    """
     if not query.exists():
         return query
     multi_point = multi_point_from_query(query)
@@ -101,15 +114,16 @@ def search_station(
         if not return_all and query.exists():
             return query
         ids.extend(query.values_list("id", flat=True))
-    # try again everywhere. This can be slow. Optimization might be possible via
-    # indexing names or searching only unique names via a database view.
-    # Querying a subset of ids with unique names does not work since large sets of ids like
-    # ID in [...] are slow, when mixed with trigram search
+
+    # Ambiguous result: try again everywhere. This can be slow.
+    # Possible optimization by indexing names or searching only unique names via a database view.
+    # Querying a subset of ids with unique names does not work,
+    # since large sets of ids like ID in [...] are slow, when mixed with trigram search.
     base_query = BusStation.objects.all()
     query = get_fuzzy_stations(base_query, SIMILARITY_THRESHOLD_WO_ADMIN, station_name)
     query = filter_stack(query)
     if not return_all and query.exists():
-        # Log this since it might make sense to remove this part, if it rarley finds stations
+        # Log this since it might make sense to remove this part, if it rarely finds stations
         logger.info("Found a station via slow fuzzy search over all stations")
         return query
     ids.extend(query.values_list("id", flat=True))
@@ -118,16 +132,30 @@ def search_station(
 
 
 def search_exact_station(base_query, station_name) -> QuerySet:
+    """Search if the exact name of the search query is found in the database.
+
+    Since some parts of addresses can be ambigous, e.g. "MainSt." and "MainStreet", some
+    translations are used to check both instances.
+    The translation Table Looks like this:
+    (St., Street),
+    ...
+    ]
+    and is read from a file earlier.
+    """
     address_translations = get_address_translations()
     address_translations_rev = [[x[1], x[0]] for x in address_translations]
     ids = []
+    # Search for the name without changes
+    exact_station_query = base_query.filter(name=station_name)
+    if exact_station_query.exists():
+        ids.extend(exact_station_query.values_list("id", flat=True))
+
+    # Apply some conversions of the name, e.g. "MainSt." becomes "MainStreet"
     for first, second in address_translations + address_translations_rev:
-        search_name = station_name
-        if first is not None:
-            if second in station_name:
-                search_name = station_name.replace(second, first)
-            else:
-                continue
+        if second in station_name:
+            search_name = station_name.replace(second, first)
+        else:
+            continue
         exact_station_query = base_query.filter(name=search_name)
         if exact_station_query.exists():
             ids.extend(exact_station_query.values_list("id", flat=True))
@@ -198,8 +226,6 @@ def get_address_translations():
     p = util.get_static_file_path(__package__, "address_translations.json")
     with open(p, "r") as f:
         translations = json.load(f)
-    # Add None values to check address without translation
-    translations.insert(0, [None, None])
     return translations
 
 

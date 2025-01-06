@@ -130,6 +130,11 @@ def get_schedule_reader_factory(reader_num: int) -> type(ScheduleReader):
 
 
 def place_not_found_stations(scenario):
+    """Place all stations of the scenario which are not geo located yet.
+
+    Stations are placed at the border of the cluster of found stations.
+    If no stations were found, the stations will be placed around Berlin in a random fashion.
+    """
     stations_without_geo = Station.objects.filter(scenario=scenario, geom__isnull=True)
     if Station.objects.filter(scenario=scenario, geom__isnull=False).count() > 1:
         max_x = (
@@ -147,15 +152,18 @@ def place_not_found_stations(scenario):
                 max_y=Max(Y("geom", output_field=models.DecimalField()))
             )
         )["max_y"]
+
+        # Step of longitude so stations are placed horizontally next to each other
         delta_x = float(min(0.1, max_x - min_x))
         for i, station in enumerate(stations_without_geo):
             x = float(float(min_x) + i * delta_x / (max(1, len(stations_without_geo) - 1)))
+            # Stations are placed with a vertical offset to the station with the highest latitude.
             y = float(max_y) + 0.05
             station.geom = Point(x, y, 0)
             station.save()
     else:
         logger.warning(
-            "Stations are placed randomly around Berlin, " "since not a single station was located."
+            "Stations are placed randomly around Berlin, since not a single station was located."
         )
         for station in stations_without_geo:
             station.geom = Point(51.5 + random(), 12.5 + random() * 10)
@@ -743,6 +751,9 @@ class EflipsIngestScheduleReaderVDV(EflipsIngestScheduleReaderBase):
 
 
 def find_station_locations(station_names: Iterable) -> list[tuple]:
+    """Search the database for locations of bus stations with the same name"""
+    # local import since data_scrapers might not be an installed app.
+    # in this case the function will not be called by adD_station_locations
     from data_scrapers.tasks import search_stations
 
     foundStations = search_stations(station_names, use_filter=True)
@@ -752,6 +763,8 @@ def find_station_locations(station_names: Iterable) -> list[tuple]:
         if stations is None:
             result.append((None, None))
             continue
+        # found Bus Stations can contain multiple bus stops per station, e.g. stops across the
+        # street in different directions. Use the average to get a single position.
         x_avg = sum([station.geom.x for station in stations]) / len(stations)
         y_avg = sum([station.geom.y for station in stations]) / len(stations)
         result.append((x_avg, y_avg))
@@ -759,6 +772,13 @@ def find_station_locations(station_names: Iterable) -> list[tuple]:
 
 
 def add_station_locations(query: QuerySet):
+    """Add station locations to all bus stations which have no geom yet.
+
+    Uses the data_scrapers app and expects a previously fetched database of german bus stops
+    and admin areas.
+    """
+
+    # Keep the data_scraper optional
     if "data_scrapers" not in settings.INSTALLED_APPS:
         logger.error("Data scraper not available")
         return
@@ -772,14 +792,14 @@ def add_station_locations(query: QuerySet):
             continue
         station.geom = Point(x, y, z=0)
         stations_with_geom.append(station)
+    logger.info(f"{len(not_found)}/{len(station_names)} Stations could not be located")
     query.model.objects.bulk_update(stations_with_geom, ["geom"])
 
 
 def add_elevations(query: QuerySet):
     """Look up elevation for a given geom of a queryset and add it to the database
 
-    Model needs a field of geom with a Point(x,y,z). Elevation data is searched and added to
-    the query
+    Model needs a geom field with a Point(x,y,z). Search elevation data and add it to the query.
     """
     if query.count() == 0:
         return
@@ -790,7 +810,8 @@ def add_elevations(query: QuerySet):
     param = {"locations": "|".join(locations_lat_lon)}
     response = requests.get(url, params=param)
     if response.status_code != 200:
-        logger.warning(response.status_code)
+        logger.warning(f"Adding elevation failed with {response.status_code=}")
+        return
     data = response.json()
     changed_geom = []
     for i, result in enumerate(data["results"]):
