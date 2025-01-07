@@ -118,11 +118,7 @@ def get_admin_areas_recursive(
     if osm_id_dict is None:
         osm_id_dict = {x: None for x in set(AdminArea.objects.values_list("osm_id", flat=True))}
 
-    elements = overpass_json["elements"]
-    if "Bayern" in [e["tags"]["name"] for e in elements]:
-        elements = [e for e in elements if e["tags"]["name"] == "Bayern"]
-    # for elem in overpass_json["elements"]:
-    for elem in elements:
+    for elem in overpass_json["elements"]:
         # the query returned a list of AdminAreas inside the current AdminArea with the specified
         # admin level. Iterate over this list and add AdminAreas which are not part of the DB yet
         osm_id = elem["id"]
