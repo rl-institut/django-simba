@@ -31,4 +31,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     # Map urls
     path("", include("ebus_map.urls")),
+    path("", include("HPCtool.urls")),
+
 ]

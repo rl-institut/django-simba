@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "django_plotly_dash.apps.DjangoPlotlyDashConfig",
     "bootstrap4",
     "eflips_depot_results",
+    "HPCtool"
 ]
 
 
