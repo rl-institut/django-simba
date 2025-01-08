@@ -1,80 +1,20 @@
 {  "myexamplemultipolygon": {
     "type": "fill",
     "paint": {
-
-    "fill-color":
-
-                ["case",
-					["boolean", ["feature-state", "del"], true],
-
-                ["step",
-                ["get", "quality"],
-                "#e61717",
-                1,
-                "#f5b240",
-                2,
-                "#17e655"
-                ],
-                        "#000000"
-              ],
-
-
-
+      "fill-color": "rgb(10,1,2)",
       "fill-opacity": [
-
-					"case",
-					["boolean", ["feature-state", "del"], true],
-					1.0,
-					0.0
-
+        "case",
+        [
+          "boolean",
+          [
+            "feature-state",
+            "hover"
+          ],
+          false
+        ],
+        1,
+        1
       ]
-
-    }
-  },
-  "flur": {
-    "type": "fill",
-    "paint": {
-
-    "fill-color": "#0000FF",
-    "fill-opacity":  ["case",
-					["boolean", ["feature-state", "visible"], true],
-
-                [
-					"case",
-					["boolean", ["feature-state", "hover"], false],
-					0.55,
-					0.4
-				],
-          0.0
-              ]
-
-
-
-
-    }
-  },
-  "cyclepath": {
-    "type": "fill",
-    "paint": {
-
-    "fill-color": "#00FFFF",
-    "fill-opacity":  0.5
-    }
-  },
-"residentialarea": {
-    "type": "fill",
-    "paint": {
-
-    "fill-color": "#FF00FF",
-    "fill-opacity": 0.5
-    }
-  },
-
-   "trees": {
-    "type": "circle",
-    "paint": {
-      "circle-color": "#6A89CC",
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 10,1, 17, 15]
     }
   },
   "region-fill": {
@@ -129,7 +69,7 @@
   "region-line": {
     "type": "line",
     "paint": {
-      "line-color": "rgb(250, 0,0)",
+      "line-color": "rgb(250, 250,250)",
       "line-width": [
         "case",
         [
@@ -145,15 +85,37 @@
       ]
     }
   },
-  "busstop": {
+  "routes": {
+    "type": "line",
+   "paint": {
+      "line-color": [
+        "interpolate",
+        ["linear"],
+        ["slice", ["get","geom"], 2],
+        0, "blue",
+        10, "green",
+        20, "red"
+      ],
+      "line-width": 5
+    },
+    "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+    }
+  },
+  "station": {
     "type": "symbol",
     "layout": {
-      "icon-image": ["step",
-        ["get","title_length"],
-        "busstop",
-        12,
-        "busstop_red"],
-      "icon-size":  ["interpolate", ["linear"], ["zoom"], 10,0.5, 17, 1],
+      "icon-image": [
+        "case",
+        ["boolean", ["get", "is_depot"], false], "busstop_red",
+        ["step",
+          ["get", "electrified"],
+          "busstop",
+          5, "busstop_blue"
+        ]
+      ],
+      "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.5, 17, 1],
       "icon-allow-overlap": true
     }
   },

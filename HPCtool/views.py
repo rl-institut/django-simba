@@ -22,6 +22,12 @@ import json
 class HomePageView(TemplateView, views.MapEngineMixin):
     template_name = "hpctool.html"
 
+    def dispatch(self, request, *args, **kwargs):
+        # Set a default task_id if not already set
+        if not hasattr(request, 'task_id'):
+            request.task_id = '461490dd-9434-40d5-9c72-2352f5eb6671'
+        return super().dispatch(request, *args, **kwargs)
+
     def post(self, request, **kwargs):
         # change json object to list of lists:
         PL = ast.literal_eval(list(request.POST.dict())[0])

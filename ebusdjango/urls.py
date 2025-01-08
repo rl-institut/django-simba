@@ -16,15 +16,19 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic.base import TemplateView
 
 urlpatterns = [
-    path('simba/', include("ebustoolbox.urls")),
-    path('', include("core.urls")),
-    path('admin/', admin.site.urls),
-    path('django_plotly_dash/', include('django_plotly_dash.urls')),
+    path("simba/", include("ebustoolbox.urls")),
+    path("elevation_api/", include("elevation_api.urls")),
+    path("", include("core.urls")),
+    path("django_plotly_dash/", include("django_plotly_dash.urls")),
     path("map/", include("django_mapengine.urls")),
+    path("impressum/", TemplateView.as_view(template_name="legal.html"), name="legal"),
+    path("datenschutz/", TemplateView.as_view(template_name="privacy.html"), name="privacy"),
+    # Admin and authentification urls
+    path("", include("django.contrib.auth.urls")),
+    path("admin/", admin.site.urls),
     # Map urls
-    path('', include("ebus_map.urls")),
-    path('', include("HPCtool.urls")),
-
+    path("", include("ebus_map.urls")),
 ]

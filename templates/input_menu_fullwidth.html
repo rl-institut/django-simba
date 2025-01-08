@@ -1,434 +1,500 @@
 <form enctype="multipart/form-data" method="POST"> {% csrf_token %}
-  <div>
-    {{form.errors}}
-  </div>
-  <div class="row">
-    <div class="col-md-2">
-      <nav class="nav flex-column nav-pills" id="tab-a"> <!-- alternative to pills: underline -->
-        <button class="nav-link active" id="1v" data-bs-toggle="tab" data-bs-target="#panel1v" type="button" role="tab" aria-controls="panel1v" aria-selected="true">Basics</button>
-        <button class="nav-link" id="2v" data-bs-toggle="tab" data-bs-target="#panel2v" type="button" role="tab" aria-controls="panel2v" aria-selected="false">Charging infrastructure</button>
-        <button class="nav-link" id="3v" data-bs-toggle="tab" data-bs-target="#panel3v" type="button" role="tab" aria-controls="panel3v" aria-selected="false">Charging settings</button>
-        <button class="nav-link" id="4v" data-bs-toggle="tab" data-bs-target="#panel4v" type="button" role="tab" aria-controls="panel4v" aria-selected="false">Files</button>
-        <button class="nav-link" id="5v" data-bs-toggle="tab" data-bs-target="#panel5v" type="button" role="tab" aria-controls="panel5v" aria-selected="false">Erweiterte Einstellungen</button>
-        <button class="nav-link" id="6v" data-bs-toggle="tab" data-bs-target="#panel6v" type="button" role="tab" aria-controls="panel6v" aria-selected="false" disabled>Depotsimulation</button>
-      </nav>
-      <div class="d-flex justify-content-center py-5">
-        <button id="simba_submit_button" type='submit' class="btn btn-primary">Submit</button>
-      </div>
+    <div>
+        {{ form.errors }}
     </div>
-
-    <div class="col-md-10">
-
-      <div class="tab-content vertical" id="tab-a-content">
-        <!-- Start Tab Content -->
-
-        <div class="tab-pane active" id="panel1v" role="tabpanel" aria-labelledby="1v" tabindex="0">
-          <div class="card round scrollable-div h-100">
-            <div class="card-header bg-primary text-white">
-              <h4 class="card-title">Basics</h4>
+    <div class="row">
+        <div class="col-md-2">
+            <nav class="nav flex-column nav-pills" id="tab-a"> <!-- alternative to pills: underline -->
+                <button class="nav-link active" id="1v" data-bs-toggle="tab" data-bs-target="#panel1v" type="button"
+                        role="tab" aria-controls="panel1v" aria-selected="true">Basics
+                </button>
+                <button class="nav-link" id="2v" data-bs-toggle="tab" data-bs-target="#panel2v" type="button" role="tab"
+                        aria-controls="panel2v" aria-selected="false">Charging infrastructure
+                </button>
+                <button class="nav-link" id="3v" data-bs-toggle="tab" data-bs-target="#panel3v" type="button" role="tab"
+                        aria-controls="panel3v" aria-selected="false">Charging settings
+                </button>
+                <button class="nav-link" id="4v" data-bs-toggle="tab" data-bs-target="#panel4v" type="button" role="tab"
+                        aria-controls="panel4v" aria-selected="false">Files
+                </button>
+                <button class="nav-link" id="5v" data-bs-toggle="tab" data-bs-target="#panel5v" type="button" role="tab"
+                        aria-controls="panel5v" aria-selected="false">Erweiterte Einstellungen
+                </button>
+                <button class="nav-link" id="6v" data-bs-toggle="tab" data-bs-target="#panel6v" type="button" role="tab"
+                        aria-controls="panel6v" aria-selected="false" disabled>Depotsimulation
+                </button>
+            </nav>
+            <div class="d-flex justify-content-center py-5">
+                <button id="simba_submit_button" type='submit' class="btn btn-primary">Submit</button>
             </div>
-            <div class="card-body">
-              <div>
-                <strong>{{form.title.label}}</strong>
-                {{form.title}}
-              </div>
-              <strong>{{form.preferred_charging_type.label}}</strong>
-              <div class="col-md-9">
-                {{form.preferred_charging_type}}
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4"><strong>Konsistenz-Prüfung</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="Überprüft die Eingangsdaten">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                <div class="form-check form-switch">
-                  <input class="form-check-input" id="konsistenzSwitch" type="checkbox" checked name="testGroup" autocomplete="off">
-                  <label class="form-check-label" for="konsistenzSwitch">
-                  <a>Aktiv?</a>
-                  </label>
-                </div>
-                </div>
-              </div>
-
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.modes.label}}</strong>
-                </div>
-                <div class="col-md-8">
-                  <a>Wie wollen wir das hier lösen?</a>
-                  {% for element in mode_list %}
-                    {{element}}
-                  {% endfor %}
-                  {{form.modes}}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
-        <div class="tab-pane" id="panel2v" role="tabpanel" aria-labelledby="2v" tabindex="1">
-          <div class="card round scrollable-div h-100">
-            <div class="card-header bg-primary text-white">
-              <h4 class="card-title">Charging infrastructure</h4>
-            </div>
-            <div class="card-body">
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.gc_power_opps.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="Netzanschlussleistung bei Opportunity-Chargern">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.gc_power_opps}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.gc_power_deps.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="Netzanschlussleistung im Depot">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.gc_power_deps}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.cs_power_opps.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="Ladeleistung bei Opportunity-Chargern">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.cs_power_opps}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.cs_power_deps_depb.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="Ladeleistung im Depot für Depotlader">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.cs_power_deps_depb}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.cs_power_deps_oppb.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="Ladeleistung im Depot für Opportunity-Lader">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.cs_power_deps_oppb}}
-                </div>
-              </div>
-              <div>
-              {{form.default_voltage_level.label}}
-              {{form.default_voltage_level}}
-              </div>
-            </div>
-          </div>
-        </div>
+        <div class="col-md-10">
 
-        <div class="tab-pane" id="panel3v" role="tabpanel" aria-labelledby="3v" tabindex="2">
-          <div class="card round scrollable-div h-100">
-            <div class="card-header bg-primary text-white">
-              <h4 class="card-title">Charging settings</h4>
-            </div>
-            <div class="card-body">
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.desired_soc_deps.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="Angestrebter Batteriestand (0-1) bei Depotladung">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.desired_soc_deps}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.desired_soc_opps.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.desired_soc_opps}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.min_recharge_deps_oppb.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.min_recharge_deps_oppb}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.min_recharge_deps_depb.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.min_recharge_deps_depb}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.min_charging_time.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.min_charging_time}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.default_buffer_time_opps.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.default_buffer_time_opps}}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+            <div class="tab-content vertical" id="tab-a-content">
+                <!-- Start Tab Content -->
 
-        <div class="tab-pane" id="panel4v" role="tabpanel" aria-labelledby="4v" tabindex="3">
-          <div class="card round scrollable-div h-100">
-            <div class="card-header bg-primary text-white">
-              <h4 class="card-title">Files</h4>
+                <div class="tab-pane active" id="panel1v" role="tabpanel" aria-labelledby="1v" tabindex="0">
+                    <div class="card round scrollable-div h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="card-title">Basics</h4>
+                        </div>
+                        <div class="card-body">
+                            <div>
+                                <strong>{{ form.title.label }}</strong>
+                                {{ form.title }}
+                            </div>
+                            <strong>{{ form.preferred_charging_type.label }}</strong>
+                            <div class="col-md-9">
+                                {{ form.preferred_charging_type }}
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4"><strong>Konsistenz-Prüfung</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip"
+                                       data-bs-title="Überprüft die Eingangsdaten">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" id="konsistenzSwitch" type="checkbox" checked
+                                               name="testGroup" autocomplete="off">
+                                        <label class="form-check-label" for="konsistenzSwitch">
+                                            <a>Aktiv?</a>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.modes.label }}</strong>
+                                </div>
+                                <div class="col-md-8">
+                                    <a>Wie wollen wir das hier lösen?</a>
+                                    {% for element in mode_list %}
+                                        {{ element }}
+                                    {% endfor %}
+                                    {{ form.modes }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane" id="panel2v" role="tabpanel" aria-labelledby="2v" tabindex="1">
+                    <div class="card round scrollable-div h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="card-title">Charging infrastructure</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.gc_power_opps.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip"
+                                       data-bs-title="Netzanschlussleistung bei Opportunity-Chargern">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.gc_power_opps }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.gc_power_deps.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip"
+                                       data-bs-title="Netzanschlussleistung im Depot">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.gc_power_deps }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.cs_power_opps.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip"
+                                       data-bs-title="Ladeleistung bei Opportunity-Chargern">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.cs_power_opps }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.cs_power_deps_depb.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip"
+                                       data-bs-title="Ladeleistung im Depot für Depotlader">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.cs_power_deps_depb }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.cs_power_deps_oppb.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip"
+                                       data-bs-title="Ladeleistung im Depot für Opportunity-Lader">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.cs_power_deps_oppb }}
+                                </div>
+                            </div>
+                            <div>
+                                {{ form.default_voltage_level.label }}
+                                {{ form.default_voltage_level }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane" id="panel3v" role="tabpanel" aria-labelledby="3v" tabindex="2">
+                    <div class="card round scrollable-div h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="card-title">Charging settings</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.desired_soc_deps.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip"
+                                       data-bs-title="Angestrebter Batteriestand (0-1) bei Depotladung">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.desired_soc_deps }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.desired_soc_opps.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.desired_soc_opps }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.min_recharge_deps_oppb.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.min_recharge_deps_oppb }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.min_recharge_deps_depb.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.min_recharge_deps_depb }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.min_charging_time.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.min_charging_time }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.default_buffer_time_opps.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.default_buffer_time_opps }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane" id="panel4v" role="tabpanel" aria-labelledby="4v" tabindex="3">
+                    <div class="card round scrollable-div h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="card-title">Files</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.input_schedule.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip"
+                                       data-bs-title="{{ form.input_schedule.help_text }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.input_schedule }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.electrified_stations.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.electrified_stations }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.vehicle_types_path.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.vehicle_types_path }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.station_data_path.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.station_data_path }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.temperature_time_series_path.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.temperature_time_series_path }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.consumption_path.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor"
+                                             class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.consumption_path }}
+                                </div>
+                            </div>
+
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.level_of_loading_over_day_path.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.level_of_loading_over_day_path }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.cost_parameters_file.label }}</strong>
+                                    <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.cost_parameters_file }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane" id="panel5v" role="tabpanel" aria-labelledby="5v" tabindex="4">
+                    <div class="card round scrollable-div h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="card-title">Extended Options</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.strategy.label }}</strong>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.strategy }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.interval.label }}</strong>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.interval }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.signal_time_dif.label }}</strong>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.signal_time_dif }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.days.label }}</strong>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.days }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.include_price_csv.label }}</strong>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.include_price_csv }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.seed.label }}</strong>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.seed }}
+                                </div>
+                            </div>
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.cost_calculation.label }}</strong>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.cost_calculation }}
+                                </div>
+                            </div>
+
+                            <div class="form-group row py-1">
+                                <div class="col-md-4">
+                                    <strong>{{ form.use_only_time.label }}</strong>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ form.use_only_time }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- End Tab Content -->
             </div>
-            <div class="card-body">
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.input_schedule.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="{{form.input_schedule.help_text}}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.input_schedule}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.electrified_stations.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.electrified_stations}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.vehicle_types.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.vehicle_types}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.station_data_path.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.station_data_path}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.outside_temperature_over_day_path.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.outside_temperature_over_day_path}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.level_of_loading_over_day_path.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.level_of_loading_over_day_path}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.cost_parameters_file.label}}</strong>
-                  <a class="d-inline-block" data-bs-toggle="tooltip" data-bs-title="sample_text">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                    </svg>
-                  </a>
-                </div>
-                <div class="col-md-8">
-                  {{form.cost_parameters_file}}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
-        <div class="tab-pane" id="panel5v" role="tabpanel" aria-labelledby="5v" tabindex="4">
-          <div class="card round scrollable-div h-100">
-            <div class="card-header bg-primary text-white">
-              <h4 class="card-title">Extended Options</h4>
-            </div>
-            <div class="card-body">
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.strategy.label}}</strong>
-                </div>
-                <div class="col-md-8">
-                  {{form.strategy}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.interval.label}}</strong>
-                </div>
-                <div class="col-md-8">
-                  {{form.interval}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.signal_time_dif.label}}</strong>
-                </div>
-                <div class="col-md-8">
-                  {{form.signal_time_dif}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.days.label}}</strong>
-                </div>
-                <div class="col-md-8">
-                  {{form.days}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.include_price_csv.label}}</strong>
-                </div>
-                <div class="col-md-8">
-                  {{form.include_price_csv}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.seed.label}}</strong>
-                </div>
-                <div class="col-md-8">
-                  {{form.seed}}
-                </div>
-              </div>
-              <div class="form-group row py-1">
-                <div class="col-md-4">
-                  <strong>{{form.cost_calculation.label}}</strong>
-                </div>
-                <div class="col-md-8">
-                  {{form.cost_calculation}}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      <!-- End Tab Content -->
-      </div>
     </div>
-  </div>
 </form>
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
-  });
+    document.addEventListener('DOMContentLoaded', function () {
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    });
 </script>

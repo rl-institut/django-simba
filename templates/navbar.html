@@ -1,43 +1,103 @@
-<header class="d-flex justify-content-between align-items-md-center pb-3 mb-5 border-bottom">
-    <div class="row w-100">
-        <!-- Left Section: Takes 35% width and left-aligned content -->
-        <div class="col-4">
-            <div class="navbar-text">
-                <h1 class="h4">
-                    <a href="/" class="d-flex align-items-center text-dark text-decoration-none">
-                        <div class="logo">
-                            <img class="img-fluid" id="logo"
-                                 src="https://reiner-lemoine-institut.de//wp-content/uploads/2015/09/rlilogo.png"
-                                 data-retina=""
-                                 data-height="" alt="Reiner Lemoine Institut" data-no-retina="">
-                        </div>
-                        <span>RLI</span>
-                    </a>
-                </h1>
-            </div>
+{% load static %}
+<header>
+  <nav class="navbar navbar-expand-lg navbar-light border-bottom sticky-top container-fluid d-flex">
+    <div id="navbar" class="container-fluid p-0">
+      <!-- Logos -->
+      <div class="navbar-brand p-0 m-0">
+        <a href="/">
+          <img src="{% static 'templates/img/tool-logo.png' %}" class="d-inline-block align-top" alt="e-Bus 2030+">
+        </a>
+      </div>
+
+      <!-- Collapsing Element -->
+      <button
+        class="navbar-toggler" type="button"
+        data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
+        aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <!-- Dropdown Elements on the right Side -->
+      <div class="d-flex justify-content-evenly" id="navbarCollapse">
+        <div class="dropdown" >
+          <button class="btn btn-dark rounded-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            DE
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#">ENG</a></li>
+            <li><a class="dropdown-item" href="#">DE</a></li>
+          </ul>
         </div>
 
-        <!-- Middle Section: Takes 30% width and centered content -->
-        <div class="col-4 text-center">
-            <div class="navbar-text">
+        <div class="dropdown">
+          <button class="btn btn-light dropdown-toggle rounded-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Menü
+          </button>
 
-                <div class="container mt-0 text-center">
-                    <div class="callout tiny primary">
-                        <div class="row column text-center">
-                            <h1>
-                                <div class="title">E-Bus 2030+</div>
-                            </h1>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+          <ul class="dropdown-menu dropdown-menu-end">
 
-        <!-- Right Section: Takes 35% width and right-aligned content -->
-        <div class="col-4 d-flex justify-content-end">
-            <div class="navbar-text">
-                Right Section
-            </div>
+            <li class="dropdown-item">
+              <a href="#" class="nav-link active" aria-current="page">Simulation</a>
+            </li>
+            <li class="dropdown-item">
+              <a href="#" class="nav-link active">Hilfe</a>
+            </li>
+
+            <li><hr class="dropdown-divider"></li>
+
+            {% if user.is_authenticated %}
+              <li><a class="dropdown-item" href="{% url 'simba:scenarios' %}">Meine Szenarien</a></li>
+              <li><a class="dropdown-item" href="{% url 'simba:usergroups' %}">Meine Nutzergruppen</a></li>
+              {% if user.is_staff %}
+                <li><a class="dropdown-item" href="/admin">Admin</a></li>
+                <a class="dropdown-item" href="{% url 'core:test_email' %}?path={{request.get_full_path}}">Test Email</a>
+              {% endif %}
+              <li>
+                <form action="{% url 'logout' %}" method="post">
+                  {% csrf_token %}
+                  <button class="dropdown-item" type="submit">Abmelden</button>
+                </form>
+              </li>
+            {% else %}
+              <li><a class="dropdown-item" href="{% url 'login' %}">Anmelden</a></li>
+              <!-- <a class="dropdown-item" href="{% url 'core:signup' %}">Registrieren</a> -->
+            {% endif %}
+          </ul>
         </div>
+      </div>
     </div>
+  </nav>
 </header>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // default for selected language
+    var selectedLanguage = 'DE';
+    var dropdownElement = document.getElementById('navbarCollapse');
+    var dropdown = new bootstrap.Dropdown(dropdownElement);
+
+    // function to update language button to selected language
+    function updateButtonText() {
+        var button = document.querySelector('#navbarCollapse button');
+        button.textContent = selectedLanguage.toUpperCase();;
+    }
+
+    function changeLanguage(lang) {
+        selectedLanguage = lang;
+        updateButtonText();
+    }
+
+    dropdownElement.addEventListener('show.bs.dropdown', function () {
+        changeLanguage('DE');
+    });
+
+    // handle language change
+    document.querySelector('.dropdown-menu').addEventListener('click', function(event) {
+        if (event.target.matches('.dropdown-item')) {
+            var lang = event.target.textContent.toUpperCase();
+            changeLanguage(lang);
+        }
+    });
+});
+
+</script>

@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Registrieren{% endblock %}
+{% block content %}
+<div class="grid-x grid-padding-x">
+  <div class="cell medium-6 medium-offset-3">
+    <h2>Registrierung</h2>
+    <form method="post">
+      {% csrf_token %}
+      {% for field in form %}
+        {% if field.name != "accepts_terms" %}
+          <p>
+            {{ field.label }}{{ field }}
+            {% for error in field.errors %}
+              <p style="color: red">{{ error }}</p>
+            {% endfor %}
+          </p>
+        {% endif %}
+      {% endfor %}
+      <p>
+        <label>
+          <input type="checkbox" required name="accepts_terms" id="id_accepts_terms">Ich habe die <a target="_blank" rel="noopener noreferrer" href="{% url 'privacy' %}"> Datenschutzerklärung</a> gelesen und bin mit dieser einverstanden.*
+        </label>
+      </p>
+
+      {% if form.non_field_errors %}
+      <div class="cell large-8">
+        {% for err in form.non_field_errors %}
+          <p class="cell large-8">{{ err }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <button class="button" type="submit">Registrieren</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -10,25 +10,38 @@
     <link rel="icon" href="{% static 'core/favicon.png'%}" type="image/png">
     <title>{% block title %}SimBA Online{% endblock %}</title>
 
-    <link rel="stylesheet" href=  "{% static 'styles.css'%}">
+    <link rel="stylesheet" href="{% static 'styles.css'%}">
+    <link rel="stylesheet" href="{% static 'custom_scss.css'%}">
     <link rel="stylesheet" href="{% static 'mystyle.css'%}">
+    <link rel="stylesheet" href="{% static 'bs_additional_styles.css'%}">
+
     {% include 'imports.html'%}
     {% block header %}
     {%endblock %}
-  
+
 </head>
 
 <body>
-    {% include 'navbar.html'%}
-    <div class="container py-3 px-0 mx-auto">
+    <div class="container-fluid">
 
-        {% block content %}
+        {% include 'navbar.html'%}
 
-        this will be replaced
-        {%endblock %}
+
+        <!--
+        {% for message in messages %}
+          {{ message }}
+        {% endfor %}
+        -->
+
+        <div id="content">
+            {% block content %}
+            {# this will be replaced #}
+            {%endblock %}
+        </div>
 
     </div>
-</body>
 
+    {% include 'footer.html'%}
+</body>
 
 </html>

@@ -2,16 +2,37 @@ from __future__ import absolute_import, unicode_literals
 from celery import Celery
 import os
 
-# set the default Django settings module for the 'celery' program.
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ebusdjango.settings')
+from celery.result import AsyncResult
 
-app = Celery('ebusdjango.my_celery', backend="rpc://")
+# set the default Django settings module for the 'celery' program.
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ebusdjango.settings")
+
+app = Celery("ebusdjango.my_celery", backend="rpc://")
 
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.
 # - namespace='CELERY' means all celery-related configuration keys
 #   should have a `CELERY_` prefix.
-app.config_from_object('django.conf:settings', namespace='CELERY')
+app.config_from_object("django.conf:settings", namespace="CELERY")
 
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
+
+
+def get_scheduled():
+    i = app.control.inspect()
+    return i.scheduled()
+
+
+def get_active():
+    i = app.control.inspect()
+    return i.active()
+
+
+def get_reserved():
+    i = app.control.inspect()
+    return i.reserved()
+
+
+def get_result(task_id):
+    return AsyncResult(task_id, app=app)

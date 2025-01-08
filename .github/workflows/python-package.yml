@@ -1,0 +1,118 @@
+name: Code tests
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+env:
+  POETRY_VERSION: "1.8.3"
+  POETRY_URL: https://install.python-poetry.org
+
+jobs:
+  # Label of the runner job
+  dev-tools:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+        python-version: [ "3.10", "3.11" ]
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install flake8 black
+      - name: flake8
+        run: |
+          flake8 ebus_map ebusdjango ebustoolbox
+      - name: check black
+        run: |
+          black ebustoolbox/*.py --check
+  Runner-job-of-Django-Tests-with-DB-Setup:
+    needs: dev-tools
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.10", "3.11" ]
+    # You must use a Linux environment when using service containers or container jobs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Service containers to run with `runner-job`
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgis/postgis
+        # Provide the password for postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: DbName
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
+
+    steps:
+      - name: Create postgis extensions
+        run: |
+          PGPASSWORD=postgres psql -h localhost -d DbName -U postgres -c 'create extension postgis_raster;'
+      # Downloads a copy of the code in your repository before running CI tests
+      - name: Give GH Actions access to django-simba repo
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.EFLIPS_DEPOT_KEY }}
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Set Up Gdal
+        run: |
+          sudo apt-get update
+          sudo apt-get install gdal-bin
+          echo ogrinfo --version
+
+      - name: setup-chromedriver
+        uses: nanasess/setup-chromedriver@v2.2.0
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install poetry
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry config experimental.system-git-client true
+      - name: Install Dependency
+        run: |
+          poetry install --no-root --with dev
+      - name: Run Tests
+        run:
+          poetry run python manage.py test
+        env:
+          DJANGO_SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DJANGO_ADMIN_PASSWORD: ${{ secrets.DJANGO_ADMIN_PASSWORD }}
+          DJANGO_DEBUG: True
+          # Replace with your own database info
+          DATABASE_URL: postgis://postgres:postgres@localhost/DbName
+          CELERY_TASK_ALWAYS_EAGER: True
+          CELERY_BROKER_URL: pyamqp://guerrst@localhost//
+          TILING_SERVICE_TOKEN: ${{ secrets.TILING_SERVICE_TOKEN }}
+          TILING_SERVICE_STYLE_ID: basic-v2
+          DJANGO_SETTINGS_MODULE: ebusdjango.settings
+          # The hostname used to communicate with the PostgreSQL service container
+          POSTGRES_HOST: localhost
+          # The default PostgreSQL port
+          POSTGRES_PORT: 5432

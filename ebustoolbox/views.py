@@ -1,124 +1,494 @@
-from django.conf import settings
-from django.http import FileResponse, HttpResponse, JsonResponse
-from django.shortcuts import render, redirect
-from django.views.generic import TemplateView
-from django.views.decorators.http import require_GET
+import logging
+import random
+import traceback
+import warnings
+from datetime import timedelta
 
-from django_mapengine.views import MapEngineMixin
-from django.db.models import Q
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.contrib.gis.geos import Point
+from django.core import signing, mail
+from django.core.exceptions import ObjectDoesNotExist
+from django.db.transaction import atomic
+from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest, Http404
+from django.shortcuts import render, redirect
+from django.urls import reverse
+from django.utils.cache import patch_cache_control
+from django.utils import timezone
+from django.views.generic import TemplateView
+from django.views.decorators.http import require_GET, require_POST
+from eflips.depot.api import simulate_scenario  # noqa
+
+from core.models import Progress
 
 from celery.result import AsyncResult
-import plotly.graph_objects as go
 
 # Unused import of dash_app needed to register app
-from . import dash_app, tasks  # noqa: F401
-from .forms import UploadFileForm
+from dash_app import dash_app, ids  # noqa: F401
+from django_mapengine.views import MapEngineMixin
+from . import tasks, schedule_readers
+from .forms import (
+    UploadFileForm,
+    ChargingStationDefaultsForm,
+    VehicleTypesAdjustmentForm,
+    SimulationParameters,
+)
+from .tasks import create_db_url  # noqa
 from .util import get_unique_task_id
 
 import ebustoolbox
-from ebustoolbox.forms import ChartForm
-from ebustoolbox.models import VehicleProperties, Vehicle, Scenario
+from ebustoolbox.models import (
+    Scenario,
+    UserGroup,
+    UploadedFile,
+    VehicleType,
+    DefaultScenario,
+    Station,
+    EnumChargeType,
+    Rotation,
+    Trip,
+)
+
+logger = logging.getLogger("custom")
 
 
-def get_map(request):
-    pass
-
-
-def get_chart(request):
-    task_id = request.GET.get("task_id")
-    print("get is :", task_id)
-    get_vehicles = request.GET.getlist("vehicles")
-    print("vehicles  are :", get_vehicles)
-
-    scenario = Scenario.objects.get(task_id=task_id)
-    vehicles = Vehicle.objects.filter(scenario=scenario)
-    if get_vehicles is None:
-        pass
-    else:
-        my_filter_qs = Q()
-        for v in get_vehicles:
-            my_filter_qs = my_filter_qs | Q(id=int(v))
-        vehicles = vehicles.filter(my_filter_qs)
-
-    plot_vehicles = []
-    for search_vehicle in vehicles:
-        plot_data = VehicleProperties.objects.filter(vehicle=search_vehicle)
-        time_data = [c.date for c in plot_data]
-        y_data = [c.soc for c in plot_data]
-        plot_vehicles.append({'x': time_data, 'y': y_data, 'name': search_vehicle.name})
-
-    fig = go.Figure()
-    for v in plot_vehicles:
-        fig.add_trace(go.Scatter(x=v["x"], y=v['y'], name=v["name"],
-                                 line=dict(width=4)))
-
-    fig.update_layout(title={
-        'font_size': 22,
-        'xanchor': 'center',
-        'x': 0.5
-    })
-    chart = fig.to_html()
-
-    context = {'chart': chart, "form": ChartForm(scenario=scenario), 'result_id': task_id}
-
-    return render(request, 'chart.html', context)
-
-
-def show_uploads_view(request, filename):
-    file = open("uploads/" + filename, 'rb')
+def show_uploads_view(request: HttpRequest, filename):
+    file = open("uploads/" + filename, "rb")
     response = FileResponse(file)
     return response
 
 
-def result_view(request):
-    task_id = request.GET['task_id']
+def result_view(request: HttpRequest, task_id):
+    """View controlling if the wait or success view should be shown"""
     try:
-        print(task_id, Scenario.objects.filter(task_id=task_id).exists())
         if Scenario.objects.get(task_id=task_id).finished:
-            return SuccessView.as_view()(request)
+            request.task_id = str(task_id)
+            return SuccessView.as_view()(request, task_id=task_id, finished=True)
         else:
-            return wait_view(request)
+            return wait_view(request, task_id)
     except Scenario.DoesNotExist:
         html = "<html><body>task_id is not valid</body></html>"
         return HttpResponse(html)
 
 
-def wait_view(request):
-    """View while waiting for results. Will trigger success view as soon as long running task
+def wait_view(request, task_id):
+    """View while waiting for results. Will trigger success view as soon as long-running task
     returns pending"""
-    print("SimBA is calculating. Showing wait view")
-    return render(request, "wait.html")
-
-
-class resultView(TemplateView):
-    result_template = "result.html"
+    logger.info("SimBA is calculating. Showing wait view")
+    return render(request, "wait.html", {"task_id": task_id})
 
 
 class SuccessView(TemplateView, MapEngineMixin):
+    """View which generates the page containing simulation results"""
+
     template_name = "result.html"
 
     def get_context_data(self, **kwargs):
         context = super(SuccessView, self).get_context_data(**kwargs)
-        context["task_id"] = self.request.GET["task_id"]
+        task_id = kwargs.get("task_id")
+        if task_id is None:
+            raise Http404
+        task_id = str(task_id)
+        context["task_id"] = task_id
+
+        session = self.request.session
+        from dash_app.dash_app import create_app
+
+        # By creating a specific app for this task ID, the app "knows" which data to load
+        # ToDO make sure only authorized users can view this
+        create_app(task_id=task_id)
+        # the dictionary in "django_plotly_dash" appears in the session_state of the app, which
+        # is an optional kwarg in app.callbacks
+        session["django_plotly_dash"] = {"task_id": task_id}
+
         return context
 
 
 @require_GET
 def long_running_task_status_view(request):
-    task_id = request.GET.get('task_id')
+    """Returns a Json with a success field. The field is True if the task has finished and
+    False if it is still pending"""
+    task_id = request.GET.get("task_id")
     task_result = AsyncResult(task_id)
-    if task_result.ready() or Scenario.objects.filter(task_id=task_id,
-                                                      finished__isnull=False).exists():
-        print("Task is finished")
-        return JsonResponse({'success': True})
-    print('Task is pending')
-    return JsonResponse({'success': False})
+    if (
+        task_result.ready()
+        or Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
+    ):
+        logger.info("Task is finished")
+        return JsonResponse({"success": True})
+    logger.info("Task is pending")
+    return JsonResponse({"success": False})
 
 
-def home_view(request):
-    # ToDo needs different implementation since it uses same list for
-    # different users
+def schedule(request: HttpRequest, task_id, finished):
+    """Generate the home view of the tool chain with input forms"""
+    # Schedule uploading triggers a progress which will send finished="true" if the upload is
+    # finished
+    if finished == "true":
+        return redirect(reverse("simba:simulation_parameters", args=[str(task_id)]))
+    if task_id is None:
+        task_id = get_unique_task_id()
+    context = {
+        "task_id": task_id,
+    }
+    return render(request, "schedule.html", context)
 
+
+def get_simulation_parameters(request: HttpRequest, task_id):
+    """Generate the home view of the tool chain with input forms"""
+    try:
+        scenario = Scenario.objects.get(task_id=task_id)
+    except Scenario.DoesNotExist:
+        raise Http404
+    # if the scenario has a manager, only this User can run the simulation
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
+    context = {}
+    if request.method == "POST":
+        simulation_parameters_form = SimulationParameters(request.POST)
+        if simulation_parameters_form.is_valid():
+            date_range = simulation_parameters_form.cleaned_data["date_range"]
+            from_date, to_date = date_range  # Unpack the tuple
+
+            delta = to_date - from_date
+            time_delta = timedelta(days=delta.days + 1)
+
+            if tasks.get_rotations_by_timespan(scenario, time_delta, from_date).count() > 0:
+                # Remove rotations from the timespan
+                tasks.trim_scenario(scenario, time_delta, from_date)
+                # Used for clearing up depots without rotations
+                tasks.trim_depots(scenario, [])
+                return redirect(reverse("simba:vehicle_types", args=[str(task_id)]))
+            error = "Zeitspanne enthält keine Umläufe."
+            context["error"] = error
+        else:
+            print(simulation_parameters_form.errors)  # Debug: Print form error
+
+    trips = Trip.objects.filter(scenario=scenario).order_by("departure_time")
+    start = trips.first().departure_time.date().isoformat()
+    end = trips.last().arrival_time.date().isoformat()
+
+    simulation_parameters_form = SimulationParameters()
+    context |= {"start_date": start, "end_date": end}
+    context |= {"task_id": task_id, "form": simulation_parameters_form}
+    return render(request, "simulation_parameters.html", context)
+
+
+def home_prototype(request: HttpRequest):
+    """Generate the home view of the tool chain with input forms"""
+    task_id = get_unique_task_id()
+    return render(request, "home_prototype.html", {"task_id": task_id})
+
+
+def get_options(request: HttpRequest, task_id, reader_num: int):
+    context = {"reader_num": reader_num, "task_id": task_id}
+    response = HttpResponse(context)
+    try:
+        form = schedule_readers.get_options_form(reader_num)()
+        context |= {"form": form}
+        response = render(request, "schedule_reader_options.html", context)
+    except:  # noqa
+        logger.error(traceback.format_exc())
+        # 204 - No Content https://htmx.org/docs/#requests
+        response.status_code = 204
+    return response
+
+
+def get_vehicle_types(request: HttpRequest, task_id):
+    context = {"task_id": task_id}
+
+    try:
+        scenario = Scenario.objects.get(task_id=task_id)
+    except Scenario.DoesNotExist:
+        raise Http404
+    # if the scenario has a manager, only this User can run the simulation
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
+
+    default_scenario = DefaultScenario.objects.first().scenario
+    vehicle_types = VehicleType.objects.filter(scenario=scenario)
+    default_vehicle_types = VehicleType.objects.filter(scenario=default_scenario)
+
+    context["vehicle_types"] = vehicle_types
+    context["default_vehicle_types"] = default_vehicle_types
+    context["default_vehicle_types_adjustment_form"] = VehicleTypesAdjustmentForm()
+
+    # check if can be skipped by seeing if vehicle types have relevant data
+    skippable = reverse("simba:depots", args=[str(task_id)])
+    for vt in vehicle_types:
+        if vt.consumption is None:
+            skippable = False
+            break
+    context["skippable"] = skippable
+
+    if request.method == "POST":
+        vehicle_type_pairs = request.POST.getlist("vehicle_type_dropdown")
+        if not vehicle_type_pairs:
+            return render(request, "vehicle_types.html", context)
+
+        for i, pair in enumerate(vehicle_type_pairs):
+            pair = pair.split("_")
+            vehicle_type_pairs[i] = int(pair[0]), int(pair[-1])
+
+        # make sure only vehicles of this scenario are affected
+        for vehicle_type_pair in vehicle_type_pairs:
+            assert vehicle_type_pair[0] in vehicle_types.values_list("id", flat=True)
+
+        vt_adjustments = {}
+        for dvt in default_vehicle_types:
+            val = request.POST.get(f"battery_capacity_{dvt.id}")
+            form = VehicleTypesAdjustmentForm({"battery_capacity": val})
+            if not form.is_valid():
+                break
+            try:
+                vt_adjustments[dvt.id]
+            except KeyError:
+                vt_adjustments[dvt.id] = dict()
+            vt_adjustments[dvt.id]["battery_capacity"] = form.cleaned_data["battery_capacity"]
+        tasks.update_vehicle_types_with_defaults(vehicle_type_pairs, task_id, vt_adjustments)
+
+        return redirect(reverse("simba:depots", args=[str(task_id)]))
+
+    return render(request, "vehicle_types.html", context)
+
+
+def get_depots(request: HttpRequest, task_id):
+    """View for the depot input tab. Either continues to next wizard step or renders depot page."""
+    context = {"task_id": task_id}
+    try:
+        scenario = Scenario.objects.get(task_id=task_id)
+    except Scenario.DoesNotExist:
+        raise Http404
+    # if the scenario has a manager, only this User can run the simulation
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
+    if request.method == "POST":
+        depots = (
+            Station.objects.filter(scenario=scenario)
+            .filter(charge_type=EnumChargeType.DEPOT)
+            .order_by("id")
+        )
+        all_depot_ids = [dep.id for dep in depots]
+        depots_to_remove = []
+        if len(all_depot_ids) > 1:
+            depots_to_remove = [dep.id for dep in depots]
+            for dep in depots:
+                if request.POST.get(f"sim_depot_{dep.id}") == "on":
+                    depots_to_remove.remove(dep.id)
+        if depots_to_remove != all_depot_ids:
+            if depots_to_remove:
+                tasks.trim_depots(scenario, depots_to_remove)
+            return redirect(reverse("simba:stations", args=[str(task_id)]))
+        context["error"] = "Wähle mindestens ein Depot aus."
+        context["depots"] = depots
+        return render(request, "depots.html", context)
+    else:
+        depots = (
+            Station.objects.filter(scenario=scenario)
+            .filter(charge_type=EnumChargeType.DEPOT)
+            .order_by("id")
+        )
+        context["depots"] = depots
+        return render(request, "depots.html", context)
+
+
+def get_stations(request: HttpRequest | None, task_id, form=None):
+    try:
+        scenario = Scenario.objects.get(task_id=task_id)
+    except Scenario.DoesNotExist:
+        raise Http404
+        # if the scenario has a manager, only this User can run the simulation
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
+    if form is None:
+        form = ChargingStationDefaultsForm()
+    context = {"task_id": task_id, "form": form}
+    stations = (
+        Station.objects.filter(scenario=scenario)
+        .exclude(charge_type=EnumChargeType.DEPOT)
+        .order_by("id")
+    )
+    opp_count = Rotation.objects.filter(scenario=scenario).filter(allow_opportunity_charging=True)
+    is_depot_scenario = True if len(opp_count) == 0 else False
+    context["stations"] = stations
+    context["is_depot_scenario"] = is_depot_scenario
+    return render(request, "stations.html", context)
+
+
+def set_station_values(request: HttpRequest, task_id):
+    """Process stations input and redirect to scenario_overview"""
+    if request.method == "POST":
+        form = ChargingStationDefaultsForm(request.POST)
+        if not form.is_valid():
+            return get_stations(None, task_id, form)
+        cleaned_data = form.cleaned_data
+        station_id_list = request.POST.getlist(key="station_id")
+        scenario = Scenario.objects.get(task_id=task_id)
+        scenario.simba_options.update(cleaned_data)
+        if cleaned_data["station_optimization"]:
+            scenario.simba_options["modes"] = "sim,station_optimization,report"
+        else:
+            scenario.simba_options["modes"] = "sim,report"
+        scenario.save()
+        tasks.electrify_db_stations(scenario, station_id_list)
+        # redirect to "simulation overview" page which can start a simulation
+        response = redirect(reverse("simba:scenario_overview", args=[str(task_id)]))
+        return response
+    elif request.method == "GET":
+        # redirect to "simulation overview" page which can start a simulation
+        response = redirect(reverse("simba:scenario_overview", args=[str(task_id)]))
+        return response
+    else:
+        return HttpResponse("Method is not allowed", status=405)
+
+
+def scenario_overview_view(request: HttpRequest, task_id, finished=None):
+    """View controlling if the wait or success view should be shown"""
+    try:
+        scenario = Scenario.objects.get(task_id=task_id)
+    except Scenario.DoesNotExist:
+        raise Http404
+        # if the scenario has a manager, only this User can run the simulation
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
+
+    if finished == "true":
+        return redirect(reverse("simba:result", args=[task_id]))
+
+    try:
+        if not scenario.finished:
+            request.task_id = str(task_id)
+            session = request.session
+            from dash_app.dash_app import create_app
+
+            # By creating a specific app for this task ID, the app "knows" which data to load
+            # ToDO make sure only authorized users can view this
+            create_app(task_id=str(task_id))
+            # the dictionary in "django_plotly_dash" appears in the session_state of the app, which
+            # is an optional kwarg in app.callbacks
+            session["django_plotly_dash"] = {"task_id": str(task_id)}
+
+            response = ScenarioOverview.as_view()(request, task_id=task_id, finished=False)
+
+            # Setting Cache-Control header
+            patch_cache_control(response, no_cache=True, no_store=True, must_revalidate=True)
+            return response
+        else:
+            url = reverse("simba:result", args=[task_id])
+            duration = 2
+            content = "This scenario has already been simulated."
+            return render(
+                request,
+                "redirect_timer.html",
+                {"content": content, "duration": duration, "redirect_url": url},
+            )
+
+    except Scenario.DoesNotExist:
+        html = "<html><body>task_id is not valid</body></html>"
+        return HttpResponse(html)
+
+
+class ScenarioOverview(TemplateView, MapEngineMixin):
+    template_name = "scenario_overview.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(ScenarioOverview, self).get_context_data(**kwargs)
+        task_id = kwargs.get("task_id")
+        if task_id is None:
+            raise Http404
+        task_id = str(task_id)
+        context["task_id"] = task_id
+
+        return context
+
+
+def progress(request: HttpRequest, progress_id, progress_type: str):
+    context = {"progress_id": progress_id, "status": "", "current_progress": 0}
+    context |= {"finished": False}
+    try:
+        progress = Progress.objects.get(task_id=progress_id)
+    except ObjectDoesNotExist:
+        response = render(request, "progress.html", context)
+        return response
+
+    context["current_progress"] = max(progress.get_progress(), 1)
+    context["status"] = progress.status
+    status_code = 200
+    hx_trigger = "running"
+    if progress.success or not progress.running or len(progress.errors) != 0:
+        context["errors"] = progress.errors
+        # End polling
+        status_code = 286
+        context["finished"] = True
+        hx_trigger = "notRunning"
+    response = render(request, "progress.html", context)
+    if context["finished"] and len(context["errors"]) == 0:
+        task_id = progress.scenario.task_id
+        response["HX-Redirect"] = reverse(progress_type, args=[task_id, "true"])
+    response["HX-Trigger"] = hx_trigger
+    response.status_code = status_code
+    return response
+
+
+@require_POST
+def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
+    context = {"task_id": task_id, "progress_type": "simba:schedule"}
+    try:
+        form = schedule_readers.get_options_form(reader_num)(request.POST, request.FILES)
+        # set in TimezoneMiddleware in core.middleware
+        now = timezone.localtime()
+        now_str = now.strftime(format="%Y-%m-%d %H:%M")
+        scenario_name = request.POST.get("scenario_name")
+        if scenario_name == "":
+            scenario_name = f"Mein Szenario vom {now_str}"
+        if not form.is_valid():
+            context = {"form": form, "reader_num": reader_num, "task_id": task_id}
+            response = render(request, "schedule_reader_options.html", context)
+            response["HX-Retarget"] = "#options_form"
+            return response
+        s, _ = Scenario.objects.get_or_create(task_id=task_id)
+        s.name = scenario_name
+        if request.user.is_authenticated:
+            s.manager = request.user
+
+        s.save()
+
+        # todo check size
+        cleaned_data = form.cleaned_data
+
+        files = dict()
+        for name, file in request.FILES.items():
+            uploaded_file = UploadedFile.objects.create(scenario=s, file=file)
+            files[name] = uploaded_file.file.path, uploaded_file.id
+            del cleaned_data[name]
+        # what kind of file is uploaded
+        async_result = tasks.init_db_with_trips.apply_async((s.id, reader_num, files, cleaned_data))
+        context["progress_id"] = async_result.task_id
+
+        response = render(request, "progress_poll.html", context)
+        response["HX-Trigger"] = "running"
+        return response
+    except AssertionError as e:
+        html = f"<html>{str(e)}</html>"
+        response = HttpResponse(html)
+        return response
+    except Exception as e:
+        html = f"<html>{str(e)}</html>"
+        response = HttpResponse(html)
+        response["HX-Trigger"] = "notRunning"
+        return response
+
+
+@require_POST
+def cancel_upload(request: HttpRequest, task_id: str):
+    # cause a SoftTimeLimitExceeded in task and redirect to schedule upload
+    AsyncResult(task_id).revoke(terminate=True, signal="SIGUSR1")
+    return redirect(reverse("simba:schedule"))
+
+
+def home_view(request: HttpRequest):
+    """Generate the home view of the tool chain with input forms"""
     if request.method == "GET":
         form = UploadFileForm()
     elif request.method == "POST":
@@ -126,45 +496,165 @@ def home_view(request):
         if not form.is_valid():
             return render(request, "index.html", {"form": form})
 
-        django_scenario, simba_schedule, args = \
-            tasks.fill_db_with_input_files(form.cleaned_data, request)
-        # start computation
-        task_id = get_unique_task_id()
-        django_scenario.task_id = task_id
-        django_scenario.save()
-        tasks.run_ebus_toolbox(simba_schedule, args, task_id)
-        if "ebus_map" in settings.INSTALLED_APPS:
-            from ebus_map.models import Station as MapStation
-            stations = ebustoolbox.models.Station.objects.filter(scenario=django_scenario)
-            # obj_id = 1 if MapStation.objects.last() is None else MapStation.objects.last().id + 1
-            map_stations = []
-            for station in stations:
-                map_stat = MapStation()
-                map_stat.__dict__.update(station.__dict__)
-                # map_stat.id = obj_id
-                map_stations.append(map_stat)
-                map_stat.save()
-            # Bulk creation is more efficient but doe not work with multi tabled inherited models
-            # MapStation.objects.bulk_create(map_stations)
+        django_scenario = save_and_simulate(form, request)
 
-        response = redirect('simba:result')
-        response['Location'] += '?task_id=' + task_id
+        if "ebus_map" in settings.INSTALLED_APPS:
+            create_stations_for_map(django_scenario)
+
+        response = redirect("simba:result", task_id=django_scenario.task_id)
         return response
     else:
-        return HttpResponse("Method not allowed", status=405)
+        return HttpResponse("Method is not allowed", status=405)
     return render(request, "index.html", {"form": form})
 
 
-def download_scenario(request, task_id):
+def landing_page(request: HttpRequest):
+    return render(request, "landing_page.html")
+
+
+@atomic()
+def create_stations_for_map(django_scenario: Scenario):
+    stations = ebustoolbox.models.Station.objects.filter(scenario=django_scenario)
+    warned = False
+    stations_with_geo = []
+    for station in stations:
+        if station.geom is None:
+            if not warned:
+                warnings.warn("At least one Station has no geometry and is placed randomly")
+                warned = True
+            station.geom = Point(x=13.0 + random.random(), y=52.0 + random.random(), z=0)
+            stations_with_geo.append(station)
+    Station.objects.bulk_update(stations_with_geo, ["geom"])
+
+
+def save_and_simulate(
+    form: UploadFileForm | None = None, request: HttpRequest | None = None
+) -> Scenario:
+    logger.info("Saving scenario and simulating")
+    if form is None:
+        new_form = UploadFileForm()
+        # If this function is called without a request and a form,  use the initial values as
+        # cleaned data
+        cleaned_data = {field: new_form[field].initial for field in new_form.fields}
+    else:
+        cleaned_data = form.cleaned_data
+
+    logger.info("Writing to db")
+    django_scenario, simba_schedule, args = tasks.input_files_to_database(cleaned_data, request)
+    if request.user.is_authenticated:
+        django_scenario.manager = request.user
+    # start computation
+    task_id = get_unique_task_id()
+    logger.info(f"{task_id=}")
+    django_scenario.task_id = task_id
+    django_scenario.save()
+    tasks.run_ebus_toolchain(task_id)
+    logger.info("Simulation Finished.")
+    return django_scenario
+
+
+def run_simulation(request: HttpRequest, task_id: str):
+    context = {"task_id": task_id, "progress_type": "simba:scenario_overview"}
+    logger.debug(context)
+    response = HttpResponse(context)
+
+    try:
+        if request.method == "GET":
+            try:
+                scenario = Scenario.objects.get(task_id=task_id)
+            except Scenario.DoesNotExist:
+                raise Http404
+            # if the scenario has a manager, only this User can run the simulation
+            if scenario.manager and scenario.manager != request.user:
+                raise Http404
+            # This triggers progress polling. If the toolchain is finished,
+            # the progress view will be triggered with the task_id and progress type
+            logger.info("Running Toolchain.")
+            async_result = tasks.run_toolchain_from_scenario(scenario, assign_vehicles=True)
+            if "ebus_map" in settings.INSTALLED_APPS:
+                create_stations_for_map(scenario)
+
+            context["progress_id"] = async_result.task_id
+            response = render(request, "progress_poll.html", context)
+            response["HX-Trigger"] = "running"
+    except Exception:
+        logger.error(traceback.format_exc())
+        response["HX-Trigger"] = "notRunning"
+    return response
+
+
+def download_scenario(request: HttpRequest, task_id: str):
     file_path = settings.MEDIA_ROOT / (str(task_id) + ".zip")
     if file_path.exists():
-        with file_path.open('rb') as fh:
-            response = HttpResponse(fh.read(), content_type='application/octet-stream')
-            response['Content-Disposition'] = 'attachment; filename=' + file_path.name
+        with file_path.open("rb") as fh:
+            response = HttpResponse(fh.read(), content_type="application/octet-stream")
+            response["Content-Disposition"] = "attachment; filename=" + file_path.name
             return response
     return HttpResponse("Zip not ready yet")
 
 
-def generate_zip(request, task_id):
+def generate_zip(request: HttpRequest, task_id: str):
     tasks.generate_zipped_scenario(task_id)
     return download_scenario(request, task_id)
+
+
+@login_required(login_url="/login/")
+def scenarios(request):
+    # show all scenarios of a user. Also endpoint for update and delete (POST)
+    if request.method == "POST":
+        if "update" in request.POST:
+            # manager can update scenario user groups
+            scenario = Scenario.objects.get(id=request.POST["update"], manager=request.user)
+            usergroups = map(int, request.POST["values"].split(","))
+            for ug in request.user.usergroup_set.all():
+                if ug.id in usergroups:
+                    ug.scenarios.add(scenario)
+                elif scenario in ug.scenarios.all():
+                    ug.scenarios.remove(scenario)
+            return HttpResponse(status=201)  # created
+        if "delete" in request.POST:
+            Scenario.objects.filter(id=request.POST["delete"], manager=request.user).delete()
+    scenarios = Scenario.objects.filter(manager=request.user)
+    usergroups = request.user.usergroup_set.all()
+    for ug in usergroups:
+        scenarios = scenarios.union(ug.scenarios.all())
+    scenarios = scenarios.order_by("id")
+    return render(request, "scenarios.html", {"scenarios": scenarios})
+
+
+@login_required(login_url="/login/")
+def usergroups(request):
+    # manage usergroups of a user. Also endpoint for add and leave (POST)
+    if request.method == "POST":
+        if "add" in request.POST:
+            # TODO: should be a form
+            ug = UserGroup.objects.create(
+                name=request.POST["name"],
+            )
+            ug.users.add(request.user)
+        elif "invite" in request.POST:
+            if settings.EMAIL_BACKEND:
+                email = request.POST["email"].lower()
+                if User.objects.filter(username=email).exists():
+                    return HttpResponse("User already exists", status=409)
+                url = f"{request.scheme}://{request.get_host()}{reverse('core:signup')}"
+                # generate and append token (embed email, sign with server key)
+                url += f"?token={signing.dumps(email)}"
+                body = f"Klicken Sie auf folgenden Link, um sich zu registrieren: {url}"
+                mail.send_mail(
+                    subject="Willkommen zu eBus2030+",
+                    message=body,
+                    from_email=None,
+                    recipient_list=[email],
+                    fail_silently=False,
+                )
+            else:
+                raise NotImplementedError("No email backend set")
+        elif "leave" in request.POST:
+            ug = request.user.usergroup_set.all().get(id=request.POST["leave"])
+            ug.users.remove(request.user)
+            if not ug.users:
+                # delete user group after last one has left
+                ug.delete()
+    usergroups = request.user.usergroup_set.all()
+    return render(request, "usergroups.html", {"usergroups": usergroups})

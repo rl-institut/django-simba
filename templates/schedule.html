@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block content %}
+
+  <div class="container bg-light" style="min-height: 80vh;">
+
+    <!-- wizard -->
+    {% include 'wizard.html' %}
+
+
+    <div id="readerSpecificForm" class="text-center">
+      <!-- Main Content -->
+      <div class="input-item">
+        <div class="lead justify-content-center p-5">
+          Wähle einen Zeitplan aus deinen Dateien aus. Verwende jedoch ein zulässiges Format.
+        </div>
+        <div id="readerSpecificForm" class="text-center">
+          <!-- Main Content -->
+          <div class="container">
+            <div class="row justify-content-center"> <!-- Full height row -->
+              <div class="col-auto">
+                <div class="d-grid gap-3 d-flex flex-column justify-content-center">
+                  <button class="btn btn-primary" type="button" hx-target="#readerSpecificForm"
+                          hx-get="{% url 'simba:get_options' task_id 1 %}">
+                    SimBA-Fahrplan hochladen
+                  </button>
+                  {#            <button class="btn btn-primary" type="button" hx-target="#readerSpecificForm"#}
+                  {#                    hx-get="{% url 'simba:get_options' task_id 2 %}">#}
+                  {#              EflipsDummyIngest hochladen#}
+                  {#            </button>#}
+                  <button class="btn btn-primary" type="button" hx-target="#readerSpecificForm"
+                          hx-get="{% url 'simba:get_options' task_id 3 %}">
+                    VDV .x10 Daten hochladen
+                  </button>
+                </div>
+              </div>
+              <div class="col-6 d-flex align-items-center justify-content-center ">
+                <small class="form-text text-muted">Wählen Sie eine Option aus</small>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="runner"
+            {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
+         hx-trigger="notRunning from:body">
+    </div>
+
+    <script>
+        // Activate button if the server finished handling the previous file
+        htmx.on('#runner', 'htmx:trigger', function (evt) {
+            htmx.find('#upload_btn_{{task_id}}').style.display = "initial";
+            htmx.find('#cancel_btn_{{task_id}}').style.display = "none";
+        });
+    </script>
+  </div>
+
+{% endblock %}

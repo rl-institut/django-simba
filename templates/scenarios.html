@@ -1,0 +1,74 @@
+{% extends 'base.html'%}
+{% block header %}
+<title>Szenarios</title>
+<style>
+  table {
+    width: 100%;
+  }
+  th {
+    text-align: center;
+    padding: 1rem;
+  }
+  td {
+    text-align: center;
+  }
+  tr:nth-child(even) {
+    background-color: #ccc;
+  }
+  tr:nth-child(odd) {
+    background-color: #eee;
+  }
+  ul.no-bullets {
+    list-style-type: none;
+  }
+  .delete {
+    border: none;
+    background: none;
+  }
+  .delete:hover {
+    background: red;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if not scenarios %}
+  <span>Noch keine Szenarios vorhanden. <a href="{% url 'simba:home' %}">Hinzufügen...</a></span>
+{% else %}
+<table>
+  <tr>
+    <th>Name</th>
+    <th>Ergebnis</th>
+    <th>Erstellt</th>
+    <th></th>
+  </tr>
+  {% for scenario in scenarios %}
+    <tr>
+      <td>
+        {% if scenario.finished %}
+          <a href="{% url 'simba:result' task_id=scenario.task_id %}">{{ scenario.name }}</a>
+        {% else %}
+          <a href="{% url 'simba:simulation_parameters' task_id=scenario.task_id %}">{{ scenario.name }}</a>
+        {% endif %}
+      </td>
+      <td>
+        {% if scenario.finished %}
+          {{ scenario.finished }}
+        {% else %}
+          <span>---</span>
+        {% endif %}
+      </td>
+      <td>{{ scenario.created }}</td>
+      <td>
+        {% if scenario.manager == user %}
+        <form id="form" method="post">
+          {% csrf_token %}
+          <button type="submit" class="delete" name="delete" value="{{ scenario.id }}">🗑️</button>
+        </form>
+        {% endif %}
+    </tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+{% endblock %}

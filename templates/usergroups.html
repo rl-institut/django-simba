@@ -1,0 +1,43 @@
+{% extends 'base.html'%}
+<title>Gruppenverwaltung</title>
+{% block content %}
+{% if not usergroups %}
+  <span>Noch keine Benutzergruppen vorhanden.</span>
+{% else %}
+<table>
+  <tr>
+    <th>Name</th>
+    <th>Mitglieder</th>
+    <th></th>
+    <th></th>
+  </tr>
+  {% for ug in usergroups %}
+    <tr>
+      <td>{{ ug.name }}</td>
+      <td title="{{ ug.users.all|join:', ' }}">{{ ug.users.all|length }}</td>
+      <td>Einladen</td>
+      <td>
+        <form method="post">
+          {% csrf_token %}
+          <button type="submit" name="leave" value="{{ ug.id }}">Verlassen</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+</table>
+{% endif %}
+    <form id="form" method="post">
+        {% csrf_token %}
+        <input name="name">
+        <button type="submit" name="add">Neu</button>
+    </form>
+    {% if user.is_staff %}
+        <div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="email" name="email" required="true">
+                <button type="submit" name="invite">Neuen Benutzer einladen</button>
+            </form>
+        </div>
+    {% endif %}
+{% endblock %}

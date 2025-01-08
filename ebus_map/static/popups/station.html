@@ -1,0 +1,56 @@
+{% extends "popups/base.html" %}
+{% block class_content_1 %}
+<div class="container">
+  <!-- Nav tabs -->
+  <ul class="nav nav-tabs" id="myTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="tab1-tab" data-bs-toggle="tab" data-bs-target="#tab1" type="button" role="tab" aria-controls="tab1" aria-selected="true">Tab 1</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab2-tab" data-bs-toggle="tab" data-bs-target="#tab2" type="button" role="tab" aria-controls="tab2" aria-selected="false">Tab 2</button>
+    </li>
+  </ul>
+  <!-- Tab panes -->
+  <div class="tab-content">
+    <div class="tab-pane fade show active" id="tab1" role="tabpanel" aria-labelledby="tab1-tab">
+      <h5>Station {{ name }}</h5>
+      {% if is_electrified %}
+        <table>
+          <tr>
+            <td>Anschlusstyp</td>
+            <td>{{ charge_type }}</td>
+          </tr>
+          <tr>
+            <td>Spannungsebene</td>
+            <td>{{ voltage_level }}</td>
+          </tr>
+          <tr>
+            <td>Anschlüsse</td>
+            <td>{{ amount_charging_places }}</td>
+          </tr>
+          {% if amount_charging_places > 0 %}
+            <tr>
+              <td>Leistung pro Anschluss</td>
+              <td>{{ power_per_charger|floatformat:"0" }} kW</td>
+            </tr>
+            <tr>
+              <td>Gesamtleistung</td>
+              <td>{{ power_total|floatformat:"0" }} kW</td>
+            </tr>
+          {% endif %}
+        </table>
+      {% else %}
+        Nicht elektrifiziert.
+      {% endif %}
+    </div>
+    <div class="tab-pane fade" id="tab2" role="tabpanel" aria-labelledby="tab2-tab">
+      <p>Koordinaten: {{ geom.y|floatformat:"4" }}, {{ geom.x|floatformat:"4" }}</p>
+      <p>Name: {{ name }}{% if name_short and name != name_short %} ({{ name_short }}){% endif %}</p>
+      {% if plot %}
+        <img class="popup-image" src="data:image/png;base64,{{ plot|safe }}">
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}

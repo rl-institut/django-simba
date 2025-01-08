@@ -9,11 +9,11 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-import environ
 from pathlib import Path
-import os
 
-from ebus_map.settings import * # noqa
+import environ
+
+from ebus_map.settings import *  # noqa
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,126 +26,214 @@ env = environ.Env()
 
 # Read .env file
 # OS environment variables take precedence over variables from .env file
-env.read_env(str(ROOT_DIR.path('.env')))
+env.read_env(str(ROOT_DIR.path(".env")))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-SECRET_KEY = env('DJANGO_SECRET_KEY')
-
+SECRET_KEY = env("DJANGO_SECRET_KEY")
+DJANGO_ELEVATION_TOKEN = env.str("DJANGO_ELEVATION_TOKEN", "notoken")
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool('DJANGO_DEBUG', default=False)
+DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
-ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "*"])
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://127.0.0.1"])
+# https://docs.djangoproject.com/en/dev/ref/settings/#secure-proxy-ssl-header
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
+SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
+
+# Source to xyzascii zip of elevations
+ELEVATION_SOURCE_URL = env.str(
+    "ELEVATION_SOURCE_URL",
+    "https://daten.gdz.bkg.bund.de/produkte/dgm/dgm200/aktuell/dgm200.utm32s.gridascii.zip",
+)
+
+if env.bool("DJANGO_LOCAL_DEVELOPMENT", default=False):
+    SECURE_PROXY_SSL_HEADER = None
+    # https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
+    SECURE_SSL_REDIRECT = False
 
 # Application definition
-
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django_extensions",
     # custom apps
-    'core',
-    'ebustoolbox',
-    'django_mapengine',
-    'ebus_map',
-    'HPCtool',
-
+    "core",
+    "ebustoolbox",
+    "elevation_api",
+    "django_mapengine",
+    "ebus_map",
+    "dash_app",
     # Django plotly dash
-    'django_plotly_dash.apps.DjangoPlotlyDashConfig',
+    "django_plotly_dash.apps.DjangoPlotlyDashConfig",
+    "bootstrap4",
+    "eflips_depot_results",
 ]
 
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # if the header and footer tags are in use this setting should be used. No problem if not in use
-    'django_plotly_dash.middleware.BaseMiddleware',
+    "django_plotly_dash.middleware.BaseMiddleware",
+    "core.middleware.TimezoneMiddleware",
 ]
 
-ROOT_URLCONF = 'ebusdjango.urls'
+ROOT_URLCONF = "ebusdjango.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, "templates"),
-                 os.path.join(BASE_DIR, "ebus_map/static")],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates", BASE_DIR / "ebus_map/static"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'ebusdjango.wsgi.application'
+WSGI_APPLICATION = "ebusdjango.wsgi.application"
 
+# Email
+# dummy: write to console until real server exists
+# real: django.core.mail.backends.smtp.EmailBackend
+# for Exchange, use core.email.NoCheckEmailBackend to work with missing/self-cert SSL
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST = env("EMAIL_HOST", default=None)
+EMAIL_PORT = env("EMAIL_PORT", default=587)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default=None)
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default=None)
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+LOGIN_REDIRECT_URL = "/"  # redirect to landing page after login
+LOGOUT_REDIRECT_URL = "/login/"  # redirect to login after logout
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 # ToDo Set up your own postgis databank and fill in the needed
 #  data. Patrick wrote an HowTo for Linux users
-DATABASES = {'default': env.db('DATABASE_URL')}
+DATABASES = {"default": env.db("DATABASE_URL")}
 
-CELERY_BROKER_URL = env('CELERY_BROKER_URL', default=None)
-CELERY_USE = env('CELERY_USE', default=None)
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
+CELERY_USE = env("CELERY_USE", default="False").lower() == "true"
+CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=True)
+if CELERY_TASK_ALWAYS_EAGER:
+    CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=True)
 # Make sure there is a celery broker url provided if celery should be used
 if CELERY_USE:
-    assert CELERY_BROKER_URL, "CELERY_BROKER_URL is missing from .env file. If celery should be" \
-                              "used this URL has to provided"
+    assert CELERY_BROKER_URL, (
+        "CELERY_BROKER_URL is missing from .env file. If celery should be"
+        "used, this URL has to be provided"
+    )
+
+
+# For Database visualization
+GRAPH_MODELS = {
+    "all_applications": False,
+    "group_models": True,
+    "app_labels": ["ebustoolbox"],
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {asctime} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+        "file": {
+            "level": "INFO",
+            "class": "logging.FileHandler",
+            "filename": "./info.log",
+            "formatter": "simple",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "WARNING",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console", "file"],
+            "level": env.str("DJANGO_LOG_LEVEL", "INFO"),
+            "propagate": False,
+        },
+        "custom": {
+            "handlers": ["console", "file"],
+            "level": env.str("DJANGO_LOG_LEVEL", "INFO"),
+            "propagate": False,
+        },
+    },
+}
 
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
 USE_TZ = True
 
 # django_plotly_dash setting for use of frames within HTML documents
-X_FRAME_OPTIONS = 'SAMEORIGIN'
+X_FRAME_OPTIONS = "SAMEORIGIN"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "static/"
 UPLOAD_PATH = "uploads/"
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = env.str("DJANGO_MEDIA_ROOT", "media/")
 
 # while the above line checks all the app folders for static folders the below one can be a list of
 # general static file folders
@@ -153,10 +241,10 @@ STATICFILES_DIRS = [
     BASE_DIR,
     BASE_DIR / "templates/js",
     BASE_DIR / "templates/css",
+    BASE_DIR / "templates/img",
     BASE_DIR / UPLOAD_PATH,
-
 ]
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"

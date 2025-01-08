@@ -1,3 +1,5 @@
+import warnings
+
 from django.contrib.gis.db import models
 from django.contrib.gis.db.models.functions import Transform
 from django.contrib.gis.geos import Polygon
@@ -33,7 +35,7 @@ class MVTManager(models.Manager):
         query = super().get_queryset()
         try:
             annotations = self.model.annotations
-        except:
+        except AttributeError:
             annotations = {}
 
         for key, func in annotations.items():
@@ -52,19 +54,20 @@ class MVTManager(models.Manager):
     # pylint: disable=W0613,R0913
     def _filter_query(self, query, x, y, z, filters):
         # ToDo Change
-        try:
-            filters["scenario__task_id"] = filters["task_id"]
-            del filters["task_id"]
-        except KeyError:
-            filters = {}
+        assert filters["task_id"] is not None, "Source can only be shown with valid task_id"
+        if len(filters) > 1:
+            warnings.warn("Only one filter supported at the time")
+        task_id = filters["task_id"]
+        filters = dict()
+        filters["scenario__task_id"] = task_id
         return query.filter(**filters)
 
     def _get_mvt_geom_query(self, x, y, z):
         bbox = Polygon.from_bbox(tile_edges(x, y, z))
         bbox.srid = 4326
         query = self.annotate(
-            mvt_geom=AsMVTGeom(Transform(self.geo_col, 3857), Transform(bbox, 3857), 4096, 0,
-                               False))
+            mvt_geom=AsMVTGeom(Transform(self.geo_col, 3857), Transform(bbox, 3857), 4096, 0, False)
+        )
         intersect = {f"{self.geo_col}__intersects": bbox}
         return query.filter(**intersect)
 

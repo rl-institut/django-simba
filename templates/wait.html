@@ -1,6 +1,5 @@
-<!-- templates/my_template.html -->
-<!DOCTYPE html>
-<html>
+{% extends 'base.html'%}
+{% block content %}
 <head>
     <meta charset="UTF-8">
     <title>Waiting for Result</title>
@@ -41,4 +40,4 @@ let task_id = searchParams.get('task_id')
     </script>
 </div>
 </body>
-</html>
+{% endblock %}

@@ -34,7 +34,9 @@ class MapEngineConf(AppConf):
     # STYLES
     if not hasattr(settings, "MAP_ENGINE_STYLES_FOLDER"):
         raise RuntimeError("'MAP_ENGINE_STYLES_FOLDER' has to be set for django-mapengine.")
-    CHOROPLETH_STYLES = choropleth.Choropleth(pathlib.Path(settings.MAP_ENGINE_STYLES_FOLDER) / "choropleths.json")
+    CHOROPLETH_STYLES = choropleth.Choropleth(
+        pathlib.Path(settings.MAP_ENGINE_STYLES_FOLDER) / "choropleths.json"
+    )
 
     with pathlib.Path(pathlib.Path(settings.MAP_ENGINE_STYLES_FOLDER) / "layer_styles.json").open(
         "r", encoding="utf-8"
@@ -45,7 +47,9 @@ class MapEngineConf(AppConf):
     # MAP
     CENTER_AT_STARTUP: Tuple[int, int] = settings.MAP_ENGINE_CENTER_AT_STARTUP
     ZOOM_AT_STARTUP: int = settings.MAP_ENGINE_ZOOM_AT_STARTUP
-    MAX_BOUNDS = getattr(settings, "MAP_ENGINE_MAX_BOUNDS", None)  # Must use getattr, as MAX_BOUNDS is used directly
+    MAX_BOUNDS = getattr(
+        settings, "MAP_ENGINE_MAX_BOUNDS", None
+    )  # Must use getattr, as MAX_BOUNDS is used directly
     SETUP = {
         "container": "map",
         "style": f"https://api.maptiler.com/maps/{TILING_SERVICE_STYLE_ID}/style.json?key={TILING_SERVICE_TOKEN}",
@@ -72,6 +76,9 @@ class MapEngineConf(AppConf):
     # IMAGES
     IMAGES: List[Dict[str, str]] = []
 
+    # CHOROPLETHS
+    CHOROPLETHS = []
+
     # POPUPS
     POPUPS: List[str] = []
 
@@ -82,7 +89,7 @@ class MapEngineConf(AppConf):
     Y_OFFSET = 1  # Defines how many tiles to the bottom are added at first level
 
     ZOOM_LEVELS = settings.MAP_ENGINE_ZOOM_LEVELS
-    REGIONS = list(settings.REGIONS)
+    REGIONS = list(ZOOM_LEVELS)
 
     # pylint:disable=R0903
     class Meta:

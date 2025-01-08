@@ -49,22 +49,26 @@ class MapEngineMixin(ContextMixin):
                 "mapengine_zoom_levels": settings.MAP_ENGINE_ZOOM_LEVELS,
                 # Sources need valid URL (containing host and port), thus they have to be defined using request:
                 "mapengine_sources": {
-                    source.name: source.get_source(self.request) for source in sources.get_all_sources()
+                    source.name: source.get_source(self.request)
+                    for source in sources.get_all_sources()
                 },
                 "mapengine_layers": [layer.get_layer() for layer in layers.get_all_layers()],
-                "mapengine_layers_at_startup": settings.MAP_ENGINE_LAYERS_AT_STARTUP + settings.MAP_ENGINE_REGIONS,
+                "mapengine_layers_at_startup": settings.MAP_ENGINE_LAYERS_AT_STARTUP
+                + settings.MAP_ENGINE_REGIONS,
                 "mapengine_images": [image.as_dict() for image in settings.MAP_ENGINE_IMAGES],
             }
         )
         store = {
-            "debug": settings.MAP_ENGINE_DEBUG,
+            "debugMode": settings.MAP_ENGINE_DEBUG,
             "popups": {popup.layer_id: popup.as_dict() for popup in settings.MAP_ENGINE_POPUPS},
             "regions": settings.MAP_ENGINE_REGIONS,
             "result_views": {},  # Placeholder for already downloaded results (used in results.js)
             "zoom_levels": settings.MAP_ENGINE_ZOOM_LEVELS,
-            # "choropleths": {choropleth.name: choropleth.as_dict() for choropleth in settings.MAP_ENGINE_CHOROPLETHS},
+            "choropleths": {
+                choropleth.name: choropleth.as_dict()
+                for choropleth in settings.MAP_ENGINE_CHOROPLETHS
+            },
         }
-        store["clickable_layers"]=list(store["popups"].keys())
 
         context["mapengine_store_cold_init"] = store
 
