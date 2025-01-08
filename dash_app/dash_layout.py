@@ -76,7 +76,6 @@ def create_layout(app: Dash) -> Div:
                             "display": "inline-block",
                             "width": "100%",
                             "verticalAlign": "top",
-                            "display": "none",
                         },
                     ),
                     dcc.Loading(

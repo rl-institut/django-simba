@@ -1,10 +1,13 @@
+import logging
 from copy import copy
 from typing import Type
 
 import django.db
+import psycopg2
 from django.db import models
 from django.db.models import Max
 from django.db.transaction import atomic
+from django.db.utils import ProgrammingError
 from django.core.management import call_command
 from os import devnull
 from django.db import connection
@@ -25,27 +28,32 @@ def deepcopy_and_sequence_reset(
     :param exclude_fields: fields which are skipped during copying
     :param max_depth: maximum recursion depth. For known structures, reducing the max depth
         increases the speed of deep copying.
-    :return: copy result instance
+    :return: copy result instance, stack which links original with copied instances
     """
 
-    copied_instance, apps = deepcopy(
+    copied_instance, deepcopy_locals = deepcopy(
         instance=instance,
         exclude_models=exclude_models,
         exclude_fields=exclude_fields,
         max_depth=max_depth,
     )
-    reset_postgres_auto_increments(apps)
+    original_copy_dict = deepcopy_locals["stack"]
+    reset_postgres_auto_increments(deepcopy_locals["apps"])
 
-    return copied_instance
+    return copied_instance, original_copy_dict
 
 
 def reset_postgres_auto_increments(apps):
     # Finally fix postgres auto increments for all used apps during this deepcopy
-    postgres_reset_sql = call_command(
-        "sqlsequencereset", *apps, stdout=open(devnull, "a"), no_color=True
-    )
-    with connection.cursor() as cursor:
-        cursor.execute(postgres_reset_sql)
+    for app in apps:
+        postgres_reset_sql = call_command(
+            "sqlsequencereset", app, stdout=open(devnull, "a"), no_color=True
+        )
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(postgres_reset_sql)
+        except (psycopg2.errors.UndefinedTable, ProgrammingError):
+            logging.warning("Undefined table in PostgreSQL: %s", app)
 
 
 @time_it
@@ -74,7 +82,7 @@ def deepcopy(  # noqa
     :param exclude_fields: fields which are skipped during copying
     :param max_depth: maximum recursion depth. For known structures, reducing the max depth
         increases the speed of deep copying.
-    :return: copy result instance
+    :return: copy result instance, locals of this function
     """
 
     def write_multi_dict(source: dict, keys: list, value):
@@ -213,7 +221,7 @@ def deepcopy(  # noqa
         # Replace the foreign keys of the copied objects. This can only be done after they were created
         # to ensure they do not point to not created objects <-- Error
         managers = replace_keys_and_get_managers(
-            already_copied, copies, rev_stack, stack, exclude_models
+            already_copied, copies, rev_stack, stack, exclude_models, exclude_fields
         )
         # After objects are saved to DB ManyToMany fields can be set
         replace_many2many(managers)
@@ -224,7 +232,7 @@ def deepcopy(  # noqa
             break
     else:
         raise Exception("Deepcopying could not create Objects. Database restrictions aren't met?")
-    return instance.__class__.objects.get(pk=new_pk), apps
+    return instance.__class__.objects.get(pk=new_pk), locals()
 
 
 @time_it
@@ -275,7 +283,9 @@ def replace_many2many(managers):
 
 
 @time_it
-def replace_keys_and_get_managers(already_copied, copies, rev_stack, stack, exclude_models):
+def replace_keys_and_get_managers(
+    already_copied, copies, rev_stack, stack, exclude_models, exclude_fields
+):
     managers = list()
     for obj_class in copies:
         all_copies = [c for c in copies[obj_class].values()]
@@ -303,10 +313,24 @@ def replace_keys_and_get_managers(already_copied, copies, rev_stack, stack, excl
                     if org_foreign_values is None:
                         continue
                     set_new_foreign_value(
-                        f, obj_copy, org_foreign_values, stack, exclude_models=exclude_models
+                        f,
+                        obj_copy,
+                        org_foreign_values,
+                        stack,
+                        exclude_models=exclude_models,
+                        exclude_fields=exclude_fields,
                     )
                 else:
-                    managers.append(create_m2m_managers(f, obj_copy, org_foreign_values, stack))
+                    managers.append(
+                        create_m2m_managers(
+                            f,
+                            obj_copy,
+                            org_foreign_values,
+                            stack,
+                            exclude_models=exclude_models,
+                            exclude_fields=exclude_fields,
+                        )
+                    )
         if len(fnames) > 0:
             try:
                 obj_class.objects.fast_update(all_copies, fnames)
@@ -329,18 +353,23 @@ def get_keys_factory(m2m):
     return get_keys
 
 
-def create_m2m_managers(f, obj_copy, org_foreign_values, stack):
+def create_m2m_managers(f, obj_copy, org_foreign_values, stack, exclude_models, exclude_fields):
     new_foreign_values = []
     # Replace all foreign keys with the copy/pk translation of the objects
     for old_foreign in org_foreign_values:
-        new_foreign_values.append(stack[f.related_model][old_foreign.pk])
+        try:
+            new_foreign_values.append(stack[f.related_model][old_foreign.pk])
+        except KeyError:
+            assert f in exclude_fields or f.related_model in exclude_models
+            new_foreign_values = org_foreign_values
+            break
     manager = getattr(obj_copy, f.name)
     return manager, new_foreign_values
 
 
-def set_new_foreign_value(f, obj_copy, org_foreign_values, stack, exclude_models):
+def set_new_foreign_value(f, obj_copy, org_foreign_values, stack, exclude_models, exclude_fields):
     try:
         new_foreign_values = stack[f.related_model][org_foreign_values]
         setattr(obj_copy, f.name + "_id", new_foreign_values)
     except KeyError:
-        assert f.related_model in exclude_models
+        assert f.related_model in exclude_models or f in exclude_fields
