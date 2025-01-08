@@ -7,12 +7,12 @@ from ebustoolbox.models import *
 from django.contrib.gis.db import models
 from django.utils.translation import gettext_lazy as _
 from ebus_map.managers import MVTManager, LabelMVTManager
-
+from ebustoolbox.models import Scenario as EbustoolboxScenario
 
 class BusOutline(models.Model):
     geom = models.MultiPolygonField(srid=4326)
     name = models.CharField(max_length=50)
-    scenario_ID = models.CharField(max_length=50)
+    scenario = models.ForeignKey(EbustoolboxScenario, null=False, on_delete=models.CASCADE)
     quality = models.IntegerField(default=0)
 
     objects = models.Manager()
@@ -58,7 +58,13 @@ class Tree(models.Model):
 class Station(models.Model):
     geom = models.PointField(srid=4326)
     name = models.CharField(max_length=50)
-    scenario_ID = models.CharField(max_length=50)
+    # Reference to ebustoolbox.Scenario with a custom related_name
+    scenario = models.ForeignKey(
+        EbustoolboxScenario,
+        on_delete=models.CASCADE,
+        related_name='HPCtool_Station',
+        db_column='scenario_ID'
+    )
     charge_unit = models.CharField(max_length=10, default="kW")
     station_unit = models.CharField(max_length=10, default="kW")
     voltage_level = models.CharField(max_length=10, default="MV")
@@ -72,13 +78,6 @@ class Station(models.Model):
     objects = models.Manager()
     layer = "busstop"
     vector_tiles = MVTManager(columns=["id", "name"])
-
-
-class Scenario(models.Model):
-    name = models.CharField(max_length=50)
-    scenario_ID = models.CharField(max_length=50)
-    stations = models.ManyToManyField(Station)
-
 
 class Cyclepath(models.Model):
     geom = models.MultiPolygonField(srid=4326)

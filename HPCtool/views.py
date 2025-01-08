@@ -12,7 +12,8 @@ from celery.result import AsyncResult
 from celery import uuid
 from .tasks import calculate_chargers
 
-from .models import *
+from .models import Settings, Flurstueck, Area, Tree, BusOutline, Criterion
+from ebustoolbox.models import Station
 
 import ast
 
@@ -25,7 +26,7 @@ class HomePageView(TemplateView, views.MapEngineMixin):
     def dispatch(self, request, *args, **kwargs):
         # Set a default task_id if not already set
         if not hasattr(request, 'task_id'):
-            request.task_id = '461490dd-9434-40d5-9c72-2352f5eb6671'
+            request.task_id = '6e3b8a30-4d2e-455c-a4f2-2acf5cefc4dc'
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, **kwargs):
@@ -85,12 +86,10 @@ def get_station_popup(request: HttpRequest, id: int) -> response.JsonResponse:  
 
     Area = Flurstueck.objects.get(id=int(id))
 
-    Station = Area.station_set.first()
-
     buslist = Station.busses.count()
 
     dictresult = {"name": Station.name,
-                  "id": Station.id,
+                  "id": 0,
                   "station_power": Station.station_power,
                   "station_unit": Station.station_unit,
                   "charge_power": Station.charge_power,

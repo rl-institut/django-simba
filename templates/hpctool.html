@@ -179,18 +179,9 @@
     </head>
 
     <body>
-    {% include 'django_mapengine/map.html' %}
-    {% include 'django_mapengine/map_json.html' %}
+    {% include 'minimal_mapengine.html' %}
 
-    <script>
-      // This is needed as mapengine checks for eventTopics value (bug in mapengine!)
-      let eventTopics = {};
-      // This is needed, as otherwise map height is zero and therefore not visible (bug in mapengine!)
-      document.getElementById("map").style = "height: 800px"
-    </script>
 
-    <!-- this line has to be loaded at this specific point!! -->
-    {% include 'django_mapengine/map_js.html' %}
 
     <!-- Cursor (busoutline) for manual placement -->
     <div class="cursor" id="cursor" ></div>
@@ -382,15 +373,6 @@
         let all_station_coords = [];
         let station_index = -1;
 
-        // Define your list of map layers
-        const layers = [
-            {id: 'flur', name: 'Flurstücke'},
-            {id: 'cyclepath', name: 'Radwege'},
-            {id: 'residentialarea', name: 'Wohngebiete'},
-            {id: 'myexamplemultipolygon', name: 'Busse'},
-            {id: 'trees', name: 'Bäume'}
-            // Add more layers as needed
-        ];
 
         map.dragRotate.disable();
         //needed for drawing stations
@@ -426,24 +408,7 @@
             console.log("No URL parameters");
         }
 
-        // for setting height of sidebars:
-        window.addEventListener('scroll', function() {
-            var headerHeight = 125; // Height of your header in pixels
 
-            if (window.scrollY >= headerHeight) {
-                // Once you've scrolled past the header's height, set sidebar height to 100%
-                document.querySelector('.sidebar').style.height = '100%';
-                document.querySelector('.sidebar').style.top = `0px`;
-                document.querySelector('.right-sidebar').style.height = '100%';
-                document.querySelector('.right-sidebar').style.top = `0px`;
-            } else {
-                // While still within the header's height, set sidebar height to (100% - scrollY)
-                document.querySelector('.sidebar').style.top = `${headerHeight - window.scrollY}px`;
-                document.querySelector('.sidebar').style.height = `calc(100% - ${window.scrollY}px)`;
-                document.querySelector('.right-sidebar').style.top = `${headerHeight - window.scrollY}px`;
-                document.querySelector('.right-sidebar').style.height = `calc(100% - ${window.scrollY}px)`;
-            }
-        });
 
         window.addEventListener("load", function() {
             $.ajax({
@@ -563,7 +528,7 @@
             }
         });
 
-        document.addEventListener("DOMContentLoaded", function () {
+        /*document.addEventListener("DOMContentLoaded", function () {
           const sidebar = document.querySelector(".sidebar");
           const content = document.querySelector(".col-md-9");
           //const sidebarToggle = document.querySelector("#sidebarToggle");
@@ -606,7 +571,7 @@
                 rightSidebarButton.style.transition = 'none';
               }, 300); // Wait for the transition to complete (0.3s) and then remove it
           });
-        });
+        });*/
         document.addEventListener('keydown', function(event) {
               if (event.ctrlKey && event.key === 'z') {
                 //alert('Undo!');
@@ -645,11 +610,11 @@
         });
 
         // Add event listener to the enable manual placement mode button
-        const enableButton = document.getElementById('enableButton');
-        enableButton.addEventListener('click', function () {
-          manualModeEnabled = !manualModeEnabled; // Toggle the state on button click
+      //  const enableButton = document.getElementById('enableButton');
+      //  enableButton.addEventListener('click', function () {
+       //   manualModeEnabled = !manualModeEnabled; // Toggle the state on button click
 
-        });
+      //  });
         // Add event listener to the settings modal trigger button
         var settingsbutton = document.getElementById("settingsButton");
         settingsbutton.addEventListener("click", function() {
@@ -766,54 +731,6 @@
 
 
             });
-        });
-
-        // Everything with layers in the Sidebar
-        // Function to toggle layer visibility
-        function toggleLayerVisibility(layerId) {
-            const layer = map.getLayer(layerId);
-            const visibility = map.getLayoutProperty(layerId, 'visibility');
-
-            if (visibility === 'visible') {
-                map.setLayoutProperty(layerId, 'visibility', 'none');
-            } else {
-                map.setLayoutProperty(layerId, 'visibility', 'visible');
-            }
-        }
-        // Create checkboxes for each layer
-        const layerControls = document.getElementById('layer-controls');
-        layers.forEach(function (layer) {
-
-            const toggleLabel = document.createElement("label");
-            toggleLabel.className = "toggle";
-
-            const toggleCheckbox = document.createElement("input");
-            toggleCheckbox.className = "toggle-checkbox";
-            toggleCheckbox.type = "checkbox";
-            toggleCheckbox.checked = true;
-
-            toggleCheckbox.addEventListener('change', function () {
-                            toggleLayerVisibility(layer.id);
-                        });
-
-            const toggleLabelWrapper = document.createElement("div"); // Create a wrapping div
-            toggleLabelWrapper.className = "toggle-label-wrapper"; // Apply a class for styling
-            toggleLabelWrapper.appendChild(toggleLabel);
-
-            const toggleSwitch = document.createElement("div");
-            toggleSwitch.className = "toggle-switch";
-
-            const toggleLabelText = document.createElement("span");
-            toggleLabelText.className = "toggle-label";
-            toggleLabelText.textContent = layer.name;
-
-            toggleLabel.appendChild(toggleCheckbox);
-            toggleLabel.appendChild(toggleSwitch);
-            toggleLabel.appendChild(toggleLabelText);
-
-
-            layerControls.appendChild(toggleLabelWrapper); // Add the wrapper div to the container;
-
         });
 
         // When the user moves their mouse over the state-fill layer, we'll update the
