@@ -189,20 +189,20 @@ def create_station(request):
         else:
             sp = 0
 
-        stat = Station.objects.create(geom=Point(list(result['latlon'])),
-                                      name=result['name'],
-                                      scenario_ID="neu",
-                                      charge_power=cp,
-                                      charge_unit=result['charge_unit'],
-                                      station_unit=result['station_unit'],
-                                      station_power=sp,
-                                      voltage_level=result['voltage_level'])
-
-        stat.flurstück.add(Flurstueck.objects.order_by('id').reverse()[0])
-
-        for busid in buslist:
-            bus = BusOutline.objects.get(id=int(busid))
-            stat.busses.add(bus)
+#        stat = Station.objects.create(geom=Point(list(result['latlon'])),
+#                                      name=result['name'],
+#                                      scenario_ID="neu",
+#                                      charge_power=cp,
+#                                      charge_unit=result['charge_unit'],
+#                                      station_unit=result['station_unit'],
+#                                      station_power=sp,
+#                                      voltage_level=result['voltage_level'])##
+#
+#       stat.flurstück.add(Flurstueck.objects.order_by('id').reverse()[0])#
+#
+#        for busid in buslist:
+#            bus = BusOutline.objects.get(id=int(busid))
+#            stat.busses.add(bus)
 
 
     except ValueError as e:

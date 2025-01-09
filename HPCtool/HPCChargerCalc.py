@@ -258,13 +258,13 @@ def calculate_HPC(poly_list, buslength=18, parkingdistance=5):
                             c_good, c_mid, c_bad = placeColoredPanthograph(pnt, local_layerdict, criteria)
 
                             if c_good > 0:
-                                new_instance = BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu",
+                                new_instance = BusOutline.objects.create(geom=polygon, name="buzz", scenario_id="1000000159",
                                                                          quality=2)
                             elif c_mid > 0:
-                                new_instance = BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu",
+                                new_instance = BusOutline.objects.create(geom=polygon, name="buzz", scenario_id="1000000159",
                                                                          quality=1)
                             else:
-                                new_instance = BusOutline.objects.create(geom=polygon, name="buzz", scenario_ID="neu",
+                                new_instance = BusOutline.objects.create(geom=polygon, name="buzz", scenario_id="1000000159",
                                                                          quality=0)
 
                             charger_good += c_good

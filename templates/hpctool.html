@@ -179,8 +179,13 @@
     </head>
 
     <body>
-    {% include 'minimal_mapengine.html' %}
+        <div class="map-container">
+            {% include 'minimal_mapengine.html' %}
+        </div>
 
+        <script>
+            map.resize();
+        </script>
 
 
     <!-- Cursor (busoutline) for manual placement -->
@@ -1278,7 +1283,7 @@
 
     </script>
 
-  </body>
+  </div>
 
 </html>
 
