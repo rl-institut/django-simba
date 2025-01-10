@@ -249,6 +249,7 @@ def register_eflips_callbacks(app):
     get_power_and_occupancy_plot_eflips(app)
     get_specific_energy_eflips(app)
 
+
 def block_first_third(app) -> list[html.Div]:
     return [report_numbers.render_longest_rotation(app)]
 
