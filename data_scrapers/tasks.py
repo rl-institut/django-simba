@@ -13,6 +13,7 @@ from django.contrib.postgres.search import TrigramSimilarity
 from django.db.models import Q
 from geopy.distance import distance as geopy_distance
 
+from ebusdjango import util
 from .models import BusStation, AdminArea
 
 logger = logging.getLogger("custom")
@@ -81,6 +82,7 @@ def search_station(
     filter_stack: Callable[[QuerySet], QuerySet],
     return_all=False,
 ) -> QuerySet:
+
     # Search directly for the name, if the coordinates are close to each other
     # i.e. closer than DISTANCE_THRESHOLD, their ids are returned
     ids = []
@@ -177,7 +179,7 @@ def get_station_ids_contained_by_admin_area(possible_admins_names, station_name)
     for part in station_name.replace(",", " ").split(" "):
         if part in possible_admins_names:
             admin_name = part
-            # Admin Area Names are not unique, especially at <= level 9
+            # AdminArea names are not unique, especially below level 9 (Gemeinden, Bezirke etc.)
             admin_areas = AdminArea.objects.filter(name=admin_name)
             all_children = get_lower_admin_areas(admin_areas)
 
@@ -199,7 +201,7 @@ def get_lower_admin_areas(admin_areas):
     parent_ids = {p.id for p in parents}
     all_children = [*(AdminArea.objects.filter(id__in=parent_ids))]
     children = AdminArea.objects.filter(upper_admin_area__in=all_children)
-    while children.count() > 0:
+    while children.exists():
         all_children.extend(children)
         children = AdminArea.objects.filter(upper_admin_area__in=children)
     return AdminArea.objects.filter(id__in=set(x.id for x in all_children))
@@ -221,18 +223,23 @@ def get_fuzzy_stations(base_query: QuerySet, similarity_threshold, station_name)
 
 
 def get_address_translations():
-    from ebusdjango import util
-
     p = util.get_static_file_path(__package__, "address_translations.json")
     with open(p, "r") as f:
         translations = json.load(f)
     return translations
 
 
-def approximate_lat_lon_distance(max_y):
-    # Approximate a distance as delta in lat/long coordinates
-    lat_distance = geopy_distance((max_y, 0), (max_y + 1, 0))
-    lon_distance = geopy_distance((max_y, 0), (max_y, +1))
+def approximate_lat_lon_distance(latitude):
+    """Approximate a distance by averaging lat and lng difference in km.
+
+    The distance of 1° change in longitude depends on the latitude.
+
+    :param latitude: latitude where the average distance is approximated
+    :return: average distance in km of a 1° change in lat or lon (float)
+    """
+
+    lat_distance = geopy_distance((latitude, 0), (latitude + 1, 0))
+    lon_distance = geopy_distance((latitude, 0), (latitude, +1))
     return (lat_distance + lon_distance).km / 2
 
 
@@ -251,52 +258,106 @@ def get_all_bus_stations_of_admin_areas_in_query(
 
 
 def rotating_caliper(xys):
+    """Calculate the maximum distance between points of a convex hull by using a rotating caliper.
+
+    https://en.wikipedia.org/wiki/Rotating_calipers
+    Convex hull must be given in clock or anti-clockwise fashion.
+    Algorithm searches for a single local maximum. The global maximum belongs to a vertice which
+    does not produce two local maximums per the nature of the convex hull. Finding the biggest
+    local maximum therefore produces the global maximum.
+    """
+
     ii = 0
     if len(xys) == 0:
+        # No element. Maximum distance is zero with no found points
         return 0, None, None
     if len(xys) == 1:
+        # 1 element Maximum distance is zero with single point twice
         return 0, xys[0], xys[0]
 
     def edge_distance(edge, vertex):
+        """Get the max. distance squared between an edge and a vertex.
+
+        :param edge: iterable of two 2d-points building an edge
+        :param vertex: tuple of a single 2d-point
+        :return: maximum distance and point of edge with the maximum distance
+        """
+
         dist1_squared = math.pow(edge[0][0] - vertex[0], 2) + math.pow(edge[0][1] - vertex[1], 2)
         dist2_squared = math.pow(edge[1][0] - vertex[0], 2) + math.pow(edge[1][1] - vertex[1], 2)
         if dist1_squared > dist2_squared:
             return dist1_squared, edge[0]
-        return dist1_squared, edge[1]
+        return dist2_squared, edge[1]
 
     point1 = xys[0]
     point2 = xys[1]
-    max_distance = math.pow(point1[0] - point2[0], 2) + math.pow(point1[1] - point2[1], 2)
+    max_distance = 0
     for i in range(len(xys) - 1):
+        current_point1 = None
+        current_point2 = None
+        current_max_distance = 0
+        # iterate over all edges if the convex hull and calculate the distance to the point(xys[ii])
+        # this point dynamically changes if a positive gradient in distance is detected.
+        # this finds a local maximum for each edge. Some points can have multiple local maxima of
+        # distance when paired with vertices around the circumference. The vertice which is part of
+        # the maximum distance only has a single maximum which is found.
         edge = (xys[i], xys[i + 1])
-        ii += 1
+        ii = (ii - 1) % len(xys)
+        # distances are only compared with each other. edge_distance is not extracting the root
         cur_edge_distance, edge_point = edge_distance(edge, xys[ii])
-        while cur_edge_distance > max_distance:
-            point1 = edge_point
-            point2 = xys[ii]
-            max_distance = cur_edge_distance
-            ii += 1
+        while cur_edge_distance >= current_max_distance:
+            # move the point as long as distance increases
+            current_point1 = edge_point
+            current_point2 = xys[ii]
+            current_max_distance = cur_edge_distance
+            ii = (ii - 1) % len(xys)
+
             cur_edge_distance, edge_point = edge_distance(edge, xys[ii])
 
-        ii -= 1
+        ii = (ii + 1) % len(xys)
         cur_edge_distance, edge_point = edge_distance(edge, xys[ii])
-        while cur_edge_distance > max_distance:
-            point1 = edge_point
-            point2 = xys[ii]
-            max_distance = cur_edge_distance
-            ii -= 1
+        while cur_edge_distance >= current_max_distance:
+            # move the point in the other direction as long as distance increases
+            current_point1 = edge_point
+            current_point2 = xys[ii]
+            current_max_distance = cur_edge_distance
+            ii = (ii + 1) % len(xys)
             cur_edge_distance, edge_point = edge_distance(edge, xys[ii])
+        # The dynamic reference point is at a local maximum in reference to the current edge.
+        # As the edge moves in one direction, the dynamic reference point will be moved
+        # slightly if this leads to an increase of the current maximum distance.
+        if current_max_distance > max_distance:
+            max_distance = current_max_distance
+            point1 = current_point1
+            point2 = current_point2
     return max_distance, point1, point2
+
+
+def replace_german_chars(text: str) -> str:
+    """Fix some german characters that get send when using the API directly from the browser window."""
+    encoding_issues = [
+        ("Ã¤", "ä"),
+        ("Ã¼", "ü"),
+        ("ã¶", "ö"),
+        ("ãÿ", "ß"),
+        ("Ã–", "Ö"),
+        ("Ã„", "Ä"),
+        ("Ãœ", "Ü"),
+    ]
+    for search, replace in encoding_issues:
+        text = text.replace(search, replace)
+    return text
 
 
 def search_stations(search_station_names: Iterable, use_filter: bool):
     names = list()
     for station_name in search_station_names:
-        search_name = (
-            station_name.replace("Ã¤", "ä").replace("Ã¼", "ü").replace("Ã¶", "ö").replace("ÃŸ", "ß")
-        )
+        search_name = replace_german_chars(station_name)
         names.extend(search_name.replace(",", " ").split(" "))
     names_set = set(names)
+    # Names often contain short parts like Am, Zu, Im, Ch, An and also some one-letter abbreviations.
+    # This destroys the filtering capability of name__contains below, which would produce to many
+    # false positives.
     names_set_filtered = set(x for x in names_set if len(x) > 2)
     possible_admins = AdminArea.objects.filter(
         reduce(operator.or_, (Q(name__contains=x) for x in names_set_filtered))
@@ -306,20 +367,22 @@ def search_stations(search_station_names: Iterable, use_filter: bool):
     not_found_stations = set()
 
     for station_name in search_station_names:
-        station_name = (
-            station_name.replace("Ã¤", "ä").replace("Ã¼", "ü").replace("Ã¶", "ö").replace("ÃŸ", "ß")
-        )
+        search_name = replace_german_chars(station_name)
+
         if use_filter:
+            # filters stations, so that if multiple stations are found, they are only returned if
+            # they are within the distance threshold to each other. In general a "single" busstation
+            # consists of multiple bus stops, for example at different corners of the same crossing.
             f1 = partial(filter_query_distance, distance_threshold_m=DISTANCE_THRESHOLD_M)
         else:
             f1 = lambda x: x  # noqa
         query = search_station(
-            station_name, possible_admins_names, filter_stack=f1, return_all=False
+            search_name, possible_admins_names, filter_stack=f1, return_all=False
         )
         if query.exists():
-            found_stations[station_name] = query
+            found_stations[search_name] = query
         else:
-            not_found_stations.add(station_name)
+            not_found_stations.add(search_name)
 
     # Everything was found
     if not not_found_stations:
@@ -330,14 +393,25 @@ def search_stations(search_station_names: Iterable, use_filter: bool):
     if not use_filter or not found_stations:
         return found_stations
 
-    # Some stations where not found repeat the
+    # Some stations where not found repeat the process of searching for the station, but this time
+    # leverage information about previously found stations. Its expected that stations form
+    # clusters so stations are searched within some buffer zone of found stations.
     ids = [x for q in found_stations.values() for x in q.values_list("id", flat=True)]
     query = BusStation.objects.filter(pk__in=ids)
     if query.count() >= 3:
         convex_hull = get_convex_hull_from_query(query)
         max_y = max(abs(convex_hull.bounds[1]), convex_hull.bounds[3])
+        max_x = max(abs(convex_hull.bounds[0]), convex_hull.bounds[2])
+        min_x = min(abs(convex_hull.bounds[0]), convex_hull.bounds[2])
         if max_y > 80:
             logger.warning("Station lookup does not work properly at high latitudes>80.")
+        if max_x - min_x > 180:
+            # Convex hull does not work properly for "big" areas on a sphere.
+            # Assumptions about distance would get violated
+            logger.warning(
+                "Station lookup does not work properly if stations cover more than "
+                "half of the globe or are situated around +-180° longitude."
+            )
         lat_lon_distance = approximate_lat_lon_distance(max_y)
         delta_lat_lon = BUS_SYSTEM_MAX_DISTANCE / lat_lon_distance
         area = convex_hull.buffer(delta_lat_lon)
@@ -347,15 +421,16 @@ def search_stations(search_station_names: Iterable, use_filter: bool):
         lat_lon_distance = approximate_lat_lon_distance(max_y)
         delta_lat_lon = BUS_SYSTEM_MAX_DISTANCE / lat_lon_distance
         area = m_point.buffer(delta_lat_lon)
+    # Create filter which only returns stations within the buffer area
     f1 = partial(filter_for_search_area, search_area=area)
+    # only return multiple stations if they are close to each other.
     filter_inner_distance = partial(
         filter_query_distance, distance_threshold_m=DISTANCE_THRESHOLD_M
     )
     filter_stack = partial(reduce, lambda arg, f: f(arg), [f1, filter_inner_distance])
 
     still_not_found = set()
-    # Use the found stations to create a filter for the admin areas the stations are
-    # contained within
+    # Use found stations to create a filter for the admin areas the stations are contained within
     ids = [x for q in found_stations.values() for x in q.values_list("id", flat=True)]
     found_station_query = BusStation.objects.filter(id__in=ids)
     fuzzy_filter = partial(
@@ -368,7 +443,7 @@ def search_stations(search_station_names: Iterable, use_filter: bool):
             filter_stack=filter_stack,
             return_all=False,
         )
-        if query.count() > 0:
+        if query.exists():
             found_stations[station_name] = query
             continue
         # last try with a fuzzy search in all stations
