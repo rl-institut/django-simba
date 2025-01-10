@@ -35,7 +35,11 @@ def render_longest_rotation(app: Dash) -> html.Div:
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
-        filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
+
+        filter_dict = dict(task_id=task_id)
+
+        if buses:  # In Presim buses will ne None, if later no buses are selected, it will be empty
+            filter_dict["vehicle__id__in"] = buses
 
         # Get the data
         lines = get_number_longest_rot(filter_dict)
@@ -81,7 +85,10 @@ def render_shortest_rotation(app: Dash) -> html.Div:
         _, buses: list[str], session_state=None, dash_app=None, **kwargs
     ) -> html.Div:
         task_id = dash_app.slug
-        filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
+        filter_dict = dict(task_id=task_id)
+
+        if buses:  # In Presim buses will ne None, if later no buses are selected, it will be empty
+            filter_dict["vehicle__id__in"] = buses
 
         # Get the data
         lines = get_number_shortest_rot(filter_dict)
@@ -129,6 +136,9 @@ def render_number_of_buses(app: Dash) -> html.Div:
         task_id = dash_app.slug
         filter_dict = dict(task_id=task_id, vehicle__id__in=buses)
 
+        if not data.sim_is_finished(task_id):
+            return html.Div(id=ids.NUMBER_OF_BUSES)
+
         # Get the data
         lines = get_number_of_buses(filter_dict)
 
@@ -174,6 +184,9 @@ def critical_rotations(app: Dash) -> html.Div:
     ) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
+
+        if not data.sim_is_finished(task_id):
+            return html.Div(id=ids.LIST_CRIT_ROTATIONS)
 
         # Get the data
         lines = get_critical_rotations_and_score_as_dataframe(s.id, buses)
@@ -278,6 +291,9 @@ def render_avg_consumption(app: Dash) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
+        if not data.sim_is_finished(task_id):
+            return html.Div(id=ids.NUMBER_AVG_CONSUM)
+
         # Get the data
         total_consumption = get_total_consumption(s)
         vehicle_name_dict, vehicle_name_dict_reverse = data.get_all_buses_labeled(task_id)
@@ -359,6 +375,53 @@ def render_number_stations(app: Dash) -> html.Div:
     return html.Div(id=ids.NUMBER_STATIONS)
 
 
+def render_number_stations_presim(app: Dash) -> html.Div:
+    """
+    Renders a Div element displaying the number of (electrified) stations.
+
+    :param app: The Dash application instance.
+    :type app: Dash
+
+    :return: A Div element containing the rendered number of stations.
+    :rtype: html.Div
+    """
+
+    @app.callback(
+        Output(ids.NUMBER_STATIONS_PRESIM, "children"),
+        Input(ids.APPLY_DROPDOWN, "n_clicks"),
+        State(ids.BUS_DROPDOWN, "data"),
+    )
+    def update_number_stations(
+        _, buses: list[str], session_state=None, dash_app=None, **kwargs
+    ) -> html.Div:
+        # print("updating numbers")
+        task_id = dash_app.slug
+
+        # Get the data
+
+        lines = get_number_of_stations(task_id, False)
+
+        styles = [
+            {
+                "fontFamily": "Helvetica",
+                "fontSize": "25px",
+                "position": "relative",
+                "top": "0",
+                "left": "0",
+            },
+            {"fontFamily": "Helvetica", "fontSize": "48px", "textAlign": "center"},
+        ]
+
+        html_div = []
+
+        for line, style in zip(lines, styles):
+            html_div.append(html.H2(line, style=style))
+        number_divs = html.Div(html_div)
+        return html.Div(number_divs, id=ids.NUMBER_STATIONS_PRESIM)
+
+    return html.Div(id=ids.NUMBER_STATIONS_PRESIM)
+
+
 def render_bus_utilization(app: Dash) -> html.Div:
     """ """
 
@@ -373,6 +436,9 @@ def render_bus_utilization(app: Dash) -> html.Div:
         # print("updating numbers")
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
+
+        if not data.sim_is_finished(task_id):
+            return html.Div(id=ids.BUS_UTILIZATION)
 
         result_dict = data.get_scenario_duration(task_id)
 
@@ -420,6 +486,9 @@ def render_station_most_served(app: Dash) -> html.Div:
     ) -> html.Div:
         # print("updating numbers")
         task_id = dash_app.slug
+
+        if not data.sim_is_finished(task_id):
+            return html.Div(id=ids.STATION_MOST_SERVED)
 
         lines = data.get_frequently_served_station(task_id)
         styles = [

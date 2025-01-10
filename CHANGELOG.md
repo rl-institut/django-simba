@@ -19,6 +19,10 @@ Template:
 
 ## [x.x.x] - Unreleased
 ### Changed
+- [(#152)](https://github.com/rl-institut/django-simba/pull/152)
+- Fixes issues with plotting when simulation is not finished
+
+### Changed
 - [(#151)](https://github.com/rl-institut/django-simba/pull/151)
 - Fixes #147
 Fixes #145
