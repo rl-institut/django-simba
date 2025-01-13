@@ -75,7 +75,6 @@ INSTALLED_APPS = [
     "bootstrap4",
 ]
 
-
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -142,7 +141,6 @@ if CELERY_USE:
         "used, this URL has to be provided"
     )
 
-
 # For Database visualization
 GRAPH_MODELS = {
     "all_applications": False,
@@ -168,7 +166,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -182,9 +179,32 @@ LOGGING = {
             "style": "{",
         },
     },
+    "filters": {
+        "plotly_dash_status_ok": {
+            "()": "core.filters.FilterStatusCode",
+            "status_code": 200,
+            "search_text": "_dash-update-component",
+        },
+        "plotly_dash_status_no_content": {
+            "()": "core.filters.FilterStatusCode",
+            "status_code": 204,
+            "search_text": "_dash-update-component",
+        },
+        "map_status_no_content": {
+            "()": "core.filters.FilterStatusCode",
+            "status_code": 204,
+            "search_text": "/map/stations_mvt_mvt/",
+        },
+    },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
+            # These logs clutter the console and are not very helpful
+            "filters": [
+                "map_status_no_content",
+                "plotly_dash_status_ok",
+                "plotly_dash_status_no_content",
+            ],
             "formatter": "simple",
         },
         "file": {
@@ -211,7 +231,6 @@ LOGGING = {
         },
     },
 }
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
