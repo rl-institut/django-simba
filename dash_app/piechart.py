@@ -30,6 +30,9 @@ def render_critical_rotations(app: Dash) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
+        if not data.sim_is_finished(task_id):
+            return html.Div(go.Figure(layout=dict(template="plotly")))
+
         df = data.get_critical_rotations_as_dataframe(s.id, buses)
 
         # Create a pie chart following line is needed due to plotly bug,
@@ -67,6 +70,9 @@ def render_bustype(app: Dash) -> html.Div:
     def update_pie(_, buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
+
+        if not data.sim_is_finished(task_id):
+            return html.Div(go.Figure(layout=dict(template="plotly")))
 
         df = data.get_vehicle_types(s.id, buses)
         if len(df) == 0:

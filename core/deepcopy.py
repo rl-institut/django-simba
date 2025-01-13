@@ -7,6 +7,7 @@ import psycopg2
 from django.db import models
 from django.db.models import Max
 from django.db.transaction import atomic
+from django.db.utils import ProgrammingError
 from django.core.management import call_command
 from os import devnull
 from django.db import connection
@@ -51,7 +52,7 @@ def reset_postgres_auto_increments(apps):
         try:
             with connection.cursor() as cursor:
                 cursor.execute(postgres_reset_sql)
-        except psycopg2.errors.UndefinedTable:
+        except (psycopg2.errors.UndefinedTable, ProgrammingError):
             logging.warning("Undefined table in PostgreSQL: %s", app)
 
 
