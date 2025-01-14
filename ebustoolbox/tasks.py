@@ -529,7 +529,7 @@ def get_args(django_scenario) -> Namespace:
 
     # turn of plotting
     args.skip_plots = True
-
+    args.skip_flex_report = True
     args = simba.util.replace_deprecated_arguments(args)
 
     # arguments relevant to SpiceEV, setting automatically to reduce clutter in config
