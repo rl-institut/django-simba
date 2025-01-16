@@ -31,6 +31,9 @@ def render(app: Dash) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
+        if not data.sim_is_finished(task_id):
+            return html.Div(go.Figure(layout=dict(template="plotly")))
+
         df = data.get_soc_as_dataframe(s.id, buses)
 
         time_dict = data.get_scenario_duration(task_id)
@@ -78,6 +81,9 @@ def render_power_draw(app: Dash) -> html.Div:
     def power_draw(_, buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
+
+        if not data.sim_is_finished(task_id):
+            return html.Div(go.Figure(layout=dict(template="plotly")))
 
         df = data.get_powerdraw_as_dataframe(s.id, buses)
 
@@ -180,6 +186,9 @@ def render_single_station_occupation(app: Dash) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
+        if not data.sim_is_finished(task_id):
+            return html.Div(go.Figure(layout=dict(template="plotly")))
+
         df = data.get_powerdraw_as_dataframe(s.id, buses)
 
         time_dict = data.get_scenario_duration(task_id)
@@ -277,6 +286,9 @@ def render_station_occupation(app: Dash) -> html.Div:
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
 
+        if not data.sim_is_finished(task_id):
+            return html.Div(go.Figure(layout=dict(template="plotly")))
+
         df = data.get_powerdraw_as_dataframe(s.id, buses)
         # Group by 'Station_id' and 'time_start', count unique 'V_id'
 
@@ -346,6 +358,9 @@ def render_scenario_powerdraw(app: Dash) -> html.Div:
     def power_draw(_, buses: list[str], session_state=None, dash_app=None, **kwargs):
         task_id = dash_app.slug
         s = Scenario.objects.get(task_id=task_id)
+
+        if not data.sim_is_finished(task_id):
+            return html.Div(go.Figure(layout=dict(template="plotly")))
 
         df = data.get_powerdraw_as_dataframe(s.id, buses)
         # Group by 'Station_id' and 'time_start', count unique 'V_id'

@@ -15,7 +15,7 @@ packages = [{include = "ebustoolbox"},
            ]
 
 [tool.poetry.dependencies]
-python = ">=3.10, <3.12"
+python = ">=3.10, <4.0"
 spice_ev = { git = "https://github.com/rl-institut/spice_ev", rev = "d593930f25ebdcdb0a915c45aa347c60be39e534"}
 simba = { git = "https://github.com/rl-institut/SimBA", rev = "dev"}
 

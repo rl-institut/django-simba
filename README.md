@@ -140,12 +140,16 @@ Make sure your .env file reflects the docker-compose.yml properties
 DATABASE_URL=postgis://myprojectuser:1234@my-docker-postgres:5432/mydb
 CELERY_BROKER_URL=redis://my-docker-redis:6379/0
 ````
+When running locally for development some security settings need to be applied by setting in the .env file
+   ````text
+DJANGO_LOCAL_DEVELOPMENT=True
+````
 Navigate to your cloned repo of django-simba in a terminal.
 Now running the following line, builds and starts a docker container including creating a database
 ```bash
 sudo docker compose up
 ```
-After this django-simba will be available under http://127.0.0.0:8000/
+After this django-simba will be available under http://127.0.0.1:8000/
 
 To stop containers and remove containers, networks, volumes, and images created by up, run
 ```bash

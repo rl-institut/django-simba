@@ -904,6 +904,71 @@ def run_simba_scenario(
     return simba_schedule, scenario
 
 
+def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
+    # Create SpiceEV-like event dictionaries for a Scenario
+
+    events = scenario.event_set.order_by("time_start")
+    event_list = list()
+    if not events.exists():
+        return event_list
+    # all events known at scenario start
+    scenario_start_time = events.first().time_start
+
+    # get initial SoC of all vehicles
+    vehicles = scenario.vehicle_set.all()
+    vehicle_soc = dict()  # store current soc of vehicles
+    for vehicle in vehicles:
+        first_vehicle_event = events.filter(vehicle=vehicle).first()
+        if first_vehicle_event is not None:
+            vehicle_soc[vehicle.id] = first_vehicle_event.soc_start
+
+    # avoid non-station events from older simulations
+    events = events.filter(station_id__isnull=False)
+    # prefetch stations and vehicles from events (less queries, faster lookup)
+    events = events.select_related("station", "vehicle")
+    # get all charging events
+    charging_events = events.filter(event_type=EventType.CHARGING_DEPOT)
+    if not skip_oppb:
+        charging_events = charging_events.union(
+            events.filter(event_type=EventType.CHARGING_OPPORTUNITY)
+        )
+    # iterate over events in-order, creating SpiceEV event-dicts for each charging event
+    for event in charging_events:
+        # create arrival event
+        event_list.append(
+            {
+                "signal_time": scenario_start_time.isoformat(),
+                "start_time": event.time_start.isoformat(),
+                "vehicle_id": event.vehicle.name,
+                "event_type": "arrival",
+                "update": {
+                    "connected_charging_station": event.station.name,
+                    "estimated_time_of_departure": event.time_end.isoformat(),
+                    "soc_delta": event.soc_start - vehicle_soc[event.vehicle_id],
+                    "desired_soc": event.soc_end,
+                },
+            }
+        )
+
+        # create departure event (end of charging, not necessarily leaving station)
+        event_list.append(
+            {
+                "signal_time": scenario_start_time.isoformat(),
+                "start_time": event.time_end.isoformat(),
+                "vehicle_id": event.vehicle.name,
+                "event_type": "departure",
+                "update": {
+                    "estimated_time_of_arrival": None,
+                },
+            }
+        )
+
+        # update SoC
+        vehicle_soc[event.vehicle_id] = event.soc_end
+
+    return event_list
+
+
 def assign_new_vehicles_to_db(django_scenario: Scenario, db_name="default") -> None:
     """Assign a new vehicle to every rotation
 
