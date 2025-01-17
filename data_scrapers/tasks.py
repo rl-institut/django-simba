@@ -4,6 +4,8 @@ import json
 import logging
 import math
 import operator
+
+import numpy as np
 import shapely
 from shapely.geometry import Point, MultiPoint
 from typing import Callable, Iterable
@@ -69,7 +71,7 @@ def filter_query_distance(query: QuerySet, distance_threshold_m):
     else:
         x, y = convex_hull.exterior.coords.xy
     xys = tuple(list(zip(x, y)))
-    max_distance, p1, p2 = rotating_caliper(xys)
+    p1, p2 = rotating_caliper(xys)
     distance_m = geopy_distance((p1[1], p1[0]), (p2[1], p2[0])).meters
     if distance_m < distance_threshold_m:
         return query
@@ -136,10 +138,10 @@ def search_station(
 def search_exact_station(base_query, station_name) -> QuerySet:
     """Search if the exact name of the search query is found in the database.
 
-    Since some parts of addresses can be ambigous, e.g. "MainSt." and "MainStreet", some
+    Since some parts of addresses can be ambiguous, e.g. "MainSt." and "MainStreet", some
     translations are used to check both instances.
     The translation Table Looks like this:
-    (St., Street),
+    [(St., Street),
     ...
     ]
     and is read from a file earlier.
@@ -258,22 +260,49 @@ def get_all_bus_stations_of_admin_areas_in_query(
 
 
 def rotating_caliper(xys):
-    """Calculate the maximum distance between points of a convex hull by using a rotating caliper.
+    """Get the two points of convex points, which are furthest away
 
     https://en.wikipedia.org/wiki/Rotating_calipers
+    https://codeforces.com/blog/entry/133763
     Convex hull must be given in clock or anti-clockwise fashion.
-    Algorithm searches for a single local maximum. The global maximum belongs to a vertice which
-    does not produce two local maximums per the nature of the convex hull. Finding the biggest
-    local maximum therefore produces the global maximum.
-    """
+    Algorithm searches for all antipodals of the edges. The maximum distance is a distance between
+    a point of the edge and an antipodal.
 
-    ii = 0
+    :param xys:
+    :return:
+    """
+    if len(xys) > 1 and xys[-1] == xys[0]:
+        # remove duplicate point at start and end
+        xys = [xy for xy in xys[:-1]]
     if len(xys) == 0:
-        # No element. Maximum distance is zero with no found points
-        return 0, None, None
-    if len(xys) == 1:
+        # No element
+        return Point(0, 0), Point(0, 0)
+    elif len(xys) == 1:
         # 1 element Maximum distance is zero with single point twice
-        return 0, xys[0], xys[0]
+        return xys[0], xys[0]
+    elif len(xys) == 2:
+        # 2 elements maximum_distance is their distance
+        return xys[0], xys[1]
+
+    # all points in a perfect line.
+    first_edge = np.array(xys[1]) - np.array(xys[0])
+    direction = None
+    for i in range(1, len(xys)):
+        next_edge = np.array(xys[(i + 1) % len(xys)]) - np.array(xys[i])
+        next_direction = np.cross(first_edge, next_edge)
+        if direction is None:
+            direction = next_direction
+            continue
+        if next_direction != direction:
+            break
+    else:
+        # All elements in a perfect line. the furthest points are the edges of the line
+        xys_sorted = list(sorted(xys, key=lambda x: (x[0], x[1])))
+        return xys_sorted[0], xys[-1]
+
+    # Non-Trivial case
+    # Find the the antipodals
+    edge_antipodals = get_antipodals(xys)
 
     def edge_distance(edge, vertex):
         """Get the max. distance squared between an edge and a vertex.
@@ -289,48 +318,93 @@ def rotating_caliper(xys):
             return dist1_squared, edge[0]
         return dist2_squared, edge[1]
 
-    point1 = xys[0]
-    point2 = xys[1]
     max_distance = 0
-    for i in range(len(xys) - 1):
-        current_point1 = None
-        current_point2 = None
-        current_max_distance = 0
-        # iterate over all edges if the convex hull and calculate the distance to the point(xys[ii])
-        # this point dynamically changes if a positive gradient in distance is detected.
-        # this finds a local maximum for each edge. Some points can have multiple local maxima of
-        # distance when paired with vertices around the circumference. The vertice which is part of
-        # the maximum distance only has a single maximum which is found.
-        edge = (xys[i], xys[i + 1])
-        ii = (ii - 1) % len(xys)
-        # distances are only compared with each other. edge_distance is not extracting the root
-        cur_edge_distance, edge_point = edge_distance(edge, xys[ii])
-        while cur_edge_distance >= current_max_distance:
-            # move the point as long as distance increases
-            current_point1 = edge_point
-            current_point2 = xys[ii]
-            current_max_distance = cur_edge_distance
-            ii = (ii - 1) % len(xys)
+    furthest_points = None, None
+    for point1, point2, antipodals in edge_antipodals:
+        for antipodal in antipodals:
+            dist_squared, point = edge_distance((point1, point2), antipodal)
+            if dist_squared > max_distance:
+                max_distance = dist_squared
+                furthest_points = point, antipodal
+    return furthest_points
 
-            cur_edge_distance, edge_point = edge_distance(edge, xys[ii])
 
-        ii = (ii + 1) % len(xys)
-        cur_edge_distance, edge_point = edge_distance(edge, xys[ii])
-        while cur_edge_distance >= current_max_distance:
-            # move the point in the other direction as long as distance increases
-            current_point1 = edge_point
-            current_point2 = xys[ii]
-            current_max_distance = cur_edge_distance
-            ii = (ii + 1) % len(xys)
-            cur_edge_distance, edge_point = edge_distance(edge, xys[ii])
-        # The dynamic reference point is at a local maximum in reference to the current edge.
-        # As the edge moves in one direction, the dynamic reference point will be moved
-        # slightly if this leads to an increase of the current maximum distance.
-        if current_max_distance > max_distance:
-            max_distance = current_max_distance
-            point1 = current_point1
-            point2 = current_point2
-    return max_distance, point1, point2
+def get_antipodals(xys):
+    """Get all the antipodals for each edge.
+
+     The anti podal is the node where the caliper would touch. In other words, a parallel line
+     can be constructed. The condition for that is that the edge before and after have a switch
+     in the cross-product with the original edge, with the special case when the cross-product is
+     exactly 0, which means both edges are parallel
+
+    :param xys: points of a convex hull
+    :return: list of lists with both edge points and the antipodals
+    """
+    edge_antipodals = []
+    # iterate over each edge
+    for i in range(len(xys)):
+        # handle last edge which goes back to index 0
+        point2 = xys[(i + 1) % len(xys)]
+        point1 = xys[i]
+        if point1 == point2:
+            # skip duplicates
+            continue
+        edge = np.array(point2) - np.array(point1)
+        direction = None
+        # Iterate over all the elements minus the current edge
+        num_elements = (0, len(xys) - 1, 1)
+        first_antipodal = None
+        if edge_antipodals:
+            # first antipodal found in the last iteration
+            prev_antipodal = edge_antipodals[-1][2][0]
+            if prev_antipodal != (i + 1) % len(xys):
+                # initiate the loop a single index before the last switch was found
+                # handle negative values, by cycling back / using modulo
+                first_node = (prev_antipodal - 2 - i) % len(xys)
+                num_elements = (first_node, first_node + len(xys) - 1, 1)
+        direction_zero_at_start = True
+        for ii in range(*num_elements):
+            # handle cycling
+            next_edge_i = (i + 1 + ii) % len(xys)
+            next_edge = np.array(xys[(next_edge_i + 1) % len(xys)]) - np.array(xys[next_edge_i])
+            if sum(next_edge) == 0:
+                # skip elements with 0 length
+                continue
+
+            # initialize the direction with the first next edge
+            # We only care about the sign
+            direction = direction or np.sign(np.cross(edge, next_edge))
+            if direction == 0 and direction_zero_at_start:
+                # ignore elements which have are parallel but next to the current edge.
+                # we need to find a direction != 0 first before we care about parallel edges
+                continue
+            direction_zero_at_start = False
+            new_direction = np.sign(np.cross(edge, next_edge))
+            if new_direction == 0 and first_antipodal is None:
+                first_antipodal = next_edge_i
+                continue
+            if new_direction == -direction:
+                # Switch in directions found
+                if first_antipodal is None:
+                    first_antipodal = next_edge_i
+                antipodals = [first_antipodal]
+                i = int(first_antipodal)
+                assert isinstance(next_edge_i, int)
+                assert next_edge_i < len(xys)
+                while i != next_edge_i:
+                    i += 1
+                    i = i % len(xys)
+                    antipodals.append(i)
+
+                edge_antipodals.append([point1, point2, antipodals])
+                break
+        else:
+            raise AssertionError("Convex hull needs an antipodal for each edge")
+    # replace indicies with points
+    for i, vals in enumerate(edge_antipodals):
+        edge_antipodals[i][2] = [xys[ind] for ind in vals[2]]
+
+    return edge_antipodals
 
 
 def replace_german_chars(text: str) -> str:
