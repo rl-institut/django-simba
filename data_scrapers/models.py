@@ -78,18 +78,19 @@ def get_admin_areas_recursive(
 
     Recursive search of Germany and its AdminAreas using Overpass API.
     Starting with Germany as a whole as search area, lower AdminAreas (e.g. States) are searched up
-    to an admin level of 9 which corresponds with Gemeinden. AdminAreas exists in hierarchy but not
-    necessarily without gaps. I.e. an AdminArea of level 8 might be part of/be contained by
-    an AdminArea of level 4, without being part of an AdminArea of level 6. This means every
-    AdminArea needs to be queried for all AdminLevels below its own and not just the next lower
-    level.
+    to an admin level of 9 which corresponds with Gemeinden/Bezirken.
+    AdminAreas exists in hierarchy but not necessarily without gaps.
+    I.e. an AdminArea of level 8 might be part of/be contained by an AdminArea of level 4,
+    without being part of an AdminArea of level 6. This means every AdminArea needs to be queried
+    for all AdminLevels below its own and not just the next lower level.
     :param pk: next unused primary key
-    :param admin_level:
-    :param area:
-    :param upper_admin_area:
-    :param osm_id_dict:
-    :param completed_searched_osm_ids:
-    :return:
+    :param admin_level: admin_level which is searched
+    :param area: area within admin_areas are searched in overpass area str format
+    :param upper_admin_area (AdminArea): the parent AdminArea of the current search
+    :param osm_id_dict: osm_ids already in the database with AdminArea as value
+    :param completed_searched_osm_ids: the current recursive search completely searched these
+    osm_ids to the lowest level
+    :return: list of AdminAreas, next unused primary key of admin areas
 
     """
 
@@ -183,7 +184,7 @@ def get_admin_areas_recursive(
     return admin_areas, pk
 
 
-def get_or_sleep(overpass_query):
+def get_or_sleep(overpass_query) -> requests.Response:
     retry = True
     while retry:
         response = requests.get(OVERPASS_URL, params={"data": overpass_query})
@@ -197,28 +198,41 @@ def get_or_sleep(overpass_query):
     return response
 
 
-def search_in_area_id(area_id, search_query):
+def search_in_area_id(area_id, search_query) -> dict | None:
+    """
+    Executes a query on the Overpass API within a specific area.
+
+    This function constructs and sends a query to the Overpass API using the given `area_id`
+    and `search_query`. It handles cases where the `area_id` is too small by adding an
+    offset constant. Additionally, it retries the request if rate-limited by the API using
+    the get_or_sleep function.
+
+    :param area_id (int): The numeric identifier for the area to search in. If smaller than
+                       `OFFSET_CONST`, the offset is automatically added.
+    :param search_query (str): The Overpass QL query to execute within the specified area.
+    :return: response.json() if status_code is 200, or None if status is any other than ok or rate limited.
+    """
+
     if area_id < OFFSET_CONST:
         logger.warning(
             f"Warning: area id is too small. {OFFSET_CONST} is added automatically."
             " See https://wiki.openstreetmap.org/wiki/Overpass_API/Overpass_QL#By_element_id"
         )
         area_id += OFFSET_CONST
-
     overpass_query = f"""
     [out: json];
     area({area_id});
     {search_query}(area);
     out tags;
     """
-    response = requests.get(OVERPASS_URL, params={"data": overpass_query})
+    response = get_or_sleep(overpass_query)
     if response.status_code == 200:
         return response.json()
     logger.warning(f"{search_query}  resulted in the following response:\n {response.status_code}")
     return None
 
 
-def fill_db_with_bus_stations():
+def fill_db_with_bus_stations() -> None:
     """
     Use overpass API to search Germany for BusStations and store them in the database.
 
@@ -243,31 +257,29 @@ def fill_db_with_bus_stations():
     # This is slow, since many requests are fired, but it works. Only needs to be run once.
     # A faster way could be to get all geographic info from above including the boundary shapes.
     # Request all stations at once and then filter them into the right administrations.
+    assert (
+        BusStation.objects.exists() is False
+    ), "Filling db with stations is only supported for an empty Table"
 
     osm_id_set = set(BusStation.objects.all().values_list("osm_id", flat=True))
-    update_stations = []
+    failed_id_set = set()
     for level in [9, 8, 6, 4]:
         for admin_area in AdminArea.objects.filter(admin_level=level):
             logger.info(f"Searching bus stations in {admin_area.name}")
             search_query = "node['highway'='bus_stop']"
             response_json = search_in_area_id(admin_area.osm_id + OFFSET_CONST, search_query)
             if response_json is None:
+                # Some error occurred. Continue with other Stations.
                 continue
             logger.info(f"Found {len(response_json['elements'])} bus stations")
             first_id = get_next_id(BusStation)
             bus_stations = []
             for element in response_json["elements"]:
                 osm_id = element["id"]
-                if osm_id in osm_id_set:
-                    # the BusStation already exists in the database. Check that the AdminArea
-                    # is correctly set to the highest admin level which corresponds with the
-                    # smallest area size.
-                    busstation = BusStation.objects.get(osm_id=osm_id)
-                    if busstation not in update_stations:
-                        busstation.admin_area = admin_area
-                        update_stations.append(busstation)
+                if osm_id in osm_id_set or osm_id in failed_id_set:
                     continue
-                osm_id_set.add(osm_id)
+                # If the BusStation does not exist yet, a new one is created and added to a list
+                # for bulk creation
                 try:
                     busstation = BusStation(
                         id=first_id,
@@ -276,7 +288,9 @@ def fill_db_with_bus_stations():
                         geom=Point(x=element["lon"], y=element["lat"], z=0),
                         admin_area=admin_area,
                     )
+                    osm_id_set.add(osm_id)
                 except Exception:
+                    failed_id_set.add(osm_id)
                     traceback.print_exc()
                     continue
                 bus_stations.append(busstation)
@@ -284,11 +298,11 @@ def fill_db_with_bus_stations():
             try:
                 BusStation.objects.bulk_create(bus_stations)
             except Exception:
+                # For Debugging
                 if bus_stations:
                     df = model_list_to_df(bus_stations)
                     df.to_csv("bus_station_dump.csv", index=False)
                 traceback.print_exc()
-            BusStation.objects.bulk_update(update_stations, fields=["admin_area"])
             admin_area.last_check = make_aware(datetime.now())
             admin_area.save()
 
