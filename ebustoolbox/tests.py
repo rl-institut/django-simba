@@ -483,7 +483,7 @@ class SimulationTestCase(TestCase):
         # Even though the flag is set in the database, simba will ignore it
         simba_schedule, simba_scenario = run_simba_scenario(django_scenario)
         # no flex_band calculations are found
-        assert simba_scenario.flex_bands is None, "Flex bands should be turned if"
+        assert simba_scenario.flex_bands is None, "Flex bands should be turned off"
 
 
 class ConsumptionTestCase(TransactionTestCase):
