@@ -59,15 +59,16 @@ def json_view(request):
     results = {"results": dict()}
     logger.info(f"Searching for {len(search_stations_request)} stations")
     stations = search_stations(search_stations_request, use_filter=use_filter)
-    for search_name, stations in stations.items():
-        station_values = list(stations.values("name", "geom", "admin_area__name"))
+    for search_name, stats in stations.items():
+        station_values = list(stats.values("name", "geom", "admin_area__name"))
         for stat in station_values:
             stat["latitude"] = stat["geom"].y
             stat["longitude"] = stat["geom"].x
             del stat["geom"]
         results["results"][search_name] = station_values
+    res = results["results"]
     logger.info(
-        f"Found {len(results)} stations with {sum([len(x) for x in stations.values()])}"
+        f"Found {len(res)} stations with {sum([len(x) for x in stations.values()])}"
         f" separate stops"
     )
     return JsonResponse(results, safe=True)
