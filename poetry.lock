@@ -750,6 +750,21 @@ files = [
 ]
 
 [[package]]
+name = "dill"
+version = "0.3.9"
+description = "serialize all of Python"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "dill-0.3.9-py3-none-any.whl", hash = "sha256:468dff3b89520b474c0397703366b7b95eebe6303f108adf9b19da1f702be87a"},
+    {file = "dill-0.3.9.tar.gz", hash = "sha256:81aa267dddf68cbfe8029c42ca9ec6a4ab3b22371d1c450abc54422577b4512c"},
+]
+
+[package.extras]
+graph = ["objgraph (>=1.7.2)"]
+profile = ["gprof2dot (>=2022.7.29)"]
+
+[[package]]
 name = "django"
 version = "5.1.5"
 description = "A high-level Python web framework that encourages rapid development and clean, pragmatic design."
@@ -990,13 +1005,13 @@ simpy = ">=4.0.1,<5.0.0"
 
 [[package]]
 name = "eflips-depot"
-version = "4.5.0"
+version = "4.6.0"
 description = "Depot Simulation for eFLIPS"
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "eflips_depot-4.5.0-py3-none-any.whl", hash = "sha256:b81257ceca0ad7d85f629266a3e58d071cb33eb1f43bbdea58ed554ba144c8ff"},
-    {file = "eflips_depot-4.5.0.tar.gz", hash = "sha256:045d59375b937e72fea77ce32d826afcfdc387ebddbac146689a098ae1d6c20d"},
+    {file = "eflips_depot-4.6.0-py3-none-any.whl", hash = "sha256:a1018ad146882799bcdf1fda8838727fdcccc7af17b0110306c9a626d0ec80d3"},
+    {file = "eflips_depot-4.6.0.tar.gz", hash = "sha256:dd1594f804efc88747668eeb387a08c082ffc12e8da8fa97b3fa949864fdaa45"},
 ]
 
 [package.dependencies]
@@ -1011,13 +1026,13 @@ xlsxwriter = ">=3.1.9,<4.0.0"
 
 [[package]]
 name = "eflips-eval"
-version = "1.6.0"
+version = "1.7.0"
 description = ""
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "eflips_eval-1.6.0-py3-none-any.whl", hash = "sha256:703b165201b79c3bc039efe8e5105889f128099f50b0612908f9f1d72cd13f09"},
-    {file = "eflips_eval-1.6.0.tar.gz", hash = "sha256:e6d69cc25ad4d144ac25576e3c29407f5be636bc4369742cb9a4cda75ca4734a"},
+    {file = "eflips_eval-1.7.0-py3-none-any.whl", hash = "sha256:0caf7ffd27563da03ffad8782e8522d18ce4a8d961949ee13a9e8514b1ac7489"},
+    {file = "eflips_eval-1.7.0.tar.gz", hash = "sha256:9026b9f47f45b2d3c4f2745029ee48b93eb68c0b2aefc9deb8503e28594a2b9d"},
 ]
 
 [package.dependencies]
@@ -2603,18 +2618,25 @@ test = ["pytest", "pytest-cov"]
 
 [[package]]
 name = "simba"
-version = "0.0.1.dev0"
+version = "0.0.1dev"
 description = "Simulation toolbox for Bus Applications"
 optional = false
 python-versions = "*"
 files = []
 develop = false
 
+[package.dependencies]
+dill = "*"
+matplotlib = "*"
+numpy = "*"
+pandas = "*"
+spice_ev = "*"
+
 [package.source]
 type = "git"
 url = "https://github.com/rl-institut/SimBA"
 reference = "dev"
-resolved_reference = "2e1b290a407b8510ccc387936b497db30cf85eec"
+resolved_reference = "87c859d2d6959bb8242d1870657a96dd0e3b88a4"
 
 [[package]]
 name = "simpy"
