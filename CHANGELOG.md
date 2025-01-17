@@ -23,7 +23,7 @@ Template:
 - Fixes #159
 - Introduces new app for getting BusSystem Related Data called "data_scrapers"
 - Further Information can be found here
-- https://github.com/rl-institut/django-simba/tree/dev?tab=readme-ov-file#data_scrapers
+  - [ReadMe](https://github.com/rl-institut/django-simba/tree/dev?tab=readme-ov-file#data_scrapers)
 
 ### Changed
 - [(#151)](https://github.com/rl-institut/django-simba/pull/151)
