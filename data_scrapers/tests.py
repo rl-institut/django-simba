@@ -1,10 +1,15 @@
 import numpy as np
 
 from data_scrapers.tasks import get_antipodals, rotating_caliper
-from django.test import TestCase
+from django.test import SimpleTestCase
 
 
-class RotatingCaliperTest(TestCase):
+# SimpleTestCase since no DB access is needed
+class RotatingCaliperTest(SimpleTestCase):
+    @staticmethod
+    def distance(p1, p2):
+        return np.power(np.sum(np.power(np.subtract(p1, p2), 2)), 1 / 2)
+
     def test_square(self):
         """Test antipodal pairs on a square."""
         convex_hull = [(0, 0), (0, 2), (2, 2), (2, 0)]
@@ -30,21 +35,20 @@ class RotatingCaliperTest(TestCase):
         assert point1 == (0.9, 2)
         assert point2 == (2, 0)
 
-        steps = np.linspace(0, np.pi, 100)
+        steps = np.linspace(0, np.pi, 101)
         half_circle = list(zip(np.sin(steps), np.cos(steps)))
         extra_point = [0, 0.5]
         point1, point2 = rotating_caliper(half_circle + [extra_point])
         assert point1 == half_circle[0]
         assert point2 == half_circle[-1]
-
-        half_circle = list(zip(np.sin(steps), np.cos(steps)))
-        extra_point = [0, -1.5]
-        point1, point2 = rotating_caliper(half_circle + [extra_point])
-        assert point1 == half_circle[0]
-        assert point2 == extra_point
+        # Distance is the diameter of the unitcircle
+        assert self.distance(point1, point2) == 2
 
         half_circle = list(zip(np.sin(steps), np.cos(steps)))
         extra_point = [-1.5, 0]
         point1, point2 = rotating_caliper(half_circle + [extra_point])
-        assert point1 == half_circle[49]
+        assert point1 == half_circle[int(len(steps) // 2)]
         assert point2 == extra_point
+        # Calculate distance. Should be 2.5 since extra_point should connect with half circle
+        # intersection at [1,0]
+        assert self.distance(point1, point2) == 2.5
