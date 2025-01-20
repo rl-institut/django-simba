@@ -801,7 +801,7 @@ def add_elevations(query: QuerySet):
 
     Model needs a geom field with a Point(x,y,z). Search elevation data and add it to the query.
     """
-    if query.count() == 0:
+    if not query.exists():
         return
     locations = query.values_list("geom", flat=True)
     locations_lat_lon = [f"{loc.y},{loc.x}" for loc in locations]

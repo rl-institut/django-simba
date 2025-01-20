@@ -20,11 +20,10 @@ class BusStationListView(ListView):
         logger.info(f"Searching for {len(search_stations_request)} stations")
         use_filter = self.request.GET.get("filter", "false").lower() == "true"
         found_stations = search_stations(search_stations_request, use_filter)
-        if not len(found_stations) > 0:
+        if not found_stations:
             raise Http404(
                 "No stations found. If searching for multiple stations use '|' as seperator."
-                " If the name contains '+' signs they need to be replaced by"
-                "'%2B'"
+                " If the name contains '+' signs they need to be replaced by '%2B'"
             )
         geoms = []
         for key, stations in found_stations.items():
