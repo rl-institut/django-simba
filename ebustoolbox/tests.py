@@ -6,10 +6,8 @@ from pathlib import Path
 from typing import Iterable
 
 import pandas as pd
-import psycopg2
 from django.conf import settings
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
-from django.core.management import call_command
 from django.db import transaction
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase, override_settings
@@ -19,11 +17,7 @@ from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 from selenium import webdriver
-
-# from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
-
-# from selenium.webdriver.support import expected_conditions as EC
 
 from . import tasks
 from .forms import UploadFileForm
@@ -68,37 +62,15 @@ class MySeleniumTests(StaticLiveServerTestCase):
 
     @classmethod
     def tearDownClass(cls):
-        try:
-            cls.selenium.quit()
-            super().tearDownClass()
-            shutil.rmtree(TMP_UPLOAD)
-            from django.db import connection
-
-            for query in connection.queries:
-                print(f"✅ {query['sql']}\n")
-        except Exception:
-            print("Exception in tearDownClass")
-            raise
-        except psycopg2.errors.DeadLockDetected:
-            print("deadlocked")
-            print(
-                call_command(
-                    "sqlflush",
-                    verbosity=3,
-                    interactive=False,
-                    database="test_mydb",
-                    reset_sequences=False,
-                    allow_cascade=True,
-                )
-            )
-            raise
+        cls.selenium.quit()
+        super().tearDownClass()
+        shutil.rmtree(TMP_UPLOAD)
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
     @override_settings(DEBUG=True)
     def test_result_generation_w_celery(self):
         # Get the URL using reverse
-
         django_scenario, simba_schedule, args = build_scenario()
         django_scenario.task_id = get_unique_task_id()
         django_scenario.save()
@@ -113,10 +85,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
         # give django some time to calculate
         # Check for 404 requests
         # Wait up to 10 seconds for the map to be loaded
-        print("waiting")
-        _ = WebDriverWait(
-            self.selenium, 10
-        )  # .until(EC.presence_of_element_located((By.ID, "map")))
+        _ = WebDriverWait(self.selenium, 10)
 
         errors = self.selenium.get_log("browser")
         # ToDO handle exception
