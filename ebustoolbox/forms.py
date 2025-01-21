@@ -32,8 +32,8 @@ class UploadFileForm(forms.Form):
     default_buffer_time_opps = forms.DecimalField(min_value=0, initial=0)
 
     # files
-    input_schedule = forms.FileField(required=False)
-    electrified_stations = forms.FileField(required=False)
+    schedule_path = forms.FileField(required=False)
+    electrified_stations_path = forms.FileField(required=False)
     vehicle_types_path = forms.FileField(required=False)
     station_data_path = forms.FileField(required=False)
     outside_temperature_over_day_path = forms.FileField(required=False)
@@ -45,8 +45,8 @@ class UploadFileForm(forms.Form):
     )
 
     level_of_loading_over_day_path = forms.FileField(required=False)
-    cost_parameters_file = forms.FileField(required=False)
-    optimizer_config = forms.CharField(required=False)
+    cost_parameters_path = forms.FileField(required=False)
+    optimizer_config_path = forms.CharField(required=False)
 
     # extended options
     strategy = forms.CharField(

@@ -18,18 +18,27 @@ from .eflips_plots import (
     get_vehicle_soc_plot_eflips,
     get_power_and_occupancy_plot_eflips,
     get_vehicle_by_click_eflips,
+    get_specific_energy_eflips,
 )
 
 
 def create_layout(app: Dash) -> Div:
     # App layout
     @app.callback(
-        [Output("tab-simulation", "disabled"), Output("tab-kpi", "disabled")],
-        [Input("tab-simulation", "value")],
+        [
+            Output(ids.TAB_SIMULATION, "disabled"),
+            Output(ids.TAB_KPI, "disabled"),
+            Output(ids.TAB_EFLIPS, "disabled"),
+        ],
+        [Input(ids.TAB_SIMULATION, "value")],
     )
     def update_tab(_, session_state=None, dash_app=None, **kwargs):
-        disable_tabs = data.get_sim_done_status(dash_app.slug)
-        return disable_tabs, disable_tabs
+        disable_tabs = not data.sim_is_finished(dash_app.slug)
+        return (
+            disable_tabs,
+            disable_tabs,
+            disable_tabs,
+        )
 
     @app.callback(
         [Output(ids.MEMOIZER_DONE, "data"), Output(ids.BUS_DROPDOWN, "data")],
@@ -75,8 +84,8 @@ def create_layout(app: Dash) -> Div:
                         style={
                             "display": "inline-block",
                             "width": "100%",
-                            "verticalAlign": "top",
-                            "display": "none",
+                            "maxHeight": "500px",  # Specify the maximum height
+                            "overflowY": "auto",  # Add this to enable scrolling if content exceeds maxHeight
                         },
                     ),
                     dcc.Loading(
@@ -121,8 +130,7 @@ def create_layout(app: Dash) -> Div:
                                 ),
                                 dcc.Tab(
                                     label="KPI Tab",
-                                    id="tab-kpi",
-                                    value="tab-kpi",
+                                    id=ids.TAB_KPI,
                                     disabled=True,
                                     children=[
                                         html.Div(
@@ -145,12 +153,12 @@ def create_layout(app: Dash) -> Div:
                                 ),
                                 dcc.Tab(
                                     label="Simulation Plots",
-                                    id="tab-simulation",
-                                    value="tab-simulation",
+                                    id=ids.TAB_SIMULATION,
                                     disabled=True,
                                     children=[
                                         html.Div(
                                             children=block_bottom_center(app),
+                                            # children=[dcc.Graph(id=ids.DIST_DUR_HISTOGRAM)],
                                             style={
                                                 "display": "inline-block",
                                                 "width": "100%",
@@ -160,35 +168,47 @@ def create_layout(app: Dash) -> Div:
                                 ),
                                 dcc.Tab(
                                     label="Depot Plots",
-                                    disabled=False,
+                                    id=ids.TAB_EFLIPS,
+                                    disabled=True,
                                     children=[
                                         register_eflips_callbacks(app),
                                         html.H1(
                                             children="Simulation results of eflips-depot",
-                                            style={"font": "arial"},
+                                            style={
+                                                "font": "arial",
+                                            },
                                         ),
-                                        dcc.Store(id="task_id"),
+                                        dcc.Store(id=ids.EFLIPS_TASK_ID),
                                         html.Div("Select a color-scheme:"),
                                         dcc.Dropdown(
                                             ["Event Type", "State of Charge", "Location"],
                                             "Event Type",
-                                            id="color-scheme-dropdown",
+                                            id=ids.EFLIPS_COLORSCHEME_DROPDOWN,
                                             style={"width": "30%"},
                                         ),
-                                        html.H2(id="scenario-name"),
-                                        html.H2(id="num-vehicles"),
+                                        html.H2(id=ids.EFLIPS_SCENARIO_NAME),
+                                        html.H2(id=ids.EFLIPS_NUM_VEHICLES),
                                         html.Div("Click on a bar to reveal the vehicle log."),
                                         html.Div(
-                                            "Click on a group in legend to hide/show the group."
+                                            children=[
+                                                html.P(
+                                                    "Click on a group in legend to hide/show the group."
+                                                ),
+                                                dcc.Graph(id=ids.EFLIPS_GANTT),
+                                            ],
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "100%",
+                                            },
                                         ),
-                                        dcc.Graph(id="gantt-chart"),
                                         html.Div(
                                             children=[
                                                 html.H2(children="SoC-log of vehicle:"),
                                                 html.Div(
-                                                    id="click-data", style={"font-size": "20"}
+                                                    id=ids.EFLIPS_CLICK_DATA,
+                                                    style={"font-size": "20"},
                                                 ),
-                                                dcc.Graph(id="vehicle-soc-plot"),
+                                                dcc.Graph(id=ids.EFLIPS_VEHICLE_SOC),
                                             ]
                                         ),
                                         html.Div(
@@ -196,8 +216,20 @@ def create_layout(app: Dash) -> Div:
                                                 html.H2(
                                                     children="Power and occupancy of current depot"
                                                 ),
-                                                dcc.Graph(id="power-and-occupancy-plot"),
+                                                dcc.Graph(id=ids.EFLIPS_POWER_AND_OCCUPANCY),
                                             ]
+                                        ),
+                                        html.Div(
+                                            children=[
+                                                html.P(
+                                                    "Click on a group in legend to hide/show the group."
+                                                ),
+                                                dcc.Graph(id=ids.EFLIPS_SPECIFIC_ENERGY),
+                                            ],
+                                            style={
+                                                "display": "inline-block",
+                                                "width": "100%",
+                                            },
                                         ),
                                     ],
                                 ),
@@ -215,6 +247,7 @@ def register_eflips_callbacks(app):
     get_vehicle_by_click_eflips(app)
     get_vehicle_soc_plot_eflips(app)
     get_power_and_occupancy_plot_eflips(app)
+    get_specific_energy_eflips(app)
 
 
 def block_first_third(app) -> list[html.Div]:
@@ -226,7 +259,7 @@ def block_second_third(app) -> list[html.Div]:
 
 
 def block_third_third(app) -> list[html.Div]:
-    return [report_numbers.render_number_of_buses(app)]
+    return [report_numbers.render_number_stations_presim(app)]
 
 
 def block_top_center(app) -> list[html.Div]:
@@ -251,11 +284,12 @@ def block_bottom_center(app):
 
 
 def block_top_left(app) -> list[html.Div]:
-    return [piechart.render_bustype(app)]
+    return []
 
 
 def block_top_left_KPI(app) -> list[html.Div]:
     return [
+        report_numbers.render_number_of_buses(app),
         report_numbers.render_total_distance(app),
         report_numbers.render_avg_consumption(app),
         report_numbers.render_number_stations(app),
@@ -265,4 +299,7 @@ def block_top_left_KPI(app) -> list[html.Div]:
 
 
 def block_top_right_KPI(app):
-    return [piechart.render_critical_rotations(app)]
+    return [
+        piechart.render_critical_rotations(app),
+        piechart.render_bustype(app),
+    ]

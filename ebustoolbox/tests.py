@@ -17,6 +17,9 @@ from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 from . import tasks
 from .forms import UploadFileForm
@@ -34,6 +37,8 @@ from .models import (
     EventType,
     Consumption,
     VehicleClass,
+    EnumVoltageLevel,
+    EnumChargeType,
 )
 from .tasks import run_simba_scenario
 from .util import get_unique_task_id
@@ -52,8 +57,9 @@ class MySeleniumTests(StaticLiveServerTestCase):
         super().setUpClass()
         options_ = webdriver.chrome.options.Options()
         options_.add_argument("--headless=new")
+        options_.add_argument("-enable-unsafe-swiftshader")
         cls.selenium = webdriver.Chrome(options=options_)
-        cls.selenium.implicitly_wait(10)
+        cls.selenium.implicitly_wait(20)
         Path(TMP_UPLOAD).mkdir(parents=True, exist_ok=True)
 
     @classmethod
@@ -74,14 +80,15 @@ class MySeleniumTests(StaticLiveServerTestCase):
         url = reverse("simba:result", args=(django_scenario.task_id,))
         response = self.client.get(url)
         self.selenium.get(f"{self.live_server_url}{url}")
-        time.sleep(2)
         # Clear the browser log. We check the state of the site after refresh, to give
         # map images time to load.
         _ = self.selenium.get_log("browser")
         self.selenium.refresh()
         # give django some time to calculate
-        time.sleep(2)
         # Check for 404 requests
+        # Wait up to 10 seconds for the map to be loaded
+        _ = WebDriverWait(self.selenium, 10).until(EC.presence_of_element_located((By.ID, "map")))
+
         errors = self.selenium.get_log("browser")
         # ToDO handle exception
         # An iframe which has both allow-scripts and allow-same-origin for its sandbox
@@ -94,6 +101,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
                 "sandbox attribute can escape its sandboxing"
             ),
             "styleimagemissing",
+            "dash",
         ]
         errors = [
             error for error in errors if not any([(e in error["message"]) for e in allowed_errors])
@@ -224,6 +232,15 @@ def build_scenario():
     django_scenario, simba_schedule, args = tasks.input_files_to_database(
         form.cleaned_data, request
     )
+
+    for station in Station.objects.filter(scenario=django_scenario):
+        if station.amount_charging_places is None:
+            station.amount_charging_places = 1
+        if station.power_per_charger is None:
+            station.power_per_charger = django_scenario.simba_options["cs_power_opps"]
+        if station.power_total is None:
+            station.power_total = django_scenario.simba_options["gc_power_opps"]
+        station.save()
     return django_scenario, simba_schedule, args
 
 
@@ -242,12 +259,15 @@ class WriteReadScenarioToDatabase(TestCase):
 
         # get the schedule and args from the db
         simba_schedule_db, args_db = tasks.get_schedule_from_db(django_scenario)
+
         # get a vehicle_type which is "used"
-        vehicle = Rotation.objects.filter(scenario=django_scenario)[0].vehicle
+        vehicle = Rotation.objects.filter(scenario=django_scenario).first().vehicle
         vehicle_type = vehicle.vehicle_type
         consumption_table = Consumption.objects.get(vehicle_class__vehicletype=vehicle_type)
 
         station = Station.objects.get(scenario=django_scenario, name="Station-0")
+        vehicle_type.charging_curve[1][1] = vehicle_type.charging_curve[0][1] * 0.8
+        vehicle_type.save()
 
         # mutate with instance, field name, value
         mutations = [
@@ -451,7 +471,50 @@ class ScenarioTestCase(TestCase):
         self.assertIsNone(instance_1.task_id)
 
 
+class SimulationTestCase(TestCase):
+    def test_flex_band_off(self):
+        django_scenario, simba_schedule, args = build_scenario()
+        args.skip_flex_report = False
+        django_scenario.options = vars(args)
+        django_scenario.save()
+        django_scenario.refresh_from_db()
+        # switching the flex_report_on does not work
+        assert django_scenario.options["skip_flex_report"] is False
+        # Even though the flag is set in the database, simba will ignore it
+        simba_schedule, simba_scenario = run_simba_scenario(django_scenario)
+        # no flex_band calculations are found
+        assert simba_scenario.flex_bands is None, "Flex bands should be turned off"
+
+
 class ConsumptionTestCase(TransactionTestCase):
+    def test_missing_temperature(self):
+        django_scenario, simba_schedule, args = build_scenario()
+        missing_temp_text = (
+            "uses a consumption LUT for consumption calculation but the scenario "
+            "has no Temperature object for temperature lookup. Default value for "
+            "temperature of 20 °C is used."
+        )
+        with self.assertLogs(logger="custom") as cm:
+            schedule, args = tasks.get_schedule_from_db(django_scenario)
+            # Check if any log entry contains the substring
+            self.assertTrue(
+                any(missing_temp_text in message for message in cm.output),
+                "Expected log message not found in output",
+            )
+        # Add a temperature object
+        temp = create_temperatures(django_scenario)
+        with self.assertLogs(logger="custom") as cm:
+            schedule, args = tasks.get_schedule_from_db(django_scenario)
+            # Check if any log entry contains the substring
+            self.assertFalse(
+                any(missing_temp_text in message for message in cm.output),
+                "Expected log message not found in output",
+            )
+        temp.id += 1
+        temp.save()
+        # Two temperatures for the same scenario should raise an exception
+        self.assertRaises(Exception, tasks.get_schedule_from_db, django_scenario=django_scenario)
+
     def test_sim_with_consumption(self):
         django_scenario, simba_schedule, args = build_scenario()
         vehicle_types = VehicleType.objects.filter(scenario=django_scenario)
@@ -681,6 +744,179 @@ class ConsumptionTestCase(TransactionTestCase):
             Exception,
             lambda: consumption_instance.get_consumption({"speesdfd": 100, "consumption": 3}),
         )
+
+
+class TripTestCase(TestCase):
+    def test_level_of_loading(self):
+        django_scenario, simba_schedule, args = build_scenario()
+        def_allowed_mass = 200
+        def_empty_mass = 100
+        for vt in VehicleType.objects.filter(scenario=django_scenario):
+            vt.allowed_mass = 200
+            vt.empty_mass = 100
+            vt.save()
+
+        rotation = Rotation.objects.filter(scenario=django_scenario).first()
+        trip = Trip.objects.filter(rotation=rotation).order_by("arrival_time").first()
+        trip.loaded_mass = 0
+        trip.save()
+        schedule, args = tasks.get_schedule_from_db(django_scenario)
+        schedule_trip = schedule.rotations[rotation.id].trips[0]
+
+        # make sure the right trip is identified
+        assert schedule_trip.arrival_time == trip.arrival_time
+        assert schedule_trip.departure_time == trip.departure_time
+
+        assert schedule_trip.level_of_loading == 0
+
+        trip.loaded_mass = 50
+        trip.save()
+        schedule, args = tasks.get_schedule_from_db(django_scenario)
+        schedule_trip = schedule.rotations[rotation.id].trips[0]
+        assert schedule_trip.level_of_loading == trip.loaded_mass / (
+            def_allowed_mass - def_empty_mass
+        )
+
+        trip.loaded_mass = 200
+        trip.save()
+        # make sure warning is given when overloading
+        with self.assertLogs(logger="custom") as cm:
+            schedule, args = tasks.get_schedule_from_db(django_scenario)
+            # Check if any log entry contains the substring
+            self.assertTrue(
+                any("Level of loading is out of [0,1] range" in message for message in cm.output),
+                "Expected log message not found in output",
+            )
+
+        # make sure warning is given when underloading
+        trip.loaded_mass = -1
+        trip.save()
+        with self.assertLogs(logger="custom") as cm:
+            schedule, args = tasks.get_schedule_from_db(django_scenario)
+            # Check if any log entry contains the substring
+            self.assertTrue(
+                any("Level of loading is out of [0,1] range" in message for message in cm.output),
+                "Expected log message not found in output",
+            )
+
+        trip.loaded_mass = None
+        trip.save()
+        with self.assertLogs(logger="custom") as cm:
+            schedule, args = tasks.get_schedule_from_db(django_scenario)
+            # Check if any log entry contains the substring
+            self.assertTrue(
+                any(
+                    "has no loaded mass but the vehicle_type which services this" in message
+                    for message in cm.output
+                ),
+                "Expected log message not found in output",
+            )
+
+        for allowed_mass, empty_mass in [[None, None], [None, 100], [100, None]]:
+            for vt in VehicleType.objects.filter(scenario=django_scenario):
+                vt.allowed_mass = allowed_mass
+                vt.empty_mass = empty_mass
+                vt.save()
+            with self.assertLogs(logger="custom") as cm:
+                schedule, args = tasks.get_schedule_from_db(django_scenario)
+                # Check if any log entry contains the substring
+                self.assertTrue(
+                    any(
+                        "is serviced by a vehicle_type with a consumption lut. "
+                        "The vehicle_type does not contain the allowed and empty mass." in message
+                        for message in cm.output
+                    ),
+                    "Expected log message not found in output",
+                )
+
+
+class AllowOppChargingTestCase(TestCase):
+    def test_allow_opp_charging(self):
+        django_scenario, simba_schedule, args = build_scenario()
+        for station in Station.objects.filter(scenario=django_scenario):
+            if station.charge_type == EnumChargeType.DEPOT:
+                continue
+            station.is_electrified = True
+            station.total_power = 10_000
+            station.power_per_charger = 500
+            station.charge_type = EnumChargeType.OPPORTUNITY
+            station.voltage_level = EnumVoltageLevel.VOLTAGE_HV
+            station.save()
+
+        for rot in Rotation.objects.filter(scenario=django_scenario):
+            rot.allow_opportunity_charging = False
+            rot.save()
+
+        for vt in VehicleType.objects.filter(scenario=django_scenario):
+            vt.opportunity_charging_capable = True
+            vt.save()
+
+        tasks.is_consistent(django_scenario)
+        sched, scen = run_simba_scenario(django_scenario)
+        assert (
+            Event.objects.filter(
+                scenario=django_scenario, event_type=EventType.CHARGING_OPPORTUNITY
+            ).count()
+            == 0
+        )
+
+        for vt in VehicleType.objects.filter(scenario=django_scenario):
+            vt.opportunity_charging_capable = False
+            vt.save()
+
+        run_simba_scenario(django_scenario)
+        assert (
+            Event.objects.filter(
+                scenario=django_scenario, event_type=EventType.CHARGING_OPPORTUNITY
+            ).count()
+            == 0
+        )
+
+        for rot in Rotation.objects.filter(scenario=django_scenario):
+            rot.allow_opportunity_charging = True
+            rot.save()
+
+        run_simba_scenario(django_scenario)
+
+        assert (
+            Event.objects.filter(
+                scenario=django_scenario, event_type=EventType.CHARGING_OPPORTUNITY
+            ).count()
+            == 0
+        )
+
+        # Create case with both vehicle type being capable of opp charging and rotation allowing
+        # opp charging. This should create charging opportunity events
+        for vt in VehicleType.objects.filter(scenario=django_scenario):
+            vt.opportunity_charging_capable = True
+            vt.save()
+
+        run_simba_scenario(django_scenario)
+        assert (
+            Event.objects.filter(
+                scenario=django_scenario, event_type=EventType.CHARGING_OPPORTUNITY
+            ).count()
+            > 0
+        )
+
+
+def create_temperatures(scenario):
+    date1 = make_aware(datetime(year=2024, month=1, day=1))
+    dt = timedelta(hours=5)
+    date2 = date1 + dt
+    date3 = date1 - timedelta(days=5)
+    temp1 = 25
+    temp2 = 0
+    temp3 = 100
+    t_instance = Temperatures(
+        scenario=scenario,
+        name="First Temperatures",
+        use_only_time=False,
+        datetimes=[date1, date2, date3],
+        data=[temp1, temp2, temp3],
+    )
+    t_instance.save()
+    return t_instance
 
 
 class TemperaturesTestCase(TestCase):

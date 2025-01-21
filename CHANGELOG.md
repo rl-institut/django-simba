@@ -23,7 +23,12 @@ Template:
 - Fixes #159
 - Introduces new app for getting BusSystem Related Data called "data_scrapers"
 - Further Information can be found here
-  - [ReadMe](https://github.com/rl-institut/django-simba/tree/dev?tab=readme-ov-file#data_scrapers)
+    - [ReadMe](https://github.com/rl-institut/django-simba/tree/dev?tab=readme-ov-file#data_scrapers)
+
+
+### Changed
+- [(#152)](https://github.com/rl-institut/django-simba/pull/152)
+- Fixes issues with plotting when simulation is not finished
 
 ### Changed
 - [(#151)](https://github.com/rl-institut/django-simba/pull/151)

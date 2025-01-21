@@ -75,7 +75,6 @@ INSTALLED_APPS = [
     # Django plotly dash
     "django_plotly_dash.apps.DjangoPlotlyDashConfig",
     "bootstrap4",
-    "eflips_depot_results",
 ]
 
 
@@ -239,7 +238,7 @@ MEDIA_ROOT = env.str("DJANGO_MEDIA_ROOT", "media/")
 
 # Optional: maximum allowed file size for uploads.
 # Given in KB, stored in Bytes. Default 64 MB.
-MAX_FILE_SIZE_B = env.int("MAX_FILE_SIZE", 64000) << 10
+MAX_FILE_SIZE_B = env.int("DJANGO_MAX_FILE_SIZE_KB", 64000) << 10
 
 # while the above line checks all the app folders for static folders the below one can be a list of
 # general static file folders
