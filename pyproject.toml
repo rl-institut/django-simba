@@ -15,7 +15,7 @@ packages = [{include = "ebustoolbox"},
            ]
 
 [tool.poetry.dependencies]
-python = ">=3.10, <3.12"
+python = ">=3.10, <3.142"
 spice_ev = { git = "https://github.com/rl-institut/spice_ev", rev = "d593930f25ebdcdb0a915c45aa347c60be39e534"}
 simba = { git = "https://github.com/ludgerheide/SimBA", rev = "478c5ff956f1b7fd573d5333776e3ec3435b33ad"}
 
@@ -46,6 +46,7 @@ scipy = "^1.12.0"
 eflips-ingest = "^1.2.77"
 eflips-eval = "^1.5.5"
 redis = "^5.0.5"
+legacy-cgi = "^2.6.2"
 
 [tool.poetry.group.dev]
 optional = true
