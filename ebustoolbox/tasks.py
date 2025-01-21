@@ -517,7 +517,7 @@ def get_args(django_scenario) -> Namespace:
             # remove first slash
             p = Path(str(p)[1:])
         p = Path(settings.BASE_DIR, __package__, p)
-    args.optimizer_config = str(p)
+    args.optimizer_config_path = str(p)
     if not p.is_file():
         logger.info("default_optimizer.cfg not found. Optimizer config will use default values")
 

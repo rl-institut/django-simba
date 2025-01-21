@@ -166,7 +166,7 @@ def place_not_found_stations(scenario):
             "Stations are placed randomly around Berlin, since not a single station was located."
         )
         for station in stations_without_geo:
-            station.geom = Point(51.5 + random(), 12.5 + random() * 10)
+            station.geom = Point(51.5 + random(), 12.5 + random() * 10, 0)
             station.save()
 
 
