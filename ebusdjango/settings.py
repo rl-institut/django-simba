@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     "bootstrap4",
 ]
 
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -141,6 +142,7 @@ if CELERY_USE:
         "used, this URL has to be provided"
     )
 
+
 # For Database visualization
 GRAPH_MODELS = {
     "all_applications": False,
@@ -179,6 +181,8 @@ LOGGING = {
             "style": "{",
         },
     },
+    # Do not show logs with status 200 (OK) or 204 (no content) for dash_app
+    # Do not show logs with status 200 for map_engine
     "filters": {
         "plotly_dash_status_ok": {
             "()": "core.filters.FilterStatusCode",
