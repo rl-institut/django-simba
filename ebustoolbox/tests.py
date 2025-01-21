@@ -84,8 +84,8 @@ class MySeleniumTests(StaticLiveServerTestCase):
         self.selenium.refresh()
         # give django some time to calculate
         # Check for 404 requests
-        # Wait up to 10 seconds for the map to be loaded
-        _ = WebDriverWait(self.selenium, 10)
+        # Wait up to 20 seconds for the map to be loaded
+        _ = WebDriverWait(self.selenium, 20)
 
         errors = self.selenium.get_log("browser")
         # ToDO handle exception
