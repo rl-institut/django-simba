@@ -50,6 +50,8 @@ TMP_STATICFILES_DIRS = settings.STATICFILES_DIRS + [settings.BASE_DIR / TMP_UPLO
 @override_settings(SECURE_PROXY_SSL_HEADER=None)
 @override_settings(SECURE_SSL_REDIRECT=False)
 class MySeleniumTests(StaticLiveServerTestCase):
+    selenium: webdriver.Chrome = None
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -84,9 +86,17 @@ class MySeleniumTests(StaticLiveServerTestCase):
         self.selenium.refresh()
         # give django some time to calculate
         # Check for 404 requests
-        # Wait up to 20 seconds for the map to be loaded
-        _ = WebDriverWait(self.selenium, 20)
+        # Wait until maplibre is loaded
 
+        (
+            WebDriverWait(self.selenium, 10).until(
+                lambda d: d.execute_script("return maplibregl !== 'undefined'")
+            )
+        )
+
+        # This sleep duration seems necessary to let maplibre fetch everything
+        # If fetching is not finished a 404 error will arise
+        time.sleep(20)
         errors = self.selenium.get_log("browser")
         # ToDO handle exception
         # An iframe which has both allow-scripts and allow-same-origin for its sandbox
