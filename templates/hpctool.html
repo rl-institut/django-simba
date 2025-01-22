@@ -738,35 +738,54 @@
             });
         });
 
-        // When the user moves their mouse over the state-fill layer, we'll update the
-        // feature state for the feature under the mouse.
-        hoveredStateId = null;
-        map.on('mousemove', 'flur', (e) => {
+        let hoveredFeatureId = null; // To track the currently hovered feature ID
+
+        // When the user moves their mouse over the "myexamplemultipolygon" layer
+        map.on('mousemove', 'myexamplemultipolygon', (e) => {
             if (e.features.length > 0) {
-                if (hoveredStateId) {
+                // Remove hover state from the previously hovered feature
+                if (hoveredFeatureId !== null) {
                     map.setFeatureState(
-                        {source: 'busstop', sourceLayer:'flur', id: hoveredStateId},
-                        {hover: false}
+                        {
+                            source: "stations_mvt",
+                            sourceLayer: "myexamplemultipolygon",
+                            id: hoveredFeatureId,
+                        },
+                        { hover: false }
                     );
                 }
-                hoveredStateId = e.features[0].id;
+
+                // Set hover state for the currently hovered feature
+                hoveredFeatureId = e.features[0].id;
                 map.setFeatureState(
-                    {source: 'busstop', sourceLayer:'flur', id: hoveredStateId},
-                    {hover: true}
+                    {
+                        source: 'stations_mvt',
+                        sourceLayer: "myexamplemultipolygon",
+                        id: hoveredFeatureId,
+                    },
+                    { hover: true }
                 );
             }
         });
-        // When the mouse leaves the state-fill layer, update the feature state of the
-        // previously hovered feature.
-        map.on('mouseleave', 'flur', () => {
-            if (hoveredStateId) {
+
+        // When the mouse leaves the "myexamplemultipolygon" layer
+        map.on('mouseleave', 'myexamplemultipolygon', () => {
+            if (hoveredFeatureId !== null) {
+                // Remove hover state from the previously hovered feature
                 map.setFeatureState(
-                    {source: 'busstop', sourceLayer:'flur', id: hoveredStateId},
-                    {hover: false}
+                    {
+                        source: 'stations_mvt',
+                        sourceLayer: "myexamplemultipolygon",
+                        id: hoveredFeatureId,
+                    },
+                    { hover: false }
                 );
             }
-            hoveredStateId = null;
+            hoveredFeatureId = null; // Reset the hover state
         });
+
+
+
         map.on('click', 'myexamplemultipolygon', (e) => {
 
             const latlon = [e["lngLat"]['lng'], e["lngLat"]['lat']];

@@ -1,20 +1,23 @@
-{  "myexamplemultipolygon": {
+{   "myexamplemultipolygon": {
+    "source": "stations_mvt",
     "type": "fill",
     "paint": {
-      "fill-color": "rgb(10,1,2)",
-      "fill-opacity": [
+      "fill-color": [
         "case",
-        [
-          "boolean",
-          [
-            "feature-state",
-            "hover"
-          ],
-          false
-        ],
-        1,
-        1
-      ]
+        ["==", ["get", "quality"], 2],
+        "rgb(0, 255, 0)",
+        ["==", ["get", "quality"], 1],
+        "rgb(255, 165, 0)",
+        ["==", ["get", "quality"], 0],
+        "rgb(255, 0, 0)",
+        "rgb(128, 128, 128)"
+      ],
+      "fill-opacity": [
+                    "case",
+                    ["boolean", ["feature-state", "hover"], false],
+                    1,
+                    0.5
+                ]
     }
   },
   "region-fill": {
