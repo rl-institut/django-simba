@@ -485,6 +485,24 @@ class SimulationTestCase(TestCase):
         # no flex_band calculations are found
         assert simba_scenario.flex_bands is None, "Flex bands should be turned off"
 
+    def test_simulate_depot_strategy(self):
+        django_scenario, simba_schedule, args = build_scenario()
+        # run scenario, create events
+        run_simba_scenario(django_scenario=django_scenario)
+        # PROBLEM: test scenario has no CHARGING_DEPOT events, just DRIVING and STANDBY_DEPARTURE
+        # => can't test depot charging with this
+        # HACK: change STANDBY_DEPARTURE to CHARGING_DEPOT events
+        django_scenario.event_set.filter(event_type=EventType.STANDBY_DEPARTURE).update(
+            event_type=EventType.CHARGING_DEPOT, soc_end=1
+        )
+        # HACK: change all stations to electrified depots
+        django_scenario.station_set.update(
+            is_electrified=True, charge_type=EnumChargeType.DEPOT, voltage_level="MV"
+        )
+        # simulate with SpiceEV strategy
+        spiceev_scenario = tasks.simulate_depot_strategy(django_scenario, "greedy")
+        self.assertEqual(spiceev_scenario.step_i, spiceev_scenario.n_intervals)
+
 
 class ConsumptionTestCase(TransactionTestCase):
     def test_missing_temperature(self):

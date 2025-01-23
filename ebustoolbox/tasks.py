@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, List
+from typing import List
 
 import environ
 from celery import shared_task
@@ -67,8 +67,8 @@ from .models import (
 )
 from .schedule_readers import ScheduleReader
 
-if TYPE_CHECKING:
-    from spice_ev.scenario import Scenario as SimbaScenario
+from spice_ev.scenario import Scenario as SimbaScenario
+from spice_ev.strategy import STRATEGIES
 
 logger = logging.getLogger("custom")
 
@@ -904,6 +904,152 @@ def run_simba_scenario(
     return simba_schedule, scenario
 
 
+def simulate_depot_strategy(scenario: Scenario, strategy: str) -> SimbaScenario:  # noqa: C901
+    if strategy not in STRATEGIES:
+        raise Exception(f"Strategy {strategy} not supported")
+
+    # simulate all depot events in SpiceEV using a specific strategy
+    events = scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT)
+    if not events.exists():
+        raise Exception("SpiceEV scenario generation: no events found")
+
+    args = get_args(scenario)
+    start_simulation = events.order_by("time_start").first().time_start
+    stop_simulation = events.order_by("-time_end").first().time_end
+
+    # SpiceEV vehicle types
+    vehicle_types = {
+        vehicle_type.id: {  # use ID as key, as name is not guaranteed to be unique
+            "name": vehicle_type.name,
+            "capacity": vehicle_type.battery_capacity,
+            "charging_curve": vehicle_type.charging_curve,
+            "min_charging_power": vehicle_type.minimum_charging_power,
+            "v2g": (vehicle_type.v2g_curve is not None),
+            "battery_efficiency": vehicle_type.charging_efficiency,
+        }
+        for vehicle_type in scenario.vehicletype_set.all()
+    }
+
+    vehicles = dict()
+    for vehicle in scenario.vehicle_set.all():
+        vid = vehicle.name
+        if vid in vehicles:
+            # guarantee uniqueness
+            vid = f"{vid} ({vehicle.id})"
+
+        # find initial soc -> SoC on first departure
+        first_event = events.filter(vehicle=vehicle).order_by("-time_end").first()
+        if first_event is not None:
+            vehicles[vid] = {
+                "connected_charging_station": None,
+                "soc": first_event.soc_end,
+                "vehicle_type": vehicle.vehicle_type_id,
+            }
+
+    stations = get_electrified_stations_from_db(scenario)
+    grid_connectors = dict()
+    for name, station in stations.items():
+        if station["type"] != "deps":
+            # station["n_charging_stations"] seems to be more of a guideline, can't filter 0
+            continue
+        grid_connectors[name] = {
+            "max_power": station.get("gc_power", args.gc_power_deps),
+            "number_cs": station["n_charging_stations"],
+            "power_per_charger": station.get("cs_power_deps_depb", args.cs_power_deps_depb),
+            "voltage_level": station["voltage_level"],
+            "cost": {"type": "fixed", "value": 1},
+        }
+    if len(grid_connectors) == 0:
+        raise Exception("SpiceEV scenario generation: no depots found")
+
+    spice_ev_events = get_spiceev_events_from_scenario(scenario, skip_oppb=True)
+    if len(spice_ev_events) == 0:
+        raise Exception("SpiceEV scenario generation: no events found")
+
+    # allocate vehicles to specific charging points at stations
+    # order events by start time, departure events first
+    spice_ev_events.sort(key=lambda e: (e["start_time"], e["event_type"] == "departure"))
+    vehicle_to_cs = dict()  # LUT for connected vehicle -> (station name, charging station)
+    # LUT station name -> list of connected vehicles
+    occupied_cs = {gc: list() for gc in grid_connectors}
+    # LUT station name -> maximum number of occupied CS at the same time.
+    # May set number to None for unrestricted CS
+    max_cs_dict = {gc: gc_info["number_cs"] for gc, gc_info in grid_connectors.items()}
+
+    for event in spice_ev_events:
+        if event["event_type"] == "arrival":
+            if vehicle_to_cs.get(event["vehicle_id"]) is not None:
+                raise Exception(f"SpiceEV scenario generation: double arrival {event}")
+            # find unoccupied charging station
+            # station still means Station, not charging station
+            station = event["update"]["connected_charging_station"]
+            for i, v in enumerate(occupied_cs[station]):
+                if not v:
+                    # unoccupied CS found
+                    cs_id = i
+                    break
+            else:
+                # no unoccupied charging station: add new
+                max_cs = max_cs_dict[station]  # may be None
+                cs_id = len(occupied_cs[station])
+                if cs_id == max_cs:
+                    logging.warning(
+                        f"SpiceEV scenario generation: Station {station} "
+                        f"exceeds maximum number of charging stations ({max_cs})."
+                    )
+                    # disable further warnings
+                    max_cs_dict[station] = None
+                occupied_cs[station].append(False)
+            # take note in lookup tables for future reference (departure)
+            occupied_cs[station][cs_id] = True
+            vehicle_to_cs[event["vehicle_id"]] = (station, cs_id)
+            # update event station from Station (GC) name to charging station
+            event["update"]["connected_charging_station"] = f"{station}_{cs_id}"
+        elif event["event_type"] == "departure":
+            try:
+                v_info = vehicle_to_cs[event["vehicle_id"]]
+            except KeyError:
+                raise Exception(f"SpiceEV scenario generation: departure without arrival {event}")
+            # clear occupied state
+            occupied_cs[v_info[0]][v_info[1]] = False
+            vehicle_to_cs[event["vehicle_id"]] = None
+
+    # create needed charging stations
+    charging_stations = dict()
+    for station, cs_list in occupied_cs.items():
+        gc = grid_connectors[station]
+        for i in range(len(cs_list)):
+            charging_stations[f"{station}_{i}"] = {
+                "max_power": gc["power_per_charger"],
+                "parent": station,
+            }
+
+    spice_ev_scenario_dict = {
+        "scenario": {
+            "start_time": start_simulation.isoformat(),
+            "stop_time": stop_simulation.isoformat(),
+            "interval": args.interval,  # minutes
+        },
+        "components": {
+            "vehicle_types": vehicle_types,
+            "vehicles": vehicles,
+            "grid_connectors": grid_connectors,
+            "charging_stations": charging_stations,
+            # batteries and photovoltaics ignored
+        },
+        "events": {
+            "vehicle_events": spice_ev_events,
+            "grid_operator_signals": [],
+        },
+    }
+
+    spice_ev_scenario = SimbaScenario(spice_ev_scenario_dict)
+    spice_ev_scenario.run(strategy, vars(args).copy())
+    if spice_ev_scenario.step_i != spice_ev_scenario.n_intervals:
+        logging.error("SpiceEV simulation aborted, see above for details")
+    return spice_ev_scenario
+
+
 def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
     # Create SpiceEV-like event dictionaries for a Scenario
 
@@ -942,7 +1088,7 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
                 "vehicle_id": event.vehicle.name,
                 "event_type": "arrival",
                 "update": {
-                    "connected_charging_station": event.station.name,
+                    "connected_charging_station": event.station.to_simba_name(),
                     "estimated_time_of_departure": event.time_end.isoformat(),
                     "soc_delta": event.soc_start - vehicle_soc[event.vehicle_id],
                     "desired_soc": event.soc_end,
