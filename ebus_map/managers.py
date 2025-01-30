@@ -107,7 +107,6 @@ class MVTManager(models.Manager):
             raise ValidationError(str(error)) from error
         with connection.cursor() as cursor:
             intermediate = cursor.mogrify(sql, params)
-            print(intermediate)
             if isinstance(intermediate,str):
                 return intermediate
             else:

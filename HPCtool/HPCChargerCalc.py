@@ -10,7 +10,6 @@ from django.contrib.gis.geos import Polygon as djangoPolygon
 from django.contrib.gis.geos import Point as djangoPoint
 
 from shapely.geometry import Point, Polygon, LineString
-from shapely.geometry.base import BaseGeometry
 import shapely
 
 import osmnx as ox
@@ -31,8 +30,8 @@ bus_breite = 3
 #####################
 
 
-dist_tree_red = 5
-dist_tree_green = 10
+dist_tree_red = 9
+dist_tree_green = 15
 
 dist_wohn_red = 30
 dist_wohn_green = 60
@@ -189,7 +188,8 @@ def calculate_HPC(poly_list, buslength=18, parkingdistance=5):
                         django_multipolygon = GEOSGeometry(multipoly.wkt)
                         ResidentialArea.objects.create(geom=django_multipolygon, name="Herzallee", scenario_ID="neu")
                 else:
-                    print("KEIN WOHNGEBIET")
+                    # Kein Wohngebiet
+                    pass
 
     charger_good, charger_medium, charger_bad = 0, 0, 0
 
@@ -792,7 +792,7 @@ def placeColoredPanthograph(pnt, local_layerdict, criteria):
 
         if criteria[crit]["kind"].lower() == "point":
             if crit in local_layerdict.keys():
-                #print(crit)
+                print(crit)
                 #print(criteria)
                 #print(local_layerdict.keys())
                 dist = distance(Point(pnt), local_layerdict[criteria[crit]["layer_name"]],
@@ -819,6 +819,8 @@ def placeColoredPanthograph(pnt, local_layerdict, criteria):
         elif color == "orange" and color != "green":
             col == color
 
+        print(dist)
+
         full_str += "Abstand " + crit + ": " + str(dist) + "\n"
 
     if col == "green":
@@ -827,5 +829,7 @@ def placeColoredPanthograph(pnt, local_layerdict, criteria):
         charger_medium += 1
     else:
         charger_bad += 1
+
+    print(full_str)
 
     return charger_good, charger_medium, charger_bad

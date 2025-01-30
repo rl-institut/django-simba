@@ -80,7 +80,7 @@ class Station(models.Model):
     vector_tiles = MVTManager(columns=["id", "name"])
 
 class Cyclepath(models.Model):
-    geom = models.MultiPolygonField(srid=4326)
+    geom = models.MultiLineStringField(srid=4326)
     name = models.CharField(max_length=50)
     scenario_ID = models.CharField(max_length=50)
 
