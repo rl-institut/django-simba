@@ -42,8 +42,8 @@ dist_radweg_green = 10
 
 Layers = {
     "Bäume": {
-        "url": """https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_wfs_baumbestand""",
-        "typeNames": "fis:s_wfs_baumbestand"
+        "url": """https://gdi.berlin.de/services/wfs/baumbestand""",
+        "typeNames": """baumbestand:strassenbaeume""",
     },
     "ATKIS Wohnbaufläche offen": {
         "url": """https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_atkis_AX_wohnbauflaeche_offen_f""",
@@ -66,8 +66,8 @@ Layers = {
         "typeNames": "fis:s_atkis_AX_denkmalschutzrecht_p"
     },
     "Radweg": {
-        "url": """https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_Radweg""",
-        "typeNames": "fis:s_Radweg"
+        "url": """https://gdi.berlin.de/services/wms/radverkehrsanlagen""",
+        "typeNames": "radverkehrsanlagen:b_radverkehrsanlagen"
     },
 }
 
@@ -320,6 +320,8 @@ def generalizedLayerLoader(wfs_url, type_names, sbbox, version='2.0.0', retries=
 
     wfs_request_url = Request('GET', wfs_url, params=params).prepare().url
 
+    print(wfs_request_url)
+
     for i in range(retries):
         try:
             response = requests.get(wfs_request_url, timeout=timeout)
@@ -528,7 +530,7 @@ def place_bus_along(nodes, bus_laenge, park_abstand, panto_loc):
 
 
 def getStreetsfromOSM(geometry, tags):
-    straßen = ox.geometries_from_polygon(geometry, tags=tags)
+    straßen = ox.features_from_polygon(geometry, tags=tags)
     straßen = straßen[straßen['highway'] != 'footway']
     straßen = straßen[straßen['highway'] != 'track']
     straßen = straßen[straßen['highway'] != 'pedestrian']

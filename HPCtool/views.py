@@ -212,12 +212,11 @@ def create_station(request):
 
 
 def get_stationlist(request):
-    stations_with_geom = Station.objects.values_list('geom', flat=True)
+    #stations_with_geom = Station.objects.values_list('geom', flat=True)
 
     # Convert the queryset to a list
-    geom_values_list = list(stations_with_geom)
-    coordinates_list = [(point.x, point.y) for point in geom_values_list]
-    print(coordinates_list)
+    #geom_values_list = list(stations_with_geom)
+    coordinates_list = []
 
     return JsonResponse({'message': coordinates_list})
 
