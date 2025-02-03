@@ -140,10 +140,6 @@ def calculate_HPC(poly_list, buslength=18, parkingdistance=5):
     for layer in Layers:
         layerdict[layer] = gpd.GeoDataFrame()
 
-
-
-
-
     straßen = getStreetsfromOSM(alkis.loc[0, 'geometry'], tags={"highway": True})
 
     flurstück_bounds = (
@@ -151,11 +147,9 @@ def calculate_HPC(poly_list, buslength=18, parkingdistance=5):
         alkis.geometry.bounds['maxy'].max()
     )
 
-
     cdr = list(zip(*alkis.geometry.values[0].exterior.coords.xy))
     p2 = djangoPolygon(cdr)
     mp = MultiPolygon(p2)
-    flurstueck = Flurstueck.objects.create(geom=mp, name="Herzallee", scenario_ID="neu")
 
     gdf = straßen.to_crs(25833)
 
@@ -194,11 +188,14 @@ def calculate_HPC(poly_list, buslength=18, parkingdistance=5):
     charger_good, charger_medium, charger_bad = 0, 0, 0
 
     G = makeGraph(n2g)
+    display_graph_with_edge_colors(G)
     visited_nodes = set()
 
-    for index, row in n2g[n2g.color == 'yellow'].iterrows():
+    for index, row in n2g[n2g.type == 'isolated'].iterrows():
 
         red_segments, visited_nodes = findConnectedSegments(G, index, visited_nodes)
+
+        print("segments>>>>>>     ", red_segments)
 
         for segment in red_segments:
             node_list = []
@@ -552,103 +549,118 @@ def getStreetsfromOSM(geometry, tags):
 
 
 def makeConnections(gdf):
-    nodes = []
+    """
+    Processes a GeoDataFrame representing a street network and returns a DataFrame
+    with node attributes, including coordinates, connection counts, and semantic labels.
 
-    nodes2geo = pd.DataFrame(columns=['ID', 'x', 'y', 'count', 'links_to', 'links_from', 'color'])
+    Parameters:
+        gdf (GeoDataFrame): A GeoDataFrame containing LineString geometries and 'nodes' attribute.
 
-    # iterate over each row in the geodataframe
+    Returns:
+        pd.DataFrame: A DataFrame with node attributes.
+    """
+    # Step 1: Initialize an empty directed graph
+    G = nx.DiGraph()
+
+    # Step 2: Add nodes and edges to the graph
     for idx, row in gdf.iterrows():
-        if isinstance(row.geometry, LineString):
-            nodes.extend(row.nodes[:])
-            # print(row.geometry.coords.xy, row.nodes)
+        if isinstance(row.geometry, LineString) and hasattr(row, 'nodes'):
+            nodes = row.nodes
+            coords = list(row.geometry.coords)
 
-            for idx, node in enumerate(row.nodes):
-                if not (nodes2geo['ID'] == node).any():
-                    # Add new element to the dataframe
-                    x, y = row.geometry.coords.xy[:]
-                    new_row = {'ID': node, 'x': x[idx], 'y': y[idx], 'count': -1, 'links_to': [[]], 'links_from': [[]],
-                               'color': ''}
-                    nodes2geo = pd.concat([nodes2geo, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-                if idx < len(row.nodes) - 1:
-                    r = nodes2geo.loc[nodes2geo['ID'] == node]
-                    if not r.empty:
-                        nodes2geo.loc[nodes2geo['ID'] == node, 'links_to'].iloc[0].append(row.nodes[idx + 1])
+            # Add nodes with their coordinates
+            for i, node in enumerate(nodes):
+                if not G.has_node(node):
+                    G.add_node(node, x=coords[i][0], y=coords[i][1])
 
-    links_from = []
+            # Add edges between consecutive nodes
+            for i in range(len(nodes) - 1):
+                G.add_edge(nodes[i], nodes[i + 1])
 
-    # loop through each row of the DataFrame
-    for index, row in nodes2geo.iterrows():
+    # Step 3: Create a DataFrame from the graph nodes
+    nodes_data = []
+    for node, data in G.nodes(data=True):
+        nodes_data.append({
+            'ID': node,
+            'x': data['x'],
+            'y': data['y'],
+            'count': G.degree(node),  # Total degree (in + out)
+            'links_to': list(G.successors(node)),  # Outgoing connections
+            'links_from': list(G.predecessors(node)),  # Incoming connections
+            'type': ''  # Placeholder for semantic label
+        })
+    nodes2geo = pd.DataFrame(nodes_data)
 
-        # create an empty list for links_from for the current row
-        current_links_from = []
-
-        # loop through each row of the DataFrame again to find matching links_to
-        for i, r in nodes2geo.iterrows():
-
-            # check if the current ID is in the links_to of the current row
-            if row['ID'] in r['links_to']:
-                # if yes, add the current row's ID to the links_from of the current row
-                current_links_from.append(r['ID'])
-
-        # append the links_from list for the current row to the overall links_from list
-        links_from.append(current_links_from)
-
-    # add the links_from column to the DataFrame
-    nodes2geo['links_from'] = links_from
-
-    Stuff = np.asarray(nodes)
-
-    unique, counts = np.unique(Stuff, return_counts=True)
-
-    dictt = dict(zip(unique, counts))
-
-    for node_id, count in dictt.items():
-        nodes2geo.loc[nodes2geo['ID'] == node_id, 'count'] = count
-
-    for index, row in nodes2geo.iterrows():
-
+    # Step 4: Assign semantic labels based on connectivity rules
+    def assign_type(row):
         count_now = len(row['links_from']) + len(row['links_to'])
-        nodes2geo.loc[index, 'count'] = count_now
-
         if count_now == 2:
-            nodes2geo.loc[index, 'color'] = 'red'
+            return 'straight_segment'
+        elif row['links_to'] == []:
+            return 'endpoint'
+        elif row['links_from'] == []:
+            return 'isolated'
         else:
-            nodes2geo.loc[index, 'color'] = 'blue'
+            return 'intersection'
 
-        if nodes2geo.loc[index, 'links_to'] == []:
-            nodes2geo.loc[index, 'color'] = 'green'
+    nodes2geo['type'] = nodes2geo.apply(assign_type, axis=1)
 
-        if nodes2geo.loc[index, 'links_from'] == []:
-            nodes2geo.loc[index, 'color'] = 'yellow'
-
-    nodes2geo["indexID"] = nodes2geo["ID"]
-    nodes2geo = nodes2geo.set_index('indexID')
+    # Step 5: Set the index to 'ID' for easier reference
+    nodes2geo.set_index('ID', inplace=True)
 
     return nodes2geo
 
 
-def makeGraph(nodes2geo):
-    df = nodes2geo
+from scipy.spatial.distance import euclidean
 
-    # create an empty graph
+
+def makeGraph(nodes2geo):
+    """
+    Creates a directed graph from a DataFrame of nodes and their attributes.
+
+    Parameters:
+        nodes2geo (pd.DataFrame): A DataFrame containing node attributes, including 'x', 'y', 'links_to', 'count', and 'type'.
+
+    Returns:
+        nx.DiGraph: A directed graph with nodes and edges.
+    """
+    # Step 1: Create an empty directed graph
     G = nx.DiGraph()
 
-    # add nodes to the graph
-    for _, row in df.iterrows():
-        G.add_node(row['ID'], pos=(row['x'], row['y']))
+    # Step 2: Add nodes to the graph
+    for node_id, row in nodes2geo.iterrows():
+        G.add_node(node_id, pos=(row['x'], row['y']), type=row['type'])
 
-    # add edges to the graph
-    for _, row in df.iterrows():
+    # Step 3: Add edges to the graph
+    for source_id, row in nodes2geo.iterrows():
+        source_pos = (row['x'], row['y'])
+        source_type = row['type']
+
         for neighbor in row['links_to']:
-            if nodes2geo.loc[neighbor]['count'] == 2 or row['count'] == 2:
-                w = 2
-                colo = 'red'
-            else:
-                w = 0
-                colo = 'blue'
-            G.add_edge(row['ID'], neighbor, weight=w, color=colo, length=
-            euclidean_distances([(nodes2geo.loc[neighbor]['x'], nodes2geo.loc[neighbor]['y']),
-                                 (row['x'], row['y'])])[0][1])
+            if neighbor in nodes2geo.index:  # Ensure the neighbor exists
+                neighbor_row = nodes2geo.loc[neighbor]
+                neighbor_pos = (neighbor_row['x'], neighbor_row['y'])
+                neighbor_type = neighbor_row['type']
+
+                # Determine edge type based on node types
+                if source_type == 'straight_segment' or neighbor_type == 'straight_segment':
+                    edge_type = 'straight_segment'
+                elif source_type == 'isolated' or neighbor_type == 'isolated':
+                    edge_type = 'isolated'
+                else:
+                    edge_type = 'regular'
+
+                # Calculate Euclidean distance
+                length = euclidean(source_pos, neighbor_pos)
+
+                # Add the edge to the graph with attributes
+                G.add_edge(
+                    source_id,
+                    neighbor,
+                    type=edge_type,  # Preserve semantic label for the edge
+                    weight=1 if edge_type == 'regular' else (2 if edge_type == 'straight_segment' else 0),
+                    length=length
+                )
 
     return G
 
@@ -658,9 +670,9 @@ def dfs_red_segments(graph, node, visited, red_segments):
     visited.add(node)
     for neighbor in graph.neighbors(node):
         edge_data = graph.get_edge_data(node, neighbor)
-        color = edge_data['color']
+        type = edge_data['type']
         weight = edge_data['length']
-        if color == 'red':
+        if type == 'straight_segment':
             if not red_segments or red_segments[-1]['end'] != node:
                 # create a new red segment if there isn't one or if the last one doesn't end at this node
                 red_segments.append({'start': node, 'end': neighbor, 'length_total': weight, 'nodes': [node, neighbor],
@@ -683,9 +695,10 @@ def findConnectedSegments(G, start_node, visited=set()):
     for neighbor in G.neighbors(start_node):
         edge_data = G.get_edge_data(start_node, neighbor)
 
-        color = edge_data['color']
+        type = edge_data['type']
         weight = edge_data['length']
-        if color == 'red' and (start_node, neighbor) not in visited:
+        print(type)
+        if type == 'straight_segment' and (start_node, neighbor) not in visited:
             red_segments.append(
                 {'start': start_node, 'end': neighbor, 'length_total': weight, 'nodes': [start_node, neighbor],
                  'lengths': [weight]})
@@ -792,7 +805,7 @@ def placeColoredPanthograph(pnt, local_layerdict, criteria):
 
         if criteria[crit]["kind"].lower() == "point":
             if crit in local_layerdict.keys():
-                print(crit)
+                #print(crit)
                 #print(criteria)
                 #print(local_layerdict.keys())
                 dist = distance(Point(pnt), local_layerdict[criteria[crit]["layer_name"]],
@@ -819,9 +832,7 @@ def placeColoredPanthograph(pnt, local_layerdict, criteria):
         elif color == "orange" and color != "green":
             col == color
 
-        print(dist)
-
-        full_str += "Abstand " + crit + ": " + str(dist) + "\n"
+        #full_str += "Abstand " + crit + ": " + str(dist) + "\n"
 
     if col == "green":
         charger_good += 1
@@ -830,6 +841,47 @@ def placeColoredPanthograph(pnt, local_layerdict, criteria):
     else:
         charger_bad += 1
 
-    print(full_str)
-
     return charger_good, charger_medium, charger_bad
+
+import matplotlib.pyplot as plt
+import matplotlib
+def display_graph_with_edge_colors(G):
+    """
+    Displays a NetworkX graph with edges colored by their type.
+
+    Parameters:
+        G (nx.Graph or nx.DiGraph): The graph to visualize.
+    """
+    # Map edge types to colors
+    type_to_color = {
+        'straight_segment': 'red',
+        'regular': 'blue',
+        'isolated': 'gray'
+    }
+    matplotlib.use('TkAgg')  # Or 'Qt5Agg', depending on your setup
+    print(matplotlib.get_backend())
+
+    # Assign colors to edges based on their type
+    edge_colors = [type_to_color[G.edges[edge]['type']] for edge in G.edges]
+
+    # Use a spring layout for positioning nodes
+    pos = nx.spring_layout(G)
+
+    # Draw nodes
+    nx.draw_networkx_nodes(G, pos, node_size=300, node_color='lightblue')
+
+    # Draw edges
+    nx.draw_networkx_edges(G, pos, edge_color=edge_colors, arrows=True)
+
+    # Draw labels
+    nx.draw_networkx_labels(G, pos, font_size=10, font_color='black')
+
+    # Add edge labels (optional, e.g., for weights or types)
+    edge_labels = nx.get_edge_attributes(G, 'type')
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='black')
+
+    # Turn off axis
+    plt.axis('off')
+
+    # Show the plot
+    plt.show()
