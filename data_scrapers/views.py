@@ -12,7 +12,7 @@ logger = logging.getLogger("custom")
 
 class BusStationListView(ListView):
     model = BusStation
-    template_name = "leaflet.html"
+    template_name = "minimal_leaflet_map_w_content.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
