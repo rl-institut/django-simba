@@ -92,6 +92,7 @@ def import_view(request):
 
         df_areas = pd.read_csv(request.FILES["file_admin_areas"])
         df_stations = pd.read_csv(request.FILES["file_stations"])
+        logger.info("Starting import of admin areas and bus stations.")
         data_scrapers.models.import_data(df_areas, df_stations)
         area_count = AdminArea.objects.count()
         station_count = BusStation.objects.count()
