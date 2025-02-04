@@ -487,6 +487,8 @@ class SimulationTestCase(TestCase):
 
     def test_simulate_depot_strategy(self):
         django_scenario, simba_schedule, args = build_scenario()
+        django_scenario.simba_options = {"HORIZON": 1, "perfect_foresight": False}
+        django_scenario.save(update_fields=["simba_options"])
         # run scenario, create events
         run_simba_scenario(django_scenario=django_scenario)
         # PROBLEM: test scenario has no CHARGING_DEPOT events, just DRIVING and STANDBY_DEPARTURE
@@ -499,9 +501,14 @@ class SimulationTestCase(TestCase):
         django_scenario.station_set.update(
             is_electrified=True, charge_type=EnumChargeType.DEPOT, voltage_level="MV"
         )
-        # simulate with SpiceEV strategy
-        spiceev_scenario = tasks.simulate_depot_strategy(django_scenario, "greedy")
-        self.assertEqual(spiceev_scenario.step_i, spiceev_scenario.n_intervals)
+        # unknown strategy
+        with self.assertRaises(NotImplementedError):
+            tasks.simulate_depot_strategy(django_scenario, "error")
+
+        # simulate with SpiceEV strategies
+        for strategy in ("greedy", "balanced", "peak_shaving"):
+            spiceev_scenario = tasks.simulate_depot_strategy(django_scenario, strategy)
+            self.assertEqual(spiceev_scenario.step_i, spiceev_scenario.n_intervals)
 
 
 class ConsumptionTestCase(TransactionTestCase):
