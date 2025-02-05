@@ -52,6 +52,7 @@ optional = true
 black = "^23.7.0"
 flake8 = "^6.1.0"
 selenium = "^4.11.2"
+geopandas = "^1.0.1"
 
 [build-system]
 requires = ["poetry-core"]
