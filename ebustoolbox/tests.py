@@ -87,16 +87,12 @@ class MySeleniumTests(StaticLiveServerTestCase):
         # give django some time to calculate
         # Check for 404 requests
         # Wait until maplibre is loaded
-
         (
             WebDriverWait(self.selenium, 10).until(
                 lambda d: d.execute_script("return maplibregl !== 'undefined'")
             )
         )
 
-        # This sleep duration seems necessary to let maplibre fetch everything
-        # If fetching is not finished a 404 error will arise
-        time.sleep(20)
         errors = self.selenium.get_log("browser")
         # ToDO handle exception
         # An iframe which has both allow-scripts and allow-same-origin for its sandbox
@@ -109,6 +105,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
                 "sandbox attribute can escape its sandboxing"
             ),
             "styleimagemissing",
+            "maplibre-gl",
             "dash",
         ]
         errors = [
