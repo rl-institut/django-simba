@@ -1332,7 +1332,7 @@ def run_simba(
 
     logger.info(f"Creating Simba Events {datetime.now()}")
     create_event_output(scenario, db_scenario)
-
+    logger.info(f"Simba Events Created {datetime.now()}")
     reset_postgres_auto_increments(apps=[Event._meta.app_label])
     return schedule, scenario
 

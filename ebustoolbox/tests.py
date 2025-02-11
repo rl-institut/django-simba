@@ -17,9 +17,7 @@ from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 from . import tasks
 from .forms import UploadFileForm
@@ -52,6 +50,8 @@ TMP_STATICFILES_DIRS = settings.STATICFILES_DIRS + [settings.BASE_DIR / TMP_UPLO
 @override_settings(SECURE_PROXY_SSL_HEADER=None)
 @override_settings(SECURE_SSL_REDIRECT=False)
 class MySeleniumTests(StaticLiveServerTestCase):
+    selenium: webdriver.Chrome = None
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -86,8 +86,12 @@ class MySeleniumTests(StaticLiveServerTestCase):
         self.selenium.refresh()
         # give django some time to calculate
         # Check for 404 requests
-        # Wait up to 10 seconds for the map to be loaded
-        _ = WebDriverWait(self.selenium, 10).until(EC.presence_of_element_located((By.ID, "map")))
+        # Wait until maplibre is loaded
+        (
+            WebDriverWait(self.selenium, 10).until(
+                lambda d: d.execute_script("return maplibregl !== 'undefined'")
+            )
+        )
 
         errors = self.selenium.get_log("browser")
         # ToDO handle exception
@@ -101,6 +105,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
                 "sandbox attribute can escape its sandboxing"
             ),
             "styleimagemissing",
+            "maplibre-gl",
             "dash",
         ]
         errors = [
