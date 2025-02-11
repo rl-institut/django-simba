@@ -4,8 +4,9 @@
     <html lang="en">
     <head>
     {# maplibre 4.0 breaks loading images #}
-    <script src="https://unpkg.com/maplibre-gl@4.2.0/dist/maplibre-gl.js"></script>
-    <link href="https://unpkg.com/maplibre-gl@4.2.0/dist/maplibre-gl.css" rel="stylesheet" />
+      {#      maplibre 4.0 breaks loading images#}
+      <script src="{% static "maplibre-gl.js" %}"></script>
+      <link href="{% static "maplibre-gl.css" %}" rel='stylesheet'/>
 
       <script src="{% static "pubsub.js" %}"></script>
       <link rel="stylesheet" type="text/css" href="{% static 'templates/css/mapOverlays.css' %}">
