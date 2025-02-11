@@ -1,5 +1,5 @@
 from django import forms
-from .models import Vehicle, EnumChargeType, EnumVoltageLevel
+from .models import EnumChargeType, EnumVoltageLevel, ElectrificationOptions, VehicleType
 
 
 class UploadFileForm(forms.Form):
@@ -32,8 +32,8 @@ class UploadFileForm(forms.Form):
     default_buffer_time_opps = forms.DecimalField(min_value=0, initial=0)
 
     # files
-    input_schedule = forms.FileField(required=False)
-    electrified_stations = forms.FileField(required=False)
+    schedule_path = forms.FileField(required=False)
+    electrified_stations_path = forms.FileField(required=False)
     vehicle_types_path = forms.FileField(required=False)
     station_data_path = forms.FileField(required=False)
     outside_temperature_over_day_path = forms.FileField(required=False)
@@ -45,8 +45,8 @@ class UploadFileForm(forms.Form):
     )
 
     level_of_loading_over_day_path = forms.FileField(required=False)
-    cost_parameters_file = forms.FileField(required=False)
-    optimizer_config = forms.CharField(required=False)
+    cost_parameters_path = forms.FileField(required=False)
+    optimizer_config_path = forms.CharField(required=False)
 
     # extended options
     strategy = forms.CharField(
@@ -73,7 +73,7 @@ class DateRangeField(forms.DateField):
 
 class SimulationParameters(forms.Form):
     help_text = (
-        "Lassen Sie das Feld frei, " "wenn Sie den Start der Simulation nicht beschneiden möchten."
+        "Lassen Sie das Feld frei, wenn Sie den Start der Simulation nicht beschneiden möchten."
     )
     date_range = DateRangeField(
         required=False,
@@ -89,43 +89,25 @@ class SimulationParameters(forms.Form):
     )
 
 
-class EbusToolboxForm(forms.Form):
-    title = forms.CharField(max_length=50)
-    file = forms.FileField()
+class ElectrificationOptionsForm(forms.ModelForm):
+    class Meta:
+        model = ElectrificationOptions
+        exclude = ("scenario", "electrified_stations")
+        help_texts = {
+            "gc_power_opps": "Grid connector power in kVA",
+            "cs_power_opps": "Charging point power in kW",
+            "amount_charging_places": "Number of charging points per electrified station",
+        }
 
 
-class ChartForm(forms.Form):
-    vehicles = forms.ModelMultipleChoiceField(queryset=Vehicle.objects.all())
+class VehicleTypeForm(forms.ModelForm):
+    class Meta:
+        model = VehicleType
+        fields = ["battery_capacity"]
 
-    def __init__(self, *args, **kwargs):
-        scenario = kwargs.pop("scenario", None)
-        super().__init__(*args, **kwargs)
-        if scenario:
-            self.fields["vehicles"].queryset = Vehicle.objects.filter(
-                vehicle_type__scenario=scenario
-            )
-
-
-class VehicleTypesAdjustmentForm(forms.Form):
-    battery_capacity = forms.IntegerField(
-        min_value=0,
-        max_value=1000000,
-        label="Nutzbare Batteriekapazität",
-        help_text="Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen.",
-    )
-
-
-class ChargingStationDefaultsForm(forms.Form):
-    gc_power_opps = forms.IntegerField(
-        min_value=0, max_value=1000000, initial=5000, label="Grid connector power in kVA"
-    )
-    cs_power_opps = forms.IntegerField(
-        min_value=0, max_value=10000, initial=300, label="Charging point power in kW"
-    )
-    amount_charging_places = forms.IntegerField(
-        min_value=0,
-        max_value=1000,
-        initial=2,
-        label="Number of charging points per electrified station",
-    )
-    station_optimization = forms.BooleanField(initial=False, required=False)
+        help_texts = {
+            "battery_capacity": "Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen.",
+        }
+        labels = {
+            "battery_capacity": "Batteriekapazität [kWh]",
+        }

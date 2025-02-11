@@ -1,4 +1,5 @@
 import csv
+import random
 import shutil
 import traceback
 import warnings
@@ -11,14 +12,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List
 
 import environ
-import tqdm
 from celery import shared_task
 import django.apps
 from django.conf import settings
-from django.contrib.gis.geos import GEOSGeometry
+from django.contrib.gis.geos import GEOSGeometry, Point
 from django.db import connections
 from django.db.models import Max, Count, Min, QuerySet
 from django.db.transaction import atomic
+from django.forms import model_to_dict
 from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.timezone import make_aware, is_aware
@@ -33,7 +34,6 @@ import simba.util
 from core.deepcopy import reset_postgres_auto_increments
 from core.models import Progress
 from simba.data_container import DataContainer
-from simba.rotation import Rotation as SimbaRotation
 from simba.schedule import Schedule as SimbaSchedule
 from . import schedule_readers
 from .models import (
@@ -58,6 +58,12 @@ from .models import (
     VehicleClass,
     DefaultScenario,
     Depot,
+    UserGroup,
+    SimulationRange,
+    DepotSelection,
+    ElectrificationOptions,
+    VehicleTypeMutation,
+    VehicleTypeSelection,
 )
 from .schedule_readers import ScheduleReader
 
@@ -69,6 +75,7 @@ logger = logging.getLogger("custom")
 # ToDo: Any better solutions?
 INTEGER_INF = 9999
 MAX_AMOUNT_VEHICLES = 10000
+DEFAULT_TEMPERATURE = 20
 
 
 @atomic()
@@ -80,39 +87,24 @@ def input_files_to_database(cleaned_data: dict, request: HttpRequest):
     :return:
     """
     django_scenario = scenario_to_db(cleaned_data, request)
-    original_args = get_args(django_scenario)
+    schedule_reader = schedule_readers.SimbaScheduleReader(
+        file_path=r"ebustoolbox/static/ebustoolbox/examples/trips_example.csv"
+    )
+    _ = schedule_reader.write_to_db(django_scenario.id)
 
-    # Write the Temperatures to the DB
-    temperature_path = Path(django_scenario.simba_options["temperature_time_series_path"])
-    use_only_time = django_scenario.simba_options["use_only_time"]
-    temperatures_to_db(temperature_path, django_scenario, use_only_time=use_only_time)
-
-    # Write the Consumption to the DB
+    # # Write the Consumption to the DB
     consumption_path = Path(django_scenario.simba_options["consumption_path"])
     consumption_file_to_db(consumption_path, django_scenario)
+    for vt in VehicleType.objects.filter(scenario=django_scenario):
+        VehicleClass.objects.get(scenario=django_scenario).vehicle_types.add(
+            vt, through_defaults=None
+        )
 
-    # Create the schedule from the args, and delete features which are not used in django
-    simba_schedule, new_args = get_schedule_from_args(
-        original_args, django_scenario=django_scenario
-    )
+    assign_new_vehicles_to_db(django_scenario)
 
-    # Write the station geodata and electrified stations to DB
-    stations_to_db(simba_schedule, django_scenario)
+    schedule, args = get_schedule_from_db(django_scenario)
 
-    # Write the vehicle types to DB
-    vehicles_to_db(simba_schedule.vehicle_types, django_scenario)
-
-    # ToDo Consistency check is nice, but should be handled in a more generic way.
-    # some cases are not handled like overlapping times, etc.
-    # Remove trips which have non unique times for arrival or departure per rotation
-    # Remove Rotations which dont start at the depot
-    # validate database instead, which works for all scenarios
-    filter_inconsistent_trips_and_rotations(simba_schedule)
-
-    # Write the schedule including rotations and trips to the DB
-    schedule_to_db(simba_schedule, django_scenario)
-
-    return django_scenario, simba_schedule, original_args
+    return django_scenario, schedule, args
 
 
 def consumption_file_to_db(consumption_path: Path, django_scenario: Scenario) -> None:
@@ -250,111 +242,108 @@ def get_schedule_from_db(
     :return: (simba Schedule, args)
     :rtype: (simba.schedule.Schedule, Namespace)
     """
+    data_container = DataContainer()
+
     # get SimBa station_data
     station_data = get_station_data_from_db(django_scenario)
+    data_container.add_station_geo_data(station_data)
 
     # get SimBA electrified stations from db
     stations_dict = get_electrified_stations_from_db(django_scenario)
+    data_container.add_stations(stations_dict)
 
     # get SimBA vehicle_types from db
     vehicle_types = get_vehicle_types_from_db(django_scenario)
-    data_container = DataContainer()
     data_container.add_vehicle_types(vehicle_types)
+
+    # get SimBA rotations and trips from db
+    trip_dicts = get_trip_dictionaries_from_db(django_scenario, station_data)
+    data_container.trip_data = trip_dicts
+
     consumptions = Consumption.objects.filter(scenario__in=[django_scenario, None])
     for consumption in consumptions:
         data_container.add_consumption_data(consumption.name, consumption.to_df())
 
-    # ToDo this might need refactoring since binding consumption to Trip Class is not versatile
-    # in case of parallel schedules / scenarios, since both access the same Consumption
-    # setup consumption calculator that can be accessed by all trips
-    simba.trip.Trip.consumption = data_container.to_consumption()
-
     args = get_args(django_scenario=django_scenario)
-    options = vars(args)
+    schedule, args = simba.simulate.pre_simulation(args, data_container)
 
-    schedule = SimbaSchedule(stations=stations_dict, vehicle_types=vehicle_types, **options)
-    schedule.station_data = station_data
+    # If the database contains vehicle assignments, overwrite the assigned
+    rot_query = Rotation.objects.filter(scenario=django_scenario).prefetch_related("vehicle")
+    if all(rot.vehicle for rot in rot_query):
+        for rot in rot_query:
+            schedule.rotations[rot.id].vehicle_id = rot.vehicle.to_simba_name()
+    elif any(rot.vehicle for rot in rot_query):
+        logger.warning(
+            "Some rotations in the database contain vehicles, others do not. "
+            "Database assignments will be ignored."
+        )
 
-    # get SimBA rotations and trips from db
-    rotations = get_rotations_and_trips_from_db(django_scenario, schedule, station_data)
-    schedule.rotations = rotations
-
-    try:
-        add_temperatures_to_trips(django_scenario, schedule)
-    except Temperatures.DoesNotExist:
-        pass
-
-    # schedule.original_rotations = deepcopy(rotations)
-    # Database does not store information about "original rotations yet"
-    schedule.original_rotations = None
-
-    # filter rotations
-    schedule.rotation_filter(args)
-
-    # calculate consumption of all trips
-    schedule.calculate_consumption()
-
-    # Create soc dispatcher
-    schedule.init_soc_dispatcher(args)
+    # Simba does not disallow opportunity charging for rotations.
+    # By default, it is allowed for all rotations.
+    # If the database contains information about not allowing opportunity charging,
+    # the schedule is overwritten here
+    for rot in rot_query:
+        schedule.rotations[rot.id].allow_opp_charging_for_oppb = rot.allow_opportunity_charging
 
     # Database should contain assigned vehicles already
     for rot in schedule.rotations.values():
         assert rot.vehicle_id is not None
 
-    # This is done since vehicle counts were generated in vehicle_assignment.
-    # ToDo replace with simba call
-    # Calculate vehicle counts
-    # count number of vehicles per type
-    # used for unique vehicle id e.g. vehicletype_chargingtype_id
-    vehicle_type_counts = {
-        f"{vehicle_type}_{charging_type}": 0
-        for vehicle_type, charging_types in schedule.vehicle_types.items()
-        for charging_type in charging_types.keys()
-    }
-    unique_vids = {rot.vehicle_id for rot in schedule.rotations.values()}
-    for vid in unique_vids:
-        v_ls = vid.split("_")
-        vehicle_type_counts[f"{v_ls[0]}_{v_ls[1]}"] += 1
-    schedule.vehicle_type_counts = vehicle_type_counts
-
-    # schedule.assign_only_new_vehicles()
-
     return schedule, args
 
 
-def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> dict:
+def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
     """Create simba rotations with trips from a database with a scenario as a key
 
     :param django_scenario: Django scenario
-    :param schedule: SimBA Schedule
     :param station_data: dictionary with all stations and elevation
-    :return: rotations
-    :rtype: dict
+    :return: list of trip dictionaries
+    :rtype: list
     """
-    rotations = {}
     lines_dict = {line.id: line for line in Line.objects.filter(scenario=django_scenario)}
+    simba_trips = list()
+    temperatures = Temperatures.objects.filter(scenario=django_scenario)
+    DEFAULT_LOADED_MASS = 0
 
     for rot in Rotation.objects.filter(scenario=django_scenario).select_related(
         "vehicle_type", "vehicle"
     ):
-        vehicle_type = rot.vehicle_type.name_short
-        # Use the id/pk instead of the name, since names might not be unique, when database is
-        # filled with non simba ingesters
-        simba_id = rot.id
-        simba_rotation = SimbaRotation(
-            id=simba_id,
-            vehicle_type=vehicle_type,
-            schedule=schedule,
-        )
-        simba_rotation.vehicle_id = rot.vehicle.to_simba_name()
-        simba_rotation.charging_type = (
+        vehicle_type = str(rot.vehicle_type.id)
+        charging_type = (
             EnumChargeType.OPPORTUNITY.value
-            if rot.allow_opportunity_charging
+            if rot.vehicle_type.opportunity_charging_capable
             else EnumChargeType.DEPOT.value
         )
 
-        rotations[simba_id] = simba_rotation
+        # Use the id/pk instead of the name, since names might not be unique, when database is
+        # filled with non simba ingesters
+        simba_id = rot.id
 
+        try:
+            allowed_load = rot.vehicle_type.allowed_mass - rot.vehicle_type.empty_mass
+        except TypeError:
+            allowed_load = None
+        vehicle_classes = VehicleClass.objects.filter(vehicle_types=vehicle_type)
+        consumption_classes = vehicle_classes.exclude(consumption__isnull=True)
+        assert len(consumption_classes) <= 1
+        lut_consumption = False
+        if len(consumption_classes) == 1:
+            lut_consumption = True
+        if lut_consumption and not temperatures.exists():
+            logger.warning(
+                f"Vehicle Type {rot.vehicle_type.id} uses a consumption LUT for "
+                "consumption calculation but the scenario has no Temperature object for "
+                "temperature lookup. Default value for temperature of "
+                f"{DEFAULT_TEMPERATURE} °C is used."
+            )
+
+        if lut_consumption and allowed_load is None:
+            allowed_load = 1000
+            logger.warning(
+                f"{rot.id=} is serviced by a vehicle_type with a consumption lut. "
+                "The vehicle_type does not contain the allowed and empty mass. "
+                f"The allowed load will be set to {allowed_load} kg."
+            )
         # select related means later db access can be skipped
         query = (
             Trip.objects.filter(rotation=rot)
@@ -363,23 +352,54 @@ def get_rotations_and_trips_from_db(django_scenario, schedule, station_data) -> 
         )
 
         for trip in query:
+            loaded_mass = trip.loaded_mass
+            level_of_loading = None
+            if allowed_load is not None:
+                if lut_consumption and loaded_mass is None:
+                    loaded_mass = DEFAULT_LOADED_MASS
+                    logger.warning(
+                        f"{trip.id=} has no loaded mass but the vehicle_type which services this "
+                        "trip needs a loaded mass for consumption look up and is set to "
+                        f"{loaded_mass}."
+                    )
+                level_of_loading = loaded_mass / allowed_load
+                if 1 < level_of_loading or 0 > level_of_loading:
+                    logger.warning(f"Level of loading is out of [0,1] range for {trip.id=}")
             simba_trip_dict = {
-                "departure_time": str(trip.departure_time),
+                "rotation_id": simba_id,
+                "departure_time": trip.departure_time,
                 "departure_name": trip.route.departure_station.to_simba_name(),
-                "arrival_time": str(trip.arrival_time),
+                "arrival_time": trip.arrival_time,
                 "arrival_name": trip.route.arrival_station.to_simba_name(),
+                "vehicle_type": vehicle_type,
+                "charging_type": charging_type,
                 "distance": trip.route.distance,
                 "line": lines_dict[trip.route.line.id].name,
                 "height_diff": (
                     station_data[trip.route.arrival_station.to_simba_name()]["elevation"]
                     - station_data[trip.route.departure_station.to_simba_name()]["elevation"]
                 ),
-                "level_of_loading": trip.loaded_mass,
+                "level_of_loading": level_of_loading,
                 "mean_speed": trip.speed * 3.6,
-                "temperature": 20.0,
+                "temperature": DEFAULT_TEMPERATURE,
             }
-            simba_rotation.add_trip(simba_trip_dict)
-    return rotations
+            if temperatures.exists():
+                assert (
+                    len(temperatures) == 1
+                ), "A scenario can only have a single linked Temperature object"
+                temperature = temperatures.first()
+
+                middle_time = trip.departure_time + 0.5 * (trip.arrival_time - trip.departure_time)
+                # get pseudo mean temperature by using center and boundary temperatures
+                temp = (
+                    0.5 * temperature.get_interpolated_temperature(middle_time)
+                    + 0.25 * temperature.get_interpolated_temperature(trip.arrival_time)
+                    + 0.25 * temperature.get_interpolated_temperature(trip.departure_time)
+                )
+                simba_trip_dict["temperature"] = temp
+
+            simba_trips.append(simba_trip_dict)
+    return simba_trips
 
 
 def get_vehicle_types_from_db(django_scenario) -> dict:
@@ -397,9 +417,9 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
             else EnumChargeType.DEPOT.value
         )
         try:
-            vehicle_types[vehicle_type.name_short]
+            vehicle_types[str(vehicle_type.id)]
         except KeyError:
-            vehicle_types[vehicle_type.name_short] = dict()
+            vehicle_types[str(vehicle_type.id)] = dict()
 
         mileage = vehicle_type.consumption
         query = VehicleClass.objects.filter(vehicle_types=vehicle_type).exclude(consumption=None)
@@ -408,7 +428,7 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
             assert len(query) == 1
             mileage = Consumption.objects.get(vehicle_class=query[0]).name
 
-        vehicle_types[vehicle_type.name_short][charge_type] = {
+        vehicle_types[str(vehicle_type.id)][charge_type] = {
             "name": vehicle_type.name,
             "capacity": vehicle_type.battery_capacity,
             "charging_curve": vehicle_type.charging_curve,
@@ -472,98 +492,6 @@ def get_station_data_from_db(django_scenario) -> dict:
     return station_data
 
 
-def get_schedule_from_args(
-    original_args, django_scenario
-) -> tuple[simba.schedule.Schedule, Namespace]:
-    """Create SimBA Schedule from arguments with existing files and restrict features.
-
-    This creates a schedule object without making use of the database. Instead the passed arguments
-    and files are used.
-    :param django_scenario: Django scenario
-    :return: simba schedule and args
-    :rtype: simba.schedule.Schedule, Namespace
-    """
-
-    data_container = DataContainer()
-    data_container.add_vehicle_types_from_json(original_args.vehicle_types_path)
-    consumptions = Consumption.objects.filter(scenario__in=[django_scenario, None])
-    for consumption in consumptions:
-        data_container.add_consumption_data(consumption.name, consumption.to_df())
-
-    simba_schedule, new_args = simba.simulate.pre_simulation(original_args, data_container)
-
-    # # Set Up Consumption to use database / file values
-    # some_trip = next(iter(next(iter(simba_schedule.rotations.values())).trips))
-    # simba_consumption = some_trip.__class__.consumption
-    # consumptions = Consumption.objects.filter(scenario=django_scenario)
-    # for consumption in consumptions:
-    #     simba_consumption.set_consumption_interpolation(consumption.name, consumption.to_df())
-
-    simba_schedule.assign_only_new_vehicles()
-
-    add_temperatures_to_trips(django_scenario, simba_schedule)
-    # Changed temperatures can affect the consumption
-    simba_schedule.calculate_consumption()
-
-    # Remove simba features which are not used
-    remove_station_attributes = ["battery", "energy_feed_in", "distance_to_grid", "external_load"]
-    for attribute in remove_station_attributes:
-        stations_copy = deepcopy(simba_schedule.stations)
-        for key, station in stations_copy.items():
-            if attribute in station:
-                del simba_schedule.stations[key][attribute]
-
-    # Mutate values according to models and make values explicit, i.e. dictionary contains all
-    # values, even if defaults would be used anyway. This makes sure the database contains all
-    # the needed information to recreate the exact scenario.
-    # ToDo: Another way could be to use properties in the models which look up scenario provided
-    # data if no specific data (e.g. station.cs_power) is provided.
-    for station in simba_schedule.stations.values():
-        if str(station["type"]).lower() != "opps":
-            try:
-                station["cs_power_deps_depb"] = station["cs_power_opps"] = station[
-                    "cs_power_deps_oppb"
-                ]
-            except KeyError:
-                station["cs_power_deps_depb"] = station["cs_power_opps"] = station[
-                    "cs_power_deps_oppb"
-                ] = original_args.cs_power_deps_oppb
-        else:
-            try:
-                station["cs_power_opps"] = station["cs_power_opps"]
-            except KeyError:
-                station["cs_power_opps"] = original_args.cs_power_opps
-                station["cs_power_deps_depb"] = station["cs_power_deps_oppb"] = station[
-                    "cs_power_opps"
-                ]
-
-        try:
-            station["voltage_level"] = station["voltage_level"]
-        except KeyError:
-            station["voltage_level"] = original_args.default_voltage_level
-
-        try:
-            station["gc_power"] = station["gc_power"]
-        except KeyError:
-            station["gc_power"] = vars(original_args).get(
-                "gc_power_" + str(station["type"]).lower()
-            )
-
-    return simba_schedule, new_args
-
-
-def add_temperatures_to_trips(django_scenario, simba_schedule):
-    temperatures = Temperatures.objects.get(scenario=django_scenario)
-    # set temperatures according to temperature file
-    for rot in simba_schedule.rotations.values():
-        for trip in rot.trips:
-            # ToDo: Make times from db unaware once? so every function does not have to check
-            # for awareness? or other way around. make simba times aware early?
-            middle_time = trip.departure_time + 0.5 * (trip.arrival_time - trip.departure_time)
-            temp_time = middle_time if is_aware(middle_time) else make_aware(middle_time)
-            trip.temperature = temperatures.get_interpolated_temperature(temp_time)
-
-
 def get_args(django_scenario) -> Namespace:
     """Creates arguments from django Scenario
 
@@ -582,27 +510,27 @@ def get_args(django_scenario) -> Namespace:
 
     # Add default optimizer config
     p = Path(settings.STATIC_URL, __package__, "examples", "default_optimizer.cfg")
-    if p.is_file():
-        if settings.DEBUG:
-            # use app static folder
-            if p.is_absolute():
-                # remove first slash
-                p = Path(str(p)[1:])
-            p = Path(settings.BASE_DIR, __package__, p)
-        args.optimizer_config = str(p)
-    else:
-        logger.info("default_optimizer.cfg not found. Optimizer config will use default values")
+    # use app static folder
+    if p.is_absolute() and not p.is_file():
+        # remove first slash
+        p = Path(str(p)[1:])
+        p = Path(settings.BASE_DIR, __package__, p)
+    args.optimizer_config_path = str(p)
+    if not p.is_file():
+        logger.info("default_optimizer.cfg not found. Optimizer config will use default values.")
 
     # Overwrite args with scenario specific data
     if django_scenario.simba_options is not None:
         logger.debug(
-            f"Overwritting default arguments with {len(django_scenario.simba_options)} "
+            f"Overwriting default arguments with {len(django_scenario.simba_options)} "
             f"values from the database"
         )
         vars(args).update(vars(Namespace(**django_scenario.simba_options)))
 
     # turn of plotting
     args.skip_plots = True
+    args.skip_flex_report = True
+    args = simba.util.replace_deprecated_arguments(args)
 
     # arguments relevant to SpiceEV, setting automatically to reduce clutter in config
     simba.util.mutate_args_for_spiceev(args)
@@ -620,16 +548,16 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
             args[k] = float(v)
     # set default files if not given
     for k, v in {
-        "input_schedule": "trips_example.csv",
-        "electrified_stations": "electrified_stations.json",
+        "schedule_path": "trips_example.csv",
+        "electrified_stations_path": "electrified_stations.json",
         "vehicle_types_path": "vehicle_types.json",
         "station_data_path": "all_stations.csv",
         "outside_temperature_over_day_path": "default_temp_summer.csv",
         "consumption_path": "energy_consumption_example.csv",
         "temperature_time_series_path": "temperature_time_series.csv",
         "level_of_loading_over_day_path": "default_level_of_loading_over_day.csv",
-        "cost_parameters_file": "cost_params.json",
-        "optimizer_config": "default_optimizer.cfg",
+        "cost_parameters_path": "cost_params.json",
+        "optimizer_config_path": "default_optimizer.cfg",
     }.items():
         if args[k]:
             # uploaded file: store in upload folder
@@ -651,85 +579,6 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
     scenario.save()
 
     return scenario
-
-
-def schedule_to_db(schedule: simba.schedule.Schedule, django_scenario: Scenario) -> None:
-    """Takes a simba Schedule and writes it into the db with the scenario as handle
-    :param schedule: simba Schedule
-    :param scenario: django model Scenario
-    :return: None
-    """
-    model_rotations = []
-    model_trips = []
-    model_lines = []
-    model_routes = []
-    rot_id = 1 if Rotation.objects.last() is None else Rotation.objects.last().id + 1
-    trip_id = 1 if Trip.objects.last() is None else Trip.objects.last().id + 1
-
-    station_dict = Station.objects.filter(scenario=django_scenario)
-    station_dict = {station.to_simba_name(): station for station in station_dict}
-    line_dict = {}
-    for key, rot in tqdm.tqdm(schedule.rotations.items(), total=len(schedule.rotations)):
-        assert rot.charging_type in EnumChargeType.values
-        assert rot.vehicle_id is not None
-        opportunity_charging_capable = rot.charging_type == EnumChargeType.OPPORTUNITY.value
-        vehicletype = VehicleType.objects.get(
-            scenario=django_scenario,
-            name_short=rot.vehicle_type,
-            opportunity_charging_capable=opportunity_charging_capable,
-        )
-
-        vehicle = Vehicle.objects.create(
-            vehicle_type=vehicletype, scenario=django_scenario, name=rot.vehicle_id
-        )
-        r = Rotation(
-            name=key,
-            vehicle_type=vehicletype,
-            scenario=django_scenario,
-            allow_opportunity_charging=opportunity_charging_capable,
-            vehicle=vehicle,
-        )
-        r.id = rot_id
-        rot_id += 1
-        model_rotations.append(r)
-
-        trips = sorted(rot.trips, key=lambda x: x.arrival_time)
-        for trip in trips:
-            # Get the proper Line
-            if trip.line in line_dict:
-                line = line_dict[trip.line]
-            else:
-                line = Line(scenario=django_scenario, name=trip.line)
-                line_dict[trip.line] = line
-                model_lines.append(line)
-            route = Route(
-                name=trip.departure_name + " - " + trip.arrival_name,
-                scenario=django_scenario,
-                departure_station=station_dict[trip.departure_name],
-                arrival_station=station_dict[trip.arrival_name],
-                distance=trip.distance,
-                line=line,
-            )
-            model_routes.append(route)
-            # ToDo: loaded_mass is level_of_loading * vehicle_capacity[kg]
-            # ToDo: How do we know if its a type, e.g. passanger trip or not ? Right now instance
-            #  uses default passanger_trip
-            t = Trip(
-                rotation=r,
-                route=route,
-                scenario=django_scenario,
-                departure_time=make_aware(trip.departure_time),
-                arrival_time=make_aware(trip.arrival_time),
-                loaded_mass=trip.level_of_loading,
-            )
-
-            t.id = trip_id
-            model_trips.append(t)
-            trip_id += 1
-    Line.objects.bulk_create(model_lines)
-    Route.objects.bulk_create(model_routes)
-    Rotation.objects.bulk_create(model_rotations)
-    Trip.objects.bulk_create(model_trips)
 
 
 def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
@@ -897,6 +746,9 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
         scenario = Scenario.objects.get(id=scenario_id)
         progress.scenario = scenario
         progress.save()
+        # parent scenario has all the content. "normal scenario" has the mutation. Simulation
+        # Scenario is parent scenario with mutation applied
+
         delete_old_scenario_data(scenario)
         # Read the file and write it to database
         progress.refresh_from_db()
@@ -930,11 +782,14 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
         core.deepcopy.reset_postgres_auto_increments(["ebustoolbox"])
 
 
-@atomic()
+# for some reason, creating the atomic savepoint in an outer atomic transaction fails.
+@atomic(savepoint=False)
 def trim_scenario(scenario, time_delta, start_time=None):
     rotations = get_rotations_by_timespan(scenario, time_delta, start_time)
     rotations_to_remove = Rotation.objects.filter(scenario=scenario).exclude(id__in=rotations)
+    logging.info(f"Deleting {rotations_to_remove.count()} rotations out of sim range")
     rotations_to_remove.delete()
+    pass
 
 
 def get_rotations_by_timespan(
@@ -975,6 +830,19 @@ def run_ebus_toolchain(task_id):
     return async_result
 
 
+@shared_task(bind=True)
+def run_and_merge_scenarios(self, parent_id: int, mutation_id: int, simulation_task_id):
+    parent_scenario = Scenario.objects.get(id=parent_id)
+    mutation_scenario = Scenario.objects.get(id=mutation_id)
+    simulation_scenario = create_child_from_mutation(parent_scenario, mutation_scenario)
+    simulation_scenario.name = "Results for " + simulation_scenario.name
+    simulation_scenario.task_id = simulation_task_id
+    simulation_scenario.save()
+    if "ebus_map" in settings.INSTALLED_APPS:
+        create_stations_for_map(simulation_scenario)
+    run_toolchain_from_scenario(simulation_scenario, assign_vehicles=True)
+
+
 def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False):
     """Run a Scenario from the database with SimBA
 
@@ -987,7 +855,8 @@ def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False
     """
     if assign_vehicles:
         assign_new_vehicles_to_db(django_scenario)
-    return run_ebus_toolchain(django_scenario.task_id)
+    async_result = run_ebus_toolchain(django_scenario.task_id)
+    return async_result
 
 
 def run_simba_scenario(
@@ -1035,6 +904,71 @@ def run_simba_scenario(
     return simba_schedule, scenario
 
 
+def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
+    # Create SpiceEV-like event dictionaries for a Scenario
+
+    events = scenario.event_set.order_by("time_start")
+    event_list = list()
+    if not events.exists():
+        return event_list
+    # all events known at scenario start
+    scenario_start_time = events.first().time_start
+
+    # get initial SoC of all vehicles
+    vehicles = scenario.vehicle_set.all()
+    vehicle_soc = dict()  # store current soc of vehicles
+    for vehicle in vehicles:
+        first_vehicle_event = events.filter(vehicle=vehicle).first()
+        if first_vehicle_event is not None:
+            vehicle_soc[vehicle.id] = first_vehicle_event.soc_start
+
+    # avoid non-station events from older simulations
+    events = events.filter(station_id__isnull=False)
+    # prefetch stations and vehicles from events (less queries, faster lookup)
+    events = events.select_related("station", "vehicle")
+    # get all charging events
+    charging_events = events.filter(event_type=EventType.CHARGING_DEPOT)
+    if not skip_oppb:
+        charging_events = charging_events.union(
+            events.filter(event_type=EventType.CHARGING_OPPORTUNITY)
+        )
+    # iterate over events in-order, creating SpiceEV event-dicts for each charging event
+    for event in charging_events:
+        # create arrival event
+        event_list.append(
+            {
+                "signal_time": scenario_start_time.isoformat(),
+                "start_time": event.time_start.isoformat(),
+                "vehicle_id": event.vehicle.name,
+                "event_type": "arrival",
+                "update": {
+                    "connected_charging_station": event.station.name,
+                    "estimated_time_of_departure": event.time_end.isoformat(),
+                    "soc_delta": event.soc_start - vehicle_soc[event.vehicle_id],
+                    "desired_soc": event.soc_end,
+                },
+            }
+        )
+
+        # create departure event (end of charging, not necessarily leaving station)
+        event_list.append(
+            {
+                "signal_time": scenario_start_time.isoformat(),
+                "start_time": event.time_end.isoformat(),
+                "vehicle_id": event.vehicle.name,
+                "event_type": "departure",
+                "update": {
+                    "estimated_time_of_arrival": None,
+                },
+            }
+        )
+
+        # update SoC
+        vehicle_soc[event.vehicle_id] = event.soc_end
+
+    return event_list
+
+
 def assign_new_vehicles_to_db(django_scenario: Scenario, db_name="default") -> None:
     """Assign a new vehicle to every rotation
 
@@ -1061,71 +995,180 @@ def assign_new_vehicles_to_db(django_scenario: Scenario, db_name="default") -> N
     Rotation.objects.bulk_update(rotations, ["vehicle"])
 
 
-def deepcopy_scenario(scenario: Scenario) -> Scenario:
+def deepcopy_scenario(scenario: Scenario) -> tuple[Scenario, dict]:
     """Deepcopy a scenario.
 
-    Scenario to be deepcopied must have values which can be deepcopied without specicif knowledge
+    Scenario to be deepcopied must have values which can be deepcopied without specific knowledge
     of implementation, e.g. if a value like the task_id has to be unique, the scenario has to
     be mutated before being deepcopied.
     :param scenario: Scenario to be deepcopied
     :type scenario: Scenario
-    :return: Scenario deepcopied
+    :return: deepcopied Scenario, stack which links original with copied instances
     """
-    copied_instance = core.deepcopy.deepcopy_and_sequence_reset(
+    copied_instance, stack = core.deepcopy.deepcopy_and_sequence_reset(
         scenario,
-        exclude_models={Scenario, User, Event, Progress},
+        exclude_models={Scenario, User, Event, Progress, UserGroup},
+        exclude_fields={
+            DepotSelection._meta.get_field("depots"),
+            ElectrificationOptions._meta.get_field("electrified_stations"),
+        },
         max_depth=1,
     )
-    return copied_instance
+    return copied_instance, stack
 
 
-def create_parent_scenario(scenario: Scenario) -> Scenario:
-    """Creates a parent scenario and links it to a child scenario.
+@atomic()
+def create_stations_for_map(django_scenario: Scenario):
+    stations = ebustoolbox.models.Station.objects.filter(scenario=django_scenario)
+    warned = False
+    stations_with_geo = []
+    for station in stations:
+        if station.geom is None:
+            if not warned:
+                warnings.warn("At least one Station has no geometry and is placed randomly")
+                warned = True
+            station.geom = Point(x=13.0 + random.random(), y=52.0 + random.random(), z=0)
+            stations_with_geo.append(station)
+    Station.objects.bulk_update(stations_with_geo, ["geom"])
 
-    :param scenario: Scenario to be created.
-    :type scenario: Scenario
-    :return: Scenario created
+
+def create_empty_child_scenario(parent_scenario: Scenario, task_id):
+    new_child_scenario = Scenario.objects.create(task_id=task_id)
+    new_child_scenario.manager = parent_scenario.manager
+    new_child_scenario.name = parent_scenario.name
+    new_child_scenario.parent = parent_scenario
+    new_child_scenario.save()
+    return new_child_scenario
+
+
+@atomic()
+def create_scenario_copy_for_user(mutation_scenario: Scenario):
+    assert isinstance(mutation_scenario, Scenario)
+    assert mutation_scenario.parent is not None
+    assert mutation_scenario.parent.parent is None
+    mutation_scenario.task_id = ebustoolbox.util.get_unique_task_id()
+    copied_scenario, stack = deepcopy_scenario(mutation_scenario)
+    vehicle_type_selections = VehicleTypeSelection.objects.filter(
+        vehicle_type__scenario=mutation_scenario
+    )
+    for vts in vehicle_type_selections:
+        new_vt_id = stack[VehicleType][vts.vehicle_type.id]
+        vts.id = None
+        vts.vehicle_type = VehicleType.objects.get(id=new_vt_id)
+        vts.save()
+
+    vehicle_type_mutation = VehicleTypeMutation.objects.filter(
+        mutated_vehicle_type__scenario=mutation_scenario
+    )
+    for vtm in vehicle_type_mutation:
+        new_vt_id = stack[VehicleType][vtm.mutated_vehicle_type.id]
+        vtm.id = None
+        vtm.mutated_vehicle_type = VehicleType.objects.get(id=new_vt_id)
+        vtm.save()
+
+    # ToDo Expand with Depot and Station Mutation if such settings will be introduced
+    #
+    # class DepotMutation(models.Model):
+    #     original_depot = models.ForeignKey(
+    #         Depot, related_name="originaldepot", null=True, on_delete=models.CASCADE
+    #     )
+    #     mutated_original_depot = models.ForeignKey(
+    #         Depot, related_name="mutateddepot", null=True, on_delete=models.CASCADE
+    #     )
+    #
+    #
+    # class StationMutation(models.Model):
+    #     original_station = models.ForeignKey(
+    #         Station, related_name="originalstation", null=True, on_delete=models.CASCADE
+    #     )
+    #     mutated_original_station = models.ForeignKey(
+    #         Station, related_name="mutatedstation", null=True, on_delete=models.CASCADE
+    #     )
+
+    return copied_scenario
+
+
+@atomic()
+def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) -> Scenario:
+    """Create a child scenario from a mutation and parent scenario
+
+    :param parent_scenario: Parent scenario
+    :type parent_scenario: Scenario
+    :param mutation: Mutation
+    :type mutation: Scenario
+    :return: Child scenario
+    :rtype: Scenario
     """
-    old_task_id = scenario.task_id
-    scenario.task_id = ebustoolbox.util.get_unique_task_id()
-    copied_instance = deepcopy_scenario(scenario)
-    scenario.task_id = old_task_id
-    scenario.parent = copied_instance
-    scenario.save()
-    return copied_instance
+
+    parent_scenario.task_id = ebustoolbox.util.get_unique_task_id()
+    child, stack = deepcopy_scenario(parent_scenario)
+    parent_scenario.refresh_from_db()
+    child.parent = mutation
+    if parent_scenario.simba_options:
+        child.simba_options = parent_scenario.simba_options
+    else:
+        child.simba_options = vars(get_args(child))
+    child.save()
+
+    # Mutate child according to parent
+    # Remove rotations from the timespan
+    sim_range = SimulationRange.objects.get(scenario=mutation)
+    time_delta = sim_range.end - sim_range.start
+    trim_scenario(child, time_delta, sim_range.start)
+    # # Used for clearing up depots without rotations
+    trim_depots(child, [])
+
+    depot_selection = DepotSelection.objects.get(scenario=mutation)
+    # These depots were selected to remain
+    original_depot_ids = depot_selection.depots.all().values_list("id", flat=True)
+    copied_depot_ids = [stack[Station][org_id] for org_id in original_depot_ids]
+    all_depots = Station.objects.filter(scenario=child, charge_type=EnumChargeType.DEPOT)
+    depots_to_remove = all_depots.exclude(id__in=copied_depot_ids)
+    trim_depots(child, depots_to_remove)
+
+    ele_option = ElectrificationOptions.objects.get(scenario=mutation)
+    ele_dict = model_to_dict(ele_option)
+    del ele_dict["id"]
+    del ele_dict["scenario"]
+    del ele_dict["electrified_stations"]
+
+    child.simba_options.update(ele_dict)
+    if ele_option.station_optimization:
+        child.simba_options["modes"] = "sim,station_optimization,report"
+    else:
+        child.simba_options["modes"] = "sim,report"
+
+    org_ele_station_ids = ele_option.electrified_stations.all().values_list("id", flat=True)
+    copied_ele_station_ids = [stack[Station][org_id] for org_id in org_ele_station_ids]
+    electrify_db_stations(child, copied_ele_station_ids)
+    for station in Station.objects.filter(scenario=mutation).exclude(id__in=copied_ele_station_ids):
+        station.is_electrified = False
+        station.save()
+
+    vehicle_type_mutations = VehicleTypeMutation.objects.filter(
+        original_vehicle_type__scenario=parent_scenario, mutated_vehicle_type__scenario=mutation
+    )
+    vt_mut_list = vehicle_type_mutations.values_list("original_vehicle_type", flat=True)
+    assert len(vt_mut_list) == len({vt for vt in vt_mut_list})
+    vt_mut_list = vehicle_type_mutations.values_list("mutated_vehicle_type", flat=True)
+    assert len(vt_mut_list) == len({vt for vt in vt_mut_list})
+    assert len(vt_mut_list) == VehicleType.objects.filter(scenario=mutation).count()
+
+    for vt_mut in vehicle_type_mutations:
+        org_vt = vt_mut.original_vehicle_type
+        vt = vt_mut.mutated_vehicle_type
+        copied_vt_id = stack[VehicleType][org_vt.id]
+        vt.id = copied_vt_id
+        vt.scenario = child
+        vt.save()
+    child.save()
+    return child
 
 
 @shared_task(bind=True)
-def _run_ebus_toolchain(self, task_id, run_parent=False):
+def _run_ebus_toolchain(self, task_id):
     """Run the tool chain"""
-
     db_scenario = Scenario.objects.get(task_id=task_id)
-
-    # Always run the root parent since scenarios allow mutation this.
-    # This way task_ids / urls can be consistent with the run of the user, e.g.
-    # user starts a simulation of Scenario (A) which mutates (A) to (AB). URLS (A) should lead to
-    # (AB). If the
-    if db_scenario.parent is not None:
-        db_parent = db_scenario.parent
-        if run_parent:
-            while db_parent.parent is not None:
-                db_parent = db_parent.parent
-
-            db_parent.task_id = ebustoolbox.util.get_unique_task_id()
-            child_scenario = deepcopy_scenario(db_parent)
-            child_scenario.parent = db_parent
-            child_scenario.save()
-            db_parent.refresh_from_db()
-            logger.info(
-                f"Parent scenario with task_id {db_parent.task_id} will be simulated. Results will "
-                f"be saved in {child_scenario.parent}"
-            )
-            db_scenario = child_scenario
-    else:
-        # Save input scenario as parent of this scenario
-        logger.info(f"Storing root scenario as parent {datetime.now()}")
-        _ = create_parent_scenario(db_scenario)
-
     progress, _ = Progress.objects.get_or_create(task_id=self.request.id, scenario=db_scenario)
     progress.reset()
 
@@ -1144,8 +1187,6 @@ def _run_ebus_toolchain(self, task_id, run_parent=False):
         progress.current_work = 0
         progress.save()
 
-        # django_scenario = Scenario.objects.get(task_id=task_id)
-        # schedule, args = get_schedule_from_args(args, django_scenario)
         # call simba and eflips
         try:
             wanted_modes = args.modes.split(",")
@@ -1165,7 +1206,7 @@ def _run_ebus_toolchain(self, task_id, run_parent=False):
             # Event.objects.filter(scenario=db_scenario).order_by("soc_end").first().soc_end
             run_eflips(task_id)
             eflips_assignment = get_assigned_vehicles(task_id)
-            schedule.assign_vehicles_for_django(eflips_assignment)
+            schedule.assign_vehicles_custom(eflips_assignment)
             # ToDo: Keep that?
             electrify_depot_station_w_default(db_scenario)
             #
@@ -1235,7 +1276,7 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
     all_rotations = Rotation.objects.filter(scenario=scenario)
     vehicle_assigns = []
     vehicle_counter_dict = {
-        v.vehicle_type.name_short: {EnumChargeType.OPPORTUNITY: 0, EnumChargeType.DEPOT: 0}
+        v.vehicle_type.id: {EnumChargeType.OPPORTUNITY: 0, EnumChargeType.DEPOT: 0}
         for v in used_vehicles
     }
     counted_vehicles = set()
@@ -1249,7 +1290,7 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
             else:
                 ct = EnumChargeType.DEPOT.value
 
-            vehicle_counter_dict[vt.name_short][ct] += 1
+            vehicle_counter_dict[vt.id][ct] += 1
             counted_vehicles.add(vehicle)
 
         prev_event = (
@@ -1267,7 +1308,7 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
 def run_simba(
     schedule: SimbaSchedule, args, db_scenario, mode=None, scenario=None
 ) -> (SimbaSchedule, "SimbaScenario"):
-    logger.info(f"Running Simba {datetime.now()}")
+    logger.info(f"Running Simba {datetime.now()} with mode {mode}")
     # TODO don't overwrite output on multiple function calls
     task_id = db_scenario.task_id
     args.output_directory = Path(settings.UPLOAD_PATH) / str(task_id)
@@ -1399,6 +1440,10 @@ def is_consistent_rotation(rotation: Rotation) -> bool:
             logger.error("A trip arrives after the departure of the next trip.")
             return False
         trip = next_trip
+
+    assert trips[0].route.departure_station.charge_type == EnumChargeType.DEPOT
+    assert trips[-1].route.arrival_station.charge_type == EnumChargeType.DEPOT
+
     return True
 
 
@@ -1420,14 +1465,14 @@ def is_consistent(scenario: Scenario) -> bool:
 
     if VehicleType.objects.filter(scenario=scenario, consumption=None).count() > 0:
         if not Temperatures.objects.filter(scenario=scenario).count() == 1:
-            logger.error(
+            logger.warning(
                 "VehicleTypes have no constant consumption.\n"
                 "This makes adding 'Temperatures' to the scenario mandatory.\n "
                 "Use temperatures_to_db('ebustoolbox/static/ebustoolbox/"
                 "examples/temperature_time_series.csv',django_scenario, True) "
-                "to add a default temperature series"
+                "to add a default temperature series. Default Temperature of "
+                f"{DEFAULT_TEMPERATURE}°C will be used."
             )
-            return False
 
     for vt in VehicleType.objects.filter(scenario=scenario):
         if vt.charging_curve is None:
@@ -1509,9 +1554,7 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario) -> list[Ev
     vehicle_dict = Vehicle.objects.filter(scenario=db_scenario)
     vehicle_dict = {vehicle.to_simba_name(): vehicle for vehicle in vehicle_dict}
     vehicle_type_dict = VehicleType.objects.filter(scenario=db_scenario)
-    vehicle_type_dict = {
-        vehicle_type.name_short: vehicle_type for vehicle_type in vehicle_type_dict
-    }
+    vehicle_type_dict = {str(vehicle_type.id): vehicle_type for vehicle_type in vehicle_type_dict}
 
     vehicle_events = [e for e in simba_scenario.events.vehicle_events]
 
@@ -1537,7 +1580,7 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario) -> list[Ev
     vehicle_trips_dict = dict()
     current_rotation = None
     events = []
-    event_id = 1 if Event.objects.last() is None else Event.objects.last().id + 1
+    event_id = ebustoolbox.util.get_next_id(Event)
     last_arrival_time = None
     current_vehicle = None
     last_aware = None
@@ -1722,7 +1765,8 @@ def update_vehicle_types_with_defaults(vehicle_type_pairs, task_id, vt_adjustmen
         vt = vehicle_types_db.get(pk=vehicle_type_pair[0])
         vt_default = vehicle_types_default.get(pk=vehicle_type_pair[1])
         vt_default.scenario = scenario
-        vt_default.battery_capacity = vt_adjustments[vt_default.id]["battery_capacity"]
+        if vt_adjustments[vt_default.id].get("battery_capacity"):
+            vt_default.battery_capacity = vt_adjustments[vt_default.id]["battery_capacity"]
         vt_default.pk = vehicle_type_pair[0]
         # Do not overwrite this, since both capabilties might be needed
         assert vt_default.opportunity_charging_capable == vt.opportunity_charging_capable
@@ -1747,16 +1791,13 @@ def find_and_make_depots(scenario):
         station.save()
 
 
-@atomic()
+@atomic(savepoint=False)
 def trim_depots(scenario, depot_ids: list[int]):
-    logger.info(
-        f"Trimming scenario {scenario.id} from depots {depot_ids}\n"
-        f"rotations: {Rotation.objects.filter(scenario=scenario).count()}\n"
-        f"trips: {Trip.objects.filter(scenario=scenario).count()}\n"
-        f"routes: {Route.objects.filter(scenario=scenario).count()}\n"
-        f"stations: {Station.objects.filter(scenario=scenario).count()}\n"
-        f"vehicles: {Vehicle.objects.filter(scenario=scenario).count()}\n"
-    )
+    rot_before_count = Rotation.objects.filter(scenario=scenario).count()
+    trip_before_count = Trip.objects.filter(scenario=scenario).count()
+    route_before_count = Route.objects.filter(scenario=scenario).count()
+    station_before_count = Station.objects.filter(scenario=scenario).count()
+    vehicle_before_count = Vehicle.objects.filter(scenario=scenario).count()
     for dep_id in depot_ids:
         station = Station.objects.filter(
             id=dep_id, scenario=scenario, charge_type=EnumChargeType.DEPOT
@@ -1773,7 +1814,6 @@ def trim_depots(scenario, depot_ids: list[int]):
             station.delete()
         else:
             logger.info(f"Station with id {dep_id} not found in scenario")
-
     (
         Station.objects.filter(scenario=scenario)
         .annotate(departure_count=Count("route_departure_set__trip"))
@@ -1781,14 +1821,12 @@ def trim_depots(scenario, depot_ids: list[int]):
         .filter(departure_count=0, arrival_count=0)
         .delete()
     )
-
     (Route.objects.filter(scenario=scenario).annotate(count=Count("trip")).filter(count=0).delete())
-
     logger.info(
-        f"After trimming\n"
-        f"rotations: {Rotation.objects.filter(scenario=scenario).count()}\n"
-        f"trips: {Trip.objects.filter(scenario=scenario).count()}\n"
-        f"routes: {Route.objects.filter(scenario=scenario).count()}\n"
-        f"stations: {Station.objects.filter(scenario=scenario).count()}\n"
-        f"vehicles: {Vehicle.objects.filter(scenario=scenario).count()}\n"
+        f"Before -> After trimming\n"
+        f"rotations:{rot_before_count} -> {Rotation.objects.filter(scenario=scenario).count()}\n"
+        f"trips: {trip_before_count} ->{Trip.objects.filter(scenario=scenario).count()}\n"
+        f"routes: {route_before_count} ->{Route.objects.filter(scenario=scenario).count()}\n"
+        f"stations: {station_before_count} ->{Station.objects.filter(scenario=scenario).count()}\n"
+        f"vehicles: {vehicle_before_count} ->{Vehicle.objects.filter(scenario=scenario).count()}\n"
     )

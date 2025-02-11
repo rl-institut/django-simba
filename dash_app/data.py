@@ -160,18 +160,25 @@ def get_number_of_buses(filter_dict: dict) -> list[str]:
     ]
 
 
-def get_number_of_stations(task_id: str) -> list[str]:
+def get_number_of_stations(task_id: str, get_electrified=True) -> list[str]:
     s = Scenario.objects.get(task_id=task_id)
     # Count all Station objects for the scenario
     total_stations = Station.objects.filter(scenario_id=s.id).count()
 
-    # Count Station objects where is_electrified is True for the scenario
-    electrified_stations = Station.objects.filter(scenario_id=s.id, is_electrified=True).count()
+    if get_electrified:
+        # Count Station objects where is_electrified is True for the scenario
+        electrified_stations = Station.objects.filter(scenario_id=s.id, is_electrified=True).count()
 
-    return [
-        "Anzahl elektrifizierter Stationen / Anzahl Stationen",
-        f"{electrified_stations} / {total_stations}",
-    ]
+        return [
+            "Anzahl elektrifizierter Stationen / Anzahl Stationen",
+            f"{electrified_stations} / {total_stations}",
+        ]
+
+    else:
+        return [
+            "Anzahl Stationen im Szenario:",
+            f"{total_stations}",
+        ]
 
 
 def get_frequently_served_station(task_id: str) -> list[str]:
@@ -222,7 +229,10 @@ def get_number_longest_rot(filter_dict: dict):
     task_id = filter_dict.pop("task_id")
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
-    if len(filter_dict["vehicle__id__in"]) == 0:
+
+    if (
+        "vehicle__id__in" in filter_dict and len(filter_dict["vehicle__id__in"]) == 0
+    ) and sim_is_finished(task_id):
         raise PreventUpdate
 
     # Function calls annotate distance to Rotation
@@ -247,7 +257,10 @@ def get_number_shortest_rot(filter_dict: dict):
     task_id = filter_dict.pop("task_id")
     s = Scenario.objects.get(task_id=task_id)
     filter_dict["scenario"] = s
-    if len(filter_dict["vehicle__id__in"]) == 0:
+
+    if (
+        "vehicle__id__in" in filter_dict and len(filter_dict["vehicle__id__in"]) == 0
+    ) and sim_is_finished(task_id):
         raise PreventUpdate
 
     # Function calls annotate distance to Rotation
@@ -811,5 +824,5 @@ def get_all_powerdraw_as_dataframe(scenario_id):
     return result_df
 
 
-def get_sim_done_status(task_id):
-    return not Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
+def sim_is_finished(task_id):
+    return Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
