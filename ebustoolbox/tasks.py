@@ -1451,6 +1451,13 @@ def is_consistent(scenario: Scenario) -> bool:
     for rotation in Rotation.objects.filter(scenario=scenario):
         is_consistent_rotation(rotation)
 
+    if Vehicle.objects.filter(scenario=scenario).exists():
+        for rotation in Rotation.objects.filter(scenario=scenario).select_related(
+            "vehicle_type", "vehicle__vehicle_type"
+        ):
+            if rotation.vehicle is not None:
+                assert rotation.vehicle.vehicle_type == rotation.vehicle_type
+
     if VehicleType.objects.filter(scenario=scenario, consumption=None).count() > 0:
         if Trip.objects.filter(scenario=scenario, loaded_mass=None).count() > 0:
             logger.error("Scenario has trips without a loaded mass.")
@@ -1495,17 +1502,54 @@ def example_single_step_optimization(scenario: Scenario):
     )
 
 
-def create_event_output(simba_scenario: "SimbaScenario", db_scenario):  # noqa: C901
+def example_electrification_optimization(scenario: Scenario):
+    """
+
+    :param scenario: Scenario to be optimized
+    :type scenario: ebustoolbox.models.Scenario
+    :return: None
+    """
+    # Check that the scenario is consistent.
+    assert is_consistent(scenario)
+    schedule, simbascenario = run_simba_scenario(scenario, assign_vehicles=True)
+
+    schedule, simbascenario = run_simba_scenario(
+        scenario, simba_scenario=simbascenario, mode="station_optimization"
+    )
+
+
+def create_event_output(simba_scenario: "SimbaScenario", db_scenario) -> list[Event]:  # noqa: C901
     # collect data from DB
     # Delete old simba events
-    Event.objects.filter(
-        scenario=db_scenario,
-        event_type__in=[
-            EventType.CHARGING_OPPORTUNITY,
-            EventType.DRIVING,
-            EventType.STANDBY_DEPARTURE,
-        ],
-    ).delete()
+
+    (
+        # Query the Event model for entries that meet the following criteria:
+        Event.objects.filter(
+            # The `scenario` field matches the provided `db_scenario` variable.
+            scenario=db_scenario,
+            # The `event_type` field matches one of the specified types:
+            # - CHARGING_OPPORTUNITY
+            # - DRIVING
+            # - STANDBY_DEPARTURE
+            # These are created by simba
+            event_type__in=[
+                EventType.CHARGING_OPPORTUNITY,
+                EventType.DRIVING,
+                EventType.STANDBY_DEPARTURE,
+            ],
+            # The `area` field must be NULL (or not set) because simba does not create events with area.
+            area__isnull=True,
+        )
+        # Simba STANDBY_DEPARTURE events have a Station.
+        # Events without a station could come from eflips and are not excluded
+        .exclude(
+            # The `event_type` is STANDBY_DEPARTURE AND the `station` field is NULL.
+            event_type=EventType.STANDBY_DEPARTURE,
+            station__isnull=True,
+        )
+        # Delete the remaining events that match the filter and exclude criteria.
+        .delete()
+    )
 
     vehicle_dict = Vehicle.objects.filter(scenario=db_scenario)
     vehicle_dict = {vehicle.to_simba_name(): vehicle for vehicle in vehicle_dict}
@@ -1636,7 +1680,7 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario):  # noqa: 
             ],
         }
         if None in timeseries["soc"]:
-            logger.warn("None Values found in timeseries")
+            logger.warning("None Values found in timeseries")
             forward_fill_last_value(timeseries["soc"])
         # grab current vehicle SoC at timestep
         soc_start = timeseries["soc"][0]
@@ -1662,6 +1706,7 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario):  # noqa: 
         event_id += 1
         events.append(event)
     Event.objects.bulk_create(events)
+    return events
 
 
 def forward_fill_last_value(list_with_nones):
