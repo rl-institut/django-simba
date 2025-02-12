@@ -697,7 +697,6 @@ def findConnectedSegments(G, start_node, visited=set()):
 
         type = edge_data['type']
         weight = edge_data['length']
-        print(type)
         if type == 'straight_segment' and (start_node, neighbor) not in visited:
             red_segments.append(
                 {'start': start_node, 'end': neighbor, 'length_total': weight, 'nodes': [start_node, neighbor],
@@ -795,7 +794,7 @@ def distance_poly(pt, polygon, default=-1):
 
 
 def placeColoredPanthograph(pnt, local_layerdict, criteria):
-    col = "green"  # TODO: enum?
+    col = "green"
 
     charger_good, charger_medium, charger_bad = 0, 0, 0
 
@@ -830,7 +829,7 @@ def placeColoredPanthograph(pnt, local_layerdict, criteria):
         if col == "green" and color != "green":
             col = color
         elif color == "orange" and color != "green":
-            col == color
+            col = color
 
         #full_str += "Abstand " + crit + ": " + str(dist) + "\n"
 
@@ -842,46 +841,3 @@ def placeColoredPanthograph(pnt, local_layerdict, criteria):
         charger_bad += 1
 
     return charger_good, charger_medium, charger_bad
-
-import matplotlib.pyplot as plt
-import matplotlib
-def display_graph_with_edge_colors(G):
-    """
-    Displays a NetworkX graph with edges colored by their type.
-
-    Parameters:
-        G (nx.Graph or nx.DiGraph): The graph to visualize.
-    """
-    # Map edge types to colors
-    type_to_color = {
-        'straight_segment': 'red',
-        'regular': 'blue',
-        'isolated': 'gray'
-    }
-    matplotlib.use('TkAgg')  # Or 'Qt5Agg', depending on your setup
-    print(matplotlib.get_backend())
-
-    # Assign colors to edges based on their type
-    edge_colors = [type_to_color[G.edges[edge]['type']] for edge in G.edges]
-
-    # Use a spring layout for positioning nodes
-    pos = nx.spring_layout(G)
-
-    # Draw nodes
-    nx.draw_networkx_nodes(G, pos, node_size=300, node_color='lightblue')
-
-    # Draw edges
-    nx.draw_networkx_edges(G, pos, edge_color=edge_colors, arrows=True)
-
-    # Draw labels
-    nx.draw_networkx_labels(G, pos, font_size=10, font_color='black')
-
-    # Add edge labels (optional, e.g., for weights or types)
-    edge_labels = nx.get_edge_attributes(G, 'type')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='black')
-
-    # Turn off axis
-    plt.axis('off')
-
-    # Show the plot
-    plt.show()
