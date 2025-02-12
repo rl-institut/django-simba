@@ -925,11 +925,7 @@ class SimulationExecutionFailException(Exception):
     pass
 
 
-def simulate_depot_strategy(scenario: Scenario, strategy: str) -> SimbaScenario:  # noqa: C901
-    if strategy not in STRATEGIES:
-        raise NotImplementedError(f"Strategy {strategy} not supported")
-
-    # simulate all depot events in SpiceEV using a specific strategy
+def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
     events = scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT)
     if not events.exists():
         raise SimulationEventsMissingException("SpiceEV scenario generation: no events found")
@@ -1050,7 +1046,7 @@ def simulate_depot_strategy(scenario: Scenario, strategy: str) -> SimbaScenario:
                 "parent": station,
             }
 
-    spice_ev_scenario_dict = {
+    return {
         "scenario": {
             "start_time": start_simulation.isoformat(),
             "stop_time": stop_simulation.isoformat(),
@@ -1067,10 +1063,16 @@ def simulate_depot_strategy(scenario: Scenario, strategy: str) -> SimbaScenario:
             "vehicle_events": spice_ev_events,
             "grid_operator_signals": [],
         },
+        "args": vars(args).copy(),
     }
 
+
+def simulate_depot_strategy(spice_ev_scenario_dict: dict, strategy: str) -> SimbaScenario:
+    if strategy not in STRATEGIES:
+        raise NotImplementedError(f"Strategy {strategy} not supported")
+
     spice_ev_scenario = SimbaScenario(spice_ev_scenario_dict)
-    spice_ev_scenario.run(strategy, vars(args).copy())
+    spice_ev_scenario.run(strategy, spice_ev_scenario_dict["args"])
     if spice_ev_scenario.step_i != spice_ev_scenario.n_intervals:
         raise SimulationExecutionFailException("SpiceEV simulation aborted, see above for details")
     return spice_ev_scenario

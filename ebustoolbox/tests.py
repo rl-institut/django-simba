@@ -471,7 +471,7 @@ class ScenarioTestCase(TestCase):
         self.assertIsNone(instance_1.task_id)
 
 
-class SimulationTestCase(TestCase):
+class SimulationTestCase(TransactionTestCase):
     def test_flex_band_off(self):
         django_scenario, simba_schedule, args = build_scenario()
         args.skip_flex_report = False
@@ -501,13 +501,15 @@ class SimulationTestCase(TestCase):
         django_scenario.station_set.update(
             is_electrified=True, charge_type=EnumChargeType.DEPOT, voltage_level="MV"
         )
+
+        spiceev_scenario_dict = tasks.create_spiceev_scenario_dict(django_scenario)
         # unknown strategy
         with self.assertRaises(NotImplementedError):
-            tasks.simulate_depot_strategy(django_scenario, "error")
+            tasks.simulate_depot_strategy(spiceev_scenario_dict, "error")
 
         # simulate with SpiceEV strategies
         for strategy in ("greedy", "balanced", "peak_shaving"):
-            spiceev_scenario = tasks.simulate_depot_strategy(django_scenario, strategy)
+            spiceev_scenario = tasks.simulate_depot_strategy(spiceev_scenario_dict, strategy)
             self.assertEqual(spiceev_scenario.step_i, spiceev_scenario.n_intervals)
 
 
