@@ -7,14 +7,8 @@ from django.core import signing, mail
 from django.http import HttpResponse, Http404
 from django.shortcuts import render, redirect
 from django.urls import reverse
-from django.views.generic import TemplateView
 
 from .forms import SignUpForm
-
-
-# Create your views here.
-class LandingPageView(TemplateView):
-    template_name = "core/landing_page.html"
 
 
 # ******** User management ******** #
@@ -28,7 +22,7 @@ def signup(request):
         # posted data: create new user instance
         form = SignUpForm(request.POST)
         if not form.is_valid():
-            return render(request, "registration/signup.html", {"form": form})
+            return render(request, "core/registration/signup.html", {"form": form})
         user = form.save()  # read necessary info from form
         user.refresh_from_db()
         user.username = user.email.lower()  # force lowercase for username
@@ -45,7 +39,7 @@ def signup(request):
         if User.objects.filter(username=email).exists():
             return redirect(reverse("login"))
         form = SignUpForm(initial={"email": email})
-        return render(request, "registration/signup.html", {"form": form})
+        return render(request, "core/registration/signup.html", {"form": form})
     raise Http404()
 
 
@@ -63,7 +57,7 @@ def changePassword(request):
     else:
         form = PasswordChangeForm(request.user)
     # return view
-    return render(request, "registration/password_change.html", {"form": form})
+    return render(request, "core/registration/password_change.html", {"form": form})
 
 
 @login_required(login_url="/login/")

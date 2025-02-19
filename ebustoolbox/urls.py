@@ -1,11 +1,60 @@
 """URLs for map app, including main view and API points."""
 
 from django.urls import path
+from django.views.generic.base import TemplateView
 
-from . import views
+# from . import views
 
 app_name = "simba"
 
+urlpatterns = [
+    path(
+        "compare/",
+        TemplateView.as_view(template_name="ebustoolbox/compare.html"),
+        name="compare",
+    ),
+    path("costs/", TemplateView.as_view(template_name="ebustoolbox/costs.html"), name="costs"),
+    path(
+        "dashboard/",
+        TemplateView.as_view(template_name="ebustoolbox/dashboard-empty-state.html"),
+        name="dashboard",
+    ),
+    path(
+        "depots/",
+        TemplateView.as_view(template_name="ebustoolbox/depots.html"),
+        name="depots",
+    ),
+    path(
+        "results/",
+        TemplateView.as_view(template_name="ebustoolbox/results.html"),
+        name="results",
+    ),
+    path(
+        "stations/",
+        TemplateView.as_view(template_name="ebustoolbox/stations.html"),
+        name="stations",
+    ),
+    path(
+        "summary/",
+        TemplateView.as_view(template_name="ebustoolbox/summary.html"),
+        name="summary",
+    ),
+    path(
+        "trips/",
+        TemplateView.as_view(template_name="ebustoolbox/trips.html"),
+        name="trips",
+    ),
+    path(
+        "vehicles/",
+        TemplateView.as_view(template_name="ebustoolbox/vehicles.html"),
+        name="vehicles",
+    ),
+    # superfluous templates, just for show
+    path("DELETE-ME/", TemplateView.as_view(template_name="ebustoolbox/signup.html")),
+    path("DEMO/", TemplateView.as_view(template_name="ebustoolbox/dashboard.html")),
+]
+
+"""
 # ToDo Append "/" to all url paths
 urlpatterns = [
     path(
@@ -51,3 +100,4 @@ urlpatterns = [
     path("progress/<uuid:progress_id>/<str:progress_type>", views.progress, name="progress"),
     path("run_simulation/<uuid:task_id>/", views.run_simulation, name="run_simulation"),
 ]
+"""

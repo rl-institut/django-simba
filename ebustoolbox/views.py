@@ -56,7 +56,7 @@ def show_uploads_view(request: HttpRequest, filename):
 
 
 def result_view(request: HttpRequest, task_id):
-    """View controlling if the wait or success view should be shown"""
+    # View controlling if the wait or success view should be shown
     try:
         if Scenario.objects.get(task_id=task_id).finished:
             request.task_id = str(task_id)
@@ -69,14 +69,15 @@ def result_view(request: HttpRequest, task_id):
 
 
 def wait_view(request, task_id):
-    """View while waiting for results. Will trigger success view as soon as long-running task
-    returns pending"""
+    # View while waiting for results.
+    # Will trigger success view as soon as long-running task
+    # returns pending
     logger.info("SimBA is calculating. Showing wait view")
     return render(request, "wait.html", {"task_id": task_id})
 
 
 class SuccessView(TemplateView, MapEngineMixin):
-    """View which generates the page containing simulation results"""
+    # View which generates the page containing simulation results
 
     template_name = "result.html"
 
@@ -103,8 +104,8 @@ class SuccessView(TemplateView, MapEngineMixin):
 
 @require_GET
 def long_running_task_status_view(request):
-    """Returns a Json with a success field. The field is True if the task has finished and
-    False if it is still pending"""
+    # Returns a Json with a success field.
+    # The field is True if the task has finished and False if it is still pending
     task_id = request.GET.get("task_id")
     task_result = AsyncResult(task_id)
     if (
@@ -118,9 +119,8 @@ def long_running_task_status_view(request):
 
 
 def schedule(request: HttpRequest, task_id, finished):
-    """Generate the home view of the tool chain with input forms"""
-    # Schedule uploading triggers a progress which will send finished="true" if the upload is
-    # finished
+    # Generate the home view of the tool chain with input forms
+    # Schedule uploading triggers a progress which will send finished="true" if the upload finished
     if finished == "true":
         scenario = Scenario.objects.get(task_id=task_id)
         task_id = scenario.task_id
@@ -139,7 +139,7 @@ def schedule(request: HttpRequest, task_id, finished):
 
 
 def get_simulation_parameters(request: HttpRequest, task_id):
-    """Generate the home view of the tool chain with input forms"""
+    # Generate the home view of the tool chain with input forms
     try:
         scenario = Scenario.objects.get(task_id=task_id)
         parent = scenario.parent
@@ -302,7 +302,8 @@ def get_vehicle_types(request: HttpRequest, task_id):
 
 
 def get_depots(request: HttpRequest, task_id):
-    """View for the depot input tab. Either continues to next wizard step or renders depot page."""
+    # View for the depot input tab.
+    # Either continues to next wizard step or renders depot page.
     context = {"task_id": task_id}
     try:
         scenario = Scenario.objects.get(task_id=task_id)
@@ -421,7 +422,7 @@ def get_electrification(request: HttpRequest, task_id):
 
 
 def scenario_overview_view(request: HttpRequest, task_id, finished=None):
-    """View controlling if the wait or success view should be shown"""
+    # View controlling if the wait or success view should be shown
     try:
         scenario = Scenario.objects.get(task_id=task_id)
     except Scenario.DoesNotExist:

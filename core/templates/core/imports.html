@@ -1,0 +1,23 @@
+{% load static %}
+
+<script src="{% static 'templates/js/custom.js' %}"></script>
+<script src="{% static "jquery.min.js" %}"></script>
+<script src="{% static "popper.js" %}"></script>
+<script src="{% static "bootstrap.min.js" %}"></script>
+<script src="{% static "htmx.min.js" %}"></script>
+<script src="{% static "class-tools.js" %}"></script>
+<script src="{% static "chart.umd.js" %}"> type="module"</script>
+<script src="{% static "nouislider.min.js" %}"></script>
+<link href="{%  static "nouislider.min.css" %}" rel="stylesheet">
+
+<script>
+    // Timezone settings
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // e.g. "America/New_York"
+
+    // Create the cookie string with SameSite attribute
+    document.cookie = "django_timezone=" + timezone + "; SameSite=Strict; path=/";
+
+    // You can adjust the SameSite attribute as per your requirement
+    // document.cookie = "django_timezone=" + timezone + "; SameSite=Strict; path=/";
+    // document.cookie = "django_timezone=" + timezone + "; SameSite=None; Secure; path=/";
+</script>

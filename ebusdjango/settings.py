@@ -73,6 +73,8 @@ INSTALLED_APPS = [
     # Django plotly dash
     "django_plotly_dash.apps.DjangoPlotlyDashConfig",
     "bootstrap4",
+    "tailwind",
+    "tailwind_theme",
 ]
 
 
@@ -94,7 +96,7 @@ ROOT_URLCONF = "ebusdjango.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates", BASE_DIR / "ebus_map/static"],
+        "DIRS": [BASE_DIR / "ebus_map/static"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -274,3 +276,6 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+
+TAILWIND_APP_NAME = "tailwind_theme"
+INTERNAL_IPS = ["localhost", "127.0.0.1"]
