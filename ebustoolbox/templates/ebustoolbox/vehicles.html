@@ -1,8 +1,14 @@
-{% extends 'core/base.html' %}
+{% extends 'ebustoolbox/wizard.html' %}
 
 {% block title %}WeBus - Fahrzeuge{% endblock title %}
 
-{% block content %}
+{% block wizard_navigation %}
+  {% with wiz_idx=2 %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock wizard_navigation %}
+
+{% block wizard_content %}
 <main class="flex flex-col items-center">
   <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
     <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">Fahrzeuge</h1>
@@ -464,7 +470,13 @@
 
   </div>
 </main>
-{% endblock content %}
+{% endblock wizard_content %}
+
+{% block wizard_buttons %}
+  {% url 'simba:trips' as prev_url %}
+  {% url 'simba:stations' as next_url %}
+  {{ block.super }}
+{% endblock wizard_buttons %}
 
 {% block script %}
 <!-- Tabs Functionality of Bus Type Cards -->

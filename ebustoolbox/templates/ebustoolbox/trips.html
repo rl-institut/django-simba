@@ -1,125 +1,14 @@
-{% extends 'core/base.html' %}
+{% extends 'ebustoolbox/wizard.html' %}
 
 {% block title %}WeBus - Umlaufplan{% endblock title %}
 
-{% block content %}
-<nav aria-label="Progress" class="bg-white">
-  <ol role="list" class="divide-y divide-slate-300 border-b border-slate-200 md:flex md:divide-y-0">
-    <!-- Completed Step -->
-    <li class="relative md:flex md:flex-1">
-      <a href="#" class="group flex w-full items-center" aria-label="Schritt 1: Umlaufplan">
-        <span class="flex items-center px-3 lg:px-5 py-4 text-sm font-medium">
-          <span class="flex size-5 shrink-0 items-center justify-center rounded-full bg-slate-800 group-hover:bg-black">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#ffffff" class="size-3">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-            </svg>
-          </span>
-          <span class="ml-2 lg:ml-3 text-sm font-normal text-slate-800">Umlaufplan</span>
-        </span>
-      </a>
-      <!-- Arrow separator for lg screens and up -->
-      <div class="absolute right-0 top-0 hidden h-full w-5 md:block" aria-hidden="true">
-        <svg class="size-full text-slate-300" viewBox="0 0 22 80" fill="none" preserveAspectRatio="none">
-          <path d="M0 -2L20 40L0 82" vector-effect="non-scaling-stroke" stroke="currentcolor" stroke-linejoin="round" />
-        </svg>
-      </div>
-    </li>
-    <!-- Current Step -->
-    <li class="relative md:flex md:flex-1">
-      <span class="flex items-center px-3 lg:px-5 py-4 text-sm font-medium" aria-current="step" aria-label="Schritt 2: Fahrzeuge">
-        <span class="flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-green-400">
-          <div class="size-2 rounded-full bg-green-400"></div>
-        </span>
-        <span class="ml-2 lg:ml-3 text-sm font-semibold text-slate-800">Fahrzeuge</span>
-      </span>
-      <!-- Arrow separator for lg screens and up -->
-      <div class="absolute right-0 top-0 hidden h-full w-5 md:block" aria-hidden="true">
-        <svg class="size-full text-slate-300" viewBox="0 0 22 80" fill="none" preserveAspectRatio="none">
-          <path d="M0 -2L20 40L0 82" vector-effect="non-scaling-stroke" stroke="currentcolor" stroke-linejoin="round" />
-        </svg>
-      </div>
-    </li>
-    <!-- Upcoming Step -->
-    <li class="relative md:flex md:flex-1">
-      <span class="flex items-center" aria-label="Schritt 3: Endhaltestellen" aria-disabled="true" role="presentation">
-        <span class="flex items-center px-3 lg:px-5 py-4 text-sm font-medium">
-          <span class="flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-300"></span>
-          <span class="ml-2 lg:ml-3 text-sm font-normal text-slate-500">Endhaltestellen</span>
-        </span>
-      </span>
-      <!-- Arrow separator for lg screens and up -->
-      <div class="absolute right-0 top-0 hidden h-full w-5 md:block" aria-hidden="true">
-        <svg class="size-full text-slate-300" viewBox="0 0 22 80" fill="none" preserveAspectRatio="none">
-          <path d="M0 -2L20 40L0 82" vector-effect="non-scaling-stroke" stroke="currentcolor" stroke-linejoin="round" />
-        </svg>
-      </div>
-    </li>
-    <!-- Upcoming Step -->
-    <li class="relative md:flex md:flex-1">
-      <span class="flex items-center" aria-label="Schritt 4: Kosten" aria-disabled="true" role="presentation">
-        <span class="flex items-center px-3 lg:px-5 py-4 text-sm font-medium">
-          <span class="flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-300"></span>
-          <span class="ml-2 lg:ml-3 text-sm font-normal text-slate-500">Kosten</span>
-        </span>
-      </span>
-      <!-- Arrow separator for lg screens and up -->
-      <div class="absolute right-0 top-0 hidden h-full w-5 md:block" aria-hidden="true">
-        <svg class="size-full text-slate-300" viewBox="0 0 22 80" fill="none" preserveAspectRatio="none">
-          <path d="M0 -2L20 40L0 82" vector-effect="non-scaling-stroke" stroke="currentcolor" stroke-linejoin="round" />
-        </svg>
-      </div>
-    </li>
-    <!-- Upcoming Step -->
-    <li class="relative md:flex md:flex-1">
-      <span class="flex items-center" aria-label="Schritt 5: Depots" aria-disabled="true" role="presentation">
-        <span class="flex items-center px-3 lg:px-5 py-4 text-sm font-medium">
-          <span class="flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-300"></span>
-          <span class="ml-2 lg:ml-3 text-sm font-normal text-slate-500">Depots</span>
-        </span>
-      </span>
-      <!-- Arrow separator for lg screens and up -->
-      <div class="absolute right-0 top-0 hidden h-full w-5 md:block" aria-hidden="true">
-        <svg class="size-full text-slate-300" viewBox="0 0 22 80" fill="none" preserveAspectRatio="none">
-          <path d="M0 -2L20 40L0 82" vector-effect="non-scaling-stroke" stroke="currentcolor" stroke-linejoin="round" />
-        </svg>
-      </div>
-    </li>
-    <!-- Upcoming Step -->
-    <li class="relative md:flex md:flex-1">
-      <span class="flex items-center" aria-label="Schritt 6: Zusammenfassung" aria-disabled="true" role="presentation">
-        <span class="flex items-center px-3 lg:px-5 py-4 text-sm font-medium">
-          <span class="flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-300"></span>
-          <span class="ml-2 lg:ml-3 text-sm font-normal text-slate-500">Zusammenfassung</span>
-        </span>
-      </span>
-      <!-- Arrow separator for lg screens and up -->
-      <div class="absolute right-0 top-0 hidden h-full w-5 md:block" aria-hidden="true">
-        <svg class="size-full text-slate-300" viewBox="0 0 22 80" fill="none" preserveAspectRatio="none">
-          <path d="M0 -2L20 40L0 82" vector-effect="non-scaling-stroke" stroke="currentcolor" stroke-linejoin="round" />
-        </svg>
-      </div>
-    </li>
-    <!-- Upcoming Step -->
-    <li class="relative md:flex md:flex-1">
-      <span class="flex items-center" aria-label="Schritt 7: Simulation" aria-disabled="true" role="presentation">
-        <span class="flex items-center px-3 lg:px-5 py-4 text-sm font-medium">
-          <span class="flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-300"></span>
-          <span class="ml-2 lg:ml-3 text-sm font-normal text-slate-500">Simulation</span>
-        </span>
-      </span>
-    </li>
-  </ol>
-</nav>
+{% block wizard_navigation %}
+  {% with wiz_idx=1 %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock wizard_navigation %}
 
-<!-- For alerts -->
- <!--
-<aside class="flex flex-col items-center">
-  <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    // Add component here
-  </div>
-</aside>
--->
-
+{% block wizard_content %}
 <main class="flex flex-col items-center">
   <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
     <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">Umlaufplan</h1>
@@ -220,35 +109,9 @@
     </div>
   </div>
 </main>
+{% endblock wizard_content %}
 
-<nav>
-  <div class="mx-auto max-w-7xl px-2 pt-4 pb-8 sm:px-6 lg:px-8">
-    <div class="flex justify-end gap-4">
-      <button class="px-6 py-2 text-slate-600 text-sm font-semibold tracking-wide rounded-full hover:text-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
-        <span class="flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-          </svg>
-          <span>Abbrechen</span>
-        </span>
-      </button>
-      <button class="px-6 py-2 bg-slate-200 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
-        <span class="flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-          </svg>
-          <span>Zurück</span>
-        </span>
-      </button>
-      <button class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300">
-        <span class="flex justify-center items-center gap-2">
-          <span>Weiter</span>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-          </svg>
-        </span>
-      </button>
-    </div>
-  </div>
-</nav>
-{% endblock content %}
+{% block wizard_buttons %}
+  {% url 'simba:vehicles' as next_url %}
+  {{ block.super }}
+{% endblock wizard_buttons %}

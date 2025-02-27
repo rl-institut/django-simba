@@ -21,8 +21,10 @@
           <!-- Desktop Links -->
           <div class="hidden sm:flex space-x-6">
             <a href="{% url 'core:login' %}" class="text-slate-800 hover:underline">Einloggen</a>
-            <a href="#" class="text-slate-800 hover:underline">Szenarienvergleich</a>
+            <a href="{% url 'simba:dashboard' %}" class="text-slate-800 hover:underline">Szenarienvergleich</a>
+<!--
             <a href="#" class="text-slate-800 hover:underline">Hilfe</a>
+-->
           </div>
           <!-- Mobile Menu Button -->
           <div class="sm:hidden">
@@ -41,8 +43,10 @@
   <div id="mobile-menu" class="fixed inset-0 hidden z-20 bg-slate-800" aria-hidden="true">
     <div class="flex flex-col items-center justify-center h-full space-y-8">
       <a href="{% url 'core:login' %}" class="text-white text-2xl font-medium hover:underline">Einloggen</a>
-      <a href="#" class="text-white text-2xl font-medium hover:underline">Szenarienvergleich</a>
+      <a href="{% url 'simba:dashboard' %}" class="text-white text-2xl font-medium hover:underline">Szenarienvergleich</a>
+<!--
       <a href="#" class="text-white text-2xl font-medium hover:underline">Hilfe</a>
+-->
       <button id="close-menu" class="absolute top-4 right-4 p-2 text-white focus:outline-none">
         <span class="sr-only">Menü schließen</span>
         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -58,21 +62,25 @@
         Entwicklung und Analyse von Strategien zur vollständigen Dekarbonisierung des Berliner Busverkehrs bis 2030
       </p>
       <div class="mt-8 flex space-x-4">
-        <a href="dashboard.html" class="px-6 py-2 bg-slate-800 text-white text-base font-semibold tracking-wide rounded-full hover:bg-black hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-900 transition-all duration-300">
+        <a href="{% url 'simba:trips' %}" class="px-6 py-2 bg-slate-800 text-white text-base font-semibold tracking-wide rounded-full hover:bg-black hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-900 transition-all duration-300">
           Starten
         </a>
+<!--
         <button class="px-6 py-2 border-2 border-slate-800 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-100 transition-all duration-300">
           Mehr erfahren
         </button>
+-->
       </div>
     </main>
 
     <footer class="bg-slate-800 text-white">
       <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <ul class="flex justify-center space-x-6 text-sm">
+<!--
           <li><a href="#" class="hover:underline">Kontakt</a></li>
-          <li><a href="{% url 'legal' %}" class="hover:underline">Impressum</a></li>
-          <li><a href="{% url 'privacy' %}" class="hover:underline">Datenschutz</a></li>
+-->
+          <li><a href="{% url 'core:legal' %}" class="hover:underline">Impressum</a></li>
+          <li><a href="{% url 'core:privacy' %}" class="hover:underline">Datenschutz</a></li>
         </ul>
       </div>
     </footer>
