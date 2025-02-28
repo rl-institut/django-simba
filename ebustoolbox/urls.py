@@ -2,6 +2,7 @@
 
 from django.urls import path
 from django.views.generic.base import TemplateView
+from ebustoolbox.views import TripsView
 
 # from . import views
 
@@ -41,7 +42,7 @@ urlpatterns = [
     ),
     path(
         "trips/",
-        TemplateView.as_view(template_name="ebustoolbox/trips.html"),
+        TripsView.as_view(),
         name="trips",
     ),
     path(

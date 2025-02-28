@@ -80,6 +80,11 @@ class Scenario(models.Model):
         return scenario.pk
 
 
+class ScenarioDescription(models.Model):
+    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+    description = models.TextField(null=True, default="")
+
+
 @receiver(models.signals.pre_delete, sender=Scenario)
 def auto_delete_results_on_delete(sender, instance, **kwargs):
     """Delete the scenario results folder if the scenario is deleted from the database

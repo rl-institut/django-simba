@@ -1,4 +1,6 @@
 from django import forms
+from django.core.exceptions import ValidationError
+
 from .models import EnumChargeType, EnumVoltageLevel, ElectrificationOptions, VehicleType
 
 
@@ -111,3 +113,22 @@ class VehicleTypeForm(forms.ModelForm):
         labels = {
             "battery_capacity": "Batteriekapazität [kWh]",
         }
+
+
+class TripsForm(forms.Form):
+    data_file = forms.FileField(required=False)
+    existing_scenario = forms.UUIDField(required=False)
+    scenario_name = forms.CharField(max_length=100, initial="Mein Szenario")
+    description = forms.CharField(max_length=100)
+
+    def is_valid(self):
+        cleaned_data = super().clean()
+        data_file = cleaned_data.get("data_file")
+        existing_scenario = cleaned_data.get("existing_scenario")
+
+        # Use XOR to guarantee only one is given: data_file or existing_scenario
+        if not (bool(data_file) ^ bool(existing_scenario)):
+            error = "Lade eine Datei hoch oder wähle ein existierendes Szenario aus"
+            raise ValidationError(error)
+
+        return cleaned_data

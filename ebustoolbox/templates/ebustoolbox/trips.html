@@ -1,5 +1,5 @@
 {% extends 'ebustoolbox/wizard.html' %}
-
+{% load custom_filters %}
 {% block title %}WeBus - Umlaufplan{% endblock title %}
 
 {% block wizard_navigation %}
@@ -12,7 +12,7 @@
 <main class="flex flex-col items-center">
   <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
     <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">Umlaufplan</h1>
-    <span class="block mb-6 text-sm text-slate-500">Laden Sie ihren Umlaufplan hoch. Alternativ können Sie den Umlaufplan aus einem existieredem Szenario auswählen.</span>
+    <span class="block mb-6 text-sm text-slate-500">Laden Sie ihren Umlaufplan hoch. Alternativ können Sie den Umlaufplan aus einem existierendem Szenario auswählen.</span>
     <div class="grid grid-cols-12 gap-4">
       <div class="col-span-full pb-4">
         <div class="flex justify-between">
@@ -46,9 +46,9 @@
               <path d="m269.53 14.203h569.72c7.6875 0 14.672 3.1875 19.641 8.2969l191.16 191.21c5.3438 5.3438 8.0625 12.375 8.0625 19.406v825c0 35.156-14.344 67.125-37.5 90.234-23.156 23.156-55.078 37.453-90.234 37.453h-660.89c-35.156 0-67.125-14.344-90.234-37.453-23.156-23.156-37.5-55.078-37.5-90.234v-916.13c0-35.156 14.344-67.125 37.5-90.234 23.156-23.156 55.078-37.5 90.234-37.5zm162.37 695.9c-15.141 0-27.469-12.281-27.469-27.469 0-15.141 12.328-27.469 27.469-27.469h140.63v-140.63c0-15.141 12.281-27.469 27.469-27.469 15.141 0 27.469 12.281 27.469 27.469v140.63h140.63c15.141 0 27.469 12.328 27.469 27.469s-12.328 27.469-27.469 27.469h-140.63v140.63c0 15.141-12.281 27.469-27.469 27.469-15.141 0-27.469-12.281-27.469-27.469v-140.63zm434.81-602.16v97.688h97.688z" fill-rule="evenodd"/>
             </svg>
             <div class="mt-4 pb-2 flex text-sm text-slate-800">
-              <label for="file-upload" class="relative cursor-pointer rounded-md bg-white text-sm font-semibold text-green-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-green-600 focus-within:ring-offset-2 hover:text-green-600 transition-all duration-300">
+              <label for="{{ form.data_file.auto_id}}" class="relative cursor-pointer rounded-md bg-white text-sm font-semibold text-green-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-green-600 focus-within:ring-offset-2 hover:text-green-600 transition-all duration-300">
                 <span>Datei hochladen</span>
-                <input id="file-upload" name="file-upload" type="file" class="sr-only">
+                <input {{ form.data_file|widget_attrs }} type="file" class="sr-only">
               </label>
               <p class="pl-1">oder ziehen und ablegen</p>
             </div>
@@ -89,20 +89,20 @@
       </div>
       <div class="col-span-full pt-4 border-t">
         <div class="w-full pb-6">
-          <label for="inputItem" class="block text-sm/6 font-medium text-slate-900">Szenarioname</label>
+          <label for="{{form.scenario_name.auto_id}}" class="block text-sm/6 font-medium text-slate-900">Szenarioname</label>
           <div class="mt-2">
-            <input type="text" name="inputItem" id="inputItem" class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 sm:text-sm/6" placeholder="Szenario Name eingeben">
+            <input type="text" {{ form.scenario_name|widget_attrs }} class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 sm:text-sm/6" placeholder="Szenario Name eingeben">
           </div>
         </div>
         <div class="w-full">
           <div class="flex justify-between">
-            <label for="description" class="block text-sm/6 font-medium text-slate-800">
+            <label for="{{ form.description.auto_id }}" class="block text-sm/6 font-medium text-slate-800">
               Beschreibung
               <span class="text-slate-500 pl-2" id="description-optional">(Optional)</span>
             </label>
           </div>
           <div class="mt-2">
-            <textarea type="text" name="description" id="description" rows="4" class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 sm:text-sm/6" placeholder="Beschreiben Sie Ihr Szenario..." aria-describedby="description-optional"></textarea>
+            <textarea type="text" {{ form.description|widget_attrs }} rows="4" class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 sm:text-sm/6" placeholder="Beschreiben Sie Ihr Szenario..." aria-describedby="description-optional"></textarea>
           </div>
         </div>
       </div>

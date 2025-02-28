@@ -12,7 +12,7 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.utils.cache import patch_cache_control
 from django.utils import timezone
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, FormView
 from django.views.decorators.http import require_GET, require_POST
 from eflips.depot.api import simulate_scenario  # noqa
 
@@ -23,7 +23,7 @@ from celery.result import AsyncResult
 # Unused import of dash_app needed to register app
 from dash_app import dash_app, ids  # noqa: F401
 from django_mapengine.views import MapEngineMixin
-from . import tasks, schedule_readers
+from . import tasks, schedule_readers, forms
 from .forms import ElectrificationOptionsForm, SimulationParameters, VehicleTypeForm
 from .tasks import create_db_url, get_args  # noqa
 from .util import get_unique_task_id
@@ -47,6 +47,20 @@ from ebustoolbox.models import (
 )
 
 logger = logging.getLogger("custom")
+
+
+class TripsView(FormView):
+    template_name = "ebustoolbox/trips.html"
+    form_class = forms.TripsForm
+
+    def form_valid(self, form):
+        """Handles successful form submission."""
+        task_id = get_unique_task_id()
+        return redirect(reverse("simba:vehicles", args=[str(task_id)]))
+
+    def form_invalid(self, form):
+        """Handles form validation errors."""
+        return self.render_to_response(self.get_context_data(form=form))
 
 
 def show_uploads_view(request: HttpRequest, filename):
