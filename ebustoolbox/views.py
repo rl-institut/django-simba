@@ -79,7 +79,7 @@ def wait_view(request, task_id):
 class SuccessView(TemplateView, MapEngineMixin):
     # View which generates the page containing simulation results
 
-    template_name = "result.html"
+    template_name = "ebustoolbox/results.html"
 
     def get_context_data(self, **kwargs):
         context = super(SuccessView, self).get_context_data(**kwargs)

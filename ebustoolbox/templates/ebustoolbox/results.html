@@ -429,43 +429,9 @@
           </button>
         </div>
         <div class="bg-white rounded-lg shadow-md mb-12">
-          <div class="p-8">
-            <div class="flex justify-center">
-              <p class="text-base font-normal text-slate-600 pb-4">Minimaler SoC pro Fahrzeug</p>
-            </div>
-            <div class="flex justify-center">
-              <div class="flex items-end gap-2">
-                <span class="text-4xl font-bold text-slate-800">60</span>
-                <span class="text-base font-normal text-slate-600">%</span>
-              </div>
-            </div>
-            <!-- Toggle Button -->
-            <div class="flex justify-end pt-4">
-              <button
-                id="detailsButton"
-                class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-full transition-all"
-                aria-expanded="false"
-                aria-controls="detailsContent"
-              >
-                <span>Details sehen</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width="1.5"
-                  stroke="currentColor"
-                  class="size-4 transition-transform duration-300"
-                  id="detailsArrow"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                </svg>
-              </button>
-            </div>
-            <!-- Hidden Content -->
-            <div id="detailsContent" class="hidden mt-4 pt-8 text-sm text-slate-600 border-t border-slate-200">
-              <p>Details zur CO<sub>2</sub>-Bilanz: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce accumsan nisi at elit tincidunt fermentum.</p>
-            </div>
-          </div>
+{#{% include 'ebustoolbox/minimal_mapengine.html'%}#}
+             {% load plotly_dash %}
+        {% plotly_app  slug=task_id ratio=5 %}
         </div>
       </div>
 

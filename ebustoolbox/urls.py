@@ -27,9 +27,11 @@ urlpatterns = [
         name="depots",
     ),
     path(
-        "results/",
-        TemplateView.as_view(template_name="ebustoolbox/results.html"),
+        "results/<uuid:task_id>/",
+        views.result_view,
         name="results",
+        #TemplateView.as_view(template_name="ebustoolbox/results.html"),
+       # name="results",
     ),
     path(
         "stations/",
