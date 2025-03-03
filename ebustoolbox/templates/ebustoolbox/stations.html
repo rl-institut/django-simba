@@ -1,8 +1,14 @@
-{% extends 'core/base.html' %}
+{% extends 'ebustoolbox/wizard.html' %}
 
 {% block title %}WeBus - Endhaltestellen{% endblock title %}
 
-{% block content %}
+{% block wizard_navigation %}
+  {% with wiz_idx=3 %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock wizard_navigation %}
+
+{% block wizard_content %}
 <!-- Start Modal for bulk editing -->
 <div id="bulkEditingModal" class="hidden relative z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true">
   <!--
@@ -579,7 +585,13 @@
 
   </div>
 </main>
-{% endblock content %}
+{% endblock wizard_content %}
+
+{% block wizard_buttons %}
+  {% url 'simba:vehicles' as prev_url %}
+  {% url 'simba:costs' as next_url %}
+  {{ block.super }}
+{% endblock wizard_buttons %}
 
 {% block script %}
 <script>

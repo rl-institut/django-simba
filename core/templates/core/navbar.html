@@ -4,12 +4,14 @@
   <div class="mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex h-16 items-center justify-between">
       <div class="flex items-center">
-        <img class="h-6 w-auto" src="{% static 'core/images/logo/webus_green.svg' %}" alt="WeBus">
+        <a href="{% url 'core:home' %}">
+          <img class="h-6 w-auto" src="{% static 'core/images/logo/webus_green.svg' %}" alt="WeBus">
+        </a>
       </div>
       <div class="hidden sm:flex items-center space-x-6">
-        <button class="px-4 py-1 border-2 border-green-400 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-green-400 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-400 active:bg-green-500 transition-all duration-300">
+        <a href="{% url 'simba:trips' %}" class="px-4 py-1 border-2 border-green-400 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-green-400 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-400 active:bg-green-500 transition-all duration-300">
           + Szenario erstellen
-        </button>
+        </a>
         <a href="{% url 'simba:dashboard' %}" class="text-sm text-slate-600 hover:text-green-500 transition-colors">Szenarien</a>
         <a href="{% url 'simba:compare' %}" class="text-sm text-slate-600 hover:text-green-500 transition-colors">Szenarienvergleich</a>
         <a href="#" class="text-sm text-slate-600 hover:text-green-500 transition-colors">Hilfe</a>
@@ -20,7 +22,7 @@
           <span class="ml-2">Profil</span>
         </a>
       </div>
-      
+
       <!-- Mobile Menu Button -->
       <div class="sm:hidden">
         <button id="menu-button" aria-controls="mobile-menu" aria-expanded="false" class="p-2 text-slate-400 hover:text-black focus:outline-none">
@@ -32,7 +34,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Mobile Menu -->
   <div id="mobile-menu" class="fixed inset-0 hidden z-20 bg-white">
     <div class="flex flex-col items-center justify-center h-full space-y-8">
@@ -45,7 +47,7 @@
       <a href="#" class="flex items-center text-slate-800 text-base hover:text-teal-500 transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
           <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-        </svg> 
+        </svg>
         <span class="ml-2">Profil</span>
       </a>
       <button id="close-menu" class="absolute top-4 right-4 p-2 text-slate-800 focus:outline-none">
@@ -56,7 +58,7 @@
       </button>
     </div>
   </div>
-</nav>    
+</nav>
 
 <!-- Mobile Full-Screen Menu -->
 <div id="mobile-menu" class="fixed inset-0 hidden z-20 bg-slate-800" aria-hidden="true">
