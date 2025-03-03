@@ -707,3 +707,123 @@ def usergroups(request):
                 ug.delete()
     usergroups = request.user.usergroup_set.all()
     return render(request, "usergroups.html", {"usergroups": usergroups})
+
+import random
+import time
+from django.shortcuts import render
+import plotly.graph_objs as go
+import plotly.offline as pyo
+import plotly.graph_objects as go
+import numpy as np
+from plotly_resampler import FigureResampler, FigureWidgetResampler
+
+def generate_random_data(points):
+    """Generate random data for scatter plots."""
+    return [{'x': random.random(), 'y': random.random()} for _ in range(points)]
+
+def render_test(request, option, points):
+    # Start server-side timer
+    server_start_time = time.time()
+
+    # Generate random data
+    data = generate_random_data(points)
+
+    if option in ['plotly', 'plotlygl']:
+        # Extract x and y values from the data
+        x = [point['x'] for point in data]
+        y = [point['y'] for point in data]
+
+        # Create a Plotly trace
+        if option == 'plotlygl':
+            trace = go.Scattergl(  # Use Scattergl for WebGL rendering
+                x=x,
+                y=y,
+                mode='markers'
+            )
+        else:  # option == 'plotly'
+            trace = go.Scatter(  # Use Scatter for SVG rendering
+                x=x,
+                y=y,
+                mode='markers'
+            )
+
+        # Create layout
+        layout = go.Layout(
+            title=f'{option.upper()} Scatter Plot ({points} Points)',
+            width=800,
+            height=400
+        )
+
+        # Generate Plotly HTML
+        fig = go.Figure(data=[trace], layout=layout)
+        plot_div = pyo.plot(fig, output_type='div', include_plotlyjs=False)
+
+        # Pass the Plotly HTML to the template
+        server_end_time = time.time()
+        server_time = (server_end_time - server_start_time) * 1000  # Convert to ms
+        return render(request, 'ebustoolbox/render_test.html', {
+            'option': option,
+            'points': points,
+            'plot_div': plot_div,
+            'server_time': server_time
+        })
+
+    elif option == 'chartjs':
+        # Pass data to the template for Chart.js
+        server_end_time = time.time()
+        server_time = (server_end_time - server_start_time) * 1000  # Convert to ms
+        return render(request, 'ebustoolbox/render_test.html', {
+            'option': option,
+            'points': points,
+            'data': data,
+            'server_time': server_time
+        })
+
+    elif option == 'echarts':
+        # Pass data to the template for ECharts
+        server_end_time = time.time()
+        server_time = (server_end_time - server_start_time) * 1000  # Convert to ms
+        return render(request, 'ebustoolbox/render_test.html', {
+            'option': option,
+            'points': points,
+            'data': data,  # Pass the raw data to the template
+            'server_time': server_time
+        })
+
+    elif option == "plotlyglr":
+
+        # Extract x and y values from the data
+        x = [point['x'] for point in data]
+        y = [point['y'] for point in data]
+
+        fig = FigureResampler(go.Figure())
+        fig.add_trace(go.Scattergl(name='noisy sine', showlegend=True), hf_x=x, hf_y=y)
+
+        # Create layout
+        layout = go.Layout(
+            title=f'{option.upper()} Scatter Plot ({points} Points)',
+            width=800,
+            height=400
+        )
+
+        fig.show_dash(mode='inline')
+        # Generate Plotly HTML
+        plot_div = pyo.plot(fig, output_type='div', include_plotlyjs=False)
+
+        # Pass the Plotly HTML to the template
+        server_end_time = time.time()
+        server_time = (server_end_time - server_start_time) * 1000  # Convert to ms
+        return render(request, 'ebustoolbox/render_test.html', {
+            'option': option,
+            'points': points,
+            'plot_div': plot_div,
+            'server_time': server_time
+        })
+
+
+
+    else:
+        # Handle invalid options
+        return render(request, 'ebustoolbox/render_test.html', {
+            'error': f"Invalid option: {option}"
+        })

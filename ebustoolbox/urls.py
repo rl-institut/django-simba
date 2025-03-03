@@ -3,6 +3,8 @@
 from django.urls import path
 from django.views.generic.base import TemplateView
 
+from ebustoolbox import views
+
 # from . import views
 
 app_name = "simba"
@@ -49,7 +51,7 @@ urlpatterns = [
         TemplateView.as_view(template_name="ebustoolbox/vehicles.html"),
         name="vehicles",
     ),
-    # superfluous templates, just for show
+    path("rendertest/<str:option>/<int:points>/", views.render_test, name="render_test"),    # superfluous templates, just for show
     path("DELETE-ME/", TemplateView.as_view(template_name="ebustoolbox/signup.html")),
     path("DEMO/", TemplateView.as_view(template_name="ebustoolbox/dashboard.html")),
 ]
