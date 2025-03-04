@@ -1588,6 +1588,9 @@ class SimulationRange(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     start = models.DateTimeField(null=False)
     end = models.DateTimeField(null=False)
+    temperature = models.FloatField(
+        default=-10, null=True, validators=[MinValueValidator(-20), MaxValueValidator(40)]
+    )
 
 
 class DepotSelection(models.Model):

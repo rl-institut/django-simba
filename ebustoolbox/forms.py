@@ -1,7 +1,13 @@
 from django import forms
-from django.core.exceptions import ValidationError
+from django.conf import settings
 
-from .models import EnumChargeType, EnumVoltageLevel, ElectrificationOptions, VehicleType
+from .models import (
+    EnumChargeType,
+    EnumVoltageLevel,
+    ElectrificationOptions,
+    VehicleType,
+    SimulationRange,
+)
 
 
 class UploadFileForm(forms.Form):
@@ -73,22 +79,10 @@ class DateRangeField(forms.DateField):
         return from_date, to_date
 
 
-class SimulationParameters(forms.Form):
-    help_text = (
-        "Lassen Sie das Feld frei, wenn Sie den Start der Simulation nicht beschneiden möchten."
-    )
-    date_range = DateRangeField(
-        required=False,
-        widget=forms.TextInput(
-            attrs={
-                "placeholder": "from",
-                "class": "form-control datepicker",
-                "name": "date_range",
-                "title": help_text,
-            }
-        ),
-        label="Zeitspanne",
-    )
+class SimulationParameters(forms.ModelForm):
+    class Meta:
+        model = SimulationRange
+        exclude = ("scenario",)
 
 
 class ElectrificationOptionsForm(forms.ModelForm):
@@ -119,16 +113,33 @@ class TripsForm(forms.Form):
     data_file = forms.FileField(required=False)
     existing_scenario = forms.UUIDField(required=False)
     scenario_name = forms.CharField(max_length=100, initial="Mein Szenario")
-    description = forms.CharField(max_length=100)
+    description = forms.CharField(max_length=100, required=False)
 
     def is_valid(self):
-        cleaned_data = super().clean()
-        data_file = cleaned_data.get("data_file")
-        existing_scenario = cleaned_data.get("existing_scenario")
-
+        if not super().is_valid():
+            return False
+        data_file = self.files.get("data_file")
+        existing_scenario = self.cleaned_data.get("existing_scenario")
         # Use XOR to guarantee only one is given: data_file or existing_scenario
         if not (bool(data_file) ^ bool(existing_scenario)):
-            error = "Lade eine Datei hoch oder wähle ein existierendes Szenario aus"
-            raise ValidationError(error)
+            error_text = "Lade eine Datei hoch oder wähle ein existierendes Szenario aus"
+            self.errors["data_file"] = error_text
+            self.errors["existing_scenario"] = error_text
+            return False
 
-        return cleaned_data
+        if existing_scenario:
+            return True
+        # File uploaded -> check size
+        # check sum of file sizes
+        if sum([f.size for f in self.files.values()]) > settings.MAX_FILE_SIZE_B:
+            error_text = (
+                "Datei ist zu groß. Laden sie eine Datei kleiner "
+                f"als {settings.MAX_FILE_SIZE_B / 1e6} MB hoch."
+            )
+            self.errors["data_file"] = error_text
+            return False
+
+        file_suffix = data_file.name[-3:]
+        if file_suffix not in ["csv", "zip"]:
+            self.errors["data_file"] = f"Der Dateityp {file_suffix} wird nicht unterstützt"
+        return True

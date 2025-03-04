@@ -1,5 +1,6 @@
 import logging
 import traceback
+import uuid
 from datetime import timedelta, datetime, timezone as tz
 
 from django.conf import settings
@@ -8,7 +9,7 @@ from django.contrib.auth.models import User
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest, Http404
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils.cache import patch_cache_control
 from django.utils import timezone
@@ -44,23 +45,265 @@ from ebustoolbox.models import (
     ElectrificationOptions,
     VehicleTypeSelection,
     VehicleTypeMutation,
+    ScenarioDescription,
 )
 
 logger = logging.getLogger("custom")
 
 
+def progress2(request: HttpRequest, progress_id):
+    context = {"progress_id": progress_id, "status": "", "current_progress": 0}
+    context |= {"finished": False}
+    try:
+        progress = Progress.objects.get(task_id=progress_id)
+    except ObjectDoesNotExist:
+        response = render(request, "core/progress.html", context)
+        return response
+
+    context["current_progress"] = max(progress.get_progress(), 1)
+    context["status"] = progress.status
+    status_code = 200
+    hx_trigger = "running"
+    if progress.success or not progress.running or len(progress.errors) != 0:
+        context["errors"] = progress.errors
+        # End polling
+        status_code = 286
+        context["finished"] = True
+        hx_trigger = "notRunning"
+    if progress.success:
+        print("success")
+        hx_trigger = "success"
+    response = render(request, "core/progress.html", context)
+    response["HX-Trigger"] = hx_trigger
+    response.status_code = status_code
+    return response
+
+
+def get_unique_progress_or_none(scenario_task_id):
+    progress_db = Progress.objects.filter(scenario__task_id=scenario_task_id)
+    assert len(progress_db) <= 1, "Only single progress of a scenario upload progress should exist"
+    return progress_db.first()
+
+
 class TripsView(FormView):
+
     template_name = "ebustoolbox/trips.html"
     form_class = forms.TripsForm
+    success_name = "simba:vehicles"
+
+    def get_context_data(self, **kwargs):
+        print("getting context")
+        context = super(TripsView, self).get_context_data(**kwargs)
+        task_id = kwargs.get("task_id")
+        if task_id:
+            # scenario is created so we pass the progress id so a progress bar can be shown
+            progress_db = get_unique_progress_or_none(kwargs.get("task_id"))
+            context["progress_id"] = progress_db.task_id if progress_db else None
+            # progress might not yet be created in the db, but it might have been passed
+            # as kwargs
+            if context["progress_id"] is None:
+                context["progress_id"] = kwargs.get("progress_id")
+            scenario = Scenario.objects.get(task_id=task_id)
+            form_data = {
+                "scenario_name": scenario.name,
+                "description": ScenarioDescription.objects.get(scenario=scenario),
+                # ToDo: where is this setting stored
+                "existing_scenario": None,
+            }
+            files = [UploadedFile.objects.get(scenario=scenario)]
+            form = forms.TripsForm(data=form_data, files=files)
+            context["form"] = form
+
+        scenarios = [Scenario.objects.all()[:10]]
+        if User.objects.filter(id=self.request.user.id).exists():
+            usergroups = User.objects.get(self.request.user).usergroup_set.prefetch_related(
+                scenarios
+            )
+            scenarios = [ug.scenario for ug in usergroups]
+        context["scenarios"] = list(*scenarios)
+        return context
+
+    def get(self, request, *args, **kwargs):
+        print("getting stuff")
+        task_id = kwargs.get("task_id")
+        if task_id:
+            progress_db = get_unique_progress_or_none(task_id)
+            if progress_db.success:
+                return redirect(reverse("simba:vehicles", args=[str(task_id)]))
+        return self.render_to_response(self.get_context_data(**kwargs))
+
+    def post(self, request, *args, **kwargs):
+        print("posted")
+        return super().post(request, *args, **kwargs)
 
     def form_valid(self, form):
         """Handles successful form submission."""
+        print("valid form")
+        cleaned_data = form.cleaned_data
         task_id = get_unique_task_id()
-        return redirect(reverse("simba:vehicles", args=[str(task_id)]))
+        # Create a scenario and description
+
+        # Get a User as manager or none
+        manager = None
+        if self.request.user.is_authenticated:
+            manager = self.request.user
+
+        scenario = Scenario.objects.create(
+            name=cleaned_data["scenario_name"], task_id=task_id, manager=manager
+        )
+        _ = ScenarioDescription.objects.create(
+            scenario=scenario, description=cleaned_data["description"]
+        )
+        data_file = form.files["data_file"]
+        if data_file:
+            assert len(form.files) == 1, "Currently only single file uploads are allowed"
+
+            # Loop for possible later multifile support
+            files = dict()
+            for name, file in form.files.items():
+                # check file size
+                if file.size > settings.MAX_FILE_SIZE_B:
+                    # file too large
+                    raise Exception("Datei zu groß")
+                uploaded_file = UploadedFile.objects.create(scenario=scenario, file=file)
+                files[name] = uploaded_file.file.path, uploaded_file.id
+                # Delete the files from cleaned_data, since this is passed to
+                # celery and needs to be json serializable
+                del cleaned_data[name]
+            file_suffix = data_file.name[-3:]
+            if file_suffix == "csv":
+                # change the file naming according to SimbaScheduleReader
+                async_result = tasks.init_db_with_trips.apply_async(
+                    (scenario.id, 1, {"file_path": files["data_file"]}, {})
+                )
+                print(async_result.state)
+            elif file_suffix == "zip":
+
+                async_result = tasks.init_db_with_trips.apply_async(
+                    (scenario.id, 3, files, cleaned_data)
+                )
+            else:
+                raise NotImplementedError(f"Unsupported FileType file_suffix {file_suffix}")
+
+            progress_id = async_result.task_id
+        elif form.existing_scenario:
+            raise NotImplementedError("Using an existing Scenario needs implementation")
+        else:
+            raise NotImplementedError
+        progress_db = Progress.objects.filter(task_id=progress_id).first()
+        if progress_db and progress_db.success:
+            print("redirecting to sucess")
+            # Processing the scenario finished
+            return redirect(reverse(self.success_name, args=[str(task_id)]))
+        context = self.get_context_data(form=form, task_id=task_id, progress_id=progress_id)
+        response = render(self.request, self.template_name, context)
+        print(f"{context['progress_id']} trips with task id")
+        # Redirect to the same url with task_id added. this allows insertion of the
+        # backend progress bar
+        response["HX-Retarget"] = "body"  # reverse("simba:trips", args=[str(task_id)])
+        response["HX-Replace-Url"] = reverse("simba:trips", args=[str(task_id)])
+
+        return response
 
     def form_invalid(self, form):
         """Handles form validation errors."""
-        return self.render_to_response(self.get_context_data(form=form))
+        print("invalid form")
+        print(form.errors)
+        return super().form_invalid(form)
+
+
+def get_scenario_and_assert_authorization(request, task_id):
+    scenario = get_object_or_404(Scenario, task_id=task_id)
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
+    return scenario
+
+
+def get_parent(task_id):
+    scenario = Scenario.objects.get(task_id=task_id)
+    if scenario.parent:
+        return scenario.parent
+    # Create a parent by making the current scenario a parent
+    parent = scenario
+    parent.task_id = ebustoolbox.util.get_unique_task_id()
+    parent.save()
+
+    _ = tasks.create_empty_child_scenario(parent, task_id=task_id)
+    parent.name = "Parent of " + parent.name
+    parent.save()
+
+
+class VehiclesView(FormView):
+    template_name = "ebustoolbox/vehicles.html"
+    form_class = forms.SimulationParameters
+    success_name = "simba:stations"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        scenario = kwargs["scenario"]
+        parent = get_parent(scenario.task_id)
+
+        simulation_parameters_form = self.form_class()
+
+        trips = Trip.objects.filter(scenario=parent).order_by("departure_time")
+        start_date = trips.first().departure_time.date().isoformat()
+        start_time = trips.first().departure_time.time().isoformat()
+        end_date = trips.last().arrival_time.date().isoformat()
+        end_time = trips.last().arrival_time.time().isoformat()
+        sim_range = SimulationRange.objects.filter(scenario=scenario).first()
+        if sim_range:
+            # initial_start = sim_range.start.date().isoformat()
+            # initial_time = sim_range.start.time().isoformat()
+            # initial_end = (sim_range.end - timedelta(days=1)).isoformat()
+            simulation_parameters_form = self.form_class(temperature=sim_range.temperature)
+        else:
+            initial_start_date = start_date
+            initial_start_time = start_time
+            initial_end_date = end_date
+            initial_end_time = end_time
+        context |= {"form": simulation_parameters_form}
+        context |= {"min_date": start_date, "max_date": end_date}
+        context |= {"start_date": initial_start_date, "end_date": initial_end_date}
+        context |= {"initial_start_time": initial_start_time, "initial_end_time": initial_end_time}
+        context |= {"task_id": scenario.task_id, "form": simulation_parameters_form}
+        return context
+
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get("task_id")
+        kwargs["scenario"] = get_scenario_and_assert_authorization(request, kwargs.get("task_id"))
+        if task_id is None:
+            raise Http404
+        return self.render_to_response(self.get_context_data(**kwargs))
+
+    def post(self, request, *args, **kwargs):
+        scenario = get_scenario_and_assert_authorization(request, kwargs.get("task_id"))
+        kwargs["scenario"] = scenario
+        # start_time = datetime.fromisoformat(request.)
+        self.form_class()
+        form = self.get_form()
+        logger.info("Vehicles Post")
+        if form.is_valid():
+            return self.form_valid(form)
+        else:
+            return self.form_invalid(form, **kwargs)
+
+    def form_valid(
+        self,
+        form,
+    ):
+        """Handles successful form submission."""
+        context = {}
+        response = render(self.request, self.template_name, context)
+        print(f"{context['progress_id']} trips with task id")
+        # Redirect to the same url with task_id added. this allows insertion of the
+        # backend progress bar
+        # response["HX-Retarget"] = "body"  # reverse("simba:trips", args=[str(task_id)])
+        # response["HX-Replace-Url"] = reverse("simba:trips", args=[str(task_id)])
+        #
+        return response
+
+    def form_invalid(self, form, **kwargs):
+        return self.render_to_response(self.get_context_data(**kwargs, form=form))
 
 
 def show_uploads_view(request: HttpRequest, filename):
@@ -495,32 +738,34 @@ class ScenarioOverview(TemplateView, MapEngineMixin):
         return context
 
 
-def progress(request: HttpRequest, progress_id, progress_type: str):
-    context = {"progress_id": progress_id, "status": "", "current_progress": 0}
-    context |= {"finished": False}
-    try:
-        progress = Progress.objects.get(task_id=progress_id)
-    except ObjectDoesNotExist:
-        response = render(request, "progress.html", context)
-        return response
-
-    context["current_progress"] = max(progress.get_progress(), 1)
-    context["status"] = progress.status
-    status_code = 200
-    hx_trigger = "running"
-    if progress.success or not progress.running or len(progress.errors) != 0:
-        context["errors"] = progress.errors
-        # End polling
-        status_code = 286
-        context["finished"] = True
-        hx_trigger = "notRunning"
-    response = render(request, "progress.html", context)
-    if context["finished"] and len(context["errors"]) == 0:
-        task_id = progress.scenario.task_id
-        response["HX-Redirect"] = reverse(progress_type, args=[task_id, "true"])
-    response["HX-Trigger"] = hx_trigger
-    response.status_code = status_code
-    return response
+#
+#
+# def progress(request: HttpRequest, progress_id, progress_type: str):
+#     context = {"progress_id": progress_id, "status": "", "current_progress": 0}
+#     context |= {"finished": False}
+#     try:
+#         progress = Progress.objects.get(task_id=progress_id)
+#     except ObjectDoesNotExist:
+#         response = render(request, "progress.html", context)
+#         return response
+#
+#     context["current_progress"] = max(progress.get_progress(), 1)
+#     context["status"] = progress.status
+#     status_code = 200
+#     hx_trigger = "running"
+#     if progress.success or not progress.running or len(progress.errors) != 0:
+#         context["errors"] = progress.errors
+#         # End polling
+#         status_code = 286
+#         context["finished"] = True
+#         hx_trigger = "notRunning"
+#     response = render(request, "progress.html", context)
+#     if context["finished"] and len(context["errors"]) == 0:
+#         task_id = progress.scenario.task_id
+#         response["HX-Redirect"] = reverse(progress_type, args=[task_id, "true"])
+#     response["HX-Trigger"] = hx_trigger
+#     response.status_code = status_code
+#     return response
 
 
 @require_POST
@@ -721,3 +966,30 @@ def usergroups(request):
                 ug.delete()
     usergroups = request.user.usergroup_set.all()
     return render(request, "usergroups.html", {"usergroups": usergroups})
+
+
+def progress_bar_element(request: HttpRequest, progress_id: uuid.UUID, callback: callable):
+    context = {"progress_id": progress_id, "status": "", "current_progress": 0}
+    context |= {"finished": False}
+    try:
+        progress = Progress.objects.get(task_id=progress_id)
+    except ObjectDoesNotExist:
+        logger.info(f"Progress element {progress_id} does not exist")
+        response = render(request, "progress.html", context)
+        return response
+
+    context["current_progress"] = max(progress.get_progress(), 1)
+    context["status"] = progress.status
+    status_code = 200
+    hx_trigger = "running"
+    if progress.success or not progress.running or len(progress.errors) != 0:
+        context["errors"] = progress.errors
+        # End polling
+        status_code = 286
+        context["finished"] = True
+        hx_trigger = "notRunning"
+
+    response = render(request, "progress.html", context)
+    response["HX-Trigger"] = hx_trigger
+    response.status_code = status_code
+    return response

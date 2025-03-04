@@ -5,7 +5,7 @@ register = template.Library()
 
 @register.filter
 def widget_attrs(field):
-    """Extracts widget attributes as key=value pairs inlcuding id and name
+    """Extracts widget attributes as key=value pairs inlcuding id and name and value
 
     This allows using the widget attributes in stylized front end inputs.
     """
@@ -21,5 +21,10 @@ def widget_attrs(field):
 
     out += f"id={field.auto_id} "
     out += f"name={field.html_name} "
+    try:
+        if field.data:
+            out += f"value={field.data} "
+    except AttributeError:
+        pass
 
     return out

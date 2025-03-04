@@ -10,6 +10,19 @@
 <script src="{% static "nouislider.min.js" %}"></script>
 <link href="{%  static "nouislider.min.css" %}" rel="stylesheet">
 
+{#to do move to appropriate spot?#}
+<style>
+    .drag_drop_zone {
+        border: 5px solid blue;
+    }
+    .errorlist {
+        list-style: none;
+    }
+
+</style>
+
+
+
 <script>
     // Timezone settings
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // e.g. "America/New_York"

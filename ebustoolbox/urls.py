@@ -2,7 +2,7 @@
 
 from django.urls import path
 from django.views.generic.base import TemplateView
-from ebustoolbox.views import TripsView
+from ebustoolbox.views import TripsView, VehiclesView, progress2
 
 # from . import views
 
@@ -25,6 +25,7 @@ urlpatterns = [
         TemplateView.as_view(template_name="ebustoolbox/depots.html"),
         name="depots",
     ),
+    path("progress2/<uuid:progress_id>", progress2, name="progress"),
     path(
         "results/",
         TemplateView.as_view(template_name="ebustoolbox/results.html"),
@@ -46,8 +47,13 @@ urlpatterns = [
         name="trips",
     ),
     path(
-        "vehicles/",
-        TemplateView.as_view(template_name="ebustoolbox/vehicles.html"),
+        "trips/<uuid:task_id>",
+        TripsView.as_view(),
+        name="trips",
+    ),
+    path(
+        "vehicles/<uuid:task_id>",
+        VehiclesView.as_view(),
         name="vehicles",
     ),
     # superfluous templates, just for show

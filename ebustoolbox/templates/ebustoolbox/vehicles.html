@@ -1,5 +1,6 @@
 {% extends 'ebustoolbox/wizard.html' %}
 
+{% load custom_filters %}
 {% block title %}WeBus - Fahrzeuge{% endblock title %}
 
 {% block wizard_navigation %}
@@ -30,7 +31,13 @@
         </div>
       </h2>
       <span class="block mb-6 text-sm text-slate-500">Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.</span>
-      <form>
+      <form
+        type="submit"
+        method ="POST"
+        hx-target="body">
+        {% csrf_token %}
+
+        <button> Submit form</button>
         <fieldset class="flex items-center gap-4">
           <span class="text-slate-600">Von</span>
 
@@ -43,6 +50,9 @@
               name="start-date"
               class="block w-full py-1.5 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
               aria-label="Startdatum"
+              min = "{{ min_date }}"
+              max = "{{ max_date }}"
+              value = "{{ start_date }}"
               required>
           </div>
 
@@ -55,6 +65,7 @@
               name="start-time"
               class="block w-full py-1.5 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
               aria-label="Startzeit"
+              value = "{{ initial_start_time }}"
               required>
           </div>
 
@@ -69,6 +80,9 @@
               name="end-date"
               class="block w-full py-1.5 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
               aria-label="Enddatum"
+              min = "{{ min_date }}"
+              max = "{{ max_date }}"
+              value = "{{ end_date }}"
               required>
           </div>
 
@@ -81,6 +95,7 @@
               name="end-time"
               class="block w-full py-1.5 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
               aria-label="Endzeit"
+              value = "{{ initial_end_time }}"
               required>
           </div>
         </fieldset>
@@ -106,7 +121,7 @@
       <div class="w-4/12">
         <div class="mt-2">
           <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 ">
-            <input type="text" name="temperature" id="temperature" class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6" placeholder="-10" aria-describedby="temperature-heading temperature-unit">
+            <input {{ form.temperature|widget_attrs }} class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6" placeholder="-10" aria-describedby="temperature-heading temperature-unit">
             <div id="temperature-unit" class="shrink-0 select-none text-slate-500">°C</div>
           </div>
         </div>
