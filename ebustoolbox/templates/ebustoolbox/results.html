@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}WeBus - Ergebnisse{% endblock title %}
 
@@ -560,9 +561,15 @@
           </button>
         </div>
         <div class="bg-white rounded-lg shadow-md mb-12">
-          <div class="p-4">
-            Map here
-          </div>
+            <script src="{% static "maplibre-gl.js" %}"></script>
+      <link href="{% static "maplibre-gl.css" %}" rel='stylesheet'/>
+                  <script src="{% static "pubsub.js" %}"></script>
+
+          <div class="p-4">{% include 'ebustoolbox/minimal_mapengine.html' %}
+              {% include 'django_mapengine/map_js.html' %}
+        {% include 'django_mapengine/map.html' %}
+        {% include 'django_mapengine/map_json.html' %}
+
         </div>
       </div>
 

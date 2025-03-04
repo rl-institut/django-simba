@@ -1,0 +1,65 @@
+{% load static %}
+
+<!DOCTYPE html>
+    <html lang="en">
+    <head>
+    {# maplibre 4.0 breaks loading images #}
+      {#      maplibre 4.0 breaks loading images#}
+      <script src="{% static "maplibre-gl.js" %}"></script>
+      <link href="{% static "maplibre-gl.css" %}" rel='stylesheet'/>
+
+      <script src="{% static "pubsub.js" %}"></script>
+      <link rel="stylesheet" type="text/css" href="{% static 'templates/css/mapOverlays.css' %}">
+    </head>
+
+    <body>
+<button id="toggleBasemapButton">Toggle Basemap</button>
+        {% include 'django_mapengine/map.html' %}
+        {% include 'django_mapengine/map_json.html' %}
+        <div id="map-button">
+            {% include 'ebustoolbox/components/layer_button.html' %}
+        </div>
+
+        <script>
+            // This is needed as mapengine checks for eventTopics value (bug in mapengine!)
+            let eventTopics = {};
+        </script>
+
+        {% include 'django_mapengine/map_js.html' %}
+
+        <script>
+            // This is needed, as otherwise map height is zero and therefore not visible (bug in mapengine!)
+            document.getElementById("map").style = "height: 800px"
+
+            document.addEventListener("DOMContentLoaded", function() {
+                var button = document.getElementById("map-button")
+
+                // Append the button to the map section
+                var mapSection = document.getElementById('map');
+                mapSection.appendChild(button);
+
+                $.get("{% static 'components/layer_box.html' %}", function(data) {
+                    var $overlay = $(data);
+
+                    // Append the overlay to the map section
+                    $('#map').append($overlay);
+
+                    // Event handlers
+                    $('#map-button button').click(function() {
+                        $('#map-overlay').show();
+                    });
+
+                    $('#js-map-layers-box-close').click(function() {
+                        $('#map-overlay').hide();
+                    });
+                });
+
+                // Add an event listener to log a message when the button is clicked
+                var buttonElement = button.querySelector('button'); // Select the actual button inside the div
+                buttonElement.addEventListener('click', function() {
+                    //console.log('Button was clicked!');
+                });
+            });
+        </script>
+    </body>
+</html>
