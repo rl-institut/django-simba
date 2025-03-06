@@ -68,6 +68,18 @@ def result_view(request: HttpRequest, task_id):
         return HttpResponse(html)
 
 
+def result_view_old(request: HttpRequest, task_id):
+    # View controlling if the wait or success view should be shown
+    try:
+        if Scenario.objects.get(task_id=task_id).finished:
+            request.task_id = str(task_id)
+            return SuccessView_old.as_view()(request, task_id=task_id, finished=True)
+        else:
+            return wait_view(request, task_id)
+    except Scenario.DoesNotExist:
+        html = "<html><body>task_id is not valid</body></html>"
+        return HttpResponse(html)
+
 def wait_view(request, task_id):
     # View while waiting for results.
     # Will trigger success view as soon as long-running task
@@ -83,6 +95,31 @@ class SuccessView(TemplateView, MapEngineMixin):
 
     def get_context_data(self, **kwargs):
         context = super(SuccessView, self).get_context_data(**kwargs)
+        task_id = kwargs.get("task_id")
+        if task_id is None:
+            raise Http404
+        task_id = str(task_id)
+        context["task_id"] = task_id
+
+        session = self.request.session
+        from dash_app.dash_app import create_app
+
+        # By creating a specific app for this task ID, the app "knows" which data to load
+        # ToDO make sure only authorized users can view this
+        create_app(task_id=task_id)
+        # the dictionary in "django_plotly_dash" appears in the session_state of the app, which
+        # is an optional kwarg in app.callbacks
+        session["django_plotly_dash"] = {"task_id": task_id}
+
+        return context
+
+class SuccessView_old(TemplateView, MapEngineMixin):
+    # View which generates the page containing simulation results
+
+    template_name = "ebustoolbox/result.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(SuccessView_old, self).get_context_data(**kwargs)
         task_id = kwargs.get("task_id")
         if task_id is None:
             raise Http404
@@ -468,7 +505,7 @@ def scenario_overview_view(request: HttpRequest, task_id, finished=None):
 
 
 class ScenarioOverview(TemplateView, MapEngineMixin):
-    template_name = "scenario_overview.html"
+    template_name = "ebustoolbox/scenario_overview.html"
 
     def get_context_data(self, **kwargs):
         context = super(ScenarioOverview, self).get_context_data(**kwargs)
@@ -708,122 +745,121 @@ def usergroups(request):
     usergroups = request.user.usergroup_set.all()
     return render(request, "usergroups.html", {"usergroups": usergroups})
 
+
+from django.http import JsonResponse
 import random
-import time
-from django.shortcuts import render
-import plotly.graph_objs as go
-import plotly.offline as pyo
+import datetime
+
+
+# Helper function to generate random dates
+def random_date(start_date, days_range):
+    return (start_date + datetime.timedelta(days=random.randint(0, days_range))).isoformat()
+
+
+# API for Line Chart Data (e.g., timestamp vs. values)
+def get_line_chart_data(request, simulation_id):
+    timestamps = [(datetime.date.today() - datetime.timedelta(days=i)).isoformat() for i in range(7)]
+    values = [random.randint(10, 100) for _ in range(7)]
+
+    data = {
+        "timestamp": timestamps[::-1],  # Reverse to get ascending order
+        "values": values,
+    }
+    return JsonResponse(data)
+
+
+# API for Bar Chart Data (e.g., categories vs. values)
+def get_bar_chart_data(request, simulation_id):
+    categories = ["Category A", "Category B", "Category C", "Category D"]
+    values = [random.randint(10, 50) for _ in categories]
+
+    data = {
+        "categories": categories,
+        "values": values,
+    }
+    return JsonResponse(data)
+
+
+# API for Histogram Data (e.g., frequency distribution)
+def get_histogram_data(request, simulation_id):
+    bins = [random.randint(5, 30) for _ in range(6)]
+
+    data = {
+        "histogram_data": bins,
+    }
+    return JsonResponse(data)
+
+
+# API for Scatter Plot Data (e.g., coordinates x and y)
+def get_scatter_data(request, simulation_id):
+    scatter_points = [{"x": random.uniform(0, 100), "y": random.uniform(0, 100)} for _ in range(20)]
+
+    data = {
+        "scatter_data": scatter_points,
+    }
+    return JsonResponse(data)
+
+
+# API for Gantt Chart Data (e.g., tasks with start and end dates)
+def get_gantt_data(request, simulation_id):
+    start_date = datetime.date.today()
+
+    tasks = [
+        {"task": "Task 1", "start": random_date(start_date, 5), "end": random_date(start_date, 10)},
+        {"task": "Task 2", "start": random_date(start_date, 3), "end": random_date(start_date, 8)},
+        {"task": "Task 3", "start": random_date(start_date, 6), "end": random_date(start_date, 12)},
+    ]
+
+    data = {
+        "gantt_data": tasks,
+    }
+    return JsonResponse(data)
+
+
+from django.http import JsonResponse
+from .models import Scenario
+from . import data
+from dash import Dash, html, dcc
+from dash.exceptions import PreventUpdate
+
+from dash_app import ids, data
+from dash.dependencies import Input, Output, State  # no fa401
 import plotly.graph_objects as go
-import numpy as np
-from plotly_resampler import FigureResampler, FigureWidgetResampler
-
-def generate_random_data(points):
-    """Generate random data for scatter plots."""
-    return [{'x': random.random(), 'y': random.random()} for _ in range(points)]
-
-def render_test(request, option, points):
-    # Start server-side timer
-    server_start_time = time.time()
-
-    # Generate random data
-    data = generate_random_data(points)
-
-    if option in ['plotly', 'plotlygl']:
-        # Extract x and y values from the data
-        x = [point['x'] for point in data]
-        y = [point['y'] for point in data]
-
-        # Create a Plotly trace
-        if option == 'plotlygl':
-            trace = go.Scattergl(  # Use Scattergl for WebGL rendering
-                x=x,
-                y=y,
-                mode='markers'
-            )
-        else:  # option == 'plotly'
-            trace = go.Scatter(  # Use Scatter for SVG rendering
-                x=x,
-                y=y,
-                mode='markers'
-            )
-
-        # Create layout
-        layout = go.Layout(
-            title=f'{option.upper()} Scatter Plot ({points} Points)',
-            width=800,
-            height=400
-        )
-
-        # Generate Plotly HTML
-        fig = go.Figure(data=[trace], layout=layout)
-        plot_div = pyo.plot(fig, output_type='div', include_plotlyjs=False)
-
-        # Pass the Plotly HTML to the template
-        server_end_time = time.time()
-        server_time = (server_end_time - server_start_time) * 1000  # Convert to ms
-        return render(request, 'ebustoolbox/render_test.html', {
-            'option': option,
-            'points': points,
-            'plot_div': plot_div,
-            'server_time': server_time
-        })
-
-    elif option == 'chartjs':
-        # Pass data to the template for Chart.js
-        server_end_time = time.time()
-        server_time = (server_end_time - server_start_time) * 1000  # Convert to ms
-        return render(request, 'ebustoolbox/render_test.html', {
-            'option': option,
-            'points': points,
-            'data': data,
-            'server_time': server_time
-        })
-
-    elif option == 'echarts':
-        # Pass data to the template for ECharts
-        server_end_time = time.time()
-        server_time = (server_end_time - server_start_time) * 1000  # Convert to ms
-        return render(request, 'ebustoolbox/render_test.html', {
-            'option': option,
-            'points': points,
-            'data': data,  # Pass the raw data to the template
-            'server_time': server_time
-        })
-
-    elif option == "plotlyglr":
-
-        # Extract x and y values from the data
-        x = [point['x'] for point in data]
-        y = [point['y'] for point in data]
-
-        fig = FigureResampler(go.Figure())
-        fig.add_trace(go.Scattergl(name='noisy sine', showlegend=True), hf_x=x, hf_y=y)
-
-        # Create layout
-        layout = go.Layout(
-            title=f'{option.upper()} Scatter Plot ({points} Points)',
-            width=800,
-            height=400
-        )
-
-        fig.show_dash(mode='inline')
-        # Generate Plotly HTML
-        plot_div = pyo.plot(fig, output_type='div', include_plotlyjs=False)
-
-        # Pass the Plotly HTML to the template
-        server_end_time = time.time()
-        server_time = (server_end_time - server_start_time) * 1000  # Convert to ms
-        return render(request, 'ebustoolbox/render_test.html', {
-            'option': option,
-            'points': points,
-            'plot_div': plot_div,
-            'server_time': server_time
-        })
+import plotly.express as px
+from ebustoolbox.models import Scenario
 
 
+def render_critical_rotations(request, task_id):
+    """Returns raw JSON data for critical rotations (critical vs. non-critical)"""
+    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    buses = list(vehicle_name_dict.keys())
 
-    else:
-        # Handle invalid options
-        return render(request, 'ebustoolbox/render_test.html', {
-            'error': f"Invalid option: {option}"
-        })
+    s = Scenario.objects.get(task_id=task_id)
+    #if not data.sim_is_finished(task_id):
+     #   return JsonResponse({"data": []})
+
+    df = data.get_critical_rotations_as_dataframe(s.id, buses)
+
+    # Return only raw values
+    return JsonResponse({
+        "data": [{"value": row["Count"], "name": row["Category"]} for _, row in df.iterrows()]
+    })
+
+
+def render_bustype(request, task_id):
+    """Returns raw JSON data for vehicle type distribution"""
+    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    buses = list(vehicle_name_dict.keys())
+
+    s = Scenario.objects.get(task_id=task_id)
+  #  if not data.sim_is_finished(task_id):
+  #      return JsonResponse({"data": []})
+
+    df = data.get_vehicle_types(s.id, buses)
+    if len(df) == 0:
+        return JsonResponse({"data": []})
+
+    return JsonResponse({
+        "data": [{"value": row["count"], "name": row["name"]} for _, row in df.iterrows()]
+    })
+

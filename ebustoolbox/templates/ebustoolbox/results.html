@@ -545,7 +545,215 @@
           </nav>
           <div id="load-profile-tab-contents" class="mt-4">
             <div class="load-profile-tab-content" data-tab="load-profile-tab-1">
-              Content for Elektrischer Lastgang
+
+                    <script src="https://cdn.jsdelivr.net/npm/echarts@5.3.2/dist/echarts.min.js"></script>
+    <style>
+        .chart-container {
+            width: 600px;
+            height: 400px;
+            margin: 20px auto;
+        }
+    </style>
+
+    <input type="hidden" id="simulation-id" value="{{ task_id }}">
+
+              <!-- Different containers for each chart -->
+
+<div id="chartContainer" style="width: 400px; height: 400px;"></div>
+<div id="busTypeChartContainer" style="width: 400px; height: 400px;"></div>
+                <div class="chart-container" id="lineChart"></div>
+    <div class="chart-container" id="barChart"></div>
+    <div class="chart-container" id="histogramChart"></div>
+    <div class="chart-container" id="scatterChart"></div>
+    <div class="chart-container" id="ganttChart"></div>
+
+    <script>
+        // General function to fetch data based on chart type
+        function fetchData(chartType, simulationId) {
+            return fetch(`http://127.0.0.1:8000/simba/results/${simulationId}/${chartType}/`)
+                .then(response => response.json())
+                .catch(error => console.error(`Error fetching ${chartType} data:`, error));
+        }
+
+        // Function to initialize an ECharts instance
+        function initChart(chartId, options) {
+            const chart = echarts.init(document.getElementById(chartId));
+            chart.setOption(options);
+        }
+
+        // Get the simulation ID from the URL
+        const simulationId = document.getElementById("simulation-id").value;
+        console.log("Simulation ID:", simulationId);
+        // Fetch and render charts based on the chart types
+        // Line Chart
+
+        fetch(`http://127.0.0.1:8000/simba/results/${simulationId}/bar/`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => console.log("Bar Chart Data:", data))
+        .catch(error => console.error("Error fetching bar data:", error));
+
+            // Function to fetch data based on chart type
+    function fetchData(chartType, simulationId) {
+        return fetch(`http://127.0.0.1:8000/simba/results/${simulationId}/${chartType}/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                return response.json();
+            })
+            .catch(error => {
+                console.error(`Error fetching ${chartType} data:`, error);
+                return { data: [] }; // Return empty data to prevent crashing
+            });
+    }
+
+    // Function to initialize and render an ECharts pie chart
+    function fetchAndRenderChart(chartType, chartId, titleText) {
+        const simulationId = document.getElementById("simulation-id").value;
+
+        fetchData(chartType, simulationId).then(data => {
+            const chartDom = document.getElementById(chartId);
+            if (!chartDom) {
+                console.error(`Chart container with ID "${chartId}" not found.`);
+                return;
+            }
+
+            var chart = echarts.init(chartDom);
+
+            var options = {
+                title: {
+                    text: titleText,
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 16,
+                        fontWeight: 'bold'
+                    }
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{b}: {c} ({d}%)'
+                },
+                legend: {
+                    orient: 'vertical',
+                    left: 'left'
+                },
+                series: [{
+                    name: titleText,
+                    type: 'pie',
+                    radius: '50%',
+                    data: data.data, // Expecting format [{value: x, name: "Category"}]
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }]
+            };
+
+            chart.setOption(options);
+        });
+    }
+
+    // Ensure the DOM is fully loaded before running
+    document.addEventListener("DOMContentLoaded", function() {
+        const simulationId = document.getElementById("simulation-id").value;
+        console.log("Simulation ID:", simulationId);
+
+        if (simulationId) {
+            // Render the charts
+            fetchAndRenderChart("critical_rotations", "chartContainer", "Critical vs Non-Critical Rotations");
+            fetchAndRenderChart("bustype", "busTypeChartContainer", "Vehicle Type Distribution");
+        } else {
+            console.error("Simulation ID is missing.");
+        }
+    });
+
+        fetchData('line', simulationId).then(data => {
+            initChart('lineChart', {
+                title: { text: 'Line Chart Example' },
+                xAxis: { type: 'category', data: data.timestamp },
+                yAxis: { type: 'value' },
+                series: [{
+                    data: data.values,
+                    type: 'line',
+                    smooth: true
+                }]
+            });
+        });
+
+        // Bar Chart
+        fetchData('bar', simulationId).then(data => {
+            initChart('barChart', {
+                title: { text: 'Bar Chart Example' },
+                xAxis: { type: 'category', data: data.categories },
+                yAxis: { type: 'value' },
+                series: [{
+                    data: data.values,
+                    type: 'bar'
+                }]
+            });
+        });
+
+        // Histogram Chart
+        fetchData('histogram', simulationId).then(data => {
+            initChart('histogramChart', {
+                title: { text: 'Histogram Example' },
+                xAxis: { type: 'category', data: ['10-20', '20-30', '30-40', '40-50'] },
+                yAxis: { type: 'value' },
+                series: [{
+                    data: data.histogram_data,
+                    type: 'bar',
+                    name: 'Frequency',
+                    emphasis: { focus: 'series' }
+                }]
+            });
+        });
+
+        // Scatter Plot
+        fetchData('scatter', simulationId).then(data => {
+            initChart('scatterChart', {
+                title: { text: 'Scatter Plot Example' },
+                xAxis: { type: 'value' },
+                yAxis: { type: 'value' },
+                series: [{
+                    symbolSize: 10,
+                    data: data.scatter_data.map(item => [item.x, item.y]),
+                    type: 'scatter'
+                }]
+            });
+        });
+
+        // Gantt Chart
+        fetchData('gantt', simulationId).then(data => {
+            initChart('ganttChart', {
+                title: { text: 'Gantt Chart Example' },
+                tooltip: {},
+                xAxis: { type: 'time' },
+                yAxis: {
+                    type: 'category',
+                    data: data.gantt_data.map(item => item.task)
+                },
+                series: [{
+                    name: 'Duration',
+                    type: 'bar',
+                    data: data.gantt_data.map(item => ({
+                        name: item.task,
+                        value: [item.start, item.end]
+                    })),
+                    itemStyle: {
+                        color: '#4c9aff'
+                    }
+                }]
+            });
+        });
+    </script>
             </div>
           </div>
         </div>
