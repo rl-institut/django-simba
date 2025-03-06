@@ -549,7 +549,7 @@
                     <script src="https://cdn.jsdelivr.net/npm/echarts@5.3.2/dist/echarts.min.js"></script>
     <style>
         .chart-container {
-            width: 600px;
+            width: 100%;
             height: 400px;
             margin: 20px auto;
         }
@@ -559,9 +559,12 @@
 
               <!-- Different containers for each chart -->
 
-<div id="chartContainer" style="width: 400px; height: 400px;"></div>
-<div id="busTypeChartContainer" style="width: 400px; height: 400px;"></div>
+<div id="chartContainer" class="chart-container"></div>
+<div id="busTypeChartContainer" class="chart-container"></div>
                 <div class="chart-container" id="lineChart"></div>
+
+              <div class="chart-container" id="scatterChart"></div>
+<div class="chart-container" id="barChart"></div>
     <div class="chart-container" id="barChart"></div>
     <div class="chart-container" id="histogramChart"></div>
     <div class="chart-container" id="scatterChart"></div>
@@ -675,84 +678,81 @@
         }
     });
 
-        fetchData('line', simulationId).then(data => {
-            initChart('lineChart', {
-                title: { text: 'Line Chart Example' },
-                xAxis: { type: 'category', data: data.timestamp },
-                yAxis: { type: 'value' },
-                series: [{
-                    data: data.values,
-                    type: 'line',
-                    smooth: true
-                }]
-            });
-        });
 
-        // Bar Chart
-        fetchData('bar', simulationId).then(data => {
-            initChart('barChart', {
-                title: { text: 'Bar Chart Example' },
-                xAxis: { type: 'category', data: data.categories },
-                yAxis: { type: 'value' },
-                series: [{
-                    data: data.values,
-                    type: 'bar'
-                }]
-            });
-        });
+    function fetchAndRenderLineChart(chartType, chartId, titleText, xKey, yKey) {
+    const simulationId = document.getElementById("simulation-id").value;
 
-        // Histogram Chart
-        fetchData('histogram', simulationId).then(data => {
-            initChart('histogramChart', {
-                title: { text: 'Histogram Example' },
-                xAxis: { type: 'category', data: ['10-20', '20-30', '30-40', '40-50'] },
-                yAxis: { type: 'value' },
-                series: [{
-                    data: data.histogram_data,
-                    type: 'bar',
-                    name: 'Frequency',
-                    emphasis: { focus: 'series' }
-                }]
-            });
-        });
+    fetchData(chartType, simulationId).then(data => {
+        const chartDom = document.getElementById(chartId);
+        if (!chartDom) {
+            console.error(`Chart container with ID "${chartId}" not found.`);
+            return;
+        }
 
-        // Scatter Plot
-        fetchData('scatter', simulationId).then(data => {
-            initChart('scatterChart', {
-                title: { text: 'Scatter Plot Example' },
-                xAxis: { type: 'value' },
-                yAxis: { type: 'value' },
-                series: [{
-                    symbolSize: 10,
-                    data: data.scatter_data.map(item => [item.x, item.y]),
-                    type: 'scatter'
-                }]
-            });
-        });
+        var chart = echarts.init(chartDom);
 
-        // Gantt Chart
-        fetchData('gantt', simulationId).then(data => {
-            initChart('ganttChart', {
-                title: { text: 'Gantt Chart Example' },
-                tooltip: {},
-                xAxis: { type: 'time' },
-                yAxis: {
-                    type: 'category',
-                    data: data.gantt_data.map(item => item.task)
-                },
-                series: [{
-                    name: 'Duration',
-                    type: 'bar',
-                    data: data.gantt_data.map(item => ({
-                        name: item.task,
-                        value: [item.start, item.end]
-                    })),
-                    itemStyle: {
-                        color: '#4c9aff'
+        // Prepare the series data for each bus (V_id)
+        var seriesData = [];
+        for (let v_id in data.data) {
+            let busData = data.data[v_id];
+            seriesData.push({
+                name: `Bus ${v_id}`, // Name for the legend
+                type: 'line',
+                data: busData, // The actual time-series data for this bus
+                smooth: true
+            });
+        }
+
+        var options = {
+            title: {
+                text: titleText,
+                left: 'center',
+                textStyle: {
+                    fontSize: 16,
+                    fontWeight: 'bold'
+                }
+            },
+            tooltip: {
+                trigger: 'axis',
+                formatter: function (params) {
+                    const timestamp = params[0].value[0]; // Unix timestamp
+                    const soc = params[0].value[1]; // SOC value
+                    const date = new Date(timestamp);
+                    return `${date.toLocaleString()} : ${soc.toFixed(2)}%`; // Format the tooltip
+                }
+            },
+            xAxis: {
+                type: 'time',
+                name: 'Time',
+                axisLabel: {
+                    formatter: function (value) {
+                        const date = new Date(value);
+                        return date.toLocaleString(); // Format x-axis labels
                     }
-                }]
-            });
-        });
+                }
+            },
+            yAxis: {
+                type: 'value',
+                name: 'SOC (%)'
+            },
+            legend: {
+                show: false // Disables the legend
+            },
+            series: seriesData // Multiple series for each bus
+        };
+
+        chart.setOption(options);
+    });
+}
+
+// Fetch and render different charts
+fetchAndRenderLineChart("soc", "lineChart", "Bus SOC over Time", "time_end", "soc_end_prc");
+//fetchAndRenderLineChart("power-draw", "barChart", "Power Draw over Time", "time", "total_power");
+//fetchAndRenderLineChart("station-occupation", "lineChart", "Charging Vehicles over Time", "time", "vehicles_charging");
+
+
+
+
     </script>
             </div>
           </div>

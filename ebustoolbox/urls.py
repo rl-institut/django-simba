@@ -58,7 +58,9 @@ urlpatterns = [
 
     path("result/<uuid:task_id>/", views.result_view_old, name="result"),
 
-    path('results/<uuid:simulation_id>/line/', views.get_line_chart_data, name='line_chart_data'),
+    path('results/<uuid:task_id>/soc/', views.get_soc_data, name="soc-data"),
+    path('results/<uuid:task_id>/power-draw/', views.get_power_draw, name="power-draw"),
+    path('results/<uuid:task_id>/station-occupation/', views.get_station_occupation, name="station-occupation"),
     path('results/<uuid:simulation_id>/bar/', views.get_bar_chart_data, name='bar_chart_data'),
     path('results/<uuid:simulation_id>/histogram/', views.get_histogram_data, name='histogram_data'),
     path('results/<uuid:simulation_id>/scatter/', views.get_scatter_data, name='scatter_data'),

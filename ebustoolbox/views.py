@@ -817,15 +817,9 @@ def get_gantt_data(request, simulation_id):
 
 
 from django.http import JsonResponse
-from .models import Scenario
-from . import data
-from dash import Dash, html, dcc
-from dash.exceptions import PreventUpdate
 
-from dash_app import ids, data
-from dash.dependencies import Input, Output, State  # no fa401
-import plotly.graph_objects as go
-import plotly.express as px
+import pandas as pd
+from dash_app import  data
 from ebustoolbox.models import Scenario
 
 
@@ -863,3 +857,86 @@ def render_bustype(request, task_id):
         "data": [{"value": row["count"], "name": row["name"]} for _, row in df.iterrows()]
     })
 
+def get_soc_data(request, task_id):
+    """
+    Returns SOC (State of Charge) data over time for selected buses in JSON format.
+    """
+    s = Scenario.objects.get(task_id=task_id)
+
+    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    buses = list(vehicle_name_dict.keys())
+    df = data.get_soc_as_dataframe(s.id, buses)
+
+    # Select the columns we need for SOC data
+    selected_columns = df[['V_id', 'time_start', 'soc_end']]
+
+    # Convert 'time_start' to Unix timestamps (in milliseconds) and assign to a new column
+    selected_columns['timestamp'] = pd.to_datetime(selected_columns['time_start']).astype(int) // 10**6  # Convert to milliseconds
+
+    # Now group by 'V_id' and aggregate the results
+    soc_data = selected_columns.groupby('V_id').apply(
+        lambda group: group[['timestamp', 'soc_end']].values.tolist()  # Convert each group to a list of [timestamp, soc_end]
+    ).to_dict()
+
+    # Prepare the response in ECharts-compatible format
+    response_data = {
+        "data": soc_data
+    }
+
+    return JsonResponse(response_data)
+def get_power_draw(request, task_id):
+    """
+    Returns power draw data over time by station ID for selected buses.
+    """
+    s = Scenario.objects.get(task_id=task_id)
+
+  #  if not data.sim_is_finished(task_id):
+  #      return JsonResponse({"error": "Simulation not finished"}, status=400)
+
+    buses = request.GET.getlist("buses[]")
+    df = data.get_powerdraw_as_dataframe(s.id, buses)
+
+    df["time_start"] = pd.to_datetime(df["time_start"])
+    df["time_end"] = pd.to_datetime(df["time_end"])
+
+    charging_status = []
+
+    all_times = pd.date_range(start=df["time_start"].min(), end=df["time_end"].max(), freq="min")
+
+    print(df, all_times)
+
+    for time_point in all_times:
+        charging_vehicles = df[
+            (df["time_start"] <= time_point) & (df["time_end"] > time_point) & (df["Power"] > 0)
+        ]
+        total_power = charging_vehicles["Power"].sum()
+        charging_status.append({"time": time_point.isoformat(), "total_power": total_power})
+
+    return JsonResponse({"data": charging_status})
+
+def get_station_occupation(request, task_id):
+    """
+    Returns the number of vehicles charging at a station over time.
+    """
+    s = Scenario.objects.get(task_id=task_id)
+
+   # if not data.sim_is_finished(task_id):
+   #     return JsonResponse({"error": "Simulation not finished"}, status=400)
+
+    df = data.get_powerdraw_as_dataframe(s.id, request.GET.getlist("buses[]"))
+    df["time_start"] = pd.to_datetime(df["time_start"])
+    df["time_end"] = pd.to_datetime(df["time_end"])
+
+    charging_status = []
+
+    all_times = pd.date_range(start=df["time_start"].min(), end=df["time_end"].max(), freq="min")
+    all_times = pd.date_range(
+        start=df["time_start"].min(), end=df["time_end"].max(), freq="min"
+    )
+    for time_point in all_times:
+        charging_vehicles = (
+            ((df["time_start"] <= time_point) & (df["time_end"] > time_point)) & (df["Power"] > 0)
+        ).sum()
+        charging_status.append({"time": time_point.isoformat(), "vehicles_charging": charging_vehicles})
+
+    return JsonResponse({"data": charging_status})
