@@ -1,6 +1,7 @@
 from django import forms
 from django.conf import settings
 
+from . import models
 from .models import (
     EnumChargeType,
     EnumVoltageLevel,
@@ -99,13 +100,15 @@ class ElectrificationOptionsForm(forms.ModelForm):
 class VehicleTypeForm(forms.ModelForm):
     class Meta:
         model = VehicleType
-        fields = ["battery_capacity"]
+        fields = ["battery_capacity", "consumption"]
 
         help_texts = {
             "battery_capacity": "Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen.",
+            "consumption": "Welchen Verbrauch in kWh/km hat dieses Fahrzeug?",
         }
         labels = {
             "battery_capacity": "Batteriekapazität [kWh]",
+            "consumption": "Verbrauch [kWh/km]",
         }
 
 
@@ -143,3 +146,14 @@ class TripsForm(forms.Form):
         if file_suffix not in ["csv", "zip"]:
             self.errors["data_file"] = f"Der Dateityp {file_suffix} wird nicht unterstützt"
         return True
+
+
+class VehicleTypeSelectionForm(forms.ModelForm):
+    class Meta:
+        exclude = []
+        model = models.VehicleTypeSelection
+
+    def __init__(self, *args, vehicle_type=None, choices_queryset=None, **kwargs):
+        super(VehicleTypeSelectionForm, self).__init__(*args, **kwargs)
+        self.fields["vehicle_type"].queryset = VehicleType.objects.filter(id=vehicle_type.id)
+        self.fields["default_vehicle_type"].queryset = choices_queryset

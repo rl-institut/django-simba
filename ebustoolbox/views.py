@@ -25,7 +25,12 @@ from celery.result import AsyncResult
 from dash_app import dash_app, ids  # noqa: F401
 from django_mapengine.views import MapEngineMixin
 from . import tasks, schedule_readers, forms
-from .forms import ElectrificationOptionsForm, SimulationParameters, VehicleTypeForm
+from .forms import (
+    ElectrificationOptionsForm,
+    SimulationParameters,
+    VehicleTypeForm,
+    VehicleTypeSelectionForm,
+)
 from .tasks import create_db_url, get_args  # noqa
 from .util import get_unique_task_id
 
@@ -243,8 +248,8 @@ class VehiclesView(FormView):
         scenario = kwargs["scenario"]
         parent = get_parent(scenario.task_id)
 
+        # Get context for Simulation Range
         simulation_parameters_form = self.form_class()
-
         trips = Trip.objects.filter(scenario=parent).order_by("departure_time")
         start_date = trips.first().departure_time.date().isoformat()
         start_time = trips.first().departure_time.time().isoformat()
@@ -266,6 +271,58 @@ class VehiclesView(FormView):
         context |= {"start_date": initial_start_date, "end_date": initial_end_date}
         context |= {"initial_start_time": initial_start_time, "initial_end_time": initial_end_time}
         context |= {"task_id": scenario.task_id, "form": simulation_parameters_form}
+
+        # Get context for vehicle types
+        default_scenario = DefaultScenario.objects.first().scenario
+        parent_vehicle_types = VehicleType.objects.filter(scenario=parent)
+        # Get all default vehicle types. Only Opportunity charging capable for now
+        # Expand the query for desired vehicle types which can be selected
+        default_vehicle_types = VehicleType.objects.filter(
+            scenario=default_scenario, opportunity_charging_capable=True
+        )
+
+        # if the child / mutation scenario has no vehicle types create them
+        child_vehicle_types = VehicleType.objects.filter(scenario=scenario)
+        if child_vehicle_types.count() == 0:
+            for vt in parent_vehicle_types:
+                org_vt_id = vt.id
+                vt.id = None
+                vt.scenario = scenario
+                vt.save()
+                org_vt = VehicleType.objects.get(id=org_vt_id)
+                VehicleTypeMutation.objects.create(
+                    original_vehicle_type=org_vt, mutated_vehicle_type=vt
+                )
+
+        context["vehicle_types"] = VehicleType.objects.filter(scenario=scenario)
+
+        for vt in child_vehicle_types:
+            vt_select, _ = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
+
+        vehicle_modification = {}
+        for vt in child_vehicle_types:
+            vehicle_modification[vt.id] = {
+                "vehicle_type": vt,
+                "vehicle_choices": default_vehicle_types,
+                "selection": VehicleTypeSelectionForm(
+                    prefix=f"selection_{vt.id}",
+                    vehicle_type=vt,
+                    choices_queryset=default_vehicle_types,
+                ),
+                "vehicle_modification": VehicleTypeForm(prefix=f"mutation_{vt.id}"),
+            }
+        context["vehicle_modification"] = vehicle_modification
+        context["choice_vts"] = default_vehicle_types
+
+        # Todo @Moritz/Stefan/Ludger Is this needed?
+        # check if can be skipped by seeing if vehicle types have relevant data
+        # This is an edge case if the scenario is not created through the web interface
+        # skippable = reverse("simba:depots", args=[str(task_id)])
+        # for vt in vehicle_types:
+        #     if vt.consumption is None:
+        #         skippable = False
+        #         break
+        # context["skippable"] = skippable
         return context
 
     def get(self, request, *args, **kwargs):
@@ -304,6 +361,100 @@ class VehiclesView(FormView):
 
     def form_invalid(self, form, **kwargs):
         return self.render_to_response(self.get_context_data(**kwargs, form=form))
+
+
+def get_vehicle_types(request: HttpRequest, task_id):
+    context = {"task_id": task_id}
+
+    try:
+        scenario = Scenario.objects.get(task_id=task_id)
+        parent = scenario.parent
+    except Scenario.DoesNotExist:
+        raise Http404
+    # if the scenario has a manager, only this User can run the simulation
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
+
+    default_scenario = DefaultScenario.objects.first().scenario
+    vehicle_types = VehicleType.objects.filter(scenario=parent)
+    # Get all default vehicle types. Only Opportunity charging capable for now
+    default_vehicle_types = VehicleType.objects.filter(
+        scenario=default_scenario, opportunity_charging_capable=True
+    )
+
+    # if the child / mutation scenario has no vehicle types create them
+    child_vehicle_types = VehicleType.objects.filter(scenario=scenario)
+    if child_vehicle_types.count() == 0:
+        for vt in vehicle_types:
+            org_vt_id = vt.id
+            vt.id = None
+            vt.scenario = scenario
+            vt.save()
+            org_vt = VehicleType.objects.get(id=org_vt_id)
+            VehicleTypeMutation.objects.create(
+                original_vehicle_type=org_vt, mutated_vehicle_type=vt
+            )
+
+    context["vehicle_types"] = vehicle_types
+    # Create form for every selection of a default vehicle type
+    from django.forms import modelformset_factory
+
+    VehicleTypeSelectionFormSet = modelformset_factory(
+        VehicleTypeSelection, fields=["default_vehicle_type"], extra=0
+    )
+    for vt in child_vehicle_types:
+        vt_select, _ = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
+
+    formset_vt = VehicleTypeSelectionFormSet(
+        queryset=VehicleTypeSelection.objects.filter(vehicle_type__in=child_vehicle_types),
+        prefix="dvt_selection",
+    )
+
+    # Make the choice of the default vehicle type visible
+    for form in formset_vt:
+        form.fields["default_vehicle_type"].queryset = default_vehicle_types
+        form.fields["default_vehicle_type"].widget.attrs["type"] = "visible"
+    context["formset_vt"] = formset_vt
+
+    # Form for every default vehicle type to allow mutation of default vehicle values
+    VehicleTypeFormSet = modelformset_factory(VehicleType, form=VehicleTypeForm, extra=0)
+    formset_dvt = VehicleTypeFormSet(
+        queryset=VehicleType.objects.filter(id__in=default_vehicle_types), prefix="dvt_mutation"
+    )
+    context["formset_dvt"] = formset_dvt
+    context["default_vehicle_types"] = default_vehicle_types
+
+    # check if can be skipped by seeing if vehicle types have relevant data
+    skippable = reverse("simba:depots", args=[str(task_id)])
+    for vt in vehicle_types:
+        if vt.consumption is None:
+            skippable = False
+            break
+    context["skippable"] = skippable
+
+    if request.method == "POST":
+        vt_type_mutations = VehicleTypeFormSet(request.POST, prefix="dvt_mutation")
+        vt_selection = VehicleTypeSelectionFormSet(request.POST, prefix="dvt_selection")
+        if not vt_type_mutations.is_valid() or not vt_selection.is_valid():
+            return render(request, "vehicle_types.html", context)
+
+        vt_type_mutations = {form.instance.id: form.instance for form in vt_type_mutations}
+        vt_selection.save()
+
+        # Change every vehicle to the selected default vehicle type properties
+        for form in vt_selection:
+            vt, dvt = form.instance.vehicle_type, form.instance.default_vehicle_type
+            changed_dvt = vt_type_mutations[dvt.id]
+            # overwrite mutation vt with the new values of the mutated default vehicle type
+            changed_dvt.id = vt.id
+            # Restore some values from original vt
+            changed_dvt.name = vt.name
+            changed_dvt.scenario = vt.scenario
+            changed_dvt.name_short = vt.name_short
+            changed_dvt.save()
+        return redirect(reverse("simba:depots", args=[str(task_id)]))
+
+    return render(request, "vehicle_types.html", context)
 
 
 def show_uploads_view(request: HttpRequest, filename):
@@ -462,100 +613,6 @@ def get_options(request: HttpRequest, task_id, reader_num: int):
         # 204 - No Content https://htmx.org/docs/#requests
         response.status_code = 204
     return response
-
-
-def get_vehicle_types(request: HttpRequest, task_id):
-    context = {"task_id": task_id}
-
-    try:
-        scenario = Scenario.objects.get(task_id=task_id)
-        parent = scenario.parent
-    except Scenario.DoesNotExist:
-        raise Http404
-    # if the scenario has a manager, only this User can run the simulation
-    if scenario.manager and scenario.manager != request.user:
-        raise Http404
-
-    default_scenario = DefaultScenario.objects.first().scenario
-    vehicle_types = VehicleType.objects.filter(scenario=parent)
-    # Get all default vehicle types. Only Opportunity charging capable for now
-    default_vehicle_types = VehicleType.objects.filter(
-        scenario=default_scenario, opportunity_charging_capable=True
-    )
-
-    # if the child / mutation scenario has no vehicle types create them
-    child_vehicle_types = VehicleType.objects.filter(scenario=scenario)
-    if child_vehicle_types.count() == 0:
-        for vt in vehicle_types:
-            org_vt_id = vt.id
-            vt.id = None
-            vt.scenario = scenario
-            vt.save()
-            org_vt = VehicleType.objects.get(id=org_vt_id)
-            VehicleTypeMutation.objects.create(
-                original_vehicle_type=org_vt, mutated_vehicle_type=vt
-            )
-
-    context["vehicle_types"] = vehicle_types
-    # Create form for every selection of a default vehicle type
-    from django.forms import modelformset_factory
-
-    VehicleTypeSelectionFormSet = modelformset_factory(
-        VehicleTypeSelection, fields=["default_vehicle_type"], extra=0
-    )
-    for vt in child_vehicle_types:
-        vt_select, _ = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
-
-    formset_vt = VehicleTypeSelectionFormSet(
-        queryset=VehicleTypeSelection.objects.filter(vehicle_type__in=child_vehicle_types),
-        prefix="dvt_selection",
-    )
-
-    # Make the choice of the default vehicle type visible
-    for form in formset_vt:
-        form.fields["default_vehicle_type"].queryset = default_vehicle_types
-        form.fields["default_vehicle_type"].widget.attrs["type"] = "visible"
-    context["formset_vt"] = formset_vt
-
-    # Form for every default vehicle type to allow mutation of default vehicle values
-    VehicleTypeFormSet = modelformset_factory(VehicleType, form=VehicleTypeForm, extra=0)
-    formset_dvt = VehicleTypeFormSet(
-        queryset=VehicleType.objects.filter(id__in=default_vehicle_types), prefix="dvt_mutation"
-    )
-    context["formset_dvt"] = formset_dvt
-    context["default_vehicle_types"] = default_vehicle_types
-
-    # check if can be skipped by seeing if vehicle types have relevant data
-    skippable = reverse("simba:depots", args=[str(task_id)])
-    for vt in vehicle_types:
-        if vt.consumption is None:
-            skippable = False
-            break
-    context["skippable"] = skippable
-
-    if request.method == "POST":
-        vt_type_mutations = VehicleTypeFormSet(request.POST, prefix="dvt_mutation")
-        vt_selection = VehicleTypeSelectionFormSet(request.POST, prefix="dvt_selection")
-        if not vt_type_mutations.is_valid() or not vt_selection.is_valid():
-            return render(request, "vehicle_types.html", context)
-
-        vt_type_mutations = {form.instance.id: form.instance for form in vt_type_mutations}
-        vt_selection.save()
-
-        # Change every vehicle to the selected default vehicle type properties
-        for form in vt_selection:
-            vt, dvt = form.instance.vehicle_type, form.instance.default_vehicle_type
-            changed_dvt = vt_type_mutations[dvt.id]
-            # overwrite mutation vt with the new values of the mutated default vehicle type
-            changed_dvt.id = vt.id
-            # Restore some values from original vt
-            changed_dvt.name = vt.name
-            changed_dvt.scenario = vt.scenario
-            changed_dvt.name_short = vt.name_short
-            changed_dvt.save()
-        return redirect(reverse("simba:depots", args=[str(task_id)]))
-
-    return render(request, "vehicle_types.html", context)
 
 
 def get_depots(request: HttpRequest, task_id):
