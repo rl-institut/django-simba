@@ -85,6 +85,10 @@ class SimulationParameters(forms.ModelForm):
         model = SimulationRange
         exclude = ("scenario",)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["temperature"].widget.attrs.update({"min": -20.0, "max": 40})
+
 
 class ElectrificationOptionsForm(forms.ModelForm):
     class Meta:
@@ -161,3 +165,23 @@ class VehicleTypeForm(forms.ModelForm):
             "battery_capacity": "Batteriekapazität [kWh]",
             # "consumption": "Verbrauch [kWh/km]",
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["battery_capacity"].widget.attrs.update({"min": 1.0})
+
+
+class StationModeForm(forms.Form):
+    CHOICES = [
+        ("automatic", "Automatisch berechnen lassen"),
+        ("constant_power", "Ladeleistung angeben"),
+        ("manual", "Detail zu den Stationen angeben"),
+    ]
+    calculation_mode = forms.ChoiceField(
+        widget=forms.RadioSelect,
+        choices=CHOICES,
+    )
+
+
+class ChargingPowerForm(forms.Form):
+    charging_power = forms.FloatField(required=True, min_value=1, step_size=1)
