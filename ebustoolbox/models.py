@@ -1589,7 +1589,10 @@ class SimulationRange(models.Model):
     start = models.DateTimeField(null=False)
     end = models.DateTimeField(null=False)
     temperature = models.FloatField(
-        default=-10, null=True, validators=[MinValueValidator(-20), MaxValueValidator(40)]
+        blank=True,
+        default=-10,
+        null=True,
+        validators=[MinValueValidator(-20), MaxValueValidator(40)],
     )
 
 

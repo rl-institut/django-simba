@@ -3,6 +3,7 @@ import traceback
 import uuid
 from datetime import timedelta, datetime, timezone as tz
 
+import pytz
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -243,9 +244,8 @@ class VehiclesView(FormView):
     form_class = forms.SimulationParameters
     success_name = "simba:stations"
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, scenario, **kwargs):
         context = super().get_context_data(**kwargs)
-        scenario = kwargs["scenario"]
         parent = get_parent(scenario.task_id)
 
         # Get context for Simulation Range
@@ -257,16 +257,21 @@ class VehiclesView(FormView):
         end_time = trips.last().arrival_time.time().isoformat()
         sim_range = SimulationRange.objects.filter(scenario=scenario).first()
         if sim_range:
-            # initial_start = sim_range.start.date().isoformat()
-            # initial_time = sim_range.start.time().isoformat()
-            # initial_end = (sim_range.end - timedelta(days=1)).isoformat()
-            simulation_parameters_form = self.form_class(temperature=sim_range.temperature)
+            assert SimulationRange.objects.filter(scenario=scenario).count() == 1
+            # Times are provided to the context not via form, since different widgets
+            # are used.
+            initial_start_date = sim_range.start.date().isoformat()
+            initial_start_time = sim_range.start.time().isoformat()
+            initial_end_date = sim_range.end.date().isoformat()
+            initial_end_time = sim_range.end.time().isoformat()
+            simulation_parameters_form = self.form_class(
+                data={"temperature": sim_range.temperature}
+            )
         else:
             initial_start_date = start_date
             initial_start_time = start_time
             initial_end_date = end_date
             initial_end_time = end_time
-        context |= {"form": simulation_parameters_form}
         context |= {"min_date": start_date, "max_date": end_date}
         context |= {"start_date": initial_start_date, "end_date": initial_end_date}
         context |= {"initial_start_time": initial_start_time, "initial_end_time": initial_end_time}
@@ -274,43 +279,11 @@ class VehiclesView(FormView):
 
         # Get context for vehicle types
         default_scenario = DefaultScenario.objects.first().scenario
-        parent_vehicle_types = VehicleType.objects.filter(scenario=parent)
-        # Get all default vehicle types. Only Opportunity charging capable for now
-        # Expand the query for desired vehicle types which can be selected
         default_vehicle_types = VehicleType.objects.filter(
             scenario=default_scenario, opportunity_charging_capable=True
         )
+        vehicle_modification = self.generate_vehicle_modification_forms(parent, scenario)
 
-        # if the child / mutation scenario has no vehicle types create them
-        child_vehicle_types = VehicleType.objects.filter(scenario=scenario)
-        if child_vehicle_types.count() == 0:
-            for vt in parent_vehicle_types:
-                org_vt_id = vt.id
-                vt.id = None
-                vt.scenario = scenario
-                vt.save()
-                org_vt = VehicleType.objects.get(id=org_vt_id)
-                VehicleTypeMutation.objects.create(
-                    original_vehicle_type=org_vt, mutated_vehicle_type=vt
-                )
-
-        context["vehicle_types"] = VehicleType.objects.filter(scenario=scenario)
-
-        for vt in child_vehicle_types:
-            vt_select, _ = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
-
-        vehicle_modification = {}
-        for vt in child_vehicle_types:
-            vehicle_modification[vt.id] = {
-                "vehicle_type": vt,
-                "vehicle_choices": default_vehicle_types,
-                "selection": VehicleTypeSelectionForm(
-                    prefix=f"selection_{vt.id}",
-                    vehicle_type=vt,
-                    choices_queryset=default_vehicle_types,
-                ),
-                "vehicle_modification": VehicleTypeForm(prefix=f"mutation_{vt.id}"),
-            }
         context["vehicle_modification"] = vehicle_modification
         context["choice_vts"] = default_vehicle_types
 
@@ -325,24 +298,145 @@ class VehiclesView(FormView):
         # context["skippable"] = skippable
         return context
 
+    @staticmethod
+    def generate_vehicle_modification_forms(parent, scenario):
+        default_scenario = DefaultScenario.objects.first().scenario
+        parent_vehicle_types = VehicleType.objects.filter(scenario=parent)
+        # Get all default vehicle types. Only Opportunity charging capable for now
+        # Expand the query for desired vehicle types which can be selected
+        default_vehicle_types = VehicleType.objects.filter(
+            scenario=default_scenario, opportunity_charging_capable=True
+        )
+        # if the child / mutation scenario has no vehicle types create them
+        # ToDo could be cleaner. Check instead if a VehicleTypeMutation exists
+        # for each parent vehicle type, with a mutated vehicle type of this scenario. PseudoCode:
+        # for each parent_vt
+        # VehicleTypeMutation(
+        #       original_vehicle_type=parent_vt,
+        #       mutated_vehicle_type__scenario=scenario)
+        #       .exists()
+        child_vehicle_types = VehicleType.objects.filter(scenario=scenario)
+        if child_vehicle_types.count() == 0:
+            for vt in parent_vehicle_types:
+                org_vt_id = vt.id
+                vt.id = None
+                vt.scenario = scenario
+                vt.save()
+                org_vt = VehicleType.objects.get(id=org_vt_id)
+                VehicleTypeMutation.objects.create(
+                    original_vehicle_type=org_vt, mutated_vehicle_type=vt
+                )
+        for vt in child_vehicle_types:
+            vt_select, _ = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
+        vehicle_modification = {}
+        for vt in child_vehicle_types:
+            vehicle_modification[vt.id] = {
+                "vehicle_type": vt,
+                "vehicle_choices": default_vehicle_types,
+                "selection": VehiclesView.get_VehicleTypeSelectionForm()({}, vt),
+                "vehicle_modification": VehiclesView.get_VehicleTypeForm()({}, vt),
+            }
+        return vehicle_modification
+
     def get(self, request, *args, **kwargs):
-        task_id = kwargs.get("task_id")
-        kwargs["scenario"] = get_scenario_and_assert_authorization(request, kwargs.get("task_id"))
-        if task_id is None:
-            raise Http404
-        return self.render_to_response(self.get_context_data(**kwargs))
+        scenario = get_scenario_and_assert_authorization(request, kwargs["task_id"])
+        return self.render_to_response(self.get_context_data(scenario, **kwargs))
+
+    @staticmethod
+    def get_VehicleTypeForm():
+        def builder(request_post, vehicle_type):
+            return VehicleTypeForm(request_post, prefix=f"mutation_{vehicle_type.id}")
+
+        return builder
+
+    @staticmethod
+    def get_VehicleTypeSelectionForm():
+        """Form builder for vehicle type selection.
+
+        Validation can automatically validate against vehicle_type and selected vehicle_type,
+        e.g. the default vehicle type.
+        This gurantees only the server side defined choices can be made.
+        """
+        default_scenario = DefaultScenario.objects.first().scenario
+        default_vehicle_types = VehicleType.objects.filter(
+            scenario=default_scenario, opportunity_charging_capable=True
+        )
+
+        def builder(request_post, vehicle_type):
+            return VehicleTypeSelectionForm(
+                request_post,
+                prefix=f"selection_{vehicle_type.id}",
+                vehicle_type=vehicle_type,
+                choices_queryset=default_vehicle_types,
+            )
+
+        return builder
 
     def post(self, request, *args, **kwargs):
         scenario = get_scenario_and_assert_authorization(request, kwargs.get("task_id"))
-        kwargs["scenario"] = scenario
-        # start_time = datetime.fromisoformat(request.)
-        self.form_class()
-        form = self.get_form()
-        logger.info("Vehicles Post")
+
+        _format = "%Y-%m-%d %H:%M:%S"
+        start_dt = datetime.strptime(
+            f"{request.POST['start-date']} {request.POST['start-time']}", _format
+        )
+        start_dt_utc = start_dt.replace(tzinfo=pytz.UTC)
+        end_dt = datetime.strptime(
+            f"{request.POST['end-date']} {request.POST['end-time']}", _format
+        )
+        end_dt_utc = end_dt.replace(tzinfo=pytz.UTC)
+        forms = []
+        form = SimulationParameters(
+            data={
+                "start": start_dt_utc,
+                "end": end_dt_utc,
+                "temperature": request.POST["temperature"],
+            }
+        )
         if form.is_valid():
-            return self.form_valid(form)
+            instance = form.save(commit=False)
+            instance.scenario = scenario
+            if SimulationRange.objects.filter(scenario=scenario).exists():
+                instance.id = SimulationRange.objects.get(scenario=scenario).id
+
+            if (
+                tasks.get_rotations_by_start_end(
+                    scenario.parent, instance.start, instance.end
+                ).count()
+                == 0
+            ):
+                form.errors.append("In dieser Zeitspanne starten keine Umläufe.")
+            else:
+                # Not Valid
+                instance.save()
+        forms.append(form)
+
+        context = self.get_context_data(scenario=scenario, **kwargs)
+        vehicle_modification = context["vehicle_modification"]
+
+        context["form"] = form
+
+        # Validate vehicle forms
+        # Expand the query for desired vehicle types which can be selected
+        for vt_id, d_values in vehicle_modification.items():
+            vt = VehicleType.objects.get(id=vt_id)
+            form = self.get_VehicleTypeSelectionForm()(request.POST, vt)
+            d_values["selection"] = form
+            forms.append(form)
+
+            form = self.get_VehicleTypeForm()(request.POST, vt)
+            d_values["vehicle_modification"] = form
+            forms.append(form)
+
+        if all(f.is_valid() for f in forms):
+            response = redirect(reverse("simba:stations", args=[scenario.task_id]))
+            return response
+        #
         else:
-            return self.form_invalid(form, **kwargs)
+            for f in forms:
+                if not f.is_valid():
+                    print(f.errors)
+            logger.info("invalid")
+            return self.render_to_response(context)
 
     def form_valid(
         self,

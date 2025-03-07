@@ -792,6 +792,16 @@ def trim_scenario(scenario, time_delta, start_time=None):
     pass
 
 
+def get_rotations_by_start_end(scenario, start: datetime, end: datetime) -> QuerySet[Rotation]:
+    rotations = (
+        Rotation.objects.filter(scenario=scenario)
+        .annotate(first_departure=Min("trip__departure_time"))
+        .filter(first_departure__gte=start)
+        .filter(first_departure__lte=end)
+    )
+    return rotations
+
+
 def get_rotations_by_timespan(
     scenario: Scenario, time_delta, start_time=None
 ) -> QuerySet[Rotation]:

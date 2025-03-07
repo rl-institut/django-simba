@@ -97,21 +97,6 @@ class ElectrificationOptionsForm(forms.ModelForm):
         }
 
 
-class VehicleTypeForm(forms.ModelForm):
-    class Meta:
-        model = VehicleType
-        fields = ["battery_capacity", "consumption"]
-
-        help_texts = {
-            "battery_capacity": "Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen.",
-            "consumption": "Welchen Verbrauch in kWh/km hat dieses Fahrzeug?",
-        }
-        labels = {
-            "battery_capacity": "Batteriekapazität [kWh]",
-            "consumption": "Verbrauch [kWh/km]",
-        }
-
-
 class TripsForm(forms.Form):
     data_file = forms.FileField(required=False)
     existing_scenario = forms.UUIDField(required=False)
@@ -157,3 +142,22 @@ class VehicleTypeSelectionForm(forms.ModelForm):
         super(VehicleTypeSelectionForm, self).__init__(*args, **kwargs)
         self.fields["vehicle_type"].queryset = VehicleType.objects.filter(id=vehicle_type.id)
         self.fields["default_vehicle_type"].queryset = choices_queryset
+
+
+class VehicleTypeForm(forms.ModelForm):
+    # Consumption must be turned on in front end -> todo discuss
+    class Meta:
+        model = VehicleType
+        fields = [
+            "battery_capacity",
+            # "consumption"
+        ]
+
+        help_texts = {
+            "battery_capacity": "Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen.",
+            # "consumption": "Welchen Verbrauch in kWh/km hat dieses Fahrzeug?",
+        }
+        labels = {
+            "battery_capacity": "Batteriekapazität [kWh]",
+            # "consumption": "Verbrauch [kWh/km]",
+        }
