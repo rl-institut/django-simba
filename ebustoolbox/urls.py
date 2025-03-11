@@ -2,7 +2,7 @@
 
 from django.urls import path
 from django.views.generic.base import TemplateView
-from ebustoolbox.views import TripsView, VehiclesView, progress2
+from ebustoolbox.views import TripsView, VehiclesView, progress2, StationsView, CostsView
 
 # from . import views
 
@@ -14,7 +14,11 @@ urlpatterns = [
         TemplateView.as_view(template_name="ebustoolbox/compare.html"),
         name="compare",
     ),
-    path("costs/", TemplateView.as_view(template_name="ebustoolbox/costs.html"), name="costs"),
+    path(
+        "costs/<uuid:task_id>",
+        CostsView.as_view(),
+        name="costs",
+    ),
     path(
         "dashboard/",
         TemplateView.as_view(template_name="ebustoolbox/dashboard-empty-state.html"),
@@ -38,7 +42,7 @@ urlpatterns = [
     ),
     path(
         "stations/<uuid:task_id>",
-        TemplateView.as_view(template_name="ebustoolbox/stations.html"),
+        StationsView.as_view(),
         name="stations",
     ),
     path(

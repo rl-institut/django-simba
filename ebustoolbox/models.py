@@ -1654,3 +1654,9 @@ class StationMutation(models.Model):
     mutated_original_station = models.ForeignKey(
         Station, related_name="mutatedstation", null=True, on_delete=models.CASCADE
     )
+
+
+# ToDo better add it as attribute to Station model. not possible without eflips change
+class StationElectrificationExclusions(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE)

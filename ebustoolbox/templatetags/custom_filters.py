@@ -24,7 +24,15 @@ def widget_attrs(field):
     try:
         if field.data:
             out += f"value={field.data} "
+        else:
+            if field.form.initial.get(field.name):
+                out += f"value={field.form.initial.get(field.name)}"
     except AttributeError:
         pass
 
     return out
+
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)

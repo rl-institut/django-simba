@@ -8,6 +8,7 @@ from .models import (
     ElectrificationOptions,
     VehicleType,
     SimulationRange,
+    Scenario,
 )
 
 
@@ -184,4 +185,60 @@ class StationModeForm(forms.Form):
 
 
 class ChargingPowerForm(forms.Form):
-    charging_power = forms.FloatField(required=True, min_value=1, step_size=1)
+    # General charging_power is required when radio button constant power is set.
+    # Need js to set it to required for front end validation
+    power_total = forms.FloatField(required=False, min_value=1, step_size=1)
+
+
+class StationForm(forms.ModelForm):
+    class Meta:
+        fields = ["is_electrified", "amount_charging_places", "power_total"]
+        model = models.Station
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["amount_charging_places"].widget.attrs.update({"min": 1.0})
+        self.fields["power_total"].widget.attrs.update({"min": 1.0})
+
+
+class StationExcludedForm(forms.Form):
+    is_excluded = forms.BooleanField(initial=False, required=False)
+
+
+class CostInputModeForm(forms.Form):
+    CHOICES = [
+        ("no_input", "Keine Eingabe"),
+        ("file_upload", "Datei hochladen"),
+        ("reference_scenario", "Werte aus anderem Szenario übernehmen"),
+        ("manual", "Manuelle Eingabe"),
+    ]
+    input_mode = forms.ChoiceField(
+        widget=forms.RadioSelect,
+        choices=CHOICES,
+    )
+
+
+class FileUploadForm(forms.Form):
+    file = forms.FileField(required=True)
+
+
+class ScenarioSelection(forms.Form):
+    scenario = forms.ModelChoiceField(queryset=Scenario.objects.all())
+
+    def __init__(self, *args, queryset, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["scenario"].queryset = queryset
+
+
+class ManualTcoForm(forms.Form):
+    co2_emissions = forms.FloatField(required=True)
+    energy_consumption = forms.FloatField(required=True)
+    resources_consumption = forms.FloatField(required=True)
+    years = forms.IntegerField(required=True)
+
+
+class ManualLcaForm(forms.Form):
+    co2_emissions = forms.FloatField(required=True)
+    energy_consumption = forms.FloatField(required=True)
+    resources_consumption = forms.FloatField(required=True)
+    years = forms.IntegerField(required=True)

@@ -31,6 +31,10 @@ from .forms import (
     SimulationParameters,
     VehicleTypeForm,
     VehicleTypeSelectionForm,
+    FileUploadForm,
+    ScenarioSelection,
+    ManualTcoForm,
+    ManualLcaForm,
 )
 from .tasks import create_db_url, get_args  # noqa
 from .util import get_unique_task_id
@@ -52,6 +56,8 @@ from ebustoolbox.models import (
     VehicleTypeSelection,
     VehicleTypeMutation,
     ScenarioDescription,
+    StationMutation,
+    StationElectrificationExclusions,
 )
 
 logger = logging.getLogger("custom")
@@ -98,7 +104,6 @@ class TripsView(FormView):
     success_name = "simba:vehicles"
 
     def get_context_data(self, **kwargs):
-        print("getting context")
         context = super(TripsView, self).get_context_data(**kwargs)
         task_id = kwargs.get("task_id")
         if task_id:
@@ -130,7 +135,6 @@ class TripsView(FormView):
         return context
 
     def get(self, request, *args, **kwargs):
-        print("getting stuff")
         task_id = kwargs.get("task_id")
         if task_id:
             progress_db = get_unique_progress_or_none(task_id)
@@ -139,7 +143,6 @@ class TripsView(FormView):
         return self.render_to_response(self.get_context_data(**kwargs))
 
     def post(self, request, *args, **kwargs):
-        print("posted")
         return super().post(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -239,7 +242,7 @@ def get_parent(task_id):
     parent.save()
 
 
-class VehiclesView(FormView):
+class VehiclesView(TemplateView):
     template_name = "ebustoolbox/vehicles.html"
     form_class = forms.SimulationParameters
     success_name = "simba:stations"
@@ -417,20 +420,22 @@ class VehiclesView(FormView):
 
         # Validate vehicle forms
         # Expand the query for desired vehicle types which can be selected
+        # ToDo: post data could be filled a get_context_data
         for vt_id, d_values in vehicle_modification.items():
             vt = VehicleType.objects.get(id=vt_id)
             form = self.get_VehicleTypeSelectionForm()(request.POST, vt)
             d_values["selection"] = form
             forms.append(form)
-
             form = self.get_VehicleTypeForm()(request.POST, vt)
             d_values["vehicle_modification"] = form
+            # Mutation of form so if all forms are valid vehicle type can be directly
+            # accessed
+            form.vehicle_type = vt
             forms.append(form)
 
         if all(f.is_valid() for f in forms):
-            response = redirect(reverse("simba:stations", args=[scenario.task_id]))
-            return response
-        #
+            return self.forms_valid(forms, scenario)
+
         else:
             for f in forms:
                 if not f.is_valid():
@@ -438,23 +443,215 @@ class VehiclesView(FormView):
             logger.info("invalid")
             return self.render_to_response(context)
 
-    def form_valid(
-        self,
-        form,
-    ):
+    def forms_valid(self, forms, scenario):
         """Handles successful form submission."""
-        context = {}
-        response = render(self.request, self.template_name, context)
-        print(f"{context['progress_id']} trips with task id")
-        # Redirect to the same url with task_id added. this allows insertion of the
-        # backend progress bar
-        # response["HX-Retarget"] = "body"  # reverse("simba:trips", args=[str(task_id)])
-        # response["HX-Replace-Url"] = reverse("simba:trips", args=[str(task_id)])
-        #
+        # Delete previous selections
+        VehicleTypeSelection.objects.filter(vehicle_type__scenario=scenario).delete()
+        VehicleTypeSelectionForms = list(
+            filter(lambda x: x._meta.model == VehicleTypeSelection, forms)
+        )
+        for form in VehicleTypeSelectionForms:
+            form.save()
+
+        VehicleTypeForms = list(filter(lambda x: x._meta.model == VehicleType, forms))
+        for form in VehicleTypeForms:
+            assert form.vehicle_type.scenario == scenario
+            for key, clean_data in form.cleaned_data.items():
+                setattr(form.vehicle_type, key, clean_data)
+            form.vehicle_type.save()
+
+        response = redirect(reverse(self.success_name, args=[scenario.task_id]))
         return response
 
     def form_invalid(self, form, **kwargs):
         return self.render_to_response(self.get_context_data(**kwargs, form=form))
+
+
+class StationsView(TemplateView):
+    template_name = "ebustoolbox/stations.html"
+    success_name = "simba:costs"
+
+    @staticmethod
+    def get_station_prefix(station):
+        return f"station_{station.id}"
+
+    def get_context_data(self, **kwargs):
+        scenario = get_scenario_and_assert_authorization(self.request, kwargs["task_id"])
+        context = {}
+        context |= {
+            "stations": {stat.id: stat for stat in Station.objects.filter(scenario=scenario)}
+        }
+        print(Station.objects.filter(scenario=scenario.parent).first().power_total)
+        print(Station.objects.filter(scenario=scenario).first().power_total)
+        data = self.request.POST
+        if self.request.method != "POST":
+            data = {}
+        form = forms.StationModeForm(data)
+        context["calculation_mode_form"] = form
+        choice = form.CHOICES[0][0]
+        assert choice == "automatic"
+        context["automatic_value"] = choice
+
+        choice = form.CHOICES[1][0]
+        assert choice == "constant_power"
+        context["constant_power_value"] = choice
+
+        choice = form.CHOICES[2][0]
+        assert choice == "manual"
+        context["manual_value"] = choice
+
+        context["charging_power_form"] = forms.ChargingPowerForm(data)
+        context["stations_forms"] = dict()
+        context["stations_exclude_forms"] = dict()
+        for station in context["stations"].values():
+            context["stations_forms"][station.id] = forms.StationForm(
+                data, instance=station, prefix=self.get_station_prefix(station)
+            )
+            context["stations_exclude_forms"][station.id] = forms.StationExcludedForm(
+                data, prefix=self.get_station_prefix(station)
+            )
+
+        return context
+
+    def get(self, request, *args, **kwargs):
+        # Make sure the scenario has its own stations which are linked to its parent scenario
+        scenario = get_scenario_and_assert_authorization(self.request, kwargs["task_id"])
+        station_mutations = StationMutation.objects.filter(
+            original_station__scenario=scenario.parent, mutated_original_station__scenario=scenario
+        )
+        if station_mutations.count() != Station.objects.filter(scenario=scenario.parent).count():
+            # Not every station from the parent scenario is linked to a new station
+            # Delete the current stations, create new ones and link them
+            ebustoolbox.tasks.create_station_mutations(scenario)
+        return self.render_to_response(
+            self.get_context_data(**kwargs),
+        )
+
+    def post(self, request, *args, **kwargs):
+        scenario = get_scenario_and_assert_authorization(self.request, kwargs["task_id"])
+        context = self.get_context_data(**kwargs)
+        calculation_mode_form = context["calculation_mode_form"]
+        if not calculation_mode_form.is_valid():
+            return self.render_to_response(**kwargs)
+        match calculation_mode_form.cleaned_data["calculation_mode"]:
+            case "automatic":
+                # Reset the scenario to its parent state. No Stations are excluded
+                StationElectrificationExclusions.objects.filter(scenario=scenario).delete()
+                ebustoolbox.tasks.create_station_mutations(scenario)
+                pass
+            case "constant_power":
+                form = context["charging_power_form"]
+                if not form.is_valid():
+                    return self.render_to_response(context)
+                stations = Station.objects.filter(scenario=scenario)
+                for station in stations:
+                    station.power_total = form.cleaned_data["power_total"]
+                Station.objects.bulk_update(stations, ["power_total"])
+            case "manual":
+                all_valid = True
+                for station_id, station_form in context["stations_forms"].items():
+                    exclusion_form = context["stations_exclude_forms"][station_id]
+                    valid = exclusion_form.is_valid()
+                    all_valid = all_valid & valid
+                    # Only station_forms of not excluded stations must be valid
+                    if valid and not exclusion_form.cleaned_data["is_excluded"]:
+                        valid = station_form.is_valid()
+                        if not valid:
+                            # If the station is not set to excluded or electrified its
+                            # automatic -> therefore it does not need a proper station_form
+                            if not station_form.cleaned_data["is_electrified"]:
+                                continue
+                            # it is set to electrified but does not have a proper station_form
+                            # post will not be accepted
+                            all_valid = False
+                if not all_valid:
+                    return self.render_to_response(context)
+                # The forms are valid. Update the stations and exclude stations
+                # from electrification
+                ebustoolbox.tasks.update_stations_and_exclusion(context, scenario)
+            case _:
+                raise NotImplementedError
+        response = redirect(reverse(self.success_name, args=[kwargs["task_id"]]))
+        return response
+
+
+class CostsView(FormView):
+    success_name = "simba:depots"
+    template_name = "ebustoolbox/costs.html"
+
+    def get_context_data(self, **kwargs):
+        scenario = get_scenario_and_assert_authorization(self.request, kwargs["task_id"])  # noqa
+        data = {}
+        if self.request.method == "POST":
+            data = self.request.POST
+
+        context = {}
+        # Todo define which scenarios can be picked
+        selectable_scenarios = Scenario.objects.filter(id__gte=590)
+        costs_form = forms.CostInputModeForm(data=data, prefix="costsRadio")
+        context["cost_mode_form"] = costs_form
+        lca_form = forms.CostInputModeForm(data=data, prefix="envRadio")
+        context["env_mode_form"] = lca_form
+        # Radio Button Values
+        context["radio_values"] = dict()
+        for choice in forms.CostInputModeForm.CHOICES:
+            val = choice[0]
+            context["radio_values"][val] = choice[0]
+
+        for prefix in ["costs", "env"]:
+            context[prefix + "_fileUpload"] = FileUploadForm(data=data, prefix=prefix)
+            form = ScenarioSelection(data=data, queryset=selectable_scenarios, prefix=prefix)
+            form.is_valid()
+            context[prefix + "_scenario_selection"] = form
+
+        context["costs_manual"] = ManualTcoForm(data=data, prefix="costs")
+        context["env_manual"] = ManualLcaForm(data=data, prefix="env")
+
+        return context
+
+    def get(self, request, *args, **kwargs):
+        return self.render_to_response(self.get_context_data(**kwargs))
+
+    def post(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        all_valid = True
+
+        for form, prefix in zip(
+            [context["cost_mode_form"], context["env_mode_form"]], ["costs", "env"]
+        ):
+            print(form, prefix)
+            valid = form.is_valid()
+            all_valid = all_valid & valid
+            if not valid:
+                break
+            match form.cleaned_data["input_mode"]:
+                case "no_input":
+                    pass
+                case "file_upload":
+                    file_form = context[prefix + "_fileUpload"]
+                    if not file_form.is_valid():
+                        all_valid = False
+                        break
+                    raise NotImplementedError("file upload is not yet implemented")
+                    pass
+                case "reference_scenario":
+                    scenario_selection = context[prefix + "_scenario_selection"]
+                    if not scenario_selection.is_valid():
+                        all_valid = False
+                        break
+                    raise NotImplementedError("scenario_selection is not yet implemented")
+                case "manual":
+                    manual_form = context[prefix + "_manual"]
+                    if not manual_form.is_valid():
+                        all_valid = False
+                        break
+                    raise NotImplementedError("manual_form is not yet implemented")
+                case _:
+                    raise NotImplementedError(f"Mode {form.cleaned_data['input_mode']}")
+        if not all_valid:
+            return self.render_to_response(context)
+
+        return redirect(reverse(self.success_name), args=[kwargs["task_id"]])
 
 
 def get_vehicle_types(request: HttpRequest, task_id):

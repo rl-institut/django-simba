@@ -35,7 +35,7 @@ from core.deepcopy import reset_postgres_auto_increments
 from core.models import Progress
 from simba.data_container import DataContainer
 from simba.schedule import Schedule as SimbaSchedule
-from . import schedule_readers
+from . import schedule_readers, forms
 from .models import (
     User,
     Route,
@@ -64,6 +64,8 @@ from .models import (
     ElectrificationOptions,
     VehicleTypeMutation,
     VehicleTypeSelection,
+    StationMutation,
+    StationElectrificationExclusions,
 )
 from .schedule_readers import ScheduleReader
 
@@ -1175,6 +1177,30 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     return child
 
 
+@atomic()
+def create_station_mutations(scenario):
+    Station.objects.filter(scenario=scenario).delete()
+    next_id = ebustoolbox.util.get_next_id(Station)
+    stations = []
+    mutations = {}
+    for station in Station.objects.filter(scenario=scenario.parent):
+        mutations[station.id] = next_id
+        station.id = next_id
+        next_id += 1
+        station.scenario = scenario
+        stations.append(station)
+    Station.objects.bulk_create(stations)
+    next_id = ebustoolbox.util.get_next_id(StationMutation)
+    station_mutations = []
+    for original, mutation in mutations.items():
+        sm = StationMutation(
+            id=next_id, original_station_id=original, mutated_original_station_id=mutation
+        )
+        next_id += 1
+        station_mutations.append(sm)
+    StationMutation.objects.bulk_create(station_mutations)
+
+
 @shared_task(bind=True)
 def _run_ebus_toolchain(self, task_id):
     """Run the tool chain"""
@@ -1763,6 +1789,29 @@ def electrify_db_stations(scenario: Scenario, station_id_list, unelectrify=True)
             revert_stations,
             ["is_electrified", "charge_type", "voltage_level", "amount_charging_places"],
         )
+
+
+@atomic()
+def update_stations_and_exclusion(context, scenario):
+    StationElectrificationExclusions.objects.filter(scenario=scenario).delete()
+    stations = []
+    station_exclusions = []
+    for key, value in context["stations_exclude_forms"].items():
+        if value.cleaned_data["is_excluded"]:
+            station_exclusions.append(
+                StationElectrificationExclusions(scenario=scenario, station_id=key)
+            )
+            station = Station.objects.get(id=key)
+            station.is_electrified = False
+        else:
+            form = context["stations_forms"][key]
+            if not form.cleaned_data["is_electrified"]:
+                continue
+            else:
+                station = form.save(commit=False)
+        stations.append(station)
+    StationElectrificationExclusions.objects.bulk_create(station_exclusions)
+    Station.objects.bulk_update(stations, fields=forms.StationForm._meta.fields)
 
 
 def update_vehicle_types_with_defaults(vehicle_type_pairs, task_id, vt_adjustments):
