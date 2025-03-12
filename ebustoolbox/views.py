@@ -241,6 +241,8 @@ def get_parent(task_id):
     parent.name = "Parent of " + parent.name
     parent.save()
 
+    return parent
+
 
 class VehiclesView(TemplateView):
     template_name = "ebustoolbox/vehicles.html"
