@@ -736,6 +736,23 @@ def _generate_zipped_scenario(task_id: str):
     shutil.make_archive(output_path.with_suffix(""), "zip", folder_path)
 
 
+def get_parent(scenario):
+    if scenario.parent:
+        return scenario.parent
+    task_id = scenario.task_id
+    # Create a parent by making the current scenario a parent
+    # Make sure we get a new reference to not overwrite scenario in the outer context
+    parent = scenario
+    parent.task_id = ebustoolbox.util.get_unique_task_id()
+    parent.save()
+
+    child = create_empty_child_scenario(parent, task_id=task_id)
+    parent.name = "Parent of " + parent.name
+    parent.save()
+
+    return parent, child
+
+
 @shared_task(bind=True)
 def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cleaned_data):
     progress = Progress.objects.create(task_id=self.request.id, status="Gestartet")
@@ -744,20 +761,20 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
     try:
         schedule_reader_factory = schedule_readers.get_schedule_reader_factory(reader_num)
         schedule_reader: ScheduleReader = schedule_reader_factory(**file_paths, **cleaned_data)
+        # The progress is linked to the child scenario.
         schedule_reader.set_observer(progress)
         scenario = Scenario.objects.get(id=scenario_id)
         progress.scenario = scenario
         progress.save()
-        # parent scenario has all the content. "normal scenario" has the mutation. Simulation
-        # Scenario is parent scenario with mutation applied
-
-        delete_old_scenario_data(scenario)
+        # parent scenario has all the content
+        parent = scenario.parent
+        delete_old_scenario_data(parent)
         # Read the file and write it to database
         progress.refresh_from_db()
-        progress.success = schedule_reader.write_to_db(scenario.id)
-        scenario.simba_options = vars(get_args(scenario))
-        find_and_make_depots(scenario)
-        scenario.save()
+        progress.success = schedule_reader.write_to_db(parent.id)
+        scenario.simba_options = vars(get_args(parent))
+        find_and_make_depots(parent)
+        parent.save()
         progress.save()
     except Exception as e:
         logger.error(traceback.format_exc())

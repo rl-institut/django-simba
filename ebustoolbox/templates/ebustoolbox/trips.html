@@ -14,7 +14,7 @@
   {%  if progress_id %}
 {% include "core/progress_poll.html" with progress_id=progress_id %}
       <div id="refresh_id"
-              {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
+              {#Trigger "success" sent from server inside the header if the submitted file succeeded#}
            hx-trigger="success from:body">
       </div>
       <div id="runner"
@@ -23,6 +23,7 @@
       </div>
     <script>
       htmx.on('#refresh_id', 'htmx:trigger', function (evt) {
+          {#Success from "refresh-id" leads to refresh. View logic takes care of redirecting#}
           {#Redirect to the trips, so the trips view can trigger the next page.#}
           {#Server side logic should make user flow more obvious #}
           window.location.href = "{% url 'simba:trips' task_id %}";
@@ -42,7 +43,6 @@
         hx-post="{% url 'simba:trips' %}"
         hx-encoding="multipart/form-data"
         hx-trigger="submit"
-        hx-target="body"
 {#        turn of swapping, instead the whole page is reloaded with a task_id#}
         >
 

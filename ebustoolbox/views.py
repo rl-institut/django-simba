@@ -83,7 +83,6 @@ def progress2(request: HttpRequest, progress_id):
         context["finished"] = True
         hx_trigger = "notRunning"
     if progress.success:
-        print("success")
         hx_trigger = "success"
     response = render(request, "core/progress.html", context)
     response["HX-Trigger"] = hx_trigger
@@ -125,20 +124,24 @@ class TripsView(FormView):
             form = forms.TripsForm(data=form_data, files=files)
             context["form"] = form
 
-        scenarios = [Scenario.objects.all()[:10]]
+        scenarios = [DefaultScenario.objects.first().scenario]
         if User.objects.filter(id=self.request.user.id).exists():
-            usergroups = User.objects.get(self.request.user).usergroup_set.prefetch_related(
-                scenarios
-            )
-            scenarios = [ug.scenario for ug in usergroups]
-        context["scenarios"] = list(*scenarios)
+            # ToDo-> Refactor to function to be reused in all scenario fetches
+            user = self.request.user
+            # Scenarios where the user is the manager
+            scenarios_as_manager = Scenario.objects.filter(manager=user)
+            scenarios.extend(scenarios_as_manager)
+            # Scenarios accessible through UserGroup
+            scenarios_in_groups = Scenario.objects.filter(usergroup__users=user)
+            scenarios.extend(scenarios_in_groups)
+        context["scenarios"] = scenarios
         return context
 
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get("task_id")
         if task_id:
             progress_db = get_unique_progress_or_none(task_id)
-            if progress_db.success:
+            if progress_db and progress_db.success:
                 return redirect(reverse("simba:vehicles", args=[str(task_id)]))
         return self.render_to_response(self.get_context_data(**kwargs))
 
@@ -147,7 +150,6 @@ class TripsView(FormView):
 
     def form_valid(self, form):
         """Handles successful form submission."""
-        print("valid form")
         cleaned_data = form.cleaned_data
         task_id = get_unique_task_id()
         # Create a scenario and description
@@ -160,6 +162,7 @@ class TripsView(FormView):
         scenario = Scenario.objects.create(
             name=cleaned_data["scenario_name"], task_id=task_id, manager=manager
         )
+        parent, scenario = tasks.get_parent(scenario)
         _ = ScenarioDescription.objects.create(
             scenario=scenario, description=cleaned_data["description"]
         )
@@ -185,7 +188,6 @@ class TripsView(FormView):
                 async_result = tasks.init_db_with_trips.apply_async(
                     (scenario.id, 1, {"file_path": files["data_file"]}, {})
                 )
-                print(async_result.state)
             elif file_suffix == "zip":
 
                 async_result = tasks.init_db_with_trips.apply_async(
@@ -201,23 +203,18 @@ class TripsView(FormView):
             raise NotImplementedError
         progress_db = Progress.objects.filter(task_id=progress_id).first()
         if progress_db and progress_db.success:
-            print("redirecting to sucess")
             # Processing the scenario finished
-            return redirect(reverse(self.success_name, args=[str(task_id)]))
-        context = self.get_context_data(form=form, task_id=task_id, progress_id=progress_id)
-        response = render(self.request, self.template_name, context)
-        print(f"{context['progress_id']} trips with task id")
+            response = HttpResponse()
+            response["HX-Location"] = reverse("simba:vehicles", args=[str(task_id)])
+            return response
+        response = HttpResponse()
         # Redirect to the same url with task_id added. this allows insertion of the
         # backend progress bar
-        response["HX-Retarget"] = "body"  # reverse("simba:trips", args=[str(task_id)])
-        response["HX-Replace-Url"] = reverse("simba:trips", args=[str(task_id)])
-
+        response["HX-Location"] = reverse("simba:trips", args=[str(task_id)])
         return response
 
     def form_invalid(self, form):
         """Handles form validation errors."""
-        print("invalid form")
-        print(form.errors)
         return super().form_invalid(form)
 
 
@@ -228,22 +225,6 @@ def get_scenario_and_assert_authorization(request, task_id):
     return scenario
 
 
-def get_parent(task_id):
-    scenario = Scenario.objects.get(task_id=task_id)
-    if scenario.parent:
-        return scenario.parent
-    # Create a parent by making the current scenario a parent
-    parent = scenario
-    parent.task_id = ebustoolbox.util.get_unique_task_id()
-    parent.save()
-
-    _ = tasks.create_empty_child_scenario(parent, task_id=task_id)
-    parent.name = "Parent of " + parent.name
-    parent.save()
-
-    return parent
-
-
 class VehiclesView(TemplateView):
     template_name = "ebustoolbox/vehicles.html"
     form_class = forms.SimulationParameters
@@ -251,11 +232,10 @@ class VehiclesView(TemplateView):
 
     def get_context_data(self, scenario, **kwargs):
         context = super().get_context_data(**kwargs)
-        parent = get_parent(scenario.task_id)
 
         # Get context for Simulation Range
         simulation_parameters_form = self.form_class()
-        trips = Trip.objects.filter(scenario=parent).order_by("departure_time")
+        trips = Trip.objects.filter(scenario=scenario.parent).order_by("departure_time")
         start_date = trips.first().departure_time.date().isoformat()
         start_time = trips.first().departure_time.time().isoformat()
         end_date = trips.last().arrival_time.date().isoformat()
@@ -287,7 +267,7 @@ class VehiclesView(TemplateView):
         default_vehicle_types = VehicleType.objects.filter(
             scenario=default_scenario, opportunity_charging_capable=True
         )
-        vehicle_modification = self.generate_vehicle_modification_forms(parent, scenario)
+        vehicle_modification = self.generate_vehicle_modification_forms(scenario)
 
         context["vehicle_modification"] = vehicle_modification
         context["choice_vts"] = default_vehicle_types
@@ -304,7 +284,8 @@ class VehiclesView(TemplateView):
         return context
 
     @staticmethod
-    def generate_vehicle_modification_forms(parent, scenario):
+    def generate_vehicle_modification_forms(scenario):
+        parent = scenario.parent
         default_scenario = DefaultScenario.objects.first().scenario
         parent_vehicle_types = VehicleType.objects.filter(scenario=parent)
         # Get all default vehicle types. Only Opportunity charging capable for now
@@ -441,8 +422,7 @@ class VehiclesView(TemplateView):
         else:
             for f in forms:
                 if not f.is_valid():
-                    print(f.errors)
-            logger.info("invalid")
+                    logger.debug(f"{f} is invalid")
             return self.render_to_response(context)
 
     def forms_valid(self, forms, scenario):
@@ -483,8 +463,6 @@ class StationsView(TemplateView):
         context |= {
             "stations": {stat.id: stat for stat in Station.objects.filter(scenario=scenario)}
         }
-        print(Station.objects.filter(scenario=scenario.parent).first().power_total)
-        print(Station.objects.filter(scenario=scenario).first().power_total)
         data = self.request.POST
         if self.request.method != "POST":
             data = {}
@@ -577,7 +555,7 @@ class StationsView(TemplateView):
         return response
 
 
-class CostsView(FormView):
+class CostsView(TemplateView):
     success_name = "simba:depots"
     template_name = "ebustoolbox/costs.html"
 
@@ -621,7 +599,6 @@ class CostsView(FormView):
         for form, prefix in zip(
             [context["cost_mode_form"], context["env_mode_form"]], ["costs", "env"]
         ):
-            print(form, prefix)
             valid = form.is_valid()
             all_valid = all_valid & valid
             if not valid:
@@ -653,7 +630,30 @@ class CostsView(FormView):
         if not all_valid:
             return self.render_to_response(context)
 
-        return redirect(reverse(self.success_name), args=[kwargs["task_id"]])
+        return redirect(reverse(self.success_name, args=[kwargs["task_id"]]))
+
+
+class DepotsView(TemplateView):
+    template_name = "ebustoolbox/depots.html"
+
+    def get_context_data(self, **kwargs):
+        scenario = get_scenario_and_assert_authorization(self.request, kwargs.get("task_id"))
+
+        context = {}
+        depots_query = get_depots(scenario)
+        context["depots"] = depots_query
+        return context
+
+    def get(self, request, *args, **kwargs):
+        _ = get_scenario_and_assert_authorization(request, kwargs.get("task_id"))
+
+        return self.render_to_response(self.get_context_data(**kwargs))
+
+    def post(self, request, *args, **kwargs):
+        _ = get_scenario_and_assert_authorization(request, kwargs.get("task_id"))
+        context = self.get_context_data(**kwargs)
+
+        return self.render_to_response(context)
 
 
 def get_vehicle_types(request: HttpRequest, task_id):
@@ -908,7 +908,7 @@ def get_options(request: HttpRequest, task_id, reader_num: int):
     return response
 
 
-def get_depots(request: HttpRequest, task_id):
+def get_depots_view(request: HttpRequest, task_id):
     # View for the depot input tab.
     # Either continues to next wizard step or renders depot page.
     context = {"task_id": task_id}
@@ -921,24 +921,7 @@ def get_depots(request: HttpRequest, task_id):
     if scenario.manager and scenario.manager != request.user:
         raise Http404
 
-    # Get filtered depots by simrange
-    sim_range = SimulationRange.objects.filter(scenario=scenario).first()
-    if sim_range:
-        # If a simulation range is given, only allow filtering of depots which service rotations
-        assert SimulationRange.objects.filter(scenario=scenario).count() == 1
-        td = sim_range.end - sim_range.start
-        rots = tasks.get_rotations_by_timespan(parent, td, sim_range.start)
-        station_ids = (
-            Trip.objects.filter(rotation__in=rots)
-            .values_list("route__departure_station", "route__arrival_station")
-            .distinct()
-        )
-        station_ids = set(x for pair in station_ids for x in pair)
-        depots_query = Station.objects.filter(id__in=station_ids)
-    else:
-        depots_query = Station.objects.filter(scenario=parent)
-
-    depots_query = depots_query.filter(charge_type=EnumChargeType.DEPOT).order_by("id")
+    depots_query = get_depots(scenario)
     if request.method == "POST":
         depot_ids = [dep.id for dep in depots_query]
         dep_sel, _ = DepotSelection.objects.get_or_create(scenario=scenario)
@@ -965,6 +948,28 @@ def get_depots(request: HttpRequest, task_id):
         )
         context["depots"] = depots
         return render(request, "depots.html", context)
+
+
+def get_depots(scenario):
+    # Get filtered depots by simrange
+    parent = scenario.parent
+    sim_range = SimulationRange.objects.filter(scenario=scenario).first()
+    if sim_range:
+        # If a simulation range is given, only allow filtering of depots which service rotations
+        assert SimulationRange.objects.filter(scenario=scenario).count() == 1
+        td = sim_range.end - sim_range.start
+        rots = tasks.get_rotations_by_timespan(parent, td, sim_range.start)
+        station_ids = (
+            Trip.objects.filter(rotation__in=rots)
+            .values_list("route__departure_station", "route__arrival_station")
+            .distinct()
+        )
+        station_ids = set(x for pair in station_ids for x in pair)
+        depots_query = Station.objects.filter(id__in=station_ids)
+    else:
+        depots_query = Station.objects.filter(scenario=parent)
+    depots_query = depots_query.filter(charge_type=EnumChargeType.DEPOT).order_by("id")
+    return depots_query
 
 
 def get_electrification(request: HttpRequest, task_id):
@@ -1202,7 +1207,6 @@ def copy_scenario(request: HttpRequest, task_id: str):
         copied_scenario = tasks.create_scenario_copy_for_user(scenario)
     except AssertionError:
         raise Http404
-    print(copied_scenario.task_id)
     response = redirect(reverse("simba:scenario_overview", args=[str(copied_scenario.task_id)]))
     return response
 
