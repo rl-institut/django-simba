@@ -1,0 +1,13 @@
+<h3 role="status" id="pblabel" tabindex="-1" autofocus>{{ status }}</h3>
+<ul class="text-start">
+  {% for error in errors %}
+    <li>{{ error }}</li>
+  {% endfor %}
+</ul>
+
+{# ToDo @Bryan move styling, make tailwind appropriate#}
+<div style="width: 100%; background-color: #ddd; border-radius: 5px; padding: 2px;">
+    <div style="width: {{ current_progress }}%; background-color: #337ab7; height: 20px; border-radius: 3px; text-align: center; color: white;">
+        {{ current_progress }}%
+    </div>
+</div>
