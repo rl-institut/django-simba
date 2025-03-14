@@ -34,5 +34,15 @@ def widget_attrs(field):
 
 
 @register.filter
-def get_item(dictionary, key):
-    return dictionary.get(key)
+def get_item(obj, key):
+    """Allow to get items from dict but also non-dict objects, without .get Method"""
+    try:
+        return obj[key]
+    except KeyError:
+        return None
+
+
+@register.filter
+def get_attr(obj, key):
+    """Safely gets an attribute from an object."""
+    return getattr(obj, key, None)

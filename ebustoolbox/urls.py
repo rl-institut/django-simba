@@ -9,6 +9,7 @@ from ebustoolbox.views import (
     StationsView,
     CostsView,
     DepotsView,
+    SummaryView,
 )
 
 # from . import views
@@ -53,8 +54,8 @@ urlpatterns = [
         name="stations",
     ),
     path(
-        "summary/",
-        TemplateView.as_view(template_name="ebustoolbox/summary.html"),
+        "summary/<uuid:task_id>",
+        SummaryView.as_view(),
         name="summary",
     ),
     path(

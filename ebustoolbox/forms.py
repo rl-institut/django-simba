@@ -242,3 +242,19 @@ class ManualLcaForm(forms.Form):
     energy_consumption = forms.FloatField(required=True)
     resources_consumption = forms.FloatField(required=True)
     years = forms.IntegerField(required=True)
+
+
+class DepotInfoForm(forms.ModelForm):
+    """All inputs which are given once per depot"""
+
+    class Meta:
+        model = models.Station
+        fields = ["power_total"]
+
+
+class DepotChargingAreaForm(forms.Form):
+    """All inputs which can be given multiple times per depot, eg, multiple
+    charging areas with various numbers of chargers and charging powers"""
+
+    amount_charging_places = forms.IntegerField(required=True, initial=20)
+    power_per_charger = forms.IntegerField(required=True, initial=150)

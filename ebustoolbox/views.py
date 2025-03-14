@@ -9,6 +9,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.transaction import atomic
+from django.forms import formset_factory
 from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -35,6 +37,7 @@ from .forms import (
     ScenarioSelection,
     ManualTcoForm,
     ManualLcaForm,
+    DepotChargingAreaForm,
 )
 from .tasks import create_db_url, get_args  # noqa
 from .util import get_unique_task_id
@@ -331,7 +334,9 @@ class VehiclesView(TemplateView):
     @staticmethod
     def get_VehicleTypeForm():
         def builder(request_post, vehicle_type):
-            return VehicleTypeForm(request_post, prefix=f"mutation_{vehicle_type.id}")
+            return VehicleTypeForm(
+                request_post, instance=vehicle_type, prefix=f"mutation_{vehicle_type.id}"
+            )
 
         return builder
 
@@ -411,9 +416,6 @@ class VehiclesView(TemplateView):
             forms.append(form)
             form = self.get_VehicleTypeForm()(request.POST, vt)
             d_values["vehicle_modification"] = form
-            # Mutation of form so if all forms are valid vehicle type can be directly
-            # accessed
-            form.vehicle_type = vt
             forms.append(form)
 
         if all(f.is_valid() for f in forms):
@@ -425,6 +427,7 @@ class VehiclesView(TemplateView):
                     logger.debug(f"{f} is invalid")
             return self.render_to_response(context)
 
+    @atomic()
     def forms_valid(self, forms, scenario):
         """Handles successful form submission."""
         # Delete previous selections
@@ -437,11 +440,16 @@ class VehiclesView(TemplateView):
 
         VehicleTypeForms = list(filter(lambda x: x._meta.model == VehicleType, forms))
         for form in VehicleTypeForms:
-            assert form.vehicle_type.scenario == scenario
-            for key, clean_data in form.cleaned_data.items():
-                setattr(form.vehicle_type, key, clean_data)
-            form.vehicle_type.save()
-
+            # Mutate the vehicle according to the selected default vehicle
+            instance = form.instance
+            d_vt = VehicleTypeSelection.objects.get(vehicle_type=instance).default_vehicle_type
+            d_vt.id = instance.id
+            d_vt.scenario = instance.scenario
+            d_vt.name = instance.name
+            d_vt.name_short = instance.name_short
+            d_vt.save()
+            # Overwrite the instance with the data from the form
+            VehicleTypeForm(self.request.POST, instance=d_vt, prefix=form.prefix).save()
         response = redirect(reverse(self.success_name, args=[scenario.task_id]))
         return response
 
@@ -635,23 +643,129 @@ class CostsView(TemplateView):
 
 class DepotsView(TemplateView):
     template_name = "ebustoolbox/depots.html"
+    success_name = "simba:summary"
 
     def get_context_data(self, **kwargs):
         scenario = get_scenario_and_assert_authorization(self.request, kwargs.get("task_id"))
 
         context = {}
+        data = {}
+        if self.request.method == "POST":
+            data = self.request.POST
+        if (
+            Station.objects.filter(
+                scenario=scenario.parent, charge_type=EnumChargeType.DEPOT
+            ).count()
+            < 2
+        ):
+            s = (
+                Station.objects.filter(scenario=scenario.parent)
+                .exclude(charge_type=EnumChargeType.DEPOT)
+                .first()
+            )
+            s.charge_type = EnumChargeType.DEPOT
+            s.save()
         depots_query = get_depots(scenario)
-        context["depots"] = depots_query
+        context["depots"] = {depot.id: depot for depot in depots_query}
+        context["forms"] = dict()
+        for depot in depots_query:
+            formset_prefix = f"depot_area_{depot.id}"
+            if self.request.method == "GET":
+                formset_data = {
+                    f"{formset_prefix}-TOTAL_FORMS": "1",
+                    f"{formset_prefix}-INITIAL_FORMS": "1",
+                }
+                data.update(formset_data)
+            context["forms"][depot.id] = dict()
+            context["forms"][depot.id]["calculation_mode_form"] = forms.StationModeForm(
+                data, prefix=f"depot_calc_mode_{depot.id}"
+            )
+            context["forms"][depot.id]["depot_info_form"] = forms.DepotInfoForm(
+                data, instance=depot, prefix=f"depot_info_{depot.id}"
+            )
+            context["forms"][depot.id]["depot_area_forms"] = formset_factory(
+                DepotChargingAreaForm,
+            )(
+                data,
+                prefix=formset_prefix,
+            )
         return context
 
     def get(self, request, *args, **kwargs):
-        _ = get_scenario_and_assert_authorization(request, kwargs.get("task_id"))
+        task_id = kwargs["task_id"]
+        _ = get_scenario_and_assert_authorization(request, task_id)
 
         return self.render_to_response(self.get_context_data(**kwargs))
 
     def post(self, request, *args, **kwargs):
-        _ = get_scenario_and_assert_authorization(request, kwargs.get("task_id"))
+        task_id = kwargs["task_id"]
+        _ = get_scenario_and_assert_authorization(request, task_id)
         context = self.get_context_data(**kwargs)
+        all_valid = True
+        all_forms = dict()
+        for depot_id, form_dict in context["forms"].items():
+            form = form_dict["calculation_mode_form"]
+            all_forms[depot_id] = list()
+            all_forms[depot_id].append(form)
+            if not form.is_valid():
+                continue
+            mode = form.cleaned_data["calculation_mode"]
+            if mode == "automatic":
+                continue
+            elif mode == "manual":
+                all_forms[depot_id].append(form_dict["depot_info_form"])
+                depot_area_forms = [form for form in form_dict["depot_area_forms"].forms]
+                assert len(depot_area_forms) > 0
+                all_forms[depot_id].extend(depot_area_forms)
+            else:
+                raise NotImplementedError(f"Mode {mode} not supported")
+
+        for depot_id, d_forms in all_forms.items():
+            for form in d_forms:
+                if not form.is_valid():
+                    all_valid = False
+
+        if all_valid:
+            for depot_id, d_forms in all_forms.items():
+                forms_ = list(filter(lambda x: isinstance(x, DepotChargingAreaForm), d_forms))
+                for form in forms_:
+                    instance = Station.objects.get(id=depot_id)
+                    for key, value in form.cleaned_data.items():
+                        setattr(instance, key, value)
+                    # ToDo only the first form is handled since a station only has a single
+                    # area right now
+                    break
+
+            # Todo: Implement Database stuff of multiple areas and calcuation mode
+            logger.warning(
+                "Depot forms are valid, but are not implemented yet. Unclear how Manual and "
+                "automatic calculation and area definition should be stored"
+            )
+            response = redirect(reverse(self.success_name, args=[task_id]))
+            return response
+
+        return self.render_to_response(context)
+
+
+class SummaryView(TemplateView):
+    template_name = "ebustoolbox/summary.html"
+
+    def get_context_data(self, scenario, **kwargs):
+        context = {}
+        context["scenario"] = scenario
+        context["scenario_description"] = ScenarioDescription.objects.get(scenario=scenario)
+        context["vehicle_types"] = VehicleType.objects.get(scenario=scenario)
+
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs["task_id"]
+        scenario = get_scenario_and_assert_authorization(request, task_id)
+
+        return self.render_to_response(self.get_context_data(scenario))
+
+    def post(self, request, *args, **kwargs):
+        task_id = kwargs["task_id"]
+        scenario = get_scenario_and_assert_authorization(request, task_id)
+        context = self.get_context_data(scenario)
 
         return self.render_to_response(context)
 
