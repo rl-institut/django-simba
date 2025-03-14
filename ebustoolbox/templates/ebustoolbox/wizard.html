@@ -91,14 +91,14 @@
           </span>
         </a>
       {% endif %}
-      <a href="{{ next_url }}" class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300">
+      <button type="button"  hx-on:click="document.getElementById('{{ submit_form }}').submit();" class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300">
         <span class="flex justify-center items-center gap-2">
           <span>Weiter</span>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
           </svg>
         </span>
-      </a>
+      </button>
     </div>
   </div>
 </nav>

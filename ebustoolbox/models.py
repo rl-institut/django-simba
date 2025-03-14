@@ -80,6 +80,11 @@ class Scenario(models.Model):
         return scenario.pk
 
 
+class ScenarioDescription(models.Model):
+    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+    description = models.TextField(null=True, default="")
+
+
 @receiver(models.signals.pre_delete, sender=Scenario)
 def auto_delete_results_on_delete(sender, instance, **kwargs):
     """Delete the scenario results folder if the scenario is deleted from the database
@@ -999,10 +1004,7 @@ class Station(models.Model):
             data["plot"] = plot
         return data
 
-    def save(self, *args, **kwargs):
-        # Override save to make certain name_short exists
-        if not self.name_short:
-            self.name_short = self.name
+    def is_valid(self):
         if self.is_electrified:
             if self.voltage_level is None or self.charge_type is None:
                 error_text = "An electrified station needs a voltage level and a charge type"
@@ -1021,6 +1023,12 @@ class Station(models.Model):
                     "values :\n" + "\n".join(EnumChargeType.values)
                 )
                 raise AttributeError(f"Station {self.name} with {self.charge_type}:" + error_text)
+
+    def save(self, *args, **kwargs):
+        # Override save to make certain name_short exists
+        if not self.name_short:
+            self.name_short = self.name
+        self.is_valid()
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -1583,6 +1591,12 @@ class SimulationRange(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     start = models.DateTimeField(null=False)
     end = models.DateTimeField(null=False)
+    temperature = models.FloatField(
+        blank=True,
+        default=-10,
+        null=True,
+        validators=[MinValueValidator(-20), MaxValueValidator(40)],
+    )
 
 
 class DepotSelection(models.Model):
@@ -1643,3 +1657,9 @@ class StationMutation(models.Model):
     mutated_original_station = models.ForeignKey(
         Station, related_name="mutatedstation", null=True, on_delete=models.CASCADE
     )
+
+
+# ToDo better add it as attribute to Station model. not possible without eflips change
+class StationElectrificationExclusions(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE)

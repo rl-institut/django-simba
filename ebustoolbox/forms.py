@@ -1,5 +1,15 @@
 from django import forms
-from .models import EnumChargeType, EnumVoltageLevel, ElectrificationOptions, VehicleType
+from django.conf import settings
+
+from . import models
+from .models import (
+    EnumChargeType,
+    EnumVoltageLevel,
+    ElectrificationOptions,
+    VehicleType,
+    SimulationRange,
+    Scenario,
+)
 
 
 class UploadFileForm(forms.Form):
@@ -71,22 +81,14 @@ class DateRangeField(forms.DateField):
         return from_date, to_date
 
 
-class SimulationParameters(forms.Form):
-    help_text = (
-        "Lassen Sie das Feld frei, wenn Sie den Start der Simulation nicht beschneiden möchten."
-    )
-    date_range = DateRangeField(
-        required=False,
-        widget=forms.TextInput(
-            attrs={
-                "placeholder": "from",
-                "class": "form-control datepicker",
-                "name": "date_range",
-                "title": help_text,
-            }
-        ),
-        label="Zeitspanne",
-    )
+class SimulationParameters(forms.ModelForm):
+    class Meta:
+        model = SimulationRange
+        exclude = ("scenario",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["temperature"].widget.attrs.update({"min": -20.0, "max": 40})
 
 
 class ElectrificationOptionsForm(forms.ModelForm):
@@ -100,14 +102,159 @@ class ElectrificationOptionsForm(forms.ModelForm):
         }
 
 
+class TripsForm(forms.Form):
+    data_file = forms.FileField(required=False)
+    existing_scenario = forms.UUIDField(required=False)
+    scenario_name = forms.CharField(max_length=100, initial="Mein Szenario")
+    description = forms.CharField(max_length=100, required=False)
+
+    def is_valid(self):
+        if not super().is_valid():
+            return False
+        data_file = self.files.get("data_file")
+        existing_scenario = self.cleaned_data.get("existing_scenario")
+        # Use XOR to guarantee only one is given: data_file or existing_scenario
+        if not (bool(data_file) ^ bool(existing_scenario)):
+            error_text = "Lade eine Datei hoch oder wähle ein existierendes Szenario aus"
+            self.errors["data_file"] = error_text
+            self.errors["existing_scenario"] = error_text
+            return False
+
+        if existing_scenario:
+            return True
+        # File uploaded -> check size
+        # check sum of file sizes
+        if sum([f.size for f in self.files.values()]) > settings.MAX_FILE_SIZE_B:
+            error_text = (
+                "Datei ist zu groß. Laden sie eine Datei kleiner "
+                f"als {settings.MAX_FILE_SIZE_B / 1e6} MB hoch."
+            )
+            self.errors["data_file"] = error_text
+            return False
+
+        file_suffix = data_file.name[-3:]
+        if file_suffix not in ["csv", "zip"]:
+            self.errors["data_file"] = f"Der Dateityp {file_suffix} wird nicht unterstützt"
+        return True
+
+
+class VehicleTypeSelectionForm(forms.ModelForm):
+    class Meta:
+        exclude = []
+        model = models.VehicleTypeSelection
+
+    def __init__(self, *args, vehicle_type=None, choices_queryset=None, **kwargs):
+        super(VehicleTypeSelectionForm, self).__init__(*args, **kwargs)
+        self.fields["vehicle_type"].queryset = VehicleType.objects.filter(id=vehicle_type.id)
+        self.fields["default_vehicle_type"].queryset = choices_queryset
+
+
 class VehicleTypeForm(forms.ModelForm):
+    # Consumption must be turned on in front end -> todo discuss
     class Meta:
         model = VehicleType
-        fields = ["battery_capacity"]
+        fields = [
+            "battery_capacity",
+            # "consumption"
+        ]
 
         help_texts = {
             "battery_capacity": "Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen.",
+            # "consumption": "Welchen Verbrauch in kWh/km hat dieses Fahrzeug?",
         }
         labels = {
             "battery_capacity": "Batteriekapazität [kWh]",
+            # "consumption": "Verbrauch [kWh/km]",
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["battery_capacity"].widget.attrs.update({"min": 1.0})
+
+
+class StationModeForm(forms.Form):
+    CHOICES = [
+        ("automatic", "Automatisch berechnen lassen"),
+        ("constant_power", "Ladeleistung angeben"),
+        ("manual", "Detail zu den Stationen angeben"),
+    ]
+    calculation_mode = forms.ChoiceField(
+        widget=forms.RadioSelect,
+        choices=CHOICES,
+    )
+
+
+class ChargingPowerForm(forms.Form):
+    # General charging_power is required when radio button constant power is set.
+    # Need js to set it to required for front end validation
+    power_total = forms.FloatField(required=False, min_value=1, step_size=1)
+
+
+class StationForm(forms.ModelForm):
+    class Meta:
+        fields = ["is_electrified", "amount_charging_places", "power_total"]
+        model = models.Station
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["amount_charging_places"].widget.attrs.update({"min": 1.0})
+        self.fields["power_total"].widget.attrs.update({"min": 1.0})
+
+
+class StationExcludedForm(forms.Form):
+    is_excluded = forms.BooleanField(initial=False, required=False)
+
+
+class CostInputModeForm(forms.Form):
+    CHOICES = [
+        ("no_input", "Keine Eingabe"),
+        ("file_upload", "Datei hochladen"),
+        ("reference_scenario", "Werte aus anderem Szenario übernehmen"),
+        ("manual", "Manuelle Eingabe"),
+    ]
+    input_mode = forms.ChoiceField(
+        widget=forms.RadioSelect,
+        choices=CHOICES,
+    )
+
+
+class FileUploadForm(forms.Form):
+    file = forms.FileField(required=True)
+
+
+class ScenarioSelection(forms.Form):
+    scenario = forms.ModelChoiceField(queryset=Scenario.objects.all())
+
+    def __init__(self, *args, queryset, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["scenario"].queryset = queryset
+
+
+class ManualTcoForm(forms.Form):
+    co2_emissions = forms.FloatField(required=True)
+    energy_consumption = forms.FloatField(required=True)
+    resources_consumption = forms.FloatField(required=True)
+    years = forms.IntegerField(required=True)
+
+
+class ManualLcaForm(forms.Form):
+    co2_emissions = forms.FloatField(required=True)
+    energy_consumption = forms.FloatField(required=True)
+    resources_consumption = forms.FloatField(required=True)
+    years = forms.IntegerField(required=True)
+
+
+class DepotInfoForm(forms.ModelForm):
+    """All inputs which are given once per depot"""
+
+    class Meta:
+        model = models.Station
+        fields = ["power_total"]
+
+
+class DepotChargingAreaForm(forms.Form):
+    """All inputs which can be given multiple times per depot, eg, multiple
+    charging areas with various numbers of chargers and charging powers"""
+
+    amount_charging_places = forms.IntegerField(required=True, initial=20)
+    power_per_charger = forms.IntegerField(required=True, initial=150)

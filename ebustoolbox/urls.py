@@ -2,6 +2,15 @@
 
 from django.urls import path
 from django.views.generic.base import TemplateView
+from ebustoolbox.views import (
+    TripsView,
+    VehiclesView,
+    progress2,
+    StationsView,
+    CostsView,
+    DepotsView,
+    SummaryView,
+)
 
 # from . import views
 
@@ -13,17 +22,22 @@ urlpatterns = [
         TemplateView.as_view(template_name="ebustoolbox/compare.html"),
         name="compare",
     ),
-    path("costs/", TemplateView.as_view(template_name="ebustoolbox/costs.html"), name="costs"),
+    path(
+        "costs/<uuid:task_id>",
+        CostsView.as_view(),
+        name="costs",
+    ),
     path(
         "dashboard/",
         TemplateView.as_view(template_name="ebustoolbox/dashboard-empty-state.html"),
         name="dashboard",
     ),
     path(
-        "depots/",
-        TemplateView.as_view(template_name="ebustoolbox/depots.html"),
+        "depots/<uuid:task_id>",
+        DepotsView.as_view(),
         name="depots",
     ),
+    path("progress2/<uuid:progress_id>", progress2, name="progress"),
     path(
         "results/",
         TemplateView.as_view(template_name="ebustoolbox/results.html"),
@@ -35,18 +49,28 @@ urlpatterns = [
         name="stations",
     ),
     path(
-        "summary/",
-        TemplateView.as_view(template_name="ebustoolbox/summary.html"),
+        "stations/<uuid:task_id>",
+        StationsView.as_view(),
+        name="stations",
+    ),
+    path(
+        "summary/<uuid:task_id>",
+        SummaryView.as_view(),
         name="summary",
     ),
     path(
         "trips/",
-        TemplateView.as_view(template_name="ebustoolbox/trips.html"),
+        TripsView.as_view(),
         name="trips",
     ),
     path(
-        "vehicles/",
-        TemplateView.as_view(template_name="ebustoolbox/vehicles.html"),
+        "trips/<uuid:task_id>",
+        TripsView.as_view(),
+        name="trips",
+    ),
+    path(
+        "vehicles/<uuid:task_id>",
+        VehiclesView.as_view(),
         name="vehicles",
     ),
     # superfluous templates, just for show
