@@ -1813,19 +1813,28 @@ def update_stations_and_exclusion(context, scenario):
     StationElectrificationExclusions.objects.filter(scenario=scenario).delete()
     stations = []
     station_exclusions = []
+    next_id = ebustoolbox.util.get_next_id(StationElectrificationExclusions)
     for key, value in context["stations_exclude_forms"].items():
         if value.cleaned_data["is_excluded"]:
             station_exclusions.append(
-                StationElectrificationExclusions(scenario=scenario, station_id=key)
+                StationElectrificationExclusions(id=next_id, scenario=scenario, station_id=key)
             )
+            next_id += 1
             station = Station.objects.get(id=key)
             station.is_electrified = False
+            station.charge_type = None
+            station.voltage_level = None
+
         else:
             form = context["stations_forms"][key]
             if not form.cleaned_data["is_electrified"]:
                 continue
             else:
+                # Electrification needs further attributes
                 station = form.save(commit=False)
+                station.charge_type = EnumChargeType.OPPORTUNITY
+                station.voltage_level = EnumVoltageLevel.VOLTAGE_MV
+                station.is_valid()
         stations.append(station)
     StationElectrificationExclusions.objects.bulk_create(station_exclusions)
     Station.objects.bulk_update(stations, fields=forms.StationForm._meta.fields)

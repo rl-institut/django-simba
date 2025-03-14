@@ -1004,10 +1004,7 @@ class Station(models.Model):
             data["plot"] = plot
         return data
 
-    def save(self, *args, **kwargs):
-        # Override save to make certain name_short exists
-        if not self.name_short:
-            self.name_short = self.name
+    def is_valid(self):
         if self.is_electrified:
             if self.voltage_level is None or self.charge_type is None:
                 error_text = "An electrified station needs a voltage level and a charge type"
@@ -1026,6 +1023,12 @@ class Station(models.Model):
                     "values :\n" + "\n".join(EnumChargeType.values)
                 )
                 raise AttributeError(f"Station {self.name} with {self.charge_type}:" + error_text)
+
+    def save(self, *args, **kwargs):
+        # Override save to make certain name_short exists
+        if not self.name_short:
+            self.name_short = self.name
+        self.is_valid()
         super().save(*args, **kwargs)
 
     def __str__(self):

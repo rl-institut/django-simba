@@ -469,7 +469,12 @@ class StationsView(TemplateView):
         scenario = get_scenario_and_assert_authorization(self.request, kwargs["task_id"])
         context = {}
         context |= {
-            "stations": {stat.id: stat for stat in Station.objects.filter(scenario=scenario)}
+            "stations": {
+                stat.id: stat
+                for stat in Station.objects.filter(scenario=scenario).exclude(
+                    charge_type=EnumChargeType.DEPOT
+                )
+            }
         }
         data = self.request.POST
         if self.request.method != "POST":
@@ -552,7 +557,9 @@ class StationsView(TemplateView):
                             # it is set to electrified but does not have a proper station_form
                             # post will not be accepted
                             all_valid = False
+                            print(station_form.errors)
                 if not all_valid:
+
                     return self.render_to_response(context)
                 # The forms are valid. Update the stations and exclude stations
                 # from electrification
@@ -652,20 +659,12 @@ class DepotsView(TemplateView):
         data = {}
         if self.request.method == "POST":
             data = self.request.POST
-        if (
-            Station.objects.filter(
-                scenario=scenario.parent, charge_type=EnumChargeType.DEPOT
-            ).count()
-            < 2
-        ):
-            s = (
-                Station.objects.filter(scenario=scenario.parent)
-                .exclude(charge_type=EnumChargeType.DEPOT)
-                .first()
-            )
-            s.charge_type = EnumChargeType.DEPOT
-            s.save()
-        depots_query = get_depots(scenario)
+        # ToDo: Depots could get queried for the sim_range. below method returns the stations
+        # from the parent, this needs fixing if this functionality is desired.
+        # Instead the stations from the scenario should be returned. this can be done
+        # through the StationMutation
+        # depots_query = get_depots(scenario)
+        depots_query = Station.objects.filter(scenario=scenario, charge_type=EnumChargeType.DEPOT)
         context["depots"] = {depot.id: depot for depot in depots_query}
         context["forms"] = dict()
         for depot in depots_query:
@@ -724,14 +723,22 @@ class DepotsView(TemplateView):
             for form in d_forms:
                 if not form.is_valid():
                     all_valid = False
+                    print(form.errors)
 
         if all_valid:
             for depot_id, d_forms in all_forms.items():
+                forms_ = list(filter(lambda x: isinstance(x, forms.DepotInfoForm), d_forms))
+                if len(forms_) == 1:
+                    instance = forms_[0].save()
+                elif len(forms_) > 1:
+                    raise Exception("There should only be a single DepotInfoForm per depot")
+
                 forms_ = list(filter(lambda x: isinstance(x, DepotChargingAreaForm), d_forms))
                 for form in forms_:
                     instance = Station.objects.get(id=depot_id)
                     for key, value in form.cleaned_data.items():
                         setattr(instance, key, value)
+                    instance.save()
                     # ToDo only the first form is handled since a station only has a single
                     # area right now
                     break
@@ -754,7 +761,39 @@ class SummaryView(TemplateView):
         context = {}
         context["scenario"] = scenario
         context["scenario_description"] = ScenarioDescription.objects.get(scenario=scenario)
+        sim_range = SimulationRange.objects.get(scenario=scenario)
+        german_weekdays = {
+            0: "Mo",
+            1: "Di",
+            2: "Mi",
+            3: "Do",
+            4: "Fr",
+            5: "Sa",
+            6: "So",
+        }
+        _format = "%d:%m:%Y, %H:%M"
+        start = sim_range.start
+        end = sim_range.end
+        context["sim_duration"] = (
+            f"{german_weekdays[start.weekday()]} {start.strftime(_format)} - "
+            f"{german_weekdays[end.weekday()]} {end.strftime(_format)}"
+        )
+        context["temperature"] = sim_range.temperature
         context["vehicle_types"] = VehicleType.objects.get(scenario=scenario)
+        scenario_stations = Station.objects.filter(scenario=scenario).exclude(
+            charge_type=EnumChargeType.DEPOT
+        )
+        context["electrified_stations"] = scenario_stations.filter(is_electrified=True)
+        excluded = StationElectrificationExclusions.objects.filter(scenario=scenario)
+        excluded_ids = [x.station.id for x in excluded]
+        context["automatic_stations"] = scenario_stations.filter(is_electrified=False).exclude(
+            id__in=excluded_ids
+        )
+        context["excluded_stations"] = scenario_stations.filter(id__in=excluded_ids)
+        context["depots"] = Station.objects.filter(
+            scenario=scenario, charge_type=EnumChargeType.DEPOT
+        )
+        return context
 
     def get(self, request, *args, **kwargs):
         task_id = kwargs["task_id"]
