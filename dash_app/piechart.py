@@ -84,3 +84,82 @@ def render_bustype(app: Dash) -> html.Div:
         return fig
 
     return html.Div(dcc.Graph(id=ids.PIE_BUSTYPE), style={"verticalAlign": "top"})
+
+
+import json
+
+
+def get_critical_rotations(buses: list[str], task_id: str) -> str:
+    """
+    Returns JSON data for ECharts to visualize the counts of critical and non-critical state of charge (SOC) values for selected buses.
+
+    :param buses: List of buses selected.
+    :param task_id: Task ID of the simulation.
+    :return: JSON string containing the chart data in ECharts format.
+    """
+
+    # Simulate getting scenario and data (replace this with your actual data access logic)
+    s = Scenario.objects.get(task_id=task_id)
+
+    if not data.sim_is_finished(task_id):
+        return json.dumps({})  # Empty JSON if simulation is not finished
+
+    df = data.get_critical_rotations_as_dataframe(s.id, buses)
+
+    # Prepare data in ECharts format
+    chart_data = {
+        "title": {
+            "text": "Verteilung der kritischen und unkritischen Umläufe",
+            "left": "center"
+        },
+        "series": [{
+            "name": "Critical Rotations",
+            "type": "pie",
+            "radius": "50%",
+            "data": [
+                {"value": row["Count"], "name": row["Category"]}
+                for _, row in df.iterrows()
+            ]
+        }]
+    }
+
+    return json.dumps(chart_data)
+
+
+def get_bustype(buses: list[str], task_id: str) -> str:
+    """
+    Returns JSON data for ECharts to visualize the distribution of vehicle types for selected buses.
+
+    :param buses: List of buses selected.
+    :param task_id: Task ID of the simulation.
+    :return: JSON string containing the chart data in ECharts format.
+    """
+
+    # Simulate getting scenario and data (replace this with your actual data access logic)
+    s = Scenario.objects.get(task_id=task_id)
+
+    if not data.sim_is_finished(task_id):
+        return json.dumps({})  # Empty JSON if simulation is not finished
+
+    df = data.get_vehicle_types(s.id, buses)
+    if len(df) == 0:
+        return json.dumps({})  # Return empty JSON if there's no data
+
+    # Prepare data in ECharts format
+    chart_data = {
+        "title": {
+            "text": "Zusammensetzung der Fahrzeugtypen",
+            "left": "center"
+        },
+        "series": [{
+            "name": "Vehicle Types",
+            "type": "pie",
+            "radius": "50%",
+            "data": [
+                {"value": row["count"], "name": row["name"]}
+                for _, row in df.iterrows()
+            ]
+        }]
+    }
+
+    return json.dumps(chart_data)

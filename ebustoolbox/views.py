@@ -800,26 +800,13 @@ def get_scatter_data(request, simulation_id):
     return JsonResponse(data)
 
 
-# API for Gantt Chart Data (e.g., tasks with start and end dates)
-def get_gantt_data(request, simulation_id):
-    start_date = datetime.date.today()
 
-    tasks = [
-        {"task": "Task 1", "start": random_date(start_date, 5), "end": random_date(start_date, 10)},
-        {"task": "Task 2", "start": random_date(start_date, 3), "end": random_date(start_date, 8)},
-        {"task": "Task 3", "start": random_date(start_date, 6), "end": random_date(start_date, 12)},
-    ]
-
-    data = {
-        "gantt_data": tasks,
-    }
-    return JsonResponse(data)
 
 
 from django.http import JsonResponse
-
+from django.core.serializers.json import DjangoJSONEncoder
 import pandas as pd
-from dash_app import  data
+from dash_app import data
 from ebustoolbox.models import Scenario
 
 
@@ -940,3 +927,90 @@ def get_station_occupation(request, task_id):
         charging_status.append({"time": time_point.isoformat(), "vehicles_charging": charging_vehicles})
 
     return JsonResponse({"data": charging_status})
+
+
+# API for Gantt Chart Data (e.g., tasks with start and end dates)
+def get_gantt_data(request, task_id):
+
+    s = Scenario.objects.get(task_id=task_id)
+
+    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    buses = list(vehicle_name_dict.keys())
+    df = data.get_activities_as_dataframe(s.id, buses)
+
+    # Define colors for event types
+    EVENT_COLORS = {
+        'SERVICE': '#7b9ce1',
+        'CHARGING_DEPOT': '#bd6d6c',
+        'STANDBY_DEPARTURE': '#e0bc78',
+        'DRIVING': '#75d874',
+    }
+
+    # Parse the datetime columns to datetime objects
+    df['time_start'] = pd.to_datetime(df['time_start'])
+    df['time_end'] = pd.to_datetime(df['time_end'])
+
+    # Prepare categories (one for each V_id)
+    buses = df['V_id'].unique()  # Unique V_id represents different buses
+    categories = [f'Bus {bus}' for bus in buses]  # Displaying each bus on a separate row
+
+    # Generate the gantt data in the expected format
+    gantt_data = []
+    for _, row in df.iterrows():
+        event_type = row['event_type']
+        start_time = int(row['time_start'].timestamp() * 1000)  # Convert to milliseconds
+        end_time = int(row['time_end'].timestamp() * 1000)
+        duration = row['duration']
+        color = EVENT_COLORS.get(event_type, '#000000')  # Default color if type not found
+        bus_index = list(buses).index(row['V_id'])  # Find the bus index for y-axis
+
+        gantt_data.append({
+            'name': row['readable_name'],
+            'value': [bus_index, start_time, end_time, duration],
+            'itemStyle': {
+                'normal': {
+                    'color': color
+                }
+            }
+        })
+
+    # Return the categories and data as a JsonResponse
+    return JsonResponse({'categories': categories, 'data': gantt_data}, safe=False)
+
+def get_stats(request, task_id):
+
+    s = Scenario.objects.get(task_id=task_id)
+
+    filter_dict = dict(task_id=task_id)
+
+    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    buses = list(vehicle_name_dict.keys())
+
+    if buses:  # In Presim buses will ne None, if later no buses are selected, it will be empty
+        filter_dict["vehicle__id__in"] = buses
+
+    # Get the data
+    longest_rot = data.get_number_longest_rot(filter_dict.copy())
+    shortest_rot = data.get_number_shortest_rot(filter_dict.copy())
+    num_busses = data.get_number_of_buses(filter_dict.copy())
+    num_stations = data.get_number_of_stations(task_id)
+    most_freq = data.get_frequently_served_station(task_id)
+
+    # Get the data
+    dist_df = data.get_distances_as_dataframe(s.id, buses)
+    total_dist = round(dist_df["total_distance"].sum() / 1000,0)
+    total_consumption = round(data.get_total_consumption(s) ,0)
+
+    avg_consumption = round(total_consumption / (dist_df["total_distance"].sum() / 1000), 3)
+
+    resp = {
+        'longest_rotation': longest_rot,
+        'shortest_rotation': shortest_rot,
+        'num_stations': num_stations,
+        'num_busses': num_busses,
+        'most_frequented':most_freq,
+        'total_dist':total_dist,
+        'total_consumption':total_consumption,
+        'avg_consumption':avg_consumption
+    }
+    return JsonResponse(resp)

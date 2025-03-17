@@ -58,13 +58,17 @@ urlpatterns = [
 
     path("result/<uuid:task_id>/", views.result_view_old, name="result"),
 
+    ## Done:
     path('results/<uuid:task_id>/soc/', views.get_soc_data, name="soc-data"),
     path('results/<uuid:task_id>/power-draw/', views.get_power_draw, name="power-draw"),
     path('results/<uuid:task_id>/station-occupation/', views.get_station_occupation, name="station-occupation"),
+    path('results/<uuid:task_id>/gantt/', views.get_gantt_data, name='gantt_data'),
+    path('results/<uuid:task_id>/stats/', views.get_stats, name='stats'),
+
     path('results/<uuid:simulation_id>/bar/', views.get_bar_chart_data, name='bar_chart_data'),
     path('results/<uuid:simulation_id>/histogram/', views.get_histogram_data, name='histogram_data'),
     path('results/<uuid:simulation_id>/scatter/', views.get_scatter_data, name='scatter_data'),
-    path('results/<uuid:simulation_id>/gantt/', views.get_gantt_data, name='gantt_data'),
+
     # Define URL patterns for each of the views
     path('results/<uuid:task_id>/critical_rotations/', views.render_critical_rotations, name='critical_rotations'),
     path('results/<uuid:task_id>/bustype/', views.render_bustype, name='bustype'),
