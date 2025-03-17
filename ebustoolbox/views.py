@@ -123,7 +123,7 @@ class TripsView(FormView):
                 # ToDo: where is this setting stored
                 "existing_scenario": None,
             }
-            files = [UploadedFile.objects.get(scenario=scenario)]
+            files = [UploadedFile.objects.filter(scenario=scenario).first()]
             form = forms.TripsForm(data=form_data, files=files)
             context["form"] = form
 
@@ -142,10 +142,14 @@ class TripsView(FormView):
 
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get("task_id")
-        if task_id:
+
+        first = kwargs.get("first", 0)
+        if task_id and first != 1:
             progress_db = get_unique_progress_or_none(task_id)
             if progress_db and progress_db.success:
-                return redirect(reverse("simba:vehicles", args=[str(task_id)]))
+                response = redirect(reverse("simba:vehicles", args=[str(task_id)]))
+                response["HX-Location"] = reverse("simba:vehicles", args=[str(task_id)])
+                return response
         return self.render_to_response(self.get_context_data(**kwargs))
 
     def post(self, request, *args, **kwargs):
@@ -213,7 +217,7 @@ class TripsView(FormView):
         response = HttpResponse()
         # Redirect to the same url with task_id added. this allows insertion of the
         # backend progress bar
-        response["HX-Location"] = reverse("simba:trips", args=[str(task_id)])
+        response["HX-Location"] = reverse("simba:trips", args=[str(task_id), 1])
         return response
 
     def form_invalid(self, form):

@@ -69,6 +69,11 @@ urlpatterns = [
         name="trips",
     ),
     path(
+        "trips/<uuid:task_id>/<int:first>",
+        TripsView.as_view(),
+        name="trips",
+    ),
+    path(
         "vehicles/<uuid:task_id>",
         VehiclesView.as_view(),
         name="vehicles",
