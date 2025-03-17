@@ -1,3 +1,27 @@
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+
+from ebustoolbox import models
+
+import logging
+
+logger = logging.getLogger("custom")
+
+
+@login_required(login_url="/login/")
+def get_dashboard(request):
+    scenarios = models.Scenario.objects.filter(manager=request.user)
+    usergroups = request.user.usergroup_set.all()
+    for ug in usergroups:
+        scenarios = scenarios.union(ug.scenarios.all())
+    scenarios = scenarios.order_by("id")
+    if scenarios.exists():
+        return render(request, "ebustoolbox/dashboard.html", {"scenarios": scenarios})
+    else:
+        return render(request, "ebustoolbox/dashboard-empty-state.html")
+
+
+"""
 import logging
 import traceback
 from datetime import timedelta, datetime, timezone as tz
@@ -707,3 +731,4 @@ def usergroups(request):
                 ug.delete()
     usergroups = request.user.usergroup_set.all()
     return render(request, "usergroups.html", {"usergroups": usergroups})
+"""

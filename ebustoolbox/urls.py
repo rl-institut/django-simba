@@ -3,7 +3,7 @@
 from django.urls import path
 from django.views.generic.base import TemplateView
 
-# from . import views
+from . import views
 
 app_name = "simba"
 
@@ -14,11 +14,7 @@ urlpatterns = [
         name="compare",
     ),
     path("costs/", TemplateView.as_view(template_name="ebustoolbox/costs.html"), name="costs"),
-    path(
-        "dashboard/",
-        TemplateView.as_view(template_name="ebustoolbox/dashboard-empty-state.html"),
-        name="dashboard",
-    ),
+    path("dashboard/", views.get_dashboard, name="dashboard"),
     path(
         "depots/",
         TemplateView.as_view(template_name="ebustoolbox/depots.html"),
@@ -51,7 +47,7 @@ urlpatterns = [
     ),
     # superfluous templates, just for show
     path("DELETE-ME/", TemplateView.as_view(template_name="ebustoolbox/signup.html")),
-    path("DEMO/", TemplateView.as_view(template_name="ebustoolbox/dashboard.html")),
+    path("DEMO/", TemplateView.as_view(template_name="ebustoolbox/dashboard_DEMO.html")),
 ]
 
 """

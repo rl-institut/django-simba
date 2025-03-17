@@ -6,24 +6,10 @@
 <main class="flex flex-col items-center">
   <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
     <h1 class="text-2xl font-semibold mb-6">Szenarienübersicht</h1>
-    <div class="flex bg-white rounded-lg shadow-md mb-12">
-      <div class="flex flex-col grow gap-4 p-4">
-        <div class="text-center text-sm text-slate-600">Anzahl der Szenarien</div>
-        <div class="text-center text-2xl font-bold">5</div>
-      </div>
-      <div class="flex flex-col grow gap-4 p-4">
-        <div class="text-center text-sm text-slate-600">Kostengünstigstes Szenario</div>
-        <div class="text-center text-2xl font-bold">BVG Test 3</div>
-      </div>
-      <div class="flex flex-col grow gap-4 p-4">
-        <div class="text-center text-sm text-slate-600">Höchste CO₂-Reduktion</div>
-        <div class="text-center text-2xl font-bold">BVG Test 4</div>
-      </div>
-    </div>
     <div>
       <label for="scenario-search" class="block text-sm/6 font-medium text-slate-800">Suche</label>
       <div class="mt-2 grid grid-cols-1">
-        <input type="text" name="scenario-search" id="scenario-search" class="col-start-1 row-start-1 block w-full rounded-md bg-white py-1.5 pl-3 pr-10 text-base text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-400 sm:pr-9 sm:text-sm/6" placeholder="Nach Szenarien suchen">
+        <input type="text" name="scenario-search" id="scenario-search" class="col-start-1 row-start-1 block w-full rounded-md bg-white py-1.5 pl-3 pr-10 text-base text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-400 sm:pr-9 sm:text-sm/6" placeholder="Nach Szenarien suchen" oninput="searchScenario(this);">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="pointer-events-none col-start-1 row-start-1 mr-3 size-5 self-center justify-self-end text-slate-400 sm:size-4">
           <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
         </svg>
@@ -33,11 +19,11 @@
       <div class="mt-8 flow-root">
         <div class="table-container max-w-full overflow-x-auto overflow-y-visible">
           <div class="inline-block min-w-full py-2 align-middle">
-            <table class="min-w-full divide-y divide-slate-300">
+            <table id="table" class="min-w-full divide-y divide-slate-300">
               <thead>
                 <tr>
                   <th scope="col" class="py-4 pl-4 pr-3 text-left text-sm font-semibold text-slate-600 sm:pl-0">
-                    <button href="#" class="group inline-flex">
+                    <button href="#" class="group inline-flex" onclick="sortTable(0);">
                       Name
                       <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
                       <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
@@ -48,7 +34,7 @@
                     </button>
                   </th>
                   <th scope="col" class="px-3 py-4 text-left text-sm font-semibold text-slate-600">
-                    <button href="#" class="group inline-flex">
+                    <button href="#" class="group inline-flex" onclick="sortTable(1);">
                       Status
                       <!-- Sorting Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
                       <span class="ml-2 flex-none rounded bg-slate-100 text-slate-800 group-hover:bg-slate-200">
@@ -59,7 +45,7 @@
                     </button>
                   </th>
                   <th scope="col" class="px-3 py-4 text-left text-sm font-semibold text-slate-600">
-                    <button href="#" class="group inline-flex">
+                    <button href="#" class="group inline-flex" onclick="sortTable(2);">
                       Gesamtkosten
                       <!-- Sorting Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
                       <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
@@ -70,7 +56,7 @@
                     </button>
                   </th>
                   <th scope="col" class="px-3 py-4 text-left text-sm font-semibold text-slate-600">
-                    <button href="#" class="group inline-flex">
+                    <button href="#" class="group inline-flex" onclick="sortTable(3);">
                       CO<sub>2</sub>-Reduzierung
                       <!-- Sorting Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
                       <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
@@ -81,7 +67,7 @@
                     </button>
                   </th>
                   <th scope="col" class="px-3 py-4 text-left text-sm font-semibold text-slate-600">
-                    <button href="#" class="group inline-flex">
+                    <button href="#" class="group inline-flex" onclick="sortTable(4);">
                       Erstellung
                       <!-- Sorting Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
                       <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
@@ -100,201 +86,95 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200 bg-white">
-                <!-- Table Row -->
-                <tr class="px-2">
-                  <td class="whitespace-nowrap px-3 py-4 text-sm font-bold text-black underline decoration-transparent hover:decoration-black transition-all duration-300">
-                    <a href="" class="flex items-center">
-                      <span class="mr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 15.75-2.489-2.489m0 0a3.375 3.375 0 1 0-4.773-4.773 3.375 3.375 0 0 0 4.774 4.774ZM21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                        </svg>
-                      </span>
-                      BVG Test 1
-                    </a>
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-3">
-                    <div class="inline-flex items-center px-2 bg-red-50 text-sm text-red-800 rounded-full">
-                      <span class="pr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                      </span>
-                      Nicht erfolgreich
-                    </div>
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-3 text-sm text-slate-500">-</td>
-                  <td class="whitespace-nowrap px-3 py-3 text-sm text-slate-500">-</td>
-                  <td class="whitespace-nowrap px-3 py-3 text-sm text-slate-500">10.09.2024 13:23</td>
-                  <td class="whitespace-nowrap px-3 py-3">
-                    <button
-                      class="cursor-pointer px-4 py-2 bg-slate-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:bg-slate-300 transition-all duration-300"
-                      role="button"
-                      aria-label="Variante erstellen"
+                {% for scenario in scenarios %}
+                  <tr class="px-2 scenario-row" name="{{ scenario.name }}">
+                    <td class="whitespace-nowrap px-3 py-4 text-sm font-bold text-black underline decoration-transparent hover:decoration-black transition-all duration-300" sortval="{{ scenario.name }}">
+                      <a href="" class="flex items-center">
+                        <span class="mr-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 15.75-2.489-2.489m0 0a3.375 3.375 0 1 0-4.773-4.773 3.375 3.375 0 0 0 4.774 4.774ZM21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                          </svg>
+                        {{ scenario.name }}
+                      </a>
+                    </td>
+                    <td class="whitespace-nowrap px-3 py-3" sortval="{% if scenario.finished %}1{% else %}0{% endif %}">
+                      {% if scenario.finished %}
+                        <div class="inline-flex items-center px-2 bg-red-50 text-sm text-red-800 rounded-full">
+                          <span class="pr-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
+                            </svg>
+                          </span>
+                          Erfolgreich
+                        </div>
+                      {% else %}
+                        <div class="inline-flex items-center px-2 bg-sky-50 text-sm text-sky-800 rounded-full">
+                          <span class="pr-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
+                            </svg>
+                          </span>
+                          In Bearbeitung
+                        </div>
+                      {% endif %}
+                    </td>
+                    <td class="whitespace-nowrap px-3 py-3 text-sm text-slate-500" sortval="-">-</td>
+                    <td class="whitespace-nowrap px-3 py-3 text-sm text-slate-500" sortval="-">-</td>
+                    <td class="whitespace-nowrap px-3 py-3 text-sm text-slate-500" sortval="{{ scenario.created|date:'Ymd' }}"</td>{{ scenario.created|date:"j.n.Y" }}</td>
+                    <td class="whitespace-nowrap px-3 py-3">
+                      <button
+                        class="cursor-pointer px-4 py-2 bg-slate-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:bg-slate-300 transition-all duration-300"
+                        role="button"
+                        aria-label="Variante erstellen"
+                        >
+                        Variante erstellen
+                      </button>
+                    </td>
+                    <td class="relative whitespace-nowrap pl-3 py-3">
+
+                      <!-- More Button Component (JS in components/buttons.html) -->
+                      <button
+                        type="button"
+                        class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                        aria-expanded="false"
+                        aria-haspopup="true"
+                        aria-label="Optionen sehen"
                       >
-                      Variante erstellen
-                    </button>
-                  </td>
-                  <td class="relative whitespace-nowrap pl-3 py-3">
-
-                    <!-- More Button Component (JS in components/buttons.html) -->
-                    <button
-                      type="button"
-                      class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
-                      aria-expanded="false"
-                      aria-haspopup="true"
-                      aria-label="Optionen sehen"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-                      </svg>
-                    </button>
-
-                    <!-- Dropdown Menu -->
-                    <div
-                      class="dropdown-menu absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none hidden transition-transform duration-100 transform scale-95 opacity-0"
-                      role="menu"
-                      aria-orientation="vertical"
-                    >
-                      <div class="py-1" role="none">
-                        <a href="#" class="flex items-center px-4 py-2 text-sm text-slate-600" role="menuitem">
-                          <span class="mr-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                            </svg>
-                          </span>
-                          Ergebnisse exportieren
-                        </a>
-                        <a href="#" class="flex items-center px-4 py-2 text-sm text-slate-600" role="menuitem">
-                          <span class="mr-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                            </svg>
-                          </span>
-                          Szenario löschen
-                        </a>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-                <!-- Table Row -->
-                <tr class="px-2">
-                  <td class="whitespace-nowrap px-3 py-3 text-sm font-bold text-black underline decoration-transparent hover:decoration-black transition-all duration-300">
-                    <a href="" class="flex items-center">
-                      <span class="mr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 15.75-2.489-2.489m0 0a3.375 3.375 0 1 0-4.773-4.773 3.375 3.375 0 0 0 4.774 4.774ZM21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
                         </svg>
-                      </span>
-                      BVG Test 2
-                    </a>
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-3">
-                    <div class="inline-flex items-center px-2 bg-sky-50 text-sm text-sky-800 rounded-full">
-                      <span class="pr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                      </span>
-                      In Bearbeitung
-                    </div>
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-3 text-sm text-slate-500">-</td>
-                  <td class="whitespace-nowrap px-3 py-3 text-sm text-slate-500">-</td>
-                  <td class="whitespace-nowrap px-3 py-3 text-sm text-slate-500">10.09.2024 13:23</td>
-                  <td class="whitespace-nowrap px-3 py-3">
-                    <button
-                      class="cursor-pointer px-4 py-2 bg-slate-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:bg-slate-300 transition-all duration-300"
-                      role="button"
-                      aria-label="Variante erstellen"
+                      </button>
+
+                      <!-- Dropdown Menu -->
+                      <div
+                        class="dropdown-menu absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none hidden transition-transform duration-100 transform scale-95 opacity-0"
+                        role="menu"
+                        aria-orientation="vertical"
                       >
-                      Variante erstellen
-                    </button>
-                  </td>
-                  <td class="relative whitespace-nowrap pl-3 py-3">
-
-                    <!-- More Button Component (JS in components/buttons.html) -->
-                    <button
-                      type="button"
-                      class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
-                      aria-expanded="false"
-                      aria-haspopup="true"
-                      aria-label="Optionen sehen"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-                      </svg>
-                    </button>
-
-                    <!-- Dropdown Menu -->
-                    <div
-                      class="dropdown-menu absolute right-0 origin-top-right z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none hidden transition-transform duration-100 transform scale-95 opacity-0"
-                      role="menu"
-                      aria-orientation="vertical"
-                    >
-                      <div class="py-1" role="none">
-                        <a href="#" class="flex items-center px-4 py-2 text-sm text-slate-600" role="menuitem">
-                          <span class="mr-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                            </svg>
-                          </span>
-                          Ergebnisse exportieren
-                        </a>
-                        <a href="#" class="flex items-center px-4 py-2 text-sm text-slate-600" role="menuitem">
-                          <span class="mr-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                            </svg>
-                          </span>
-                          Szenario löschen
-                        </a>
+                        <div class="py-1" role="none">
+                          <a href="#" class="flex items-center px-4 py-2 text-sm text-slate-600" role="menuitem">
+                            <span class="mr-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                              </svg>
+                            </span>
+                            Ergebnisse exportieren
+                          </a>
+                          <a href="#" class="flex items-center px-4 py-2 text-sm text-slate-600" role="menuitem">
+                            <span class="mr-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                              </svg>
+                            </span>
+                            Szenario löschen
+                          </a>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
+                {% endfor %}
               </tbody>
             </table>
-            <div class="flex items-center justify-between border-t border-slate-200 bg-white px-4 py-3 sm:px-6">
-              <div class="flex flex-1 justify-between sm:hidden">
-                <a href="#" class="relative inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50">Previous</a>
-                <a href="#" class="relative ml-3 inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50">Next</a>
-              </div>
-              <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-                <div>
-                  <p class="text-sm text-slate-500">
-                    <span class="font-semibold">1</span>
-                    bis
-                    <span class="font-semibold">10</span>
-                    von
-                    <span class="font-semibold">97</span>
-                    Ergebnissen
-                  </p>
-                </div>
-                <div>
-                  <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                    <a href="#" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0">
-                      <span class="sr-only">Previous</span>
-                      <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z" clip-rule="evenodd" />
-                      </svg>
-                    </a>
-                    <a href="#" aria-current="page" class="relative z-10 inline-flex items-center bg-slate-800 px-4 py-2 text-sm font-semibold text-white focus:z-20">1</a>
-                    <a href="#" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-inset ring-slate-300">2</a>
-                    <a href="#" class="relative hidden items-center px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-inset ring-slate-300">3</a>
-                    <span class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-inset ring-slate-300 focus:outline-offset-0">...</span>
-                    <a href="#" class="relative hidden items-center px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-inset ring-slate-300 md:inline-flex">8</a>
-                    <a href="#" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-inset ring-slate-300">9</a>
-                    <a href="#" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-inset ring-slate-300">10</a>
-                    <a href="#" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300">
-                      <span class="sr-only">Next</span>
-                      <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-                      </svg>
-                    </a>
-                  </nav>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -302,3 +182,47 @@
   </div>
 </main>
 {% endblock content %}
+
+{% block script %}
+<script>
+  function searchScenario(input) {
+    let searchString = input.value;
+    for (let row of document.getElementsByClassName('scenario-row')) {
+      // show row if search string is too short or if search string is part of scenario name (case-insensitive)
+      let visible = searchString.length < 3 || row.getAttribute('name').toLowerCase().includes(searchString.toLowerCase());
+      row.style.display = visible? '' : 'none';
+    }
+  }
+
+  // track sorting of table
+  // 0: no sort (default), 1: asc, 2: desc
+  // column name, status, cost, emission, created
+  var _sorting = [0,0,0,0,0];
+  function sortTable(sortIndex) {
+    let table = document.getElementById('table');
+    let rows = table.rows;
+    // create structure for ordering
+    let values = [];
+    for (let i=1; i<rows.length; i++)
+      values.push([i, rows[i].children[sortIndex].getAttribute('sortval')]);
+    // sort: depends if currently sorted. Cycle ASC/DESC
+    let sortDir = _sorting[sortIndex] == 1? 2 : 1;
+    if (sortDir == 1)
+      values.sort((a,b) => a[1] > b[1]);
+    else
+      values.sort((a,b) => a[1] < b[1]);
+    // reset sorting tracker
+    for (let i=0; i<_sorting.length; i++)
+      _sorting[i] = i==sortIndex? sortDir : 0;
+    // rebuild table
+    for (let i=0; i<values.length; i++) {
+      let sortedRowNr = values[i][0];
+      table.appendChild(rows[sortedRowNr]);
+      // problem: in-place => adjust line offsets of all sorting indices
+      for (let j=i+1; j<values.length; j++)
+        values[j][0] = values[j][0] - (values[j][0] > sortedRowNr);
+    }
+  }
+
+</script>
+{% endblock script %}
