@@ -1,5 +1,6 @@
 {% extends 'ebustoolbox/wizard.html' %}
 
+{% load custom_filters %}
 {% block title %}WeBus - Fahrzeuge{% endblock title %}
 
 {% block wizard_navigation %}
@@ -11,6 +12,12 @@
 {% block wizard_content %}
 <main class="flex flex-col items-center">
   <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+          <form
+        type="submit"
+        method ="POST">
+        {% csrf_token %}
+
+        <button> Submit form</button>
     <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">Fahrzeuge</h1>
 
     <section class="pb-12">
@@ -30,7 +37,7 @@
         </div>
       </h2>
       <span class="block mb-6 text-sm text-slate-500">Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.</span>
-      <form>
+
         <fieldset class="flex items-center gap-4">
           <span class="text-slate-600">Von</span>
 
@@ -43,6 +50,9 @@
               name="start-date"
               class="block w-full py-1.5 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
               aria-label="Startdatum"
+              min = "{{ min_date }}"
+              max = "{{ max_date }}"
+              value = "{{ start_date }}"
               required>
           </div>
 
@@ -55,6 +65,7 @@
               name="start-time"
               class="block w-full py-1.5 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
               aria-label="Startzeit"
+              value = "{{ initial_start_time }}"
               required>
           </div>
 
@@ -69,6 +80,9 @@
               name="end-date"
               class="block w-full py-1.5 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
               aria-label="Enddatum"
+              min = "{{ min_date }}"
+              max = "{{ max_date }}"
+              value = "{{ end_date }}"
               required>
           </div>
 
@@ -81,10 +95,10 @@
               name="end-time"
               class="block w-full py-1.5 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
               aria-label="Endzeit"
+              value = "{{ initial_end_time }}"
               required>
           </div>
         </fieldset>
-      </form>
     </section>
 
     <section class="pb-12">
@@ -106,7 +120,7 @@
       <div class="w-4/12">
         <div class="mt-2">
           <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 ">
-            <input type="text" name="temperature" id="temperature" class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6" placeholder="-10" aria-describedby="temperature-heading temperature-unit">
+            <input {{ form.temperature|widget_attrs }} class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6" placeholder="{{ form.temperature.data }}" aria-describedby="temperature-heading temperature-unit">
             <div id="temperature-unit" class="shrink-0 select-none text-slate-500">°C</div>
           </div>
         </div>
@@ -130,344 +144,15 @@
         </div>
       </h2>
       <span class="block mb-6 text-sm text-slate-500">Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu.</span>
-      <div class="overflow-hidden rounded-lg bg-white shadow">
-        <div class="flex items-center justify-between py-4 px-4 gap-4 bg-gradient-to-r from-gray-100 to-gray-200">
-          <div class="flex items-center gap-4">
-            <p class="flex gap-2">
-              <span class="text-base font-normal">Fahrzeugtyp: </span>
-              <span class="text-base font-bold">AB</span>
-            </p>
-            <button
-              id="assignedToButton"
-              type="button"
-              class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pl-3 pr-2 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 sm:text-sm/6"
-              aria-haspopup="listbox"
-              aria-expanded="false"
-              aria-labelledby="listbox-label"
-            >
-              <span id="assignedToLabel" class="col-start-1 row-start-1 truncate pr-6">-- Fahrzeugtyp auswählen --</span>
-              <svg class="col-start-1 row-start-1 size-5 self-center justify-self-end text-slate-500 sm:size-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
-                <path fill-rule="evenodd" d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
-              </svg>
-            </button>
-            <!-- Add dropdown list + JS (see components/forms.html) -->
-          </div>
-          <div>
-            <button
-              type="button"
-              class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
-              aria-expanded="false"
-              aria-haspopup="true"
-              aria-label="Optionen sehen"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div class="px-4 py-5 sm:p-6">
-          <span class="block mb-6 text-sm text-slate-500">Alle Linien sind standardmäßig in "Default" enthalten. Sie können jedoch individuelle Werte für bestimmte Linien oder Liniengruppen anpassen.</span>
-          <div>
-            <div class="grid grid-cols-1 sm:hidden">
-              <select aria-label="Select a tab" class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-2 pl-3 pr-8 text-base text-slate-800 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600">
-                <!-- Options -->>
-              </select>
-              <svg class="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end fill-gray-500" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
-                <path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-              </svg>
-            </div>
-            <div class="hidden sm:block">
-              <div class="border-b border-slate-200">
-                <nav class="-mb-px flex space-x-8" aria-label="Tabs" id="tabs">
-                  <a href="#" class="whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="tab-1" aria-current="page">Default</a>
-                  <button id="add-tab" class="whitespace-nowrap border-b-4 border-transparent px-2 py-4 text-sm font-bold tracking-wide text-green-700 hover:text-green-600 transition-all duration-300">+ Gruppe hinzufügen</button>
-                </nav>
-              </div>
-            </div>
-            <!-- Tab content -->
-            <div id="tab-contents" class="mt-4">
-              <div class="tab-content" data-tab="tab-1">
-                <div class="flex flex-col lg:flex-row gap-4">
-                  <div class="flex-grow">
-                    <div class="flex items-center gap-2">
-                      <label for="busNumberTotal" id="busNumberTotalLabel" class="block text-sm/6 font-medium text-slate-800">Anzahl Fahrzeuge</label>
-                      <div class="relative inline-block">
-                        <!-- Info Icon -->
-                        <span class="cursor-pointer group">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                          </svg>
-                          <!-- Tooltip -->
-                          <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
-                          </div>
-                        </span>
-                      </div>
-                    </div>
-                    <div class="mt-2">
-                      <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
-                        <input
-                          type="number"
-                          name="busNumberTotal"
-                          id="busNumberTotal"
-                          class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
-                          placeholder="5"
-                          aria-labelledby="busNumberTotalLabel"
-                        >
-                      </div>
-                    </div>
-                  </div>
-                  <div class="flex-grow">
-                    <div class="flex items-center gap-2">
-                      <label for="totalDistance" id="totalDistanceLabel" class="block text-sm/6 font-medium text-slate-800">Gesamtkilometer</label>
-                      <div class="relative inline-block">
-                        <!-- Info Icon -->
-                        <span class="cursor-pointer group">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                          </svg>
-                          <!-- Tooltip -->
-                          <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
-                          </div>
-                        </span>
-                      </div>
-                    </div>
-                    <div class="mt-2">
-                      <div
-                        class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
-                        <input
-                          type="number"
-                          name="totalDistance"
-                          id="totalDistance"
-                          class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
-                          placeholder="500"
-                          aria-labelledby="totalDistanceLabel totalDistanceUnit">
-                        <div id="totalDistanceUnit" class="shrink-0 select-none text-slate-500">km</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="flex-grow">
-                    <div class="flex items-center gap-2">
-                      <label for="batteryCapacity" id="batteryCapacityLabel" class="block text-sm/6 font-medium text-slate-800">Nutzbare Batteriekapazität</label>
-                      <div class="relative inline-block">
-                        <!-- Info Icon -->
-                        <span class="cursor-pointer group">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                          </svg>
-                          <!-- Tooltip -->
-                          <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
-                          </div>
-                        </span>
-                      </div>
-                    </div>
-                    <div class="mt-2">
-                      <div
-                        class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
-                        <input
-                          type="number"
-                          name="batteryCapacity"
-                          id="batteryCapacity"
-                          class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
-                          placeholder="500"
-                          aria-labelledby="batteryCapacityLabel batteryCapacityUnit">
-                        <div id="batteryCapacityUnit" class="shrink-0 select-none text-slate-500">kWh</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="flex-grow">
-                    <div class="flex items-center gap-2">
-                      <label for="energyUse" id="energyUseLabel" class="block text-sm/6 font-medium text-slate-800">Energieverbrauch</label>
-                      <div class="relative inline-block">
-                        <!-- Info Icon -->
-                        <span class="cursor-pointer group">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                          </svg>
-                          <!-- Tooltip -->
-                          <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
-                          </div>
-                        </span>
-                      </div>
-                    </div>
-                    <div class="mt-2">
-                      <div
-                        class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <input
-                          type="number"
-                          name="energyUse"
-                          id="energyUse"
-                          disabled
-                          class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:text-slate-500 disabled:outline-none sm:text-sm/6"
-                          placeholder="1,5"
-                          aria-labelledby="energyUseLabel energyUseUnit">
-                        <div id="energyUseUnit" class="shrink-0 select-none text-slate-500">kWh/h</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="tab-content hidden" data-tab="tab-2">This is the content for Tab 2.</div>
-            </div>
-          </div>
-          <div class="flex justify-end pt-4">
-            <button
-              class="whitespace-nowrap border-b-4 border-transparent px-2 pt-4 text-sm font-bold tracking-wide text-green-700 hover:text-green-600 transition-all duration-300"
-              id="busTypeMoreButton"
-            >
-              <span class="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 transition-transform duration-300" id="chevronIcon">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                </svg>
-                <span>Mehr</span>
-              </span>
-            </button>
-          </div>
-          <div id="busTypeHiddenSection" class="mt-4 hidden border-t pt-4 text-gray-700">
-            <div class="flex flex-wrap lg:flex-nowrap">
-              <div class="w-full lg:w-2/3 py-4">
-                <div class="flex items-end gap-4 pb-4">
-                  <div class="w-full lg:w-1/2">
-                    <div class="flex items-center gap-2">
-                      <label for="reserveCapacity" id="reserveCapacityLabel" class="block text-sm/6 font-medium text-slate-800">Reservekapazität</label>
-                      <div class="relative inline-block">
-                        <!-- Info Icon -->
-                        <span class="cursor-pointer group">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                          </svg>
-                          <!-- Tooltip -->
-                          <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
-                          </div>
-                        </span>
-                      </div>
-                    </div>
-                    <div class="mt-2">
-                      <div
-                        class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
-                        <input
-                          type="number"
-                          name="reserveCapacity"
-                          id="reserveCapacity"
-                          class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
-                          placeholder="1,5"
-                          aria-labelledby="reserveCapacityUnit reserveCapacityLabel">
-                        <div id="reserveCapacityUnit" class="shrink-0 select-none text-slate-500">kWh/km</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="w-full lg:w-1/2">
-                    <fieldset>
-                      <legend class="sr-only">Fahrzeugtyp kann an Endhaltestellen laden</legend>
-                      <div class="space-y-5">
-                        <div class="flex gap-3">
-                          <div class="flex h-6 shrink-0 items-center">
-                            <div class="group grid size-4 grid-cols-1">
-                              <input
-                                id="canCharge"
-                                aria-describedby="canChargeDescription"
-                                name="canCharge"
-                                type="checkbox"
-                                checked
-                                class="col-start-1 row-start-1 appearance-none rounded border border-gray-300 bg-white checked:border-green-500 checked:bg-green-500 indeterminate:border-green-500 indeterminate:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:border-gray-300 disabled:bg-gray-100 disabled:checked:bg-gray-100 forced-colors:appearance-auto"
-                              >
-                              <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-[:disabled]:stroke-gray-950/25" viewBox="0 0 14 14" fill="none">
-                                <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                <path class="opacity-0 group-has-[:indeterminate]:opacity-100" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                              </svg>
-                            </div>
-                          </div>
-                          <div class="text-sm/6">
-                            <label
-                              for="canCharge"
-                              class="font-normal text-slate-800"
-                              id="canChargeDescription"
-                            >
-                            Fahrzeugtyp kann an Endhaltestellen laden
-                          </label>
-                          </div>
-                        </div>
-                      </div>
-                    </fieldset>
-                  </div>
-                </div>
-                <div class="flex items-end gap-4">
-                  <div class="w-full lg:w-1/2">
-                    <div class="flex items-center gap-2">
-                      <label for="purchasePrice" class="block text-sm/6 font-medium text-slate-800">Kaufpreis</label>
-                      <div class="relative inline-block">
-                        <!-- Info Icon -->
-                        <span class="cursor-pointer group">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                          </svg>
-                          <!-- Tooltip -->
-                          <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
-                          </div>
-                        </span>
-                      </div>
-                    </div>
-                    <div class="mt-2">
-                      <div
-                        class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
-                        <input
-                          type="number"
-                          name="purchasePrice"
-                          id="purchasePrice"
-                          class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
-                          placeholder="500"
-                          aria-labelledby="purchasePrice purchasePriceUnit">
-                        <div id="purchasePriceUnit" class="shrink-0 select-none text-slate-500">€</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="w-full lg:w-1/2">
-                    <div class="flex items-center gap-2">
-                      <label for="costs" class="block text-sm/6 font-medium text-slate-800">Kosten</label>
-                      <div class="relative inline-block">
-                        <!-- Info Icon -->
-                        <span class="cursor-pointer group">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                          </svg>
-                          <!-- Tooltip -->
-                          <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
-                          </div>
-                        </span>
-                      </div>
-                    </div>
-                    <div class="mt-2">
-                      <div
-                        class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
-                        <input
-                          type="number"
-                          name="costs"
-                          id="costs"
-                          class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
-                          placeholder="500"
-                          aria-labelledby="costs costsUnit">
-                        <div id="costsUnit" class="shrink-0 select-none text-slate-500">€/km</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="w-full lg:w-1/3 p-4">
-                <div id="stateOfChargeChart" class="w-full bg-slate-100" style="max-width: 360px; height: 180px;"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
+
+      {% include "ebustoolbox/vehicle_modification.html" with modification=modification vt_id=vt_id choice_vts=choice_vts %}
+
+
+      <button>Submit</button>
+
+    </section>
+    </form>
   </div>
 </main>
 {% endblock wizard_content %}
@@ -480,167 +165,5 @@
 
 {% block script %}
 <!-- Tabs Functionality of Bus Type Cards -->
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const tabs = document.getElementById('tabs');
-    const tabContents = document.getElementById('tab-contents');
-    const addTabButton = document.getElementById('add-tab');
-    let tabCount = 1; // Starts at 1 because the first tab is already present.
 
-    // Function to switch tabs
-    const switchTab = (tabId) => {
-      // Hide all tab contents
-      document.querySelectorAll('.tab-content').forEach((content) => {
-        content.classList.add('hidden');
-      });
-
-      // Show the selected tab content
-      const activeContent = document.querySelector(`[data-tab="${tabId}"]`);
-      if (activeContent) activeContent.classList.remove('hidden');
-
-      // Update tab styles
-      document.querySelectorAll('.tab').forEach((tab) => {
-        tab.classList.remove('border-slate-800', 'text-slate-800');
-        tab.classList.add('border-transparent', 'text-slate-500', 'hover:border-slate-300', 'hover:text-slate-700');
-      });
-
-      const activeTab = document.querySelector(`[data-tab-button="${tabId}"]`);
-      if (activeTab) {
-        activeTab.classList.add('border-slate-800', 'text-slate-800');
-        activeTab.classList.remove('border-transparent', 'text-slate-500', 'hover:border-slate-300', 'hover:text-slate-700');
-      }
-    };
-
-    // Attach event listeners to existing tabs
-    document.querySelectorAll('.tab').forEach((tab) => {
-      tab.addEventListener('click', (e) => {
-        e.preventDefault();
-        const tabId = tab.getAttribute('data-tab-button');
-        switchTab(tabId);
-      });
-    });
-
-    // Add new tab and content
-    addTabButton.addEventListener('click', () => {
-      tabCount++;
-      const newTabId = `tab-${tabCount}`;
-
-      // Create the new tab
-      const newTabButton = document.createElement('a');
-      newTabButton.href = '#';
-      newTabButton.className = 'whitespace-nowrap tab border-b-4 border-transparent px-4 py-4 text-sm font-medium text-slate-500 hover:border-slate-300 hover:text-slate-700';
-      newTabButton.setAttribute('data-tab-button', newTabId);
-      newTabButton.innerText = `Gruppe ${tabCount}`;
-      newTabButton.addEventListener('click', (e) => {
-        e.preventDefault();
-        switchTab(newTabId);
-      });
-
-      // Create the new content
-      const newTabContent = document.createElement('div');
-      newTabContent.className = 'tab-content hidden';
-      newTabContent.setAttribute('data-tab', newTabId);
-      newTabContent.innerText = `This is the content for Tab ${tabCount}.`;
-
-      // Add to DOM
-      tabs.insertBefore(newTabButton, addTabButton);
-      tabContents.appendChild(newTabContent);
-
-      // Switch to the new tab
-      switchTab(newTabId);
-    });
-
-    // Initialize the first tab as active
-    switchTab('tab-1');
-  });
-</script>
-
-<!-- More Toggle Button in Bus Type Card -->
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const toggleButton = document.getElementById('busTypeMoreButton');
-    const toggleSection = document.getElementById('busTypeHiddenSection');
-    const icon = document.getElementById('chevronIcon');
-
-    toggleButton.addEventListener('click', () => {
-      const isHidden = toggleSection.classList.contains('hidden');
-
-      if (isHidden) {
-        toggleSection.classList.remove('hidden');
-        toggleButton.setAttribute('aria-expanded', 'true');
-        toggleButton.querySelector('span').lastElementChild.innerText = 'Weniger';
-        icon.classList.add('rotate-180'); // Rotate the icon
-      } else {
-        toggleSection.classList.add('hidden');
-        toggleButton.setAttribute('aria-expanded', 'false');
-        toggleButton.querySelector('span').lastElementChild.innerText = 'Mehr';
-        icon.classList.remove('rotate-180'); // Reset the rotation
-      }
-    });
-  });
-</script>
-
-<script>
-  var chartDom = document.getElementById('stateOfChargeChart');
-  var myChart = echarts.init(chartDom);
-
-  var option = {
-      grid: {
-          left: 48,
-          right: 32,
-          top: 24,
-          bottom: 32,
-          containLabel: true
-      },
-      xAxis: {
-          type: 'value',
-          name: 'Ladezustand (-)',
-          nameLocation: 'middle',
-          nameGap: 25,
-          min: 0,
-          max: 1,
-          interval: 0.2
-      },
-      yAxis: {
-          type: 'value',
-          name: 'Leistung (kW)',
-          nameLocation: 'middle',
-          nameGap: 40,
-          min: 0,
-          max: 500,
-          interval: 100
-      },
-      series: [{
-          data: [
-              [0, 500],
-              [0.4, 500],
-              [0.6, 375],
-              [0.8, 250],
-              [1.0, 125]
-          ],
-          type: 'line',
-          showSymbol: false,
-          lineStyle: {
-            color: '#2E282A',
-              width: 2
-          }
-      }],
-      tooltip: {
-          trigger: 'axis',
-          formatter: function(params) {
-              return 'Ladezustand: ' + params[0].data[0].toFixed(1) +
-                    '<br>Leistung: ' + params[0].data[1] + ' kW';
-          }
-      }
-  };
-
-  myChart.setOption(option);
-
-  // Improved resize handler
-  window.addEventListener('resize', function() {
-      if (chartDom.offsetWidth > 0) {
-          myChart.resize();
-      }
-  });
-</script>
 {% endblock script %}

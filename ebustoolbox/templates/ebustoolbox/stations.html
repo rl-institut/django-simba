@@ -1,4 +1,5 @@
 {% extends 'ebustoolbox/wizard.html' %}
+{% load custom_filters %}
 
 {% block title %}WeBus - Endhaltestellen{% endblock title %}
 
@@ -35,7 +36,7 @@
           From: "opacity-100 translate-y-0 sm:scale-100"
           To: "opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
       -->
-      <div class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+      <div id="bulkSelection" class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
         <div class="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
           <button id="closeBulkEditingModalIcon" type="button" class="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
             <span class="sr-only">Close</span>
@@ -53,8 +54,9 @@
           </div>
         </div>
         <div class="mt-8 pt-8 border-t border-slate-200">
+          <input type="hidden" id="bulk_is_electrified">
           <div id="electrifyState" class="flex items-center space-x-2 bg-slate-100 rounded-full p-1">
-            <button
+            <button type="button"
               class="inline-flex items-center justify-center flex-grow py-1 px-2 bg-white font-semibold text-sm text-gray-500 rounded-full"
               data-color="emerald"
               data-value="elektrifizieren"
@@ -67,7 +69,7 @@
               </span>
               Elektrifizieren
             </button>
-            <button
+            <button type="button"
               class="inline-flex items-center justify-center flex-grow py-1 px-2 bg-amber-100 text-sm font-semibold text-amber-700 shadow rounded-full selected"
               data-color="amber"
               data-value="automatisch"
@@ -80,7 +82,8 @@
               </span>
               Automatisch
             </button>
-            <button
+            <input type="hidden" id="bulk_is_excluded">
+            <button type="button"
               class="inline-flex items-center justify-center flex-grow py-1 px-2 bg-white font-semibold text-sm text-gray-500 rounded-full"
               data-color="gray"
               data-value="nicht-elektrifizieren"
@@ -99,44 +102,45 @@
           <div class="w-6/12">
             <label for="inputItem" class="block text-sm/6 font-medium text-slate-800">Anzahl Ladepunkte</label>
             <div class="mt-2">
-              <input
-                type="number"
-                name="chargingPointNumber"
-                id="chargingPointNumber"
-                aria-label="Anzahl an Ladepunkten"
-                class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 focus:outline focus:outline-2 focus:outline-green-500 sm:text-sm/6"
-                placeholder="0"
-                min="0"
-                max="8"
-              >
-            </div>
-          </div>
-          <div class="w-6/12">
-            <label for="inputItem" class="block text-sm/6 font-medium text-slate-800">Ladeleistung pro Punkt</label>
-            <div class="flex items-center mt-2 rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 ">
-              <input
-                type="number"
-                name="chargingCapacity"
-                id="chargingCapacity"
-                class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
-                placeholder="0"
-                aria-describedby="price-currency"
-              >
-              <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kWh</div>
-            </div>
+            <input
+
+              type="number"
+              name="chargingPointNumber"
+              id="bulk_chargingPointNumber"
+              aria-label="Anzahl an Ladepunkten"
+              class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 focus:outline focus:outline-2 focus:outline-green-500 sm:text-sm/6"
+              placeholder="0"
+              min="0"
+              max="8"
+            >
           </div>
         </div>
-        <div class="flex justify-end gap-2 mt-8 pt-8 border-t border-slate-200">
-          <button id="closeBulkEditingModalButton" class="px-6 py-2 bg-slate-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
-            Abbrechen
-          </button>
-          <button class="px-6 py-2 bg-slate-800 text-white text-sm font-semibold rounded-full tracking-wide hover:bg-black hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-900 transition-all duration-300">
-            Bestätigen
-          </button>
+        <div class="w-6/12">
+          <label for="inputItem" class="block text-sm/6 font-medium text-slate-800">Ladeleistung pro Punkt</label>
+          <div class="flex items-center mt-2 rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 ">
+            <input
+              type="number"
+              name="chargingCapacity"
+              id="bulk_chargingCapacity"
+              class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
+              placeholder="0"
+              aria-describedby="price-currency"
+            >
+            <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kWh</div>
+          </div>
         </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-8 pt-8 border-t border-slate-200">
+        <button type="button" id="closeBulkEditingModalButton" class="px-6 py-2 bg-slate-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
+          Abbrechen
+        </button>
+        <button id="bulk_submit_button" type="button" class="px-6 py-2 bg-slate-800 text-white text-sm font-semibold rounded-full tracking-wide hover:bg-black hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-900 transition-all duration-300">
+          Bestätigen
+        </button>
       </div>
     </div>
   </div>
+</div>
 </div>
 
 <!-- End Modal for bulk editing -->
@@ -146,488 +150,412 @@
 <!-- Add Step Progress Bar -->
 
 <!-- For alerts -->
- <!--
+<!--
 <aside class="flex flex-col items-center">
-  <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    // Add component here
-  </div>
+<div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+  // Add component here
+</div>
 </aside>
 -->
 
 <main class="flex flex-col items-center">
-  <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">
-      Endhaltestellen
-      <span class="text-sm normal-case font-normal text-slate-600">(optional)</span>
-    </h1>
+<div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+  <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">
+    Endhaltestellen
+    <span class="text-sm normal-case font-normal text-slate-600">(optional)</span>
+  </h1>
 
-    <section class="pb-12">
-      <fieldset class="pb-8">
-        <legend class="text-sm/6 font-semibold text-slate-800">Ladeleistung</legend>
-        <p class="mt-1 text-sm text-slate-500 leading-6">
-          Standardmäßig berechnet die Simulation, ob die Endstationen elektrifiziert werden müssen, und bestimmt dabei automatisch die Anzahl der Ladepunkte sowie die Ladeleistung. Sie haben jedoch die Möglichkeit, die Endstationen manuell zu elektrifizieren und die Anzahl der Ladepunkte sowie die Ladeleistung festzulegen – oder alternativ die Elektrifizierung vollständig auszuschließen.
-        </p>
-        <div class="mt-6">
-          <!-- Option 1 -->
-          <div class="flex items-center h-12">
-            <input id="auto" name="notification-method" type="radio" checked class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
-            <label for="auto" class="ml-3 block text-sm/6 font-medium text-slate-800">Automatisch berechnen lassen</label>
-          </div>
-          <!-- Option 2 -->
-          <div class="flex items-center h-12">
-            <input id="single" name="notification-method" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
-            <label for="single" class="ml-3 block text-sm/6 font-medium text-slate-800">Ladeleistung angeben</label>
-            <div class="ml-4 mt-2 hidden" id="charging-power">
-              <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 ">
-                <input
-                  type="number"
-                  name="chargingPower"
-                  id="chargingPower"
-                  class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
-                  placeholder="0,00"
-                  aria-describedby="price-currency"
-                >
-                <div id="chargingPowerUnit" class="shrink-0 select-none text-slate-500">kWh</div>
-              </div>
+  <section class="pb-12">
+    <form
+      type="submit"
+      method ="POST">
+      {% csrf_token %}
+    <fieldset class="pb-8">
+      <legend class="text-sm/6 font-semibold text-slate-800">Ladeleistung</legend>
+      <p class="mt-1 text-sm text-slate-500 leading-6">
+        Standardmäßig berechnet die Simulation, ob die Endstationen elektrifiziert werden müssen, und bestimmt dabei automatisch die Anzahl der Ladepunkte sowie die Ladeleistung. Sie haben jedoch die Möglichkeit, die Endstationen manuell zu elektrifizieren und die Anzahl der Ladepunkte sowie die Ladeleistung festzulegen – oder alternativ die Elektrifizierung vollständig auszuschließen.
+      </p>
+
+      <div id="{{ calculation_mode_form.calculation_mode.auto_id }}" class="mt-6">
+        <!-- Option 1 -->
+        <div class="flex items-center h-12">
+          <input id="auto" name="{{ calculation_mode_form.calculation_mode.html_name }}" value="{{ automatic_value}}" type="radio" checked class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
+          <label for="auto" class="ml-3 block text-sm/6 font-medium text-slate-800">Automatisch berechnen lassen</label>
+        </div>
+        <!-- Option 2 -->
+        <div class="flex items-center h-12">
+          <input id="single" name="{{ calculation_mode_form.calculation_mode.html_name }}" value="{{ constant_power_value }}" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
+
+          <label for="single" class="ml-3 block text-sm/6 font-medium text-slate-800">Ladeleistung angeben</label>
+          <div class="ml-4 mt-2 hidden" id="charging-power">
+            <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 ">
+              <input
+                      {{  charging_power_form.power_total|widget_attrs}}
+                class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
+                placeholder="0,00"
+                aria-describedby="price-currency"
+              >
+              <div id="chargingPowerUnit" class="shrink-0 select-none text-slate-500">kWh</div>
             </div>
           </div>
-          <!-- Option 3 -->
-          <div class="flex items-center h-12">
-            <input id="detailed" name="notification-method" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
-            <label for="detailed" class="ml-3 block text-sm/6 font-medium text-slate-800">Details zu den Stationen angeben</label>
-          </div>
         </div>
-      </fieldset>
-      <div id="stations-details" class="hidden w-full pt-8 border-t">
-        <div class="flex items-center justify-between space-x-4">
-          <div class="w-4/12 pb-4">
-            <label for="stationSearch" class="flex items-center space-x-2 text-sm/6 font-medium text-slate-500">
-              <span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width="1.5"
-                  stroke="currentColor"
-                  class="h-4 w-4 text-slate-400">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                </svg>
-              </span>
-              <span>Suche</span>
-            </label>
-            <div class="mt-2 relative">
-              <input
-                type="text"
-                name="stationSearch"
-                id="stationSearch"
-                class="block w-full rounded-md bg-white py-2 pl-3 pr-10 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-200 placeholder:text-slate-400 focus:outline-2 focus:outline-green-500 sm:text-sm/6"
-                placeholder="Nach Stationen suchen">
+        <!-- Option 3 -->
+        <div class="flex items-center h-12">
+          <input id="detailed" name="{{ calculation_mode_form.calculation_mode.html_name }}" value="{{ manual_value}}"
+                 type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
+          <label for="detailed" class="ml-3 block text-sm/6 font-medium text-slate-800">Details zu den Stationen angeben</label>
+        </div>
+      </div>
+    </fieldset>
+    <div id="stations-details" class="hidden w-full pt-8 border-t">
+      <div class="flex items-center justify-between space-x-4">
+        <div class="w-4/12 pb-4">
+          <label for="stationSearch" class="flex items-center space-x-2 text-sm/6 font-medium text-slate-500">
+            <span>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke-width="1.5"
                 stroke="currentColor"
-                class="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 pointer-events-none">
+                class="h-4 w-4 text-slate-400">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
               </svg>
-            </div>
-          </div>
-          <button id="bulkEditingButton" class="hidden px-4 py-2 h-max bg-slate-800 text-white text-sm font-semibold tracking-wide rounded-full hover:bg-black hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-900 transition-all duration-300">
-            <span class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-              </svg>
-              <span>Ausgewählte bearbeiten</span>
             </span>
-          </button>
-        </div>
-        <div class="flex items-end space-x-4 pb-4">
-          <div class="w-4/12">
-            <label for="stationFilterLabel" class="flex items-center space-x-2 text-sm/6 font-medium text-slate-500">
-              <span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width="1.5"
-                  stroke="currentColor"
-                  class="h-4 w-4">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
-                </svg>
-              </span>
-              <span>Filter</span>
-            </label>
-            <div class="mt-2 relative">
-              <button
-                id="stationFilter"
-                type="button"
-                class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-2 pl-3 pr-2 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-green-500 sm:text-sm/6"
-                aria-haspopup="listbox"
-                aria-expanded="false"
-                aria-labelledby="stationFilterlabel"
-              >
-                <span id="assignedToLabel" class="col-start-1 row-start-1 truncate pr-6">linie</span>
-                <svg class="col-start-1 row-start-1 h-5 w-5 self-center justify-self-end text-slate-500 sm:h-4 sm:w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                  <path fill-rule="evenodd" d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
-                </svg>
-              </button>
-              <!-- Add Dropdown list -->
-            </div>
+            <span>Suche</span>
+          </label>
+          <div class="mt-2 relative">
+            <input
+              type="text"
+              name="stationSearch"
+              id="stationSearch"
+              class="block w-full rounded-md bg-white py-2 pl-3 pr-10 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-200 placeholder:text-slate-400 focus:outline-2 focus:outline-green-500 sm:text-sm/6"
+              placeholder="Nach Stationen suchen">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 pointer-events-none">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
           </div>
-          <div class="w-8/12">
-            <div class="mt-2 relative">
-              <div
-                id="multiselect-container"
-                class="flex flex-wrap items-center rounded-md bg-white pl-3 pr-8 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-200 focus-within:outline focus-within:outline-2 focus-within:outline-green-500 sm:text-sm/6 cursor-pointer min-h-[2.5rem]"
-                tabindex="0"
-                aria-label="Item auswählen"
-              >
-                <span id="placeholder" class="text-slate-400">Select an item...</span>
-              </div>
+        </div>
+        <button type="button" id="bulkEditingButton" class="hidden px-4 py-2 h-max bg-slate-800 text-white text-sm font-semibold tracking-wide rounded-full hover:bg-black hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-900 transition-all duration-300">
+          <span class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+            </svg>
+            <span>Ausgewählte bearbeiten</span>
+          </span>
+        </button>
+      </div>
+      <div class="flex items-end space-x-4 pb-4">
+        <div class="w-4/12">
+          <label for="stationFilterLabel" class="flex items-center space-x-2 text-sm/6 font-medium text-slate-500">
+            <span>
               <svg
-                class="absolute top-1/2 right-3 h-5 w-5 -translate-y-1/2 text-slate-500 pointer-events-none"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z"
-                  clip-rule="evenodd"
-                />
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="h-4 w-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
               </svg>
-              <!-- Dropdown List -->
-              <ul
-                id="dropdown-list"
-                class="absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-md bg-white shadow-md outline-none sm:text-sm hidden"
-              >
-                <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="102">102</li>
-                <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="134">134</li>
-                <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="136">136</li>
-                <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="180">180</li>
-                <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="220">220</li>
-                <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="230">230</li>
-                <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="240">240</li>
-              </ul>
-            </div>
+            </span>
+            <span>Filter</span>
+          </label>
+          <div class="mt-2 relative">
+            <button type="button"
+              id="stationFilter"
+              type="button"
+              class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-2 pl-3 pr-2 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-green-500 sm:text-sm/6"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              aria-labelledby="stationFilterlabel"
+            >
+              <span id="assignedToLabel" class="col-start-1 row-start-1 truncate pr-6">linie</span>
+              <svg class="col-start-1 row-start-1 h-5 w-5 self-center justify-self-end text-slate-500 sm:h-4 sm:w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            <!-- Add Dropdown list -->
           </div>
         </div>
-        <div class="mt-4 shadow border border-slate-100 rounded-lg overflow-auto">
-          <table class="min-w-full divide-y divide-slate-200">
-            <thead class="bg-slate-100">
-              <tr>
-                <th scope="col" class="w-3/12 py-4 pl-4 pr-3 text-left text-base font-semibold text-slate-800 align-top">
-                  <button href="#" class="group inline-flex">
-                    Stationen
-                    <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
-                    <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
-                      <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-                      </svg>
-                    </span>
-                  </button>
-                </th>
-                <th scope="col" class="w-5/12 py-4 pl-4 pr-3 text-left align-top">
-                  <button href="#" class="group inline-flex">
-                    <div class="text-left">
-                      <span class="text-base font-semibold text-slate-800">Elektrifizierung</span>
-                      <div class="text-xs font-normal text-slate-600">(27 / 27)</div>
-                    </div>
-                    <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
-                    <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
-                      <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-                      </svg>
-                    </span>
-                  </button>
-                </th>
-                <th scope="col" class="w-2/12 py-4 pl-4 pr-3 text-left align-top">
-                  <button href="#" class="group inline-flex">
-                    <div class="text-left">
-                      <span class="text-base font-semibold text-slate-800">Anzahl Ladepunkte</span>
-                      <div class="text-xs font-normal text-slate-600">(54)</div>
-                    </div>
-                    <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
-                    <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
-                      <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-                      </svg>
-                    </span>
-                  </button>
-                </th>
-                <th scope="col" class="w-2/12 py-4 pl-4 pr-3 text-left align-top">
-                  <button href="#" class="group inline-flex">
-                    <div class="text-left">
-                      <span class="text-base font-semibold text-slate-800">Ladeleistung pro Punkt</span>
-                    </div>
-                    <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
-                    <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
-                      <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-                      </svg>
-                    </span>
-                  </button>
-                </th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200">
-              <tr class="bg-slate-100">
-                <td class="px-4 py-3">
-                  <div class="flex gap-3">
-                    <div class="flex h-6 shrink-0 items-center">
-                      <div class="group grid size-4 grid-cols-1">
-                        <input id="selectAll" aria-describedby="selectAll-description" name="selectAll" type="checkbox" class="col-start-1 row-start-1 appearance-none rounded border border-gray-300 bg-white checked:border-green-500 checked:bg-green-500 indeterminate:border-green-500 indeterminate:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500 disabled:border-gray-300 disabled:bg-gray-100 disabled:checked:bg-gray-100 forced-colors:appearance-auto">
-                        <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-[:disabled]:stroke-gray-950/25" viewBox="0 0 14 14" fill="none">
-                          <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                          <path class="opacity-0 group-has-[:indeterminate]:opacity-100" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div class="text-sm/6">
-                      <label for="selectAll" class="font-normal text-slate-600">Alle auswählen</label>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-4 py-3"></td>
-                <td class="px-4 py-3"></td>
-                <td class="px-4 py-3"></td>
-              </tr>
-              <tr
-                class="bg-white station-row"
-                data-station-id="leopoldplatz"
-              >
-                <td class="px-4 py-3">
-                  <div class="flex gap-3">
-                    <div class="flex h-6 shrink-0 items-center">
-                      <div class="group grid size-4 grid-cols-1">
-                        <input id="station01" aria-describedby="station01-description" name="station01" type="checkbox" class="col-start-1 row-start-1 appearance-none rounded border border-gray-300 bg-white checked:border-green-500 checked:bg-green-500 indeterminate:border-green-500 indeterminate:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500 disabled:border-gray-300 disabled:bg-gray-100 disabled:checked:bg-gray-100 forced-colors:appearance-auto">
-                        <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-[:disabled]:stroke-gray-950/25" viewBox="0 0 14 14" fill="none">
-                          <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                          <path class="opacity-0 group-has-[:indeterminate]:opacity-100" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div class="text-sm/6">
-                      <label for="station01" class="font-normal text-slate-800">U Leopoldplatz</label>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-4 py-3">
-                  <div id="electrifyState" class="flex items-center space-x-2">
-                    <button
-                      class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-gray-500 rounded-full"
-                      data-color="emerald"
-                      data-value="elektrifizieren"
-                    >
-                      <span class="pr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                          <path d="M8.36842 4L6 8.16901H10L7.78947 12"/>
-                          <circle cx="8" cy="8" r="7.5"/>
-                        </svg>
-                      </span>
-                      Elektrifizieren
-                    </button>
-                    <button
-                      class="inline-flex items-center py-1 px-2 bg-amber-100 font-semibold text-sm text-amber-700 shadow rounded-full selected"
-                      data-color="amber"
-                      data-value="automatisch"
-                    >
-                      <span class="pr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                          <path d="M8.36842 4L6 8.16901H10L7.78947 12" />
-                          <circle cx="8" cy="8" r="7.5" stroke-dasharray="3 3"/>
-                        </svg>
-                      </span>
-                      Automatisch
-                    </button>
-                    <button
-                      class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-gray-500 rounded-full"
-                      data-color="gray"
-                      data-value="nicht-elektrifizieren"
-                    >
-                      <span class="pr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                          <circle cx="8" cy="8" r="7.5" />
-                          <path d="M3 3.5L12.5 13" />
-                        </svg>
-                      </span>
-                      Nicht elektr.
-                    </button>
-                  </div>
-                </td>
-                <td>
-                  <div
-                    class="mr-4"
-                    data-input="charging-power"
-                  >
-                    <input
-                      type="number"
-                      name="chargingPointNumber"
-                      id="chargingPointNumber"
-                      aria-label="Anzahl an Ladepunkten"
-                      class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 focus:outline focus:outline-2 focus:outline-green-500 sm:text-sm/6"
-                      placeholder="0"
-                      min="0"
-                      max="8"
-                    >
-                  </div>
-                </td>
-                <td>
-                  <div
-                    class="mr-4"
-                    data-input="charging-power"
-                  >
-                    <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 ">
-                      <input type="number" name="chargingCapacity" id="chargingCapacity" class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency">
-                      <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kWh</div>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-              <tr
-                class="bg-white station-row"
-                data-station-id="alexanderplatz"
-              >
-                <td class="px-4 py-3">
-                  <div class="flex gap-3">
-                    <div class="flex h-6 shrink-0 items-center">
-                      <div class="group grid size-4 grid-cols-1">
-                        <input id="station02" aria-describedby="station02-description" name="station02" type="checkbox" class="col-start-1 row-start-1 appearance-none rounded border border-gray-300 bg-white checked:border-green-500 checked:bg-green-500 indeterminate:border-green-500 indeterminate:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500 disabled:border-gray-300 disabled:bg-gray-100 disabled:checked:bg-gray-100 forced-colors:appearance-auto">
-                        <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-[:disabled]:stroke-gray-950/25" viewBox="0 0 14 14" fill="none">
-                          <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                          <path class="opacity-0 group-has-[:indeterminate]:opacity-100" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div class="text-sm/6">
-                      <label for="station02" class="font-normal text-slate-800">S + U Alexanderplatz</label>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-4 py-3">
-                  <div id="electrifyState" class="flex items-center space-x-2">
-                    <button
-                      class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-gray-500 rounded-full"
-                      data-color="emerald"
-                      data-value="elektrifizieren"
-                    >
-                      <span class="pr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                          <path d="M8.36842 4L6 8.16901H10L7.78947 12"/>
-                          <circle cx="8" cy="8" r="7.5"/>
-                        </svg>
-                      </span>
-                      Elektrifizieren
-                    </button>
-                    <button
-                      class="inline-flex items-center py-1 px-2 bg-amber-100 text-sm font-semibold text-amber-700 shadow rounded-full selected"
-                      data-color="amber"
-                      data-value="automatisch"
-                    >
-                      <span class="pr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                          <path d="M8.36842 4L6 8.16901H10L7.78947 12" />
-                          <circle cx="8" cy="8" r="7.5" stroke-dasharray="3 3"/>
-                        </svg>
-                      </span>
-                      Automatisch
-                    </button>
-                    <button
-                      class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-gray-500 rounded-full"
-                      data-color="gray"
-                      data-value="nicht-elektrifizieren"
-                    >
-                      <span class="pr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                          <circle cx="8" cy="8" r="7.5" />
-                          <path d="M3 3.5L12.5 13" />
-                        </svg>
-                      </span>
-                      Nicht elektr.
-                    </button>
-                  </div>
-                </td>
-                <td>
-                  <div
-                    class="mr-4"
-                    data-input="charging-power"
-                  >
-                    <input
-                      type="number"
-                      name="chargingPointNumber"
-                      id="chargingPointNumber"
-                      aria-label="Anzahl an Ladepunkten"
-                      class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 focus:outline focus:outline-2 focus:outline-green-500 sm:text-sm/6"
-                      placeholder="0"
-                      min="0"
-                      max="8"
-                    >
-                  </div>
-                </td>
-                <td>
-                  <div
-                    class="mr-4"
-                    data-input="charging-power"
-                  >
-                    <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 ">
-                      <input type="number" name="chargingPower" id="chargingPower" class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency">
-                      <div id="chargingPowerUnit" class="shrink-0 select-none text-sm text-slate-500">kWh</div>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="w-8/12">
+          <div class="mt-2 relative">
+            <div
+              id="multiselect-container"
+              class="flex flex-wrap items-center rounded-md bg-white pl-3 pr-8 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-200 focus-within:outline focus-within:outline-2 focus-within:outline-green-500 sm:text-sm/6 cursor-pointer min-h-[2.5rem]"
+              tabindex="0"
+              aria-label="Item auswählen"
+            >
+              <span id="placeholder" class="text-slate-400">Select an item...</span>
+            </div>
+            <svg
+              class="absolute top-1/2 right-3 h-5 w-5 -translate-y-1/2 text-slate-500 pointer-events-none"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            <!-- Dropdown List -->
+            <ul
+              id="dropdown-list"
+              class="absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-md bg-white shadow-md outline-none sm:text-sm hidden"
+            >
+              <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="102">102</li>
+              <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="134">134</li>
+              <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="136">136</li>
+              <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="180">180</li>
+              <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="220">220</li>
+              <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="230">230</li>
+              <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="240">240</li>
+            </ul>
+          </div>
         </div>
       </div>
-    </section>
+      <div class="mt-4 shadow border border-slate-100 rounded-lg overflow-auto">
+        <table class="min-w-full divide-y divide-slate-200">
+          <thead class="bg-slate-100">
+            <tr>
+              <th scope="col" class="w-3/12 py-4 pl-4 pr-3 text-left text-base font-semibold text-slate-800 align-top">
+                <button type="button" href="#" class="group inline-flex">
+                  Stationen
+                  <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
+                  <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
+                    <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                    </svg>
+                  </span>
+                </button>
+              </th>
+              <th scope="col" class="w-5/12 py-4 pl-4 pr-3 text-left align-top">
+                <button type="button" href="#" class="group inline-flex">
+                  <div class="text-left">
+                    <span class="text-base font-semibold text-slate-800">Elektrifizierung</span>
+                    <div class="text-xs font-normal text-slate-600">(27 / 27)</div>
+                  </div>
+                  <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
+                  <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
+                    <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                    </svg>
+                  </span>
+                </button>
+              </th>
+              <th scope="col" class="w-2/12 py-4 pl-4 pr-3 text-left align-top">
+                <button type="button" href="#" class="group inline-flex">
+                  <div class="text-left">
+                    <span class="text-base font-semibold text-slate-800">Anzahl Ladepunkte</span>
+                    <div class="text-xs font-normal text-slate-600">(54)</div>
+                  </div>
+                  <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
+                  <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
+                    <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                    </svg>
+                  </span>
+                </button>
+              </th>
+              <th scope="col" class="w-2/12 py-4 pl-4 pr-3 text-left align-top">
+                <button type="button" href="#" class="group inline-flex">
+                  <div class="text-left">
+                    <span class="text-base font-semibold text-slate-800">Ladeleistung pro Punkt</span>
+                  </div>
+                  <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
+                  <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
+                    <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                    </svg>
+                  </span>
+                </button>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200">
+            <tr class="bg-slate-100">
+              <td class="px-4 py-3">
+                <div class="flex gap-3">
+                  <div class="flex h-6 shrink-0 items-center">
+                    <div class="group grid size-4 grid-cols-1">
+                      <input id="selectAll" aria-describedby="selectAll-description" name="selectAll" type="checkbox" class="col-start-1 row-start-1 appearance-none rounded border border-gray-300 bg-white checked:border-green-500 checked:bg-green-500 indeterminate:border-green-500 indeterminate:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500 disabled:border-gray-300 disabled:bg-gray-100 disabled:checked:bg-gray-100 forced-colors:appearance-auto">
+                      <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-[:disabled]:stroke-gray-950/25" viewBox="0 0 14 14" fill="none">
+                        <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path class="opacity-0 group-has-[:indeterminate]:opacity-100" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="text-sm/6">
+                    <label for="selectAll" class="font-normal text-slate-600">Alle auswählen</label>
+                  </div>
+                </div>
+              </td>
+              <td class="px-4 py-3"></td>
+              <td class="px-4 py-3"></td>
+              <td class="px-4 py-3"></td>
+            </tr>
 
-  </div>
+            {% for station_id, form in stations_forms.items %}
+              {% with stations_exclude_forms|get_item:station_id as exclude_form%}
+                {% with stations|get_item:station_id as station %}
+            <tr
+              class="bg-white station-row"
+            >
+              <td class="px-4 py-3">
+                <div class="flex gap-3">
+                  <div class="flex h-6 shrink-0 items-center">
+                    <div class="group grid size-4 grid-cols-1">
+                      <input id="selected_{{station_id}}" data-station-id="{{ station_id }}" aria-describedby="station{{ station_id }}-description" name="station{{ station_id }}" type="checkbox" class="col-start-1 row-start-1 appearance-none rounded border border-gray-300 bg-white checked:border-green-500 checked:bg-green-500 indeterminate:border-green-500 indeterminate:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500 disabled:border-gray-300 disabled:bg-gray-100 disabled:checked:bg-gray-100 forced-colors:appearance-auto">
+                      <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-[:disabled]:stroke-gray-950/25" viewBox="0 0 14 14" fill="none">
+                        <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path class="opacity-0 group-has-[:indeterminate]:opacity-100" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="text-sm/6">
+                    <label for="station{{ station_id }}" class="font-normal text-slate-800">{{ station.name }}</label>
+                  </div>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <div id="electrifyState" class="flex items-center space-x-2">
+                  <input  type="hidden" {{form.is_electrified|widget_attrs}}>
+                  <button type="button"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-gray-500 rounded-full"
+                    data-color="emerald"
+                    data-value="elektrifizieren"
+                          data-station-id="{{ station_id }}"
+                  >
+                    <span class="pr-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
+                        <path d="M8.36842 4L6 8.16901H10L7.78947 12"/>
+                        <circle cx="8" cy="8" r="7.5"/>
+                      </svg>
+                    </span>
+                    Elektrifizieren
+                  </button>
+{#                  Automatisch does not got an input since its the default. The state is implied by "electrified" not being set and "excluded" not being set#}
+                  <button type="button"
+                    class="inline-flex items-center py-1 px-2 bg-amber-100 font-semibold text-sm text-amber-700 shadow rounded-full selected"
+                    data-color="amber"
+                    data-value="automatisch"
+                          data-station-id="{{ station_id }}"
+                  >
+                    <span class="pr-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
+                        <path d="M8.36842 4L6 8.16901H10L7.78947 12" />
+                        <circle cx="8" cy="8" r="7.5" stroke-dasharray="3 3"/>
+                      </svg>
+                    </span>
+                    Automatisch
+                  </button>
+{#                  hidden input which is set via js#}
+                    <input  type="hidden" {{exclude_form.is_excluded|widget_attrs}}>
+                  <button type="button"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-gray-500 rounded-full"
+                    data-color="gray"
+                    data-value="nicht-elektrifizieren"
+                          data-station-id="{{ station_id }}"
+                  >
+                    <span class="pr-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
+                        <circle cx="8" cy="8" r="7.5" />
+                        <path d="M3 3.5L12.5 13" />
+                      </svg>
+                    </span>
+                    Nicht elektr.
+                  </button>
+                </div>
+              </td>
+              <td>
+                <div
+                  class="mr-4"
+                  data-input="charging-power"
+                >
+                  <input
+                          {{form.amount_charging_places|widget_attrs}}
+                    aria-label="Anzahl an Ladepunkten"
+                    class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 focus:outline focus:outline-2 focus:outline-green-500 sm:text-sm/6"
+                    placeholder="0"
+                  >
+                </div>
+              </td>
+              <td>
+                <div
+                  class="mr-4"
+                  data-input="charging-power"
+                >
+                  <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 ">
+                    <input {{ form.power_total|widget_attrs }} class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency">
+                    <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kWh</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+              {% endwith %}
+              {% endwith %}
+            {%  endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <button style="color:green"> SUBMIT</button>
+    </form>
+  </section>
+
+</div>
 </main>
 {% endblock wizard_content %}
 
 {% block wizard_buttons %}
-  {% url 'simba:vehicles' as prev_url %}
-  {% url 'simba:costs' as next_url %}
-  {{ block.super }}
+{% url 'simba:vehicles' as prev_url %}
+{% url 'simba:costs' as next_url %}
+{{ block.super }}
 {% endblock wizard_buttons %}
 
 {% block script %}
 <script>
-  // Dynamic content based on radio button selection
-  document.addEventListener("DOMContentLoaded", () => {
-    const singleInput = document.getElementById("charging-power");
-    const detailedDiv = document.getElementById("stations-details");
+// Dynamic content based on radio button selection
+document.addEventListener("DOMContentLoaded", () => {
+  const singleInput = document.getElementById("charging-power");
+  const detailedDiv = document.getElementById("stations-details");
 
-    // Handle radio input changes
-    document.querySelectorAll('input[name="notification-method"]').forEach((radio) => {
-      radio.addEventListener("change", (event) => {
-        const value = event.target.id;
+  // Handle radio input changes
+  document.querySelectorAll('input[name="{{ calculation_mode_form.calculation_mode.html_name }}"]').forEach((radio) => {
+    radio.addEventListener("change", (event) => {
+      const value = event.target.id;
 
-        // Hide all dynamic sections initially
-        singleInput.classList.add("hidden");
-        detailedDiv.classList.add("hidden");
+      // Hide all dynamic sections initially
+      singleInput.classList.add("hidden");
+      detailedDiv.classList.add("hidden");
 
-        // Show the relevant section based on the selected radio button
-        if (value === "single") {
-          singleInput.classList.remove("hidden");
-        } else if (value === "detailed") {
-          detailedDiv.classList.remove("hidden");
-        }
-      });
+      // Show the relevant section based on the selected radio button
+      if (value === "single") {
+        singleInput.classList.remove("hidden");
+      } else if (value === "detailed") {
+        detailedDiv.classList.remove("hidden");
+      }
     });
   });
+});
 </script>
 
 <script>
-  // Multi-select dropdown functionality
-  document.addEventListener("DOMContentLoaded", () => {
-    const multiselectContainer = document.getElementById("multiselect-container");
-    const dropdownList = document.getElementById("dropdown-list");
-    const placeholder = document.getElementById("placeholder");
+// Multi-select dropdown functionality
+document.addEventListener("DOMContentLoaded", () => {
+  const multiselectContainer = document.getElementById("multiselect-container");
+  const dropdownList = document.getElementById("dropdown-list");
+  const placeholder = document.getElementById("placeholder");
 
-    // Function to toggle placeholder visibility
+  // Function to toggle placeholder visibility
     function togglePlaceholder() {
       const hasItems = multiselectContainer.querySelectorAll("[data-value]").length > 0;
       if (hasItems) {
@@ -685,6 +613,76 @@
 </script>
 
 <script>
+// Implement bulk mutation
+document.addEventListener("DOMContentLoaded", () => {
+    const bulkSelection = document.getElementById("bulkSelection");
+    const buttons = bulkSelection.querySelectorAll("button");
+    const prefix = "bulk_"
+    buttons.forEach((button) => {
+        button.addEventListener("click", () => {
+            const value = button.getAttribute("data-value");
+            if (value === "elektrifizieren") {
+                document.getElementById(prefix + "is_electrified").value = true;
+                document.getElementById(prefix + "is_excluded").value = false;
+
+            } else if (value === "nicht-elektrifizieren") {
+                // Hide all inputs for "Nicht elektrifizieren"
+                document.getElementById(prefix + "is_electrified").value = false;
+                document.getElementById(prefix + "is_excluded").value = true;
+
+            } else if (value === "automatisch") {
+                document.getElementById(prefix + "is_electrified").value = false;
+                document.getElementById(prefix + "is_excluded").value = false;
+            }
+        })
+    })
+
+    const bulk_submit = document.getElementById("bulk_submit_button");
+    console.assert(bulk_submit);
+    const rows = document.querySelectorAll(".station-row");
+    bulk_submit.onclick = (e)=> {
+        let value=null;
+        if (document.getElementById("bulk_is_electrified").value==="true"){
+            console.assert(!document.getElementById("bulk_is_excluded").checked)
+            value="elektrifizieren"
+        } else if (document.getElementById("bulk_is_excluded").value==="true"){
+            console.assert(!document.getElementById("bulk_is_electrified").checked)
+            value="nicht-elektrifizieren"
+        } else {
+            value ="automatisch"
+        }
+        let num_charging = document.getElementById("bulk_chargingPointNumber")
+        let charging_capacity = document.getElementById("bulk_chargingCapacity")
+        const selected_checkboxes = document.querySelectorAll(['input[type="checkbox"][id^="selected_"]:checked'])
+    if (!num_charging.checkValidity() || !charging_capacity.checkValidity()) {
+        if (!num_charging.checkValidity()) {
+            num_charging.reportValidity();
+        }
+        if (!charging_capacity.checkValidity()) {
+            charging_capacity.reportValidity();
+        }
+        return
+        };
+        selected_checkboxes.forEach((checkbox)=>{
+            const station_id = checkbox.getAttribute("data-station-id");
+            const button = document.querySelector('[data-station-id="'+station_id+'"][data-value='+value+']')
+            console.assert(button);
+            button.click();
+            if (value==="elektrifizieren"){
+                const prefix = "id_station_"+station_id+"-";
+                const inputAmountChargingPlaces = document.getElementById(prefix+"amount_charging_places");
+                const inputChargingCapacity = document.getElementById(prefix+"power_total");
+                console.assert(inputAmountChargingPlaces);
+                console.assert(inputChargingCapacity);
+                inputAmountChargingPlaces.value= num_charging.value;
+                inputChargingCapacity.value = charging_capacity.value;
+            }
+        })
+    };
+})
+
+
+
   // Electrify state button functionality
   document.addEventListener("DOMContentLoaded", () => {
 const rows = document.querySelectorAll(".station-row");
@@ -696,6 +694,10 @@ const inputContainers = row.querySelectorAll("[data-input]");
 buttons.forEach((button) => {
   button.addEventListener("click", () => {
     const value = button.getAttribute("data-value");
+    const stationId = button.getAttribute("data-station-id");
+    console.assert(stationId)
+    const prefix = "id_station_"+ stationId+"-"
+    // set the inputs accordingly to selected button
 
     // Reset all buttons in the row to their unselected state
     buttons.forEach((btn) => {
@@ -711,17 +713,41 @@ buttons.forEach((button) => {
     button.classList.replace("bg-white", `bg-${color}-100`);
     button.classList.replace("text-gray-500", `text-${color}-700`);
 
+      if (value === "elektrifizieren") {
+          document.getElementById(prefix+"is_electrified").value=true;
+          document.getElementById(prefix+"is_excluded").checked=false;
+          document.getElementById(prefix+"is_excluded").value=false;
+
+      } else if (value === "nicht-elektrifizieren") {
+          // Hide all inputs for "Nicht elektrifizieren"
+          document.getElementById(prefix+"is_electrified").value=false;
+          document.getElementById(prefix+"is_excluded").checked=true;
+          document.getElementById(prefix+"is_excluded").value=true;
+
+      } else if (value === "automatisch") {
+          document.getElementById(prefix+"is_electrified").value=false;
+          document.getElementById(prefix+"is_excluded").checked=false;
+          document.getElementById(prefix+"is_excluded").value=false;
+
+
+      } else{
+          console.assert(false, {error:"Unexpected data-value from button"});
+      }
+
     // Show/hide input containers based on the selected button
     inputContainers.forEach((container) => {
       if (value === "elektrifizieren") {
+
         // Show inputs for "Elektrifizieren"
         container.classList.remove("hidden");
       } else if (value === "nicht-elektrifizieren") {
         // Hide all inputs for "Nicht elektrifizieren"
         container.classList.add("hidden");
       } else if (value === "automatisch") {
-        // Show default behavior for "Automatisch"
-        container.classList.remove("hidden");
+          // Show default behavior for "Automatisch"
+          container.classList.remove("hidden");
+      } else{
+          console.assert(false, {error:"Unexpected data-value from button"});
       }
     });
   });

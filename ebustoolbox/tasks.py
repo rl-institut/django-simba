@@ -35,7 +35,7 @@ from core.deepcopy import reset_postgres_auto_increments
 from core.models import Progress
 from simba.data_container import DataContainer
 from simba.schedule import Schedule as SimbaSchedule
-from . import schedule_readers
+from . import schedule_readers, forms
 from .models import (
     User,
     Route,
@@ -64,6 +64,8 @@ from .models import (
     ElectrificationOptions,
     VehicleTypeMutation,
     VehicleTypeSelection,
+    StationMutation,
+    StationElectrificationExclusions,
 )
 from .schedule_readers import ScheduleReader
 
@@ -734,6 +736,23 @@ def _generate_zipped_scenario(task_id: str):
     shutil.make_archive(output_path.with_suffix(""), "zip", folder_path)
 
 
+def get_parent(scenario):
+    if scenario.parent:
+        return scenario.parent
+    task_id = scenario.task_id
+    # Create a parent by making the current scenario a parent
+    # Make sure we get a new reference to not overwrite scenario in the outer context
+    parent = scenario
+    parent.task_id = ebustoolbox.util.get_unique_task_id()
+    parent.save()
+
+    child = create_empty_child_scenario(parent, task_id=task_id)
+    parent.name = "Parent of " + parent.name
+    parent.save()
+
+    return parent, child
+
+
 @shared_task(bind=True)
 def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cleaned_data):
     progress = Progress.objects.create(task_id=self.request.id, status="Gestartet")
@@ -742,20 +761,20 @@ def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cle
     try:
         schedule_reader_factory = schedule_readers.get_schedule_reader_factory(reader_num)
         schedule_reader: ScheduleReader = schedule_reader_factory(**file_paths, **cleaned_data)
+        # The progress is linked to the child scenario.
         schedule_reader.set_observer(progress)
         scenario = Scenario.objects.get(id=scenario_id)
         progress.scenario = scenario
         progress.save()
-        # parent scenario has all the content. "normal scenario" has the mutation. Simulation
-        # Scenario is parent scenario with mutation applied
-
-        delete_old_scenario_data(scenario)
+        # parent scenario has all the content
+        parent = scenario.parent
+        delete_old_scenario_data(parent)
         # Read the file and write it to database
         progress.refresh_from_db()
-        progress.success = schedule_reader.write_to_db(scenario.id)
-        scenario.simba_options = vars(get_args(scenario))
-        find_and_make_depots(scenario)
-        scenario.save()
+        progress.success = schedule_reader.write_to_db(parent.id)
+        scenario.simba_options = vars(get_args(parent))
+        find_and_make_depots(parent)
+        parent.save()
         progress.save()
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -790,6 +809,16 @@ def trim_scenario(scenario, time_delta, start_time=None):
     logging.info(f"Deleting {rotations_to_remove.count()} rotations out of sim range")
     rotations_to_remove.delete()
     pass
+
+
+def get_rotations_by_start_end(scenario, start: datetime, end: datetime) -> QuerySet[Rotation]:
+    rotations = (
+        Rotation.objects.filter(scenario=scenario)
+        .annotate(first_departure=Min("trip__departure_time"))
+        .filter(first_departure__gte=start)
+        .filter(first_departure__lte=end)
+    )
+    return rotations
 
 
 def get_rotations_by_timespan(
@@ -1163,6 +1192,30 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
         vt.save()
     child.save()
     return child
+
+
+@atomic()
+def create_station_mutations(scenario):
+    Station.objects.filter(scenario=scenario).delete()
+    next_id = ebustoolbox.util.get_next_id(Station)
+    stations = []
+    mutations = {}
+    for station in Station.objects.filter(scenario=scenario.parent):
+        mutations[station.id] = next_id
+        station.id = next_id
+        next_id += 1
+        station.scenario = scenario
+        stations.append(station)
+    Station.objects.bulk_create(stations)
+    next_id = ebustoolbox.util.get_next_id(StationMutation)
+    station_mutations = []
+    for original, mutation in mutations.items():
+        sm = StationMutation(
+            id=next_id, original_station_id=original, mutated_original_station_id=mutation
+        )
+        next_id += 1
+        station_mutations.append(sm)
+    StationMutation.objects.bulk_create(station_mutations)
 
 
 @shared_task(bind=True)
@@ -1753,6 +1806,38 @@ def electrify_db_stations(scenario: Scenario, station_id_list, unelectrify=True)
             revert_stations,
             ["is_electrified", "charge_type", "voltage_level", "amount_charging_places"],
         )
+
+
+@atomic()
+def update_stations_and_exclusion(context, scenario):
+    StationElectrificationExclusions.objects.filter(scenario=scenario).delete()
+    stations = []
+    station_exclusions = []
+    next_id = ebustoolbox.util.get_next_id(StationElectrificationExclusions)
+    for key, value in context["stations_exclude_forms"].items():
+        if value.cleaned_data["is_excluded"]:
+            station_exclusions.append(
+                StationElectrificationExclusions(id=next_id, scenario=scenario, station_id=key)
+            )
+            next_id += 1
+            station = Station.objects.get(id=key)
+            station.is_electrified = False
+            station.charge_type = None
+            station.voltage_level = None
+
+        else:
+            form = context["stations_forms"][key]
+            if not form.cleaned_data["is_electrified"]:
+                continue
+            else:
+                # Electrification needs further attributes
+                station = form.save(commit=False)
+                station.charge_type = EnumChargeType.OPPORTUNITY
+                station.voltage_level = EnumVoltageLevel.VOLTAGE_MV
+                station.is_valid()
+        stations.append(station)
+    StationElectrificationExclusions.objects.bulk_create(station_exclusions)
+    Station.objects.bulk_update(stations, fields=forms.StationForm._meta.fields)
 
 
 def update_vehicle_types_with_defaults(vehicle_type_pairs, task_id, vt_adjustments):
