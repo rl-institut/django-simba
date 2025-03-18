@@ -99,6 +99,25 @@ def get_unique_progress_or_none(scenario_task_id):
     return progress_db.first()
 
 
+def get_user_scenarios(user) -> list[Scenario]:
+    """Get a list of scenarios which can are accesible by the user"""
+    user_scenarios = []
+    usergroup_scenarios = []
+    if user.is_authenticated:
+        user_scenarios = Scenario.objects.filter(manager=user)
+        usergroup_scenarios = Scenario.objects.filter(usergroup__users=user)
+
+    default_scenario = DefaultScenario.objects.first().scenario
+    # Order output.
+    user_scenarios_ids = [s.id for s in user_scenarios]
+    user_usergroup_ids = {s.id for s in usergroup_scenarios}
+    user_scenarios_ids.extend(user_usergroup_ids)
+    user_scenarios_ids.append(default_scenario.id)
+    all_scenarios = [s for s in Scenario.objects.filter(id__in=user_scenarios_ids)]
+    all_scenarios_sorted = list(sorted(all_scenarios, key=lambda x: user_scenarios_ids.index(x.id)))
+    return all_scenarios_sorted
+
+
 class TripsView(FormView):
 
     template_name = "ebustoolbox/trips.html"
@@ -107,44 +126,27 @@ class TripsView(FormView):
 
     def get_context_data(self, **kwargs):
         context = super(TripsView, self).get_context_data(**kwargs)
+        assert context["form"], "Formview should return context with applied form"
         task_id = kwargs.get("task_id")
         if task_id:
+            _ = get_scenario_and_assert_authorization(self.request, task_id)
             # scenario is created so we pass the progress id so a progress bar can be shown
             progress_db = get_unique_progress_or_none(kwargs.get("task_id"))
             context["progress_id"] = progress_db.task_id if progress_db else None
-            # progress might not yet be created in the db, but it might have been passed
-            # as kwargs
-            if context["progress_id"] is None:
-                context["progress_id"] = kwargs.get("progress_id")
-            scenario = Scenario.objects.get(task_id=task_id)
-            form_data = {
-                "scenario_name": scenario.name,
-                "description": ScenarioDescription.objects.get(scenario=scenario),
-                # ToDo: where is this setting stored
-                "existing_scenario": None,
-            }
-            files = [UploadedFile.objects.filter(scenario=scenario).first()]
-            form = forms.TripsForm(data=form_data, files=files)
-            context["form"] = form
+            print("task id found and progress: ", context["progress_id"])
 
-        scenarios = [DefaultScenario.objects.first().scenario]
-        if User.objects.filter(id=self.request.user.id).exists():
-            # ToDo-> Refactor to function to be reused in all scenario fetches
-            user = self.request.user
-            # Scenarios where the user is the manager
-            scenarios_as_manager = Scenario.objects.filter(manager=user)
-            scenarios.extend(scenarios_as_manager)
-            # Scenarios accessible through UserGroup
-            scenarios_in_groups = Scenario.objects.filter(usergroup__users=user)
-            scenarios.extend(scenarios_in_groups)
+        scenarios = get_user_scenarios(self.request.user)
+
         context["scenarios"] = scenarios
         return context
 
     def get(self, request, *args, **kwargs):
+        print("getting tripsview")
         task_id = kwargs.get("task_id")
 
         first = kwargs.get("first", 0)
         if task_id and first != 1:
+
             progress_db = get_unique_progress_or_none(task_id)
             if progress_db and progress_db.success:
                 response = redirect(reverse("simba:vehicles", args=[str(task_id)]))
@@ -153,27 +155,46 @@ class TripsView(FormView):
         return self.render_to_response(self.get_context_data(**kwargs))
 
     def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
+        form = self.get_form()
+        if form.is_valid():
+            print("valid")
+            print(form.cleaned_data)
+            return self.form_valid(form)
+        else:
+            print(form.errors)
+            context = self.get_context_data(**kwargs)
+            context["form"] = self.get_form_class()(self.request.POST, self.request.FILES)
+            return render(request, "ebustoolbox/partials/trips_form.html", context)
+            # return render(request, "ebustoolbox/partials/trips_form.html", context)
 
     def form_valid(self, form):
         """Handles successful form submission."""
         cleaned_data = form.cleaned_data
-        task_id = get_unique_task_id()
+        task_id = self.kwargs.get("task_id", get_unique_task_id())
+
         # Create a scenario and description
 
         # Get a User as manager or none
         manager = None
         if self.request.user.is_authenticated:
             manager = self.request.user
+        # If schedule reading failed before a scenario already exists
+        scenario, _ = Scenario.objects.get_or_create(task_id=task_id, manager=manager)
+        scenario.name = cleaned_data["scenario_name"]
+        # If schedule reading failed before there is a parent already. delete it if
+        # its only child is the current scenario
+        if scenario.parent:
+            if scenario.parent.scenario_set.count() == 1:
+                scenario.parent.delete()
+        scenario.parent = None
+        scenario.save()
 
-        scenario = Scenario.objects.create(
-            name=cleaned_data["scenario_name"], task_id=task_id, manager=manager
-        )
-        parent, scenario = tasks.get_parent(scenario)
         _ = ScenarioDescription.objects.create(
             scenario=scenario, description=cleaned_data["description"]
         )
-        data_file = form.files["data_file"]
+        data_file = form.files.get("data_file")
+        scenario_uuid = form.cleaned_data["existing_scenario"]
+
         if data_file:
             assert len(form.files) == 1, "Currently only single file uploads are allowed"
 
@@ -190,22 +211,38 @@ class TripsView(FormView):
                 # celery and needs to be json serializable
                 del cleaned_data[name]
             file_suffix = data_file.name[-3:]
+            parent, scenario = tasks.get_parent(scenario)
+
+            progress_id = tasks.get_uuid()
+            progress = Progress.objects.create(scenario=scenario, task_id=progress_id)
             if file_suffix == "csv":
                 # change the file naming according to SimbaScheduleReader
                 async_result = tasks.init_db_with_trips.apply_async(
-                    (scenario.id, 1, {"file_path": files["data_file"]}, {})
+                    (scenario.id, 1, {"file_path": files["data_file"]}, {}, progress.id),
+                    task_id=progress_id,
                 )
             elif file_suffix == "zip":
 
                 async_result = tasks.init_db_with_trips.apply_async(
-                    (scenario.id, 3, files, cleaned_data)
+                    (scenario.id, 3, files, cleaned_data, progress.id), task_id=progress_id
                 )
             else:
                 raise NotImplementedError(f"Unsupported FileType file_suffix {file_suffix}")
+            assert progress_id == async_result.task_id, (
+                "Asynch result and Progress need to be equal" "for proper fetching of progress"
+            )
+        elif scenario_uuid:
+            if not Scenario.objects.get(task_id=scenario_uuid) in get_user_scenarios(
+                self.request.user
+            ):
+                raise Http404
+            parent = Scenario.objects.get(task_id=scenario_uuid)
+            scenario.parent = parent
+            scenario.save()
+            response = HttpResponse()
+            response["HX-Redirect"] = reverse("simba:vehicles", args=[str(task_id)])
+            return response
 
-            progress_id = async_result.task_id
-        elif form.existing_scenario:
-            raise NotImplementedError("Using an existing Scenario needs implementation")
         else:
             raise NotImplementedError
         progress_db = Progress.objects.filter(task_id=progress_id).first()
@@ -217,12 +254,8 @@ class TripsView(FormView):
         response = HttpResponse()
         # Redirect to the same url with task_id added. this allows insertion of the
         # backend progress bar
-        response["HX-Location"] = reverse("simba:trips", args=[str(task_id), 1])
+        response["HX-Redirect"] = reverse("simba:trips", args=[str(task_id), 1])
         return response
-
-    def form_invalid(self, form):
-        """Handles form validation errors."""
-        return super().form_invalid(form)
 
 
 def get_scenario_and_assert_authorization(request, task_id):

@@ -105,7 +105,7 @@ class ElectrificationOptionsForm(forms.ModelForm):
 class TripsForm(forms.Form):
     data_file = forms.FileField(required=False)
     existing_scenario = forms.UUIDField(required=False)
-    scenario_name = forms.CharField(max_length=100, initial="Mein Szenario")
+    scenario_name = forms.CharField(max_length=100)
     description = forms.CharField(max_length=100, required=False)
 
     def is_valid(self):

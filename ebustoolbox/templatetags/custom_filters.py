@@ -9,11 +9,13 @@ def widget_attrs(field):
 
     This allows using the widget attributes in stylized front end inputs.
     """
-    attrs = field.field.widget.attrs
+    attrs = field.subwidgets[0].data["attrs"]
     out = ""
     for key, value in attrs.items():
         try:
-            float(value)
+            if isinstance(value, bool):
+                if not value:
+                    continue
             out += f"{key}={value} "
             continue
         except ValueError:
@@ -30,6 +32,25 @@ def widget_attrs(field):
     except AttributeError:
         pass
 
+    return out
+
+
+@register.filter
+def subwidget_data(field):
+    assert len(field.subwidgets) == 1
+    attrs_data = {key: value for key, value in field.subwidgets[0].data.items()}
+    out = ""
+    if attrs_data["is_hidden"]:
+        attrs_data["hidden"] = ""
+    del attrs_data["is_hidden"]
+    if attrs_data["required"]:
+        attrs_data["is_required"] = ""
+    del attrs_data["is_required"]
+    if attrs_data["is_initial"]:
+        raise NotImplementedError
+    del attrs_data["is_initial"]
+    for key, value in attrs_data:
+        out += f"{key}={value} "
     return out
 
 

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List
 
 import environ
-from celery import shared_task
+from celery import shared_task, uuid
 import django.apps
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry, Point
@@ -404,6 +404,10 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
     return simba_trips
 
 
+def get_uuid():
+    return uuid()
+
+
 def get_vehicle_types_from_db(django_scenario) -> dict:
     """Create simba rotations with trips from database with scenario as key
 
@@ -754,9 +758,13 @@ def get_parent(scenario):
 
 
 @shared_task(bind=True)
-def init_db_with_trips(self, scenario_id: int, reader_num: int, files: dict, cleaned_data):
-    progress = Progress.objects.create(task_id=self.request.id, status="Gestartet")
+def init_db_with_trips(
+    self, scenario_id: int, reader_num: int, files: dict, cleaned_data, progress_id: int
+):
+    progress = Progress.objects.get(id=progress_id)
     # files is a dict with values of (path, file_id)
+    progress.status = "Gestartet"
+    progress.save()
     file_paths = {key: value[0] for key, value in files.items()}
     try:
         schedule_reader_factory = schedule_readers.get_schedule_reader_factory(reader_num)
