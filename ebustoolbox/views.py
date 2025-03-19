@@ -96,9 +96,9 @@ def get_or_create_child_vehicle_types(scenario: Scenario) -> QuerySet[VehicleTyp
     """Create vehicle types and mutations according to the scenarios parent."""
     parent_vehicle_types = VehicleType.objects.filter(scenario=scenario.parent)
     for parent_vt in parent_vehicle_types:
-        if not VehicleTypeMutation.objects.get(
+        if not VehicleTypeMutation.objects.filter(
             original_vehicle_type=parent_vt, mutated_vehicle_type__scenario=scenario
-        ).exist():
+        ).exists():
             logger.info(f"{parent_vt} has no linked vehicle type. Creating a linked vehicle type")
             org_vt_id = parent_vt.id
             parent_vt.id = None
@@ -110,7 +110,7 @@ def get_or_create_child_vehicle_types(scenario: Scenario) -> QuerySet[VehicleTyp
             )
     child_vehicle_types = VehicleType.objects.filter(scenario=scenario)
     assert (
-        VehicleTypeMutation.objects.scenario.count()
+        VehicleTypeMutation.objects.filter(mutated_vehicle_type__scenario=scenario).count()
         == parent_vehicle_types.count()
         == child_vehicle_types.count()
     ), (
