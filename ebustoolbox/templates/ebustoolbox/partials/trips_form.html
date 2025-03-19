@@ -159,7 +159,7 @@
     </div>
   </div>
   </div>
-  <button hidden id="hidden_button"></button>
+  <button hidden id="hidden_button" ></button>
 </form>
 {#  load the file drop zone functions and apply them to the drop zone and input field#}
   <script src="{% static "ebustoolbox/js/file_drop_zone_handling.js" %}" onload="setDropHandler('drop_zone','{{ form.data_file.auto_id}}')">
@@ -245,8 +245,7 @@
 
       // Remove the highlight from all items and apply it to the selected item
       function highlightSelectedItem() {
-        listItems.forEach(li => {
-          li.classList.remove('bg-green-100');
+        listItems.forEach(li => { li.classList.remove('bg-green-100');
           if (li.getAttribute('data-dropdown-item') === selectedItem) {
             li.classList.add('bg-green-100');
           }

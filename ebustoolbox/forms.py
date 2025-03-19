@@ -82,13 +82,14 @@ class DateRangeField(forms.DateField):
 
 
 class SimulationParameters(forms.ModelForm):
+    temperature = forms.IntegerField(min_value=-20, max_value=40)
+
     class Meta:
         model = SimulationRange
         exclude = ("scenario",)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["temperature"].widget.attrs.update({"min": -20.0, "max": 40})
 
 
 class ElectrificationOptionsForm(forms.ModelForm):

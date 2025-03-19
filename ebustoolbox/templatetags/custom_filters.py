@@ -12,23 +12,24 @@ def widget_attrs(field):
     attrs = field.subwidgets[0].data["attrs"]
     out = ""
     for key, value in attrs.items():
-        try:
-            if isinstance(value, bool):
-                if not value:
-                    continue
-            out += f"{key}={value} "
-            continue
-        except ValueError:
-            out += f'{key}="{value}" '
+        if isinstance(value, bool):
+            if not value:
+                continue
+            else:
+                out += f"{key} "
+                continue
+        out += f"{key}={value} "
 
     out += f"id={field.auto_id} "
     out += f"name={field.html_name} "
+    out += f"type={field.field.widget.input_type} "
     try:
         if field.data:
             out += f"value={field.data} "
         else:
             if field.form.initial.get(field.name):
                 out += f"value={field.form.initial.get(field.name)}"
+
     except AttributeError:
         pass
 

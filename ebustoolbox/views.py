@@ -272,7 +272,6 @@ class VehiclesView(TemplateView):
 
     def get_context_data(self, scenario, **kwargs):
         context = super().get_context_data(**kwargs)
-
         # Get context for Simulation Range
         simulation_parameters_form = self.form_class()
         trips = Trip.objects.filter(scenario=scenario.parent).order_by("departure_time")
@@ -432,7 +431,12 @@ class VehiclesView(TemplateView):
                 ).count()
                 == 0
             ):
-                form.errors.append("In dieser Zeitspanne starten keine Umläufe.")
+                import ipdb
+
+                ipdb.set_trace()
+
+                form.errors["sim_range"] = "In dieser Zeitspanne starten keine Umläufe."
+
             else:
                 # Not Valid
                 instance.save()
@@ -461,7 +465,7 @@ class VehiclesView(TemplateView):
         else:
             for f in forms:
                 if not f.is_valid():
-                    logger.debug(f"{f} is invalid")
+                    logger.info(f"{f} is invalid")
             return self.render_to_response(context)
 
     @atomic()
@@ -491,6 +495,7 @@ class VehiclesView(TemplateView):
         return response
 
     def form_invalid(self, form, **kwargs):
+        print(form.errors)
         return self.render_to_response(self.get_context_data(**kwargs, form=form))
 
 
