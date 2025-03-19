@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import QuerySet
 from django.db.transaction import atomic
 from django.forms import formset_factory
 from django.http import HttpResponse, HttpRequest, Http404
@@ -91,8 +92,42 @@ def get_unique_progress_or_none(scenario_task_id):
     return progress_db.first()
 
 
+def get_or_create_child_vehicle_types(scenario: Scenario) -> QuerySet[VehicleType]:
+    """Create vehicle types and mutations according to the scenarios parent."""
+    parent_vehicle_types = VehicleType.objects.filter(scenario=scenario.parent)
+    for parent_vt in parent_vehicle_types:
+        if not VehicleTypeMutation.objects.get(
+            original_vehicle_type=parent_vt, mutated_vehicle_type__scenario=scenario
+        ).exist():
+            logger.info(f"{parent_vt} has no linked vehicle type. Creating a linked vehicle type")
+            org_vt_id = parent_vt.id
+            parent_vt.id = None
+            parent_vt.scenario = scenario
+            parent_vt.save()
+            org_vt = VehicleType.objects.get(id=org_vt_id)
+            VehicleTypeMutation.objects.create(
+                original_vehicle_type=org_vt, mutated_vehicle_type=parent_vt
+            )
+    child_vehicle_types = VehicleType.objects.filter(scenario=scenario)
+    assert (
+        VehicleTypeMutation.objects.scenario.count()
+        == parent_vehicle_types.count()
+        == child_vehicle_types.count()
+    ), (
+        "The amount of instances should be equal for VehicleTypeMutations and "
+        "VehicleTypes (parent and child)"
+    )
+    return child_vehicle_types
+
+
+def get_user_vehicle_types(user) -> QuerySet[VehicleType]:
+    """Get a Queryset of vehicle types which can are accessible by the user"""
+    default_scenario = DefaultScenario.objects.first().scenario
+    return VehicleType.objects.filter(scenario=default_scenario, opportunity_charging_capable=True)
+
+
 def get_user_scenarios(user) -> list[Scenario]:
-    """Get a list of scenarios which can are accesible by the user"""
+    """Get a list of scenarios which are accessible by the user"""
     user_scenarios = []
     usergroup_scenarios = []
     if user.is_authenticated:
@@ -250,7 +285,7 @@ class TripsView(FormView):
         return response
 
 
-def get_scenario_and_assert_authorization(request, task_id):
+def get_scenario_and_assert_authorization(request, task_id) -> Scenario:
     scenario = get_object_or_404(Scenario, task_id=task_id)
     if scenario.manager and scenario.manager != request.user:
         raise Http404
@@ -261,17 +296,17 @@ class VehiclesView(TemplateView):
     template_name = "ebustoolbox/vehicles.html"
     success_name = "simba:stations"
 
-    def get_context_data(self, scenario, **kwargs):
+    def get_context_data(self, scenario: Scenario, **kwargs):
         context = super().get_context_data(**kwargs)
         data = {}
         if self.request.method == "POST":
             data = self.request.POST
-        context |= self.get_simulation_range_context(data, scenario)
+        context |= self.get_simulation_parameters_context(data, scenario)
         context |= self.get_vehicles_context(data, scenario)
         return context
 
     @staticmethod
-    def get_simulation_range_context(data, scenario) -> dict:
+    def get_simulation_parameters_context(data, scenario: Scenario) -> dict:
         """Get context for Simulation Range"""
         context = {}
         trips = Trip.objects.filter(scenario=scenario.parent).order_by("departure_time")
@@ -307,7 +342,8 @@ class VehiclesView(TemplateView):
                 initial_end_date = end_date
                 initial_end_time = end_time
         simulation_parameters_form = forms.SimulationParameters(
-            data={"temperature": temperature, "start": start, "end": end}, instance=scenario
+            data={"temperature": temperature, "start": start, "end": end},
+            instance=SimulationRange.objects.get(scenario=scenario),
         )
         context |= {"min_date": start_date, "max_date": end_date}
         context |= {"start_date": initial_start_date, "end_date": initial_end_date}
@@ -318,47 +354,25 @@ class VehiclesView(TemplateView):
         }
         return context
 
-    @staticmethod
-    def get_vehicles_context(data, scenario) -> dict:
+    def get_vehicles_context(self, data, scenario: Scenario) -> dict:
         """Get context for vehicle types"""
         context = {}
-        parent = scenario.parent
-        default_scenario = DefaultScenario.objects.first().scenario
-        parent_vehicle_types = VehicleType.objects.filter(scenario=parent)
 
         # Get all default vehicle types. Only Opportunity charging capable for now
         # Expand the query for desired vehicle types which can be selected
-        default_vehicle_types = VehicleType.objects.filter(
-            scenario=default_scenario, opportunity_charging_capable=True
-        )
+        default_vehicle_types = get_user_vehicle_types(self.request.user)
         # if the child / mutation scenario has no vehicle types create them
-        # ToDo could be cleaner. Check instead if a VehicleTypeMutation exists
         # for each parent vehicle type, with a mutated vehicle type of this scenario. PseudoCode:
-        # for each parent_vt
-        # VehicleTypeMutation(
-        #       original_vehicle_type=parent_vt,
-        #       mutated_vehicle_type__scenario=scenario)
-        #       .exists()
-        child_vehicle_types = VehicleType.objects.filter(scenario=scenario)
-        if child_vehicle_types.count() == 0:
-            for vt in parent_vehicle_types:
-                org_vt_id = vt.id
-                vt.id = None
-                vt.scenario = scenario
-                vt.save()
-                org_vt = VehicleType.objects.get(id=org_vt_id)
-                VehicleTypeMutation.objects.create(
-                    original_vehicle_type=org_vt, mutated_vehicle_type=vt
-                )
-        for vt in child_vehicle_types:
-            vt_select, _ = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
+        child_vehicle_types = get_or_create_child_vehicle_types(scenario)
         vehicle_modification = {}
         for vt in child_vehicle_types:
+            vt_select, _ = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
             selection = VehicleTypeSelectionForm(
                 data,
                 prefix=f"selection_{vt.id}",
                 vehicle_type=vt,
                 choices_queryset=default_vehicle_types,
+                instance=vt_select,
             )
             modification = VehicleTypeForm(data, instance=vt, prefix=f"mutation_{vt.id}")
             vehicle_modification[vt.id] = {
@@ -399,26 +413,10 @@ class VehiclesView(TemplateView):
         #         "temperature": request.POST["temperature"],
         #     }
         # )
-        simulation_range_form = context["simulation_range_form"]
-        if simulation_range_form.is_valid():
-            instance = simulation_range_form.save(commit=False)
-            instance.scenario = scenario
-            if SimulationRange.objects.filter(scenario=scenario).exists():
-                instance.id = SimulationRange.objects.get(scenario=scenario).id
-
-            if (
-                tasks.get_rotations_by_start_end(
-                    scenario.parent, instance.start, instance.end
-                ).count()
-                == 0
-            ):
-                simulation_range_form.errors[
-                    "sim_range"
-                ] = "In dieser Zeitspanne starten keine Umläufe."
-                # Not Valid
-            else:
-                instance.save()
-        forms.append(simulation_range_form)
+        simulation_parameters_form = context["simulation_parameters_form"]
+        if simulation_parameters_form.is_valid():
+            _ = simulation_parameters_form.save()
+        forms.append(simulation_parameters_form)
 
         vehicle_modification = context["vehicle_modification"]
 
@@ -436,7 +434,7 @@ class VehiclesView(TemplateView):
         else:
             for f in forms:
                 if not f.is_valid():
-                    logger.info(f"{f} is invalid")
+                    logger.info(f"{f.errors}")
             return self.render_to_response(context)
 
     @atomic()

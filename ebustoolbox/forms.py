@@ -1,7 +1,8 @@
 from django import forms
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
-from . import models
+from . import models, tasks
 from .models import (
     EnumChargeType,
     EnumVoltageLevel,
@@ -91,6 +92,19 @@ class SimulationParameters(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    def clean(self):
+        cleaned_data = super().clean()
+        if not (cleaned_data.get("start") and cleaned_data.get("end")):
+            raise ValidationError("Gib ein Start- und Endzeitpunkt an.")
+        if (
+            tasks.get_rotations_by_start_end(
+                self.instance.scenario.parent, cleaned_data["start"], cleaned_data["end"]
+            ).count()
+            == 0
+        ):
+            raise ValidationError("In dieser Zeitspanne starten keine Umläufe.")
+        return cleaned_data
+
 
 class ElectrificationOptionsForm(forms.ModelForm):
     class Meta:
@@ -141,12 +155,11 @@ class TripsForm(forms.Form):
 
 class VehicleTypeSelectionForm(forms.ModelForm):
     class Meta:
-        exclude = []
+        exclude = ["vehicle_type"]
         model = models.VehicleTypeSelection
 
     def __init__(self, *args, vehicle_type=None, choices_queryset=None, **kwargs):
         super(VehicleTypeSelectionForm, self).__init__(*args, **kwargs)
-        self.fields["vehicle_type"].queryset = VehicleType.objects.filter(id=vehicle_type.id)
         self.fields["default_vehicle_type"].queryset = choices_queryset
 
 
