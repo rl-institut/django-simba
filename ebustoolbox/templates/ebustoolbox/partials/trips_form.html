@@ -159,24 +159,37 @@
     </div>
   </div>
   </div>
-  <button hidden id="hidden_button" ></button>
+  <button hidden id="hidden_button" onclick="validateAndSubmit()"></button>
 </form>
 {#  load the file drop zone functions and apply them to the drop zone and input field#}
   <script src="{% static "ebustoolbox/js/file_drop_zone_handling.js" %}" onload="setDropHandler('drop_zone','{{ form.data_file.auto_id}}')">
   </script>
 <script>
-        document.getElementById("trips_form").addEventListener("htmx:beforeRequest", function(event) {
-        let input1 = document.getElementById("{{ form.existing_scenario.auto_id }}").value.trim();
-        let input2 = document.getElementById("{{ form.data_file.auto_id }}").value.trim();
+    function validateAndSubmit(){
+        // If validation fails submit event will be prevented
+        validateAndResetForm();
+    }
+        function validateAndResetForm(e) {
+        let input1 = document.getElementById("{{ form.existing_scenario.auto_id }}")
+        let input2 = document.getElementById("{{ form.data_file.auto_id }}");
+        let val1 = input1.value.trim();
+        let val2 = input2.value.trim();
         let errorMessage = document.getElementById("error-message");
-
-        if (!input1 && !input2) {
-            event.preventDefault();  // Prevent form submission
+        // ! forces to (inverse) boolean together with != this mimics !(bool(x) XOR bool(y))
+        if (!val1 == !val2) {
+            input1.value=null;
+            input2.value=null;
+            let drowDownDiv = document.getElementById("dropDownSpan")
+            drowDownDiv.innerHTML = "-- Szeneario auswählen --"
+            let filesDiv = document.getElementById("uploaded_file_id")
+            filesDiv.innerHTML = ""
             errorMessage.style.display = "block";  // Show error message
+            event.preventDefault()
         } else {
+            console.log("true")
             errorMessage.style.display = "none";  // Hide error message if valid
         }
-    });
+    };
 </script>
 <script>
   function updateFileName(input){
@@ -245,7 +258,8 @@
 
       // Remove the highlight from all items and apply it to the selected item
       function highlightSelectedItem() {
-        listItems.forEach(li => { li.classList.remove('bg-green-100');
+        listItems.forEach(li => {
+ li.classList.remove('bg-green-100');
           if (li.getAttribute('data-dropdown-item') === selectedItem) {
             li.classList.add('bg-green-100');
           }
