@@ -325,6 +325,10 @@ class VehiclesView(TemplateView):
             initial_end_date = end.date().isoformat()
             initial_end_time = end.time().isoformat()
             temperature = data["temperature"]
+            simulation_parameters_form = forms.SimulationParameters(
+                data={"temperature": temperature, "start": start, "end": end},
+                instance=SimulationRange.objects.get(scenario=scenario),
+            )
         else:
             if sim_range.start and sim_range.end:
                 assert SimulationRange.objects.filter(scenario=scenario).count() == 1
@@ -341,10 +345,10 @@ class VehiclesView(TemplateView):
                 initial_start_time = start_time
                 initial_end_date = end_date
                 initial_end_time = end_time
-        simulation_parameters_form = forms.SimulationParameters(
-            data={"temperature": temperature, "start": start, "end": end},
-            instance=SimulationRange.objects.get(scenario=scenario),
-        )
+            simulation_parameters_form = forms.SimulationParameters(
+                initial={"temperature": temperature, "start": start, "end": end},
+                instance=SimulationRange.objects.get(scenario=scenario),
+            )
         context |= {"min_date": start_date, "max_date": end_date}
         context |= {"start_date": initial_start_date, "end_date": initial_end_date}
         context |= {"initial_start_time": initial_start_time, "initial_end_time": initial_end_time}

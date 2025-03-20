@@ -534,6 +534,11 @@
               input.required = isRequired;
           });
       }
+      function setFormValuesNull(inputDivs) {
+          inputDivs.forEach((input) => {
+              input.value = null;
+          });
+      }
 
       function setRowFormsRequiredByState(rows) {
           rows.forEach((row) => {
@@ -642,6 +647,7 @@ document.addEventListener("DOMContentLoaded", () => {
     {#const selector = detailed_options_endings.map(e => `input[id$="${e}"]`).join(",");#}
     // get all the inputs inside the divs which are hidden and unhidden to set their
     // "required". Only with required==true they will be validated in the frontend
+    // non required elemts will still be validated if their values!=null
     const generalFormDivs = singleInput.querySelectorAll('input');
     //Eclude the station serach and the checkboxes which select stations
     const detailedFormDivs = detailedDiv.querySelectorAll('input:not(#stationSearch):not([id*=select])');
@@ -842,7 +848,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.assert(stationId)
                 const prefix = "id_station_" + stationId + "-"
                 // set the inputs accordingly to selected button
-
                 styleRowButtonsToState(button, buttons);
 
                 // Get all the inputs of the row. Needed to set requirment. Not for "selected" checkbox
@@ -855,6 +860,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     setFormsRequired(true, allRowInputs);
 
                 } else if (value === "nicht-elektrifizieren") {
+                    setFormValuesNull(allRowInputs);
                     // Hide all inputs for "Nicht elektrifizieren"
                     document.getElementById(prefix + "is_electrified").value = false;
                     document.getElementById(prefix + "is_excluded").checked = true;
@@ -862,6 +868,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     setFormsRequired(false, allRowInputs);
 
                 } else if (value === "automatisch") {
+                    setFormValuesNull(allRowInputs);
                     document.getElementById(prefix + "is_electrified").value = false;
                     document.getElementById(prefix + "is_excluded").checked = false;
                     document.getElementById(prefix + "is_excluded").value = false;
