@@ -146,7 +146,8 @@
 
 
       {% include "ebustoolbox/vehicle_modification.html" with modification=modification vt_id=vt_id choice_vts=choice_vts %}
-      <button id="SubmitButton" hidden></button>
+{#      validate() is defined in vehicle_modification since thos content is what is validated#}
+      <button id="SubmitButton" hidden onclick="validate()"></button>
 
     </section>
     </form>

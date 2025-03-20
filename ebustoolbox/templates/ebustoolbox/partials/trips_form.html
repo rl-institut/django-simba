@@ -169,7 +169,7 @@
         // If validation fails submit event will be prevented
         validateAndResetForm();
     }
-        function validateAndResetForm(e) {
+        function validateAndResetForm() {
         let input1 = document.getElementById("{{ form.existing_scenario.auto_id }}")
         let input2 = document.getElementById("{{ form.data_file.auto_id }}");
         let val1 = input1.value.trim();
