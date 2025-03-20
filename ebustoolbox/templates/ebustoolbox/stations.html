@@ -98,37 +98,39 @@
             </button>
           </div>
         </div>
-        <div class="flex gap-2 mt-8">
-          <div class="w-6/12">
-            <label for="inputItem" class="block text-sm/6 font-medium text-slate-800">Anzahl Ladepunkte</label>
-            <div class="mt-2">
-            <input
+        <div id="bulkInputContainer" hidden>
+          <div class="flex gap-2 mt-8">
+            <div class="w-6/12">
+              <label for="inputItem" class="block text-sm/6 font-medium text-slate-800">Anzahl Ladepunkte</label>
+              <div class="mt-2">
+                <input
 
-              type="number"
-              name="chargingPointNumber"
-              id="bulk_chargingPointNumber"
-              aria-label="Anzahl an Ladepunkten"
-              class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 focus:outline focus:outline-2 focus:outline-green-500 sm:text-sm/6"
-              placeholder="0"
-              min="0"
-              max="8"
-            >
+                        type="number"
+                        name="chargingPointNumber"
+                        id="bulk_chargingPointNumber"
+                        aria-label="Anzahl an Ladepunkten"
+                        class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 focus:outline focus:outline-2 focus:outline-green-500 sm:text-sm/6"
+                        placeholder="0"
+                        min="0"
+                        max="8"
+                >
+              </div>
+            </div>
+            <div class="w-6/12">
+              <label for="inputItem" class="block text-sm/6 font-medium text-slate-800">Ladeleistung pro Punkt</label>
+              <div class="flex items-center mt-2 rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 ">
+                <input
+                        type="number"
+                        name="chargingCapacity"
+                        id="bulk_chargingCapacity"
+                        class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
+                        placeholder="0"
+                        aria-describedby="price-currency"
+                >
+                <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kWh</div>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="w-6/12">
-          <label for="inputItem" class="block text-sm/6 font-medium text-slate-800">Ladeleistung pro Punkt</label>
-          <div class="flex items-center mt-2 rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 ">
-            <input
-              type="number"
-              name="chargingCapacity"
-              id="bulk_chargingCapacity"
-              class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
-              placeholder="0"
-              aria-describedby="price-currency"
-            >
-            <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kWh</div>
-          </div>
-        </div>
       </div>
       <div class="flex justify-end gap-2 mt-8 pt-8 border-t border-slate-200">
         <button type="button" id="closeBulkEditingModalButton" class="px-6 py-2 bg-slate-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
@@ -176,15 +178,15 @@
         Standardmäßig berechnet die Simulation, ob die Endstationen elektrifiziert werden müssen, und bestimmt dabei automatisch die Anzahl der Ladepunkte sowie die Ladeleistung. Sie haben jedoch die Möglichkeit, die Endstationen manuell zu elektrifizieren und die Anzahl der Ladepunkte sowie die Ladeleistung festzulegen – oder alternativ die Elektrifizierung vollständig auszuschließen.
       </p>
 
-      <div id="{{ calculation_mode_form.calculation_mode.auto_id }}" class="mt-6">
+      <div id="{{ calculation_mode_form.station_calculation_mode.auto_id }}" class="mt-6">
         <!-- Option 1 -->
         <div class="flex items-center h-12">
-          <input id="auto" name="{{ calculation_mode_form.calculation_mode.html_name }}" value="{{ automatic_value}}" type="radio" checked class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
+          <input id="auto" name="{{ calculation_mode_form.station_calculation_mode.html_name }}" value="{{ automatic_value}}" type="radio" checked class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
           <label for="auto" class="ml-3 block text-sm/6 font-medium text-slate-800">Automatisch berechnen lassen</label>
         </div>
         <!-- Option 2 -->
         <div class="flex items-center h-12">
-          <input id="single" name="{{ calculation_mode_form.calculation_mode.html_name }}" value="{{ constant_power_value }}" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
+          <input id="single" name="{{ calculation_mode_form.station_calculation_mode.html_name }}" value="{{ constant_power_value }}" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
 
           <label for="single" class="ml-3 block text-sm/6 font-medium text-slate-800">Ladeleistung angeben</label>
           <div class="ml-4 mt-2 hidden" id="charging-power">
@@ -201,7 +203,7 @@
         </div>
         <!-- Option 3 -->
         <div class="flex items-center h-12">
-          <input id="detailed" name="{{ calculation_mode_form.calculation_mode.html_name }}" value="{{ manual_value}}"
+          <input id="detailed" name="{{ calculation_mode_form.station_calculation_mode.html_name }}" value="{{ manual_value}}"
                  type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
           <label for="detailed" class="ml-3 block text-sm/6 font-medium text-slate-800">Details zu den Stationen angeben</label>
         </div>
@@ -341,7 +343,7 @@
                 <button type="button" href="#" class="group inline-flex">
                   <div class="text-left">
                     <span class="text-base font-semibold text-slate-800">Elektrifizierung</span>
-                    <div class="text-xs font-normal text-slate-600">(27 / 27)</div>
+                    <div id="countElectrifiedTotal" class="text-xs font-normal text-slate-600">(0 / 0)</div>
                   </div>
                   <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
                   <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
@@ -355,7 +357,7 @@
                 <button type="button" href="#" class="group inline-flex">
                   <div class="text-left">
                     <span class="text-base font-semibold text-slate-800">Anzahl Ladepunkte</span>
-                    <div class="text-xs font-normal text-slate-600">(54)</div>
+                    <div id="countChargingPlacesTotal" class="text-xs font-normal text-slate-600">(54)</div>
                   </div>
                   <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
                   <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
@@ -507,7 +509,7 @@
         </table>
       </div>
     </div>
-    <button style="color:green"> SUBMIT</button>
+    <button id="submitButton" hidden></button>
     </form>
   </section>
 
@@ -516,35 +518,171 @@
 {% endblock wizard_content %}
 
 {% block wizard_buttons %}
+
 {% url 'simba:vehicles' as prev_url %}
 {% url 'simba:costs' as next_url %}
-{{ block.super }}
+{% with "submitButton" as buttonId %}
+  {{ block.super }}
+  {%  endwith %}
 {% endblock wizard_buttons %}
 
 {% block script %}
+  {#  {{ detailedOptionNames|json_script:"detailedOptionNames" }}#}
 <script>
+      function setFormsRequired(isRequired, inputDivs) {
+          inputDivs.forEach((input) => {
+              input.required = isRequired;
+          });
+      }
+
+      function setRowFormsRequiredByState(rows) {
+          rows.forEach((row) => {
+
+              const inputs = row.querySelectorAll('input:not([id*="select"])')
+              const isElectrifiedDiv = row.querySelector('input[id$="is_electrified"]')
+              if (isElectrifiedDiv.value==="true"){
+                  setFormsRequired(true, inputs);
+              } else{
+                  setFormsRequired(false,inputs)
+              }
+          });
+      }
+
+      function setInitialStateOfButtons(rows) {
+          rows.forEach((row) => {
+              const isElectrifiedDiv = row.querySelector('input[id$="is_electrified"]')
+              const isExcludedDiv = row.querySelector('input[id$="is_excluded"]')
+              var button;
+              if (isElectrifiedDiv.value === 'true') {
+                  console.assert(isExcludedDiv.value === 'false');
+                  button = row.querySelector('[data-value="elektrifizieren"]');
+              } else if (isExcludedDiv.value === 'true') {
+                  console.assert(isElectrifiedDiv.value === 'false');
+                  button = row.querySelector('[data-value="elektrifizieren"]');
+              } else {
+                  console.assert(isElectrifiedDiv.value === 'false');
+                  console.assert(isExcludedDiv.value === 'false');
+                  button = row.querySelector('[data-value="automatisch"]');
+              }
+              // click the button according to the passed inputs.
+              button.click();
+          })
+
+      }
+
+        function countElectrifiedStations(rows){
+            let sum=0;
+            rows.forEach((row)=>{
+                const electrifiedDiv = row.querySelector("input[id$='is_electrified']")
+                if (electrifiedDiv.value==="true"){
+                    sum+=1;
+                };
+
+            })
+            return sum;
+        }
+
+        function countChargingPoints(rows) {
+            let sum = 0;
+            rows.forEach((row) => {
+                const amountDiv = row.querySelector("input[id$='amount_charging_places']")
+                const isElectrifiedDiv=row.querySelector("input[id$='is_electrified']")
+                if (isElectrifiedDiv.value==="true" && amountDiv.value !=null) {
+                    sum += parseInt(amountDiv.value);
+                }
+                ;
+
+            })
+            return sum;
+        }
+
+        function setElectrifiedCount(rows){
+            const countDiv = document.getElementById("countElectrifiedTotal");
+            const total=rows.length;
+            const electrified = countElectrifiedStations(rows);
+            countDiv.innerHTML = "( "+electrified+" / "+total+" )"
+        }
+
+        function setChargingPointsCount(rows){
+            const countDiv = document.getElementById("countChargingPlacesTotal");
+            const charginPoints = countChargingPoints(rows);
+            countDiv.innerHTML = "(" + charginPoints + ")"
+        }
+
+        function updateCounts(rows) {
+            setChargingPointsCount(rows);
+            setElectrifiedCount(rows);
+        }
+
+
+      function styleRowButtonsToState(clickedButton, buttons) {
+          // Reset all buttons in the row to their unselected state
+          buttons.forEach((btn) => {
+              const color = btn.getAttribute("data-color");
+              btn.classList.remove("shadow", "selected");
+              btn.classList.replace(`bg-${color}-100`, "bg-white");
+              btn.classList.replace(`text-${color}-700`, "text-gray-500");
+          });
+
+          // Apply selected styles to the clicked button
+          const color = clickedButton.getAttribute("data-color");
+          clickedButton.classList.add("shadow", "selected");
+          clickedButton.classList.replace("bg-white", `bg-${color}-100`);
+          clickedButton.classList.replace("text-gray-500", `text-${color}-700`);
+      }
+
+
 // Dynamic content based on radio button selection
 document.addEventListener("DOMContentLoaded", () => {
   const singleInput = document.getElementById("charging-power");
   const detailedDiv = document.getElementById("stations-details");
+  const rows = document.querySelectorAll(".station-row");
+  {#const detailed_options_endings = JSON.parse(document.getElementById('detailedOptionNames').textContent);#}
+    {#Selector for all elements with ids ending with a form / detailed option#}
+    {#const selector = detailed_options_endings.map(e => `input[id$="${e}"]`).join(",");#}
+    // get all the inputs inside the divs which are hidden and unhidden to set their
+    // "required". Only with required==true they will be validated in the frontend
+    const generalFormDivs = singleInput.querySelectorAll('input');
+    //Eclude the station serach and the checkboxes which select stations
+    const detailedFormDivs = detailedDiv.querySelectorAll('input:not(#stationSearch):not([id*=select])');
+    console.assert(generalFormDivs);
+    console.assert(detailedFormDivs);
 
-  // Handle radio input changes
-  document.querySelectorAll('input[name="{{ calculation_mode_form.calculation_mode.html_name }}"]').forEach((radio) => {
-    radio.addEventListener("change", (event) => {
-      const value = event.target.id;
 
-      // Hide all dynamic sections initially
-      singleInput.classList.add("hidden");
-      detailedDiv.classList.add("hidden");
+    // Inital state no extra form is required and auto mode is expected
+    setFormsRequired(false,detailedFormDivs);
+    setFormsRequired(false,generalFormDivs);
 
-      // Show the relevant section based on the selected radio button
-      if (value === "single") {
-        singleInput.classList.remove("hidden");
-      } else if (value === "detailed") {
-        detailedDiv.classList.remove("hidden");
-      }
+    // Handle radio input changes
+    document.querySelectorAll('input[name="{{ calculation_mode_form.station_calculation_mode.html_name }}"]').forEach((radio) => {
+        radio.addEventListener("change", (event) => {
+            const value = event.target.id;
+
+            // Hide all dynamic sections initially
+            // this is the case for "auto" mode
+            singleInput.classList.add("hidden");
+            detailedDiv.classList.add("hidden");
+            // Forms are not required in "auto" mode
+            // Inital state no extra form is required and auto mode is expected
+            setFormsRequired(false, detailedFormDivs);
+            setFormsRequired(false, generalFormDivs);
+            // Show the relevant section based on the selected radio button
+            if (value === "single") {
+                singleInput.classList.remove("hidden");
+
+                setFormsRequired(false,detailedFormDivs);
+                setFormsRequired(true,generalFormDivs);
+
+
+            } else if (value === "detailed") {
+                detailedDiv.classList.remove("hidden");
+
+
+                setRowFormsRequiredByState(rows);
+                setFormsRequired(false,generalFormDivs);
+            }
+        });
     });
-  });
 });
 </script>
 
@@ -618,21 +756,28 @@ document.addEventListener("DOMContentLoaded", () => {
     const bulkSelection = document.getElementById("bulkSelection");
     const buttons = bulkSelection.querySelectorAll("button");
     const prefix = "bulk_"
+    const bulkInputContainer = document.getElementById("bulkInputContainer");
+
     buttons.forEach((button) => {
         button.addEventListener("click", () => {
+            styleRowButtonsToState(button,buttons);
             const value = button.getAttribute("data-value");
             if (value === "elektrifizieren") {
                 document.getElementById(prefix + "is_electrified").value = true;
                 document.getElementById(prefix + "is_excluded").value = false;
+                bulkInputContainer.hidden = false;
 
             } else if (value === "nicht-elektrifizieren") {
                 // Hide all inputs for "Nicht elektrifizieren"
                 document.getElementById(prefix + "is_electrified").value = false;
                 document.getElementById(prefix + "is_excluded").value = true;
+                bulkInputContainer.hidden = true;
+
 
             } else if (value === "automatisch") {
                 document.getElementById(prefix + "is_electrified").value = false;
                 document.getElementById(prefix + "is_excluded").value = false;
+                bulkInputContainer.hidden = true;
             }
         })
     })
@@ -682,77 +827,77 @@ document.addEventListener("DOMContentLoaded", () => {
 })
 
 
+// Electrify state button functionality
+document.addEventListener("DOMContentLoaded", () => {
+    const rows = document.querySelectorAll(".station-row");
 
-  // Electrify state button functionality
-  document.addEventListener("DOMContentLoaded", () => {
-const rows = document.querySelectorAll(".station-row");
+    rows.forEach((row) => {
+        const buttons = row.querySelectorAll("button");
+        const inputContainers = row.querySelectorAll("[data-input]");
 
-rows.forEach((row) => {
-const buttons = row.querySelectorAll("button");
-const inputContainers = row.querySelectorAll("[data-input]");
+        buttons.forEach((button) => {
+            button.addEventListener("click", () => {
+                const value = button.getAttribute("data-value");
+                const stationId = button.getAttribute("data-station-id");
+                console.assert(stationId)
+                const prefix = "id_station_" + stationId + "-"
+                // set the inputs accordingly to selected button
 
-buttons.forEach((button) => {
-  button.addEventListener("click", () => {
-    const value = button.getAttribute("data-value");
-    const stationId = button.getAttribute("data-station-id");
-    console.assert(stationId)
-    const prefix = "id_station_"+ stationId+"-"
-    // set the inputs accordingly to selected button
+                styleRowButtonsToState(button, buttons);
 
-    // Reset all buttons in the row to their unselected state
-    buttons.forEach((btn) => {
-      const color = btn.getAttribute("data-color");
-      btn.classList.remove("shadow", "selected");
-      btn.classList.replace(`bg-${color}-100`, "bg-white");
-      btn.classList.replace(`text-${color}-700`, "text-gray-500");
+                // Get all the inputs of the row. Needed to set requirment. Not for "selected" checkbox
+                const allRowInputs = row.querySelectorAll("input:not([id*=select])")
+
+                if (value === "elektrifizieren") {
+                    document.getElementById(prefix + "is_electrified").value = true;
+                    document.getElementById(prefix + "is_excluded").checked = false;
+                    document.getElementById(prefix + "is_excluded").value = false;
+                    setFormsRequired(true, allRowInputs);
+
+                } else if (value === "nicht-elektrifizieren") {
+                    // Hide all inputs for "Nicht elektrifizieren"
+                    document.getElementById(prefix + "is_electrified").value = false;
+                    document.getElementById(prefix + "is_excluded").checked = true;
+                    document.getElementById(prefix + "is_excluded").value = true;
+                    setFormsRequired(false, allRowInputs);
+
+                } else if (value === "automatisch") {
+                    document.getElementById(prefix + "is_electrified").value = false;
+                    document.getElementById(prefix + "is_excluded").checked = false;
+                    document.getElementById(prefix + "is_excluded").value = false;
+
+                    setFormsRequired(false, allRowInputs);
+
+
+                } else {
+                    console.assert(false, {error: "Unexpected data-value from button"});
+                }
+            updateCounts(rows);
+
+
+                // Show/hide input containers based on the selected button
+                inputContainers.forEach((container) => {
+                    if (value === "elektrifizieren") {
+
+                        // Show inputs for "Elektrifizieren"
+                        container.classList.remove("hidden");
+                    } else if (value === "nicht-elektrifizieren") {
+                        // Hide all inputs for "Nicht elektrifizieren"
+                        container.classList.add("hidden");
+                    } else if (value === "automatisch") {
+                        // Show default behavior for "Automatisch"
+                        container.classList.add("hidden");
+                    } else {
+                        console.assert(false, {error: "Unexpected data-value from button"});
+                    }
+                });
+            });
+        });
+
+//now that the buttons have click functionality set the state by clicking them according to the input
+        setInitialStateOfButtons(rows);
+        updateCounts(rows);
     });
-
-    // Apply selected styles to the clicked button
-    const color = button.getAttribute("data-color");
-    button.classList.add("shadow", "selected");
-    button.classList.replace("bg-white", `bg-${color}-100`);
-    button.classList.replace("text-gray-500", `text-${color}-700`);
-
-      if (value === "elektrifizieren") {
-          document.getElementById(prefix+"is_electrified").value=true;
-          document.getElementById(prefix+"is_excluded").checked=false;
-          document.getElementById(prefix+"is_excluded").value=false;
-
-      } else if (value === "nicht-elektrifizieren") {
-          // Hide all inputs for "Nicht elektrifizieren"
-          document.getElementById(prefix+"is_electrified").value=false;
-          document.getElementById(prefix+"is_excluded").checked=true;
-          document.getElementById(prefix+"is_excluded").value=true;
-
-      } else if (value === "automatisch") {
-          document.getElementById(prefix+"is_electrified").value=false;
-          document.getElementById(prefix+"is_excluded").checked=false;
-          document.getElementById(prefix+"is_excluded").value=false;
-
-
-      } else{
-          console.assert(false, {error:"Unexpected data-value from button"});
-      }
-
-    // Show/hide input containers based on the selected button
-    inputContainers.forEach((container) => {
-      if (value === "elektrifizieren") {
-
-        // Show inputs for "Elektrifizieren"
-        container.classList.remove("hidden");
-      } else if (value === "nicht-elektrifizieren") {
-        // Hide all inputs for "Nicht elektrifizieren"
-        container.classList.add("hidden");
-      } else if (value === "automatisch") {
-          // Show default behavior for "Automatisch"
-          container.classList.remove("hidden");
-      } else{
-          console.assert(false, {error:"Unexpected data-value from button"});
-      }
-    });
-  });
-});
-});
 });
 
 </script>
@@ -818,6 +963,8 @@ buttons.forEach((button) => {
       modal.classList.add("hidden");
     }
   });
+
+
 
 </script>
 {% endblock script %}

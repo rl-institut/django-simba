@@ -27,12 +27,14 @@ def widget_attrs(field):
         if field.data:
             out += f"value={field.data} "
         else:
-            if field.form.initial.get(field.name):
-                out += f"value={field.form.initial.get(field.name)}"
-
+            value = field.form.initial.get(field.name)
+            if value is not None:
+                if isinstance(value, bool):
+                    value = str(value).lower()
+                out += f"value={value} "
     except AttributeError:
         pass
-
+    print(out)
     return out
 
 

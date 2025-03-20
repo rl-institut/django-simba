@@ -1,6 +1,6 @@
 import logging
 import traceback
-from datetime import datetime
+import dateutil.parser as parser
 
 import pytz
 from django.conf import settings
@@ -10,7 +10,7 @@ from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import QuerySet
 from django.db.transaction import atomic
-from django.forms import formset_factory
+from django.forms import formset_factory, modelform_factory
 from django.http import HttpResponse, HttpRequest, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -19,6 +19,7 @@ from django.views.decorators.http import require_POST
 from eflips.depot.api import simulate_scenario  # noqa
 
 from core.models import Progress
+
 
 from celery.result import AsyncResult
 
@@ -54,6 +55,8 @@ from ebustoolbox.models import (
     ScenarioDescription,
     StationMutation,
     StationElectrificationExclusions,
+    ScenarioWizardOptions,
+    EnumCalculationModes,
 )
 
 logger = logging.getLogger("custom")
@@ -88,7 +91,7 @@ def progress2(request: HttpRequest, progress_id):
 
 def get_unique_progress_or_none(scenario_task_id):
     progress_db = Progress.objects.filter(scenario__task_id=scenario_task_id)
-    assert len(progress_db) <= 1, "Only single progress of a scenario upload progress should exist"
+    assert len(progress_db) <= 1, "Only single progress of scenario upload progress should exist"
     return progress_db.first()
 
 
@@ -113,10 +116,7 @@ def get_or_create_child_vehicle_types(scenario: Scenario) -> QuerySet[VehicleTyp
         VehicleTypeMutation.objects.filter(mutated_vehicle_type__scenario=scenario).count()
         == parent_vehicle_types.count()
         == child_vehicle_types.count()
-    ), (
-        "The amount of instances should be equal for VehicleTypeMutations and "
-        "VehicleTypes (parent and child)"
-    )
+    ), "The number of instances should be equal for VehicleTypeMutations and VehicleTypes (parent and child)"
     return child_vehicle_types
 
 
@@ -153,7 +153,7 @@ class TripsView(FormView):
 
     def get_context_data(self, **kwargs):
         context = super(TripsView, self).get_context_data(**kwargs)
-        assert context["form"], "Formview should return context with applied form"
+        assert context["form"], "Form view should return context with applied form"
         task_id = kwargs.get("task_id")
         if task_id:
             _ = get_scenario_and_assert_authorization(self.request, task_id)
@@ -208,7 +208,7 @@ class TripsView(FormView):
         # If schedule reading failed before a scenario already exists
         scenario, _ = Scenario.objects.get_or_create(task_id=task_id, manager=manager)
         scenario.name = cleaned_data["scenario_name"]
-        # If schedule reading failed before there is a parent already. delete it if
+        # If schedule reading failed before there is a parent already. Delete it if
         # its only child is the current scenario
         if scenario.parent:
             if scenario.parent.scenario_set.count() == 1:
@@ -316,7 +316,7 @@ class VehiclesView(TemplateView):
         start_time = start.time().isoformat()
         end_date = end.date().isoformat()
         end_time = end.time().isoformat()
-        sim_range = SimulationRange.objects.filter(scenario=scenario).first()
+        sim_range, _ = SimulationRange.objects.get_or_create(scenario=scenario)
         temperature = None
         if data:
             start, end = VehiclesView.parse_start_end_utc_from_POST(data)
@@ -326,7 +326,7 @@ class VehiclesView(TemplateView):
             initial_end_time = end.time().isoformat()
             temperature = data["temperature"]
         else:
-            if sim_range:
+            if sim_range.start and sim_range.end:
                 assert SimulationRange.objects.filter(scenario=scenario).count() == 1
                 # Times are provided to the context not via form, since different widgets
                 # are used.
@@ -394,10 +394,9 @@ class VehiclesView(TemplateView):
     @staticmethod
     def parse_start_end_utc_from_POST(data):
 
-        _format = "%Y-%m-%d %H:%M:%S"
-        start_dt = datetime.strptime(f"{data['start-date']} {data['start-time']}", _format)
+        start_dt = parser.parse(f"{data['start-date']} {data['start-time']}")
         start_dt_utc = start_dt.replace(tzinfo=pytz.UTC)
-        end_dt = datetime.strptime(f"{data['end-date']} {data['end-time']}", _format)
+        end_dt = parser.parse(f"{data['end-date']} {data['end-time']}")
         end_dt_utc = end_dt.replace(tzinfo=pytz.UTC)
         return start_dt_utc, end_dt_utc
 
@@ -490,30 +489,35 @@ class StationsView(TemplateView):
         data = self.request.POST
         if self.request.method != "POST":
             data = {}
-        form = forms.StationModeForm(data)
+
+        wizard_options, _ = ScenarioWizardOptions.objects.get_or_create(scenario=scenario)
+
+        form_class = modelform_factory(ScenarioWizardOptions, fields=["station_calculation_mode"])
+        if not data:
+            data |= {"station_calculation_mode": wizard_options.station_calculation_mode}
+        form = form_class(data=data, instance=wizard_options)
         context["calculation_mode_form"] = form
-        choice = form.CHOICES[0][0]
-        assert choice == "automatic"
-        context["automatic_value"] = choice
+        context["automatic_value"] = EnumCalculationModes.AUTOMATIC
+        context["constant_power_value"] = EnumCalculationModes.CONSTANT_POWER
+        context["manual_value"] = EnumCalculationModes.MANUAL
 
-        choice = form.CHOICES[1][0]
-        assert choice == "constant_power"
-        context["constant_power_value"] = choice
-
-        choice = form.CHOICES[2][0]
-        assert choice == "manual"
-        context["manual_value"] = choice
-
+        # General Charging power defined on top level
         context["charging_power_form"] = forms.ChargingPowerForm(data)
+
+        # Settings specific to each station
         context["stations_forms"] = dict()
         context["stations_exclude_forms"] = dict()
         for station in context["stations"].values():
             context["stations_forms"][station.id] = forms.StationForm(
                 data, instance=station, prefix=self.get_station_prefix(station)
             )
+            is_excluded = StationElectrificationExclusions.objects.filter(
+                scenario=scenario, station=station
+            ).exists()
             context["stations_exclude_forms"][station.id] = forms.StationExcludedForm(
-                data, prefix=self.get_station_prefix(station)
+                data, initial={"is_excluded": is_excluded}, prefix=self.get_station_prefix(station)
             )
+        context["detailedOptionNames"] = list(forms.StationForm().fields.keys())
 
         return context
 
@@ -537,7 +541,8 @@ class StationsView(TemplateView):
         calculation_mode_form = context["calculation_mode_form"]
         if not calculation_mode_form.is_valid():
             return self.render_to_response(**kwargs)
-        match calculation_mode_form.cleaned_data["calculation_mode"]:
+
+        match calculation_mode_form.cleaned_data["station_calculation_mode"]:
             case "automatic":
                 # Reset the scenario to its parent state. No Stations are excluded
                 StationElectrificationExclusions.objects.filter(scenario=scenario).delete()
@@ -561,7 +566,7 @@ class StationsView(TemplateView):
                     if valid and not exclusion_form.cleaned_data["is_excluded"]:
                         valid = station_form.is_valid()
                         if not valid:
-                            # If the station is not set to excluded or electrified its
+                            # If the station is not set to exclude or electrified its
                             # automatic -> therefore it does not need a proper station_form
                             if not station_form.cleaned_data["is_electrified"]:
                                 continue
