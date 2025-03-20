@@ -659,114 +659,56 @@
     const taskId = document.getElementById("task-id").value;
     console.log("Simulation ID:", taskId);
 
-    // Function to initialize an ECharts instance
-    function initChart(chartId, options) {
-        const chart = echarts.init(document.getElementById(chartId));
-        chart.setOption(options);
-    }
+    function fetchAndRenderPieChart(chartName, chartId, titleText) {
 
-   
-    // Fetch and render charts based on the chart types
-    // Line Chart
+        fetch(`/simba/results/${taskId}/${chartName}/`)
+        .then(response => response.json())
+        .then(data => {
 
-    fetch(`/simba/results/${taskId}/bar/`)
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Server error: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => console.log("Bar Chart Data:", data))
-    .catch(error => console.error("Error fetching bar data:", error));
+                const chart = echarts.init(document.getElementById(chartId));
 
-        // Function to fetch data based on chart type
-    function fetchData(chartType, taskId) {
-        return fetch(`/simba/results/${taskId}/${chartType}/`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.status}`);
-                }
-                return response.json();
-            })
-            .catch(error => {
-                console.error(`Error fetching ${chartType} data:`, error);
-                return { data: [] }; // Return empty data to prevent crashing
-            });
-    }
-
-    // Function to initialize and render an ECharts pie chart
-    function fetchAndRenderPieChart(chartType, chartId, titleText) {
-
-        fetchData(chartType, taskId).then(data => {
-            const chartDom = document.getElementById(chartId);
-            if (!chartDom) {
-                console.error(`Chart container with ID "${chartId}" not found.`);
-                return;
-            }
-
-            var chart = echarts.init(chartDom);
-
-            var options = {
-                title: {
-                    text: titleText,
-                    left: 'center',
-                    textStyle: {
-                        fontSize: 16,
-                        fontWeight: 'bold'
-                    }
-                },
-                tooltip: {
-                    trigger: 'item',
-                    formatter: '{b}: {c} ({d}%)'
-                },
-                legend: {
-                    orient: 'vertical',
-                    left: 'left'
-                },
-                series: [{
-                    name: titleText,
-                    type: 'pie',
-                    radius: '50%',
-                    data: data.data, // Expecting format [{value: x, name: "Category"}]
-                    emphasis: {
-                        itemStyle: {
-                            shadowBlur: 10,
-                            shadowOffsetX: 0,
-                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                var options = {
+                    title: {
+                        text: titleText,
+                        left: 'center',
+                        textStyle: {
+                            fontSize: 16,
+                            fontWeight: 'bold'
                         }
-                    }
-                }]
-            };
+                    },
+                    tooltip: {
+                        trigger: 'item',
+                        formatter: '{b}: {c} ({d}%)'
+                    },
+                    legend: {
+                        orient: 'vertical',
+                        left: 'left'
+                    },
+                    series: [{
+                        name: titleText,
+                        type: 'pie',
+                        radius: '50%',
+                        data: data.data, // Expecting format [{value: x, name: "Category"}]
+                        emphasis: {
+                            itemStyle: {
+                                shadowBlur: 10,
+                                shadowOffsetX: 0,
+                                shadowColor: 'rgba(0, 0, 0, 0.5)'
+                            }
+                        }
+                    }]
+                };
 
             chart.setOption(options);
         });
     }
+    function fetchAndRenderLineChart(chartName, chartId, titleText, xKey, yKey) {
 
-    // Ensure the DOM is fully loaded before running
-    document.addEventListener("DOMContentLoaded", function() {
+        fetch(`/simba/results/${taskId}/${chartName}/`)
+        .then(response => response.json())
+        .then(data => {
 
-        if (taskId) {
-            // Render the charts
-            fetchAndRenderPieChart("critical_rotations", "chartContainer", "Critical vs Non-Critical Rotations");
-            fetchAndRenderPieChart("bustype", "busTypeChartContainer", "Vehicle Type Distribution");
-            fetchAndRenderLineChart("soc", "lineChart", "Bus SOC over Time", "time_end", "soc_end_prc");
-
-        } else {
-            console.error("Simulation ID is missing.");
-        }
-    });
-
-
-    function fetchAndRenderLineChart(chartType, chartId, titleText, xKey, yKey) {
-
-        fetchData(chartType, taskId).then(data => {
-            const chartDom = document.getElementById(chartId);
-            if (!chartDom) {
-                console.error(`Chart container with ID "${chartId}" not found.`);
-                return;
-            }
-
-            var chart = echarts.init(chartDom);
+            const chart = echarts.init(document.getElementById(chartId));
 
             // Prepare the series data for each bus (V_id)
             var seriesData = [];
@@ -821,174 +763,188 @@
             chart.setOption(options);
         });
     }
+    function fetchAndRenderGanttChart(chartName, chartId, titleText) {
+        fetch(`/simba/results/${taskId}/${chartName}/`)
+            .then(response => response.json())
+            .then(data => {
+                const categories = data.categories;  // Array of bus categories
+                const ganttData = data.data;         // Array of Gantt data
 
-    // Fetch Gantt data from Django backend
-    fetch(`/simba/results/${taskId}/gantt/`)
-        .then(response => response.json())
-        .then(data => {
-            const categories = data.categories;  // Array of bus categories
-            const ganttData = data.data;         // Array of Gantt data
+                // Define a fixed bar height
+                const fixedBarHeight = 20;
 
-            // Define a fixed bar height
-            const fixedBarHeight = 20;
-
-            // Prepare ECharts option
-            const option = {
-                tooltip: {
-                    formatter: function (params) {
-                        // Format the start and end time to human-readable format
-                        const startTime = new Date(params.value[1]);
-                        const endTime = new Date(params.value[2]);
-                        return `${params.marker}${params.name}: ${startTime.toISOString()} - ${endTime.toISOString()} (${params.value[3]} ms)`;
-                    }
-                },
-                title: {
-                    text: 'Bus Dispatch Timeline',
-                    left: 'center'
-                },
-                dataZoom: [
-                    {
-                        type: 'slider',
-                        filterMode: 'weakFilter',
-                        showDataShadow: false,
-                        top: 550,
-                        labelFormatter: ''
-                    },
-                    {
-                        type: 'inside',
-                        filterMode: 'weakFilter'
-                    },
-                    {
-                        type: 'slider',
-                        yAxisIndex: 0,
-                        zoomLock: false,
-                        width: 10,
-                        right: 10,
-                        top: 70,
-                        bottom: 20,
-                        start: 95,
-                        end: 100,
-                        handleSize: 10,
-                        showDetail: false
-                      },
-                      {
-                        type: 'inside',
-                        id: 'insideY',
-                        yAxisIndex: 0,
-                        start: 95,
-                        end: 100,
-                        zoomOnMouseWheel: false,
-                        moveOnMouseMove: true,
-                        moveOnMouseWheel: true
-                      }
-                ],
-                grid: {
-                    height: '75%'  // Adjust grid height for more space
-                },
-                xAxis: {
-                    type: 'time',
-                    axisLabel: {
-                        formatter: function (val) {
-                            const date = new Date(val);
-                            return date.toISOString().substring(0, 19); // Format to ISO (YYYY-MM-DDTHH:mm:ss)
-                        }
-                    }
-                },
-                yAxis: {
-                    type: 'category',
-                    data: categories,
-                    // Ensure enough space for each category (bus)
-                    axisLabel: {
-                        interval: 0,  // Display all bus labels
-                        formatter: function (value) {
-                            return value;  // Keep the category labels (bus names) as they are
+                // Prepare ECharts option
+                const option = {
+                    tooltip: {
+                        formatter: function (params) {
+                            // Format the start and end time to human-readable format
+                            const startTime = new Date(params.value[1]);
+                            const endTime = new Date(params.value[2]);
+                            return `${params.marker}${params.name}: ${startTime.toISOString()} - ${endTime.toISOString()} (${params.value[3]} ms)`;
                         }
                     },
-                    axisTick: {
-                        show: false  // Hide ticks to save space
+                    title: {
+                        text: 'Bus Dispatch Timeline',
+                        left: 'center'
                     },
-                    splitLine: {
-                        show: false  // Hide grid lines between categories
-                    }
-                },
-                series: [
-    {
-    type: 'custom',
-    renderItem: function (params, api) {
-        const categoryIndex = api.value(0);
-        const start = api.coord([api.value(1), categoryIndex]);
-        const end = api.coord([api.value(2), categoryIndex]);
+                    dataZoom: [
+                        {
+                            type: 'slider',
+                            filterMode: 'weakFilter',
+                            showDataShadow: false,
+                            top: 550,
+                            labelFormatter: ''
+                        },
+                        {
+                            type: 'inside',
+                            filterMode: 'weakFilter'
+                        },
+                        {
+                            type: 'slider',
+                            yAxisIndex: 0,
+                            zoomLock: false,
+                            width: 10,
+                            right: 10,
+                            top: 70,
+                            bottom: 20,
+                            start: 95,
+                            end: 100,
+                            handleSize: 10,
+                            showDetail: false
+                        },
+                        {
+                            type: 'inside',
+                            id: 'insideY',
+                            yAxisIndex: 0,
+                            start: 95,
+                            end: 100,
+                            zoomOnMouseWheel: false,
+                            moveOnMouseMove: true,
+                            moveOnMouseWheel: true
+                        }
+                    ],
+                    grid: {
+                        height: '75%'  // Adjust grid height for more space
+                    },
+                    xAxis: {
+                        type: 'time',
+                        axisLabel: {
+                            formatter: function (val) {
+                                const date = new Date(val);
+                                return date.toISOString().substring(0, 19); // Format to ISO (YYYY-MM-DDTHH:mm:ss)
+                            }
+                        }
+                    },
+                    yAxis: {
+                        type: 'category',
+                        data: categories,
+                        // Ensure enough space for each category (bus)
+                        axisLabel: {
+                            interval: 0,  // Display all bus labels
+                            formatter: function (value) {
+                                return value;  // Keep the category labels (bus names) as they are
+                            }
+                        },
+                        axisTick: {
+                            show: false  // Hide ticks to save space
+                        },
+                        splitLine: {
+                            show: false  // Hide grid lines between categories
+                        }
+                    },
+                    series: [
+                        {
+                            type: 'custom',
+                            renderItem: function (params, api) {
+                                const categoryIndex = api.value(0);
+                                const start = api.coord([api.value(1), categoryIndex]);
+                                const end = api.coord([api.value(2), categoryIndex]);
 
-        // Dynamically calculate height based on Y-axis scale
-        const size = api.size([0, 1]); // [width, height] for one data unit
-        const dynamicHeight = size[1] * 0.8; // 80% of the height for better spacing
+                                // Dynamically calculate height based on Y-axis scale
+                                const size = api.size([0, 1]); // [width, height] for one data unit
+                                const dynamicHeight = size[1] * 0.8; // 80% of the height for better spacing
 
-        // Define the rectangle shape with dynamic height
-        const rectShape = echarts.graphic.clipRectByRect(
-            {
-                x: start[0],
-                y: start[1] - dynamicHeight / 2,
-                width: end[0] - start[0],
-                height: dynamicHeight
-            },
-            {
-                x: params.coordSys.x,
-                y: params.coordSys.y,
-                width: params.coordSys.width,
-                height: params.coordSys.height
-            }
-        );
+                                // Define the rectangle shape with dynamic height
+                                const rectShape = echarts.graphic.clipRectByRect(
+                                    {
+                                        x: start[0],
+                                        y: start[1] - dynamicHeight / 2,
+                                        width: end[0] - start[0],
+                                        height: dynamicHeight
+                                    },
+                                    {
+                                        x: params.coordSys.x,
+                                        y: params.coordSys.y,
+                                        width: params.coordSys.width,
+                                        height: params.coordSys.height
+                                    }
+                                );
 
-        return rectShape && {
-            type: 'rect',
-            transition: ['shape'],
-            shape: rectShape,
-            style: api.style()
-        };
-    },
-    itemStyle: {
-        opacity: 0.8
-    },
-    encode: {
-        x: [1, 2],  // Start and End times
-        y: 0        // Category index (bus)
-    },
-    data: ganttData
-    }
-    ]
+                                return rectShape && {
+                                    type: 'rect',
+                                    transition: ['shape'],
+                                    shape: rectShape,
+                                    style: api.style()
+                                };
+                            },
+                            itemStyle: {
+                                opacity: 0.8
+                            },
+                            encode: {
+                                x: [1, 2],  // Start and End times
+                                y: 0        // Category index (bus)
+                            },
+                            data: ganttData
+                        }
+                    ]
 
                 };
 
                 // Initialize ECharts instance and set option
-                const chart = echarts.init(document.getElementById('ganttChart'));
+                const chart = echarts.init(document.getElementById(chartId));
                 chart.setOption(option);
             })
             .catch(error => console.error('Error loading Gantt data:', error));
+    }
+    function fetchAndRenderStats(chartName, chartId, titleText) {
 
+        fetch(`/simba/results/${taskId}/${chartName}/`)
+            .then(response => response.json())
+            .then(data => {
 
-        fetch(`/simba/results/${taskId}/stats/`)
-                .then(response => response.json())
-                .then(data => {
+                document.getElementById('longest_rotation').textContent = data.longest_rotation;
+                document.getElementById('shortest_rotation').textContent = data.shortest_rotation;
+                document.getElementById('total_dist').textContent = data.total_dist;
 
-                    document.getElementById('longest_rotation').textContent = data.longest_rotation;
-                    document.getElementById('shortest_rotation').textContent = data.shortest_rotation;
-                    document.getElementById('total_dist').textContent = data.total_dist;
+                document.getElementById('most_frequented').textContent = data.most_frequented;
+                document.getElementById('num_stations').textContent = data.num_stations;
+                document.getElementById('num_busses').textContent = data.num_busses;
 
-                    document.getElementById('most_frequented').textContent = data.most_frequented;
-                    document.getElementById('num_stations').textContent = data.num_stations;
-                    document.getElementById('num_busses').textContent = data.num_busses;
+                document.getElementById('avg_consumption').textContent = data.avg_consumption;
+                document.getElementById('total_consumption').textContent = data.total_consumption;
+            })
+            .catch(error => {
+                console.error('Error fetching statistics:', error);
+            });
+    };
 
-                    document.getElementById('avg_consumption').textContent = data.avg_consumption;
-                    document.getElementById('total_consumption').textContent = data.total_consumption;
-                })
-                .catch(error => {
-                    console.error('Error fetching statistics:', error);
-                });
-  // End echarts
+    // Ensure the DOM is fully loaded before running
+    document.addEventListener("DOMContentLoaded", function() {
 
+        if (taskId) {
+            // Render the charts
+            fetchAndRenderPieChart("critical_rotations", "chartContainer", "Critical vs Non-Critical Rotations");
+            fetchAndRenderPieChart("bustype", "busTypeChartContainer", "Vehicle Type Distribution");
+            fetchAndRenderLineChart("soc", "lineChart", "Bus SOC over Time", "time_end", "soc_end_prc");
+            fetchAndRenderStats("stats", "_", "_")
+            fetchAndRenderGanttChart("gantt","ganttChart","_")
 
+        } else {
+            console.error("Simulation ID is missing.");
+        }
+    });
 
-
+    // End echarts
 
 
   // More button functionality
