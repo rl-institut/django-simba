@@ -231,6 +231,7 @@
               type="text"
               name="stationSearch"
               id="stationSearch"
+              oninput="searchStation(this)"
               class="block w-full rounded-md bg-white py-2 pl-3 pr-10 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-200 placeholder:text-slate-400 focus:outline-2 focus:outline-green-500 sm:text-sm/6"
               placeholder="Nach Stationen suchen">
             <svg
@@ -409,7 +410,7 @@
               {% with stations_exclude_forms|get_item:station_id as exclude_form%}
                 {% with stations|get_item:station_id as station %}
             <tr
-              class="bg-white station-row"
+              class="bg-white station-row" data-value="{{ station.name }}"
             >
               <td class="px-4 py-3">
                 <div class="flex gap-3">
@@ -484,6 +485,7 @@
                 >
                   <input
                           {{form.amount_charging_places|widget_attrs}}
+                          onchange="setChargingPointsCount()"
                     aria-label="Anzahl an Ladepunkten"
                     class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 focus:outline focus:outline-2 focus:outline-green-500 sm:text-sm/6"
                     placeholder="0"
@@ -509,9 +511,19 @@
         </table>
       </div>
     </div>
-    <button id="submitButton" hidden></button>
+      <button id="submitButton" onclick="validate()" hidden></button>
     </form>
   </section>
+  <script>
+      // Placeholder for implementation
+      function validate() {
+          let is_valid = true;
+          if (!is_valid) {
+              event.preventDefault();
+          }
+
+      }
+  </script>
 
 </div>
 </main>
@@ -529,6 +541,24 @@
 {% block script %}
   {#  {{ detailedOptionNames|json_script:"detailedOptionNames" }}#}
 <script>
+    const rows = document.querySelectorAll(".station-row");
+
+      function searchStation(input){
+          console.log("fired")
+          let searchString = input.value.toString().toLowerCase();
+          const rows = document.querySelectorAll(".station-row");
+          rows.forEach((row)=>{
+              if (!row.getAttribute("data-value").toString().toLowerCase().includes(searchString)){
+                  row.classList.add("hidden");
+              } else{
+                  row.classList.remove("hidden");
+              }
+
+          })
+
+      }
+
+
       function setFormsRequired(isRequired, inputDivs) {
           inputDivs.forEach((input) => {
               input.required = isRequired;
@@ -540,7 +570,7 @@
           });
       }
 
-      function setRowFormsRequiredByState(rows) {
+      function setRowFormsRequiredByState() {
           rows.forEach((row) => {
 
               const inputs = row.querySelectorAll('input:not([id*="select"])')
@@ -553,7 +583,7 @@
           });
       }
 
-      function setInitialStateOfButtons(rows) {
+      function setInitialStateOfButtons() {
           rows.forEach((row) => {
               const isElectrifiedDiv = row.querySelector('input[id$="is_electrified"]')
               const isExcludedDiv = row.querySelector('input[id$="is_excluded"]')
@@ -575,7 +605,7 @@
 
       }
 
-        function countElectrifiedStations(rows){
+        function countElectrifiedStations(){
             let sum=0;
             rows.forEach((row)=>{
                 const electrifiedDiv = row.querySelector("input[id$='is_electrified']")
@@ -587,12 +617,12 @@
             return sum;
         }
 
-        function countChargingPoints(rows) {
+        function countChargingPoints() {
             let sum = 0;
             rows.forEach((row) => {
                 const amountDiv = row.querySelector("input[id$='amount_charging_places']")
                 const isElectrifiedDiv=row.querySelector("input[id$='is_electrified']")
-                if (isElectrifiedDiv.value==="true" && amountDiv.value !=null) {
+                if (isElectrifiedDiv.value==="true" && amountDiv.value !=="") {
                     sum += parseInt(amountDiv.value);
                 }
                 ;
@@ -601,22 +631,22 @@
             return sum;
         }
 
-        function setElectrifiedCount(rows){
+        function setElectrifiedCount(){
             const countDiv = document.getElementById("countElectrifiedTotal");
             const total=rows.length;
             const electrified = countElectrifiedStations(rows);
             countDiv.innerHTML = "( "+electrified+" / "+total+" )"
         }
 
-        function setChargingPointsCount(rows){
+        function setChargingPointsCount(){
             const countDiv = document.getElementById("countChargingPlacesTotal");
-            const charginPoints = countChargingPoints(rows);
+            const charginPoints = countChargingPoints();
             countDiv.innerHTML = "(" + charginPoints + ")"
         }
 
-        function updateCounts(rows) {
-            setChargingPointsCount(rows);
-            setElectrifiedCount(rows);
+        function updateCounts() {
+            setChargingPointsCount();
+            setElectrifiedCount();
         }
 
 
@@ -879,7 +909,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 } else {
                     console.assert(false, {error: "Unexpected data-value from button"});
                 }
-            updateCounts(rows);
+            updateCounts();
 
 
                 // Show/hide input containers based on the selected button
@@ -902,8 +932,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
 //now that the buttons have click functionality set the state by clicking them according to the input
-        setInitialStateOfButtons(rows);
-        updateCounts(rows);
+        setInitialStateOfButtons();
+        updateCounts();
     });
 });
 
@@ -918,7 +948,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     selectAll.addEventListener("change", () => {
       checkboxes.forEach((checkbox) => {
-        checkbox.checked = selectAll.checked;
+          // check for visibility
+          if (checkbox.offsetParent){
+              checkbox.checked = selectAll.checked;
+          }
       });
     });
   });
