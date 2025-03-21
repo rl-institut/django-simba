@@ -1816,6 +1816,17 @@ def electrify_db_stations(scenario: Scenario, station_id_list, unelectrify=True)
         )
 
 
+def unelectrify_station(station: Station) -> Station:
+    """Return a station with all attributes of electrification turned of / set to None"""
+    station.is_electrified = False
+    station.charge_type = None
+    station.voltage_level = None
+    station.amount_charging_places = None
+    station.power_per_charger = None
+    station.power_total = None
+    return station
+
+
 @atomic()
 def update_stations_and_exclusion(context, scenario):
     StationElectrificationExclusions.objects.filter(scenario=scenario).delete()
@@ -1829,14 +1840,12 @@ def update_stations_and_exclusion(context, scenario):
             )
             next_id += 1
             station = Station.objects.get(id=key)
-            station.is_electrified = False
-            station.charge_type = None
-            station.voltage_level = None
-
+            station = unelectrify_station(station)
         else:
             form = context["stations_forms"][key]
             if not form.cleaned_data["is_electrified"]:
-                continue
+                station = Station.objects.get(id=key)
+                station = unelectrify_station(station)
             else:
                 # Electrification needs further attributes
                 station = form.save(commit=False)
