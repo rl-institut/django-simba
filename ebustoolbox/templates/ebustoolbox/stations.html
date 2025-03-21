@@ -314,13 +314,9 @@
               id="dropdown-list"
               class="absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-md bg-white shadow-md outline-none sm:text-sm hidden"
             >
-              <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="102">102</li>
-              <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="134">134</li>
-              <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="136">136</li>
-              <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="180">180</li>
-              <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="220">220</li>
-              <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="230">230</li>
-              <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="240">240</li>
+              {% for line in all_lines %}
+              <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="{{ line }}">{{ line }}</li>
+              {% endfor %}
             </ul>
           </div>
         </div>
@@ -410,7 +406,7 @@
               {% with stations_exclude_forms|get_item:station_id as exclude_form%}
                 {% with stations|get_item:station_id as station %}
             <tr
-              class="bg-white station-row" data-value="{{ station.name }}"
+              class="bg-white station-row" data-value="{{ station.name }}" data-lines="{{ station.lines|join:' ' }}"
             >
               <td class="px-4 py-3">
                 <div class="flex gap-3">
@@ -553,11 +549,41 @@
               } else{
                   row.classList.remove("hidden");
               }
-
           })
-
       }
 
+    const select_container = document.getElementById("multiselect-container");
+    // Since the content of the multiselect-container is changed via, js no event is fired
+    // the observer still reacts to changes /mutations
+    const observer = new MutationObserver((mutations) => {
+        filterByLines()
+    });
+    observer.observe(select_container, { childList: true, subtree: true, characterData: true });
+
+    function filterByLines() {
+        console.log("filtering")
+        // Filter by lines
+        let selectedDivs = select_container.querySelectorAll("[data-value]")
+        let lines = Array.from(selectedDivs).map((x) => x.getAttribute("data-value"))
+        rows.forEach((row) => {
+            if (true) {
+                let found = true;
+                if (lines.length>0) {
+                    found = lines.some((line) => {
+                        if (row.getAttribute("data-lines").includes(line)) {
+                            return true;
+                        }
+                        return false;
+                    })
+                }
+                if (!found) {
+                    row.classList.add("hidden");
+                } else {
+                    row.classList.remove("hidden");
+                }
+            }
+        })
+    }
 
       function setFormsRequired(isRequired, inputDivs) {
           inputDivs.forEach((input) => {

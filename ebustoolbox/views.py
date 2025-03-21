@@ -6,6 +6,7 @@ import pytz
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.contrib.postgres.aggregates import ArrayAgg
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import QuerySet
@@ -482,14 +483,22 @@ class StationsView(TemplateView):
     def get_context_data(self, **kwargs):
         scenario = get_scenario_and_assert_authorization(self.request, kwargs["task_id"])
         context = {}
-        context |= {
-            "stations": {
-                stat.id: stat
-                for stat in Station.objects.filter(scenario=scenario).exclude(
-                    charge_type=EnumChargeType.DEPOT
-                )
-            }
-        }
+        station_query = Station.objects.filter(scenario=scenario.parent).exclude(
+            charge_type=EnumChargeType.DEPOT
+        )
+        annotated_query = station_query.annotate(
+            lines_departure=ArrayAgg("route_departure_set__line__name", distinct=True)
+        ).annotate(lines_arrival=ArrayAgg("route_arrival_set__line__name", distinct=True))
+
+        context |= {"stations": {stat.id: stat for stat in annotated_query}}
+        # Might be more elegant to to that in a db query
+        # Merge the lines for each stations so they can be filtered by
+        context["all_lines"] = set()
+        for stat in context["stations"].values():
+            station_lines = {*stat.lines_departure, *stat.lines_arrival}
+            context["all_lines"] = context["all_lines"].union(station_lines)
+            stat.lines = station_lines
+
         data = self.request.POST
         if self.request.method != "POST":
             data = {}
