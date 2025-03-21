@@ -512,12 +512,26 @@
   <script>
       // Placeholder for implementation
       function validate() {
+          clearStationSearch();
+          clearFilter();
+          setAllRowsVisible();
           let is_valid = true;
           if (!is_valid) {
               event.preventDefault();
           }
 
       }
+      function clearStationSearch(){
+          stationSearch.value = "";
+      }
+      function clearFilter(){
+          let selectedLineDivs = select_container.querySelectorAll('span:not([id="placeholder"])')
+          selectedLineDivs.forEach((element)=> element.remove())
+      }
+      function setAllRowsVisible(){
+          rows.forEach((row)=>row.classList.remove("hidden"));
+      }
+
   </script>
 
 </div>
