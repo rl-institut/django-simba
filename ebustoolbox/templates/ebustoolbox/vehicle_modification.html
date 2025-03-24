@@ -58,7 +58,7 @@
     </div>
   </div>
   <div class="px-4 py-5 sm:p-6">
-    <span class="block mb-6 text-sm text-slate-500">Alle Linien sind standardmäßig in "Default" enthalten. Sie können jedoch individuelle Werte für bestimmte Linien oder Liniengruppen anpassen.</span>
+{#    <span class="block mb-6 text-sm text-slate-500">Alle Linien sind standardmäßig in "Default" enthalten. Sie können jedoch individuelle Werte für bestimmte Linien oder Liniengruppen anpassen.</span>#}
     <div>
       <div class="grid grid-cols-1 sm:hidden">
         <select aria-label="Select a tab" class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-2 pl-3 pr-8 text-base text-slate-800 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600">
@@ -69,77 +69,18 @@
         </svg>
       </div>
 
-      <div class="hidden sm:block">
-        <div class="border-b border-slate-200">
-          <nav class="-mb-px flex space-x-8" aria-label="Tabs" id="{{ vt_id }}tabs">
-            <a href="#" class="whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="tab-1" aria-current="page">Default</a>
-            <button id="{{ vt_id }}add-tab" type="button" class="whitespace-nowrap border-b-4 border-transparent px-2 py-4 text-sm font-bold tracking-wide text-green-700 hover:text-green-600 transition-all duration-300">+ Gruppe hinzufügen</button>
-          </nav>
-        </div>
-      </div>
+{#      <div class="hidden sm:block">#}
+{#        <div class="border-b border-slate-200">#}
+{#          <nav class="-mb-px flex space-x-8" aria-label="Tabs" id="{{ vt_id }}tabs">#}
+{#            <a href="#" class="whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="tab-1" aria-current="page">Default</a>#}
+{#            <button id="{{ vt_id }}add-tab" type="button" class="whitespace-nowrap border-b-4 border-transparent px-2 py-4 text-sm font-bold tracking-wide text-green-700 hover:text-green-600 transition-all duration-300">+ Gruppe hinzufügen</button>#}
+{#          </nav>#}
+{#        </div>#}
+{#      </div>#}
       <!-- Tab content -->
       <div id="{{ vt_id }}tab-contents" class="mt-4">
         <div class="tab-content" data-tab="tab-1">
           <div class="flex flex-col lg:flex-row gap-4">
-            <div class="flex-grow">
-              <div class="flex items-center gap-2">
-                <label for="busNumberTotal" id="{{ vt_id }}busNumberTotalLabel" class="block text-sm/6 font-medium text-slate-800">Anzahl Fahrzeuge</label>
-                <div class="relative inline-block">
-                  <!-- Info Icon -->
-                  <span class="cursor-pointer group">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                          </svg>
-                    <!-- Tooltip -->
-                          <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
-                          </div>
-                        </span>
-                </div>
-              </div>
-              <div class="mt-2">
-                <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
-                  <input
-                          type="number"
-                          name="busNumberTotal"
-                          id="{{ vt_id }}busNumberTotal"
-                          class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
-                          placeholder="5"
-                          aria-labelledby="busNumberTotalLabel"
-                  >
-                </div>
-              </div>
-            </div>
-            <div class="flex-grow">
-              <div class="flex items-center gap-2">
-                <label for="totalDistance" id="{{ vt_id }}totalDistanceLabel" class="block text-sm/6 font-medium text-slate-800">Gesamtkilometer</label>
-                <div class="relative inline-block">
-                  <!-- Info Icon -->
-                  <span class="cursor-pointer group">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                          </svg>
-                    <!-- Tooltip -->
-                          <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
-                          </div>
-                        </span>
-                </div>
-              </div>
-              <div class="mt-2">
-                <div
-                        class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
-                  <input
-                          type="number"
-                          name="totalDistance"
-                          id="{{ vt_id }}totalDistance"
-                          class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
-                          placeholder="500"
-                          aria-labelledby="totalDistanceLabel totalDistanceUnit">
-                  <div id="{{ vt_id }}totalDistanceUnit" class="shrink-0 select-none text-slate-500">km</div>
-                </div>
-              </div>
-            </div>
             <div class="flex-grow">
               <div class="flex items-center gap-2">
                 <label for="{{modification.vehicle_modification.battery_capacity.auto_id}}" id="{{ vt_id }}batteryCapacityLabel" class="block text-sm/6 font-medium text-slate-800">Nutzbare Batteriekapazität</label>
@@ -168,6 +109,7 @@
                 </div>
               </div>
             </div>
+            {# ToDo: Energieverbrauchsoptionen (fester Wert oder Berechnung im Backend mit Temperatur, Elevation etc) #}
             <div class="flex-grow">
               <div class="flex items-center gap-2">
                 <label for="energyUse" id="{{ vt_id }}energyUseLabel" class="block text-sm/6 font-medium text-slate-800">Energieverbrauch</label>
