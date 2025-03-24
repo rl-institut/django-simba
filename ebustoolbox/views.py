@@ -789,7 +789,12 @@ class SummaryView(TemplateView):
     def get_context_data(self, scenario, **kwargs):
         context = {}
         context["scenario"] = scenario
-        context["scenario_description"] = ScenarioDescription.objects.get(scenario=scenario)
+
+        scenario_descriptions = ScenarioDescription.objects.filter(scenario=scenario)
+        assert (
+            scenario_descriptions.count() <= 1
+        ), "Only a single scenario description or None should exist"
+        context["scenario_description"] = scenario_descriptions.first()
         sim_range = SimulationRange.objects.get(scenario=scenario)
         german_weekdays = {
             0: "Mo",
