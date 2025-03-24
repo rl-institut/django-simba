@@ -207,10 +207,9 @@
       values.push([i, rows[i].children[sortIndex].getAttribute('sortval')]);
     // sort: depends if currently sorted. Cycle ASC/DESC
     let sortDir = _sorting[sortIndex] == 1? 2 : 1;
-    if (sortDir == 1)
-      values.sort((a,b) => a[1] > b[1]);
-    else
-      values.sort((a,b) => a[1] < b[1]);
+    values.sort((a,b) => a[1].toLowerCase().localeCompare(b[1].toLowerCase()));
+    if (sortDir == 2)
+        values.reverse();
     // reset sorting tracker
     for (let i=0; i<_sorting.length; i++)
       _sorting[i] = i==sortIndex? sortDir : 0;
