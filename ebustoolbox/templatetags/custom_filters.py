@@ -12,6 +12,8 @@ def widget_attrs(field):
     attrs = field.subwidgets[0].data["attrs"]
     out = ""
     for key, value in attrs.items():
+        if key == "id":
+            continue
         if isinstance(value, bool):
             if not value:
                 continue
@@ -19,7 +21,6 @@ def widget_attrs(field):
                 out += f"{key} "
                 continue
         out += f"{key}={value} "
-
     out += f"id={field.auto_id} "
     out += f"name={field.html_name} "
     out += f"type={field.field.widget.input_type} "
