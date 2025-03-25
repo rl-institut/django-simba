@@ -15,7 +15,6 @@
         method="post"
         enctype="multipart/form-data">
       {% csrf_token %}
-{#{{ costs_scenario_selection.as_p }}#}
   <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
     <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">
       Kosten
@@ -414,8 +413,7 @@
 {% endblock wizard_content %}
 
 {% block wizard_buttons %}
-  {% url 'simba:stations' as prev_url %}
-  {% url 'simba:depots' as next_url %}
+  {% url 'simba:stations' scenario.task_id as prev_url %}
   {% with "submitButton" as buttonId %}
   {{ block.super }}
   {% endwith %}

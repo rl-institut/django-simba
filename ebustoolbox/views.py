@@ -12,7 +12,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import QuerySet
 from django.db.transaction import atomic
 from django.forms import formset_factory, modelform_factory, widgets
-from django.http import HttpResponse, HttpRequest, Http404
+from django.http import HttpResponse, HttpRequest, Http404, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.views.generic import TemplateView, FormView
@@ -149,6 +149,25 @@ def get_user_scenarios(user) -> list[Scenario]:
     return all_scenarios_sorted
 
 
+class ScenarioMixIn:
+    scenario = None
+
+    def dispatch(self, request, *args, **kwargs):
+        """Make sure User is authorized and add scenario to class"""
+        scenario = get_object_or_404(Scenario, task_id=kwargs["task_id"])
+        if scenario.manager and scenario.manager != request.user:
+            return HttpResponseForbidden("Access Denied")  # Reject the request
+        self.scenario = scenario
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        """Add scenario to the context"""
+        context = super().get_context_data(**kwargs)
+        context["scenario"] = self.scenario
+        context["task_id"] = self.scenario.task_id
+        return context
+
+
 class TripsView(FormView):
 
     template_name = "ebustoolbox/trips.html"
@@ -164,7 +183,6 @@ class TripsView(FormView):
             # scenario is created so we pass the progress id so a progress bar can be shown
             progress_db = get_unique_progress_or_none(kwargs.get("task_id"))
             context["progress_id"] = progress_db.task_id if progress_db else None
-            print("task id found and progress: ", context["progress_id"])
 
         scenarios = get_user_scenarios(self.request.user)
 
@@ -172,7 +190,6 @@ class TripsView(FormView):
         return context
 
     def get(self, request, *args, **kwargs):
-        print("getting tripsview")
         task_id = kwargs.get("task_id")
 
         first = kwargs.get("first", 0)
@@ -188,11 +205,9 @@ class TripsView(FormView):
     def post(self, request, *args, **kwargs):
         form = self.get_form()
         if form.is_valid():
-            print("valid")
-            print(form.cleaned_data)
             return self.form_valid(form)
         else:
-            print(form.errors)
+            logger.debug("Invalid trips form provided")
             context = self.get_context_data(**kwargs)
             context["form"] = self.get_form_class()(self.request.POST, self.request.FILES)
             return render(request, "ebustoolbox/partials/trips_form.html", context)
@@ -298,11 +313,12 @@ def get_scenario_and_assert_authorization(request, task_id) -> Scenario:
     return scenario
 
 
-class VehiclesView(TemplateView):
+class VehiclesView(ScenarioMixIn, TemplateView):
     template_name = "ebustoolbox/vehicles.html"
     success_name = "simba:stations"
 
-    def get_context_data(self, scenario: Scenario, **kwargs):
+    def get_context_data(self, **kwargs):
+        scenario = self.scenario
         context = super().get_context_data(**kwargs)
         data = {}
         if self.request.method == "POST":
@@ -397,10 +413,6 @@ class VehiclesView(TemplateView):
 
         return context
 
-    def get(self, request, *args, **kwargs):
-        scenario = get_scenario_and_assert_authorization(request, kwargs["task_id"])
-        return self.render_to_response(self.get_context_data(scenario, **kwargs))
-
     @staticmethod
     def parse_start_end_utc_from_POST(data):
 
@@ -411,9 +423,8 @@ class VehiclesView(TemplateView):
         return start_dt_utc, end_dt_utc
 
     def post(self, request, *args, **kwargs):
-        scenario = get_scenario_and_assert_authorization(request, kwargs.get("task_id"))
-
         forms = []
+        scenario = self.scenario
         context = self.get_context_data(scenario=scenario, **kwargs)
         # simulation_range_form = SimulationParameters(
         #     data={
@@ -473,11 +484,11 @@ class VehiclesView(TemplateView):
         return response
 
     def form_invalid(self, form, **kwargs):
-        print(form.errors)
+        logger.debug("Invalid Vehicles Form provided")
         return self.render_to_response(self.get_context_data(**kwargs, form=form))
 
 
-class StationsView(TemplateView):
+class StationsView(ScenarioMixIn, TemplateView):
     template_name = "ebustoolbox/stations.html"
     success_name = "simba:costs"
 
@@ -486,8 +497,8 @@ class StationsView(TemplateView):
         return f"station_{station.id}"
 
     def get_context_data(self, **kwargs):
-        scenario = get_scenario_and_assert_authorization(self.request, kwargs["task_id"])
-        context = {}
+        scenario = self.scenario
+        context = super().get_context_data(**kwargs)
         station_query = Station.objects.filter(scenario=scenario.parent).exclude(
             charge_type=EnumChargeType.DEPOT
         )
@@ -541,7 +552,7 @@ class StationsView(TemplateView):
 
     def get(self, request, *args, **kwargs):
         # Make sure the scenario has its own stations which are linked to its parent scenario
-        scenario = get_scenario_and_assert_authorization(self.request, kwargs["task_id"])
+        scenario = self.scenario
         station_mutations = StationMutation.objects.filter(
             original_station__scenario=scenario.parent, mutated_original_station__scenario=scenario
         )
@@ -554,10 +565,12 @@ class StationsView(TemplateView):
         )
 
     def post(self, request, *args, **kwargs):
-        scenario = get_scenario_and_assert_authorization(self.request, kwargs["task_id"])
+        scenario = self.scenario
         context = self.get_context_data(**kwargs)
         calculation_mode_form = context["calculation_mode_form"]
         if not calculation_mode_form.is_valid():
+            logger.debug("Invalid Stations Calculation Mode Form provided")
+
             return self.render_to_response(**kwargs)
 
         match calculation_mode_form.cleaned_data["station_calculation_mode"]:
@@ -569,6 +582,7 @@ class StationsView(TemplateView):
             case "constant_power":
                 form = context["charging_power_form"]
                 if not form.is_valid():
+                    logger.debug("Invalid charging_power_form provided")
                     return self.render_to_response(context)
                 stations = Station.objects.filter(scenario=scenario)
                 for station in stations:
@@ -591,30 +605,28 @@ class StationsView(TemplateView):
                             # it is set to electrified but does not have a proper station_form
                             # post will not be accepted
                             all_valid = False
-                            print(station_form.errors)
                 if not all_valid:
-
+                    logger.debug("Invalid StationsForm provided")
                     return self.render_to_response(context)
                 # The forms are valid. Update the stations and exclude stations
                 # from electrification
                 ebustoolbox.tasks.update_stations_and_exclusion(context, scenario)
             case _:
                 raise NotImplementedError
-        response = redirect(reverse(self.success_name, args=[kwargs["task_id"]]))
+        response = redirect(reverse(self.success_name, args=[scenario.task_id]))
         return response
 
 
-class CostsView(TemplateView):
+class CostsView(ScenarioMixIn, TemplateView):
     success_name = "simba:depots"
     template_name = "ebustoolbox/costs.html"
 
     def get_context_data(self, **kwargs):
-        scenario = get_scenario_and_assert_authorization(self.request, kwargs["task_id"])  # noqa
         data = {}
         if self.request.method == "POST":
             data = self.request.POST
 
-        context = {}
+        context = super().get_context_data(**kwargs)
         # Todo define which scenarios can be picked
         selectable_scenarios = Scenario.objects.filter(id__gte=590)
         costs_form = forms.CostInputModeForm(data=data, prefix="costsRadio")
@@ -651,6 +663,8 @@ class CostsView(TemplateView):
             valid = form.is_valid()
             all_valid = all_valid & valid
             if not valid:
+                logger.debug("Invalid Costs Form provided")
+
                 break
             match form.cleaned_data["input_mode"]:
                 case "no_input":
@@ -658,6 +672,7 @@ class CostsView(TemplateView):
                 case "file_upload":
                     file_form = context[prefix + "_fileUpload"]
                     if not file_form.is_valid():
+                        logger.debug("Invalid Costs File Form provided")
                         all_valid = False
                         break
                     raise NotImplementedError("file upload is not yet implemented")
@@ -665,12 +680,14 @@ class CostsView(TemplateView):
                 case "reference_scenario":
                     scenario_selection = context[prefix + "_scenario_selection"]
                     if not scenario_selection.is_valid():
+                        logger.debug("Invalid Costs Scenario Selection provided")
                         all_valid = False
                         break
                     raise NotImplementedError("scenario_selection is not yet implemented")
                 case "manual":
                     manual_form = context[prefix + "_manual"]
                     if not manual_form.is_valid():
+                        logger.debug("Invalid Cost Manual Form provided")
                         all_valid = False
                         break
                     raise NotImplementedError("manual_form is not yet implemented")
@@ -682,14 +699,14 @@ class CostsView(TemplateView):
         return redirect(reverse(self.success_name, args=[kwargs["task_id"]]))
 
 
-class DepotsView(TemplateView):
+class DepotsView(ScenarioMixIn, TemplateView):
     template_name = "ebustoolbox/depots.html"
     success_name = "simba:summary"
 
     def get_context_data(self, **kwargs):
-        scenario = get_scenario_and_assert_authorization(self.request, kwargs.get("task_id"))
+        scenario = self.scenario
 
-        context = {}
+        context = super().get_context_data(**kwargs)
         data = {}
         if self.request.method == "POST":
             data = self.request.POST
@@ -730,9 +747,6 @@ class DepotsView(TemplateView):
         return context
 
     def get(self, request, *args, **kwargs):
-        task_id = kwargs["task_id"]
-        _ = get_scenario_and_assert_authorization(request, task_id)
-
         return self.render_to_response(self.get_context_data(**kwargs))
 
     def post(self, request, *args, **kwargs):
@@ -746,6 +760,7 @@ class DepotsView(TemplateView):
             all_forms[depot_id] = list()
             all_forms[depot_id].append(form)
             if not form.is_valid():
+                logger.debug("Invalid Depots Calculation Mode Form Provided")
                 continue
             mode = form.cleaned_data["calculation_mode"]
             if mode == "automatic":
@@ -761,8 +776,8 @@ class DepotsView(TemplateView):
         for depot_id, d_forms in all_forms.items():
             for form in d_forms:
                 if not form.is_valid():
+                    logger.debug(f"Invalid Depots {form} Provided")
                     all_valid = False
-                    print(form.errors)
 
         if all_valid:
             for depot_id, d_forms in all_forms.items():
@@ -793,13 +808,12 @@ class DepotsView(TemplateView):
         return self.render_to_response(context)
 
 
-class SummaryView(TemplateView):
+class SummaryView(ScenarioMixIn, TemplateView):
     template_name = "ebustoolbox/summary.html"
 
-    def get_context_data(self, scenario, **kwargs):
-        context = {}
-        context["scenario"] = scenario
-
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        scenario = self.scenario
         scenario_descriptions = ScenarioDescription.objects.filter(scenario=scenario)
         assert (
             scenario_descriptions.count() <= 1
@@ -840,17 +854,11 @@ class SummaryView(TemplateView):
         return context
 
     def get(self, request, *args, **kwargs):
-        task_id = kwargs["task_id"]
-        scenario = get_scenario_and_assert_authorization(request, task_id)
-
-        return self.render_to_response(self.get_context_data(scenario))
+        return self.render_to_response(self.get_context_data())
 
     def post(self, request, *args, **kwargs):
-        task_id = kwargs["task_id"]
-        scenario = get_scenario_and_assert_authorization(request, task_id)
-        context = self.get_context_data(scenario)
-
-        return self.render_to_response(context)
+        raise NotImplementedError()
+        return self.render_to_response(self.get_context_data())
 
 
 def get_depots(scenario):
