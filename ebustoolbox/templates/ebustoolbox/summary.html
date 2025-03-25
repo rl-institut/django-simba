@@ -14,53 +14,19 @@
 {% endblock header %}
 
 {% block wizard_content %}
-<!-- Use alert when simulating -->
-<aside class="flex flex-col items-center">
-  <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <div
-      class="w-full rounded-md bg-blue-50 p-12"
-      role="alert"
-      aria-labelledby="progress-alert-title"
-      aria-describedby="progress-alert-description"
-    >
-      <div class="flex flex-col items-center">
-        <div class="w-full text-center">
-          <h3
-            id="progress-alert-title"
-            class="text-lg font-semibold text-blue-800"
-          >
-            Das Szenario wird erstellt
-          </h3>
-        </div>
-        <div class="w-full lg:w-8/12 mt-4">
-          <div class="relative w-full h-2 bg-blue-200 rounded-full">
-            <div
-              class="absolute left-0 h-2 bg-blue-800 rounded-full"
-              style="width: 50%;"
-            ></div>
-          </div>
-        </div>
-        <div class="flex gap-1 mt-2 text-sm text-blue-800">
-          <span class="font-bold">32</span>
-          <span class="font-normal">Minuten verbleibend</span>
-        </div>
-        <div class="mt-4">
-          <a
-            href="#"
-            class="text-blue-800 text-sm font-bold underline focus:outline-none focus:ring-2 focus:ring-blue-800 focus:ring-offset-2"
-          >
-            E-Mail erhalten
-          </a>
-          <span class="text-sm text-blue-800">, wenn die Simulation beendet ist</span>
-        </div>
-      </div>
+  <!-- Use alert when simulating -->
+      <div id="simulationProgressAlert">
+  {% if progress_id %}
+      {% include "core/progress_poll.html" with progress_id=progress_id template_name="progress_trips.html" %}
+  {% else %}
+{#    ToDo. Needs Styling @ Bryan#}
+    <button hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s style="background-color:green"> Simulation Starten</button>
+  {% endif %}
     </div>
-  </div>
-</aside>
 
-<main class="flex flex-col items-center">
-  <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <div class="flex justify-center">
+  <main class="flex flex-col items-center">
+    <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+      <div class="flex justify-center">
       <div class="inline-flex items-center p-1 gap-1 bg-slate-200 rounded-full">
         <button
           id="tab-summary"

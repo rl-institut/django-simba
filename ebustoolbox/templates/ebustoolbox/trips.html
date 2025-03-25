@@ -12,7 +12,7 @@
 {% block wizard_content %}
 {#  Progress bar poll loading progress.html during server side analysis of file#}
   {%  if progress_id %}
-{% include "core/progress_poll.html" with progress_id=progress_id %}
+{% include "core/progress_poll.html" with progress_id=progress_id template_name="progress_trips.html" %}
       <div id="refresh_id"
               {#Trigger "success" sent from server inside the header if the submitted file succeeded#}
            hx-trigger="success from:body">

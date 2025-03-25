@@ -19,8 +19,7 @@ from django.views.generic import TemplateView, FormView
 from django.views.decorators.http import require_POST
 from eflips.depot.api import simulate_scenario  # noqa
 
-from core.models import Progress
-
+from core.models import Progress, EnumProgress
 
 from celery.result import AsyncResult
 
@@ -63,11 +62,13 @@ from ebustoolbox.models import (
 logger = logging.getLogger("custom")
 
 
-def progress2(request: HttpRequest, progress_id):
+def progress2(request: HttpRequest, progress_id, template_name):
     context = {"progress_id": progress_id, "status": "", "current_progress": 0}
+
     context |= {"finished": False}
     try:
         progress = Progress.objects.get(task_id=progress_id)
+        context["progress"] = progress
     except ObjectDoesNotExist:
         response = render(request, "core/progress.html", context)
         return response
@@ -84,14 +85,16 @@ def progress2(request: HttpRequest, progress_id):
         hx_trigger = "notRunning"
     if progress.success:
         hx_trigger = "success"
-    response = render(request, "core/progress.html", context)
+    response = render(request, f"core/{template_name}", context)
     response["HX-Trigger"] = hx_trigger
     response.status_code = status_code
     return response
 
 
 def get_unique_progress_or_none(scenario_task_id):
-    progress_db = Progress.objects.filter(scenario__task_id=scenario_task_id)
+    progress_db = Progress.objects.filter(
+        scenario__task_id=scenario_task_id, progress_type=EnumProgress.INIT_SCHEDULE
+    )
     assert len(progress_db) <= 1, "Only single progress of scenario upload progress should exist"
     return progress_db.first()
 
@@ -242,7 +245,9 @@ class TripsView(FormView):
             parent, scenario = tasks.get_parent(scenario)
 
             progress_id = tasks.get_uuid()
-            progress = Progress.objects.create(scenario=scenario, task_id=progress_id)
+            progress = Progress.objects.create(
+                scenario=scenario, task_id=progress_id, progress_type=EnumProgress.INIT_SCHEDULE
+            )
             if file_suffix == "csv":
                 # change the file naming according to SimbaScheduleReader
                 async_result = tasks.init_db_with_trips.apply_async(
@@ -890,6 +895,30 @@ def copy_scenario(request: HttpRequest, task_id: str):
     except AssertionError:
         raise Http404
     response = redirect(reverse("simba:scenario_overview", args=[str(copied_scenario.task_id)]))
+    return response
+
+
+def merge_and_run(request: HttpRequest, task_id: str):
+    scenario = get_scenario_and_assert_authorization(request, task_id)
+    sim_task_id = get_unique_task_id()
+    progress = Progress.objects.create(
+        scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION, task_id=sim_task_id
+    )
+    logger.info("Running Toolchain.")
+
+    # create scenario from mutation and parent and simulate it
+    async_result = tasks.run_and_merge_scenarios.apply_async(
+        (scenario.parent.id, scenario.id, sim_task_id), task_id=str(sim_task_id)
+    )
+    progress.task_id = async_result.task_id
+    progress.save()
+    context = {}
+    context["progress_id"] = async_result.task_id
+    context["scenario"] = scenario
+    context["template_name"] = "progress_simulation.html"
+    context["progress"] = progress
+    response = render(request, "core/progress_poll.html", context)
+
     return response
 
 
