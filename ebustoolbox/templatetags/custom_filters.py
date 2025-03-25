@@ -10,6 +10,8 @@ def widget_attrs(field):
     This allows using the widget attributes in stylized front end inputs.
     """
     attrs = field.subwidgets[0].data["attrs"]
+    if len(field.subwidgets) > 1:
+        print("Warning: Extraction of widget_attrs works only for a single subwidget")
     out = ""
     for key, value in attrs.items():
         if key == "id":

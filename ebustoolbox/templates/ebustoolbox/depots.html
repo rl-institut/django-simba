@@ -68,7 +68,7 @@
               <div class="px-4 sm:p-6">
                 <div class="flex gap-2">
                   <div class="flex items-center">
-                    <input {{ form_dict|get_item:"calculation_mode_form"|get_item:"calculation_mode"|widget_attrs }}>
+                    <input style="display:none" {{ form_dict|get_item:"calculation_mode_form"|get_item:"calculation_mode"|widget_attrs }}>
                     <button
                             type="button"
                             id="automaticToggle"
@@ -233,7 +233,7 @@
           </section>
         {% endwith %}
     {% endfor %}
-    <button>SUBMIT</button>
+    <button hidden id="submitButton" onclick="validate()"></button>
       </form>
   </div>
 </main>
@@ -242,7 +242,9 @@
 {% block wizard_buttons %}
   {% url 'simba:costs' as prev_url %}
   {% url 'simba:summary' as next_url %}
+  {%  with "submitButton" as buttonId %}
   {{ block.super }}
+  {% endwith %}
 {% endblock wizard_buttons %}
 
 {% block script %}
@@ -388,10 +390,25 @@
           });
 
           toggleDeleteButtons();
-
-
       })
 
   });
 </script>
+  <script>
+  // Simple overwrite of required at validation for all visible inputs
+  function validate(){
+      const inputs = document.querySelectorAll("input");
+      inputs.forEach((input)=>{
+      if (input.offsetParent){
+          input.required =true;
+      } else {
+          input.required =false;
+      }
+      }
+      )
+
+  }
+
+  </script>
+
 {% endblock script %}

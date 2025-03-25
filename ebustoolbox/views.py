@@ -11,7 +11,7 @@ from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import QuerySet
 from django.db.transaction import atomic
-from django.forms import formset_factory, modelform_factory
+from django.forms import formset_factory, modelform_factory, widgets
 from django.http import HttpResponse, HttpRequest, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -705,9 +705,14 @@ class DepotsView(TemplateView):
                 }
                 data.update(formset_data)
             context["forms"][depot.id] = dict()
-            context["forms"][depot.id]["calculation_mode_form"] = forms.StationModeForm(
-                data, prefix=f"depot_calc_mode_{depot.id}"
-            )
+
+            stations_mode_form = forms.StationModeForm(data, prefix=f"depot_calc_mode_{depot.id}")
+            # change the type of station mode form since in this case its not a radio
+            # but just hidden value toggle
+            # Use a text input in this case
+            stations_mode_form.base_fields["calculation_mode"].widget = widgets.TextInput()
+
+            context["forms"][depot.id]["calculation_mode_form"] = stations_mode_form
             context["forms"][depot.id]["depot_info_form"] = forms.DepotInfoForm(
                 data, instance=depot, prefix=f"depot_info_{depot.id}"
             )
