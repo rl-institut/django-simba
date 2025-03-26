@@ -65,10 +65,8 @@ urlpatterns = [
     path('results/<uuid:task_id>/gantt/', views.get_gantt_data, name='gantt_data'),
     path('results/<uuid:task_id>/stats/', views.get_stats, name='stats'),
 
-    path('results/<uuid:simulation_id>/bar/', views.get_bar_chart_data, name='bar_chart_data'),
-    path('results/<uuid:simulation_id>/histogram/', views.get_histogram_data, name='histogram_data'),
-    path('results/<uuid:simulation_id>/scatter/', views.get_scatter_data, name='scatter_data'),
-
+    path('results/<uuid:task_id>/dist_histogram/', views.get_dist_hist, name='get_dist_hist'),
+    path('results/<uuid:task_id>/speed_histogram/', views.get_speed_hist, name='get_speed_hist'),
     # Define URL patterns for each of the views
     path('results/<uuid:task_id>/critical_rotations/', views.render_critical_rotations, name='critical_rotations'),
     path('results/<uuid:task_id>/bustype/', views.render_bustype, name='bustype'),

@@ -28,6 +28,7 @@ from .forms import ElectrificationOptionsForm, SimulationParameters, VehicleType
 from .tasks import create_db_url, get_args  # noqa
 from .util import get_unique_task_id
 
+from dash_app import data
 import ebustoolbox
 from ebustoolbox.models import (
     Scenario,
@@ -45,6 +46,8 @@ from ebustoolbox.models import (
     VehicleTypeSelection,
     VehicleTypeMutation,
 )
+import pandas as pd
+import numpy as np
 
 logger = logging.getLogger("custom")
 
@@ -799,17 +802,6 @@ def get_scatter_data(request, simulation_id):
     }
     return JsonResponse(data)
 
-
-
-
-
-from django.http import JsonResponse
-from django.core.serializers.json import DjangoJSONEncoder
-import pandas as pd
-from dash_app import data
-from ebustoolbox.models import Scenario
-
-
 def render_critical_rotations(request, task_id):
     """Returns raw JSON data for critical rotations (critical vs. non-critical)"""
     vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
@@ -1014,3 +1006,94 @@ def get_stats(request, task_id):
         'avg_consumption':avg_consumption
     }
     return JsonResponse(resp)
+
+def get_speed_hist(request, task_id):
+
+    s = Scenario.objects.get(task_id=task_id)
+
+    filter_dict = dict(task_id=task_id)
+
+    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    buses = list(vehicle_name_dict.keys())
+
+    if buses:  # In Presim buses will ne None, if later no buses are selected, it will be empty
+        filter_dict["vehicle__id__in"] = buses
+
+    # Get the data
+    dur_df = data.get_duration_as_dataframe(s.id, buses)
+    dist_df = data.get_distances_as_dataframe(s.id, buses)
+    # Calculate average speed in km/h
+    dur_df["avg_speed_kmh"] = (dist_df["total_distance"] / 1000) / (dur_df["duration"] / 3600)
+
+    # Set bin width and calculate bins
+    bin_width_kmh = 2.5
+    max_speed_kmh = dur_df["avg_speed_kmh"].max()
+    min_speed_kmh = dur_df["avg_speed_kmh"].min()
+    bins = np.arange(min_speed_kmh, max_speed_kmh + bin_width_kmh, bin_width_kmh)
+    hist, bin_edges = np.histogram(dur_df["avg_speed_kmh"], bins=bins)
+
+    # Prepare JSON response for ECharts
+    response_data = {
+        "xAxis": {
+            "type": "category",
+            "data": [f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km/h" for i in range(len(bin_edges) - 1)]
+        },
+        "yAxis": {
+            "type": "value"
+        },
+        "series": [
+            {
+                "data": hist.tolist(),
+                "type": "bar"
+            }
+        ]
+    }
+    return JsonResponse(response_data)
+
+def get_dist_hist(request, task_id):
+
+    s = Scenario.objects.get(task_id=task_id)
+
+    filter_dict = dict(task_id=task_id)
+
+    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    buses = list(vehicle_name_dict.keys())
+
+    if buses:  # In Presim buses will ne None, if later no buses are selected, it will be empty
+        filter_dict["vehicle__id__in"] = buses
+
+    # Get the data
+    df = data.get_distances_as_dataframe(s.id, buses)
+
+    # Convert total_distance from meters to kilometers
+    df["total_distance_km"] = df["total_distance"] / 1000
+
+    # Set the desired bin width in kilometers
+    bin_width_km = 50  # Specify your desired bin width in kilometers here, the final bin with is twice this value
+
+    # Calculate the number of bins based on the bin width
+    max_distance_km = df["total_distance_km"].max()
+    min_distance_km = df["total_distance_km"].min()
+
+    bins = np.arange(min_distance_km, max_distance_km + bin_width_km, bin_width_km)
+    hist, bin_edges = np.histogram(df["total_distance_km"], bins=bins)
+
+    # Prepare JSON response for ECharts
+    response_data = {
+        "xaxis_title":"Distanz",
+        "xAxis": {
+            "type": "category",
+            "data": [f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km" for i in range(len(bin_edges) - 1)]
+        },
+        "yaxis_title": "Abs.Häufigkeit",
+        "yAxis": {
+            "type": "value"
+        },
+        "series": [
+            {
+                "data": hist.tolist(),
+                "type": "bar"
+            }
+        ]
+    }
+    return JsonResponse(response_data)

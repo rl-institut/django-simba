@@ -618,9 +618,10 @@
                 <!-- Different containers for each chart -->
                 <div id="chartContainer" class="chart-container"></div>
                 <div id="busTypeChartContainer" class="chart-container"></div>
-                <div class="chart-container" id="lineChart"></div>
-                <div class="chart-container" id="ganttChart"></div>
-
+                <div id="lineChart"> class="chart-container"</div>
+                <div id="ganttChart" class="chart-container"></div>
+                <div id="DistHistogramChart" class="chart-container"></div>
+                <div id="SpeedHistogramChart" class="chart-container"></div>
             </div>
           </div>
         </div>
@@ -927,6 +928,54 @@
                 console.error('Error fetching statistics:', error);
             });
     };
+    function fetchAndRenderHistogram(chartName, chartId, titleText) {
+    fetch(`/simba/results/${taskId}/${chartName}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error("Error loading histogram data:", data.error);
+                return;
+            }
+
+            const option = {
+                title: {
+                    text: titleText,
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                xAxis: {
+                    type: 'category',
+                    data: data.xAxis.data,
+                    name: data.xaxis_title || "Geschwindigkeit (km/h)"
+                },
+                yAxis: {
+                    type: 'value',
+                    name: data.yaxis_title || "Abs. Häufigkeit"
+                },
+                series: [
+                    {
+                        data: data.series[0].data,
+                        type: 'bar',
+                        barWidth: '60%',
+                        itemStyle: {
+                            color: '#5470C6'
+                        }
+                    }
+                ]
+            };
+
+            // Initialize ECharts instance and set option
+            const chart = echarts.init(document.getElementById(chartId));
+            chart.setOption(option);
+        })
+        .catch(error => console.error('Error fetching histogram data:', error));
+}
+
 
     // Ensure the DOM is fully loaded before running
     document.addEventListener("DOMContentLoaded", function() {
@@ -938,7 +987,8 @@
             fetchAndRenderLineChart("soc", "lineChart", "Bus SOC over Time", "time_end", "soc_end_prc");
             fetchAndRenderStats("stats", "_", "_")
             fetchAndRenderGanttChart("gantt","ganttChart","_")
-
+            fetchAndRenderHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen");
+            fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten");
         } else {
             console.error("Simulation ID is missing.");
         }
