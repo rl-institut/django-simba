@@ -17,7 +17,7 @@
   <!-- Use alert when simulating -->
       <div id="simulationProgressAlert">
   {% if progress_id %}
-      {% include "core/progress_poll.html" with progress_id=progress_id template_name="progress_trips.html" %}
+      {% include "core/progress_poll.html" with progress_id=progress_id template_name="progress_simulation.html" %}
   {% else %}
 {#    ToDo. Needs Styling @ Bryan#}
     <button hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s style="background-color:green"> Simulation Starten</button>
@@ -122,7 +122,7 @@
         </div>
         <div class="flex flex-col pb-8 space-y-2">
           <p class="text-slate-800 font-medium tracking-wide">Fahrzeugtypen</p>
-          {%  for vehicle_type in vehicles_types %}
+          {%  for vehicle_type in vehicle_types %}
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
               <p class="text-slate-800 font-semibold uppercase">{{ vehicle_type.name }}</p>
@@ -509,8 +509,9 @@
 {% endblock wizard_content %}
 
 {% block wizard_buttons %}
-  {% url 'simba:depots' as prev_url %}
-  {% url 'simba:results' as next_url %}
+  {% url 'simba:depots' task_id as prev_url %}
+
+  {% url 'simba:results' task_id as next_url %}
   {{ block.super }}
 {% endblock wizard_buttons %}
 

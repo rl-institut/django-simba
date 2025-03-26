@@ -11,7 +11,10 @@ def widget_attrs(field):
     """
     attrs = field.subwidgets[0].data["attrs"]
     if len(field.subwidgets) > 1:
-        print("Warning: Extraction of widget_attrs works only for a single subwidget")
+        print(
+            f"Warning: Extraction of widget_attrs works only for a single subwidget. "
+            f"{field.html_name} has mutliple subwidgets.Is this handled?"
+        )
     out = ""
     for key, value in attrs.items():
         if key == "id":
@@ -37,7 +40,6 @@ def widget_attrs(field):
                 out += f"value={value} "
     except AttributeError:
         pass
-    print(out)
     return out
 
 

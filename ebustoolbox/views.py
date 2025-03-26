@@ -15,7 +15,7 @@ from django.forms import formset_factory, modelform_factory, widgets
 from django.http import HttpResponse, HttpRequest, Http404, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
-from django.views.generic import TemplateView, FormView
+from django.views.generic import TemplateView, FormView, ListView
 from django.views.decorators.http import require_POST
 from eflips.depot.api import simulate_scenario  # noqa
 
@@ -155,8 +155,9 @@ class ScenarioMixIn:
     def dispatch(self, request, *args, **kwargs):
         """Make sure User is authorized and add scenario to class"""
         scenario = get_object_or_404(Scenario, task_id=kwargs["task_id"])
-        if scenario.manager and scenario.manager != request.user:
-            return HttpResponseForbidden("Access Denied")  # Reject the request
+        if not request.user.is_superuser:
+            if scenario.manager and scenario.manager != request.user:
+                return HttpResponseForbidden("Access Denied")  # Reject the request
         self.scenario = scenario
         return super().dispatch(request, *args, **kwargs)
 
@@ -308,6 +309,8 @@ class TripsView(FormView):
 
 def get_scenario_and_assert_authorization(request, task_id) -> Scenario:
     scenario = get_object_or_404(Scenario, task_id=task_id)
+    if request.user.is_superuser:
+        return scenario
     if scenario.manager and scenario.manager != request.user:
         raise Http404
     return scenario
@@ -750,8 +753,6 @@ class DepotsView(ScenarioMixIn, TemplateView):
         return self.render_to_response(self.get_context_data(**kwargs))
 
     def post(self, request, *args, **kwargs):
-        task_id = kwargs["task_id"]
-        _ = get_scenario_and_assert_authorization(request, task_id)
         context = self.get_context_data(**kwargs)
         all_valid = True
         all_forms = dict()
@@ -776,7 +777,7 @@ class DepotsView(ScenarioMixIn, TemplateView):
         for depot_id, d_forms in all_forms.items():
             for form in d_forms:
                 if not form.is_valid():
-                    logger.debug(f"Invalid Depots {form} Provided")
+                    logger.debug(f"Invalid Depots {form} provided")
                     all_valid = False
 
         if all_valid:
@@ -802,7 +803,7 @@ class DepotsView(ScenarioMixIn, TemplateView):
                 "Depot forms are valid, but are not implemented yet. Unclear how Manual and "
                 "automatic calculation and area definition should be stored"
             )
-            response = redirect(reverse(self.success_name, args=[task_id]))
+            response = redirect(reverse(self.success_name, args=[self.scenario.task_id]))
             return response
 
         return self.render_to_response(context)
@@ -814,6 +815,12 @@ class SummaryView(ScenarioMixIn, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         scenario = self.scenario
+        progress = Progress.objects.filter(
+            scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
+        ).first()
+        if progress:
+            context["progress_id"] = progress.task_id
+
         scenario_descriptions = ScenarioDescription.objects.filter(scenario=scenario)
         assert (
             scenario_descriptions.count() <= 1
@@ -837,7 +844,7 @@ class SummaryView(ScenarioMixIn, TemplateView):
             f"{german_weekdays[end.weekday()]} {end.strftime(_format)}"
         )
         context["temperature"] = sim_range.temperature
-        context["vehicle_types"] = VehicleType.objects.get(scenario=scenario)
+        context["vehicle_types"] = VehicleType.objects.filter(scenario=scenario)
         scenario_stations = Station.objects.filter(scenario=scenario).exclude(
             charge_type=EnumChargeType.DEPOT
         )
@@ -928,6 +935,33 @@ def merge_and_run(request: HttpRequest, task_id: str):
     response = render(request, "core/progress_poll.html", context)
 
     return response
+
+
+class ModelListView(ListView):
+    model = None
+
+    def get_queryset(self, *args, **kwargs):
+        import django.apps
+
+        scenario = get_scenario_and_assert_authorization(self.request, self.kwargs["task_id"])
+        model = django.apps.apps.app_configs["ebustoolbox"].models[self.kwargs["model"]]
+        self.model = model
+        qs = super(ModelListView, self).get_queryset(*args, **kwargs)
+        qs = qs.filter(scenario=scenario)
+        qs = qs.order_by("-id")
+        return qs
+
+
+def model_export_json(request: HttpRequest, model: str, task_id: str):
+    import django.apps
+
+    scenario = get_scenario_and_assert_authorization(request, task_id)
+    model = django.apps.apps.app_configs["ebustoolbox"].models[model]
+    objects = model.objects.filter(scenario=scenario)
+    from django.core import serializers
+
+    jsondata = serializers.serialize("json", objects)
+    return HttpResponse(jsondata, content_type="application/json")
 
 
 def run_simulation(request: HttpRequest, task_id: str):

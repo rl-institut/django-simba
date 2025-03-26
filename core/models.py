@@ -32,16 +32,13 @@ class Progress(models.Model):
     def estimate_duration(self):
         """Return the number of minutes estimated to finish based on
         linear extrapolation of the current and total work"""
-
+        if self.current_work == 0:
+            return None
         passed_duration_minutes = (
             datetime.datetime.now(pytz.UTC) - self.created
         ).total_seconds() / 60
         # Upper bound for estimation is first guess of duration when no progress was
-        upper_estimate = 1_000
-        speed = (
-            max((self.current_work, self.total_work * passed_duration_minutes / upper_estimate))
-            / passed_duration_minutes
-        )
+        speed = self.current_work / passed_duration_minutes
         further_duration_minutes = (self.total_work - self.current_work) / speed
         return further_duration_minutes
 

@@ -25,9 +25,18 @@
             </div>
           </div>
         </div>
+        {% if progress.success %}
+{#          a new scenario was created which has a new task_id identical to the progress task_id#}
+        <a href="{%   url "simba:results" progress.task_id %}" >Zu den Ergebnissen</a>
+        {% else %}
         <div class="flex gap-1 mt-2 text-sm text-blue-800">
+
+
+
+          {%   if progress.estimate_duration is not None %}
           <span class="font-bold">{{ progress.estimate_duration|floatformat:1 }}</span>
           <span class="font-normal">Minuten verbleibend</span>
+          {% endif %}
         </div>
         <div class="mt-4">
           <a
@@ -38,6 +47,7 @@
           </a>
           <span class="text-sm text-blue-800">, wenn die Simulation beendet ist</span>
         </div>
+        {% endif %}
       </div>
     </div>
   </div>

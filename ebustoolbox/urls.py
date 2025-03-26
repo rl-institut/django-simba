@@ -10,6 +10,7 @@ from ebustoolbox.views import (
     CostsView,
     DepotsView,
     SummaryView,
+    model_export_json,
     merge_and_run,
     run_simulation,
 )
@@ -41,7 +42,7 @@ urlpatterns = [
     ),
     path("progress2/<uuid:progress_id>/<str:template_name>/", progress2, name="progress"),
     path(
-        "results/",
+        "results/<uuid:task_id>",
         TemplateView.as_view(template_name="ebustoolbox/results.html"),
         name="results",
     ),
@@ -75,6 +76,8 @@ urlpatterns = [
         TripsView.as_view(),
         name="trips",
     ),
+    path("export/<str:model>/<uuid:task_id>", model_export_json, name="model_export_json"),
+    # path("export/<str:model>/<uuid:task_id>", ModelListView.as_view(), name="model_export_json"),
     path(
         "vehicles/<uuid:task_id>",
         VehiclesView.as_view(),
