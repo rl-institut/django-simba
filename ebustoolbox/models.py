@@ -1670,12 +1670,6 @@ class EnumCalculationModes(models.TextChoices):
     CONSTANT_POWER = "constant_power"
     MANUAL = "manual"
 
-    # CHOICES = [
-    #     ("automatic", "Automatisch berechnen lassen"),
-    #     ("constant_power", "Ladeleistung angeben"),
-    #     ("manual", "Detail zu den Stationen angeben"),
-    # ]
-
 
 class ScenarioWizardOptions(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)

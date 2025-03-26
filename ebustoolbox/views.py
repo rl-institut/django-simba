@@ -140,6 +140,7 @@ def get_user_scenarios(user) -> list[Scenario]:
 
     default_scenario = DefaultScenario.objects.first().scenario
     # Order output.
+    # ToDo: Filter for only Source Scenarios or only Child Scenarios?
     user_scenarios_ids = [s.id for s in user_scenarios]
     user_usergroup_ids = {s.id for s in usergroup_scenarios}
     user_scenarios_ids.extend(user_usergroup_ids)
@@ -259,7 +260,6 @@ class TripsView(FormView):
                 del cleaned_data[name]
             file_suffix = data_file.name[-3:]
             parent, scenario = tasks.get_parent(scenario)
-
             progress_id = tasks.get_uuid()
             progress = Progress.objects.create(
                 scenario=scenario, task_id=progress_id, progress_type=EnumProgress.INIT_SCHEDULE
@@ -819,7 +819,8 @@ class SummaryView(ScenarioMixIn, TemplateView):
             scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
         ).first()
         if progress:
-            context["progress_id"] = progress.task_id
+            context["progress"] = progress
+            # context["show_rerun"]= (not progress.running and not progress.success) or progress.errors
 
         scenario_descriptions = ScenarioDescription.objects.filter(scenario=scenario)
         assert (
@@ -915,6 +916,13 @@ def copy_scenario(request: HttpRequest, task_id: str):
 
 def merge_and_run(request: HttpRequest, task_id: str):
     scenario = get_scenario_and_assert_authorization(request, task_id)
+    if Progress.objects.filter(
+        scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION, running=True
+    ):
+        return HttpResponseForbidden(
+            "Starting multiple Simulations from the same source is not allower"
+        )
+
     sim_task_id = get_unique_task_id()
     progress = Progress.objects.create(
         scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION, task_id=sim_task_id
@@ -952,12 +960,15 @@ class ModelListView(ListView):
         return qs
 
 
-def model_export_json(request: HttpRequest, model: str, task_id: str):
+def model_export_json(request: HttpRequest, model_str: str, task_id: str):
     import django.apps
 
     scenario = get_scenario_and_assert_authorization(request, task_id)
-    model = django.apps.apps.app_configs["ebustoolbox"].models[model]
-    objects = model.objects.filter(scenario=scenario)
+    model = django.apps.apps.app_configs["ebustoolbox"].models[model_str]
+    if model_str.lower() != "scenario":
+        objects = model.objects.filter(scenario=scenario)
+    else:
+        objects = model.objects.filter(task_id=task_id)
     from django.core import serializers
 
     jsondata = serializers.serialize("json", objects)

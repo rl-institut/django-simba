@@ -76,7 +76,7 @@ urlpatterns = [
         TripsView.as_view(),
         name="trips",
     ),
-    path("export/<str:model>/<uuid:task_id>", model_export_json, name="model_export_json"),
+    path("export/<str:model_str>/<uuid:task_id>", model_export_json, name="model_export_json"),
     # path("export/<str:model>/<uuid:task_id>", ModelListView.as_view(), name="model_export_json"),
     path(
         "vehicles/<uuid:task_id>",
