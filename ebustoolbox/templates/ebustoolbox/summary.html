@@ -15,13 +15,41 @@
 
 {% block wizard_content %}
   <!-- Use alert when simulating -->
-      <div id="simulationProgressAlert">
-  {% if progress_id %}
-      {% include "core/progress_poll.html" with progress_id=progress_id template_name="progress_simulation.html" %}
-  {% else %}
-{#    ToDo. Needs Styling @ Bryan#}
-    <button hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s style="background-color:green"> Simulation Starten</button>
+
+  {#    ToDo. Needs Styling @ Bryan#}
+  <button id="simulateButton" hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s
+          style="background-color:green" {% if progress.running or progress.success %}disabled{% endif %}> Simulation Starten
+  </button>
+  <div id="runner"
+          {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
+       hx-trigger="notRunning from:body">
+  </div>
+  <script>
+      // Clicking the simulate button disables it. It will be enabled again if htmx sends notRunning
+      $("#simulateButton").click(function () {
+          $(this).attr("disabled", "disabled");
+      });
+      htmx.on('#runner', 'htmx:trigger', function (evt) {
+          console.log("notRunning");
+          {#hx is triggered when "notRunning" is sent from progress poll#}
+          const button=document.getElementById("simulateButton")
+          button.disabled = false;
+          button.innerHTML ="Erneut Simulieren"
+      })
+  </script>
+
+  <div id="simulationProgressAlert">
+  {% if progress %}
+    {% include "core/progress_poll.html" with progress_id=progress.task_id template_name="progress_simulation.html" %}
   {% endif %}
+  {#      om case of error allow resimulating#}
+{#  {% if show_rerun %}#}
+{#    <button hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s#}
+{#            style="background-color:green"> Simulation Erneut Starten#}
+{#    </button>#}
+{#  {% endif %}#}
+
+
     </div>
 
   <main class="flex flex-col items-center">
