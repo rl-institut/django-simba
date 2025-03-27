@@ -663,7 +663,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const button = document.querySelector('[data-station-id="'+station_id+'"][data-value='+value+']')
             console.assert(button);
             button.click();
-            if (value==="elektrifizieren" || value==="automatisch"){
+            if (value==="elektrifizieren"){
                 const prefix = "id_station_"+station_id+"-";
                 const inputAmountChargingPlaces = document.getElementById(prefix+"amount_charging_places");
                 const inputChargingCapacity = document.getElementById(prefix+"power_total");
