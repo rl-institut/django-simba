@@ -1,6 +1,6 @@
 {% load custom_filters %}
 {% for vt_id, modification in vehicle_modification.items %}
-<div class="overflow-hidden rounded-lg bg-white shadow">
+<div id="VehicleTypeContainer{{ vt_id }}" class="overflow-hidden rounded-lg bg-white shadow" data-value="{{ vt_id }}">
   <div class="flex items-center justify-between py-4 px-4 gap-4 bg-gradient-to-r from-gray-100 to-gray-200">
     <div class="flex items-center gap-4">
     {#    ToDo @Bryan needs styling and positioning. Js activates it if nothing is selected#}
@@ -11,6 +11,7 @@
       </p>
       <button
               id="{{vt_id}}assignedToButton"
+
               type="button"
               class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pl-3 pr-2 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 sm:text-sm/6"
               aria-haspopup="listbox"
@@ -35,7 +36,7 @@
       {% for vt_choice in modification.vehicle_choices %}
         <li
                 class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-green-400 hover:text-black"
-                role="option{{ vt_id }}"
+                role="option"
                 data-dropdown-item="{{ vt_choice.id }}"
                 data-dropdown-name="{{ vt_choice.name }}"
         >
@@ -172,7 +173,7 @@
             </div>
             <div class="flex-grow">
               <div class="flex items-center gap-2">
-                <label for="energyUse" id="{{ vt_id }}energyUseLabel" class="block text-sm/6 font-medium text-slate-800">Energieverbrauch</label>
+                <label for="consumption" id="{{ vt_id }}consumptionLabel" class="block text-sm/6 font-medium text-slate-800">Energieverbrauch</label>
                 <div class="relative inline-block">
                   <!-- Info Icon -->
                   <span class="cursor-pointer group">
@@ -191,13 +192,13 @@
                         class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
                   <input
                           type="number"
-                          name="energyUse"
-                          id="{{ vt_id }}energyUse"
+                          name="consumption"
+                          id="{{ vt_id }}consumption"
                           disabled
                           class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:text-slate-500 disabled:outline-none sm:text-sm/6"
                           placeholder="1,5"
-                          aria-labelledby="energyUseLabel energyUseUnit">
-                  <div id="{{ vt_id }}energyUseUnit" class="shrink-0 select-none text-slate-500">kWh/h</div>
+                          aria-labelledby="consumptionLabel consumptionUnit">
+                  <div id="{{ vt_id }}consumptionUnit" class="shrink-0 select-none text-slate-500">kWh/h</div>
                 </div>
               </div>
             </div>
@@ -359,88 +360,106 @@
     </div>
   </div>
 </div>
-    <!-- Functionality for simple dropdown -->
+  {% endfor %}
+   <!-- Functionality for simple dropdown -->
+
     <script>
-      const button{{ vt_id }} = document.getElementById('{{ vt_id }}assignedToButton');
-      const label{{ vt_id }} = document.getElementById('label_{{ modification.selection.default_vehicle_type.auto_id}}');
-      const input_selection{{ vt_id }} = document.getElementById('{{ modification.selection.default_vehicle_type.auto_id}}');
-      const list{{ vt_id }} = document.getElementById('{{ vt_id }}assignedToList');
-      const listItems{{ vt_id }} = list{{ vt_id }}.querySelectorAll('[role="option{{ vt_id }}"]');
-      let selectedItem{{ vt_id }} = '';
+      const containers = document.querySelectorAll("[id*='VehicleTypeContainer']")
+      containers.forEach((container) => {
+          const vt_id = container.getAttribute("data-value");
+          const button = document.getElementById(vt_id + 'assignedToButton');
+          const input_selection = container.querySelector("input[id*='default_vehicle_type']")
+          const label = document.getElementById('label_' + input_selection.id);
+          const list = document.getElementById(vt_id + "assignedToList");
+          const listItems = list.querySelectorAll('[role="option"]');
 
-      {#Input values to be overwritten by choosing dropdown#}
-      const battery_capacity{{ vt_id }} = document.getElementById("{{ modification.vehicle_modification.battery_capacity.auto_id}}")
+          {#Assert all components are found. ! negates to bool -> !! cast to bool#}
+          console.assert(!!vt_id&!!button&!!input_selection&!!label&!!list&!!listItems)
+          let selectedItem = '';
+
+          {#Input values to be overwritten by choosing dropdown#}
+          const battery_capacity = container.querySelector("input[id*='battery_capacity']")
+          const consumption = container.querySelector("input[id*='consumption']")
+
           {# Repeat for other vehicle type attributes#}
 
-      // Toggle the dropdown on button click
-      button{{ vt_id }}.addEventListener('click', () => {
-        const isExpanded = button{{ vt_id }}.getAttribute('aria-expanded') === 'true';
-        button{{ vt_id }}.setAttribute('aria-expanded', String(!isExpanded));
-        list{{ vt_id }}.classList.toggle('hidden');
+          // Toggle the dropdown on button click
+          button.addEventListener('click', () => {
+              const isExpanded = button.getAttribute('aria-expanded') === 'true';
+              button.setAttribute('aria-expanded', String(!isExpanded));
+              list.classList.toggle('hidden');
 
-        // Whenever it opens, ensure the selected item is highlighted
-        if (!isExpanded) {
-          highlightSelectedItem{{ vt_id }}();
-        }
-      });
+              // Whenever it opens, ensure the selected item is highlighted
+              if (!isExpanded) {
+                  highlightSelectedItem{{ vt_id }}();
+              }
+          });
 
-      // Handle clicks on list items
-      listItems{{ vt_id }}.forEach(item => {
-        item.addEventListener('click', () => {
-          const value = item.getAttribute('data-dropdown-item');
-          label{{ vt_id }}.textContent = item.getAttribute('data-dropdown-name');
-          label{{ vt_id }}.value = value;
-          selectedItem{{ vt_id }} = value;
-          input_selection{{ vt_id }}.value = value;
+          // Handle clicks on list items
+          listItems{{ vt_id }}.forEach(item => {
+              item.addEventListener('click', () => {
+                  const value = item.getAttribute('data-dropdown-item');
+                  label.textContent = item.getAttribute('data-dropdown-name');
+                  label.value = value;
+                  selectedItem = value;
+                  input_selection.setAttribute("value", value);
+                  input_selection.value = value;
 
-          {# Overwrite inputs#}
-            battery_capacity{{ vt_id }}.value = document.getElementById(value+"_battery_capacity").getAttribute("data-value")
-          {# Repeat for other vehicle type attributes#}
+                  {# Overwrite inputs#}
+                  battery_capacity.value = document.getElementById(value + "_battery_capacity").getAttribute("data-value")
+                  consumption.value = document.getElementById(value + "_consumption").getAttribute("data-value")
+                  {# Repeat for other vehicle type attributes#}
 
 
-          // Highlight the newly selected item
-          highlightSelectedItem{{ vt_id }}();
+                  // Highlight the newly selected item
+                  highlightSelectedItem();
 
-          // Close dropdown
-          list{{ vt_id }}.classList.add('hidden');
-          button{{ vt_id }}.setAttribute('aria-expanded', 'false');
-        });
-      });
+                  // Close dropdown
+                  list.classList.add('hidden');
+                  button.setAttribute('aria-expanded', 'false');
+              });
+          });
 
-      // Close dropdown if user clicks outside
-      document.addEventListener('click', e => {
-        if (!button{{ vt_id }}.contains(e.target) && !list{{ vt_id }}.contains(e.target)) {
-          button{{ vt_id }}.setAttribute('aria-expanded', 'false');
-          list{{ vt_id }}.classList.add('hidden');
-        }
-      });
+          // Close dropdown if user clicks outside
+          document.addEventListener('click', e => {
+              if (!button.contains(e.target) && !list.contains(e.target)) {
+                  button.setAttribute('aria-expanded', 'false');
+                  list.classList.add('hidden');
+              }
+          });
 
-      // Remove the highlight from all items and apply it to the selected item
-      function highlightSelectedItem{{ vt_id }}() {
-        listItems{{ vt_id }}.forEach(li => {
-          li.classList.remove('bg-green-100');
-          if (li.getAttribute('data-dropdown-item') === selectedItem{{ vt_id }}) {
-            li.classList.add('bg-green-100');
+          // Remove the highlight from all items and apply it to the selected item
+          function highlightSelectedItem() {
+              listItems.forEach(li => {
+                  li.classList.remove('bg-green-100');
+                  if (li.getAttribute('data-dropdown-item') === selectedItem) {
+                      li.classList.add('bg-green-100');
+                  }
+              });
           }
-        });
-      }
+
+      })
+
     </script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const tabs{{ vt_id }} = document.getElementById('{{ vt_id }}tabs');
-        const tabContents{{ vt_id }} = document.getElementById('{{ vt_id }}tab-contents');
-        const addTabButton{{ vt_id }} = document.getElementById('{{ vt_id }}add-tab');
-        let tabCount{{ vt_id }} = 1; // Starts at 1 because the first tab is already present.
-
+        containers.forEach((container)=> {
+          const vt_id = container.getAttribute("data-value");
+          const tabs = document.getElementById(vt_id+'tabs');
+          const tabContents = document.getElementById(vt_id+'tab-contents');
+          const addTabButton = document.getElementById(vt_id+'add-tab');
+          let tabCount = 1; // Starts at 1 because the first tab is already present.
+          {#Assert all components are found. ! negates to bool -> !! cast to bool#}
+            console.assert(!!vt_id&!!tabs&!!tabContents&!!addTabButton)
         // Function to switch tabs
-        const switchTab{{ vt_id }} = (tabId) => {
+        const switchTab= (tabId) => {
             // Hide all tab contents
-            tabContents{{ vt_id }}.querySelectorAll('.tab-content').forEach((content) => {
+            tabContents.querySelectorAll('.tab-content').forEach((content) => {
                 content.classList.add('hidden');
             });
 
             // Show the selected tab content
-            const activeContent = tabContents{{ vt_id }}.querySelector(`[data-tab="${tabId}"]`);
+            const activeContent = tabContents.querySelector(`[data-tab="${tabId}"]`);
             if (activeContent) activeContent.classList.remove('hidden');
 
             // Update tab styles
@@ -461,14 +480,14 @@
             tab.addEventListener('click', (e) => {
                 e.preventDefault();
                 const tabId = tab.getAttribute('data-tab-button');
-                switchTab{{ vt_id }}(tabId);
+                switchTab(tabId);
             });
         });
 
         // Add new tab and content
-        addTabButton{{ vt_id }}.addEventListener('click', () => {
-            tabCount{{ vt_id }}++;
-            const newTabId = `tab-${tabCount{{ vt_id }}}`;
+        addTabButton.addEventListener('click', () => {
+            tabCount++;
+            const newTabId = `tab-${tabCount}`;
 
             // Create the new tab
             const newTabButton = document.createElement('a');
@@ -476,120 +495,160 @@
             newTabButton.className = 'whitespace-nowrap tab border-b-4 border-transparent px-4 py-4 text-sm font-medium text-slate-500 hover:border-slate-300 hover:text-slate-700';
             newTabButton.setAttribute('data-tab-button', newTabId);
             newTabButton.setAttribute('type', "button");
-            newTabButton.innerText = `Gruppe ${tabCount{{vt_id}}}`;
+            newTabButton.innerText = `Gruppe ${tabCount}`;
             newTabButton.addEventListener('click', (e) => {
                 e.preventDefault();
-                switchTab{{ vt_id }}(newTabId);
+                switchTab(newTabId);
             });
 
             // Create the new content
             const newTabContent = document.createElement('div');
             newTabContent.className = 'tab-content hidden';
             newTabContent.setAttribute('data-tab', newTabId);
-            newTabContent.innerText = `This is the content for Tab ${tabCount{{vt_id}}}.`;
+            newTabContent.innerText = `This is the content for Tab ${tabCount}.`;
 
             // Add to DOM
-            tabs{{ vt_id }}.insertBefore(newTabButton, addTabButton{{vt_id}});
-            tabContents{{ vt_id }}.appendChild(newTabContent);
+            tabs.insertBefore(newTabButton, addTabButton);
+            tabContents.appendChild(newTabContent);
 
             // Switch to the new tab
-            switchTab{{ vt_id }}(newTabId);
+            switchTab(newTabId);
         });
 
         // Initialize the first tab as active
-        switchTab{{ vt_id }}('tab-1');
-    });
+        switchTab('tab-1');
+        })
+      });
 </script>
 
 <!-- More Toggle Button in Bus Type Card -->
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const toggleButton = document.getElementById('{{ vt_id }}busTypeMoreButton');
-        const toggleSection = document.getElementById('{{ vt_id }}busTypeHiddenSection');
-        const icon = document.getElementById('{{ vt_id }}chevronIcon');
+        containers.forEach((container) => {
+            const vt_id = container.getAttribute("data-value");
+            const toggleButton = document.getElementById(vt_id+'busTypeMoreButton');
+            const toggleSection = document.getElementById(vt_id+'busTypeHiddenSection');
+            const icon = document.getElementById(vt_id+'chevronIcon');
+            {#Assert all components are found. ! negates to bool -> !! cast to bool#}
 
-        toggleButton.addEventListener('click', () => {
-            const isHidden = toggleSection.classList.contains('hidden');
+            console.assert(!!vt_id&!!toggleButton&!!toggleSection&!!icon)
 
-            if (isHidden) {
-                toggleSection.classList.remove('hidden');
-                toggleButton.setAttribute('aria-expanded', 'true');
-                toggleButton.querySelector('span').lastElementChild.innerText = 'Weniger';
-                icon.classList.add('rotate-180'); // Rotate the icon
-            } else {
-                toggleSection.classList.add('hidden');
-                toggleButton.setAttribute('aria-expanded', 'false');
-                toggleButton.querySelector('span').lastElementChild.innerText = 'Mehr';
-                icon.classList.remove('rotate-180'); // Reset the rotation
-            }
-        });
+            toggleButton.addEventListener('click', () => {
+                const isHidden = toggleSection.classList.contains('hidden');
+
+                if (isHidden) {
+                    toggleSection.classList.remove('hidden');
+                    toggleButton.setAttribute('aria-expanded', 'true');
+                    toggleButton.querySelector('span').lastElementChild.innerText = 'Weniger';
+                    icon.classList.add('rotate-180'); // Rotate the icon
+                } else {
+                    toggleSection.classList.add('hidden');
+                    toggleButton.setAttribute('aria-expanded', 'false');
+                    toggleButton.querySelector('span').lastElementChild.innerText = 'Mehr';
+                    icon.classList.remove('rotate-180'); // Reset the rotation
+                }
+            });
+
+        })
+
     });
 </script>
 <script>
-    var chartDom = document.getElementById('{{ vt_id }}stateOfChargeChart');
-    var myChart = echarts.init(chartDom);
+    containers.forEach((container) => {
+        var chartDom = container.querySelector('[id*="stateOfChargeChart"]');
+        const list = container.querySelector('[id*="assignedToList"]');
+        const listItems = list.querySelectorAll('[role="option"]');
+        const input_selection = container.querySelector("input[id*='default_vehicle_type']");
+        var myChart = echarts.init(chartDom);
+        console.assert(!!chartDom&!!input_selection&!!listItems);
 
-    var option = {
-        grid: {
-            left: 48,
-            right: 32,
-            top: 24,
-            bottom: 32,
-            containLabel: true
-        },
-        xAxis: {
-            type: 'value',
-            name: 'Ladezustand (-)',
-            nameLocation: 'middle',
-            nameGap: 25,
-            min: 0,
-            max: 1,
-            interval: 0.2
-        },
-        yAxis: {
-            type: 'value',
-            name: 'Leistung (kW)',
-            nameLocation: 'middle',
-            nameGap: 40,
-            min: 0,
-            max: 500,
-            interval: 100
-        },
-        series: [{
-            data: [
-                [0, 500],
-                [0.4, 500],
-                [0.6, 375],
-                [0.8, 250],
-                [1.0, 125]
-            ],
-            type: 'line',
-            showSymbol: false,
-            lineStyle: {
-                color: '#2E282A',
-                width: 2
+        function plot_selected_charging_curve(selected_vehicle_type) {
+            if (selected_vehicle_type === "") {
+                return;
             }
-        }],
-        tooltip: {
-            trigger: 'axis',
-            formatter: function(params) {
-                return 'Ladezustand: ' + params[0].data[0].toFixed(1) +
-                    '<br>Leistung: ' + params[0].data[1] + ' kW';
+            let charging_curve = JSON.parse(document.getElementById(selected_vehicle_type+"_charging_curve").textContent)
+
+            var option = {
+                grid: {
+                    left: 48,
+                    right: 32,
+                    top: 24,
+                    bottom: 32,
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'value',
+                    name: 'Ladezustand (-)',
+                    nameLocation: 'middle',
+                    nameGap: 25,
+                    min: 0,
+                    max: 1,
+                    interval: 0.2
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'Leistung (kW)',
+                    nameLocation: 'middle',
+                    nameGap: 40,
+                    min: 0,
+                    max: 500,
+                    interval: 100
+                },
+                series: [{
+                    data: charging_curve,
+                    type: 'line',
+                    showSymbol: false,
+                    lineStyle: {
+                        color: '#2E282A',
+                        width: 2
+                    }
+                }],
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function (params) {
+                        return 'Ladezustand: ' + params[0].data[0].toFixed(1) +
+                            '<br>Leistung: ' + params[0].data[1] + ' kW';
+                    }
+                }
+            };
+
+            myChart.setOption(option);
+
+        }
+
+        plot_selected_charging_curve(input_selection.value);
+        listItems.forEach((item)=>{
+            item.addEventListener("click",function () {
+                console.log("change input")
+                let selected_vehicle_type=item.getAttribute('data-dropdown-item');
+                console.log(selected_vehicle_type);
+                plot_selected_charging_curve(selected_vehicle_type);
+                myChart.resize();
+            })
+        });
+
+        function resizeChart() {
+            console.log(chartDom.offsetWidth)
+            if (chartDom.offsetWidth > 0) {
+                myChart.resize();
             }
         }
-    };
 
-    myChart.setOption(option);
+        // Improved resize handler
+        window.addEventListener('resize', function () {
+            resizeChart();
 
-    // Improved resize handler
-    window.addEventListener('resize', function() {
-        if (chartDom.offsetWidth > 0) {
-            myChart.resize();
-        }
+        })
+        const toggleButton = container.querySelector('[id*="busTypeMoreButton"]');
+        toggleButton.addEventListener('click', function () {
+            // Use timeout to let the resizing take place after expanding
+            setTimeout(resizeChart, 50);
+        })
+
     });
-
 </script>
-{% endfor %}
+
+
 
 <script>
 
@@ -618,7 +677,12 @@ function validate(){
 
 </script>
 
+
+{# Insert all attributes which should be passed to the vehicle type inputs from the selectable choices.#}
 {% for choice_vt in choice_vts %}
-<div id="{{ choice_vt.id }}_battery_capacity" data-value={{ choice_vt.battery_capacity }}></div>
-<div id="{{ choice_vt.id }}_consumption" data-value={{ choice_vt.consumption}}></div>
+<div id="{{ choice_vt.id }}_battery_capacity" data-value="{{ choice_vt.battery_capacity }}"></div>
+<div id="{{ choice_vt.id }}_consumption" data-value="{{ choice_vt.consumption}}"></div>
+  {% with choice_vt.id|stringformat:"s"|add:"_charging_curve" as script_id %}
+      {{ choice_vt.charging_curve|json_script:script_id }}
+  {% endwith %}
 {% endfor %}
