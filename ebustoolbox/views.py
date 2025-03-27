@@ -505,11 +505,12 @@ class StationsView(ScenarioMixIn, TemplateView):
         station_query = Station.objects.filter(scenario=scenario.parent).exclude(
             charge_type=EnumChargeType.DEPOT
         )
+
         annotated_query = station_query.annotate(
             lines_departure=ArrayAgg("route_departure_set__line__name", distinct=True)
         ).annotate(lines_arrival=ArrayAgg("route_arrival_set__line__name", distinct=True))
-
-        context |= {"stations": {stat.id: stat for stat in annotated_query}}
+        context["ordered_stations"] = annotated_query.order_by("name").values_list("id", flat=True)
+        context["stations"] = {stat.id: stat for stat in annotated_query}
         # Might be more elegant to to that in a db query
         # Merge the lines for each stations so they can be filtered by
         context["all_lines"] = set()

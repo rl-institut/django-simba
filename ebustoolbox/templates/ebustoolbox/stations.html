@@ -401,7 +401,8 @@
               <td class="px-4 py-3"></td>
             </tr>
 
-            {% for station_id, form in stations_forms.items %}
+            {% for station_id in ordered_stations %}
+              {% with stations_forms|get_item:station_id as form %}
               {% with stations_exclude_forms|get_item:station_id as exclude_form%}
                 {% with stations|get_item:station_id as station %}
             <tr
@@ -499,6 +500,7 @@
                 </div>
               </td>
             </tr>
+              {% endwith %}
               {% endwith %}
               {% endwith %}
             {%  endfor %}
