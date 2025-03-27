@@ -1096,4 +1096,9 @@ def get_dist_hist(request, task_id):
             }
         ]
     }
+
+    from django.conf import settings
+    print("\n\n\n\n", settings.STATIC_ROOT)  # If collectstatic is used
+    print(settings.STATICFILES_DIRS, "\n\n\n\n\n")  # If multiple static dirs are used
+
     return JsonResponse(response_data)

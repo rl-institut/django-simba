@@ -17,7 +17,7 @@
     top: 1rem; /* Adjust as needed */
     right: 0.75rem; /* Adjust as needed */
     width: 20rem;
-    height: 46rem;
+    bottom: 2.6rem;
     z-index: 99999; /* A high value to ensure it sits atop other elements */
     display: none;
     align-items: center;
