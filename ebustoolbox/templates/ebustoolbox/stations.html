@@ -325,43 +325,45 @@
           <thead class="bg-slate-100">
             <tr>
               <th scope="col" class="w-3/12 py-4 pl-4 pr-3 text-left text-base font-semibold text-slate-800 align-top">
-                <button type="button" href="#" class="group inline-flex">
+{#used to be  <button type="button" href="#" class="group inline-flex">                #}
+                <div  class="group inline-flex">
                   Stationen
                   <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
-                  <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
-                    <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-                    </svg>
-                  </span>
-                </button>
+{#Disable sort                  #}
+{#                  <span class="invisible text-slate-400 group-hover:visible group-focus:visible">#}
+{#                    <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">#}
+{#                      <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />#}
+{#                    </svg>#}
+{#                  </span>#}
+                </div>
               </th>
               <th scope="col" class="w-5/12 py-4 pl-4 pr-3 text-left align-top">
-                <button type="button" href="#" class="group inline-flex">
+                <div  class="group inline-flex">
                   <div class="text-left">
                     <span class="text-base font-semibold text-slate-800">Elektrifizierung</span>
                     <div id="countElectrifiedTotal" class="text-xs font-normal text-slate-600">(0 / 0)</div>
                   </div>
                   <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
-                  <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
-                    <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-                    </svg>
-                  </span>
-                </button>
+{#                  <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">#}
+{#                    <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">#}
+{#                      <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />#}
+{#                    </svg>#}
+{#                  </span>#}
+                </div>
               </th>
               <th scope="col" class="w-2/12 py-4 pl-4 pr-3 text-left align-top">
-                <button type="button" href="#" class="group inline-flex">
+                <div href="#" class="group inline-flex">
                   <div class="text-left">
                     <span class="text-base font-semibold text-slate-800">Anzahl Ladepunkte</span>
                     <div id="countChargingPlacesTotal" class="text-xs font-normal text-slate-600">(54)</div>
                   </div>
                   <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
-                  <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
-                    <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-                    </svg>
-                  </span>
-                </button>
+{#                  <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">#}
+{#                    <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">#}
+{#                      <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />#}
+{#                    </svg>#}
+{#                  </span>#}
+                </div>
               </th>
               <th scope="col" class="w-2/12 py-4 pl-4 pr-3 text-left align-top">
                 <button type="button" href="#" class="group inline-flex">
