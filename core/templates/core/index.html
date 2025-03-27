@@ -16,15 +16,24 @@
         <div class="flex h-16 items-center justify-between">
           <!-- Logo -->
           <div class="flex items-center">
-            <img class="h-8 w-auto" src="{% static 'core/images/logo/webus_white.svg' %}"  alt="WeBus">
+            <img class="h-8 w-auto" src="{% static 'core/images/logo/webus_white.svg' %}" alt="WeBus">
           </div>
           <!-- Desktop Links -->
           <div class="hidden sm:flex space-x-6">
-            <a href="{% url 'core:login' %}" class="text-slate-800 hover:underline">Einloggen</a>
+            {% if user.is_authenticated %}
+              <form action="{% url 'logout' %}" method="POST">
+                {% csrf_token %}
+                <button type="submit" class="text-slate-800 hover:underline">
+                  Ausloggen
+                </button>
+              </form>
+            {% else %}
+              <a href="{% url 'core:login' %}" class="text-slate-800 hover:underline">Einloggen</a>
+            {% endif %}
             <a href="{% url 'simba:dashboard' %}" class="text-slate-800 hover:underline">Szenarienvergleich</a>
-<!--
-            <a href="#" class="text-slate-800 hover:underline">Hilfe</a>
--->
+            <!--
+                        <a href="#" class="text-slate-800 hover:underline">Hilfe</a>
+            -->
           </div>
           <!-- Mobile Menu Button -->
           <div class="sm:hidden">
@@ -39,17 +48,27 @@
       </div>
     </nav>
 
-  <!-- Mobile Full-Screen Menu -->
-  <div id="mobile-menu" class="fixed inset-0 hidden z-20 bg-slate-800" aria-hidden="true">
-    <div class="flex flex-col items-center justify-center h-full space-y-8">
-      <a href="{% url 'core:login' %}" class="text-white text-2xl font-medium hover:underline">Einloggen</a>
-      <a href="{% url 'simba:dashboard' %}" class="text-white text-2xl font-medium hover:underline">Szenarienvergleich</a>
-<!--
-      <a href="#" class="text-white text-2xl font-medium hover:underline">Hilfe</a>
--->
-      <button id="close-menu" class="absolute top-4 right-4 p-2 text-white focus:outline-none">
-        <span class="sr-only">Menü schließen</span>
-        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <!-- Mobile Full-Screen Menu -->
+    <div id="mobile-menu" class="fixed inset-0 hidden z-20 bg-slate-800" aria-hidden="true">
+      <div class="flex flex-col items-center justify-center h-full space-y-8">
+        {% if user.is_authenticated %}
+          <form action="{% url 'logout' %}" method="POST">
+            {% csrf_token %}
+            <button type="submit" class="text-white text-2xl font-medium hover:underline">
+              Ausloggen
+            </button>
+          </form>
+        {% else %}
+          <a href="{% url 'core:login' %}" class="text-white text-2xl font-medium hover:underline">Einloggen</a>
+        {% endif %}
+        <a href="{% url 'simba:dashboard' %}"
+           class="text-white text-2xl font-medium hover:underline">Szenarienvergleich</a>
+        <!--
+              <a href="#" class="text-white text-2xl font-medium hover:underline">Hilfe</a>
+        -->
+        <button id="close-menu" class="absolute top-4 right-4 p-2 text-white focus:outline-none">
+          <span class="sr-only">Menü schließen</span>
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
         </svg>
       </button>

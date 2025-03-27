@@ -13,6 +13,7 @@ from ebustoolbox.views import (
     model_export_json,
     merge_and_run,
     run_simulation,
+    ResultView,
 )
 
 # from . import views
@@ -43,7 +44,7 @@ urlpatterns = [
     path("progress2/<uuid:progress_id>/<str:template_name>/", progress2, name="progress"),
     path(
         "results/<uuid:task_id>",
-        TemplateView.as_view(template_name="ebustoolbox/results.html"),
+        ResultView.as_view(),
         name="results",
     ),
     path(

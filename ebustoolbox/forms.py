@@ -186,16 +186,12 @@ class VehicleTypeForm(forms.ModelForm):
         self.fields["battery_capacity"].widget.attrs.update({"min": 1.0})
 
 
-class StationModeForm(forms.Form):
+class DepotCalculationForm(forms.Form):
     CHOICES = [
         ("automatic", "Automatisch berechnen lassen"),
-        ("constant_power", "Ladeleistung angeben"),
         ("manual", "Detail zu den Stationen angeben"),
     ]
-    calculation_mode = forms.ChoiceField(
-        widget=forms.RadioSelect,
-        choices=CHOICES,
-    )
+    calculation_mode = forms.ChoiceField(choices=CHOICES, required=True)
 
 
 class ChargingPowerForm(forms.Form):

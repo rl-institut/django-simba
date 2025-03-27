@@ -134,7 +134,9 @@ def get_user_scenarios(user) -> list[Scenario]:
     """Get a list of scenarios which are accessible by the user"""
     user_scenarios = []
     usergroup_scenarios = []
-    if user.is_authenticated:
+    if user.is_superuser:
+        user_scenarios = Scenario.objects.all()
+    elif user.is_authenticated:
         user_scenarios = Scenario.objects.filter(manager=user)
         usergroup_scenarios = Scenario.objects.filter(usergroup__users=user)
 
@@ -150,16 +152,77 @@ def get_user_scenarios(user) -> list[Scenario]:
     return all_scenarios_sorted
 
 
-class ScenarioMixIn:
+class AuthorizedMixIn:
+    """Implements dispatch to check authorization"""
+
+    has_permisson = None
+
+    def get_permission(self, user, task_id):
+        """Make sure User is authorized and add scenario to class"""
+        scenario = get_object_or_404(Scenario, task_id=task_id)
+
+        if user.is_superuser:
+            return True
+
+        if scenario.manager is None:
+            # Scenario is not managed and not protected by authentification
+            return True
+
+        if user.is_anonymous:
+            # Scenario is managed. anonymous user does not have permission
+            return False
+
+        if scenario.manager == user:
+            return True
+        usergroup_scenarios = Scenario.objects.filter(usergroup__users=user)
+        if scenario in usergroup_scenarios:
+            return True
+        return False
+
+    def dispatch(self, request, *args, **kwargs):
+        self.has_permisson = self.get_permission(request.user, kwargs.get("task_id"))
+        if not self.has_permisson:
+            return HttpResponseForbidden("Access Denied")  # Reject the request
+
+        return super().dispatch(request, *args, **kwargs)
+
+
+class ScenarioMixIn(AuthorizedMixIn):
+    """Implements redirect at dispatch if scenario was simulated already and sets default context.
+
+    Requires AuthorizedMixin
+    """
+
     scenario = None
 
     def dispatch(self, request, *args, **kwargs):
         """Make sure User is authorized and add scenario to class"""
-        scenario = get_object_or_404(Scenario, task_id=kwargs["task_id"])
-        if not request.user.is_superuser:
-            if scenario.manager and scenario.manager != request.user:
-                return HttpResponseForbidden("Access Denied")  # Reject the request
+        if not self.get_permission(request.user, kwargs.get("task_id")):
+            return HttpResponseForbidden("Access Denied")  # Reject the request
+        scenario = get_object_or_404(Scenario, task_id=kwargs.get("task_id"))
         self.scenario = scenario
+        progress = Progress.objects.filter(
+            scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
+        ).first()
+        if progress is not None:
+            context = {"wiz_idx": 3}
+            if progress.running and not progress.success:
+                # Simulation is running, redirect to
+                context |= {
+                    "duration": 4,
+                    "redirect_url": reverse("simba:summary", args=[scenario.task_id]),
+                    "content": "Ihre Simulation wird ausgeführt, daher werden sie zur Zusammenfassung zurückgeleitet.",
+                }
+                return render(request, "core/redirect_with_timer.html", context)
+            if progress.success:
+                # Simulation finished sucessfully
+                # Simulation is running, redirect to
+                context |= {
+                    "duration": 4,
+                    "redirect_url": reverse("simba:results", args=[scenario.task_id]),
+                    "content": "Ihre Simulation ist beendet, daher werden sie zu den Ergebnissen weitergeleitet..",
+                }
+                return render(request, "core/redirect_with_timer.html", context)
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -709,7 +772,6 @@ class DepotsView(ScenarioMixIn, TemplateView):
 
     def get_context_data(self, **kwargs):
         scenario = self.scenario
-
         context = super().get_context_data(**kwargs)
         data = {}
         if self.request.method == "POST":
@@ -732,7 +794,9 @@ class DepotsView(ScenarioMixIn, TemplateView):
                 data.update(formset_data)
             context["forms"][depot.id] = dict()
 
-            stations_mode_form = forms.StationModeForm(data, prefix=f"depot_calc_mode_{depot.id}")
+            stations_mode_form = forms.DepotCalculationForm(
+                data, prefix=f"depot_calc_mode_{depot.id}"
+            )
             # change the type of station mode form since in this case its not a radio
             # but just hidden value toggle
             # Use a text input in this case
@@ -762,7 +826,7 @@ class DepotsView(ScenarioMixIn, TemplateView):
             all_forms[depot_id] = list()
             all_forms[depot_id].append(form)
             if not form.is_valid():
-                logger.debug("Invalid Depots Calculation Mode Form Provided")
+                logger.info("Invalid Depots Calculation Mode Form Provided")
                 continue
             mode = form.cleaned_data["calculation_mode"]
             if mode == "automatic":
@@ -778,7 +842,7 @@ class DepotsView(ScenarioMixIn, TemplateView):
         for depot_id, d_forms in all_forms.items():
             for form in d_forms:
                 if not form.is_valid():
-                    logger.debug(f"Invalid Depots {form} provided")
+                    logger.info(f"Invalid Depots {form} provided")
                     all_valid = False
 
         if all_valid:
@@ -810,12 +874,16 @@ class DepotsView(ScenarioMixIn, TemplateView):
         return self.render_to_response(context)
 
 
-class SummaryView(ScenarioMixIn, TemplateView):
+class SummaryView(AuthorizedMixIn, TemplateView):
     template_name = "ebustoolbox/summary.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        scenario = self.scenario
+        task_id = kwargs.get("task_id")
+        scenario = get_object_or_404(Scenario, task_id=task_id)
+        context["scenario"] = scenario
+        context["task_id"] = task_id
+
         progress = Progress.objects.filter(
             scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
         ).first()
@@ -862,12 +930,13 @@ class SummaryView(ScenarioMixIn, TemplateView):
         )
         return context
 
-    def get(self, request, *args, **kwargs):
-        return self.render_to_response(self.get_context_data())
-
     def post(self, request, *args, **kwargs):
         raise NotImplementedError()
         return self.render_to_response(self.get_context_data())
+
+
+class ResultView(AuthorizedMixIn, TemplateView):
+    template_name = "ebustoolbox/results.html"
 
 
 def get_depots(scenario):
@@ -917,11 +986,17 @@ def copy_scenario(request: HttpRequest, task_id: str):
 
 def merge_and_run(request: HttpRequest, task_id: str):
     scenario = get_scenario_and_assert_authorization(request, task_id)
-    if Progress.objects.filter(
-        scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION, running=True
-    ):
+    simulation_progess = Progress.objects.filter(
+        scenario=scenario,
+        progress_type=EnumProgress.RUNNING_SIMULATION,
+    )
+    if simulation_progess.filter(running=True).exists():
         return HttpResponseForbidden(
-            "Starting multiple Simulations from the same source is not allower"
+            "Starting multiple Simulations from the same source is not allowed"
+        )
+    if simulation_progess.filter(success=True).exists():
+        return HttpResponseForbidden(
+            "Starting a Simulation which was sucessfully simulated is not allowed"
         )
 
     sim_task_id = get_unique_task_id()
