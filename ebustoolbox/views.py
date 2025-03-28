@@ -937,13 +937,26 @@ class SummaryView(AuthorizedMixIn, TemplateView):
             f"{german_weekdays[end.weekday()]} {end.strftime(_format)}"
         )
         context["temperature"] = sim_range.temperature
-        context["vehicle_types"] = VehicleType.objects.filter(scenario=scenario)
+        parent_vehicle_types = VehicleType.objects.filter(scenario=scenario.parent)
+
         scenario_stations = Station.objects.filter(scenario=scenario).exclude(
             charge_type=EnumChargeType.DEPOT
         )
 
-        lines_per_vehicle_type = tasks.annotate_vehicletypes_with_lines(context["vehicle_types"])
-        context["vehicle_type_lines"] = {vt.id: vt.lines_departure for vt in lines_per_vehicle_type}
+        annotated_parent_vehicle_types = tasks.annotate_vehicletypes_with_lines(
+            parent_vehicle_types
+        )
+        vt_mutations = {
+            x.original_vehicle_type.id: x.mutated_vehicle_type
+            for x in VehicleTypeMutation.objects.filter(mutated_vehicle_type__scenario=scenario)
+        }
+        annotated_vehicle_types = []
+        for vt in annotated_parent_vehicle_types:
+            mutated_vt = vt_mutations[vt.id]
+            mutated_vt.lines = vt.lines
+            annotated_vehicle_types.append(mutated_vt)
+        context["vehicle_types"] = annotated_vehicle_types
+
         context["electrified_stations"] = scenario_stations.filter(is_electrified=True)
         excluded = StationElectrificationExclusions.objects.filter(scenario=scenario)
         excluded_ids = [x.station.id for x in excluded]

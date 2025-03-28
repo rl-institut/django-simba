@@ -157,7 +157,7 @@
               <div class="pt-4 pl-4">
                 <div class="inline-flex items-center gap-1 pb-2">
                   <span class="text-slate-800 font-semibold">Default</span>
-                  <span>(2 Linien (Not Implemented)</span>
+                  <span>({{ vehicle_type.lines|length}} Linie(n)</span>
                   <span class="relative inline-flex items-center">
                     <span class="cursor-pointer group">
                       <svg
@@ -183,7 +183,9 @@
                       <div
                         class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none"
                       >
-                        Linien 102, 104 (Not Implemented)
+                        {% for line in vehicle_type.lines %}
+                          <li>{{ line}}</li>
+                          {% endfor %}
                       </div>
                     </span>
                   </span>

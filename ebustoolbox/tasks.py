@@ -1946,7 +1946,7 @@ def annotate_stations_with_lines(station_query):
 
 def annotate_vehicletypes_with_lines(vt_query):
     annotated_query = vt_query.annotate(
-        lines_departure=ArrayAgg("trip_route_departure_set__line__name", distinct=True)
+        lines=ArrayAgg("rotation__trip__route__line__name", distinct=True)
     )
     return annotated_query
 
