@@ -68,7 +68,7 @@
               <div class="px-4 sm:p-6">
                 <div class="flex gap-2">
                   <div class="flex items-center">
-                    <input  {{ form_dict|get_item:"calculation_mode_form"|get_item:"calculation_mode"|widget_attrs }} value="automatic">
+                    <input  style="display:none" {{ form_dict|get_item:"calculation_mode_form"|get_item:"calculation_mode"|widget_attrs }} value="automatic">
                     <button
                             type="button"
                             id="automaticToggle"
