@@ -16,6 +16,7 @@ from celery import shared_task, uuid
 import django.apps
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry, Point
+from django.contrib.postgres.aggregates import ArrayAgg
 from django.db import connections
 from django.db.models import Max, Count, Min, QuerySet
 from django.db.transaction import atomic
@@ -931,7 +932,11 @@ def run_simba_scenario(
             assign_new_vehicles_to_db(django_scenario, db_url)
         simba_schedule_db, args_db = get_schedule_from_db(django_scenario)
         simba_schedule, scenario = run_simba(
-            simba_schedule_db, args_db, django_scenario, mode=mode, scenario=simba_scenario
+            simba_schedule_db,
+            args_db,
+            django_scenario,
+            mode=mode,
+            scenario=simba_scenario,
         )
     finally:
         # Always reset the database to default
@@ -1258,7 +1263,9 @@ def create_station_mutations(scenario):
     station_mutations = []
     for original, mutation in mutations.items():
         sm = StationMutation(
-            id=next_id, original_station_id=original, mutated_original_station_id=mutation
+            id=next_id,
+            original_station_id=original,
+            mutated_original_station_id=mutation,
         )
         next_id += 1
         station_mutations.append(sm)
@@ -1667,7 +1674,11 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario) -> list[Ev
     # this assumes there are no 0-duration trips but 0 duration stops
     vehicle_events = sorted(
         vehicle_events,
-        key=lambda e: (e.vehicle_id, e.start_time, ["arrival", "departure"].index(e.event_type)),
+        key=lambda e: (
+            e.vehicle_id,
+            e.start_time,
+            ["arrival", "departure"].index(e.event_type),
+        ),
     )
 
     last_id = None
@@ -1840,7 +1851,8 @@ def electrify_db_stations(scenario: Scenario, station_id_list, unelectrify=True)
         station.voltage_level = EnumVoltageLevel.VOLTAGE_MV
         station.amount_charging_places = scenario.simba_options["amount_charging_places"]
     Station.objects.bulk_update(
-        stations, ["is_electrified", "charge_type", "voltage_level", "amount_charging_places"]
+        stations,
+        ["is_electrified", "charge_type", "voltage_level", "amount_charging_places"],
     )
     if unelectrify:
         revert_stations = (
@@ -1855,7 +1867,12 @@ def electrify_db_stations(scenario: Scenario, station_id_list, unelectrify=True)
             station.amount_charging_places = None
         Station.objects.bulk_update(
             revert_stations,
-            ["is_electrified", "charge_type", "voltage_level", "amount_charging_places"],
+            [
+                "is_electrified",
+                "charge_type",
+                "voltage_level",
+                "amount_charging_places",
+            ],
         )
 
 
@@ -1918,6 +1935,20 @@ def update_vehicle_types_with_defaults(vehicle_type_pairs, task_id, vt_adjustmen
         vt_default.name = vt.name
         vt_default.name_short = vt.name_short
         vt_default.save()
+
+
+def annotate_stations_with_lines(station_query):
+    annotated_query = station_query.annotate(
+        lines_departure=ArrayAgg("route_departure_set__line__name", distinct=True)
+    ).annotate(lines_arrival=ArrayAgg("route_arrival_set__line__name", distinct=True))
+    return annotated_query
+
+
+def annotate_vehicletypes_with_lines(vt_query):
+    annotated_query = vt_query.annotate(
+        lines_departure=ArrayAgg("trip_route_departure_set__line__name", distinct=True)
+    )
+    return annotated_query
 
 
 def find_and_make_depots(scenario):

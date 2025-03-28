@@ -6,7 +6,6 @@ import pytz
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.contrib.postgres.aggregates import ArrayAgg
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import QuerySet
@@ -234,7 +233,6 @@ class ScenarioMixIn(AuthorizedMixIn):
 
 
 class TripsView(FormView):
-
     template_name = "ebustoolbox/trips.html"
     form_class = forms.TripsForm
     success_name = "simba:vehicles"
@@ -259,7 +257,6 @@ class TripsView(FormView):
 
         first = kwargs.get("first", 0)
         if task_id and first != 1:
-
             progress_db = get_unique_progress_or_none(task_id)
             if progress_db and progress_db.success:
                 response = redirect(reverse("simba:vehicles", args=[str(task_id)]))
@@ -325,18 +322,26 @@ class TripsView(FormView):
             parent, scenario = tasks.get_parent(scenario)
             progress_id = tasks.get_uuid()
             progress = Progress.objects.create(
-                scenario=scenario, task_id=progress_id, progress_type=EnumProgress.INIT_SCHEDULE
+                scenario=scenario,
+                task_id=progress_id,
+                progress_type=EnumProgress.INIT_SCHEDULE,
             )
             if file_suffix == "csv":
                 # change the file naming according to SimbaScheduleReader
                 async_result = tasks.init_db_with_trips.apply_async(
-                    (scenario.id, 1, {"file_path": files["data_file"]}, {}, progress.id),
+                    (
+                        scenario.id,
+                        1,
+                        {"file_path": files["data_file"]},
+                        {},
+                        progress.id,
+                    ),
                     task_id=progress_id,
                 )
             elif file_suffix == "zip":
-
                 async_result = tasks.init_db_with_trips.apply_async(
-                    (scenario.id, 3, files, cleaned_data, progress.id), task_id=progress_id
+                    (scenario.id, 3, files, cleaned_data, progress.id),
+                    task_id=progress_id,
                 )
             else:
                 raise NotImplementedError(f"Unsupported FileType file_suffix {file_suffix}")
@@ -439,7 +444,10 @@ class VehiclesView(ScenarioMixIn, TemplateView):
             )
         context |= {"min_date": start_date, "max_date": end_date}
         context |= {"start_date": initial_start_date, "end_date": initial_end_date}
-        context |= {"initial_start_time": initial_start_time, "initial_end_time": initial_end_time}
+        context |= {
+            "initial_start_time": initial_start_time,
+            "initial_end_time": initial_end_time,
+        }
         context |= {
             "task_id": scenario.task_id,
             "simulation_parameters_form": simulation_parameters_form,
@@ -481,7 +489,6 @@ class VehiclesView(ScenarioMixIn, TemplateView):
 
     @staticmethod
     def parse_start_end_utc_from_POST(data):
-
         start_dt = parser.parse(f"{data['start-date']} {data['start-time']}")
         start_dt_utc = start_dt.replace(tzinfo=pytz.UTC)
         end_dt = parser.parse(f"{data['end-date']} {data['end-time']}")
@@ -565,22 +572,35 @@ class StationsView(ScenarioMixIn, TemplateView):
     def get_context_data(self, **kwargs):
         scenario = self.scenario
         context = super().get_context_data(**kwargs)
-        station_query = Station.objects.filter(scenario=scenario.parent).exclude(
+        parent_station_query = Station.objects.filter(scenario=scenario.parent).exclude(
             charge_type=EnumChargeType.DEPOT
         )
+        annotated_query = tasks.annotate_stations_with_lines(parent_station_query)
+        station_mutations = {
+            s.original_station.id: s.mutated_original_station
+            for s in StationMutation.objects.filter(mutated_original_station__scenario=scenario)
+        }
+        scenario_stations = {}
+        # Mutate stations with lines of their annotated parents
+        for station in annotated_query:
+            station_lines = {*station.lines_departure, *station.lines_arrival}
+            mutated_station = station_mutations[station.id]
+            mutated_station.lines = station_lines
+            scenario_stations[mutated_station.id] = mutated_station
 
-        annotated_query = station_query.annotate(
-            lines_departure=ArrayAgg("route_departure_set__line__name", distinct=True)
-        ).annotate(lines_arrival=ArrayAgg("route_arrival_set__line__name", distinct=True))
-        context["ordered_stations"] = annotated_query.order_by("name").values_list("id", flat=True)
-        context["stations"] = {stat.id: stat for stat in annotated_query}
+        context["ordered_stations"] = (
+            Station.objects.filter(scenario=scenario)
+            .exclude(charge_type=EnumChargeType.DEPOT)
+            .order_by("name")
+            .values_list("id", flat=True)
+        )
+        context["stations"] = scenario_stations
+
         # Might be more elegant to to that in a db query
         # Merge the lines for each stations so they can be filtered by
         context["all_lines"] = set()
         for stat in context["stations"].values():
-            station_lines = {*stat.lines_departure, *stat.lines_arrival}
-            context["all_lines"] = context["all_lines"].union(station_lines)
-            stat.lines = station_lines
+            context["all_lines"] = context["all_lines"].union(stat.lines)
 
         data = self.request.POST
         if self.request.method != "POST":
@@ -611,7 +631,9 @@ class StationsView(ScenarioMixIn, TemplateView):
                 scenario=scenario, station=station
             ).exists()
             context["stations_exclude_forms"][station.id] = forms.StationExcludedForm(
-                data, initial={"is_excluded": is_excluded}, prefix=self.get_station_prefix(station)
+                data,
+                initial={"is_excluded": is_excluded},
+                prefix=self.get_station_prefix(station),
             )
         context["detailedOptionNames"] = list(forms.StationForm().fields.keys())
 
@@ -621,7 +643,8 @@ class StationsView(ScenarioMixIn, TemplateView):
         # Make sure the scenario has its own stations which are linked to its parent scenario
         scenario = self.scenario
         station_mutations = StationMutation.objects.filter(
-            original_station__scenario=scenario.parent, mutated_original_station__scenario=scenario
+            original_station__scenario=scenario.parent,
+            mutated_original_station__scenario=scenario,
         )
         if station_mutations.count() != Station.objects.filter(scenario=scenario.parent).count():
             # Not every station from the parent scenario is linked to a new station
@@ -918,6 +941,9 @@ class SummaryView(AuthorizedMixIn, TemplateView):
         scenario_stations = Station.objects.filter(scenario=scenario).exclude(
             charge_type=EnumChargeType.DEPOT
         )
+
+        lines_per_vehicle_type = tasks.annotate_vehicletypes_with_lines(context["vehicle_types"])
+        context["vehicle_type_lines"] = {vt.id: vt.lines_departure for vt in lines_per_vehicle_type}
         context["electrified_stations"] = scenario_stations.filter(is_electrified=True)
         excluded = StationElectrificationExclusions.objects.filter(scenario=scenario)
         excluded_ids = [x.station.id for x in excluded]
@@ -1001,7 +1027,9 @@ def merge_and_run(request: HttpRequest, task_id: str):
 
     sim_task_id = get_unique_task_id()
     progress = Progress.objects.create(
-        scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION, task_id=sim_task_id
+        scenario=scenario,
+        progress_type=EnumProgress.RUNNING_SIMULATION,
+        task_id=sim_task_id,
     )
     logger.info("Running Toolchain.")
 
