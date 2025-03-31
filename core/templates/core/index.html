@@ -27,17 +27,18 @@
                   Ausloggen
                 </button>
               </form>
+              <a href="{% url 'simba:dashboard' %}" class="text-slate-800 hover:underline">Szenarienvergleich</a>
             {% else %}
               <a href="{% url 'core:login' %}" class="text-slate-800 hover:underline">Einloggen</a>
             {% endif %}
-            <a href="{% url 'simba:dashboard' %}" class="text-slate-800 hover:underline">Szenarienvergleich</a>
             <!--
                         <a href="#" class="text-slate-800 hover:underline">Hilfe</a>
             -->
           </div>
           <!-- Mobile Menu Button -->
           <div class="sm:hidden">
-            <button id="menu-button" aria-controls="mobile-menu" aria-expanded="false" class="p-2 text-slate-400 hover:text-white focus:outline-none">
+            <button id="menu-button" aria-controls="mobile-menu" aria-expanded="false"
+                    class="p-2 text-slate-400 hover:text-white focus:outline-none">
               <span class="sr-only">Menü öffnen</span>
               <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
@@ -58,11 +59,12 @@
               Ausloggen
             </button>
           </form>
+          <a href="{% url 'simba:dashboard' %}"
+             class="text-white text-2xl font-medium hover:underline">Szenarienvergleich</a>
         {% else %}
           <a href="{% url 'core:login' %}" class="text-white text-2xl font-medium hover:underline">Einloggen</a>
         {% endif %}
-        <a href="{% url 'simba:dashboard' %}"
-           class="text-white text-2xl font-medium hover:underline">Szenarienvergleich</a>
+
         <!--
               <a href="#" class="text-white text-2xl font-medium hover:underline">Hilfe</a>
         -->
