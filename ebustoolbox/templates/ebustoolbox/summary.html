@@ -158,6 +158,7 @@
                 <div class="inline-flex items-center gap-1 pb-2">
                   <span class="text-slate-800 font-semibold">Default</span>
                   <span>({{ vehicle_type.lines|length}} Linie(n)</span>
+                {% if vehicle_type.lines %}
                   <span class="relative inline-flex items-center">
                     <span class="cursor-pointer group">
                       <svg
@@ -189,6 +190,7 @@
                       </div>
                     </span>
                   </span>
+                {% endif %}
                   <span>)</span>
                 </div>
                 <div class="flex flex-col pl-4 font-normal border-l gap-2">
@@ -278,6 +280,7 @@
                   <span class="w-[18rem] text-slate-500">Elektrifizierung aktiviert:</span>
                   <div class="flex items-center gap-2">
                     <span class="text-slate-800">{{ electrified_stations|length }} Stationen</span>
+                  {% if electrified_stations %}
                     <div class="relative group">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -309,12 +312,14 @@
                         </ul>
                       </div>
                     </div>
+                  {% endif %}
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Bei Simulation entschieden:</span>
                   <div class="flex items-center gap-2">
                     <span class="text-slate-800">{{ automatic_stations|length }} Stationen</span>
+                  {% if automatic_stations %}
                     <div class="relative group">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -346,12 +351,14 @@
                         </ul>
                       </div>
                     </div>
+                  {% endif %}
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Elektrifizierung nicht aktiviert:</span>
                   <div class="flex items-center gap-2">
                     <span class="text-slate-800">{{ excluded_stations|length }} Stationen</span>
+                                    {% if excluded_stations %}
                     <div class="relative group">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -383,6 +390,7 @@
                         </ul>
                       </div>
                     </div>
+                                    {% endif %}
                   </div>
                 </div>
               </div>
