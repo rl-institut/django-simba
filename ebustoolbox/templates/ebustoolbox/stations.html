@@ -100,7 +100,7 @@
         </div>
         <div class="flex gap-2 mt-8">
           <div class="w-6/12">
-            <label for="inputItem" class="block text-sm/6 font-medium text-slate-800">Anzahl Ladepunkte</label>
+            <label for="inputItem" class="block text-sm/6 font-medium text-slate-800">Maximale Anzahl Ladepunkte</label>
             <div class="mt-2">
             <input
 
@@ -126,7 +126,7 @@
               placeholder="0"
               aria-describedby="price-currency"
             >
-            <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kWh</div>
+            <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kW</div>
           </div>
         </div>
       </div>
@@ -173,15 +173,11 @@
     <fieldset class="pb-8">
       <legend class="text-sm/6 font-semibold text-slate-800">Ladeleistung</legend>
       <p class="mt-1 text-sm text-slate-500 leading-6">
-        Standardmäßig berechnet die Simulation, ob die Endstationen elektrifiziert werden müssen, und bestimmt dabei automatisch die Anzahl der Ladepunkte sowie die Ladeleistung. Sie haben jedoch die Möglichkeit, die Endstationen manuell zu elektrifizieren und die Anzahl der Ladepunkte sowie die Ladeleistung festzulegen – oder alternativ die Elektrifizierung vollständig auszuschließen.
+        Standardmäßig berechnet die Simulation, ob die Endstationen elektrifiziert werden müssen, und bestimmt dabei automatisch die Anzahl der Ladepunkte. Sie haben jedoch die Möglichkeit, die Endstationen manuell zu elektrifizieren und die Anzahl der Ladepunkte sowie die Ladeleistung festzulegen – oder alternativ die Elektrifizierung vollständig auszuschließen.
       </p>
 
       <div id="{{ calculation_mode_form.calculation_mode.auto_id }}" class="mt-6">
-        <!-- Option 1 -->
-        <div class="flex items-center h-12">
-          <input id="auto" name="{{ calculation_mode_form.calculation_mode.html_name }}" value="{{ automatic_value}}" type="radio" checked class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
-          <label for="auto" class="ml-3 block text-sm/6 font-medium text-slate-800">Automatisch berechnen lassen</label>
-        </div>
+{#        TODO: keine Optionen, sondern: Standardladeleistung angeben, Station-Tabelle entweder immer zeigen oder ausklappbar#}
         <!-- Option 2 -->
         <div class="flex items-center h-12">
           <input id="single" name="{{ calculation_mode_form.calculation_mode.html_name }}" value="{{ constant_power_value }}" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
@@ -195,7 +191,7 @@
                 placeholder="0,00"
                 aria-describedby="price-currency"
               >
-              <div id="chargingPowerUnit" class="shrink-0 select-none text-slate-500">kWh</div>
+              <div id="chargingPowerUnit" class="shrink-0 select-none text-slate-500">kW</div>
             </div>
           </div>
         </div>
@@ -354,8 +350,7 @@
               <th scope="col" class="w-2/12 py-4 pl-4 pr-3 text-left align-top">
                 <button type="button" href="#" class="group inline-flex">
                   <div class="text-left">
-                    <span class="text-base font-semibold text-slate-800">Anzahl Ladepunkte</span>
-                    <div class="text-xs font-normal text-slate-600">(54)</div>
+                    <span class="text-base font-semibold text-slate-800">Maximale Anzahl Ladepunkte</span>
                   </div>
                   <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
                   <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
@@ -495,7 +490,7 @@
                 >
                   <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 ">
                     <input {{ form.power_total|widget_attrs }} class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency">
-                    <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kWh</div>
+                    <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kW</div>
                   </div>
                 </div>
               </td>
