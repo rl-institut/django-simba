@@ -326,6 +326,7 @@ class TripsView(FormView):
                 task_id=progress_id,
                 progress_type=EnumProgress.INIT_SCHEDULE,
             )
+            async_result = None
             if file_suffix == "csv":
                 # change the file naming according to SimbaScheduleReader
                 async_result = tasks.init_db_with_trips.apply_async(
@@ -344,10 +345,20 @@ class TripsView(FormView):
                     task_id=progress_id,
                 )
             else:
-                raise NotImplementedError(f"Unsupported FileType file_suffix {file_suffix}")
-            assert progress_id == async_result.task_id, (
-                "Asynch result and Progress need to be equal" "for proper fetching of progress"
-            )
+                progress.success = False
+                progress.running = False
+                progress.errors.append(
+                    (
+                        "Dieser Dateityp wird nicht unterstüzt. Bitte laden sie eine .csv"
+                        "im SimBA-Format oder eine .zip datei im x10 Format hoch."
+                    )
+                )
+                progress.save()
+
+            if async_result is not None:
+                assert progress_id == async_result.task_id, (
+                    "Asynch result and Progress need to be equal" "for proper fetching of progress"
+                )
         elif scenario_uuid:
             if not Scenario.objects.get(task_id=scenario_uuid) in get_user_scenarios(
                 self.request.user
