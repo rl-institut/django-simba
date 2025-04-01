@@ -1179,27 +1179,17 @@ def generate_zip(request: HttpRequest, task_id: str):
 
 
 @login_required(login_url="/login/")
-def scenarios(request):
-    # show all scenarios of a user. Also endpoint for update and delete (POST)
-    if request.method == "POST":
-        if "update" in request.POST:
-            # manager can update scenario user groups
-            scenario = Scenario.objects.get(id=request.POST["update"], manager=request.user)
-            usergroups = map(int, request.POST["values"].split(","))
-            for ug in request.user.usergroup_set.all():
-                if ug.id in usergroups:
-                    ug.scenarios.add(scenario)
-                elif scenario in ug.scenarios.all():
-                    ug.scenarios.remove(scenario)
-            return HttpResponse(status=201)  # created
-        if "delete" in request.POST:
-            Scenario.objects.filter(id=request.POST["delete"], manager=request.user).delete()
+def get_dashboard(request):
+    # show all scenarios of a user
     scenarios = Scenario.objects.filter(manager=request.user)
     usergroups = request.user.usergroup_set.all()
     for ug in usergroups:
         scenarios = scenarios.union(ug.scenarios.all())
     scenarios = scenarios.order_by("id")
-    return render(request, "scenarios.html", {"scenarios": scenarios})
+    if scenarios.exists():
+        return render(request, "ebustoolbox/dashboard.html", {"scenarios": scenarios})
+    else:
+        return render(request, "ebustoolbox/dashboard-empty-state.html")
 
 
 @login_required(login_url="/login/")
