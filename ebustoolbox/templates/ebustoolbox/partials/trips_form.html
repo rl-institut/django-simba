@@ -1,0 +1,269 @@
+{% load custom_filters %}
+{% load static %}
+
+<form id="trips_form"
+      hx-post="{% url 'simba:trips' %}"
+      hx-encoding="multipart/form-data"
+      hx-trigger="submit"
+      hx-swap="outerHTML"
+>
+
+  {% csrf_token %}
+  <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+    <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">Umlaufplan</h1>
+    <span class="block mb-6 text-sm text-slate-500">Laden Sie ihren Umlaufplan hoch. Alternativ können Sie den Umlaufplan aus einem existierendem Szenario auswählen.</span>
+
+{#  ToDo @Bryan add styling and position div to your liking#}
+  <div id="error-message" style="display:None">Lade eine Datei aus oder wähle ein Szenario aus.</div>
+    <div class="grid grid-cols-12 gap-4">
+      <div class="col-span-full pb-4">
+        <div class="flex justify-between">
+          <label for="" class="flex items-center gap-2 text-sm font-medium text-slate-800">
+            Neue Datei
+            <div class="relative inline-block">
+              <!-- Info Icon with group -->
+              <span class="cursor-pointer group">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                     stroke="currentColor" class="size-4">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                        d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/>
+                </svg>
+                <!-- Tooltip -->
+                <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                  Bottom Left-Aligned Tooltip
+                </div>
+              </span>
+            </div>
+          </label>
+          <a href="{% static 'ebustoolbox/examples/trips_example.csv' %}">
+          <button type="button" class="text-sm font-semibold text-green-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-green-600 focus-within:ring-offset-2 hover:text-green-600 transition-all duration-300"
+                  title="Beispieldatei herunterladen">
+            <span class="flex items-center gap-2" >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                   stroke="currentColor" class="size-4" >
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+              </svg>
+              Beispieldatei
+            </span>
+          </button>
+            </a>
+        </div>
+        {#        Make the whole div a drop zone. js will be applied to the drop_zone at the end to make it functional#}
+        {#        by calling it drop_zone the styling of #drop zone will be applied when dragging #}
+        <div id="drop_zone"
+             class="mt-2 flex justify-center bg-white rounded-lg border border-dashed border-slate-400 px-6 py-10">
+          <div class="text-center">
+            <svg class="mx-auto size-12 text-slate-300" fill="#cbd5e1" aria-hidden="true" version="1.1"
+                 viewBox="0 0 1200 1200">
+              <path d="m269.53 14.203h569.72c7.6875 0 14.672 3.1875 19.641 8.2969l191.16 191.21c5.3438 5.3438 8.0625 12.375 8.0625 19.406v825c0 35.156-14.344 67.125-37.5 90.234-23.156 23.156-55.078 37.453-90.234 37.453h-660.89c-35.156 0-67.125-14.344-90.234-37.453-23.156-23.156-37.5-55.078-37.5-90.234v-916.13c0-35.156 14.344-67.125 37.5-90.234 23.156-23.156 55.078-37.5 90.234-37.5zm162.37 695.9c-15.141 0-27.469-12.281-27.469-27.469 0-15.141 12.328-27.469 27.469-27.469h140.63v-140.63c0-15.141 12.281-27.469 27.469-27.469 15.141 0 27.469 12.281 27.469 27.469v140.63h140.63c15.141 0 27.469 12.328 27.469 27.469s-12.328 27.469-27.469 27.469h-140.63v140.63c0 15.141-12.281 27.469-27.469 27.469-15.141 0-27.469-12.281-27.469-27.469v-140.63zm434.81-602.16v97.688h97.688z"
+                    fill-rule="evenodd"/>
+            </svg>
+            <p class="mt-4 pb-2 flex text-sm text-slate-800">
+              <label for="{{ form.data_file.auto_id }}"
+                     class="relative cursor-pointer rounded-md bg-white text-sm font-semibold text-green-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-green-600 focus-within:ring-offset-2 hover:text-green-600 transition-all duration-300">
+                <span>Datei hochladen</span>
+                {#              this sets the id=form.data_file.auto_id#}
+                <input {{ form.data_file|widget_attrs }} type="file" class="sr-only" accept=".csv" onchange="updateFileName(this)">
+                {# progress bar during upload#}
+                <progress id='progress' value='0' max='100'></progress>
+              </label>
+            <p class="pl-1">oder ziehen und ablegen</p>
+            {#              This div is replaced with the list of dropped files. needs styling @Bryan#}
+            <div id="uploaded_file_id"></div>
+          </div>
+          /
+          <p class="text-sm text-slate-500">Beispiel: VDV 454 (.zip)/BVG-IVU-XML</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-span-full pb-4">
+      <div class="flex">
+        <div class="pt-9 pr-4 text-sm text-slate-600">
+          oder
+        </div>
+        <div class="w-full">
+          <label id="listbox-label" class="block text-sm font-medium text-slate-800">
+            Aus bestehendem Szenario
+          </label>
+
+          <!-- Dropdown -->
+          <div class="relative mt-2">
+                        <input hidden {{form.existing_scenario|widget_attrs}}>
+            <button
+                    id="assignedToButton"
+                    type="button"
+                    class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pl-3 pr-2 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 sm:text-sm/6"
+                    aria-haspopup="listbox"
+                    aria-expanded="false"
+                    aria-labelledby="listbox-label"
+            >
+
+              <span id="dropDownSpan" class="col-start-1 row-start-1 truncate pr-6">-- Szenario auswählen --</span>
+              <svg class="col-start-1 row-start-1 size-5 self-center justify-self-end text-slate-500 sm:size-4"
+                   viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
+                <path fill-rule="evenodd"
+                      d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z"
+                      clip-rule="evenodd"/>
+              </svg>
+            </button>
+            <!-- Dropdown list -->
+            <ul
+                    id="assignedToList"
+                    class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm hidden"
+                    tabindex="-1"
+                    role="listbox"
+                    aria-labelledby="listbox-label"
+            >
+                </li>
+              {% for scenario in scenarios %}
+                <li
+                        class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-green-400 hover:text-black"
+                        role="option"
+                        data-dropdown-item="{{ scenario.task_id }}"
+                        data-dropdown-name="{{ scenario.name }}"
+                >
+                  <span class="block truncate font-normal">{{ scenario.name }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <div class="col-span-full pt-4 border-t">
+      <div class="w-full pb-6">
+        <label for="{{ form.scenario_name.auto_id }}"
+               class="block text-sm/6 font-medium text-slate-900">Szenarioname</label>
+        <div class="mt-2">
+          <input type="text" {{ form.scenario_name|widget_attrs }}
+                 class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 sm:text-sm/6"
+                 placeholder="Szenario Name eingeben">
+        </div>
+      </div>
+      <div class="w-full">
+        <div class="flex justify-between">
+          <label for="{{ form.description.auto_id }}" class="block text-sm/6 font-medium text-slate-800">
+            Beschreibung
+            <span class="text-slate-500 pl-2" id="description-optional">(Optional)</span>
+          </label>
+        </div>
+        <div class="mt-2">
+          <textarea type="text" {{ form.description|widget_attrs }} rows="4"
+                    class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 sm:text-sm/6"
+                    placeholder="Beschreiben Sie Ihr Szenario..."
+                    aria-describedby="description-optional">{% if form.description.value %}{{ form.description.value }}{% endif %}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+  <button hidden id="hidden_button" onclick="validateAndSubmit()"></button>
+</form>
+{#  load the file drop zone functions and apply them to the drop zone and input field#}
+  <script src="{% static "ebustoolbox/js/file_drop_zone_handling.js" %}" onload="setDropHandler('drop_zone','{{ form.data_file.auto_id}}')">
+  </script>
+<script>
+    function validateAndSubmit(){
+        // If validation fails submit event will be prevented
+        validateAndResetForm();
+    }
+        function validateAndResetForm() {
+        let input1 = document.getElementById("{{ form.existing_scenario.auto_id }}")
+        let input2 = document.getElementById("{{ form.data_file.auto_id }}");
+        let val1 = input1.value.trim();
+        let val2 = input2.value.trim();
+        let errorMessage = document.getElementById("error-message");
+        // ! forces to (inverse) boolean together with != this mimics !(bool(x) XOR bool(y))
+        if (!val1 == !val2) {
+            input1.value=null;
+            input2.value=null;
+            let drowDownDiv = document.getElementById("dropDownSpan")
+            drowDownDiv.innerHTML = "-- Szeneario auswählen --"
+            let filesDiv = document.getElementById("uploaded_file_id")
+            filesDiv.innerHTML = ""
+            errorMessage.style.display = "block";  // Show error message
+            event.preventDefault()
+        } else {
+            console.log("true")
+            errorMessage.style.display = "none";  // Hide error message if valid
+        }
+    };
+</script>
+<script>
+  function updateFileName(input){
+      console.log("updating file name")
+      let uploaded_file_id=document.getElementById("uploaded_file_id")
+      let fileName = input.files.length > 0 ? input.files[0].name : 'Keine Datei ausgewählt';
+      uploaded_file_id.textContent = fileName;
+  }
+</script>
+
+      <!-- Functionality for simple dropdown -->
+    <script>
+        if(typeof button === 'undefined'){
+      let button = document.getElementById('assignedToButton');
+      let label = document.getElementById('dropDownSpan');
+      let list = document.getElementById('assignedToList');
+      let listItems = list.querySelectorAll('[role="option"]');
+      let selectedItem = '';
+      let hiddenInput;
+        }
+      button = document.getElementById('assignedToButton');
+      label = document.getElementById('dropDownSpan');
+      list = document.getElementById('assignedToList');
+      listItems = list.querySelectorAll('[role="option"]');
+      selectedItem = '';
+      hiddenInput = document.getElementById('{{ form.existing_scenario.auto_id }}')
+
+      // Toggle the dropdown on button click
+      button.addEventListener('click', () => {
+          console.log(button.getAttribute('aria-expanded') )
+        const isExpanded = button.getAttribute('aria-expanded') === 'true';
+        button.setAttribute('aria-expanded', String(!isExpanded));
+        list.classList.toggle('hidden');
+
+        // Whenever it opens, ensure the selected item is highlighted
+        if (!isExpanded) {
+          highlightSelectedItem();
+        }
+      });
+
+      // Handle clicks on list items
+      listItems.forEach(item => {
+        item.addEventListener('click', () => {
+          const value = item.getAttribute('data-dropdown-item');
+          label.textContent = item.getAttribute('data-dropdown-name');
+          label.value = value
+          selectedItem = value;
+          hiddenInput.value = value;
+
+          // Highlight the newly selected item
+          highlightSelectedItem();
+
+          // Close dropdown
+          list.classList.add('hidden');
+          button.setAttribute('aria-expanded', 'false');
+        });
+      });
+
+      // Close dropdown if user clicks outside
+      document.addEventListener('click', e => {
+        if (!button.contains(e.target) && !list.contains(e.target)) {
+          button.setAttribute('aria-expanded', 'false');
+          list.classList.add('hidden');
+        }
+      });
+
+      // Remove the highlight from all items and apply it to the selected item
+      function highlightSelectedItem() {
+        listItems.forEach(li => {
+ li.classList.remove('bg-green-100');
+          if (li.getAttribute('data-dropdown-item') === selectedItem) {
+            li.classList.add('bg-green-100');
+          }
+        });
+      }
+
+    </script>

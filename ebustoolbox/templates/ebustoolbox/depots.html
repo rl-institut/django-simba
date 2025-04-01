@@ -48,27 +48,12 @@
                     </button>
                   </p>
                 </div>
-                <div>
-                  <button
-                          type="button"
-                          class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
-                          aria-expanded="false"
-                          aria-haspopup="true"
-                          aria-label="Optionen sehen"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                         stroke="currentColor" class="size-6">
-                      <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"/>
-                    </svg>
-                  </button>
-                </div>
               </div>
 
               <div class="px-4 sm:p-6">
                 <div class="flex gap-2">
                   <div class="flex items-center">
-                    <input {{ form_dict|get_item:"calculation_mode_form"|get_item:"calculation_mode"|widget_attrs }}>
+                    <input  style="display:none" {{ form_dict|get_item:"calculation_mode_form"|get_item:"calculation_mode"|widget_attrs }} value="automatic">
                     <button
                             type="button"
                             id="automaticToggle"
@@ -233,16 +218,17 @@
           </section>
         {% endwith %}
     {% endfor %}
-    <button>SUBMIT</button>
+    <button hidden id="submitButton" onclick="validate()"></button>
       </form>
   </div>
 </main>
 {% endblock wizard_content %}
 
 {% block wizard_buttons %}
-  {% url 'simba:costs' as prev_url %}
-  {% url 'simba:summary' as next_url %}
+  {% url 'simba:costs' scenario.task_id as prev_url %}
+  {%  with "submitButton" as buttonId %}
   {{ block.super }}
+  {% endwith %}
 {% endblock wizard_buttons %}
 
 {% block script %}
@@ -258,11 +244,12 @@
             const depotChargingContent = document.getElementById("depotChargingContent_"+depot_id);
             const gridConnectionContent = document.getElementById("gridConnectionContent_"+depot_id);
             const input_element = document.getElementById(input_prefix + depot_id + input_suffix);
+            console.assert(input_element)
 
             // Ensure the correct default state (ON by default)
             let isChecked = automaticToggle.getAttribute("aria-checked") === "true";
             // Default state of the input element is "automatic" according to the toggle
-            input_element.value ="automatic";
+            input_element.setAttribute("value", "automatic");
 
             automaticToggle.classList.toggle("bg-green-500", isChecked);
             automaticToggle.classList.toggle("bg-slate-200", !isChecked);
@@ -281,9 +268,9 @@
                 automaticToggle.setAttribute("aria-checked", !isChecked);
 
                 if (automaticToggle.getAttribute("aria-checked") === "true") {
-                    input_element.value = "automatic";
+                    input_element.setAttribute("value", "automatic");
                 } else if (automaticToggle.getAttribute("aria-checked") === "false") {
-                    input_element.value = "manual";
+                    input_element.setAttribute("value", "manual");
                 } else {
                     console.log("Toggle did not work")
                 }
@@ -388,10 +375,25 @@
           });
 
           toggleDeleteButtons();
-
-
       })
 
   });
 </script>
+  <script>
+  // Simple overwrite of required at validation for all visible inputs
+  function validate(){
+      const inputs = document.querySelectorAll("input");
+      inputs.forEach((input)=>{
+      if (input.offsetParent){
+          input.required =true;
+      } else {
+          input.required =false;
+      }
+      }
+      )
+
+  }
+
+  </script>
+
 {% endblock script %}

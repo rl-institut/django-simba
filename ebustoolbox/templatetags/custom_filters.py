@@ -9,27 +9,56 @@ def widget_attrs(field):
 
     This allows using the widget attributes in stylized front end inputs.
     """
-    attrs = field.field.widget.attrs
+    attrs = field.subwidgets[0].data["attrs"]
+    if len(field.subwidgets) > 1:
+        print(
+            f"Warning: Extraction of widget_attrs works only for a single subwidget. "
+            f"{field.html_name} has mutliple subwidgets.Is this handled?"
+        )
     out = ""
     for key, value in attrs.items():
-        try:
-            float(value)
-            out += f"{key}={value} "
+        if key == "id":
             continue
-        except ValueError:
-            out += f'{key}="{value}" '
-
+        if isinstance(value, bool):
+            if not value:
+                continue
+            else:
+                out += f"{key} "
+                continue
+        out += f"{key}={value} "
     out += f"id={field.auto_id} "
     out += f"name={field.html_name} "
+    out += f"type={field.field.widget.input_type} "
     try:
         if field.data:
             out += f"value={field.data} "
         else:
-            if field.form.initial.get(field.name):
-                out += f"value={field.form.initial.get(field.name)}"
+            value = field.form.initial.get(field.name)
+            if value is not None:
+                if isinstance(value, bool):
+                    value = str(value).lower()
+                out += f"value={value} "
     except AttributeError:
         pass
+    return out
 
+
+@register.filter
+def subwidget_data(field):
+    assert len(field.subwidgets) == 1
+    attrs_data = {key: value for key, value in field.subwidgets[0].data.items()}
+    out = ""
+    if attrs_data["is_hidden"]:
+        attrs_data["hidden"] = ""
+    del attrs_data["is_hidden"]
+    if attrs_data["required"]:
+        attrs_data["is_required"] = ""
+    del attrs_data["is_required"]
+    if attrs_data["is_initial"]:
+        raise NotImplementedError
+    del attrs_data["is_initial"]
+    for key, value in attrs_data:
+        out += f"{key}={value} "
     return out
 
 

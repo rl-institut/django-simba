@@ -12,8 +12,10 @@
         <a href="{% url 'simba:trips' %}" class="px-4 py-1 border-2 border-green-400 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-green-400 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-400 active:bg-green-500 transition-all duration-300">
           + Szenario erstellen
         </a>
+        {% if user.is_authenticated %}
         <a href="{% url 'simba:dashboard' %}" class="text-sm text-slate-600 hover:text-green-500 transition-colors">Szenarien</a>
         <a href="{% url 'simba:compare' %}" class="text-sm text-slate-600 hover:text-green-500 transition-colors">Szenarienvergleich</a>
+        {% endif %}
         <a href="#" class="text-sm text-slate-600 hover:text-green-500 transition-colors">Hilfe</a>
         <a href="#" class="text-sm flex items-center text-slate-600 hover:text-green-500 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">

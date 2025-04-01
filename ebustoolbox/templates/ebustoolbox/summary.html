@@ -14,53 +14,47 @@
 {% endblock header %}
 
 {% block wizard_content %}
-<!-- Use alert when simulating -->
-<aside class="flex flex-col items-center">
-  <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <div
-      class="w-full rounded-md bg-blue-50 p-12"
-      role="alert"
-      aria-labelledby="progress-alert-title"
-      aria-describedby="progress-alert-description"
-    >
-      <div class="flex flex-col items-center">
-        <div class="w-full text-center">
-          <h3
-            id="progress-alert-title"
-            class="text-lg font-semibold text-blue-800"
-          >
-            Das Szenario wird erstellt
-          </h3>
-        </div>
-        <div class="w-full lg:w-8/12 mt-4">
-          <div class="relative w-full h-2 bg-blue-200 rounded-full">
-            <div
-              class="absolute left-0 h-2 bg-blue-800 rounded-full"
-              style="width: 50%;"
-            ></div>
-          </div>
-        </div>
-        <div class="flex gap-1 mt-2 text-sm text-blue-800">
-          <span class="font-bold">32</span>
-          <span class="font-normal">Minuten verbleibend</span>
-        </div>
-        <div class="mt-4">
-          <a
-            href="#"
-            class="text-blue-800 text-sm font-bold underline focus:outline-none focus:ring-2 focus:ring-blue-800 focus:ring-offset-2"
-          >
-            E-Mail erhalten
-          </a>
-          <span class="text-sm text-blue-800">, wenn die Simulation beendet ist</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</aside>
+  <!-- Use alert when simulating -->
 
-<main class="flex flex-col items-center">
-  <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <div class="flex justify-center">
+  {#    ToDo. Needs Styling @ Bryan#}
+  <button id="simulateButton" hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s
+          style="background-color:green" {% if progress.running or progress.success %}disabled{% endif %}> Simulation Starten
+  </button>
+  <div id="runner"
+          {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
+       hx-trigger="notRunning from:body">
+  </div>
+  <script>
+      // Clicking the simulate button disables it. It will be enabled again if htmx sends notRunning
+      $("#simulateButton").click(function () {
+          $(this).attr("disabled", "disabled");
+      });
+      htmx.on('#runner', 'htmx:trigger', function (evt) {
+          console.log("notRunning");
+          {#hx is triggered when "notRunning" is sent from progress poll#}
+          const button=document.getElementById("simulateButton")
+          button.disabled = false;
+          button.innerHTML ="Erneut Simulieren"
+      })
+  </script>
+
+  <div id="simulationProgressAlert">
+  {% if progress %}
+    {% include "core/progress_poll.html" with progress_id=progress.task_id template_name="progress_simulation.html" %}
+  {% endif %}
+  {#      om case of error allow resimulating#}
+{#  {% if show_rerun %}#}
+{#    <button hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s#}
+{#            style="background-color:green"> Simulation Erneut Starten#}
+{#    </button>#}
+{#  {% endif %}#}
+
+
+    </div>
+
+  <main class="flex flex-col items-center">
+    <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+      <div class="flex justify-center">
       <div class="inline-flex items-center p-1 gap-1 bg-slate-200 rounded-full">
         <button
           id="tab-summary"
@@ -110,7 +104,7 @@
           <p class="text-slate-800 font-medium tracking-wide">Beschreibung</p>
           <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div>
-              <p>{{ scenario_descriptions.description }}</p>
+              <p>{{ scenario_description.description }}</p>
             </div>
             <div>
               <a href="#" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
@@ -156,14 +150,15 @@
         </div>
         <div class="flex flex-col pb-8 space-y-2">
           <p class="text-slate-800 font-medium tracking-wide">Fahrzeugtypen</p>
-          {%  for vehicle_type in vehicles_types %}
+          {%  for vehicle_type in vehicle_types %}
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
               <p class="text-slate-800 font-semibold uppercase">{{ vehicle_type.name }}</p>
               <div class="pt-4 pl-4">
                 <div class="inline-flex items-center gap-1 pb-2">
                   <span class="text-slate-800 font-semibold">Default</span>
-                  <span>(2 Linien (Not Implemented)</span>
+                  <span>({{ vehicle_type.lines|length}} Linie(n)</span>
+                {% if vehicle_type.lines %}
                   <span class="relative inline-flex items-center">
                     <span class="cursor-pointer group">
                       <svg
@@ -189,10 +184,13 @@
                       <div
                         class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none"
                       >
-                        Linien 102, 104 (Not Implemented)
+                        {% for line in vehicle_type.lines %}
+                          <li>{{ line}}</li>
+                          {% endfor %}
                       </div>
                     </span>
                   </span>
+                {% endif %}
                   <span>)</span>
                 </div>
                 <div class="flex flex-col pl-4 font-normal border-l gap-2">
@@ -282,6 +280,7 @@
                   <span class="w-[18rem] text-slate-500">Elektrifizierung aktiviert:</span>
                   <div class="flex items-center gap-2">
                     <span class="text-slate-800">{{ electrified_stations|length }} Stationen</span>
+                  {% if electrified_stations %}
                     <div class="relative group">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -313,12 +312,14 @@
                         </ul>
                       </div>
                     </div>
+                  {% endif %}
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Bei Simulation entschieden:</span>
                   <div class="flex items-center gap-2">
                     <span class="text-slate-800">{{ automatic_stations|length }} Stationen</span>
+                  {% if automatic_stations %}
                     <div class="relative group">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -350,12 +351,14 @@
                         </ul>
                       </div>
                     </div>
+                  {% endif %}
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Elektrifizierung nicht aktiviert:</span>
                   <div class="flex items-center gap-2">
                     <span class="text-slate-800">{{ excluded_stations|length }} Stationen</span>
+                                    {% if excluded_stations %}
                     <div class="relative group">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -387,6 +390,7 @@
                         </ul>
                       </div>
                     </div>
+                                    {% endif %}
                   </div>
                 </div>
               </div>
@@ -543,8 +547,9 @@
 {% endblock wizard_content %}
 
 {% block wizard_buttons %}
-  {% url 'simba:depots' as prev_url %}
-  {% url 'simba:results' as next_url %}
+  {% url 'simba:depots' task_id as prev_url %}
+
+  {% url 'simba:results' task_id as next_url %}
   {{ block.super }}
 {% endblock wizard_buttons %}
 
