@@ -45,22 +45,9 @@
       {%  endfor %}
       </ul>
     </div>
-    <div>
-      <button
-              type="button"
-              class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
-              aria-expanded="false"
-              aria-haspopup="true"
-              aria-label="Optionen sehen"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-        </svg>
-      </button>
-    </div>
   </div>
   <div class="px-4 py-5 sm:p-6">
-    <span class="block mb-6 text-sm text-slate-500">Alle Linien sind standardmäßig in "Default" enthalten. Sie können jedoch individuelle Werte für bestimmte Linien oder Liniengruppen anpassen.</span>
+{#    <span class="block mb-6 text-sm text-slate-500">Alle Linien sind standardmäßig in "Default" enthalten. Sie können jedoch individuelle Werte für bestimmte Linien oder Liniengruppen anpassen.</span>#}
     <div>
       <div class="grid grid-cols-1 sm:hidden">
         <select aria-label="Select a tab" class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-2 pl-3 pr-8 text-base text-slate-800 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600">
@@ -72,77 +59,18 @@
 
       </div>
 
-      <div class="hidden sm:block">
-        <div class="border-b border-slate-200">
-          <nav class="-mb-px flex space-x-8" aria-label="Tabs" id="{{ vt_id }}tabs">
-            <a href="#" class="whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="tab-1" aria-current="page">Default</a>
-            <button id="{{ vt_id }}add-tab" type="button" class="whitespace-nowrap border-b-4 border-transparent px-2 py-4 text-sm font-bold tracking-wide text-green-700 hover:text-green-600 transition-all duration-300">+ Gruppe hinzufügen</button>
-          </nav>
-        </div>
-      </div>
+{#      <div class="hidden sm:block">#}
+{#        <div class="border-b border-slate-200">#}
+{#          <nav class="-mb-px flex space-x-8" aria-label="Tabs" id="{{ vt_id }}tabs">#}
+{#            <a href="#" class="whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="tab-1" aria-current="page">Default</a>#}
+{#            <button id="{{ vt_id }}add-tab" type="button" class="whitespace-nowrap border-b-4 border-transparent px-2 py-4 text-sm font-bold tracking-wide text-green-700 hover:text-green-600 transition-all duration-300">+ Gruppe hinzufügen</button>#}
+{#          </nav>#}
+{#        </div>#}
+{#      </div>#}
       <!-- Tab content -->
       <div id="{{ vt_id }}tab-contents" class="mt-4">
         <div class="tab-content" data-tab="tab-1">
           <div class="flex flex-col lg:flex-row gap-4">
-            <div class="flex-grow">
-              <div class="flex items-center gap-2">
-                <label for="busNumberTotal" id="{{ vt_id }}busNumberTotalLabel" class="block text-sm/6 font-medium text-slate-800">Anzahl Fahrzeuge</label>
-                <div class="relative inline-block">
-                  <!-- Info Icon -->
-                  <span class="cursor-pointer group">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                          </svg>
-                    <!-- Tooltip -->
-                          <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
-                          </div>
-                        </span>
-                </div>
-              </div>
-              <div class="mt-2">
-                <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
-                  <input
-                          type="number"
-                          name="busNumberTotal"
-                          id="{{ vt_id }}busNumberTotal"
-                          class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
-                          placeholder="5"
-                          aria-labelledby="busNumberTotalLabel"
-                  >
-                </div>
-              </div>
-            </div>
-            <div class="flex-grow">
-              <div class="flex items-center gap-2">
-                <label for="totalDistance" id="{{ vt_id }}totalDistanceLabel" class="block text-sm/6 font-medium text-slate-800">Gesamtkilometer</label>
-                <div class="relative inline-block">
-                  <!-- Info Icon -->
-                  <span class="cursor-pointer group">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                          </svg>
-                    <!-- Tooltip -->
-                          <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
-                          </div>
-                        </span>
-                </div>
-              </div>
-              <div class="mt-2">
-                <div
-                        class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
-                  <input
-                          type="number"
-                          name="totalDistance"
-                          id="{{ vt_id }}totalDistance"
-                          class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
-                          placeholder="500"
-                          aria-labelledby="totalDistanceLabel totalDistanceUnit">
-                  <div id="{{ vt_id }}totalDistanceUnit" class="shrink-0 select-none text-slate-500">km</div>
-                </div>
-              </div>
-            </div>
             <div class="flex-grow">
               <div class="flex items-center gap-2">
                 <label for="{{modification.vehicle_modification.battery_capacity.auto_id}}" id="{{ vt_id }}batteryCapacityLabel" class="block text-sm/6 font-medium text-slate-800">Nutzbare Batteriekapazität</label>
@@ -171,6 +99,7 @@
                 </div>
               </div>
             </div>
+            {# ToDo: Energieverbrauchsoptionen (fester Wert oder Berechnung im Backend mit Temperatur, Elevation etc) #}
             <div class="flex-grow">
               <div class="flex items-center gap-2">
                 <label for="consumption" id="{{ vt_id }}consumptionLabel" class="block text-sm/6 font-medium text-slate-800">Energieverbrauch</label>
@@ -223,136 +152,6 @@
     </div>
     <div id="{{ vt_id }}busTypeHiddenSection" class="mt-4 hidden border-t pt-4 text-gray-700">
       <div class="flex flex-wrap lg:flex-nowrap">
-        <div class="w-full lg:w-2/3 py-4">
-          <div class="flex items-end gap-4 pb-4">
-            <div class="w-full lg:w-1/2">
-              <div class="flex items-center gap-2">
-                <label for="reserveCapacity" id="{{ vt_id }}reserveCapacityLabel" class="block text-sm/6 font-medium text-slate-800">Reservekapazität</label>
-                <div class="relative inline-block">
-                  <!-- Info Icon -->
-                  <span class="cursor-pointer group">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                          </svg>
-                    <!-- Tooltip -->
-                          <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
-                          </div>
-                        </span>
-                </div>
-              </div>
-              <div class="mt-2">
-                <div
-                        class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
-                  <input
-                          type="number"
-                          name="reserveCapacity"
-                          id="{{ vt_id }}reserveCapacity"
-                          class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
-                          placeholder="1,5"
-                          aria-labelledby="reserveCapacityUnit reserveCapacityLabel">
-                  <div id="{{ vt_id }}reserveCapacityUnit" class="shrink-0 select-none text-slate-500">kWh/km</div>
-                </div>
-              </div>
-            </div>
-            <div class="w-full lg:w-1/2">
-              <fieldset>
-                <legend class="sr-only">Fahrzeugtyp kann an Endhaltestellen laden</legend>
-                <div class="space-y-5">
-                  <div class="flex gap-3">
-                    <div class="flex h-6 shrink-0 items-center">
-                      <div class="group grid size-4 grid-cols-1">
-                        <input
-                                id="{{ vt_id }}canCharge"
-                                aria-describedby="canChargeDescription"
-                                name="canCharge"
-                                type="checkbox"
-                                checked
-                                class="col-start-1 row-start-1 appearance-none rounded border border-gray-300 bg-white checked:border-green-500 checked:bg-green-500 indeterminate:border-green-500 indeterminate:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:border-gray-300 disabled:bg-gray-100 disabled:checked:bg-gray-100 forced-colors:appearance-auto"
-                        >
-                        <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-[:disabled]:stroke-gray-950/25" viewBox="0 0 14 14" fill="none">
-                          <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                          <path class="opacity-0 group-has-[:indeterminate]:opacity-100" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div class="text-sm/6">
-                      <label
-                              for="canCharge"
-                              class="font-normal text-slate-800"
-                              id="{{ vt_id }}canChargeDescription"
-                      >
-                        Fahrzeugtyp kann an Endhaltestellen laden
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </fieldset>
-            </div>
-          </div>
-          <div class="flex items-end gap-4">
-            <div class="w-full lg:w-1/2">
-              <div class="flex items-center gap-2">
-                <label for="purchasePrice" class="block text-sm/6 font-medium text-slate-800">Kaufpreis</label>
-                <div class="relative inline-block">
-                  <!-- Info Icon -->
-                  <span class="cursor-pointer group">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                          </svg>
-                    <!-- Tooltip -->
-                          <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
-                          </div>
-                        </span>
-                </div>
-              </div>
-              <div class="mt-2">
-                <div
-                        class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
-                  <input
-                          type="number"
-                          name="purchasePrice"
-                          id="{{ vt_id }}purchasePrice"
-                          class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
-                          placeholder="500"
-                          aria-labelledby="purchasePrice purchasePriceUnit">
-                  <div id="{{ vt_id }}purchasePriceUnit" class="shrink-0 select-none text-slate-500">€</div>
-                </div>
-              </div>
-            </div>
-            <div class="w-full lg:w-1/2">
-              <div class="flex items-center gap-2">
-                <label for="costs" class="block text-sm/6 font-medium text-slate-800">Kosten</label>
-                <div class="relative inline-block">
-                  <!-- Info Icon -->
-                  <span class="cursor-pointer group">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                          </svg>
-                    <!-- Tooltip -->
-                          <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
-                          </div>
-                        </span>
-                </div>
-              </div>
-              <div class="mt-2">
-                <div
-                        class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
-                  <input
-                          type="number"
-                          name="costs"
-                          id="{{ vt_id }}costs"
-                          class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
-                          placeholder="500"
-                          aria-labelledby="costs costsUnit">
-                  <div id="{{ vt_id }}costsUnit" class="shrink-0 select-none text-slate-500">€/km</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
         <div class="w-full lg:w-1/3 p-4">
           <div id="{{ vt_id }}stateOfChargeChart" class="w-full bg-slate-100" style="max-width: 360px; height: 180px;"></div>
         </div>
