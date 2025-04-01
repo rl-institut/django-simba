@@ -978,6 +978,32 @@ class ResultView(AuthorizedMixIn, TemplateView):
     template_name = "ebustoolbox/results.html"
 
 
+class DashboardView(TemplateView):
+    empty_template_name = "ebustoolbox/dashboard-empty-state.html"
+    template_name = "ebustoolbox/dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        context = {}
+        if not self.request.user.is_authenticated:
+            raise Http404()
+        scenarios = Scenario.objects.filter(manager=self.request.user)
+        context["scenarios"] = scenarios
+        if len(scenarios) == 0:
+            self.render_to_response(context)
+        return context
+
+    @login_required(login_url="/login/")
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        if len(context["scenarios"]) == 0:
+            return render(request, template_name=self.empty_template_name, context=context)
+
+        return render(request, template_name=self.template_name, context=context)
+
+    def post(self, request, *args, **kwargs):
+        raise Http404()
+
+
 def get_depots(scenario):
     # Get filtered depots by simrange
     parent = scenario.parent

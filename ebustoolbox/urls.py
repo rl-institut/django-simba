@@ -14,6 +14,7 @@ from ebustoolbox.views import (
     merge_and_run,
     run_simulation,
     ResultView,
+    DashboardView,
 )
 
 # from . import views
@@ -33,7 +34,7 @@ urlpatterns = [
     ),
     path(
         "dashboard/",
-        TemplateView.as_view(template_name="ebustoolbox/dashboard-empty-state.html"),
+        DashboardView.as_view(),
         name="dashboard",
     ),
     path(
@@ -77,7 +78,11 @@ urlpatterns = [
         TripsView.as_view(),
         name="trips",
     ),
-    path("export/<str:model_str>/<uuid:task_id>", model_export_json, name="model_export_json"),
+    path(
+        "export/<str:model_str>/<uuid:task_id>",
+        model_export_json,
+        name="model_export_json",
+    ),
     # path("export/<str:model>/<uuid:task_id>", ModelListView.as_view(), name="model_export_json"),
     path(
         "vehicles/<uuid:task_id>",
