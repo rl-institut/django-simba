@@ -1589,8 +1589,8 @@ class AssocAreaProcess(models.Model):
 class SimulationRange(models.Model):
     # Mutation Scenario
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
-    start = models.DateTimeField(null=False)
-    end = models.DateTimeField(null=False)
+    start = models.DateTimeField(null=True)
+    end = models.DateTimeField(null=True)
     temperature = models.FloatField(
         blank=True,
         default=-10,
@@ -1663,3 +1663,23 @@ class StationMutation(models.Model):
 class StationElectrificationExclusions(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE)
+
+
+class EnumCalculationModes(models.TextChoices):
+    AUTOMATIC = "automatic"
+    CONSTANT_POWER = "constant_power"
+    MANUAL = "manual"
+
+
+class ScenarioWizardOptions(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    station_calculation_mode = models.CharField(
+        max_length=20, choices=EnumCalculationModes.choices, null=True, default=None
+    )
+    tco_calculation_mode = models.CharField(
+        max_length=20, choices=EnumCalculationModes.choices, null=True, default=None
+    )
+
+    lca_calculation_mode = models.CharField(
+        max_length=20, choices=EnumCalculationModes.choices, null=True, default=None
+    )

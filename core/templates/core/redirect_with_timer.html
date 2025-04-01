@@ -1,0 +1,41 @@
+{% extends 'ebustoolbox/wizard.html' %}
+{% load custom_filters %}
+{% block title %}WeBus - Depots{% endblock title %}
+
+{% block wizard_navigation %}
+    {{ block.super }}
+{% endblock wizard_navigation %}
+
+{% block wizard_content %}
+  {#ToDo Brany. Please style this. {{ content }} is raw text is explaining why a redirection will follow.#}
+    {{ content }}
+    <div> Sie werden in <a id="countdown">{{ duration }}</a> s weitergeleitet.</div>
+    <div> Wenn dies nicht funktioniert klicken sie <a href={{ redirect_url }} >hier</a>
+    </div>
+
+    <script>
+        // Call the countdown function with the target div id and the number of seconds
+        countdown("countdown", {{duration}})
+
+        function countdown(targetId, seconds) {
+            var countdownElement = document.getElementById(targetId);
+
+            var interval = setInterval(function () {
+                countdownElement.innerHTML = seconds;
+                seconds--;
+
+                if (seconds < 0) {
+                    clearInterval(interval);
+                    countdownElement.innerHTML = "0";
+                    setTimeout(function () {
+                        window.location.href = "{{redirect_url}}";
+                    }, 1000);
+                }
+            }, 1000);
+        }
+    </script>
+
+
+{% endblock wizard_content %}
+{% block script %}
+{% endblock script %}

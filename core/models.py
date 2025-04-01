@@ -1,11 +1,25 @@
+import datetime
+import pytz
+
 # Create your models here.
 from django.contrib.gis.db import models
+from django.db.models.functions import Now
 
 from ebustoolbox.models import Scenario
 
 
+class EnumProgress(models.TextChoices):
+    INIT_SCHEDULE = "INIT_SCHEDULE"
+    RUNNING_SIMULATION = "RUNNING_SIMULATION"
+
+
 class Progress(models.Model):
     task_id = models.UUIDField(null=False, unique=True)
+    progress_type = models.CharField(
+        max_length=20, choices=EnumProgress.choices, null=True, default=None
+    )
+    created = models.DateTimeField(null=True, auto_now_add=True, db_default=Now())
+
     scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
     status = models.CharField(max_length=100)
     total_work = models.IntegerField(default=1, null=True)
@@ -14,6 +28,19 @@ class Progress(models.Model):
     running = models.BooleanField(default=True)
 
     errors = models.JSONField([], default=list, null=True)
+
+    def estimate_duration(self):
+        """Return the number of minutes estimated to finish based on
+        linear extrapolation of the current and total work"""
+        if self.current_work == 0:
+            return None
+        passed_duration_minutes = (
+            datetime.datetime.now(pytz.UTC) - self.created
+        ).total_seconds() / 60
+        # Upper bound for estimation is first guess of duration when no progress was
+        speed = self.current_work / passed_duration_minutes
+        further_duration_minutes = (self.total_work - self.current_work) / speed
+        return further_duration_minutes
 
     def get_progress(self):
         """Return a progress, which should be between 0 and 100."""

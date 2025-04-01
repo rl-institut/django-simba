@@ -16,8 +16,6 @@
         type="submit"
         method ="POST">
         {% csrf_token %}
-
-        <button> Submit form</button>
     <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">Fahrzeuge</h1>
 
     <section class="pb-12">
@@ -37,7 +35,8 @@
         </div>
       </h2>
       <span class="block mb-6 text-sm text-slate-500">Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.</span>
-
+    <!-- ToDo Bryan: Styling and positioning of errors -->
+      <div id="sim_range_errors"><ul>{% for error in simulation_parameters_form.errors.values %}<li>{{ error }}</li>{% endfor %}</ul></div>
         <fieldset class="flex items-center gap-4">
           <span class="text-slate-600">Von</span>
 
@@ -120,7 +119,7 @@
       <div class="w-4/12">
         <div class="mt-2">
           <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 ">
-            <input {{ form.temperature|widget_attrs }} class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6" placeholder="{{ form.temperature.data }}" aria-describedby="temperature-heading temperature-unit">
+              <input type="number" {{ simulation_parameters_form.temperature|widget_attrs }} class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6" placeholder="Gib eine Temperatur ein." aria-describedby="temperature-heading temperature-unit">
             <div id="temperature-unit" class="shrink-0 select-none text-slate-500">°C</div>
           </div>
         </div>
@@ -147,9 +146,8 @@
 
 
       {% include "ebustoolbox/vehicle_modification.html" with modification=modification vt_id=vt_id choice_vts=choice_vts %}
-
-
-      <button>Submit</button>
+{#      validate() is defined in vehicle_modification since thos content is what is validated#}
+      <button id="SubmitButton" hidden onclick="validate()"></button>
 
     </section>
     </form>
@@ -158,9 +156,10 @@
 {% endblock wizard_content %}
 
 {% block wizard_buttons %}
-  {% url 'simba:trips' as prev_url %}
-  {% url 'simba:stations' as next_url %}
+  {% url 'simba:trips' scenario.task_id as prev_url %}
+  {% with "SubmitButton" as buttonId %}
   {{ block.super }}
+{% endwith %}
 {% endblock wizard_buttons %}
 
 {% block script %}

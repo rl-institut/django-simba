@@ -15,7 +15,6 @@
         method="post"
         enctype="multipart/form-data">
       {% csrf_token %}
-{#{{ costs_scenario_selection.as_p }}#}
   <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
     <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">
       Kosten
@@ -408,15 +407,16 @@
       </div>
     </section>
   </div>
-<button style='color:red; background-color:green '>SUBMIT</button>
+<button id="submitButton" hidden></button>
 </form>
 </main>
 {% endblock wizard_content %}
 
 {% block wizard_buttons %}
-  {% url 'simba:stations' as prev_url %}
-  {% url 'simba:depots' as next_url %}
+  {% url 'simba:stations' scenario.task_id as prev_url %}
+  {% with "submitButton" as buttonId %}
   {{ block.super }}
+  {% endwith %}
 {% endblock wizard_buttons %}
 
 {% block script %}
@@ -429,28 +429,60 @@
   const radioButtons = document.querySelectorAll('input[name^="costsRadio"]');
 
   radioButtons.forEach(radio => {
-    radio.addEventListener('change', () => {
-      fileUpload.classList.toggle('hidden', radio.id !== 'costsFile');
-      dropdownSelect.classList.toggle('hidden', radio.id !== 'costsScenario');
-      costsInputs.classList.toggle('hidden', radio.id !== 'costsManually');
-    });
+      radio.addEventListener('change', () => {
+          fileUpload.classList.toggle('hidden', radio.id !== 'costsFile');
+          childrenInputs(fileUpload).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'costsFile'));
+
+          dropdownSelect.classList.toggle('hidden', radio.id !== 'costsScenario');
+          childrenInputs(dropdownSelect).forEach((inputDiv) =>  toggleAttribute(inputDiv, "required", radio.id == 'costsScenario'));
+
+          costsInputs.classList.toggle('hidden', radio.id !== 'costsManually');
+          childrenInputs(costsInputs).forEach((inputDiv) =>  toggleAttribute(inputDiv, "required", radio.id == 'costsManually'));
+
+      });
   });
 </script>
 
-<script>
-  // Show and hide inputs based on selected option for Umweltparameter
-  const envFileUpload = document.getElementById('env-file-upload');
-  const envDropdownSelect = document.getElementById('env-dropdown-select');
-  const envInputs = document.getElementById('envInputs');
+  <script>
+      // Show and hide inputs based on selected option for Umweltparameter
+      const envFileUpload = document.getElementById('env-file-upload');
+      const envDropdownSelect = document.getElementById('env-dropdown-select');
+      const envInputs = document.getElementById('envInputs');
 
-  const envRadioButtons = document.querySelectorAll('input[name^="envRadio"]');
+      const envRadioButtons = document.querySelectorAll('input[name^="envRadio"]');
+
+      const formAreas = [envFileUpload, envDropdownSelect, envInputs, fileUpload, dropdownSelect, costsInputs];
+      // unrequire all form inputs at the start
+      formAreas.forEach((area)=>
+          childrenInputs(area).forEach((inputDiv) => toggleAttribute(inputDiv, "required", false))
+      )
 
   envRadioButtons.forEach(radio => {
-    radio.addEventListener('change', () => {
-      envFileUpload.classList.toggle('hidden', radio.id !== 'envFile');
-      envDropdownSelect.classList.toggle('hidden', radio.id !== 'envScenario');
-      envInputs.classList.toggle('hidden', radio.id !== 'envManually');
-    });
+      radio.addEventListener('change', () => {
+          envFileUpload.classList.toggle('hidden', radio.id !== 'envFile');
+          childrenInputs(envFileUpload).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'envFile'));
+
+          envDropdownSelect.classList.toggle('hidden', radio.id !== 'envScenario');
+          childrenInputs(envDropdownSelect).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'envScenario'));
+
+          envInputs.classList.toggle('hidden', radio.id !== 'envManually');
+          childrenInputs(envInputs).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'envManually'));
+
+      });
   });
+
+  function childrenInputs(element){
+      return element.querySelectorAll("input")
+  }
+
+  function toggleAttribute(element, attribute, value){
+      if (value){
+          element.setAttribute(attribute, "");
+      } else {
+          element.removeAttribute(attribute);
+      }
+
+  }
+
 </script>
 {% endblock script %}

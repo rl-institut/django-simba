@@ -1,7 +1,8 @@
 from django import forms
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
-from . import models
+from . import models, tasks
 from .models import (
     EnumChargeType,
     EnumVoltageLevel,
@@ -82,13 +83,27 @@ class DateRangeField(forms.DateField):
 
 
 class SimulationParameters(forms.ModelForm):
+    temperature = forms.IntegerField(min_value=-20, max_value=40)
+
     class Meta:
         model = SimulationRange
         exclude = ("scenario",)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["temperature"].widget.attrs.update({"min": -20.0, "max": 40})
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not (cleaned_data.get("start") and cleaned_data.get("end")):
+            raise ValidationError("Gib ein Start- und Endzeitpunkt an.")
+        if (
+            tasks.get_rotations_by_start_end(
+                self.instance.scenario.parent, cleaned_data["start"], cleaned_data["end"]
+            ).count()
+            == 0
+        ):
+            raise ValidationError("In dieser Zeitspanne starten keine Umläufe.")
+        return cleaned_data
 
 
 class ElectrificationOptionsForm(forms.ModelForm):
@@ -105,7 +120,7 @@ class ElectrificationOptionsForm(forms.ModelForm):
 class TripsForm(forms.Form):
     data_file = forms.FileField(required=False)
     existing_scenario = forms.UUIDField(required=False)
-    scenario_name = forms.CharField(max_length=100, initial="Mein Szenario")
+    scenario_name = forms.CharField(max_length=100)
     description = forms.CharField(max_length=100, required=False)
 
     def is_valid(self):
@@ -140,12 +155,11 @@ class TripsForm(forms.Form):
 
 class VehicleTypeSelectionForm(forms.ModelForm):
     class Meta:
-        exclude = []
+        exclude = ["vehicle_type"]
         model = models.VehicleTypeSelection
 
     def __init__(self, *args, vehicle_type=None, choices_queryset=None, **kwargs):
         super(VehicleTypeSelectionForm, self).__init__(*args, **kwargs)
-        self.fields["vehicle_type"].queryset = VehicleType.objects.filter(id=vehicle_type.id)
         self.fields["default_vehicle_type"].queryset = choices_queryset
 
 
@@ -172,16 +186,12 @@ class VehicleTypeForm(forms.ModelForm):
         self.fields["battery_capacity"].widget.attrs.update({"min": 1.0})
 
 
-class StationModeForm(forms.Form):
+class DepotCalculationForm(forms.Form):
     CHOICES = [
         ("automatic", "Automatisch berechnen lassen"),
-        ("constant_power", "Ladeleistung angeben"),
         ("manual", "Detail zu den Stationen angeben"),
     ]
-    calculation_mode = forms.ChoiceField(
-        widget=forms.RadioSelect,
-        choices=CHOICES,
-    )
+    calculation_mode = forms.ChoiceField(choices=CHOICES, required=True)
 
 
 class ChargingPowerForm(forms.Form):

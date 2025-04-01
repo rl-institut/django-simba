@@ -10,6 +10,11 @@ from ebustoolbox.views import (
     CostsView,
     DepotsView,
     SummaryView,
+    model_export_json,
+    merge_and_run,
+    run_simulation,
+    ResultView,
+    DashboardView,
 )
 
 # from . import views
@@ -29,7 +34,7 @@ urlpatterns = [
     ),
     path(
         "dashboard/",
-        TemplateView.as_view(template_name="ebustoolbox/dashboard-empty-state.html"),
+        DashboardView.as_view(),
         name="dashboard",
     ),
     path(
@@ -37,10 +42,10 @@ urlpatterns = [
         DepotsView.as_view(),
         name="depots",
     ),
-    path("progress2/<uuid:progress_id>", progress2, name="progress"),
+    path("progress2/<uuid:progress_id>/<str:template_name>/", progress2, name="progress"),
     path(
-        "results/",
-        TemplateView.as_view(template_name="ebustoolbox/results.html"),
+        "results/<uuid:task_id>",
+        ResultView.as_view(),
         name="results",
     ),
     path(
@@ -69,10 +74,24 @@ urlpatterns = [
         name="trips",
     ),
     path(
+        "trips/<uuid:task_id>/<int:first>",
+        TripsView.as_view(),
+        name="trips",
+    ),
+    path(
+        "export/<str:model_str>/<uuid:task_id>",
+        model_export_json,
+        name="model_export_json",
+    ),
+    # path("export/<str:model>/<uuid:task_id>", ModelListView.as_view(), name="model_export_json"),
+    path(
         "vehicles/<uuid:task_id>",
         VehiclesView.as_view(),
         name="vehicles",
     ),
+    path("run_simulation/<uuid:task_id>/", run_simulation, name="run_simulation"),
+    # path("merge_scenario/<uuid:task_id>/", merge_scenario, name="merge_scenario"),
+    path("merge_and_run/<uuid:task_id>/", merge_and_run, name="merge_and_run"),
     # superfluous templates, just for show
     path("DELETE-ME/", TemplateView.as_view(template_name="ebustoolbox/signup.html")),
     path("DEMO/", TemplateView.as_view(template_name="ebustoolbox/dashboard.html")),
