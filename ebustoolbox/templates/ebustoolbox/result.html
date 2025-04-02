@@ -1,0 +1,898 @@
+{% extends 'core/base.html' %}
+
+{% block title %}WeBus - Ergebnisse{% endblock title %}
+
+{% block content %}
+<header class="flex flex-col items-center bg-white">
+  <div class="sm:py-8 lg:pt-12 lg:pb-8 sm:px-6 lg:px-8 w-full max-w-7xl">
+    <div class="flex justify-between">
+      <h1 class="text-2xl font-semibold">BVG Test 03</h1>
+      <div class="flex gap-2 relative"> <!-- Add relative to the parent container -->
+        <button class="px-4 py-2 bg-green-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
+          <span class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+            </svg>
+            <span>Vergleichen</span>
+          </span>
+        </button>
+        <button
+          class="px-4 py-2 bg-green-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300"
+          id="dropdownButton"
+          aria-expanded="false"
+          aria-haspopup="true"
+        >
+          <span class="flex items-center gap-2">
+            <span>Mehr</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="size-4 transition-transform duration-300"
+              id="dropdownArrow"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+            </svg>
+          </span>
+        </button>
+        <!-- Dropdown menu -->
+        <div
+          class="absolute z-10 mt-12 w-64 origin-top-right rounded-md bg-white divide-y divide-slate-100 shadow-lg ring-1 ring-black/5 focus:outline-none hidden right-0"
+          role="menu"
+          aria-orientation="vertical"
+          id="dropdownMenu"
+        >
+          <div class="py-1" role="none">
+            <a href="#" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              <span>
+                Ergebnisse exportieren
+              </span>
+            </a>
+            <a href="#" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm3.75 11.625a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+              </svg>
+              <span>
+                Zusammenfassung sehen
+              </span>
+            </a>
+            <a href="#" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              <span>
+                Als Variante verwenden
+              </span>
+            </a>
+          </div>
+          <div class="py-1" role="none">
+            <a href="#" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+              </svg>
+              <span>
+                Szenario Löschen
+              </span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="flex justify-center space-x-4 pt-12">
+      <a href="#costs-section" class="px-4 py-2 bg-slate-50 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
+        <span class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
+          </svg>
+          <span>Kosten + Umwelt</span>
+        </span>
+      </a>
+      <a href="#bus-section" class="px-4 py-2 bg-slate-50 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
+        <span class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
+          </svg>
+          <span>Fahrzeuge</span>
+        </span>
+      </a>
+      <a href="#infrastructure-section" class="px-4 py-2 bg-slate-50 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
+        <span class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
+          </svg>
+          <span>Infrastruktur</span>
+        </span>
+      </a>
+      <a href="#map-section" class="px-4 py-2 bg-slate-50 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
+        <span class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
+          </svg>
+          <span>Karte</span>
+        </span>
+      </a>
+    </div>
+  </div>
+</header>
+
+
+<main class="flex flex-col items-center">
+  <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+    <div class="flex flex-col">
+      <div id="costs-section" class="flex justify-between items-center pb-2">
+        <h2 class="text-xl text-slate-800 font-light uppercase">Kosten</h2>
+        <button type="button" class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50" aria-expanded="false" aria-haspopup="true" aria-label="Optionen sehen">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="bg-white rounded-lg shadow-md mb-12">
+        <!-- Toggle and Dropdown -->
+        <div class="flex justify-between items-start pt-4 px-4">
+          <div class="flex items-center w-4/12 gap-4">
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                id="dieselToggle"
+                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+                role="switch"
+                aria-checked="false"
+                aria-labelledby="dieselToggleLabel"
+              >
+                <span aria-hidden="true" class="pointer-events-none inline-block size-5 translate-x-0 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+              </button>
+              <div class="flex items-center gap-2">
+                <span class="ml-2 text-sm font-normal text-slate-500" id="dieselToggleLabel">Relativ zu Dieselszenario</span>
+                <div class="relative inline-block">
+                  <span class="cursor-pointer group">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#00856C" class="size-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
+                    </svg>
+                    <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                      Relativer Vergleich mit Diesel-Szenario.
+                    </div>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="flex justify-center w-4/12 text-base font-normal text-slate-600">Gesamtkosten</p>
+          <div class="flex flex-grow justify-end w-4/12">
+            <div class="w-[10rem]">
+              <label id="listbox-label" class="hidden">
+                Label
+              </label>
+              <div class="relative">
+                <!-- Button that toggles the dropdown -->
+                <button
+                  id="assignedToButton"
+                  type="button"
+                  class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pl-3 pr-2 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 sm:text-sm/6"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-labelledby="listbox-label"
+                >
+                  <span id="assignedToLabel" class="col-start-1 row-start-1 truncate pr-6">1 Jahr</span>
+                  <svg class="col-start-1 row-start-1 size-5 self-center justify-self-end text-slate-500 sm:size-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
+                    <path fill-rule="evenodd" d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+
+                <!-- Dropdown list -->
+                <ul
+                  id="assignedToList"
+                  class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm hidden"
+                  tabindex="-1"
+                  role="listbox"
+                  aria-labelledby="listbox-label"
+                >
+                  <li
+                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-green-400 hover:text-black"
+                    role="option"
+                    data-dropdown-item="Item 2"
+                  >
+                    <span class="block truncate font-normal">2 Jahre</span>
+                  </li>
+                  <li
+                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-green-400 hover:text-black"
+                    role="option"
+                    data-dropdown-item="Item 3"
+                  >
+                    <span class="block truncate font-normal">3 Jahre</span>
+                  </li>
+                  <li
+                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-green-400 hover:text-black"
+                    role="option"
+                    data-dropdown-item="Item 4"
+                  >
+                    <span class="block truncate font-normal">4 Jahre</span>
+                  </li>
+                  <li
+                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-green-400 hover:text-black"
+                    role="option"
+                    data-dropdown-item="Item 5"
+                  >
+                    <span class="block truncate font-normal">5 Jahre</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="text-center p-4">
+          <p class="text-4xl font-bold text-slate-800">
+            <span class="text-4xl font-bold text-slate-800">
+              4.000.000
+            </span>
+            <span class="text-lg font-normal text-slate-800">
+              €
+            </span>
+          </p>
+        </div>
+        <div class="flex flex-wrap bg-slate-50">
+          <!-- Energie -->
+          <div class="w-full md:w-1/2 xl:w-1/4 p-4 border-b xl:border-b-0 xl:border-r border-slate-300">
+            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">Energie</p>
+            <div class="flex justify-center items-center gap-2">
+              <span class="text-xl font-semibold text-slate-800">1.000.000</span>
+              <span class="text-sm font-normal text-slate-800">€</span>
+            </div>
+            <p class="text-center text-sm tracking-wide text-slate-500">Variable Kosten</p>
+          </div>
+
+          <!-- Fahrzeuge -->
+          <div class="w-full md:w-1/2 xl:w-1/4 p-4 border-b xl:border-b-0 xl:border-r border-slate-300">
+            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">Fahrzeuge</p>
+            <div class="flex justify-center gap-8 xl:gap-4">
+              <div class="flex flex-col items-center">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl font-semibold text-slate-800">1.200.000</span>
+                  <span class="text-sm font-normal text-slate-800">€</span>
+                </div>
+                <p class="text-sm tracking-wide text-slate-500">Fixkosten</p>
+              </div>
+              <div class="flex flex-col items-center">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl font-semibold text-slate-800">400.000</span>
+                  <span class="text-sm font-normal text-slate-800">€</span>
+                </div>
+                <p class="text-sm tracking-wide text-slate-500">Variable Kosten</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Infrastruktur Endhaltestellen -->
+          <div class="w-full md:w-1/2 xl:w-1/4 p-4 border-b md:border-b-0 xl:border-r border-slate-300">
+            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">Infrastruktur Endhaltestellen</p>
+            <div class="flex justify-center gap-8 xl:gap-4">
+              <div class="flex flex-col items-center">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl font-semibold text-slate-800">500.000</span>
+                  <span class="text-sm font-normal text-slate-800">€</span>
+                </div>
+                <p class="text-sm tracking-wide text-slate-500">Fixkosten</p>
+              </div>
+              <div class="flex flex-col items-center">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl font-semibold text-slate-800">100.000</span>
+                  <span class="text-sm font-normal text-slate-800">€</span>
+                </div>
+                <p class="text-sm tracking-wide text-slate-500">Variable Kosten</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Infrastruktur Depots -->
+          <div class="w-full md:w-1/2 xl:w-1/4 p-4">
+            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">Infrastruktur Depots</p>
+            <div class="flex justify-center gap-8 xl:gap-4">
+              <div class="flex flex-col items-center">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl font-semibold text-slate-800">800.000</span>
+                  <span class="text-sm font-normal text-slate-800">€</span>
+                </div>
+                <p class="text-sm tracking-wide text-slate-500">Fixkosten</p>
+              </div>
+              <div class="flex flex-col items-center">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl font-semibold text-slate-800">150.000</span>
+                  <span class="text-sm font-normal text-slate-800">€</span>
+                </div>
+                <p class="text-sm tracking-wide text-slate-500">Variable Kosten</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow-md mb-12">
+        <div class="p-8">
+          <nav class="-mb-px flex space-x-8 border-b border-slate-300" aria-label="Tabs" id="costsTabs">
+            <a href="#" class="costs-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="costs-tab-1" aria-current="page">Kostenverlauf</a>
+            <a href="#" class="costs-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="costs-tab-2">Tab 2</a>
+          </nav>
+          <div id="costs-tab-contents" class="mt-4">
+            <div class="costs-tab-content" data-tab="costs-tab-1">
+              <div class="flex justify-end">
+                <div class="w-[20rem]">
+                  <label id="kostenverlauf-label" class="block text-sm font-medium text-slate-800">
+                    Ansicht
+                  </label>
+                  <div class="relative mt-2">
+                    <!-- Button that toggles the dropdown -->
+                    <button
+                      id="assignedToButton"
+                      type="button"
+                      class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pl-3 pr-2 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 sm:text-sm/6"
+                      aria-haspopup="listbox"
+                      aria-expanded="false"
+                      aria-labelledby="kostenverlauf-label"
+                    >
+                      <span id="assignedToLabel" class="col-start-1 row-start-1 truncate pr-6">Zeitlauf</span>
+                      <svg class="col-start-1 row-start-1 size-5 self-center justify-self-end text-slate-500 sm:size-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
+                        <path fill-rule="evenodd" d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                    <!-- Add Dropdown list -->
+                  </div>
+                </div>
+              </div>
+              <div class="flex justify-between items-start gap-4 h-[400px]">
+                <div id="kostenverlaufChart" class="w-full h-[400px]"></div>
+              </div>
+            </div>
+            <div class="costs-tab-content" data-tab="costs-tab-2">
+              Content 2
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col">
+        <div class="flex justify-between items-center pb-2">
+          <h2 class="text-xl text-slate-800 font-light uppercase">Umwelt</h2>
+          <button type="button" class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50" aria-expanded="false" aria-haspopup="true" aria-label="Optionen sehen">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="bg-white rounded-lg shadow-md mb-12">
+          <div class="p-8">
+            <div class="flex justify-center">
+              <p class="text-base font-normal text-slate-600 pb-4">CO<sub>2</sub>-Bilanz</p>
+            </div>
+            <div class="flex justify-center">
+              <div class="flex items-end gap-2">
+                <span class="text-4xl font-bold text-slate-800">- 70</span>
+                <span class="text-base font-normal text-slate-600">% CO<sub>2</sub>-Emissionen</span>
+              </div>
+            </div>
+            <div class="flex justify-center">
+              <div class="w-full lg:w-3/4 flex flex-col gap-4 py-8">
+                <div class="flex items-center gap-4">
+                  <span class="text-end text-sm text-slate-600 flex-grow">Vor Elektrifizierung</span>
+                  <div class="flex items-center gap-2 w-3/4">
+                    <div class="h-2 flex-grow bg-slate-200 rounded-full"></div>
+                    <span class="text-sm font-medium text-slate-800">10.000 t</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4">
+                  <span class="text-end text-sm text-slate-600 flex-grow">Nach Elektrifizierung</span>
+                  <div class="flex items-center gap-2 w-3/4">
+                    <div class="h-2 w-[30%] bg-green-400 rounded-full"></div>
+                    <span class="text-sm font-bold text-green-600">3.000 t</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Toggle Button -->
+            <div class="flex justify-end pt-4">
+              <button
+                id="detailsButton"
+                class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-full transition-all"
+                aria-expanded="false"
+                aria-controls="detailsContent"
+              >
+                <span>Details sehen</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="size-4 transition-transform duration-300"
+                  id="detailsArrow"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+            </div>
+            <!-- Hidden Content -->
+            <div id="detailsContent" class="hidden mt-4 pt-8 text-sm text-slate-600 border-t border-slate-200">
+              <p>Details zur CO<sub>2</sub>-Bilanz: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce accumsan nisi at elit tincidunt fermentum.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col">
+        <div id="bus-section" class="flex justify-between items-center pb-2">
+          <h2 class="text-xl text-slate-800 font-light uppercase">Fahrzeuge</h2>
+          <button type="button" class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50" aria-expanded="false" aria-haspopup="true" aria-label="Optionen sehen">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="bg-white rounded-lg shadow-md mb-12">
+          <div class="p-8">
+            <div class="flex justify-center">
+              <p class="text-base font-normal text-slate-600 pb-4">Minimaler SoC pro Fahrzeug</p>
+            </div>
+            <div class="flex justify-center">
+              <div class="flex items-end gap-2">
+                <span class="text-4xl font-bold text-slate-800">60</span>
+                <span class="text-base font-normal text-slate-600">%</span>
+              </div>
+            </div>
+            <!-- Toggle Button -->
+            <div class="flex justify-end pt-4">
+              <button
+                id="detailsButton"
+                class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-full transition-all"
+                aria-expanded="false"
+                aria-controls="detailsContent"
+              >
+                <span>Details sehen</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="size-4 transition-transform duration-300"
+                  id="detailsArrow"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+            </div>
+            <!-- Hidden Content -->
+            <div id="detailsContent" class="hidden mt-4 pt-8 text-sm text-slate-600 border-t border-slate-200">
+              <p>Details zur CO<sub>2</sub>-Bilanz: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce accumsan nisi at elit tincidunt fermentum.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md mb-12">
+        <div class="p-8">
+          <nav class="-mb-px flex space-x-8 border-b border-slate-300" aria-label="Tabs" id="socTabs">
+            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-1" aria-current="page">
+              Anzahl Fahrzeuge nach SoC
+            </a>
+            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-2">
+              Fahrzeugaktivitäten
+            </a>
+            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-3">
+              Fahrzeuganzahlen
+            </a>
+            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-4">
+              Fahrplanwirkungsgrade
+            </a>
+          </nav>
+          <div id="soc-tab-contents" class="mt-4">
+            <div class="soc-tab-content" data-tab="soc-tab-1">
+              Content 1
+            </div>
+            <div class="soc-tab-content hidden" data-tab="soc-tab-2">
+              Content 2
+            </div>
+            <div class="soc-tab-content hidden" data-tab="soc-tab-3">
+              Content 3
+            </div>
+            <div class="soc-tab-content hidden" data-tab="soc-tab-4">
+              Content 4
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col">
+        <div id="infrastructure-section" class="flex justify-between items-center pb-2">
+          <h2 class="text-xl text-slate-800 font-light uppercase">Infrastruktur</h2>
+          <button type="button" class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50" aria-expanded="false" aria-haspopup="true" aria-label="Optionen sehen">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="bg-white rounded-lg shadow-md mb-12">
+          <div class="p-4">
+            <div class="flex flex-wrap lg:divide-x divide-slate-300">
+              <div class="w-full lg:w-1/2 p-4 border-b lg:border-b-0 border-slate-300">
+                <p class="text-center text-base font-normal text-slate-500 pb-4">Endhaltestellen</p>
+                <div class="flex justify-between mt-4">
+                  <div class="w-1/3 text-center border-r border-slate-300">
+                    <p class="text-slate-800">
+                      <span class="text-4xl font-semibold">10</span>
+                    </p>
+                    <p class="text-sm text-slate-500">Anzahl Stellplätze</p>
+                  </div>
+                  <div class="w-1/3 text-center  border-r border-slate-300">
+                    <p class="text-slate-800">
+                      <span class="text-4xl font-semibold">120</span>
+                      <span class="text-base font-normal">MWh</span>
+                    </p>
+                    <p class="text-sm text-slate-500">Energie</p>
+                  </div>
+                  <div class="w-1/3 text-center">
+                    <p class="text-2xl font-semibold text-slate-800">
+                      <span class="text-4xl font-semibold">450</span>
+                      <span class="text-base font-normal">kW</span>
+                    </p>
+                    <p class="text-sm text-slate-500">Spitzenleistung</p>
+                  </div>
+                </div>
+              </div>
+              <div class="w-full lg:w-1/2 p-4">
+                <p class="text-center text-base font-normal text-slate-500 pb-4">Depots</p>
+                <div class="flex justify-between mt-4">
+                  <div class="w-1/3 text-center border-r border-slate-300">
+                    <p class="text-slate-800">
+                      <span class="text-4xl font-semibold">10</span>
+                    </p>
+                    <p class="text-sm text-slate-500">Anzahl Stellplätze</p>
+                  </div>
+                  <div class="w-1/3 text-center  border-r border-slate-300">
+                    <p class="text-slate-800">
+                      <span class="text-4xl font-semibold">120</span>
+                      <span class="text-base font-normal">MWh</span>
+                    </p>
+                    <p class="text-sm text-slate-500">Energie</p>
+                  </div>
+                  <div class="w-1/3 text-center">
+                    <p class="text-2xl font-semibold text-slate-800">
+                      <span class="text-4xl font-semibold">450</span>
+                      <span class="text-base font-normal">kW</span>
+                    </p>
+                    <p class="text-sm text-slate-500">Spitzenleistung</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md mb-12">
+        <div class="p-8">
+          <nav class="-mb-px flex space-x-8 border-b border-slate-300" aria-label="Tabs" id="loadProfileTabs">
+            <a href="#" class="load-profile-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="load-profile-tab-1" aria-current="page">
+              Elektrischer Lastgang
+            </a>
+          </nav>
+          <div id="load-profile-tab-contents" class="mt-4">
+            <div class="load-profile-tab-content" data-tab="load-profile-tab-1">
+              Content for Elektrischer Lastgang
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col">
+        <div id="map-section" class="flex justify-between items-center pb-2">
+          <h2 class="text-xl text-slate-800 font-light uppercase">Karte</h2>
+          <button type="button" class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50" aria-expanded="false" aria-haspopup="true" aria-label="Optionen sehen">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="bg-white rounded-lg shadow-md mb-12">
+          <div class="p-4">
+            Map here
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+{% endblock content %}
+
+{% block script %}
+<script>
+  // More button functionality
+  document.addEventListener("DOMContentLoaded", () => {
+    const dropdownButton = document.getElementById("dropdownButton");
+    const dropdownMenu = document.getElementById("dropdownMenu");
+    const dropdownArrow = document.getElementById("dropdownArrow");
+
+    dropdownButton.addEventListener("click", () => {
+      const isExpanded = dropdownButton.getAttribute("aria-expanded") === "true";
+
+      // Toggle dropdown visibility
+      dropdownMenu.classList.toggle("hidden");
+
+      // Rotate arrow
+      if (!isExpanded) {
+        dropdownArrow.classList.add("rotate-180");
+      } else {
+        dropdownArrow.classList.remove("rotate-180");
+      }
+
+      // Update aria-expanded
+      dropdownButton.setAttribute("aria-expanded", !isExpanded);
+    });
+
+    // Optional: Close dropdown if clicked outside
+    document.addEventListener("click", (event) => {
+      if (!dropdownButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
+        dropdownMenu.classList.add("hidden");
+        dropdownArrow.classList.remove("rotate-180");
+        dropdownButton.setAttribute("aria-expanded", "false");
+      }
+    });
+  });
+</script>
+
+<!-- Functionality for simple dropdown -->
+<script>
+  const button = document.getElementById('assignedToButton');
+  const label = document.getElementById('assignedToLabel');
+  const list = document.getElementById('assignedToList');
+  const listItems = list.querySelectorAll('[role="option"]');
+  let selectedItem = '';
+
+  // Toggle the dropdown on button click
+  button.addEventListener('click', () => {
+    const isExpanded = button.getAttribute('aria-expanded') === 'true';
+    button.setAttribute('aria-expanded', String(!isExpanded));
+    list.classList.toggle('hidden');
+
+    // Whenever it opens, ensure the selected item is highlighted
+    if (!isExpanded) {
+      highlightSelectedItem();
+    }
+  });
+
+  // Handle clicks on list items
+  listItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const value = item.getAttribute('data-dropdown-item');
+      label.textContent = value;
+      selectedItem = value;
+
+      // Highlight the newly selected item
+      highlightSelectedItem();
+
+      // Close dropdown
+      list.classList.add('hidden');
+      button.setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  // Close dropdown if user clicks outside
+  document.addEventListener('click', e => {
+    if (!button.contains(e.target) && !list.contains(e.target)) {
+      button.setAttribute('aria-expanded', 'false');
+      list.classList.add('hidden');
+    }
+  });
+
+  // Remove the highlight from all items and apply it to the selected item
+  function highlightSelectedItem() {
+    listItems.forEach(li => {
+      li.classList.remove('bg-green-100');
+      if (li.getAttribute('data-dropdown-item') === selectedItem) {
+        li.classList.add('bg-green-100');
+      }
+    });
+  }
+</script>
+
+<!-- Costs Tabs Functionality -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+const switchCostsTab = (tabId) => {
+document.querySelectorAll('.costs-tab-content').forEach((content) => {
+  content.classList.toggle('hidden', content.getAttribute('data-tab') !== tabId);
+});
+
+document.querySelectorAll('.costs-tab').forEach((tab) => {
+  const isActive = tab.getAttribute('data-tab-button') === tabId;
+  tab.classList.toggle('border-slate-800', isActive);
+  tab.classList.toggle('text-slate-800', isActive);
+  tab.classList.toggle('border-transparent', !isActive);
+  tab.classList.toggle('text-slate-500', !isActive);
+  tab.classList.toggle('hover:border-slate-300', !isActive);
+  tab.classList.toggle('hover:text-slate-700', !isActive);
+});
+};
+
+document.querySelectorAll('.costs-tab').forEach((tab) => {
+tab.addEventListener('click', (e) => {
+  e.preventDefault();
+  switchCostsTab(tab.getAttribute('data-tab-button'));
+});
+});
+
+// Initialize with the first tab active
+switchCostsTab('costs-tab-1');
+});
+
+</script>
+
+<script>
+  // ECharts example
+  document.addEventListener("DOMContentLoaded", function () {
+    const chartDom = document.getElementById("kostenverlaufChart");
+    const myChart = echarts.init(chartDom);
+
+    const option = {
+      title: {
+        text: "Kostenverlauf",
+        left: "center",
+        textStyle: {
+          fontSize: 16,
+          fontWeight: "400",
+          color: "#475569",
+        },
+      },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: {
+          type: "shadow",
+        },
+      },
+      grid: {
+        left: "3%",
+        right: "4%",
+        bottom: "10%",
+        containLabel: true,
+      },
+      xAxis: {
+        type: "category",
+        data: [
+          "2025",
+          "2026",
+          "2027",
+          "2028",
+          "2029",
+          "2030",
+          "2031",
+          "2032",
+          "2033",
+          "2034",
+          "2035",
+          "2036",
+          "2037",
+          "2038",
+          "2039",
+          "2040",
+          "2041",
+          "2042",
+          "2043",
+          "2044",
+          "2045",
+        ],
+        axisLabel: {
+          interval: 0,
+          rotate: 45,
+        },
+      },
+      yAxis: {
+        type: "value",
+        name: "Kosten (Tsd. €)",
+      },
+      series: [
+        {
+          name: "Kosten pro Jahr",
+          type: "bar",
+          data: [
+            5000, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500,
+            1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500,
+          ],
+          itemStyle: {
+            color: "#3B82F6",
+          },
+          barWidth: 16,
+        },
+      ],
+      legend: {
+        bottom: 0,
+        data: ["Kosten pro Jahr"],
+      },
+    };
+
+    myChart.setOption(option);
+
+    // Responsiveness
+    window.addEventListener("resize", function () {
+      myChart.resize();
+    });
+  });
+</script>
+
+<!-- Details Button Functionality -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const detailsButton = document.getElementById("detailsButton");
+    const detailsContent = document.getElementById("detailsContent");
+    const detailsArrow = document.getElementById("detailsArrow");
+
+    detailsButton.addEventListener("click", function () {
+      const isExpanded = detailsContent.classList.toggle("hidden");
+      detailsArrow.style.transform = isExpanded ? "rotate(0deg)" : "rotate(180deg)";
+      detailsButton.setAttribute("aria-expanded", !isExpanded);
+    });
+  });
+</script>
+
+<!-- SOC Tabs Functionality -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const switchSocTab = (tabId) => {
+      document.querySelectorAll('.soc-tab-content').forEach((content) => {
+        content.classList.toggle('hidden', content.getAttribute('data-tab') !== tabId);
+      });
+
+      document.querySelectorAll('.soc-tab').forEach((tab) => {
+        const isActive = tab.getAttribute('data-tab-button') === tabId;
+        tab.classList.toggle('border-slate-800', isActive);
+        tab.classList.toggle('text-slate-800', isActive);
+        tab.classList.toggle('border-transparent', !isActive);
+        tab.classList.toggle('text-slate-500', !isActive);
+        tab.classList.toggle('hover:border-slate-300', !isActive);
+        tab.classList.toggle('hover:text-slate-700', !isActive);
+      });
+    };
+
+    document.querySelectorAll('.soc-tab').forEach((tab) => {
+      tab.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchSocTab(tab.getAttribute('data-tab-button'));
+      });
+    });
+
+    // Initialize with the first tab active
+    switchSocTab('soc-tab-1');
+  });
+</script>
+
+<!-- Load Profile Tabs Functionality -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const switchLoadProfileTab = (tabId) => {
+      document.querySelectorAll('.load-profile-tab-content').forEach((content) => {
+        content.classList.toggle('hidden', content.getAttribute('data-tab') !== tabId);
+      });
+
+      document.querySelectorAll('.load-profile-tab').forEach((tab) => {
+        const isActive = tab.getAttribute('data-tab-button') === tabId;
+        tab.classList.toggle('border-slate-800', isActive);
+        tab.classList.toggle('text-slate-800', isActive);
+        tab.classList.toggle('border-transparent', !isActive);
+        tab.classList.toggle('text-slate-500', !isActive);
+        tab.classList.toggle('hover:border-slate-300', !isActive);
+        tab.classList.toggle('hover:text-slate-700', !isActive);
+      });
+    };
+
+    document.querySelectorAll('.load-profile-tab').forEach((tab) => {
+      tab.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchLoadProfileTab(tab.getAttribute('data-tab-button'));
+      });
+    });
+
+    // Set the first tab as active by default
+    switchLoadProfileTab('load-profile-tab-1');
+  });
+</script>
+{% endblock script %}
