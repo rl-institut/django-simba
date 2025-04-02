@@ -54,26 +54,33 @@
         <div id="drop_zone"
              class="mt-2 flex justify-center bg-white rounded-lg border border-dashed border-slate-400 px-6 py-10">
           <div class="text-center">
-            <svg class="mx-auto size-12 text-slate-300" fill="#cbd5e1" aria-hidden="true" version="1.1"
-                 viewBox="0 0 1200 1200">
-              <path d="m269.53 14.203h569.72c7.6875 0 14.672 3.1875 19.641 8.2969l191.16 191.21c5.3438 5.3438 8.0625 12.375 8.0625 19.406v825c0 35.156-14.344 67.125-37.5 90.234-23.156 23.156-55.078 37.453-90.234 37.453h-660.89c-35.156 0-67.125-14.344-90.234-37.453-23.156-23.156-37.5-55.078-37.5-90.234v-916.13c0-35.156 14.344-67.125 37.5-90.234 23.156-23.156 55.078-37.5 90.234-37.5zm162.37 695.9c-15.141 0-27.469-12.281-27.469-27.469 0-15.141 12.328-27.469 27.469-27.469h140.63v-140.63c0-15.141 12.281-27.469 27.469-27.469 15.141 0 27.469 12.281 27.469 27.469v140.63h140.63c15.141 0 27.469 12.328 27.469 27.469s-12.328 27.469-27.469 27.469h-140.63v140.63c0 15.141-12.281 27.469-27.469 27.469-15.141 0-27.469-12.281-27.469-27.469v-140.63zm434.81-602.16v97.688h97.688z"
-                    fill-rule="evenodd"/>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#94a3b8" class="inline-block size-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15m0-3-3-3m0 0-3 3m3-3V15" />
             </svg>
+            
             <p class="mt-4 pb-2 flex text-sm text-slate-800">
               <label for="{{ form.data_file.auto_id }}"
-                     class="relative cursor-pointer rounded-md bg-white text-sm font-semibold text-green-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-green-600 focus-within:ring-offset-2 hover:text-green-600 transition-all duration-300">
+                     class="relative w-full cursor-pointer rounded-md text-sm font-semibold text-green-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-green-600 focus-within:ring-offset-2 hover:text-green-600 transition-all duration-300">
                 <span>Datei hochladen</span>
                 {#              this sets the id=form.data_file.auto_id#}
                 <input {{ form.data_file|widget_attrs }} type="file" class="sr-only" accept=".csv" onchange="updateFileName(this)">
                 {# progress bar during upload#}
-                <progress id='progress' value='0' max='100'></progress>
+                <progress 
+                  id='progress'
+                  class="mt-2"
+                  value='0'
+                  max='100'
+                ></progress>
               </label>
-            <p class="pl-1">oder ziehen und ablegen</p>
+            <p class="pl-1 text-sm text-slate-500">oder ziehen und ablegen</p>
             {#              This div is replaced with the list of dropped files. needs styling @Bryan#}
-            <div id="uploaded_file_id"></div>
+            <div
+              id="uploaded_file_id"
+              class="pt-6 text-md font-semibold text-slate-800"
+            >
+            </div>
+            <p class="text-sm text-slate-500 pt-8">Beispiel: VDV 454 (.zip)/BVG-IVU-XML</p>
           </div>
-          /
-          <p class="text-sm text-slate-500">Beispiel: VDV 454 (.zip)/BVG-IVU-XML</p>
         </div>
       </div>
     </div>
