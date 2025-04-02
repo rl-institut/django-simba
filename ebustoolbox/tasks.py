@@ -884,7 +884,7 @@ def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False
     """Run a Scenario from the database with SimBA
 
     The provided scenario must contain all information including Temperatures, Vehicle_Types,
-    station information and electrified_station information.
+    station information and electrified_station information. Mutations are NOT applied.
     :param django_scenario: Scenario which is simulated
     :param assign_vehicles: boolean if the vehicles should be added to rotations.
     Previous assignments will be deleted

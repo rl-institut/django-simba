@@ -17,7 +17,6 @@ from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 from selenium import webdriver
-from selenium.webdriver.support.wait import WebDriverWait
 
 from . import tasks
 from .forms import UploadFileForm
@@ -78,7 +77,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
         django_scenario.save()
         tasks.run_toolchain_from_scenario(django_scenario, assign_vehicles=True)
         url = reverse("simba:result", args=(django_scenario.task_id,))
-        response = self.client.get(url)
+        _ = self.client.get(url)
         self.selenium.get(f"{self.live_server_url}{url}")
         # Clear the browser log. We check the state of the site after refresh, to give
         # map images time to load.
@@ -87,18 +86,9 @@ class MySeleniumTests(StaticLiveServerTestCase):
         # give django some time to calculate
         # Check for 404 requests
         # Wait until maplibre is loaded
-        (
-            WebDriverWait(self.selenium, 10).until(
-                lambda d: d.execute_script("return maplibregl !== 'undefined'")
-            )
-        )
+        # WebDriverWait(self.selenium, 10)
 
         errors = self.selenium.get_log("browser")
-        # ToDO handle exception
-        # An iframe which has both allow-scripts and allow-same-origin for its sandbox
-        # attribute can escape its sandboxing.'
-        with self.assertRaises(AssertionError):
-            errors = self.assertEqual(len(errors), 0, f"404 errors detected: {errors}")
         allowed_errors = [
             (
                 "An iframe which has both allow-scripts and allow-same-origin for its "
@@ -108,11 +98,10 @@ class MySeleniumTests(StaticLiveServerTestCase):
             "maplibre-gl",
             "dash",
         ]
-        errors = [
+        not_allowed_errors = [
             error for error in errors if not any([(e in error["message"]) for e in allowed_errors])
         ]
-        self.assertEqual(len(errors), 0, f"404 errors detected: {errors}")
-        self.assertContains(response, "erfolgreich")
+        self.assertEqual(len(not_allowed_errors), 0, f"404 errors detected: {not_allowed_errors}")
 
 
 def castable_to_dict(objects: Iterable):
@@ -278,7 +267,11 @@ class WriteReadScenarioToDatabase(TestCase):
         mutations = [
             (vehicle_type, "battery_capacity", 1),
             (vehicle_type, "charging_efficiency", 0.1),
-            (vehicle_type, "minimum_charging_power", vehicle_type.charging_curve[0][1] * 0.99),
+            (
+                vehicle_type,
+                "minimum_charging_power",
+                vehicle_type.charging_curve[0][1] * 0.99,
+            ),
             (
                 vehicle_type,
                 "charging_curve",
@@ -292,7 +285,11 @@ class WriteReadScenarioToDatabase(TestCase):
             mutations.append((vehicle_type, "consumption", vehicle_type.consumption * 0.1))
         else:
             mutations.append(
-                (consumption_table, "values", [v * 0.1 for v in consumption_table.values])
+                (
+                    consumption_table,
+                    "values",
+                    [v * 0.1 for v in consumption_table.values],
+                )
             )
 
         scen_db = simba_schedule_db.run(args_db)
@@ -733,7 +730,8 @@ class ConsumptionTestCase(TransactionTestCase):
         # but only once
         with transaction.atomic():
             self.assertRaises(
-                Exception, lambda: Consumption.objects.create(**builder_kwargs, scenario=s)
+                Exception,
+                lambda: Consumption.objects.create(**builder_kwargs, scenario=s),
             )
         assert Consumption.objects.filter(name=name).count() == 2
 

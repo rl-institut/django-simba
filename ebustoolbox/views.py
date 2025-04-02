@@ -218,7 +218,7 @@ class ScenarioMixIn(AuthorizedMixIn):
                 # Simulation is running, redirect to
                 context |= {
                     "duration": 4,
-                    "redirect_url": reverse("simba:results", args=[scenario.task_id]),
+                    "redirect_url": reverse("simba:result", args=[scenario.task_id]),
                     "content": "Ihre Simulation ist beendet, daher werden sie zu den Ergebnissen weitergeleitet..",
                 }
                 return render(request, "core/redirect_with_timer.html", context)
@@ -986,7 +986,7 @@ class SummaryView(AuthorizedMixIn, TemplateView):
 
 
 class ResultView(AuthorizedMixIn, TemplateView):
-    template_name = "ebustoolbox/results.html"
+    template_name = "ebustoolbox/result.html"
 
 
 class DashboardView(TemplateView):
@@ -1093,6 +1093,7 @@ def merge_and_run(request: HttpRequest, task_id: str):
     context["progress_id"] = async_result.task_id
     context["scenario"] = scenario
     context["template_name"] = "progress_simulation.html"
+    context["next_url_name"] = reverse("simba:result", args=[progress.task_id])
     context["progress"] = progress
     response = render(request, "core/progress_poll.html", context)
 
