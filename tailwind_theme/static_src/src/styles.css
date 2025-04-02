@@ -5,35 +5,35 @@
 /* Fonts */
 @font-face {
   font-family: 'Inter';
-  src: url('../public/fonts/Inter_18pt-Light.ttf') format('ttf');
+  src: url('/static/core/fonts/Inter_18pt-Light.ttf') format('truetype');
   font-weight: 300;
   font-style: normal;
 }
 
 @font-face {
   font-family: 'Inter';
-  src: url('../public/fonts/Inter_18pt-Regular.ttf') format('ttf');
+  src: url('/static/core/fonts/Inter_18pt-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
 }
 
 @font-face {
   font-family: 'Inter';
-  src: url('../public/fonts/Inter_18pt-SemiBold.ttf') format('ttf');
+  src: url('/static/core/fonts/Inter_18pt-SemiBold.ttf') format('truetype');
   font-weight: 600;
   font-style: normal;
 }
 
 @font-face {
   font-family: 'Inter';
-  src: url('../public/fonts/Inter_18pt-Bold.ttf') format('ttf');
+  src: url('/static/core/fonts/Inter_18pt-Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
 }
 
 @font-face {
   font-family: 'Inter';
-  src: url('../public/fonts/Inter_18pt-Italic.ttf') format('ttf');
+  src: url('/static/core/fonts/Inter_18pt-Italic.ttf') format('truetype');
   font-weight: 400;
   font-style: italic;
 }
