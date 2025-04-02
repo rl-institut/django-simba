@@ -15,8 +15,9 @@
         {% if user.is_authenticated %}
           <a href="{% url 'simba:dashboard' %}" class="text-sm text-slate-600 hover:text-green-500 transition-colors">Szenarien</a>
           <a href="{% url 'simba:compare' %}" class="text-sm text-slate-600 hover:text-green-500 transition-colors">Szenarienvergleich</a>
+          <a href="{% url 'core:profile' %}" class="text-sm text-slate-600 hover:text-green-500 transition-colors">Profil</a>
         {% endif %}
-        <a href="#" class="text-sm text-slate-600 hover:text-green-500 transition-colors">Hilfe</a>
+        <a href="{% url 'core:help' %}" class="text-sm text-slate-600 hover:text-green-500 transition-colors">Hilfe</a>
         {% if user.is_authenticated %}
           <form action="{% url 'core:logout' %}" method="post">
             {% csrf_token %}
