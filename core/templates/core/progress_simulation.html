@@ -27,7 +27,7 @@
         </div>
         {% if progress.success %}
 {#          a new scenario was created which has a new task_id identical to the progress task_id#}
-        <a href="{{next_url}}" >Zu den Ergebnissen</a>
+        <a href="{%  url 'simba:result' progress.task_id %}" >Zu den Ergebnissen</a>
         {% else %}
         <div class="flex gap-1 mt-2 text-sm text-blue-800">
 

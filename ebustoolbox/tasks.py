@@ -29,7 +29,6 @@ import core.deepcopy
 import ebustoolbox.util
 import simba.optimizer_util
 import simba.simulate
-import simba.trip
 import simba.util
 from core.deepcopy import reset_postgres_auto_increments
 from core.models import Progress
@@ -869,15 +868,22 @@ def run_ebus_toolchain(task_id):
 
 @shared_task(bind=True)
 def run_and_merge_scenarios(self, parent_id: int, mutation_id: int, simulation_task_id):
-    parent_scenario = Scenario.objects.get(id=parent_id)
-    mutation_scenario = Scenario.objects.get(id=mutation_id)
-    simulation_scenario = create_child_from_mutation(parent_scenario, mutation_scenario)
-    simulation_scenario.name = "Results for " + simulation_scenario.name
-    simulation_scenario.task_id = simulation_task_id
-    simulation_scenario.save()
-    if "ebus_map" in settings.INSTALLED_APPS:
-        create_stations_for_map(simulation_scenario)
-    run_toolchain_from_scenario(simulation_scenario, assign_vehicles=True)
+    try:
+        parent_scenario = Scenario.objects.get(id=parent_id)
+        mutation_scenario = Scenario.objects.get(id=mutation_id)
+        simulation_scenario = create_child_from_mutation(parent_scenario, mutation_scenario)
+        simulation_scenario.name = "Results for " + simulation_scenario.name
+        simulation_scenario.task_id = simulation_task_id
+        simulation_scenario.save()
+        if "ebus_map" in settings.INSTALLED_APPS:
+            create_stations_for_map(simulation_scenario)
+        run_toolchain_from_scenario(simulation_scenario, assign_vehicles=True)
+    except Exception as e:
+        logger.error(traceback.format_exc(e))
+        progress = Progress.objects.get(scenario=mutation_scenario, task_id=simulation_task_id)
+        progress.status = "Fehlgeschlagen"
+        progress.success = False
+        progress.running = False
 
 
 def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False):
@@ -1909,12 +1915,21 @@ def update_stations_and_exclusion(context, scenario):
             else:
                 # Electrification needs further attributes
                 station = form.save(commit=False)
+                # ToDo Workaround for when bryan is finished.
+                # Fix form with proper naming
+                station: Station
+                station.power_per_charger = station.power_total
+                station.power_total = station.power_per_charger * station.amount_charging_places
                 station.charge_type = EnumChargeType.OPPORTUNITY
                 station.voltage_level = EnumVoltageLevel.VOLTAGE_MV
                 station.is_valid()
         stations.append(station)
     StationElectrificationExclusions.objects.bulk_create(station_exclusions)
-    Station.objects.bulk_update(stations, fields=forms.StationForm._meta.fields)
+    Station.objects.bulk_update(
+        stations,
+        fields=forms.StationForm._meta.fields
+        + ["charge_type", "voltage_level", "power_per_charger"],
+    )
 
 
 def update_vehicle_types_with_defaults(vehicle_type_pairs, task_id, vt_adjustments):

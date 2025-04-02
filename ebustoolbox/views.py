@@ -1067,13 +1067,14 @@ def merge_and_run(request: HttpRequest, task_id: str):
         progress_type=EnumProgress.RUNNING_SIMULATION,
     )
     if simulation_progess.filter(running=True).exists():
-        return HttpResponseForbidden(
-            "Starting multiple Simulations from the same source is not allowed"
-        )
+        error_text = "Starting multiple Simulations from the same source is not allowed"
+        logger.info(error_text)
+        return HttpResponseForbidden()
+
     if simulation_progess.filter(success=True).exists():
-        return HttpResponseForbidden(
-            "Starting a Simulation which was sucessfully simulated is not allowed"
-        )
+        error_text = "Starting a Simulation which was sucessfully simulated is not allowed"
+        logger.info(error_text)
+        return HttpResponseForbidden(error_text)
 
     sim_task_id = get_unique_task_id()
     progress = Progress.objects.create(
@@ -1084,16 +1085,25 @@ def merge_and_run(request: HttpRequest, task_id: str):
     logger.info("Running Toolchain.")
 
     # create scenario from mutation and parent and simulate it
-    async_result = tasks.run_and_merge_scenarios.apply_async(
-        (scenario.parent.id, scenario.id, sim_task_id), task_id=str(sim_task_id)
-    )
+    try:
+        async_result = tasks.run_and_merge_scenarios.apply_async(
+            (scenario.parent.id, scenario.id, sim_task_id), task_id=str(sim_task_id)
+        )
+    except Exception as e:
+        progress.status = "Fehlgeschlagen"
+        progress.success = False
+        progress.running = False
+        progress.errors.append(
+            "Ein unerwarteter Fehler ist aufgetreten." "Wenden Sie sich an ihren Administrator"
+        )
+        logger.error(traceback.format_exc(e))
+
     progress.task_id = async_result.task_id
     progress.save()
     context = {}
     context["progress_id"] = async_result.task_id
     context["scenario"] = scenario
     context["template_name"] = "progress_simulation.html"
-    context["next_url_name"] = reverse("simba:result", args=[progress.task_id])
     context["progress"] = progress
     response = render(request, "core/progress_poll.html", context)
 
