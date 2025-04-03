@@ -218,7 +218,7 @@ class ScenarioMixIn(AuthorizedMixIn):
                 # Simulation is running, redirect to
                 context |= {
                     "duration": 4,
-                    "redirect_url": reverse("simba:results", args=[scenario.task_id]),
+                    "redirect_url": reverse("simba:result", args=[scenario.task_id]),
                     "content": "Ihre Simulation ist beendet, daher werden sie zu den Ergebnissen weitergeleitet..",
                 }
                 return render(request, "core/redirect_with_timer.html", context)
@@ -986,7 +986,7 @@ class SummaryView(AuthorizedMixIn, TemplateView):
 
 
 class ResultView(AuthorizedMixIn, TemplateView):
-    template_name = "ebustoolbox/results.html"
+    template_name = "ebustoolbox/result.html"
 
 
 class DashboardView(TemplateView):
@@ -1067,13 +1067,14 @@ def merge_and_run(request: HttpRequest, task_id: str):
         progress_type=EnumProgress.RUNNING_SIMULATION,
     )
     if simulation_progess.filter(running=True).exists():
-        return HttpResponseForbidden(
-            "Starting multiple Simulations from the same source is not allowed"
-        )
+        error_text = "Starting multiple Simulations from the same source is not allowed"
+        logger.info(error_text)
+        return HttpResponseForbidden()
+
     if simulation_progess.filter(success=True).exists():
-        return HttpResponseForbidden(
-            "Starting a Simulation which was sucessfully simulated is not allowed"
-        )
+        error_text = "Starting a Simulation which was sucessfully simulated is not allowed"
+        logger.info(error_text)
+        return HttpResponseForbidden(error_text)
 
     sim_task_id = get_unique_task_id()
     progress = Progress.objects.create(
@@ -1084,9 +1085,19 @@ def merge_and_run(request: HttpRequest, task_id: str):
     logger.info("Running Toolchain.")
 
     # create scenario from mutation and parent and simulate it
-    async_result = tasks.run_and_merge_scenarios.apply_async(
-        (scenario.parent.id, scenario.id, sim_task_id), task_id=str(sim_task_id)
-    )
+    try:
+        async_result = tasks.run_and_merge_scenarios.apply_async(
+            (scenario.parent.id, scenario.id, sim_task_id), task_id=str(sim_task_id)
+        )
+    except Exception as e:
+        progress.status = "Fehlgeschlagen"
+        progress.success = False
+        progress.running = False
+        progress.errors.append(
+            "Ein unerwarteter Fehler ist aufgetreten." "Wenden Sie sich an ihren Administrator"
+        )
+        logger.error(traceback.format_exc(e))
+
     progress.task_id = async_result.task_id
     progress.save()
     context = {}

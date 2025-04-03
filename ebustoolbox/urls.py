@@ -46,9 +46,9 @@ urlpatterns = [
     ),
     path("progress2/<uuid:progress_id>/<str:template_name>/", progress2, name="progress"),
     path(
-        "results/<uuid:task_id>",
+        "result/<uuid:task_id>",
         ResultView.as_view(),
-        name="results",
+        name="result",
     ),
     path(
         "stations/",
