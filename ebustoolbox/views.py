@@ -8,7 +8,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import QuerySet
+from django.db.models import F, QuerySet, Sum
+from django.db.models.functions import Coalesce
 from django.db.transaction import atomic
 from django.forms import formset_factory, modelform_factory, widgets
 from django.http import HttpResponse, HttpRequest, Http404, HttpResponseForbidden
@@ -47,6 +48,7 @@ from ebustoolbox.models import (
     DefaultScenario,
     Station,
     EnumChargeType,
+    EventType,
     Trip,
     SimulationRange,
     VehicleTypeSelection,
@@ -149,6 +151,16 @@ def get_user_scenarios(user) -> list[Scenario]:
     all_scenarios = [s for s in Scenario.objects.filter(id__in=user_scenarios_ids)]
     all_scenarios_sorted = list(sorted(all_scenarios, key=lambda x: user_scenarios_ids.index(x.id)))
     return all_scenarios_sorted
+
+
+def get_user_scenario_qs(user) -> QuerySet[Scenario]:
+    # get a Queryset containing all scenarios which are accessible by the user
+    scenarios = Scenario.objects.filter(manager=user)
+    usergroups = user.usergroup_set.all()
+    for ug in usergroups:
+        scenarios = scenarios.union(ug.scenarios.all())
+    scenarios = scenarios.order_by("id")
+    return scenarios
 
 
 class AuthorizedMixIn:
@@ -1181,15 +1193,55 @@ def generate_zip(request: HttpRequest, task_id: str):
 @login_required(login_url="/login/")
 def get_dashboard(request):
     # show all scenarios of a user
-    scenarios = Scenario.objects.filter(manager=request.user)
-    usergroups = request.user.usergroup_set.all()
-    for ug in usergroups:
-        scenarios = scenarios.union(ug.scenarios.all())
-    scenarios = scenarios.order_by("id")
+    # what about staff?
+    scenarios = get_user_scenario_qs(request.user)
     if scenarios.exists():
         return render(request, "ebustoolbox/dashboard.html", {"scenarios": scenarios})
     else:
         return render(request, "ebustoolbox/dashboard-empty-state.html")
+
+
+@login_required(login_url="/login/")
+def compare(request):
+    # show comparison page, get relevant data of user scenarios
+    scenarios = get_user_scenario_qs(request.user)
+    scenario_dict = dict()
+    for scenario in scenarios:
+        stations = scenario.station_set.all()
+        num_electrified_opps = stations.filter(charge_type=EnumChargeType.OPPORTUNITY).count()
+        num_cs_deps = stations.filter(
+            charge_type=EnumChargeType.DEPOT
+        ).aggregate(cs=Coalesce(Sum("amount_charging_places"), 0))["cs"]
+        rotations = scenario.rotation_set.all()
+        events = scenario.event_set.all()
+        energy_opps = events.filter(
+            event_type=EventType.CHARGING_OPPORTUNITY
+        ).annotate(
+            charged=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity")
+        ).aggregate(sum_charged = Coalesce(Sum("charged"), 0.0))["sum_charged"]
+        energy_deps = round(energy_opps) if energy_opps is not None else None
+        energy_deps = events.filter(
+            event_type=EventType.CHARGING_DEPOT
+        ).annotate(
+            charged=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity")
+        ).aggregate(sum_charged = Coalesce(Sum("charged"), 0.0))["sum_charged"]
+        energy_deps = round(energy_deps) if energy_deps is not None else None
+        scenario_dict[scenario.id] = {
+            "Name": scenario.name,
+            "Erstellt": scenario.created.strftime("%d.%m.%Y"),
+            "Fahrzeuge": scenario.vehicle_set.count(),
+            "Umläufe": scenario.rotation_set.count(),
+            "Gesamtkilometer": round(sum([r.get_distance()/1000 for r in rotations])),
+            "Anzahl elektrifizierte Endhaltestellen": num_electrified_opps,
+            "Geladene Energie an Endhaltestellen": energy_opps,
+            "Anzahl Ladeplätze in allen Depots": num_cs_deps,
+            "Geladene Energie an Depots": energy_deps,
+        }
+
+    return render(request, "ebustoolbox/compare.html", {
+        "scenarios": scenario_dict,
+        "requested": request.GET.get("s"),
+    })
 
 
 @login_required(login_url="/login/")

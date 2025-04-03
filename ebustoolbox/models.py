@@ -604,7 +604,8 @@ class Rotation(models.Model):
     allow_opportunity_charging = models.BooleanField(default=True, null=False)
 
     def get_distance(self):
-        return Route.objects.filter(trip__rotation=self).aggregate(Sum("distance"))
+        # get distance of this rotation in meters
+        return Route.objects.filter(trip__rotation=self).aggregate(Sum("distance"))["distance__sum"]
 
 
 def annotate_distance(query: QuerySet[Rotation]):
