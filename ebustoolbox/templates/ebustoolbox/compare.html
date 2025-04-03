@@ -40,6 +40,12 @@
   const requested = JSON.parse(document.getElementById('requested').textContent);
   const table = document.getElementById('table');
 
+  // table styles
+  const columnHeaderStyle = ['px-4', 'py-4', 'font-medium', 'text-center'];
+  const rowStyle = ['border-t'];
+  const rowKeyStyle = ['px-4', 'py-3', 'text-slate-500'];
+  const rowValueStyle = ['px-4', 'py-3', 'text-center'];
+
   window.onload = _ => {
     // on page start, create basic table
     // row description in first column
@@ -48,16 +54,16 @@
       if (key == 'Name')
           continue;  // displayed in table header
       let tr = table.insertRow();
-      tr.classList.add('border-t');
+      tr.classList.add(...rowStyle);
       let td = tr.insertCell(0);
-      td.classList.add('px-4', 'py-3', 'text-slate-500');
+      td.classList.add(...rowKeyStyle);
       td.textContent = key;
     }
 
     // add column with scenario selection and empty cells
     // this will always be last column (to add new scenarios for comparison)
     let th = table.rows[0].insertCell();
-    th.classList.add('px-4', 'py-4', 'font-medium', 'text-center');
+    th.classList.add(...columnHeaderStyle);
     let select = document.createElement('SELECT');
     th.appendChild(select);
     let option = document.createElement('option');
@@ -75,7 +81,7 @@
     // empty cells (mainly for visual effect)
     for (let i=1; i<keys.length; i++) {
       let td = table.rows[i].insertCell();
-      td.classList.add('px-4', 'py-3', 'text-slate-500');
+      td.classList.add(...rowValueStyle);
       td.textContent = '';
     }
 
@@ -95,13 +101,13 @@
     let scenario = scenarios[e.target.value];
     num_columns = table.rows[0].childElementCount;
     let th = table.rows[0].insertCell(num_columns-1);
-    th.classList.add('px-4', 'py-4', 'font-medium', 'text-center');
+    th.classList.add(...columnHeaderStyle);
     th.textContent = scenario.Name;
 
     let values = Object.values(scenario);
     for (let i=1; i<values.length; i++) {
       td = table.rows[i].insertCell(num_columns-1);
-      td.classList.add('px-4', 'py-3', 'text-center');
+      td.classList.add(...rowValueStyle);
       td.textContent = values[i];
     }
     // reset scenario selection

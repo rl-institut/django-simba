@@ -148,7 +148,7 @@ def get_user_scenarios(user) -> list[Scenario]:
     user_usergroup_ids = {s.id for s in usergroup_scenarios}
     user_scenarios_ids.extend(user_usergroup_ids)
     user_scenarios_ids.append(default_scenario.id)
-    all_scenarios = [s for s in Scenario.objects.filter(id__in=user_scenarios_ids)]
+    all_scenarios = [s for s in get_user_scenarios_qs(user)]
     all_scenarios_sorted = list(sorted(all_scenarios, key=lambda x: user_scenarios_ids.index(x.id)))
     return all_scenarios_sorted
 
@@ -1204,6 +1204,8 @@ def get_dashboard(request):
 @login_required(login_url="/login/")
 def compare(request):
     # show comparison page, get relevant data of user scenarios
+    # allows for optional request parameter "s", which should be a scenario ID a user has access to
+    # this scenario will then be shown in the first column of the comparison page
     scenarios = get_user_scenario_qs(request.user)
     scenario_dict = dict()
     for scenario in scenarios:
