@@ -1209,39 +1209,44 @@ def compare(request):
     for scenario in scenarios:
         stations = scenario.station_set.all()
         num_electrified_opps = stations.filter(charge_type=EnumChargeType.OPPORTUNITY).count()
-        num_cs_deps = stations.filter(
-            charge_type=EnumChargeType.DEPOT
-        ).aggregate(cs=Coalesce(Sum("amount_charging_places"), 0))["cs"]
+        # sum up charging places at depots, defaults to 0 for null values
+        num_cs_deps = stations.filter(charge_type=EnumChargeType.DEPOT).aggregate(
+            cs=Coalesce(Sum("amount_charging_places"), 0)
+        )["cs"]
         rotations = scenario.rotation_set.all()
         events = scenario.event_set.all()
-        energy_opps = events.filter(
-            event_type=EventType.CHARGING_OPPORTUNITY
-        ).annotate(
+        # calculate charged energy for all events
+        events = events.annotate(
             charged=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity")
-        ).aggregate(sum_charged = Coalesce(Sum("charged"), 0.0))["sum_charged"]
-        energy_deps = round(energy_opps) if energy_opps is not None else None
-        energy_deps = events.filter(
-            event_type=EventType.CHARGING_DEPOT
-        ).annotate(
-            charged=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity")
-        ).aggregate(sum_charged = Coalesce(Sum("charged"), 0.0))["sum_charged"]
-        energy_deps = round(energy_deps) if energy_deps is not None else None
+        )
+        # sum up charged energy by event type. Default value 0 in case of null values
+        energy_opps = events.filter(event_type=EventType.CHARGING_OPPORTUNITY).aggregate(
+            sum_charged=Coalesce(Sum("charged"), 0.0)
+        )["sum_charged"]
+        energy_deps = events.filter(event_type=EventType.CHARGING_DEPOT).aggregate(
+            sum_charged=Coalesce(Sum("charged"), 0.0)
+        )["sum_charged"]
+
         scenario_dict[scenario.id] = {
             "Name": scenario.name,
             "Erstellt": scenario.created.strftime("%d.%m.%Y"),
             "Fahrzeuge": scenario.vehicle_set.count(),
             "Umläufe": scenario.rotation_set.count(),
-            "Gesamtkilometer": round(sum([r.get_distance()/1000 for r in rotations])),
+            "Gesamtkilometer": round(sum([r.get_distance() / 1000 for r in rotations])),
             "Anzahl elektrifizierte Endhaltestellen": num_electrified_opps,
-            "Geladene Energie an Endhaltestellen": energy_opps,
+            "Geladene Energie an Endhaltestellen": round(energy_opps),
             "Anzahl Ladeplätze in allen Depots": num_cs_deps,
-            "Geladene Energie an Depots": energy_deps,
+            "Geladene Energie an Depots": round(energy_deps),
         }
 
-    return render(request, "ebustoolbox/compare.html", {
-        "scenarios": scenario_dict,
-        "requested": request.GET.get("s"),
-    })
+    return render(
+        request,
+        "ebustoolbox/compare.html",
+        {
+            "scenarios": scenario_dict,
+            "requested": request.GET.get("s"),
+        },
+    )
 
 
 @login_required(login_url="/login/")
