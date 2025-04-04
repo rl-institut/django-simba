@@ -1155,7 +1155,7 @@ def model_export_json(request: HttpRequest, model_str: str, task_id: str):
 def run_simulation(request: HttpRequest, task_id: str):
     context = {"task_id": task_id, "progress_type": "simba:scenario_overview"}
     logger.debug(context)
-    response = HttpResponse(context)
+    response = HttpResponse(context=context)
 
     try:
         if request.method == "GET":
