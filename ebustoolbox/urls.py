@@ -16,6 +16,7 @@ from ebustoolbox.views import (
     ResultView,
     DashboardView,
     get_dashboard,
+    compare,
 )
 
 # from . import views
@@ -23,11 +24,7 @@ from ebustoolbox.views import (
 app_name = "simba"
 
 urlpatterns = [
-    path(
-        "compare/",
-        TemplateView.as_view(template_name="ebustoolbox/compare.html"),
-        name="compare",
-    ),
+    path("compare/", compare, name="compare"),
     path(
         "costs/<uuid:task_id>",
         CostsView.as_view(),
@@ -46,9 +43,9 @@ urlpatterns = [
     ),
     path("progress2/<uuid:progress_id>/<str:template_name>/", progress2, name="progress"),
     path(
-        "results/<uuid:task_id>",
+        "result/<uuid:task_id>",
         ResultView.as_view(),
-        name="results",
+        name="result",
     ),
     path(
         "stations/",
@@ -94,4 +91,6 @@ urlpatterns = [
     path("run_simulation/<uuid:task_id>/", run_simulation, name="run_simulation"),
     # path("merge_scenario/<uuid:task_id>/", merge_scenario, name="merge_scenario"),
     path("merge_and_run/<uuid:task_id>/", merge_and_run, name="merge_and_run"),
+    # superfluous templates, just for show
+    path("DEMO/", TemplateView.as_view(template_name="ebustoolbox/compare_DEMO.html")),
 ]

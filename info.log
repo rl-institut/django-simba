@@ -1,0 +1,35 @@
+INFO 2025-04-04 12:52:09,734 Watching for file changes with StatReloader
+INFO 2025-04-04 12:54:15,007 "GET / HTTP/1.1" 200 10725
+INFO 2025-04-04 12:54:15,042 "GET /static/core/images/logo/webus_green.svg HTTP/1.1" 304 0
+INFO 2025-04-04 12:54:15,047 "GET /static/core/images/logo/webus_white.svg HTTP/1.1" 200 4686
+INFO 2025-04-04 12:54:15,059 "GET /static/css/dist/styles.css?v=1743771254 HTTP/1.1" 200 61333
+INFO 2025-04-04 12:54:15,077 "GET /static/core/fonts/Inter_18pt-SemiBold.ttf HTTP/1.1" 304 0
+INFO 2025-04-04 12:54:15,077 "GET /static/core/fonts/Inter_18pt-Regular.ttf HTTP/1.1" 304 0
+INFO 2025-04-04 12:54:18,674 "GET /simba/trips/ HTTP/1.1" 200 32139
+INFO 2025-04-04 12:54:18,724 "GET /static/ebustoolbox/js/file_drop_zone_handling.js HTTP/1.1" 304 0
+INFO 2025-04-04 12:54:18,727 "GET /static/css/dist/styles.css?v=1743771258 HTTP/1.1" 200 61333
+INFO 2025-04-04 12:54:18,782 "GET /static/core/fonts/Inter_18pt-Light.ttf HTTP/1.1" 304 0
+INFO 2025-04-04 12:55:04,311 /app/ebustoolbox/models.py changed, reloading.
+INFO 2025-04-04 12:55:07,276 Watching for file changes with StatReloader
+INFO 2025-04-04 12:55:25,465 /app/ebustoolbox/views.py changed, reloading.
+INFO 2025-04-04 12:55:28,243 Watching for file changes with StatReloader
+INFO 2025-04-04 12:55:35,869 /app/ebustoolbox/admin.py changed, reloading.
+INFO 2025-04-04 12:55:38,672 Watching for file changes with StatReloader
+INFO 2025-04-04 12:57:16,570 "GET /simba/trips/ HTTP/1.1" 200 31697
+INFO 2025-04-04 12:57:16,607 "GET /static/css/dist/styles.css?v=1743771436 HTTP/1.1" 200 61333
+INFO 2025-04-04 12:57:16,686 "GET /static/core/images/WB.svg HTTP/1.1" 304 0
+INFO 2025-04-04 12:57:20,927 "GET /simba/compare/ HTTP/1.1" 200 13949
+INFO 2025-04-04 12:57:20,961 "GET /static/css/dist/styles.css?v=1743771440 HTTP/1.1" 200 61333
+INFO 2025-04-04 12:57:26,741 "GET /simba/dashboard/ HTTP/1.1" 200 35837
+INFO 2025-04-04 12:57:26,772 "GET /static/css/dist/styles.css?v=1743771446 HTTP/1.1" 200 61333
+INFO 2025-04-04 12:57:26,811 "GET /static/core/fonts/Inter_18pt-Bold.ttf HTTP/1.1" 304 0
+INFO 2025-04-04 12:57:28,945 "GET /simba/compare/?s=7 HTTP/1.1" 200 13948
+INFO 2025-04-04 12:57:28,976 "GET /static/css/dist/styles.css?v=1743771448 HTTP/1.1" 200 61333
+INFO 2025-04-04 12:57:32,160 "GET /simba/trips/ HTTP/1.1" 200 31697
+INFO 2025-04-04 12:57:32,193 "GET /static/css/dist/styles.css?v=1743771452 HTTP/1.1" 200 61333
+INFO 2025-04-04 12:57:45,249 "GET /help/ HTTP/1.1" 200 9423
+INFO 2025-04-04 12:57:45,282 "GET /static/css/dist/styles.css?v=1743771465 HTTP/1.1" 200 61333
+INFO 2025-04-04 12:57:46,130 "GET /profile/ HTTP/1.1" 200 9469
+INFO 2025-04-04 12:57:46,160 "GET /static/css/dist/styles.css?v=1743771466 HTTP/1.1" 200 61333
+INFO 2025-04-04 12:57:47,428 "GET /simba/trips/ HTTP/1.1" 200 31697
+INFO 2025-04-04 12:57:47,457 "GET /static/css/dist/styles.css?v=1743771467 HTTP/1.1" 200 61333

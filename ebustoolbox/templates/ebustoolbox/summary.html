@@ -549,7 +549,7 @@
 {% block wizard_buttons %}
   {% url 'simba:depots' task_id as prev_url %}
 
-  {% url 'simba:results' task_id as next_url %}
+  {% url 'simba:result' task_id as next_url %}
   {{ block.super }}
 {% endblock wizard_buttons %}
 

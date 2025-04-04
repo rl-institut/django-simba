@@ -8,7 +8,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import QuerySet
+from django.db.models import F, QuerySet, Sum
+from django.db.models.functions import Coalesce
 from django.db.transaction import atomic
 from django.forms import formset_factory, modelform_factory, widgets
 from django.http import HttpResponse, HttpRequest, Http404, HttpResponseForbidden
@@ -47,6 +48,7 @@ from ebustoolbox.models import (
     DefaultScenario,
     Station,
     EnumChargeType,
+    EventType,
     Trip,
     SimulationRange,
     VehicleTypeSelection,
@@ -130,7 +132,11 @@ def get_user_vehicle_types(user) -> QuerySet[VehicleType]:
 
 
 def get_user_scenarios(user) -> list[Scenario]:
-    """Get a list of scenarios which are accessible by the user"""
+    """Get a list of scenarios which are accessible by the user and the default scenario
+
+    The list is ordered by User Scenarios, UserGroup Scenarios and lastly the default Scenario
+    """
+    # Todo Define what admins should see and refactor function with new get_user_scenario_qs
     user_scenarios = []
     usergroup_scenarios = []
     if user.is_superuser:
@@ -146,9 +152,24 @@ def get_user_scenarios(user) -> list[Scenario]:
     user_usergroup_ids = {s.id for s in usergroup_scenarios}
     user_scenarios_ids.extend(user_usergroup_ids)
     user_scenarios_ids.append(default_scenario.id)
-    all_scenarios = [s for s in Scenario.objects.filter(id__in=user_scenarios_ids)]
+
+    all_scenarios = []
+    if user.is_authenticated:
+        all_scenarios = [s for s in get_user_scenario_qs(user)]
+
+    all_scenarios.append(default_scenario)
     all_scenarios_sorted = list(sorted(all_scenarios, key=lambda x: user_scenarios_ids.index(x.id)))
     return all_scenarios_sorted
+
+
+def get_user_scenario_qs(user) -> QuerySet[Scenario]:
+    # get a Queryset containing all scenarios which are accessible by the user
+    scenarios = Scenario.objects.filter(manager=user)
+    usergroups = user.usergroup_set.all()
+    for ug in usergroups:
+        scenarios = scenarios.union(ug.scenarios.all())
+    scenarios = scenarios.order_by("id")
+    return scenarios
 
 
 class AuthorizedMixIn:
@@ -218,7 +239,7 @@ class ScenarioMixIn(AuthorizedMixIn):
                 # Simulation is running, redirect to
                 context |= {
                     "duration": 4,
-                    "redirect_url": reverse("simba:results", args=[scenario.task_id]),
+                    "redirect_url": reverse("simba:result", args=[scenario.task_id]),
                     "content": "Ihre Simulation ist beendet, daher werden sie zu den Ergebnissen weitergeleitet..",
                 }
                 return render(request, "core/redirect_with_timer.html", context)
@@ -986,7 +1007,7 @@ class SummaryView(AuthorizedMixIn, TemplateView):
 
 
 class ResultView(AuthorizedMixIn, TemplateView):
-    template_name = "ebustoolbox/results.html"
+    template_name = "ebustoolbox/result.html"
 
 
 class DashboardView(TemplateView):
@@ -1067,13 +1088,14 @@ def merge_and_run(request: HttpRequest, task_id: str):
         progress_type=EnumProgress.RUNNING_SIMULATION,
     )
     if simulation_progess.filter(running=True).exists():
-        return HttpResponseForbidden(
-            "Starting multiple Simulations from the same source is not allowed"
-        )
+        error_text = "Starting multiple Simulations from the same source is not allowed"
+        logger.info(error_text)
+        return HttpResponseForbidden()
+
     if simulation_progess.filter(success=True).exists():
-        return HttpResponseForbidden(
-            "Starting a Simulation which was sucessfully simulated is not allowed"
-        )
+        error_text = "Starting a Simulation which was sucessfully simulated is not allowed"
+        logger.info(error_text)
+        return HttpResponseForbidden(error_text)
 
     sim_task_id = get_unique_task_id()
     progress = Progress.objects.create(
@@ -1084,9 +1106,19 @@ def merge_and_run(request: HttpRequest, task_id: str):
     logger.info("Running Toolchain.")
 
     # create scenario from mutation and parent and simulate it
-    async_result = tasks.run_and_merge_scenarios.apply_async(
-        (scenario.parent.id, scenario.id, sim_task_id), task_id=str(sim_task_id)
-    )
+    try:
+        async_result = tasks.run_and_merge_scenarios.apply_async(
+            (scenario.parent.id, scenario.id, sim_task_id), task_id=str(sim_task_id)
+        )
+    except Exception as e:
+        progress.status = "Fehlgeschlagen"
+        progress.success = False
+        progress.running = False
+        progress.errors.append(
+            "Ein unerwarteter Fehler ist aufgetreten." "Wenden Sie sich an ihren Administrator"
+        )
+        logger.error(traceback.format_exc(e))
+
     progress.task_id = async_result.task_id
     progress.save()
     context = {}
@@ -1132,7 +1164,7 @@ def model_export_json(request: HttpRequest, model_str: str, task_id: str):
 def run_simulation(request: HttpRequest, task_id: str):
     context = {"task_id": task_id, "progress_type": "simba:scenario_overview"}
     logger.debug(context)
-    response = HttpResponse(context)
+    response = HttpResponse(context=context)
 
     try:
         if request.method == "GET":
@@ -1181,15 +1213,62 @@ def generate_zip(request: HttpRequest, task_id: str):
 @login_required(login_url="/login/")
 def get_dashboard(request):
     # show all scenarios of a user
-    scenarios = Scenario.objects.filter(manager=request.user)
-    usergroups = request.user.usergroup_set.all()
-    for ug in usergroups:
-        scenarios = scenarios.union(ug.scenarios.all())
-    scenarios = scenarios.order_by("id")
+    # what about staff?
+    scenarios = get_user_scenario_qs(request.user)
     if scenarios.exists():
         return render(request, "ebustoolbox/dashboard.html", {"scenarios": scenarios})
     else:
         return render(request, "ebustoolbox/dashboard-empty-state.html")
+
+
+@login_required(login_url="/login/")
+def compare(request):
+    # show comparison page, get relevant data of user scenarios
+    # allows for optional request parameter "s", which should be a scenario ID a user has access to
+    # this scenario will then be shown in the first column of the comparison page
+    scenarios = get_user_scenario_qs(request.user)
+    scenario_dict = dict()
+    for scenario in scenarios:
+        stations = scenario.station_set.all()
+        num_electrified_opps = stations.filter(charge_type=EnumChargeType.OPPORTUNITY).count()
+        # sum up charging places at depots, defaults to 0 for null values
+        num_cs_deps = stations.filter(charge_type=EnumChargeType.DEPOT).aggregate(
+            cs=Coalesce(Sum("amount_charging_places"), 0)
+        )["cs"]
+        rotations = scenario.rotation_set.all()
+        events = scenario.event_set.all()
+        # calculate charged energy for all events
+        events = events.annotate(
+            charged=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity")
+        )
+        # sum up charged energy by event type. Default value 0 in case of null values
+        energy_opps = events.filter(event_type=EventType.CHARGING_OPPORTUNITY).aggregate(
+            sum_charged=Coalesce(Sum("charged"), 0.0)
+        )["sum_charged"]
+        energy_deps = events.filter(event_type=EventType.CHARGING_DEPOT).aggregate(
+            sum_charged=Coalesce(Sum("charged"), 0.0)
+        )["sum_charged"]
+
+        scenario_dict[scenario.id] = {
+            "Name": scenario.name,
+            "Erstellt": scenario.created.strftime("%d.%m.%Y"),
+            "Fahrzeuge": scenario.vehicle_set.count(),
+            "Umläufe": scenario.rotation_set.count(),
+            "Gesamtkilometer": round(sum([r.get_distance() / 1000 for r in rotations])),
+            "Anzahl elektrifizierte Endhaltestellen": num_electrified_opps,
+            "Geladene Energie an Endhaltestellen": round(energy_opps),
+            "Anzahl Ladeplätze in allen Depots": num_cs_deps,
+            "Geladene Energie an Depots": round(energy_deps),
+        }
+
+    return render(
+        request,
+        "ebustoolbox/compare.html",
+        {
+            "scenarios": scenario_dict,
+            "requested": request.GET.get("s"),
+        },
+    )
 
 
 @login_required(login_url="/login/")
