@@ -1306,6 +1306,11 @@ select {
   width: 100vw;
 }
 
+.w-max {
+  width: -moz-max-content;
+  width: max-content;
+}
+
 .min-w-0 {
   min-width: 0px;
 }
@@ -1442,12 +1447,20 @@ select {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.flex-row {
+  flex-direction: row;
+}
+
 .flex-col {
   flex-direction: column;
 }
 
 .flex-wrap {
   flex-wrap: wrap;
+}
+
+.content-start {
+  align-content: flex-start;
 }
 
 .items-start {
@@ -2273,6 +2286,16 @@ select {
 .text-white {
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
+}
+
+.text-red-600 {
+  --tw-text-opacity: 1;
+  color: rgb(220 38 38 / var(--tw-text-opacity, 1));
+}
+
+.text-red-500 {
+  --tw-text-opacity: 1;
+  color: rgb(239 68 68 / var(--tw-text-opacity, 1));
 }
 
 .underline {
