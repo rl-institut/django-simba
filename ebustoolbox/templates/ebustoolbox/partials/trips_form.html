@@ -2,6 +2,7 @@
 {% load static %}
 
 <form id="trips_form"
+      class="w-full max-w-7xl"
       hx-post="{% url 'simba:trips' %}"
       hx-encoding="multipart/form-data"
       hx-trigger="submit"
