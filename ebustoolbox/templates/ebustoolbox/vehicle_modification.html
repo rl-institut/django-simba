@@ -46,9 +46,9 @@
       </ul>
     </div>
   </div>
-  <div class="px-4 py-5 sm:p-6">
+  <div class="flex gap-8 px-4 py-5 sm:p-6">
 {#    <span class="block mb-6 text-sm text-slate-500">Alle Linien sind standardmäßig in "Default" enthalten. Sie können jedoch individuelle Werte für bestimmte Linien oder Liniengruppen anpassen.</span>#}
-    <div>
+    <div class="flex-grow">
       <div class="grid grid-cols-1 sm:hidden">
         <select aria-label="Select a tab" class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-2 pl-3 pr-8 text-base text-slate-800 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600">
           <!-- Options -->
@@ -68,9 +68,9 @@
 {#        </div>#}
 {#      </div>#}
       <!-- Tab content -->
-      <div id="{{ vt_id }}tab-contents" class="mt-4">
+      <div id="{{ vt_id }}tab-contents">
         <div class="tab-content" data-tab="tab-1">
-          <div class="flex flex-col lg:flex-row gap-4">
+          <div class="flex flex-col gap-4">
             <div class="flex-grow">
               <div class="flex items-center gap-2">
                 <label for="{{modification.vehicle_modification.battery_capacity.auto_id}}" id="{{ vt_id }}batteryCapacityLabel" class="block text-sm/6 font-medium text-slate-800">Nutzbare Batteriekapazität</label>
@@ -136,26 +136,8 @@
         <div class="tab-content hidden" data-tab="tab-2">This is the content for Tab 2.</div>
       </div>
     </div>
-    <div class="flex justify-end pt-4">
-      <button
-              type="button"
-              class="whitespace-nowrap border-b-4 border-transparent px-2 pt-4 text-sm font-bold tracking-wide text-green-700 hover:text-green-600 transition-all duration-300"
-              id="{{ vt_id }}busTypeMoreButton"
-      >
-              <span class="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 transition-transform duration-300" id="{{ vt_id }}chevronIcon">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                </svg>
-                <span>Mehr</span>
-              </span>
-      </button>
-    </div>
-    <div id="{{ vt_id }}busTypeHiddenSection" class="mt-4 hidden border-t pt-4 text-gray-700">
-      <div class="flex flex-wrap lg:flex-nowrap">
-        <div class="w-full lg:w-1/3 p-4">
-          <div id="{{ vt_id }}stateOfChargeChart" class="w-full bg-slate-100" style="max-width: 360px; height: 180px;"></div>
-        </div>
-      </div>
+    <div id="{{ vt_id }}busTypeHiddenSection" class="flex-grow text-gray-700">
+      <div id="{{ vt_id }}stateOfChargeChart" class="flex justify-center bg-slate-100" style="height: 180px;"></div>
     </div>
   </div>
 </div>
