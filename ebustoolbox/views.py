@@ -136,6 +136,7 @@ def get_user_scenarios(user) -> list[Scenario]:
 
     The list is ordered by User Scenarios, UserGroup Scenarios and lastly the default Scenario
     """
+    # Todo Define what admins should see and refactor function with new get_user_scenario_qs
     user_scenarios = []
     usergroup_scenarios = []
     if user.is_superuser:
@@ -151,7 +152,11 @@ def get_user_scenarios(user) -> list[Scenario]:
     user_usergroup_ids = {s.id for s in usergroup_scenarios}
     user_scenarios_ids.extend(user_usergroup_ids)
     user_scenarios_ids.append(default_scenario.id)
-    all_scenarios = [s for s in get_user_scenario_qs(user)]
+
+    all_scenarios = []
+    if user.is_authenticated:
+        all_scenarios = [s for s in get_user_scenario_qs(user)]
+
     all_scenarios.append(default_scenario)
     all_scenarios_sorted = list(sorted(all_scenarios, key=lambda x: user_scenarios_ids.index(x.id)))
     return all_scenarios_sorted
