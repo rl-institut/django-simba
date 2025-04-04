@@ -44,46 +44,5 @@
 <!--
     <script type="module" src="/src/main.ts"></script>
 -->
-    <script>
-      const menuButton = document.getElementById('menu-button');
-      const closeButton = document.getElementById('close-menu');
-      const mobileMenu = document.getElementById('mobile-menu');
-
-      // Toggle menu
-      menuButton.addEventListener('click', () => {
-        const isExpanded = menuButton.getAttribute('aria-expanded') === 'true';
-        menuButton.setAttribute('aria-expanded', !isExpanded);
-        mobileMenu.classList.toggle('hidden');
-        mobileMenu.setAttribute('aria-hidden', isExpanded);
-        if (!isExpanded) {
-          mobileMenu.querySelector('a').focus(); // Focus the first menu item
-        }
-      });
-
-      // Close menu
-      closeButton.addEventListener('click', () => {
-        menuButton.setAttribute('aria-expanded', 'false');
-        mobileMenu.classList.add('hidden');
-        mobileMenu.setAttribute('aria-hidden', 'true');
-        menuButton.focus(); // Return focus to the button
-      });
-
-      // Trap focus within the mobile menu
-      mobileMenu.addEventListener('keydown', (e) => {
-        if (e.key === 'Tab') {
-          const focusableElements = mobileMenu.querySelectorAll('a, button');
-          const firstElement = focusableElements[0];
-          const lastElement = focusableElements[focusableElements.length - 1];
-
-          if (e.shiftKey && document.activeElement === firstElement) {
-            e.preventDefault();
-            lastElement.focus();
-          } else if (!e.shiftKey && document.activeElement === lastElement) {
-            e.preventDefault();
-            firstElement.focus();
-          }
-        }
-      });
-    </script>
   </body>
 </html>
