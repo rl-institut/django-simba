@@ -29,7 +29,7 @@
         <div class="mt-6">
           <!-- Option 1 -->
           <div class="flex items-center h-12">
-            <input id="costsAutomatic" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.no_input }}" type="radio" checked class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
+            <input id="costsAutomatic" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.no_input }}" type="radio" checked class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 checked:hover:bg-green-500 checked:focus:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
             <div class="flex items-center gap-2">
               <label for="costsAutomatic" class="ml-3 block text-sm/6 font-medium text-slate-800">Keine Eingabe</label>
               <div class="relative inline-block">
@@ -48,7 +48,7 @@
           </div>
           <!-- Option 2 -->
           <div class="flex items-center h-12">
-            <input id="costsFile" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.file_upload }}" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
+            <input id="costsFile" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.file_upload }}" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 checked:hover:bg-green-500 checked:focus:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
             <div class="flex items-center gap-2">
               <label for="costsFile" class="ml-3 block text-sm/6 font-medium text-slate-800">Datei hochladen</label>
               <div class="relative inline-block">
@@ -76,13 +76,13 @@
           </div>
           <!-- Option 3 -->
           <div class="flex items-center h-12">
-            <input id="costsScenario" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.reference_scenario }}" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
+            <input id="costsScenario" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.reference_scenario }}" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 checked:hover:bg-green-500 checked:focus:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
             <label for="costsScenario" class="ml-3 block text-sm/6 font-medium text-slate-800">Werte aus anderem Szenario übernehmen</label>
             <div class="ml-4 flex-grow hidden" id="dropdown-select">
-              <div class="flex items-center rounded-md bg-white px-2 py-2 outline outline-1 -outline-offset-1 outline-slate-400">
+              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
                 <select
                         {{ costs_scenario_selection.scenario|widget_attrs }}
-                        class="block w-full rounded-md bg-white text-slate-800 focus:outline-none sm:text-sm/6"
+                        class="block w-full rounded-md bg-white py-1.5 px-3 text-left text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                 >
                   <option value="">Szenario auswählen</option>
                   {% for choice in  costs_scenario_selection.scenario.field.queryset %}
@@ -94,7 +94,7 @@
           </div>
           <!-- Option 4 -->
           <div class="flex items-center h-12">
-            <input id="costsManually" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.manual }}" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
+            <input id="costsManually" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.manual }}" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 checked:hover:bg-green-500 checked:focus:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
             <label for="costsManually" class="ml-3 block text-sm/6 font-medium text-slate-800">Manuelle Eingabe</label>
           </div>
         </div>
@@ -118,11 +118,11 @@
               </div>
             </div>
             <div class="mt-2">
-              <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
+              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
                 <input
                         {{ costs_manual.co2_emissions|widget_attrs }}
                   type="number"
-                  class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
+                  class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                   placeholder="800"
                   aria-labelledby="co2EmissionsLabel co2EmissionsUnit">
                 <div id="co2EmissionsUnit" class="shrink-0 select-none text-sm text-slate-500">g/km</div>
@@ -146,10 +146,10 @@
               </div>
             </div>
             <div class="mt-2">
-              <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
+              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
                 <input
                         {{ costs_manual.energy_consumption|widget_attrs }}
-                  class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
+                  class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                   placeholder="1.2"
                   aria-labelledby="energyConsumptionLabel energyConsumptionUnit">
                 <div id="energyConsumptionUnit" class="shrink-0 select-none text-sm text-slate-500">kWh/km</div>
@@ -173,10 +173,10 @@
               </div>
             </div>
             <div class="mt-2">
-              <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
+              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
                 <input
                         {{ costs_manual.resources_consumption|widget_attrs }}
-                  class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
+                  class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                   placeholder="500"
                   aria-labelledby="resourceConsumptionLabel resourceConsumptionUnit">
                 <div id="resourceConsumptionUnit" class="shrink-0 select-none text-sm text-slate-500">kg/Jahr</div>
@@ -200,10 +200,10 @@
               </div>
             </div>
             <div class="mt-2">
-              <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
+              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
                 <input
                         {{ costs_manual.years|widget_attrs }}
-                  class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
+                  class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                   placeholder="15"
                   aria-labelledby="lifetimeAnalysisLabel lifetimeAnalysisUnit">
                 <div id="lifetimeAnalysisUnit" class="shrink-0 select-none text-sm text-slate-500">Jahre</div>
@@ -222,7 +222,7 @@
         <div class="mt-6">
           <!-- Option 1 -->
           <div class="flex items-center h-12">
-            <input id="envAutomatic" name="{{ env_mode_form.input_mode.html_name }}" value="{{ radio_values.no_input }}" type="radio" checked class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
+            <input id="envAutomatic" name="{{ env_mode_form.input_mode.html_name }}" value="{{ radio_values.no_input }}" type="radio" checked class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 checked:hover:bg-green-500 checked:focus:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
             <div class="flex items-center gap-2">
               <label for="envAutomatic" class="ml-3 block text-sm/6 font-medium text-slate-800">Keine Eingabe</label>
               <div class="relative inline-block">
@@ -241,7 +241,7 @@
           </div>
           <!-- Option 2 -->
           <div class="flex items-center h-12">
-            <input id="envFile" name="{{ env_mode_form.input_mode.html_name }}" value="{{ radio_values.file_upload }}" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
+            <input id="envFile" name="{{ env_mode_form.input_mode.html_name }}" value="{{ radio_values.file_upload }}" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 checked:hover:bg-green-500 checked:focus:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
             <div class="flex items-center gap-2">
               <label for="envFile" class="ml-3 block text-sm/6 font-medium text-slate-800">Datei hochladen</label>
               <div class="relative inline-block">
@@ -269,13 +269,13 @@
           </div>
           <!-- Option 3 -->
           <div class="flex items-center h-12">
-            <input id="envScenario" name="{{ env_mode_form.input_mode.html_name }}" value="{{ radio_values.reference_scenario }}" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
+            <input id="envScenario" name="{{ env_mode_form.input_mode.html_name }}" value="{{ radio_values.reference_scenario }}" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 checked:hover:bg-green-500 checked:focus:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
             <label for="envScenario" class="ml-3 block text-sm/6 font-medium text-slate-800">Werte aus anderem Szenario übernehmen</label>
             <div class="ml-4 flex-grow hidden" id="env-dropdown-select">
-              <div class="flex items-center rounded-md bg-white px-2 py-2 outline outline-1 -outline-offset-1 outline-slate-400">
+              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
                 <select
                         {{ env_scenario_selection.scenario|widget_attrs }}
-                  class="block w-full rounded-md bg-white text-slate-800 focus:outline-none sm:text-sm/6"
+                  class="block w-full rounded-md bg-white py-1.5 px-3 text-left text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                 >
                   <option value="">Szenario auswählen</option>
                   {% for choice in  env_scenario_selection.scenario.field.queryset %}
@@ -287,7 +287,7 @@
           </div>
           <!-- Option 4 -->
           <div class="flex items-center h-12">
-            <input id="envManually" name="{{ env_mode_form.input_mode.html_name }}" value="{{ radio_values.manual }}" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
+            <input id="envManually" name="{{ env_mode_form.input_mode.html_name }}" value="{{ radio_values.manual }}" type="radio" class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 checked:hover:bg-green-500 checked:focus:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
             <label for="envManually" class="ml-3 block text-sm/6 font-medium text-slate-800">Manuelle Eingabe</label>
           </div>
         </div>
@@ -311,11 +311,11 @@
               </div>
             </div>
             <div class="mt-2">
-              <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
+              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
                 <input
                   type="number"
                   {{ env_manual.co2_emissions|widget_attrs }}
-                  class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
+                  class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                   placeholder="800"
                   aria-labelledby="envCo2EmissionsLabel envCo2EmissionsUnit">
                 <div id="envCo2EmissionsUnit" class="shrink-0 select-none text-sm text-slate-500">g/km</div>
@@ -339,10 +339,10 @@
               </div>
             </div>
             <div class="mt-2">
-              <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
+              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
                 <input
                   {{ env_manual.energy_consumption|widget_attrs }}
-                  class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
+                  class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                   placeholder="1.2"
                   aria-labelledby="envEnergyConsumptionLabel envEnergyConsumptionUnit">
                 <div id="envEnergyConsumptionUnit" class="shrink-0 select-none text-sm text-slate-500">kWh/km</div>
@@ -366,10 +366,10 @@
               </div>
             </div>
             <div class="mt-2">
-              <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
+              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
                 <input
                   {{ env_manual.resources_consumption|widget_attrs }}
-                  class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
+                  class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                   placeholder="500"
                   aria-labelledby="envResourceConsumptionLabel envResourceConsumptionUnit">
                 <div id="envResourceConsumptionUnit" class="shrink-0 select-none text-sm text-slate-500">kg/Jahr</div>
@@ -393,10 +393,10 @@
               </div>
             </div>
             <div class="mt-2">
-              <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
+              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
                 <input
                   {{ env_manual.years|widget_attrs }}
-                  class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
+                  class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                   placeholder="15"
                   aria-labelledby="envLifetimeAnalysisLabel envLifetimeAnalysisUnit">
                 <div id="envLifetimeAnalysisUnit" class="shrink-0 select-none text-sm text-slate-500">Jahre</div>
