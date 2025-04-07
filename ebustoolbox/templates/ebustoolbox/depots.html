@@ -115,10 +115,10 @@
                             </div>
                           </div>
                           <div class="mt-2">
-                            <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
+                            <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
                               <input
                                       {{ form.amount_charging_places|widget_attrs }}
-                                      class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
+                                      class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                                       placeholder="8"
                               >
                             </div>
@@ -144,10 +144,10 @@
                             </div>
                           </div>
                           <div class="mt-2 flex items-center gap-2">
-                            <div class="flex items-center flex-grow rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
+                            <div class="flex items-center w-full rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
                               <input
                                       {{ form.power_per_charger|widget_attrs }}
-                                      class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
+                                      class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                                       placeholder="300"
                               >
                               <div class="shrink-0 select-none text-slate-500">kW</div>
@@ -202,10 +202,10 @@
                       </div>
                     </div>
                     <div class="mt-2">
-                      <div class="flex items-center rounded-md bg-white w-6/12 px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
+                      <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
                         <input
                                 {{ form_dict|get_item:"depot_info_form"|get_item:"power_total"|widget_attrs }}
-                                class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
+                                class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                                 placeholder="5000"
                         >
                         <div class="shrink-0 select-none text-slate-500">kVA</div>
