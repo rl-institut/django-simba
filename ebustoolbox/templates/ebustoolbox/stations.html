@@ -102,7 +102,7 @@
           <div class="flex gap-2 mt-8">
             <div class="w-6/12">
               <label for="inputItem" class="block text-sm/6 font-medium text-slate-800">Maximale Anzahl Ladepunkte</label>
-              <div class="mt-2">
+              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
                 <input
 
                         type="number"
@@ -118,12 +118,12 @@
             </div>
             <div class="w-6/12">
               <label for="inputItem" class="block text-sm/6 font-medium text-slate-800">Ladeleistung pro Punkt</label>
-              <div class="flex items-center mt-2 rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 ">
+              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
                 <input
                         type="number"
                         name="chargingCapacity"
                         id="bulk_chargingCapacity"
-                        class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6"
+                        class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                         placeholder="0"
                         aria-describedby="price-currency"
                 >
@@ -406,7 +406,7 @@
                     </div>
                   </div>
                   <div class="text-sm/6">
-                    <label for="selectAll" class="font-normal text-slate-600">Alle auswählen</label>
+                    <label for="selectAll" class="font-normal text-slate-600">Alle</label>
                   </div>
                 </div>
               </td>
@@ -497,7 +497,7 @@
                           {{form.amount_charging_places|widget_attrs}}
                           onchange="setChargingPointsCount()"
                     aria-label="Anzahl an Ladepunkten"
-                    class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 focus:outline focus:outline-2 focus:outline-green-500 sm:text-sm/6"
+                    class="block w-full bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                     placeholder="0"
                   >
                 </div>
@@ -507,8 +507,8 @@
                   class="mr-4"
                   data-input="charging-power"
                 >
-                  <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 ">
-                    <input {{ form.power_total|widget_attrs }} class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency">
+                  <div class="flex items-center rrounded-md outline outline-1 outline-transparent">
+                    <input {{ form.power_total|widget_attrs }} class="block w-full bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency">
                     <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kW</div>
                   </div>
                 </div>
