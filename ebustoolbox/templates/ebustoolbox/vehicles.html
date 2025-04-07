@@ -41,13 +41,13 @@
           <span class="text-slate-600">Von</span>
 
           <!-- Start Date -->
-          <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-300 focus-within:outline focus-within:outline-2 focus-within:outline-green-500">
+          <div class="flex items-center rounded-md outline outline-1 outline-transparent">
             <label for="start-date" class="sr-only">Startdatum</label>
             <input
               type="date"
               id="start-date"
               name="start-date"
-              class="block w-full py-1.5 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
+              class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
               aria-label="Startdatum"
               min = "{{ min_date }}"
               max = "{{ max_date }}"
@@ -56,13 +56,13 @@
           </div>
 
           <!-- Start Time -->
-          <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-300 focus-within:outline focus-within:outline-2 focus-within:outline-green-500">
+          <div class="flex items-center rounded-md outline outline-1 outline-transparent">
             <label for="start-time" class="sr-only">Startzeit</label>
             <input
               type="time"
               id="start-time"
               name="start-time"
-              class="block w-full py-1.5 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
+              class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
               aria-label="Startzeit"
               value = "{{ initial_start_time }}"
               required>
@@ -71,13 +71,13 @@
           <span class="text-slate-600">bis</span>
 
           <!-- End Date -->
-          <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-300 focus-within:outline focus-within:outline-2 focus-within:outline-green-500">
+          <div class="flex items-center rounded-md outline outline-1 outline-transparent">
             <label for="end-date" class="sr-only">Enddatum</label>
             <input
               type="date"
               id="end-date"
               name="end-date"
-              class="block w-full py-1.5 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
+              class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
               aria-label="Enddatum"
               min = "{{ min_date }}"
               max = "{{ max_date }}"
@@ -86,13 +86,13 @@
           </div>
 
           <!-- End Time -->
-          <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-300 focus-within:outline focus-within:outline-2 focus-within:outline-green-500">
+          <div class="flex items-center rounded-md outline outline-1 outline-transparent">
             <label for="end-time" class="sr-only">Endzeit</label>
             <input
               type="time"
               id="end-time"
               name="end-time"
-              class="block w-full py-1.5 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
+              class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
               aria-label="Endzeit"
               value = "{{ initial_end_time }}"
               required>
@@ -118,8 +118,8 @@
       </h2>
       <div class="w-4/12">
         <div class="mt-2">
-          <div class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 ">
-              <input type="number" {{ simulation_parameters_form.temperature|widget_attrs }} class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline focus:outline-0 sm:text-sm/6" placeholder="Gib eine Temperatur ein." aria-describedby="temperature-heading temperature-unit">
+          <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
+              <input type="number" {{ simulation_parameters_form.temperature|widget_attrs }} class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6" placeholder="Gib eine Temperatur ein." aria-describedby="temperature-heading temperature-unit">
             <div id="temperature-unit" class="shrink-0 select-none text-slate-500">°C</div>
           </div>
         </div>

@@ -2361,6 +2361,10 @@ select {
   outline-offset: -1px;
 }
 
+.-outline-offset-0 {
+  outline-offset: -0px;
+}
+
 .outline-gray-300 {
   outline-color: #d1d5db;
 }
@@ -2375,6 +2379,10 @@ select {
 
 .outline-slate-400 {
   outline-color: #94a3b8;
+}
+
+.outline-transparent {
+  outline-color: transparent;
 }
 
 .ring-0 {
@@ -2691,6 +2699,10 @@ progress::-moz-progress-bar {
   outline-color: #22c55e;
 }
 
+.focus-within\:outline-slate-400:focus-within {
+  outline-color: #94a3b8;
+}
+
 .focus-within\:ring-2:focus-within {
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
@@ -2834,6 +2846,11 @@ progress::-moz-progress-bar {
   z-index: 20;
 }
 
+.focus\:border-green-400:focus {
+  --tw-border-opacity: 1;
+  border-color: rgb(74 222 128 / var(--tw-border-opacity, 1));
+}
+
 .focus\:text-green-700:focus {
   --tw-text-opacity: 1;
   color: rgb(21 128 61 / var(--tw-text-opacity, 1));
@@ -2882,6 +2899,12 @@ progress::-moz-progress-bar {
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
 }
 
+.focus\:ring-0:focus {
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(0px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
 .focus\:ring-black:focus {
   --tw-ring-opacity: 1;
   --tw-ring-color: rgb(0 0 0 / var(--tw-ring-opacity, 1));
@@ -2922,8 +2945,17 @@ progress::-moz-progress-bar {
   --tw-ring-color: rgb(100 116 139 / var(--tw-ring-opacity, 1));
 }
 
+.focus\:ring-blue-500:focus {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(59 130 246 / var(--tw-ring-opacity, 1));
+}
+
 .focus\:ring-offset-2:focus {
   --tw-ring-offset-width: 2px;
+}
+
+.focus\:ring-offset-0:focus {
+  --tw-ring-offset-width: 0px;
 }
 
 .focus-visible\:outline-none:focus-visible {
@@ -2972,6 +3004,18 @@ progress::-moz-progress-bar {
 
 .focus-visible\:ring-offset-white:focus-visible {
   --tw-ring-offset-color: #fff;
+}
+
+.focus-within\:focus-visible\:outline-2:focus-visible:focus-within {
+  outline-width: 2px;
+}
+
+.focus-within\:focus-visible\:outline-slate-400:focus-visible:focus-within {
+  outline-color: #94a3b8;
+}
+
+.focus-within\:focus-visible\:outline-green-400:focus-visible:focus-within {
+  outline-color: #4ade80;
 }
 
 .active\:bg-gray-900:active {

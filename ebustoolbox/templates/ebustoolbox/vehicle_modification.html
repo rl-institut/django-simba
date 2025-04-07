@@ -14,7 +14,7 @@
                 id="{{vt_id}}assignedToButton"
   
                 type="button"
-                class="grid cursor-default grid-cols-1 rounded-md bg-white py-1.5 pl-3 pr-2 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 sm:text-sm/6"
+                class="grid cursor-default grid-cols-1 rounded-md bg-white py-1.5 pl-3 pr-2 text-left text-slate-800 outline outline-1 -outline-offset-0 outline-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                 style="width: 20rem"
                 aria-haspopup="listbox"
                 aria-expanded="false"
@@ -95,10 +95,10 @@
               </div>
               <div class="mt-2">
                 <div
-                        class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2">
+                        class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-slate-400 focus-within:focus-visible:outline-2">
                   <input
                           {{ modification.vehicle_modification.battery_capacity|widget_attrs}}
-                          class="block min-w-0 grow py-1.5 pl-1 pr-3 text-slate-800 placeholder:text-slate-400 focus:outline-none sm:text-sm/6"
+                          class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                           placeholder="500"
                           aria-labelledby="batteryCapacityLabel batteryCapacityUnit">
                   <div id="{{ vt_id }}batteryCapacityUnit" class="shrink-0 select-none text-slate-500">kWh</div>
@@ -124,13 +124,13 @@
               </div>
               <div class="mt-2">
                 <div
-                        class="flex items-center rounded-md bg-white px-3 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:ring-2 focus-within:ring-green-500 focus-within:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-slate-400 focus-within:focus-visible:outline-2 disabled:opacity-50 disabled:cursor-not-allowed">
                   <input
                           type="number"
                           name="consumption"
                           id="{{ vt_id }}consumption"
                           disabled
-                          class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:text-slate-500 disabled:outline-none sm:text-sm/6"
+                          class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                           placeholder="1,5"
                           aria-labelledby="consumptionLabel consumptionUnit">
                   <div id="{{ vt_id }}consumptionUnit" class="shrink-0 select-none text-slate-500">kWh/h</div>
