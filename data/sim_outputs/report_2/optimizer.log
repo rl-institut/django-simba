@@ -1,0 +1,8 @@
+0407 131741:0 negative rotations set() were removed from schedule because they cannot be electrified
+0407 131741:Starting greedy station optimization
+0407 131741:The scenario is already optimized, as it has no low SoC.
+0407 131741:0 electrified stations : set()
+0407 131741:1 total stations
+0407 131741:These rotations could not be electrified: set()
+0407 131741:Detailed calculation of an optimized case as a complete scenario
+0407 131741:Station optimization finished after 0.14 seconds since start

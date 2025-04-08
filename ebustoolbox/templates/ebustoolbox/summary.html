@@ -14,16 +14,65 @@
 {% endblock header %}
 
 {% block wizard_content %}
-  <!-- Use alert when simulating -->
-
-  {#    ToDo. Needs Styling @ Bryan#}
-  <button id="simulateButton" hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s
-          style="background-color:green" {% if progress.running or progress.success %}disabled{% endif %}> Simulation Starten
-  </button>
-  <div id="runner"
-          {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
-       hx-trigger="notRunning from:body">
+  <div
+    class="rounded-md bg-yellow-50 p-4"
+    role="alert"
+  >
+    <div class="flex justify-center">
+      <div class="shrink-0">
+        <svg
+          class="size-5 text-yellow-400"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          aria-hidden="true"
+          data-slot="icon"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"
+            clip-rule="evenodd"
+          />
+        </svg>
+      </div>
+      <div class="ml-3">
+        <h3 class="text-sm font-semibold text-yellow-800" id="alert-title">
+          Bitte überprüfen Sie alle Angaben sorgfältig, da nach Start der Simulation keine Änderungen mehr möglich sind.
+        </h3>
+      </div>
+    </div>
   </div>
+
+  <!-- Use alert when simulating -->
+  <div class="flex justify-center py-8">
+    <button id="simulateButton" hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s
+        class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300 cursor-pointer"
+        {% if progress.running or progress.success %}disabled{% endif %}> 
+        <div class="flex align-center gap-4">
+          <svg width="24" height="24" version="1.1" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <path d="m85.938 83.984h-70.312c-1.0781 0-1.9531-0.875-1.9531-1.9531v-76.172c0-1.0781 0.875-1.9531 1.9531-1.9531h70.312c1.0781 0 1.9531 0.875 1.9531 1.9531v76.172c0 1.0781-0.875 1.9531-1.9531 1.9531zm-68.359-3.9062h66.406v-72.266h-66.406z"/>
+            <path d="m85.938 64.453h-70.312c-1.0781 0-1.9531-0.875-1.9531-1.9531v-41.016c0-1.0781 0.875-1.9531 1.9531-1.9531h70.312c1.0781 0 1.9531 0.875 1.9531 1.9531v41.016c0 1.0781-0.875 1.9531-1.9531 1.9531zm-68.359-3.9062h66.406v-37.109h-66.406z"/>
+            <path d="m37.109 97.656h-13.672c-1.0781 0-1.9531-0.875-1.9531-1.9531v-13.672c0-1.0781 0.875-1.9531 1.9531-1.9531h13.672c1.0781 0 1.9531 0.875 1.9531 1.9531v13.672c0 1.0781-0.875 1.9531-1.9531 1.9531zm-11.719-3.9062h9.7656v-9.7656h-9.7656z"/>
+            <path d="m78.125 97.656h-13.672c-1.0781 0-1.9531-0.875-1.9531-1.9531v-13.672c0-1.0781 0.875-1.9531 1.9531-1.9531h13.672c1.0781 0 1.9531 0.875 1.9531 1.9531v13.672c0 1.0781-0.875 1.9531-1.9531 1.9531zm-11.719-3.9062h9.7656v-9.7656h-9.7656z"/>
+            <path d="m29.297 78.125c-3.2305 0-5.8594-2.6289-5.8594-5.8594s2.6289-5.8594 5.8594-5.8594 5.8594 2.6289 5.8594 5.8594-2.6289 5.8594-5.8594 5.8594zm0-7.8125c-1.0781 0-1.9531 0.875-1.9531 1.9531s0.875 1.9531 1.9531 1.9531 1.9531-0.875 1.9531-1.9531-0.875-1.9531-1.9531-1.9531z"/>
+            <path d="m72.266 78.125c-3.2305 0-5.8594-2.6289-5.8594-5.8594s2.6289-5.8594 5.8594-5.8594 5.8594 2.6289 5.8594 5.8594-2.6289 5.8594-5.8594 5.8594zm0-7.8125c-1.0781 0-1.9531 0.875-1.9531 1.9531s0.875 1.9531 1.9531 1.9531 1.9531-0.875 1.9531-1.9531-0.875-1.9531-1.9531-1.9531z"/>
+            <path d="m60.547 74.219h-19.531c-1.0781 0-1.9531-0.875-1.9531-1.9531s0.875-1.9531 1.9531-1.9531h19.531c1.0781 0 1.9531 0.875 1.9531 1.9531s-0.875 1.9531-1.9531 1.9531z"/>
+            <path d="m91.254 54.688h-5.3164c-1.0781 0-1.9531-0.875-1.9531-1.9531v-17.578c0-1.0781 0.875-1.9531 1.9531-1.9531h5.3164c3.5312 0 6.4023 2.8711 6.4023 6.4023v8.6797c0 3.5312-2.8711 6.4023-6.4023 6.4023zm-3.3633-3.9062h3.3633c1.375 0 2.4961-1.1211 2.4961-2.4961v-8.6797c0-1.375-1.1211-2.4961-2.4961-2.4961h-3.3633z"/>
+            <path d="m15.625 54.688h-5.3164c-3.5312 0-6.4023-2.8711-6.4023-6.4023v-8.6797c0-3.5312 2.8711-6.4023 6.4023-6.4023h5.3164c1.0781 0 1.9531 0.875 1.9531 1.9531v17.578c0 1.0781-0.875 1.9531-1.9531 1.9531zm-5.3164-17.578c-1.375 0-2.4961 1.1211-2.4961 2.4961v8.6797c0 1.375 1.1211 2.4961 2.4961 2.4961h3.3633v-13.672z"/>
+            <path d="m39.062 46.484c-0.56641 0-1.125-0.24609-1.5117-0.71484-0.68359-0.83594-0.55859-2.0664 0.27344-2.75l18.621-15.234c0.83594-0.68359 2.0664-0.55859 2.75 0.27344 0.68359 0.83594 0.55859 2.0664-0.27344 2.75l-18.621 15.234c-0.36328 0.29688-0.80078 0.44141-1.2383 0.44141z"/>
+            <path d="m40.758 56.641c-0.56641 0-1.125-0.24609-1.5117-0.71484-0.68359-0.83594-0.55859-2.0664 0.27344-2.75l18.621-15.234c0.83594-0.68359 2.0664-0.55859 2.75 0.27344 0.68359 0.83594 0.55859 2.0664-0.27344 2.75l-18.621 15.234c-0.36719 0.29688-0.80469 0.44141-1.2383 0.44141z"/>
+          </svg>
+          <span class="text-slate-800 font-semibold">Simulation starten</span>
+        </div>
+    </button>
+  </div>
+  
+  <div class="flex justify-center py-8">
+    <div id="runner"
+        {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
+        hx-trigger="notRunning from:body">
+    </div>
+  </div>
+  
   <script>
       // Clicking the simulate button disables it. It will be enabled again if htmx sends notRunning
       $("#simulateButton").click(function () {
@@ -44,9 +93,11 @@
   {% endif %}
   {#      om case of error allow resimulating#}
 {#  {% if show_rerun %}#}
-{#    <button hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s#}
-{#            style="background-color:green"> Simulation Erneut Starten#}
-{#    </button>#}
+  <div class="flex justify-center py-8">
+    {#    <button hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s#}
+    {#            class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300 cursor-pointer"> Simulation Erneut Starten#}
+    {#    </button>#}
+  </div>
 {#  {% endif %}#}
 
 
