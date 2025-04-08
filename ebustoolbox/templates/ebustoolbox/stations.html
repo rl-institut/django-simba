@@ -215,6 +215,20 @@
         </div>
       </div>
     </fieldset>
+
+    <!-- Placeholder -->
+    <div class="flex items-center justify-between space-x-4 border-b border-t pt-6 pb-8">
+      <div class="w-4/12" id="">
+        <label for="power_total" class="flex items-center text-sm/6 font-medium text-slate-800 pb-2">
+          <span>Ladeleistung</span>
+        </label>
+        <div class="flex items-center rounded-md outline outline-1 outline-transparent">
+          <input min="1" step="1" id="power_total" name="power_total" type="number" class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency" required="">
+          <div id="" class="shrink-0 select-none text-slate-500">kW</div>
+        </div>
+      </div>
+    </div>
+    
     <div id="stations-details" class="hidden w-full pt-8 border-t">
       <div class="flex items-center justify-between space-x-4">
         <div class="w-4/12 pb-4">
