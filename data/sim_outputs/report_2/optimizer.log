@@ -6,3 +6,19 @@
 0407 131741:These rotations could not be electrified: set()
 0407 131741:Detailed calculation of an optimized case as a complete scenario
 0407 131741:Station optimization finished after 0.14 seconds since start
+0408 103142:0 negative rotations set() were removed from schedule because they cannot be electrified
+0408 103142:0 negative rotations set() were removed from schedule because they cannot be electrified
+0408 103142:Starting greedy station optimization
+0408 103142:Starting greedy station optimization
+0408 103142:The scenario is already optimized, as it has no low SoC.
+0408 103142:The scenario is already optimized, as it has no low SoC.
+0408 103142:0 electrified stations : set()
+0408 103142:0 electrified stations : set()
+0408 103142:1 total stations
+0408 103142:1 total stations
+0408 103142:These rotations could not be electrified: set()
+0408 103142:These rotations could not be electrified: set()
+0408 103142:Detailed calculation of an optimized case as a complete scenario
+0408 103142:Detailed calculation of an optimized case as a complete scenario
+0408 103142:Station optimization finished after 76441.54 seconds since start
+0408 103142:Station optimization finished after 76441.54 seconds since start

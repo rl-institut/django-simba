@@ -1311,6 +1311,11 @@ select {
   width: max-content;
 }
 
+.w-fit {
+  width: -moz-fit-content;
+  width: fit-content;
+}
+
 .min-w-0 {
   min-width: 0px;
 }
