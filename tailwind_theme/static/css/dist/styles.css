@@ -2068,6 +2068,10 @@ select {
   padding-top: 2.25rem;
 }
 
+.pl-6 {
+  padding-left: 1.5rem;
+}
+
 .text-left {
   text-align: left;
 }
