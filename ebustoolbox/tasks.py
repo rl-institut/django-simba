@@ -881,11 +881,7 @@ def run_and_merge_scenarios(self, parent_id: int, mutation_id: int, simulation_t
     except Exception as e:
         logger.error(traceback.format_exc(e))
         progress = Progress.objects.get(scenario=mutation_scenario, task_id=simulation_task_id)
-        progress.status = "Fehlgeschlagen"
-        progress.success = False
-        progress.running = False
-        progress.save()
-
+        progress.set_failed()
 
 
 def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False):
