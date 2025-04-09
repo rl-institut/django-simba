@@ -53,7 +53,6 @@ from ebustoolbox.models import (
     SimulationRange,
     VehicleTypeSelection,
     VehicleTypeMutation,
-    ScenarioDescription,
     StationMutation,
     StationElectrificationExclusions,
     ScenarioWizardOptions,
@@ -301,8 +300,6 @@ class TripsView(FormView):
         cleaned_data = form.cleaned_data
         task_id = self.kwargs.get("task_id", get_unique_task_id())
 
-        # Create a scenario and description
-
         # Get a User as manager or none
         manager = None
         if self.request.user.is_authenticated:
@@ -318,9 +315,6 @@ class TripsView(FormView):
         scenario.parent = None
         scenario.save()
 
-        _ = ScenarioDescription.objects.create(
-            scenario=scenario, description=cleaned_data["description"]
-        )
         data_file = form.files.get("data_file")
         scenario_uuid = form.cleaned_data["existing_scenario"]
 
@@ -946,11 +940,6 @@ class SummaryView(AuthorizedMixIn, TemplateView):
             context["progress"] = progress
             # context["show_rerun"]= (not progress.running and not progress.success) or progress.errors
 
-        scenario_descriptions = ScenarioDescription.objects.filter(scenario=scenario)
-        assert (
-            scenario_descriptions.count() <= 1
-        ), "Only a single scenario description or None should exist"
-        context["scenario_description"] = scenario_descriptions.first()
         sim_range = SimulationRange.objects.get(scenario=scenario)
         german_weekdays = {
             0: "Mo",
