@@ -884,6 +884,8 @@ def run_and_merge_scenarios(self, parent_id: int, mutation_id: int, simulation_t
         progress.status = "Fehlgeschlagen"
         progress.success = False
         progress.running = False
+        progress.save()
+
 
 
 def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False):
