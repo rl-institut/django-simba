@@ -3242,6 +3242,14 @@ progress::-moz-progress-bar {
     padding-right: 2.25rem;
   }
 
+  .sm\:pb-4 {
+    padding-bottom: 1rem;
+  }
+
+  .sm\:pt-8 {
+    padding-top: 2rem;
+  }
+
   .sm\:text-left {
     text-align: left;
   }
