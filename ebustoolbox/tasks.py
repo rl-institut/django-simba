@@ -23,6 +23,7 @@ from django.db.transaction import atomic
 from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.timezone import make_aware, is_aware
+from eflips.depot import UnstableSimulationException
 from eflips.depot.api import simulate_scenario, generate_depot_layout
 
 import core.deepcopy
@@ -1322,7 +1323,13 @@ def _run_ebus_toolchain(self, task_id):
             )
 
             # Event.objects.filter(scenario=db_scenario).order_by("soc_end").first().soc_end
-            run_eflips(task_id)
+            try:
+                run_eflips(task_id)
+            except UnstableSimulationException as e:
+                # TODO handle it and pass information to user
+                logger.error("The simulation is unstable")
+                logger.error(traceback.format_exception(e))
+
             eflips_assignment = get_assigned_vehicles(task_id)
             schedule.assign_vehicles_custom(eflips_assignment)
             # ToDo: Keep that?
@@ -1349,6 +1356,7 @@ def _run_ebus_toolchain(self, task_id):
         except Exception:
             logger.error(traceback.format_exc())
         progress.set_failed()
+        raise
 
 
 def electrify_depot_station_w_default(db_scenario):
@@ -1513,7 +1521,9 @@ def run_eflips(task_id) -> None:
     last_trip_time = Trip.objects.filter(scenario=db_scenario).aggregate(Max("arrival_time"))
     first_trip_time = Trip.objects.filter(scenario=db_scenario).aggregate(Min("departure_time"))
     period = last_trip_time["arrival_time__max"] - first_trip_time["departure_time__min"]
-    simulate_scenario(db_scenario, database_url=db_url, repetition_period=period)
+    simulate_scenario(
+        db_scenario, database_url=db_url, repetition_period=period, ignore_unstable_simulation=True
+    )
 
 
 def create_db_url():
