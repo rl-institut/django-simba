@@ -1,7 +1,7 @@
 {% load custom_filters %}
 {% for vt_id, modification in vehicle_modification.items %}
 <div id="VehicleTypeContainer{{ vt_id }}" class="overflow-hidden rounded-lg bg-white shadow" data-value="{{ vt_id }}">
-  <div class="flex items-center justify-between py-4 px-4 gap-4 bg-gradient-to-r from-gray-100 to-gray-200">
+  <div class="flex items-center justify-between py-4 px-4 gap-4 bg-gradient-to-r from-slate-100 to-slate-200">
     <div class="flex items-center gap-4">
     <div class="flex flex-col">
       <div class="flex gap-4 items-center">
@@ -55,10 +55,10 @@
 {#    <span class="block mb-6 text-sm text-slate-500">Alle Linien sind standardmäßig in "Default" enthalten. Sie können jedoch individuelle Werte für bestimmte Linien oder Liniengruppen anpassen.</span>#}
     <div class="flex-grow">
       <div class="grid grid-cols-1 sm:hidden">
-        <select aria-label="Select a tab" class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-2 pl-3 pr-8 text-base text-slate-800 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600">
+        <select aria-label="Select a tab" class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-2 pl-3 pr-8 text-base text-slate-800 outline outline-1 -outline-offset-1 outline-slate-300 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600">
           <!-- Options -->
         </select>
-        <svg class="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end fill-gray-500" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
+        <svg class="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end fill-slate-500" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
           <path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
         </svg>
 
@@ -141,7 +141,7 @@
         <div class="tab-content hidden" data-tab="tab-2">This is the content for Tab 2.</div>
       </div>
     </div>
-    <div id="{{ vt_id }}busTypeHiddenSection" class="flex-grow text-gray-700">
+    <div id="{{ vt_id }}busTypeHiddenSection" class="flex-grow text-slate-700">
       <div id="{{ vt_id }}stateOfChargeChart" class="flex justify-center bg-slate-100" style="height: 180px;"></div>
     </div>
   </div>

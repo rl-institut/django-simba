@@ -22,7 +22,7 @@
       From: "opacity-100"
       To: "opacity-0"
   -->
-  <div class="fixed inset-0 bg-gray-500/75 transition-opacity" aria-hidden="true"></div>
+  <div class="fixed inset-0 bg-slate-500/75 transition-opacity" aria-hidden="true"></div>
 
   <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
     <div class="flex min-h-full items-end justify-center p-4 text-center items-center sm:p-0">
@@ -38,7 +38,7 @@
       -->
       <div id="bulkSelection" class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
         <div class="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
-          <button id="closeBulkEditingModalIcon" type="button" class="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+          <button id="closeBulkEditingModalIcon" type="button" class="rounded-md bg-white text-slate-400 hover:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
             <span class="sr-only">Close</span>
             <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -47,7 +47,7 @@
         </div>
         <div class="flex items-start">
           <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-            <h3 class="text-base font-semibold text-gray-900" id="modal-title">Ausgewählte Stationen editieren</h3>
+            <h3 class="text-base font-semibold text-slate-900" id="modal-title">Ausgewählte Stationen editieren</h3>
             <div class="mt-2">
               <p class="text-sm text-slate-500">Sie können die Werte aller ausgewählten Stationen anpassen.</p>
             </div>
@@ -57,7 +57,7 @@
           <input type="hidden" id="bulk_is_electrified">
           <div id="electrifyState" class="flex items-center space-x-2 bg-slate-100 rounded-full p-1">
             <button type="button"
-              class="inline-flex items-center justify-center flex-grow py-1 px-2 bg-white font-semibold text-sm text-gray-500 rounded-full"
+              class="inline-flex items-center justify-center flex-grow py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full"
               data-color="emerald"
               data-value="elektrifizieren"
             >
@@ -84,7 +84,7 @@
             </button>
             <input type="hidden" id="bulk_is_excluded">
             <button type="button"
-              class="inline-flex items-center justify-center flex-grow py-1 px-2 bg-white font-semibold text-sm text-gray-500 rounded-full"
+              class="inline-flex items-center justify-center flex-grow py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full"
               data-color="gray"
               data-value="nicht-elektrifizieren"
             >
@@ -187,7 +187,7 @@
             name="{{ calculation_mode_form.station_calculation_mode.html_name }}"
             value="{{ constant_power_value }}" 
             type="radio" 
-            class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 checked:hover:bg-green-500 checked:focus:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500"
+            class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 checked:hover:bg-green-500 checked:focus:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500"
           >
           <label for="single" class="ml-3 block text-sm/6 font-medium text-slate-800">Ladeleistung angeben</label>
           <div class="ml-4 mt-2 hidden" id="charging-power">
@@ -209,7 +209,7 @@
             name="{{ calculation_mode_form.station_calculation_mode.html_name }}"
             value="{{ manual_value}}"
             type="radio"
-            class="relative size-4 appearance-none rounded-full border border-gray-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 checked:hover:bg-green-500 checked:focus:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500"
+            class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 checked:hover:bg-green-500 checked:focus:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500"
           >
           <label for="detailed" class="ml-3 block text-sm/6 font-medium text-slate-800">Details zu den Stationen angeben</label>
         </div>
@@ -334,7 +334,7 @@
               class="absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-md bg-white shadow-md outline-none sm:text-sm hidden"
             >
               {% for line in all_lines %}
-              <li class="cursor-pointer px-3 py-2 hover:bg-gray-100" data-value="{{ line }}">{{ line }}</li>
+              <li class="cursor-pointer px-3 py-2 hover:bg-slate-100" data-value="{{ line }}">{{ line }}</li>
               {% endfor %}
             </ul>
           </div>
@@ -411,9 +411,9 @@
                         aria-describedby="selectAll-description"
                         name="selectAll"
                         type="checkbox"
-                        class="col-start-1 row-start-1 appearance-none rounded border border-gray-300 bg-white checked:border-green-500 checked:bg-green-500 checked:focus:bg-green-500 checked:hover:bg-green-500 indeterminate:border-green-500 indeterminate:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500 disabled:border-gray-300 disabled:bg-gray-100 disabled:checked:bg-gray-100 forced-colors:appearance-auto"
+                        class="col-start-1 row-start-1 appearance-none rounded border border-slate-300 bg-white checked:border-green-500 checked:bg-green-500 checked:focus:bg-green-500 checked:hover:bg-green-500 indeterminate:border-green-500 indeterminate:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500 disabled:border-slate-300 disabled:bg-slate-100 disabled:checked:bg-slate-100 forced-colors:appearance-auto"
                       >
-                      <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-[:disabled]:stroke-gray-950/25" viewBox="0 0 14 14" fill="none">
+                      <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-[:disabled]:stroke-slate-950/25" viewBox="0 0 14 14" fill="none">
                         <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                         <path class="opacity-0 group-has-[:indeterminate]:opacity-100" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                       </svg>
@@ -440,8 +440,8 @@
                 <div class="flex gap-3">
                   <div class="flex h-6 shrink-0 items-center">
                     <div class="group grid size-4 grid-cols-1">
-                      <input id="selected_{{station_id}}" data-station-id="{{ station_id }}" aria-describedby="station{{ station_id }}-description" name="station{{ station_id }}" type="checkbox" class="col-start-1 row-start-1 appearance-none rounded border border-gray-300 bg-white checked:border-green-500 checked:bg-green-500 checked:focus:bg-green-500 checked:hover:bg-green-500 indeterminate:border-green-500 indeterminate:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500 disabled:border-gray-300 disabled:bg-gray-100 disabled:checked:bg-gray-100 forced-colors:appearance-auto">
-                      <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-[:disabled]:stroke-gray-950/25" viewBox="0 0 14 14" fill="none">
+                      <input id="selected_{{station_id}}" data-station-id="{{ station_id }}" aria-describedby="station{{ station_id }}-description" name="station{{ station_id }}" type="checkbox" class="col-start-1 row-start-1 appearance-none rounded border border-slate-300 bg-white checked:border-green-500 checked:bg-green-500 checked:focus:bg-green-500 checked:hover:bg-green-500 indeterminate:border-green-500 indeterminate:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500 disabled:border-slate-300 disabled:bg-slate-100 disabled:checked:bg-slate-100 forced-colors:appearance-auto">
+                      <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-[:disabled]:stroke-slate-950/25" viewBox="0 0 14 14" fill="none">
                         <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                         <path class="opacity-0 group-has-[:indeterminate]:opacity-100" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                       </svg>
@@ -456,7 +456,7 @@
                 <div id="electrifyState" class="flex items-center space-x-2">
                   <input  type="hidden" {{form.is_electrified|widget_attrs}}>
                   <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-gray-500 rounded-full"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full"
                     data-color="emerald"
                     data-value="elektrifizieren"
                           data-station-id="{{ station_id }}"
@@ -487,7 +487,7 @@
 {#                  hidden input which is set via js#}
                     <input  type="hidden" {{exclude_form.is_excluded|widget_attrs}}>
                   <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-gray-500 rounded-full"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full"
                     data-color="gray"
                     data-value="nicht-elektrifizieren"
                           data-station-id="{{ station_id }}"
@@ -741,14 +741,14 @@
               const color = btn.getAttribute("data-color");
               btn.classList.remove("shadow", "selected");
               btn.classList.replace(`bg-${color}-100`, "bg-white");
-              btn.classList.replace(`text-${color}-700`, "text-gray-500");
+              btn.classList.replace(`text-${color}-700`, "text-slate-500");
           });
 
           // Apply selected styles to the clicked button
           const color = clickedButton.getAttribute("data-color");
           clickedButton.classList.add("shadow", "selected");
           clickedButton.classList.replace("bg-white", `bg-${color}-100`);
-          clickedButton.classList.replace("text-gray-500", `text-${color}-700`);
+          clickedButton.classList.replace("text-slate-500", `text-${color}-700`);
       }
 
 
@@ -844,8 +844,8 @@ document.addEventListener("DOMContentLoaded", () => {
           const pill = document.createElement("span");
           pill.dataset.value = value;
           pill.className =
-            "flex items-center bg-gray-200 text-sm text-gray-800 rounded-full px-3 mr-2 my-1";
-          pill.innerHTML = `${value} <span class="ml-2 cursor-pointer text-gray-600 hover:text-red-500">&times;</span>`;
+            "flex items-center bg-slate-200 text-sm text-slate-800 rounded-full px-3 mr-2 my-1";
+          pill.innerHTML = `${value} <span class="ml-2 cursor-pointer text-slate-600 hover:text-red-500">&times;</span>`;
 
           // Add pill to the container
           multiselectContainer.appendChild(pill);
