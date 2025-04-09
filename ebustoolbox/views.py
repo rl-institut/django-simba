@@ -308,8 +308,6 @@ class TripsView(FormView):
         scenario, _ = Scenario.objects.get_or_create(task_id=task_id, manager=manager)
         scenario.name = cleaned_data["scenario_name"]
         scenario.description = cleaned_data["description"]
-        print(cleaned_data)
-        print(scenario.description)
         # If schedule reading failed before there is a parent already. Delete it if
         # its only child is the current scenario
         if scenario.parent:
@@ -935,7 +933,6 @@ class SummaryView(AuthorizedMixIn, TemplateView):
         scenario = get_object_or_404(Scenario, task_id=task_id)
         context["scenario"] = scenario
         context["task_id"] = task_id
-        print(scenario.description)
         progress = Progress.objects.filter(
             scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
         ).first()
@@ -1109,6 +1106,7 @@ def merge_and_run(request: HttpRequest, task_id: str):
         )
         logger.error(traceback.format_exc(e))
 
+    progress.refresh_from_db()
     progress.task_id = async_result.task_id
     progress.save()
     context = {}
