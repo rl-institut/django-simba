@@ -101,14 +101,14 @@
             <button
                     id="assignedToButton"
                     type="button"
-                    class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pl-3 pr-2 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 sm:text-sm/6"
+                    class="flex flex-wrap items-center w-full rounded-md bg-white py-1.5 px-3 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:outline-2 focus-within:outline-green-400 sm:text-sm/6 cursor-pointer"
                     aria-haspopup="listbox"
                     aria-expanded="false"
                     aria-labelledby="listbox-label"
             >
 
               <span id="dropDownSpan" class="col-start-1 row-start-1 truncate pr-6">-- Szenario auswählen --</span>
-              <svg class="col-start-1 row-start-1 size-5 self-center justify-self-end text-slate-500 sm:size-4"
+              <svg class="absolute top-1/2 right-3 h-5 w-5 -translate-y-1/2 text-slate-500 pointer-events-none"
                    viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
                 <path fill-rule="evenodd"
                       d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z"
@@ -146,7 +146,7 @@
                class="block text-sm/6 font-medium text-slate-900">Szenarioname</label>
         <div class="mt-2">
           <input type="text" {{ form.scenario_name|widget_attrs }}
-                 class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 sm:text-sm/6"
+                 class="block bg-white w-full mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                  placeholder="Szenario Name eingeben">
         </div>
       </div>
@@ -159,7 +159,7 @@
         </div>
         <div class="mt-2">
           <textarea type="text" {{ form.description|widget_attrs }} rows="4"
-                    class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 sm:text-sm/6"
+                    class="block bg-white w-full mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                     placeholder="Beschreiben Sie Ihr Szenario..."
                     aria-describedby="description-optional">{% if form.description.value %}{{ form.description.value }}{% endif %}</textarea>
         </div>
