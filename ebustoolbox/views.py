@@ -1100,15 +1100,15 @@ def merge_and_run(request: HttpRequest, task_id: str):
             (scenario.parent.id, scenario.id, sim_task_id), task_id=str(sim_task_id)
         )
     except Exception as e:
-        progress.set_failed()
         progress.errors.append(
             "Ein unerwarteter Fehler ist aufgetreten." "Wenden Sie sich an ihren Administrator"
         )
+        progress.set_failed()
         logger.error(traceback.format_exc(e))
 
     progress.refresh_from_db()
     progress.task_id = async_result.task_id
-    progress.save()
+    progress.save(update_fields=["task_id"])
     context = {}
     context["progress_id"] = async_result.task_id
     context["scenario"] = scenario
