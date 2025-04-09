@@ -307,6 +307,9 @@ class TripsView(FormView):
         # If schedule reading failed before a scenario already exists
         scenario, _ = Scenario.objects.get_or_create(task_id=task_id, manager=manager)
         scenario.name = cleaned_data["scenario_name"]
+        scenario.description = cleaned_data["description"]
+        print(cleaned_data)
+        print(scenario.description)
         # If schedule reading failed before there is a parent already. Delete it if
         # its only child is the current scenario
         if scenario.parent:
@@ -932,7 +935,7 @@ class SummaryView(AuthorizedMixIn, TemplateView):
         scenario = get_object_or_404(Scenario, task_id=task_id)
         context["scenario"] = scenario
         context["task_id"] = task_id
-
+        print(scenario.description)
         progress = Progress.objects.filter(
             scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
         ).first()
@@ -1100,9 +1103,7 @@ def merge_and_run(request: HttpRequest, task_id: str):
             (scenario.parent.id, scenario.id, sim_task_id), task_id=str(sim_task_id)
         )
     except Exception as e:
-        progress.status = "Fehlgeschlagen"
-        progress.success = False
-        progress.running = False
+        progress.set_failed()
         progress.errors.append(
             "Ein unerwarteter Fehler ist aufgetreten." "Wenden Sie sich an ihren Administrator"
         )

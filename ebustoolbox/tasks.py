@@ -750,6 +750,7 @@ def get_parent(scenario):
     parent.save()
 
     child = create_empty_child_scenario(parent, task_id=task_id)
+    parent.refresh_from_db()
     parent.name = "Parent of " + parent.name
     parent.save()
 
@@ -1121,10 +1122,12 @@ def create_stations_for_map(django_scenario: Scenario):
 
 
 def create_empty_child_scenario(parent_scenario: Scenario, task_id):
-    new_child_scenario = Scenario.objects.create(task_id=task_id)
-    new_child_scenario.manager = parent_scenario.manager
-    new_child_scenario.name = parent_scenario.name
-    new_child_scenario.parent = parent_scenario
+    parent_id = parent_scenario.id
+    # Decouple memory of parent and child
+    new_child_scenario = Scenario.objects.get(id=parent_scenario.id)
+    new_child_scenario.id = ebustoolbox.util.get_next_id(Scenario)
+    new_child_scenario.task_id = task_id
+    new_child_scenario.parent_id = parent_id
     new_child_scenario.save()
     return new_child_scenario
 
