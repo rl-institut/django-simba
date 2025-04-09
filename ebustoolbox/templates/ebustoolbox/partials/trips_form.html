@@ -85,18 +85,18 @@
         </div>
       </div>
     </div>
-    <div class="col-span-full pb-4">
-      <div class="flex">
-        <div class="pt-9 pr-4 text-sm text-slate-600">
-          oder
+    <div class="col-span-full pt-4 pb-8">
+      <div class="flex items-center gap-4">
+        <div class="text-sm text-slate-600">
+          oder aus bestehendem Szenario
         </div>
-        <div class="w-full">
+        <div class="flex-grow">
           <label id="listbox-label" class="block text-sm font-medium text-slate-800">
-            Aus bestehendem Szenario
+            
           </label>
 
           <!-- Dropdown -->
-          <div class="relative mt-2">
+          <div class="relative">
                         <input hidden {{form.existing_scenario|widget_attrs}}>
             <button
                     id="assignedToButton"
