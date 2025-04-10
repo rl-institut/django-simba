@@ -42,6 +42,7 @@ class Scenario(models.Model):
         name (str): The name of the scenario. Required and cannot be blank.
         name_short (str, optional): A short name for the scenario. Can be blank.
         parent (Scenario, optional): A reference to the parent scenario, if applicable.
+        scenario_type (str, optional): The type of the scenario indicating what data it contains.
         description (str, optional): A description for the scenario.
         created (datetime): The date and time when the scenario was created.
         task_id (UUID, optional): Unique identifier for the scenario's task. Can be null.
