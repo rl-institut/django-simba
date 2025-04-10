@@ -23,7 +23,7 @@ from django.db.transaction import atomic
 from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.timezone import make_aware, is_aware
-from eflips.depot import UnstableSimulationException
+from eflips.depot import UnstableSimulationException, DelayedTripException
 from eflips.depot.api import simulate_scenario, generate_depot_layout
 
 import core.deepcopy
@@ -1327,6 +1327,10 @@ def _run_ebus_toolchain(self, task_id):
                 # TODO handle it and pass information to user
                 logger.error("The simulation is unstable")
                 logger.error(traceback.format_exception(e))
+            except DelayedTripException as e:
+                # TODO handle it and pass information to user
+                logger.error("There are delys in the Simulation")
+                logger.error(traceback.format_exception(e))
 
             eflips_assignment = get_assigned_vehicles(task_id)
             schedule.assign_vehicles_custom(eflips_assignment)
@@ -1520,7 +1524,11 @@ def run_eflips(task_id) -> None:
     first_trip_time = Trip.objects.filter(scenario=db_scenario).aggregate(Min("departure_time"))
     period = last_trip_time["arrival_time__max"] - first_trip_time["departure_time__min"]
     simulate_scenario(
-        db_scenario, database_url=db_url, repetition_period=period, ignore_unstable_simulation=True
+        db_scenario,
+        database_url=db_url,
+        repetition_period=period,
+        ignore_unstable_simulation=True,
+        ignore_delayed_trips=True,
     )
 
 

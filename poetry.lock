@@ -1075,24 +1075,28 @@ simpy = ">=4.0.1,<5.0.0"
 
 [[package]]
 name = "eflips-depot"
-version = "4.6.6"
+version = "4.6.7"
 description = "Depot Simulation for eFLIPS"
 optional = false
-python-versions = "<4.0,>=3.10"
-files = [
-    {file = "eflips_depot-4.6.6-py3-none-any.whl", hash = "sha256:c7a6674950b403ce41809c34b6423c33150a7646f58df67991beb5de26f2b353"},
-    {file = "eflips_depot-4.6.6.tar.gz", hash = "sha256:a6179bca866a7eb3a94283b438527bf834b2b510ddd06ff7afd2e9dd81c31911"},
-]
+python-versions = "^3.10"
+files = []
+develop = false
 
 [package.dependencies]
-eflips = ">=0.1.3,<0.2.0"
-eflips-model = ">=6.0.6,<7.0.0"
-pandas = ">=2.2.0,<3.0.0"
-scipy = ">=1.14.0,<2.0.0"
-simpy = ">=4.0.1,<5.0.0"
-tqdm = ">=4.67.0,<5.0.0"
+eflips = "^0.1.3"
+eflips-model = ">=6.0.6, <7.0.0"
+pandas = "^2.2.0"
+scipy = "^1.14.0"
+simpy = "^4.0.1"
+tqdm = "^4.67.0"
 xlrd = "<=1.2.0"
-xlsxwriter = ">=3.1.9,<4.0.0"
+xlsxwriter = "^3.1.9"
+
+[package.source]
+type = "git"
+url = "https://github.com/mpm-tu-berlin/eflips-depot"
+reference = "main"
+resolved_reference = "31851b2472c762188872e7267fac80a428a2eba2"
 
 [[package]]
 name = "eflips-eval"
@@ -3210,4 +3214,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10, <4.0"
-content-hash = "da5a8f87dd921379eea9af95804fc6c9f43e6ed88e70d3d52a744b5d10abbc2d"
+content-hash = "9e1c34dd7d86922d4cceaecfde800383663d6712d7dd2c76e14dd529737b3f55"

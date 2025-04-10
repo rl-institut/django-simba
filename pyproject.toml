@@ -29,7 +29,7 @@ django-tailwind = "^3.8.0"
 djangorestframework = ">=3.14.0, <4.0.0"
 djangorestframework-mvt = ">=0.2.5, <1.0.0"
 
-eflips-depot = ">=4.4.2, <5.0.0"
+eflips-depot = { git = "https://github.com/mpm-tu-berlin/eflips-depot", rev = "main"}
 eflips-eval = "^1.5.5"
 eflips-ingest = "^1.2.77"
 
