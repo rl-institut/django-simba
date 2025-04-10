@@ -1229,7 +1229,7 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     # child.simba_options.update(ele_dict)
     all_stations = Station.objects.filter(scenario=mutation)
     electrified_stations = Station.objects.filter(scenario=mutation, is_electrified=True)
-    excluded_stations = StationElectrificationExclusions.objects.filter(scenario=mutation)
+    excluded_stations = Station.objects.filter(scenario=mutation, is_electifiable=False)
     # Some stations are not electrified or excluded -->possible need for optimization
     if all_stations.count() > electrified_stations.count() + excluded_stations.count():
         child.simba_options["modes"] = "sim,station_optimization,report"
