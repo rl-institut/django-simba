@@ -751,7 +751,6 @@ def get_parent(scenario):
     parent.save()
 
     child = create_empty_child_scenario(parent, task_id=task_id)
-    parent.refresh_from_db()
     parent.name = "Parent of " + parent.name
     parent.save()
 

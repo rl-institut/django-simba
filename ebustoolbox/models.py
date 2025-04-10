@@ -943,9 +943,7 @@ class Station(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
     is_electrified = models.BooleanField(default=False)
-
     is_electrifiable = models.BooleanField(default=True)
-
     charge_type = models.CharField(
         max_length=4, choices=EnumChargeType.choices, null=True, default=None
     )
