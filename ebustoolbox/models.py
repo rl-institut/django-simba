@@ -1667,12 +1667,6 @@ class StationMutation(models.Model):
     )
 
 
-# ToDo better add it as attribute to Station model. not possible without eflips change
-class StationElectrificationExclusions(models.Model):
-    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
-    station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE)
-
-
 class EnumCalculationModes(models.TextChoices):
     AUTOMATIC = "automatic"
     CONSTANT_POWER = "constant_power"

@@ -65,7 +65,6 @@ from .models import (
     VehicleTypeMutation,
     VehicleTypeSelection,
     StationMutation,
-    StationElectrificationExclusions,
 )
 from .schedule_readers import ScheduleReader
 
@@ -1229,7 +1228,7 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     # child.simba_options.update(ele_dict)
     all_stations = Station.objects.filter(scenario=mutation)
     electrified_stations = Station.objects.filter(scenario=mutation, is_electrified=True)
-    excluded_stations = Station.objects.filter(scenario=mutation, is_electifiable=False)
+    excluded_stations = Station.objects.filter(scenario=mutation, is_electrifiable=True)
     # Some stations are not electrified or excluded -->possible need for optimization
     if all_stations.count() > electrified_stations.count() + excluded_stations.count():
         child.simba_options["modes"] = "sim,station_optimization,report"
@@ -1904,37 +1903,24 @@ def unelectrify_station(station: Station) -> Station:
 
 
 @atomic()
-def update_stations_and_exclusion(context, scenario):
-    StationElectrificationExclusions.objects.filter(scenario=scenario).delete()
+def update_stations_and_exclusion(context):
     stations = []
-    station_exclusions = []
-    next_id = ebustoolbox.util.get_next_id(StationElectrificationExclusions)
-    for key, value in context["stations_exclude_forms"].items():
-        if value.cleaned_data["is_excluded"]:
-            station_exclusions.append(
-                StationElectrificationExclusions(id=next_id, scenario=scenario, station_id=key)
-            )
-            next_id += 1
-            station = Station.objects.get(id=key)
+    for form in context["stations_forms"].values():
+        if not form.cleaned_data["is_electrified"]:
+            station = form.instance
             station = unelectrify_station(station)
         else:
-            form = context["stations_forms"][key]
-            if not form.cleaned_data["is_electrified"]:
-                station = Station.objects.get(id=key)
-                station = unelectrify_station(station)
-            else:
-                # Electrification needs further attributes
-                station = form.save(commit=False)
-                # ToDo Workaround for when bryan is finished.
-                # Fix form with proper naming
-                station: Station
-                station.power_per_charger = station.power_total
-                station.power_total = station.power_per_charger * station.amount_charging_places
-                station.charge_type = EnumChargeType.OPPORTUNITY
-                station.voltage_level = EnumVoltageLevel.VOLTAGE_MV
-                station.is_valid()
+            # Electrification needs further attributes
+            station = form.save(commit=False)
+            # TODO Workaround for when bryan is finished.
+            # Fix form with proper naming
+            station: Station
+            station.power_per_charger = station.power_total
+            station.power_total = station.power_per_charger * station.amount_charging_places
+            station.charge_type = EnumChargeType.OPPORTUNITY
+            station.voltage_level = EnumVoltageLevel.VOLTAGE_MV
+            station.is_valid()
         stations.append(station)
-    StationElectrificationExclusions.objects.bulk_create(station_exclusions)
     Station.objects.bulk_update(
         stations,
         fields=forms.StationForm._meta.fields

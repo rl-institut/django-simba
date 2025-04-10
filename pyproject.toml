@@ -45,6 +45,12 @@ selenium = "^4.13.0"
 setuptools = "^68.2.2"
 tqdm = "^4.66.1"
 
+[tool.mypy]
+plugins = ["mypy_django_plugin.main"]
+
+[tool.django-stubs]
+django_settings_module = "ebusdjango.settings"
+
 [tool.poetry.group.dev]
 optional = true
 

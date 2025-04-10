@@ -54,7 +54,6 @@ from ebustoolbox.models import (
     VehicleTypeSelection,
     VehicleTypeMutation,
     StationMutation,
-    StationElectrificationExclusions,
     ScenarioWizardOptions,
     EnumCalculationModes,
 )
@@ -633,6 +632,7 @@ class StationsView(ScenarioMixIn, TemplateView):
         if self.request.method != "POST":
             data = {}
 
+        # ToDo Deprecated with new design
         wizard_options, _ = ScenarioWizardOptions.objects.get_or_create(scenario=scenario)
 
         form_class = modelform_factory(ScenarioWizardOptions, fields=["station_calculation_mode"])
@@ -649,18 +649,9 @@ class StationsView(ScenarioMixIn, TemplateView):
 
         # Settings specific to each station
         context["stations_forms"] = dict()
-        context["stations_exclude_forms"] = dict()
         for station in context["stations"].values():
             context["stations_forms"][station.id] = forms.StationForm(
                 data, instance=station, prefix=self.get_station_prefix(station)
-            )
-            is_excluded = StationElectrificationExclusions.objects.filter(
-                scenario=scenario, station=station
-            ).exists()
-            context["stations_exclude_forms"][station.id] = forms.StationExcludedForm(
-                data,
-                initial={"is_excluded": is_excluded},
-                prefix=self.get_station_prefix(station),
             )
         context["detailedOptionNames"] = list(forms.StationForm().fields.keys())
 
@@ -692,42 +683,19 @@ class StationsView(ScenarioMixIn, TemplateView):
 
         match calculation_mode_form.cleaned_data["station_calculation_mode"]:
             case "automatic":
-                # Reset the scenario to its parent state. No Stations are excluded
-                StationElectrificationExclusions.objects.filter(scenario=scenario).delete()
-                ebustoolbox.tasks.create_station_mutations(scenario)
-                pass
+                # Deprecated_Mode
+                raise NotImplementedError
             case "constant_power":
-                form = context["charging_power_form"]
-                if not form.is_valid():
-                    logger.debug("Invalid charging_power_form provided")
-                    return self.render_to_response(context)
-                stations = Station.objects.filter(scenario=scenario)
-                for station in stations:
-                    station.power_total = form.cleaned_data["power_total"]
-                Station.objects.bulk_update(stations, ["power_total"])
+                # Deprecated Mode
+                raise NotImplementedError
             case "manual":
-                all_valid = True
-                for station_id, station_form in context["stations_forms"].items():
-                    exclusion_form = context["stations_exclude_forms"][station_id]
-                    valid = exclusion_form.is_valid()
-                    all_valid = all_valid & valid
-                    # Only station_forms of not excluded stations must be valid
-                    if valid and not exclusion_form.cleaned_data["is_excluded"]:
-                        valid = station_form.is_valid()
-                        if not valid:
-                            # If the station is not set to exclude or electrified its
-                            # automatic -> therefore it does not need a proper station_form
-                            if not station_form.cleaned_data["is_electrified"]:
-                                continue
-                            # it is set to electrified but does not have a proper station_form
-                            # post will not be accepted
-                            all_valid = False
+                all_valid = all(form.is_valid() for form in context["stations_forms"].values())
                 if not all_valid:
                     logger.debug("Invalid StationsForm provided")
                     return self.render_to_response(context)
                 # The forms are valid. Update the stations and exclude stations
                 # from electrification
-                ebustoolbox.tasks.update_stations_and_exclusion(context, scenario)
+                ebustoolbox.tasks.update_stations_and_exclusion(context)
             case _:
                 raise NotImplementedError
         response = redirect(reverse(self.success_name, args=[scenario.task_id]))
@@ -979,10 +947,10 @@ class SummaryView(AuthorizedMixIn, TemplateView):
         context["vehicle_types"] = annotated_vehicle_types
 
         context["electrified_stations"] = scenario_stations.filter(is_electrified=True)
-        excluded = StationElectrificationExclusions.objects.filter(scenario=scenario)
+        excluded = Station.objects.filter(scenario=scenario, is_electrifiable=False)
         excluded_ids = [x.station.id for x in excluded]
-        context["automatic_stations"] = scenario_stations.filter(is_electrified=False).exclude(
-            id__in=excluded_ids
+        context["automatic_stations"] = scenario_stations.filter(
+            is_electrified=False, is_electrifiable=True
         )
         context["excluded_stations"] = scenario_stations.filter(id__in=excluded_ids)
         context["depots"] = Station.objects.filter(
