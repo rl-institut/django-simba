@@ -761,9 +761,9 @@ def render_critical_rotations(request, task_id):
     df = data.get_critical_rotations_as_dataframe(s.id, buses)
 
     # Return only raw values
-    return JsonResponse({
-        "data": [{"value": row["Count"], "name": row["Category"]} for _, row in df.iterrows()]
-    })
+    return JsonResponse(
+        {"data": [{"value": row["Count"], "name": row["Category"]} for _, row in df.iterrows()]}
+    )
 
 
 def render_bustype(request, task_id):
@@ -777,9 +777,9 @@ def render_bustype(request, task_id):
     if len(df) == 0:
         return JsonResponse({"data": []})
 
-    return JsonResponse({
-        "data": [{"value": row["count"], "name": row["name"]} for _, row in df.iterrows()]
-    })
+    return JsonResponse(
+        {"data": [{"value": row["count"], "name": row["name"]} for _, row in df.iterrows()]}
+    )
 
 
 def get_soc_data(request, task_id):
@@ -792,19 +792,23 @@ def get_soc_data(request, task_id):
     buses = list(vehicle_name_dict.keys())
     df = data.get_soc_as_dataframe(s.id, buses)
 
-    selected_columns = df[['V_id', 'time_start', 'soc_end']]
+    selected_columns = df[["V_id", "time_start", "soc_end"]]
 
     # Convert 'time_start' to Unix timestamps (in milliseconds) and assign to a new column
-    selected_columns['timestamp'] = pd.to_datetime(selected_columns['time_start']).astype(int) // 10**6
+    selected_columns["timestamp"] = (
+        pd.to_datetime(selected_columns["time_start"]).astype(int) // 10**6
+    )
 
-    soc_data = selected_columns.groupby('V_id').apply(
-        lambda group: group[['timestamp', 'soc_end']].values.tolist()
-        # Convert each group to a list of [timestamp, soc_end]
-    ).to_dict()
+    soc_data = (
+        selected_columns.groupby("V_id")
+        .apply(
+            lambda group: group[["timestamp", "soc_end"]].values.tolist()
+            # Convert each group to a list of [timestamp, soc_end]
+        )
+        .to_dict()
+    )
 
-    response_data = {
-        "data": soc_data
-    }
+    response_data = {"data": soc_data}
 
     return JsonResponse(response_data)
 
@@ -847,20 +851,19 @@ def get_station_occupation(request, task_id):
 
     charging_status = []
 
-    all_times = pd.date_range(
-        start=df["time_start"].min(), end=df["time_end"].max(), freq="min"
-    )
+    all_times = pd.date_range(start=df["time_start"].min(), end=df["time_end"].max(), freq="min")
     for time_point in all_times:
         charging_vehicles = (
             ((df["time_start"] <= time_point) & (df["time_end"] > time_point)) & (df["Power"] > 0)
         ).sum()
-        charging_status.append({"time": time_point.isoformat(), "vehicles_charging": charging_vehicles})
+        charging_status.append(
+            {"time": time_point.isoformat(), "vehicles_charging": charging_vehicles}
+        )
 
     return JsonResponse({"data": charging_status})
 
 
 def get_gantt_data(request, task_id):
-
     s = Scenario.objects.get(task_id=task_id)
 
     vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
@@ -869,42 +872,39 @@ def get_gantt_data(request, task_id):
 
     # Define colors for event types
     EVENT_COLORS = {
-        'SERVICE': '#7b9ce1',
-        'CHARGING_DEPOT': '#bd6d6c',
-        'STANDBY_DEPARTURE': '#e0bc78',
-        'DRIVING': '#75d874',
+        "SERVICE": "#7b9ce1",
+        "CHARGING_DEPOT": "#bd6d6c",
+        "STANDBY_DEPARTURE": "#e0bc78",
+        "DRIVING": "#75d874",
     }
 
-    df['time_start'] = pd.to_datetime(df['time_start'])
-    df['time_end'] = pd.to_datetime(df['time_end'])
+    df["time_start"] = pd.to_datetime(df["time_start"])
+    df["time_end"] = pd.to_datetime(df["time_end"])
 
-    buses = df['V_id'].unique()
-    categories = [f'Bus {bus}' for bus in buses]  # Displaying each bus on a separate row
+    buses = df["V_id"].unique()
+    categories = [f"Bus {bus}" for bus in buses]  # Displaying each bus on a separate row
 
     gantt_data = []
     for _, row in df.iterrows():
-        event_type = row['event_type']
-        start_time = int(row['time_start'].timestamp() * 1000)  # Convert to milliseconds
-        end_time = int(row['time_end'].timestamp() * 1000)
-        duration = row['duration']
-        color = EVENT_COLORS.get(event_type, '#000000')  # Default color if type not found
-        bus_index = list(buses).index(row['V_id'])  # Find the bus index for y-axis
+        event_type = row["event_type"]
+        start_time = int(row["time_start"].timestamp() * 1000)  # Convert to milliseconds
+        end_time = int(row["time_end"].timestamp() * 1000)
+        duration = row["duration"]
+        color = EVENT_COLORS.get(event_type, "#000000")  # Default color if type not found
+        bus_index = list(buses).index(row["V_id"])  # Find the bus index for y-axis
 
-        gantt_data.append({
-            'name': row['readable_name'],
-            'value': [bus_index, start_time, end_time, duration],
-            'itemStyle': {
-                'normal': {
-                    'color': color
-                }
+        gantt_data.append(
+            {
+                "name": row["readable_name"],
+                "value": [bus_index, start_time, end_time, duration],
+                "itemStyle": {"normal": {"color": color}},
             }
-        })
+        )
 
-    return JsonResponse({'categories': categories, 'data': gantt_data}, safe=False)
+    return JsonResponse({"categories": categories, "data": gantt_data}, safe=False)
 
 
 def get_stats(request, task_id):
-
     s = Scenario.objects.get(task_id=task_id)
 
     filter_dict = dict(task_id=task_id)
@@ -928,20 +928,19 @@ def get_stats(request, task_id):
     avg_consumption = round(total_consumption / (dist_df["total_distance"].sum() / 1000), 3)
 
     resp = {
-        'longest_rotation': longest_rot,
-        'shortest_rotation': shortest_rot,
-        'num_stations': num_stations,
-        'num_busses': num_busses,
-        'most_frequented': most_freq,
-        'total_dist': total_dist,
-        'total_consumption': total_consumption,
-        'avg_consumption': avg_consumption
+        "longest_rotation": longest_rot,
+        "shortest_rotation": shortest_rot,
+        "num_stations": num_stations,
+        "num_busses": num_busses,
+        "most_frequented": most_freq,
+        "total_dist": total_dist,
+        "total_consumption": total_consumption,
+        "avg_consumption": avg_consumption,
     }
     return JsonResponse(resp)
 
 
 def get_speed_hist(request, task_id):
-
     s = Scenario.objects.get(task_id=task_id)
 
     filter_dict = dict(task_id=task_id)
@@ -967,23 +966,17 @@ def get_speed_hist(request, task_id):
     response_data = {
         "xAxis": {
             "type": "category",
-            "data": [f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km/h" for i in range(len(bin_edges) - 1)]
+            "data": [
+                f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km/h" for i in range(len(bin_edges) - 1)
+            ],
         },
-        "yAxis": {
-            "type": "value"
-        },
-        "series": [
-            {
-                "data": hist.tolist(),
-                "type": "bar"
-            }
-        ]
+        "yAxis": {"type": "value"},
+        "series": [{"data": hist.tolist(), "type": "bar"}],
     }
     return JsonResponse(response_data)
 
 
 def get_dist_hist(request, task_id):
-
     s = Scenario.objects.get(task_id=task_id)
 
     filter_dict = dict(task_id=task_id)
@@ -1013,17 +1006,12 @@ def get_dist_hist(request, task_id):
         "xaxis_title": "Distanz",
         "xAxis": {
             "type": "category",
-            "data": [f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km" for i in range(len(bin_edges) - 1)]
+            "data": [
+                f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km" for i in range(len(bin_edges) - 1)
+            ],
         },
         "yaxis_title": "Abs.Häufigkeit",
-        "yAxis": {
-            "type": "value"
-        },
-        "series": [
-            {
-                "data": hist.tolist(),
-                "type": "bar"
-            }
-        ]
+        "yAxis": {"type": "value"},
+        "series": [{"data": hist.tolist(), "type": "bar"}],
     }
     return JsonResponse(response_data)
