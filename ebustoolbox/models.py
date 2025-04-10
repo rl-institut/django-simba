@@ -902,6 +902,7 @@ class Station(models.Model):
         name_short (str, optional): A short name for the station. Can be blank.
         scenario (Scenario): The scenario to which the station is associated. Foreign key to the Scenario model.
         is_electrified (bool): Indicates whether the station is electrified. Defaults to False.
+        is_electrified (bool): Indicates whether the station could be electrified. Defaults to True.
         charge_type (str, optional): The type of charging available at the station.
                                      Choices defined by EnumChargeType. Defaults to None.
         voltage_level (str, optional): The voltage level of the station.
