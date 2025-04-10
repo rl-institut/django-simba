@@ -30,8 +30,6 @@ urlpatterns = [
         "results/<uuid:task_id>/",
         views.result_view,
         name="results",
-        #TemplateView.as_view(template_name="ebustoolbox/results.html"),
-       # name="results",
     ),
     path(
         "stations/",
@@ -58,7 +56,7 @@ urlpatterns = [
 
     path("result/<uuid:task_id>/", views.result_view_old, name="result"),
 
-    ## Done:
+    # Done:
     path('results/<uuid:task_id>/soc/', views.get_soc_data, name="soc-data"),
     path('results/<uuid:task_id>/power-draw/', views.get_power_draw, name="power-draw"),
     path('results/<uuid:task_id>/station-occupation/', views.get_station_occupation, name="station-occupation"),

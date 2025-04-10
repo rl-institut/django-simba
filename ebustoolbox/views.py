@@ -83,6 +83,7 @@ def result_view_old(request: HttpRequest, task_id):
         html = "<html><body>task_id is not valid</body></html>"
         return HttpResponse(html)
 
+
 def wait_view(request, task_id):
     # View while waiting for results.
     # Will trigger success view as soon as long-running task
@@ -115,6 +116,7 @@ class SuccessView(TemplateView, MapEngineMixin):
         session["django_plotly_dash"] = {"task_id": task_id}
 
         return context
+
 
 class SuccessView_old(TemplateView, MapEngineMixin):
     # View which generates the page containing simulation results
@@ -749,67 +751,12 @@ def usergroups(request):
     return render(request, "usergroups.html", {"usergroups": usergroups})
 
 
-from django.http import JsonResponse
-import random
-import datetime
-
-
-# Helper function to generate random dates
-def random_date(start_date, days_range):
-    return (start_date + datetime.timedelta(days=random.randint(0, days_range))).isoformat()
-
-
-# API for Line Chart Data (e.g., timestamp vs. values)
-def get_line_chart_data(request, simulation_id):
-    timestamps = [(datetime.date.today() - datetime.timedelta(days=i)).isoformat() for i in range(7)]
-    values = [random.randint(10, 100) for _ in range(7)]
-
-    data = {
-        "timestamp": timestamps[::-1],  # Reverse to get ascending order
-        "values": values,
-    }
-    return JsonResponse(data)
-
-
-# API for Bar Chart Data (e.g., categories vs. values)
-def get_bar_chart_data(request, simulation_id):
-    categories = ["Category A", "Category B", "Category C", "Category D"]
-    values = [random.randint(10, 50) for _ in categories]
-
-    data = {
-        "categories": categories,
-        "values": values,
-    }
-    return JsonResponse(data)
-
-
-# API for Histogram Data (e.g., frequency distribution)
-def get_histogram_data(request, simulation_id):
-    bins = [random.randint(5, 30) for _ in range(6)]
-
-    data = {
-        "histogram_data": bins,
-    }
-    return JsonResponse(data)
-
-
-# API for Scatter Plot Data (e.g., coordinates x and y)
-def get_scatter_data(request, simulation_id):
-    scatter_points = [{"x": random.uniform(0, 100), "y": random.uniform(0, 100)} for _ in range(20)]
-
-    data = {
-        "scatter_data": scatter_points,
-    }
-    return JsonResponse(data)
-
 def render_critical_rotations(request, task_id):
     """Returns raw JSON data for critical rotations (critical vs. non-critical)"""
     vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
     s = Scenario.objects.get(task_id=task_id)
-    #if not data.sim_is_finished(task_id):
-     #   return JsonResponse({"data": []})
 
     df = data.get_critical_rotations_as_dataframe(s.id, buses)
 
@@ -825,8 +772,6 @@ def render_bustype(request, task_id):
     buses = list(vehicle_name_dict.keys())
 
     s = Scenario.objects.get(task_id=task_id)
-  #  if not data.sim_is_finished(task_id):
-  #      return JsonResponse({"data": []})
 
     df = data.get_vehicle_types(s.id, buses)
     if len(df) == 0:
@@ -835,6 +780,7 @@ def render_bustype(request, task_id):
     return JsonResponse({
         "data": [{"value": row["count"], "name": row["name"]} for _, row in df.iterrows()]
     })
+
 
 def get_soc_data(request, task_id):
     """
@@ -846,31 +792,28 @@ def get_soc_data(request, task_id):
     buses = list(vehicle_name_dict.keys())
     df = data.get_soc_as_dataframe(s.id, buses)
 
-    # Select the columns we need for SOC data
     selected_columns = df[['V_id', 'time_start', 'soc_end']]
 
     # Convert 'time_start' to Unix timestamps (in milliseconds) and assign to a new column
-    selected_columns['timestamp'] = pd.to_datetime(selected_columns['time_start']).astype(int) // 10**6  # Convert to milliseconds
+    selected_columns['timestamp'] = pd.to_datetime(selected_columns['time_start']).astype(int) // 10**6
 
-    # Now group by 'V_id' and aggregate the results
     soc_data = selected_columns.groupby('V_id').apply(
-        lambda group: group[['timestamp', 'soc_end']].values.tolist()  # Convert each group to a list of [timestamp, soc_end]
+        lambda group: group[['timestamp', 'soc_end']].values.tolist()
+        # Convert each group to a list of [timestamp, soc_end]
     ).to_dict()
 
-    # Prepare the response in ECharts-compatible format
     response_data = {
         "data": soc_data
     }
 
     return JsonResponse(response_data)
+
+
 def get_power_draw(request, task_id):
     """
     Returns power draw data over time by station ID for selected buses.
     """
     s = Scenario.objects.get(task_id=task_id)
-
-  #  if not data.sim_is_finished(task_id):
-  #      return JsonResponse({"error": "Simulation not finished"}, status=400)
 
     buses = request.GET.getlist("buses[]")
     df = data.get_powerdraw_as_dataframe(s.id, buses)
@@ -882,8 +825,6 @@ def get_power_draw(request, task_id):
 
     all_times = pd.date_range(start=df["time_start"].min(), end=df["time_end"].max(), freq="min")
 
-    print(df, all_times)
-
     for time_point in all_times:
         charging_vehicles = df[
             (df["time_start"] <= time_point) & (df["time_end"] > time_point) & (df["Power"] > 0)
@@ -893,14 +834,12 @@ def get_power_draw(request, task_id):
 
     return JsonResponse({"data": charging_status})
 
+
 def get_station_occupation(request, task_id):
     """
     Returns the number of vehicles charging at a station over time.
     """
     s = Scenario.objects.get(task_id=task_id)
-
-   # if not data.sim_is_finished(task_id):
-   #     return JsonResponse({"error": "Simulation not finished"}, status=400)
 
     df = data.get_powerdraw_as_dataframe(s.id, request.GET.getlist("buses[]"))
     df["time_start"] = pd.to_datetime(df["time_start"])
@@ -908,7 +847,6 @@ def get_station_occupation(request, task_id):
 
     charging_status = []
 
-    all_times = pd.date_range(start=df["time_start"].min(), end=df["time_end"].max(), freq="min")
     all_times = pd.date_range(
         start=df["time_start"].min(), end=df["time_end"].max(), freq="min"
     )
@@ -921,7 +859,6 @@ def get_station_occupation(request, task_id):
     return JsonResponse({"data": charging_status})
 
 
-# API for Gantt Chart Data (e.g., tasks with start and end dates)
 def get_gantt_data(request, task_id):
 
     s = Scenario.objects.get(task_id=task_id)
@@ -938,15 +875,12 @@ def get_gantt_data(request, task_id):
         'DRIVING': '#75d874',
     }
 
-    # Parse the datetime columns to datetime objects
     df['time_start'] = pd.to_datetime(df['time_start'])
     df['time_end'] = pd.to_datetime(df['time_end'])
 
-    # Prepare categories (one for each V_id)
-    buses = df['V_id'].unique()  # Unique V_id represents different buses
+    buses = df['V_id'].unique()
     categories = [f'Bus {bus}' for bus in buses]  # Displaying each bus on a separate row
 
-    # Generate the gantt data in the expected format
     gantt_data = []
     for _, row in df.iterrows():
         event_type = row['event_type']
@@ -966,8 +900,8 @@ def get_gantt_data(request, task_id):
             }
         })
 
-    # Return the categories and data as a JsonResponse
     return JsonResponse({'categories': categories, 'data': gantt_data}, safe=False)
+
 
 def get_stats(request, task_id):
 
@@ -978,20 +912,18 @@ def get_stats(request, task_id):
     vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
-    if buses:  # In Presim buses will ne None, if later no buses are selected, it will be empty
+    if buses:  # In Presim buses will be None, if later no buses are selected, it will be empty
         filter_dict["vehicle__id__in"] = buses
 
-    # Get the data
     longest_rot = data.get_number_longest_rot(filter_dict.copy())
     shortest_rot = data.get_number_shortest_rot(filter_dict.copy())
     num_busses = data.get_number_of_buses(filter_dict.copy())
     num_stations = data.get_number_of_stations(task_id)
     most_freq = data.get_frequently_served_station(task_id)
 
-    # Get the data
     dist_df = data.get_distances_as_dataframe(s.id, buses)
-    total_dist = round(dist_df["total_distance"].sum() / 1000,0)
-    total_consumption = round(data.get_total_consumption(s) ,0)
+    total_dist = round(dist_df["total_distance"].sum() / 1000, 0)
+    total_consumption = round(data.get_total_consumption(s), 0)
 
     avg_consumption = round(total_consumption / (dist_df["total_distance"].sum() / 1000), 3)
 
@@ -1000,12 +932,13 @@ def get_stats(request, task_id):
         'shortest_rotation': shortest_rot,
         'num_stations': num_stations,
         'num_busses': num_busses,
-        'most_frequented':most_freq,
-        'total_dist':total_dist,
-        'total_consumption':total_consumption,
-        'avg_consumption':avg_consumption
+        'most_frequented': most_freq,
+        'total_dist': total_dist,
+        'total_consumption': total_consumption,
+        'avg_consumption': avg_consumption
     }
     return JsonResponse(resp)
+
 
 def get_speed_hist(request, task_id):
 
@@ -1016,10 +949,9 @@ def get_speed_hist(request, task_id):
     vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
-    if buses:  # In Presim buses will ne None, if later no buses are selected, it will be empty
+    if buses:  # In Presim buses will be None, if later no buses are selected, it will be empty
         filter_dict["vehicle__id__in"] = buses
 
-    # Get the data
     dur_df = data.get_duration_as_dataframe(s.id, buses)
     dist_df = data.get_distances_as_dataframe(s.id, buses)
     # Calculate average speed in km/h
@@ -1032,7 +964,6 @@ def get_speed_hist(request, task_id):
     bins = np.arange(min_speed_kmh, max_speed_kmh + bin_width_kmh, bin_width_kmh)
     hist, bin_edges = np.histogram(dur_df["avg_speed_kmh"], bins=bins)
 
-    # Prepare JSON response for ECharts
     response_data = {
         "xAxis": {
             "type": "category",
@@ -1050,6 +981,7 @@ def get_speed_hist(request, task_id):
     }
     return JsonResponse(response_data)
 
+
 def get_dist_hist(request, task_id):
 
     s = Scenario.objects.get(task_id=task_id)
@@ -1062,14 +994,13 @@ def get_dist_hist(request, task_id):
     if buses:  # In Presim buses will ne None, if later no buses are selected, it will be empty
         filter_dict["vehicle__id__in"] = buses
 
-    # Get the data
     df = data.get_distances_as_dataframe(s.id, buses)
 
     # Convert total_distance from meters to kilometers
     df["total_distance_km"] = df["total_distance"] / 1000
 
     # Set the desired bin width in kilometers
-    bin_width_km = 50  # Specify your desired bin width in kilometers here, the final bin with is twice this value
+    bin_width_km = 50
 
     # Calculate the number of bins based on the bin width
     max_distance_km = df["total_distance_km"].max()
@@ -1078,9 +1009,8 @@ def get_dist_hist(request, task_id):
     bins = np.arange(min_distance_km, max_distance_km + bin_width_km, bin_width_km)
     hist, bin_edges = np.histogram(df["total_distance_km"], bins=bins)
 
-    # Prepare JSON response for ECharts
     response_data = {
-        "xaxis_title":"Distanz",
+        "xaxis_title": "Distanz",
         "xAxis": {
             "type": "category",
             "data": [f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km" for i in range(len(bin_edges) - 1)]
@@ -1096,9 +1026,4 @@ def get_dist_hist(request, task_id):
             }
         ]
     }
-
-    from django.conf import settings
-    print("\n\n\n\n", settings.STATIC_ROOT)  # If collectstatic is used
-    print(settings.STATICFILES_DIRS, "\n\n\n\n\n")  # If multiple static dirs are used
-
     return JsonResponse(response_data)
