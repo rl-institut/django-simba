@@ -14,53 +14,47 @@
 {% endblock header %}
 
 {% block wizard_content %}
-<!-- Use alert when simulating -->
-<aside class="flex flex-col items-center">
-  <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <div
-      class="w-full rounded-md bg-blue-50 p-12"
-      role="alert"
-      aria-labelledby="progress-alert-title"
-      aria-describedby="progress-alert-description"
-    >
-      <div class="flex flex-col items-center">
-        <div class="w-full text-center">
-          <h3
-            id="progress-alert-title"
-            class="text-lg font-semibold text-blue-800"
-          >
-            Das Szenario wird erstellt
-          </h3>
-        </div>
-        <div class="w-full lg:w-8/12 mt-4">
-          <div class="relative w-full h-2 bg-blue-200 rounded-full">
-            <div
-              class="absolute left-0 h-2 bg-blue-800 rounded-full"
-              style="width: 50%;"
-            ></div>
-          </div>
-        </div>
-        <div class="flex gap-1 mt-2 text-sm text-blue-800">
-          <span class="font-bold">32</span>
-          <span class="font-normal">Minuten verbleibend</span>
-        </div>
-        <div class="mt-4">
-          <a
-            href="#"
-            class="text-blue-800 text-sm font-bold underline focus:outline-none focus:ring-2 focus:ring-blue-800 focus:ring-offset-2"
-          >
-            E-Mail erhalten
-          </a>
-          <span class="text-sm text-blue-800">, wenn die Simulation beendet ist</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</aside>
+  <!-- Use alert when simulating -->
 
-<main class="flex flex-col items-center">
-  <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <div class="flex justify-center">
+  {#    ToDo. Needs Styling @ Bryan#}
+  <button id="simulateButton" hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s
+          style="background-color:green" {% if progress.running or progress.success %}disabled{% endif %}> Simulation Starten
+  </button>
+  <div id="runner"
+          {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
+       hx-trigger="notRunning from:body">
+  </div>
+  <script>
+      // Clicking the simulate button disables it. It will be enabled again if htmx sends notRunning
+      $("#simulateButton").click(function () {
+          $(this).attr("disabled", "disabled");
+      });
+      htmx.on('#runner', 'htmx:trigger', function (evt) {
+          console.log("notRunning");
+          {#hx is triggered when "notRunning" is sent from progress poll#}
+          const button=document.getElementById("simulateButton")
+          button.disabled = false;
+          button.innerHTML ="Erneut Simulieren"
+      })
+  </script>
+
+  <div id="simulationProgressAlert">
+  {% if progress %}
+    {% include "core/progress_poll.html" with progress_id=progress.task_id template_name="progress_simulation.html" %}
+  {% endif %}
+  {#      om case of error allow resimulating#}
+{#  {% if show_rerun %}#}
+{#    <button hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s#}
+{#            style="background-color:green"> Simulation Erneut Starten#}
+{#    </button>#}
+{#  {% endif %}#}
+
+
+    </div>
+
+  <main class="flex flex-col items-center">
+    <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+      <div class="flex justify-center">
       <div class="inline-flex items-center p-1 gap-1 bg-slate-200 rounded-full">
         <button
           id="tab-summary"
@@ -94,7 +88,7 @@
           <p class="text-slate-800 font-medium tracking-wide">Szenarioname</p>
           <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div>
-              <p>BVG Test 03</p>
+              <p>{{ scenario.name }}</p>
             </div>
             <div>
               <a href="#" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
@@ -110,7 +104,7 @@
           <p class="text-slate-800 font-medium tracking-wide">Beschreibung</p>
           <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div>
-              <p>Depots Weißensee und Neukölln Depots Weißensee und Neukölln Depots Weißensee und Neukölln Depots Weißensee und Neukölln Depots Weißensee und Neukölln Depots Weißensee und Neukölln Depots Weißensee und Neukölln Depots Weißensee und Neukölln Depots Weißensee und Neukölln</p>
+              <p>{{ scenario_description.description }}</p>
             </div>
             <div>
               <a href="#" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
@@ -126,22 +120,15 @@
           <p class="text-slate-800 font-medium tracking-wide">Zeitspanne</p>
           <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div>
-              <p>Mo 12.04.2025, 03:00 - Di 13.04.2025, 03:00</p>
+              <p>{{ sim_duration}}</p>
             </div>
-            <div class="flex items-center gap-2 text-sm font-normal text-sm text-slate-500 tracking-wide">
-              Warum kann ich die Zeitspanne nicht bearbeiten?
-              <div class="relative inline-block">
-                <!-- Info Icon -->
-                <span class="cursor-pointer group">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                  </svg>
-                  <!-- Tooltip -->
-                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                    Bottom Left-Aligned Tooltip
-                  </div>
-                </span>
-              </div>
+            <div>
+              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+                </svg>
+                Editieren
+              </a>
             </div>
           </div>
         </div>
@@ -149,10 +136,10 @@
           <p class="text-slate-800 font-medium tracking-wide">Temperatur</p>
           <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div>
-              <p>-10° C</p>
+              <p>{{ temperature }}° C</p>
             </div>
             <div>
-              <a href="#" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -163,13 +150,15 @@
         </div>
         <div class="flex flex-col pb-8 space-y-2">
           <p class="text-slate-800 font-medium tracking-wide">Fahrzeugtypen</p>
+          {%  for vehicle_type in vehicle_types %}
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
-              <p class="text-slate-800 font-semibold uppercase">Solobus</p>
+              <p class="text-slate-800 font-semibold uppercase">{{ vehicle_type.name }}</p>
               <div class="pt-4 pl-4">
                 <div class="inline-flex items-center gap-1 pb-2">
                   <span class="text-slate-800 font-semibold">Default</span>
-                  <span>(2 Linien</span>
+                  <span>({{ vehicle_type.lines|length}} Linie(n)</span>
+                {% if vehicle_type.lines %}
                   <span class="relative inline-flex items-center">
                     <span class="cursor-pointer group">
                       <svg
@@ -195,30 +184,33 @@
                       <div
                         class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none"
                       >
-                        Linien 102, 104
+                        {% for line in vehicle_type.lines %}
+                          <li>{{ line}}</li>
+                          {% endfor %}
                       </div>
                     </span>
                   </span>
+                {% endif %}
                   <span>)</span>
                 </div>
                 <div class="flex flex-col pl-4 font-normal border-l gap-2">
                   <p class="flex">
                     <span class="w-[16rem] text-slate-500">Anzahl Fahrzeuge:</span>
-                    <span class="text-slate-800">30</span>
+                    <span class="text-slate-800">Not Implemented</span>
                   </p>
                   <p class="flex">
                     <span class="w-[16rem] text-slate-500">Gesamtkilometer:</span>
-                    <span class="text-slate-800">503,6 km</span>
+                    <span class="text-slate-800">Not Implemented</span>
                   </p>
                   <p class="flex">
                     <span class="w-[16rem] text-slate-500">Nutz. Batteriekapazität:</span>
-                    <span class="text-slate-800">500 kW</span>
+                    <span class="text-slate-800">{{ vehicle_type.battery_capacity }} kW</span>
                   </p>
                 </div>
               </div>
               <div class="pt-4 pl-4">
                 <div class="inline-flex items-center gap-1 pb-2">
-                  <span class="text-slate-800 font-semibold">Gruppe 1</span>
+                  <span class="text-slate-800 font-semibold">Gruppe 1 (Not Implemented)</span>
                   <span>(4 Linien</span>
                   <span class="relative inline-flex items-center">
                     <span class="cursor-pointer group">
@@ -268,7 +260,7 @@
               </div>
             </div>
             <div>
-              <a href="#" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -276,69 +268,7 @@
               </a>
             </div>
           </div>
-          <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
-            <div class="w-full">
-              <p class="text-slate-800 font-semibold uppercase">Gelenkbus</p>
-              <div class="pt-4 pl-4">
-                <div class="inline-flex items-center gap-1 pb-2 text-slate-800">
-                  <span>Alle Linien</span>
-                  <span class="relative inline-flex items-center">
-                    <span class="cursor-pointer group">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="#00856C"
-                        class="size-5"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                        />
-                      </svg>
-                      <!-- Tooltip -->
-                      <div
-                        class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none"
-                      >
-                        Linien 102, 104
-                      </div>
-                    </span>
-                  </span>
-                </div>
-                <div class="pl-4 font-normal border-l">
-                  <div class="flex flex-col gap-2">
-                    <p class="flex">
-                      <span class="w-[16rem] text-slate-500">Anzahl Fahrzeuge:</span>
-                      <span class="text-slate-800">30</span>
-                    </p>
-                    <p class="flex">
-                      <span class="w-[16rem] text-slate-500">Gesamtkilometer:</span>
-                      <span class="text-slate-800">503,6 km</span>
-                    </p>
-                    <p class="flex">
-                      <span class="w-[16rem] text-slate-500">Nutz. Batteriekapazität:</span>
-                      <span class="text-slate-800">500 kW</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div>
-              <a href="#" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-                </svg>
-                Editieren
-              </a>
-            </div>
-          </div>
+           {% endfor %}
         </div>
 
         <div class="pb-8 space-y-2">
@@ -349,7 +279,8 @@
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Elektrifizierung aktiviert:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">6 Stationen</span>
+                    <span class="text-slate-800">{{ electrified_stations|length }} Stationen</span>
+                  {% if electrified_stations %}
                     <div class="relative group">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -375,21 +306,20 @@
                         class="absolute left-0 top-full z-10 mt-2 w-64 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 pointer-events-none group-hover:opacity-100"
                       >
                         <ul class="list-disc list-inside">
-                          <li>S + U Alexanderplatz</li>
-                          <li>S + U Friedrichstraße</li>
-                          <li>S + U Zoologischer Garten</li>
-                          <li>S + U Wittenbergplatz</li>
-                          <li>S + U Bundesplatz</li>
-                          <li>S + U Rathaus Steglitz</li>
+                          {% for station in electrified_stations %}
+                          <li>{{ station.name }}</li>
+                          {% endfor %}
                         </ul>
                       </div>
                     </div>
+                  {% endif %}
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Bei Simulation entschieden:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">3 Stationen</span>
+                    <span class="text-slate-800">{{ automatic_stations|length }} Stationen</span>
+                  {% if automatic_stations %}
                     <div class="relative group">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -415,21 +345,20 @@
                         class="absolute left-0 top-full z-10 mt-2 w-64 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 pointer-events-none group-hover:opacity-100"
                       >
                         <ul class="list-disc list-inside">
-                          <li>S + U Alexanderplatz</li>
-                          <li>S + U Friedrichstraße</li>
-                          <li>S + U Zoologischer Garten</li>
-                          <li>S + U Wittenbergplatz</li>
-                          <li>S + U Bundesplatz</li>
-                          <li>S + U Rathaus Steglitz</li>
+                          {% for station in automatic_stations %}
+                          <li>{{ station.name}}</li>
+                          {% endfor %}
                         </ul>
                       </div>
                     </div>
+                  {% endif %}
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Elektrifizierung nicht aktiviert:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">4 Stationen</span>
+                    <span class="text-slate-800">{{ excluded_stations|length }} Stationen</span>
+                                    {% if excluded_stations %}
                     <div class="relative group">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -455,21 +384,19 @@
                         class="absolute left-0 top-full z-10 mt-2 w-64 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 pointer-events-none group-hover:opacity-100"
                       >
                         <ul class="list-disc list-inside">
-                          <li>S + U Alexanderplatz</li>
-                          <li>S + U Friedrichstraße</li>
-                          <li>S + U Zoologischer Garten</li>
-                          <li>S + U Wittenbergplatz</li>
-                          <li>S + U Bundesplatz</li>
-                          <li>S + U Rathaus Steglitz</li>
+                          {% for station in excluded_stations %}
+                          <li>{{ station.name}}</li>
+                          {% endfor %}
                         </ul>
                       </div>
                     </div>
+                                    {% endif %}
                   </div>
                 </div>
               </div>
             </div>
             <div>
-              <a href="#" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:stations" scenario.task_id  %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -487,31 +414,31 @@
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Anschaffungskosten:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">300.00 €/Bus</span>
+                    <span class="text-slate-800">Not implemented 300.00 €/Bus</span>
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Wartungskosten:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">10.000 €/Jahr</span>
+                    <span class="text-slate-800">Not implemented 10.000 €/Jahr</span>
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Energiekosten:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">10.000 €/Jahr</span>
+                    <span class="text-slate-800">Not implemented 10.000</span>
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Laufzeit:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">15 Jahre</span>
+                    <span class="text-slate-800">Not implemented 5 Jahre</span>
                   </div>
                 </div>
               </div>
             </div>
             <div>
-              <a href="#" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:costs" scenario.task_id  %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -529,31 +456,31 @@
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">CO₂-Emissionen:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">800 g/km</span>
+                    <span class="text-slate-800">Not implemented</span>
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Energieverbrauch:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">1,2 kWh/km</span>
+                    <span class="text-slate-800">Not implemented</span>
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Ressourcenverbrauch:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">500 kg/Jahr</span>
+                    <span class="text-slate-800">Not implemented</span>
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Lebensdaueranalyse:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">15 Jahre</span>
+                    <span class="text-slate-800">Not implemented</span>
                   </div>
                 </div>
               </div>
             </div>
             <div>
-              <a href="#" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:costs" scenario.task_id  %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -565,18 +492,19 @@
 
         <div class="flex flex-col pb-8 space-y-2">
           <p class="text-slate-800 font-medium tracking-wide">Depots</p>
+          {% for depot in depots %}
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
-              <p class="text-slate-800 font-semibold uppercase">Weißensee</p>
+              <p class="text-slate-800 font-semibold uppercase">{{ depot.name }}</p>
               <div class="pt-4 pl-4">
                 <div class="flex flex-col pl-4 font-normal border-l gap-2">
                   <p class="flex">
                     <span class="w-[16rem] text-slate-500">Anzahl Ladepunkte:</span>
-                    <span class="text-slate-800">8</span>
+                    <span class="text-slate-800">{{ depot.amount_charging_places }}</span>
                   </p>
                   <p class="flex">
                     <span class="w-[16rem] text-slate-500">Leistung pro Punkt:</span>
-                    <span class="text-slate-800">300 kW</span>
+                    <span class="text-slate-800">{{ depot.power_per_charger }} kW</span>
                   </p>
                 </div>
               </div>
@@ -584,21 +512,21 @@
                 <div class="flex flex-col pl-4 font-normal border-l gap-2">
                   <p class="flex">
                     <span class="w-[16rem] text-slate-500">Anzahl Ladepunkte:</span>
-                    <span class="text-slate-800">8</span>
+                    <span class="text-slate-800">Not IMplemented</span>
                   </p>
                   <p class="flex">
                     <span class="w-[16rem] text-slate-500">Leistung pro Punkt:</span>
-                    <span class="text-slate-800">300 kW</span>
+                    <span class="text-slate-800">Not IMplemented kW</span>
                   </p>
                 </div>
                 <p class="flex pt-4">
                   <span class="w-[16rem] text-slate-500">Ladeleistung:</span>
-                  <span class="text-slate-800 pl-4">5.000 kVA</span>
+                  <span class="text-slate-800 pl-4">{{ depot.power_total }} kVA</span>
                 </p>
               </div>
             </div>
             <div>
-              <a href="#" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:depots" scenario.task_id  %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -606,35 +534,7 @@
               </a>
             </div>
           </div>
-          <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
-            <div class="w-full">
-              <p class="text-slate-800 font-semibold uppercase">Neukölln</p>
-              <div class="pt-4 pl-4">
-                <div class="flex flex-col pl-4 font-normal border-l gap-2">
-                  <p class="flex">
-                    <span class="w-[16rem] text-slate-500">Anzahl Ladepunkte:</span>
-                    <span class="text-slate-800">8</span>
-                  </p>
-                  <p class="flex">
-                    <span class="w-[16rem] text-slate-500">Leistung pro Punkt:</span>
-                    <span class="text-slate-800">300 kW</span>
-                  </p>
-                </div>
-                <p class="flex pt-4">
-                  <span class="w-[16rem] text-slate-500">Ladeleistung:</span>
-                  <span class="text-slate-800 pl-4">5.000 kVA</span>
-                </p>
-              </div>
-            </div>
-            <div>
-              <a href="#" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-                </svg>
-                Editieren
-              </a>
-            </div>
-          </div>
+         {% endfor %}
         </div>
       </div>
     </section>
@@ -647,8 +547,9 @@
 {% endblock wizard_content %}
 
 {% block wizard_buttons %}
-  {% url 'simba:depots' as prev_url %}
-  {% url 'simba:results' as next_url %}
+  {% url 'simba:depots' task_id as prev_url %}
+
+  {% url 'simba:result' task_id as next_url %}
   {{ block.super }}
 {% endblock wizard_buttons %}
 

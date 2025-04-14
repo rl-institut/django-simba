@@ -618,7 +618,7 @@
                 <!-- Different containers for each chart -->
                 <div id="chartContainer" class="chart-container"></div>
                 <div id="busTypeChartContainer" class="chart-container"></div>
-                <div id="lineChart"> class="chart-container"</div>
+                <div id="lineChart" class="chart-container"></div>
                 <div id="ganttChart" class="chart-container"></div>
                 <div id="DistHistogramChart" class="chart-container"></div>
                 <div id="SpeedHistogramChart" class="chart-container"></div>
@@ -652,11 +652,11 @@
 <script>
     // eCharts functionality
     const taskId = document.getElementById("task-id").value;
-    console.log("Simulation ID:", taskId);
+    //console.log("Simulation ID:", taskId);
 
     function fetchAndRenderPieChart(chartName, chartId, titleText) {
 
-        fetch(`/simba/results/${taskId}/${chartName}/`)
+        fetch(`/simba/result/${taskId}/${chartName}/`)
         .then(response => response.json())
         .then(data => {
 
@@ -699,7 +699,7 @@
     }
     function fetchAndRenderLineChart(chartName, chartId, titleText, xKey, yKey) {
 
-        fetch(`/simba/results/${taskId}/${chartName}/`)
+        fetch(`/simba/result/${taskId}/${chartName}/`)
         .then(response => response.json())
         .then(data => {
 
@@ -759,7 +759,7 @@
         });
     }
     function fetchAndRenderGanttChart(chartName, chartId, titleText) {
-        fetch(`/simba/results/${taskId}/${chartName}/`)
+        fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
                 const categories = data.categories;  // Array of bus categories
@@ -903,7 +903,7 @@
     }
     function fetchAndRenderStats(chartName, chartId, titleText) {
 
-        fetch(`/simba/results/${taskId}/${chartName}/`)
+        fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
 
@@ -923,7 +923,7 @@
             });
     };
     function fetchAndRenderHistogram(chartName, chartId, titleText) {
-    fetch(`/simba/results/${taskId}/${chartName}/`)
+    fetch(`/simba/result/${taskId}/${chartName}/`)
         .then(response => response.json())
         .then(data => {
             if (data.error) {

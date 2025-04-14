@@ -7,13 +7,13 @@
 
       {% for i in '123456' %}
         {% cycle 'Umlaufplan' 'Fahrzeuge' 'Endhaltestellen' 'Kosten' 'Depots' 'Zusammenfassung' 'Simulation' as wiz_text silent %}
-        {% url 'simba:trips' as url_trips %}
-        {% url 'simba:vehicles' as url_vehicles %}
-        {% url 'simba:stations' as url_stations %}
-        {% url 'simba:costs' as url_costs %}
-        {% url 'simba:depots' as url_depots %}
-        {% url 'simba:summary' as url_summary %}
-        {% url 'simba:simulation' as url_simulation %}
+        {% url 'simba:trips' task_id as url_trips %}
+        {% url 'simba:vehicles' task_id as url_vehicles %}
+        {% url 'simba:stations'  task_id as url_stations %}
+        {% url 'simba:costs' task_id as url_costs %}
+        {% url 'simba:depots' task_id as url_depots %}
+        {% url 'simba:summary' task_id as url_summary %}
+        {% url 'simba:simulation' task_id as url_simulation %}
         {% cycle url_trips url_vehicles url_stations url_costs url_depots url_summary url_simulation as wiz_url silent %}
 
         <li class="relative md:flex md:flex-1">
@@ -73,14 +73,6 @@
 <nav>
   <div class="mx-auto max-w-7xl px-2 pt-4 pb-8 sm:px-6 lg:px-8">
     <div class="flex justify-end gap-4">
-      <button class="px-6 py-2 text-slate-600 text-sm font-semibold tracking-wide rounded-full hover:text-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
-        <span class="flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-          </svg>
-          <span>Abbrechen</span>
-        </span>
-      </button>
       {% if prev_url %}
         <a href="{{ prev_url }}" class="px-6 py-2 bg-slate-200 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
           <span class="flex items-center gap-2">
@@ -91,14 +83,14 @@
           </span>
         </a>
       {% endif %}
-      <a href="{{ next_url }}" class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300">
+        <button type="button"  onclick="{{buttonId}}.click()" class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300">
         <span class="flex justify-center items-center gap-2">
           <span>Weiter</span>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
           </svg>
         </span>
-      </a>
+      </button>
     </div>
   </div>
 </nav>

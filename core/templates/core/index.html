@@ -10,51 +10,7 @@
     <title>WeBus</title>
   </head>
   <body class="bg-gradient-to-br from-gradient1 via-gradient2 to-gradient3 min-h-lvh flex flex-col">
-    <!-- Navigation -->
-    <nav class="bg-transparent relative z-10">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="flex h-16 items-center justify-between">
-          <!-- Logo -->
-          <div class="flex items-center">
-            <img class="h-8 w-auto" src="{% static 'core/images/logo/webus_white.svg' %}"  alt="WeBus">
-          </div>
-          <!-- Desktop Links -->
-          <div class="hidden sm:flex space-x-6">
-            <a href="{% url 'core:login' %}" class="text-slate-800 hover:underline">Einloggen</a>
-            <a href="{% url 'simba:dashboard' %}" class="text-slate-800 hover:underline">Szenarienvergleich</a>
-<!--
-            <a href="#" class="text-slate-800 hover:underline">Hilfe</a>
--->
-          </div>
-          <!-- Mobile Menu Button -->
-          <div class="sm:hidden">
-            <button id="menu-button" aria-controls="mobile-menu" aria-expanded="false" class="p-2 text-slate-400 hover:text-white focus:outline-none">
-              <span class="sr-only">Menü öffnen</span>
-              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-    </nav>
-
-  <!-- Mobile Full-Screen Menu -->
-  <div id="mobile-menu" class="fixed inset-0 hidden z-20 bg-slate-800" aria-hidden="true">
-    <div class="flex flex-col items-center justify-center h-full space-y-8">
-      <a href="{% url 'core:login' %}" class="text-white text-2xl font-medium hover:underline">Einloggen</a>
-      <a href="{% url 'simba:dashboard' %}" class="text-white text-2xl font-medium hover:underline">Szenarienvergleich</a>
-<!--
-      <a href="#" class="text-white text-2xl font-medium hover:underline">Hilfe</a>
--->
-      <button id="close-menu" class="absolute top-4 right-4 p-2 text-white focus:outline-none">
-        <span class="sr-only">Menü schließen</span>
-        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>
-      </button>
-    </div>
-  </div>
+    {% include 'core/navbar.html'%}
 
     <main class="flex-grow flex flex-col items-center justify-center text-center px-4">
       <img class="h-32 w-auto mt-8 mb-8" src="{% static 'core/images/logo/webus_white.svg' %}" alt="WeBus">
@@ -88,46 +44,5 @@
 <!--
     <script type="module" src="/src/main.ts"></script>
 -->
-    <script>
-      const menuButton = document.getElementById('menu-button');
-      const closeButton = document.getElementById('close-menu');
-      const mobileMenu = document.getElementById('mobile-menu');
-
-      // Toggle menu
-      menuButton.addEventListener('click', () => {
-        const isExpanded = menuButton.getAttribute('aria-expanded') === 'true';
-        menuButton.setAttribute('aria-expanded', !isExpanded);
-        mobileMenu.classList.toggle('hidden');
-        mobileMenu.setAttribute('aria-hidden', isExpanded);
-        if (!isExpanded) {
-          mobileMenu.querySelector('a').focus(); // Focus the first menu item
-        }
-      });
-
-      // Close menu
-      closeButton.addEventListener('click', () => {
-        menuButton.setAttribute('aria-expanded', 'false');
-        mobileMenu.classList.add('hidden');
-        mobileMenu.setAttribute('aria-hidden', 'true');
-        menuButton.focus(); // Return focus to the button
-      });
-
-      // Trap focus within the mobile menu
-      mobileMenu.addEventListener('keydown', (e) => {
-        if (e.key === 'Tab') {
-          const focusableElements = mobileMenu.querySelectorAll('a, button');
-          const firstElement = focusableElements[0];
-          const lastElement = focusableElements[focusableElements.length - 1];
-
-          if (e.shiftKey && document.activeElement === firstElement) {
-            e.preventDefault();
-            lastElement.focus();
-          } else if (!e.shiftKey && document.activeElement === lastElement) {
-            e.preventDefault();
-            firstElement.focus();
-          }
-        }
-      });
-    </script>
   </body>
 </html>

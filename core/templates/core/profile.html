@@ -1,0 +1,10 @@
+{% extends 'core/base.html'%}
+
+{% block title %}
+  WeBus - Profil
+{% endblock title %}
+
+{% block content %}
+  <h1>{{ user.email }}</h1>
+  <a href="{% url 'core:password_change' %}">Passwort ändern</a>
+{% endblock %}

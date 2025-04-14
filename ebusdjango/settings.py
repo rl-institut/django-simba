@@ -124,7 +124,7 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 LOGIN_REDIRECT_URL = "/"  # redirect to landing page after login
-LOGOUT_REDIRECT_URL = "/login/"  # redirect to login after logout
+# LOGOUT_REDIRECT_URL = "/"  # don't set: show custom logged out view
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases

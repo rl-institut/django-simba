@@ -1,5 +1,6 @@
 {% extends 'ebustoolbox/wizard.html' %}
-
+{% load static %}
+{% load custom_filters %}
 {% block title %}WeBus - Umlaufplan{% endblock title %}
 
 {% block wizard_navigation %}
@@ -9,109 +10,50 @@
 {% endblock wizard_navigation %}
 
 {% block wizard_content %}
+{#  Progress bar poll loading progress.html during server side analysis of file#}
+  {%  if progress_id %}
+{% include "core/progress_poll.html" with progress_id=progress_id template_name="progress_trips.html" %}
+      <div id="refresh_id"
+              {#Trigger "success" sent from server inside the header if the submitted file succeeded#}
+           hx-trigger="success from:body">
+      </div>
+      <div id="runner"
+              {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
+           hx-trigger="notRunning from:body">
+      </div>
+    <script>
+      htmx.on('#refresh_id', 'htmx:trigger', function (evt) {
+          {#Success from "refresh-id" leads to refresh. View logic takes care of redirecting#}
+          {#Redirect to the trips, so the trips view can trigger the next page.#}
+          {#Server side logic should make user flow more obvious #}
+          window.location.href = "{% url 'simba:trips' task_id %}";
+      })
+      // ToDo @Stefan? This needs to be activated again. Maybe disable all
+      // elements while running server side analysis?
+      // Activate button if the server finished handling the previous file
+      {#htmx.on('#runner', 'htmx:trigger', function (evt) {#}
+      {#    htmx.find('#upload_btn_{{task_id}}').style.display = "initial";#}
+      {#    htmx.find('#cancel_btn_{{task_id}}').style.display = "none";#}
+      {# }); #}
+      </script>
+  {% endif %}
+
 <main class="flex flex-col items-center">
-  <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">Umlaufplan</h1>
-    <span class="block mb-6 text-sm text-slate-500">Laden Sie ihren Umlaufplan hoch. Alternativ können Sie den Umlaufplan aus einem existieredem Szenario auswählen.</span>
-    <div class="grid grid-cols-12 gap-4">
-      <div class="col-span-full pb-4">
-        <div class="flex justify-between">
-          <label for="" class="flex items-center gap-2 text-sm font-medium text-slate-800">
-            Neue Datei
-            <div class="relative inline-block">
-              <!-- Info Icon with group -->
-              <span class="cursor-pointer group">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                </svg>
-                <!-- Tooltip -->
-                <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                  Bottom Left-Aligned Tooltip
-                </div>
-              </span>
-            </div>
-          </label>
-          <button class="text-sm font-semibold text-green-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-green-600 focus-within:ring-offset-2 hover:text-green-600 transition-all duration-300" title="Beispieldatei herunterladen">
-            <span class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-              </svg>
-              Beispieldatei
-            </span>
-          </button>
-        </div>
-        <div class="mt-2 flex justify-center bg-white rounded-lg border border-dashed border-slate-400 px-6 py-10">
-          <div class="text-center">
-            <svg class="mx-auto size-12 text-slate-300" fill="#cbd5e1" aria-hidden="true" version="1.1" viewBox="0 0 1200 1200">
-              <path d="m269.53 14.203h569.72c7.6875 0 14.672 3.1875 19.641 8.2969l191.16 191.21c5.3438 5.3438 8.0625 12.375 8.0625 19.406v825c0 35.156-14.344 67.125-37.5 90.234-23.156 23.156-55.078 37.453-90.234 37.453h-660.89c-35.156 0-67.125-14.344-90.234-37.453-23.156-23.156-37.5-55.078-37.5-90.234v-916.13c0-35.156 14.344-67.125 37.5-90.234 23.156-23.156 55.078-37.5 90.234-37.5zm162.37 695.9c-15.141 0-27.469-12.281-27.469-27.469 0-15.141 12.328-27.469 27.469-27.469h140.63v-140.63c0-15.141 12.281-27.469 27.469-27.469 15.141 0 27.469 12.281 27.469 27.469v140.63h140.63c15.141 0 27.469 12.328 27.469 27.469s-12.328 27.469-27.469 27.469h-140.63v140.63c0 15.141-12.281 27.469-27.469 27.469-15.141 0-27.469-12.281-27.469-27.469v-140.63zm434.81-602.16v97.688h97.688z" fill-rule="evenodd"/>
-            </svg>
-            <div class="mt-4 pb-2 flex text-sm text-slate-800">
-              <label for="file-upload" class="relative cursor-pointer rounded-md bg-white text-sm font-semibold text-green-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-green-600 focus-within:ring-offset-2 hover:text-green-600 transition-all duration-300">
-                <span>Datei hochladen</span>
-                <input id="file-upload" name="file-upload" type="file" class="sr-only">
-              </label>
-              <p class="pl-1">oder ziehen und ablegen</p>
-            </div>
-            <p class="text-sm text-slate-500">Beispiel: VDV 454 (.zip)/BVG-IVU-XML</p>
-          </div>
-        </div>
-      </div>
-      <div class="col-span-full pb-4">
-        <div class="flex">
-          <div class="pt-9 pr-4 text-sm text-slate-600">
-            oder
-          </div>
-          <div class="w-full">
-            <label id="listbox-label" class="block text-sm font-medium text-slate-800">
-              Aus bestehendem Szenario
-            </label>
-
-            <!-- Dropdown -->
-            <div class="relative mt-2">
-              <button
-                id="assignedToButton"
-                type="button"
-                class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pl-3 pr-2 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 sm:text-sm/6"
-                aria-haspopup="listbox"
-                aria-expanded="false"
-                aria-labelledby="listbox-label"
-              >
-                <span id="assignedToLabel" class="col-start-1 row-start-1 truncate pr-6">-- Szenario auswählen --</span>
-                <svg class="col-start-1 row-start-1 size-5 self-center justify-self-end text-slate-500 sm:size-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
-                  <path fill-rule="evenodd" d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
-                </svg>
-              </button>
-              <!-- Add Dropdown list -->
-            </div>
-
-          </div>
-        </div>
-      </div>
-      <div class="col-span-full pt-4 border-t">
-        <div class="w-full pb-6">
-          <label for="inputItem" class="block text-sm/6 font-medium text-slate-900">Szenarioname</label>
-          <div class="mt-2">
-            <input type="text" name="inputItem" id="inputItem" class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 sm:text-sm/6" placeholder="Szenario Name eingeben">
-          </div>
-        </div>
-        <div class="w-full">
-          <div class="flex justify-between">
-            <label for="description" class="block text-sm/6 font-medium text-slate-800">
-              Beschreibung
-              <span class="text-slate-500 pl-2" id="description-optional">(Optional)</span>
-            </label>
-          </div>
-          <div class="mt-2">
-            <textarea type="text" name="description" id="description" rows="4" class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 sm:text-sm/6" placeholder="Beschreiben Sie Ihr Szenario..." aria-describedby="description-optional"></textarea>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+{% include "ebustoolbox/partials/trips_form.html" %}
 </main>
 {% endblock wizard_content %}
 
 {% block wizard_buttons %}
-  {% url 'simba:vehicles' as next_url %}
-  {{ block.super }}
+  {% with 'hidden_button' as buttonId %}
+    {{ block.super }}
+  {% endwith %}
 {% endblock wizard_buttons %}
+
+{%  block script %}
+  <script>
+      htmx.on('#trips_form', 'htmx:xhr:progress', function (evt) {
+          console.log("htmx:xhr:progress fired");
+          htmx.find('#progress').setAttribute('value', evt.detail.loaded / evt.detail.total * 100)
+      });
+  </script>
+{%  endblock script %}

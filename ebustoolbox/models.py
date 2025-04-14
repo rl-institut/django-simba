@@ -80,6 +80,11 @@ class Scenario(models.Model):
         return scenario.pk
 
 
+class ScenarioDescription(models.Model):
+    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
+    description = models.TextField(null=True, default="")
+
+
 @receiver(models.signals.pre_delete, sender=Scenario)
 def auto_delete_results_on_delete(sender, instance, **kwargs):
     """Delete the scenario results folder if the scenario is deleted from the database
@@ -599,7 +604,8 @@ class Rotation(models.Model):
     allow_opportunity_charging = models.BooleanField(default=True, null=False)
 
     def get_distance(self):
-        return Route.objects.filter(trip__rotation=self).aggregate(Sum("distance"))
+        # get distance of this rotation in meters
+        return Route.objects.filter(trip__rotation=self).aggregate(Sum("distance"))["distance__sum"]
 
 
 def annotate_distance(query: QuerySet[Rotation]):
@@ -999,10 +1005,7 @@ class Station(models.Model):
             data["plot"] = plot
         return data
 
-    def save(self, *args, **kwargs):
-        # Override save to make certain name_short exists
-        if not self.name_short:
-            self.name_short = self.name
+    def is_valid(self):
         if self.is_electrified:
             if self.voltage_level is None or self.charge_type is None:
                 error_text = "An electrified station needs a voltage level and a charge type"
@@ -1021,6 +1024,12 @@ class Station(models.Model):
                     "values :\n" + "\n".join(EnumChargeType.values)
                 )
                 raise AttributeError(f"Station {self.name} with {self.charge_type}:" + error_text)
+
+    def save(self, *args, **kwargs):
+        # Override save to make certain name_short exists
+        if not self.name_short:
+            self.name_short = self.name
+        self.is_valid()
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -1581,8 +1590,14 @@ class AssocAreaProcess(models.Model):
 class SimulationRange(models.Model):
     # Mutation Scenario
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
-    start = models.DateTimeField(null=False)
-    end = models.DateTimeField(null=False)
+    start = models.DateTimeField(null=True)
+    end = models.DateTimeField(null=True)
+    temperature = models.FloatField(
+        blank=True,
+        default=-10,
+        null=True,
+        validators=[MinValueValidator(-20), MaxValueValidator(40)],
+    )
 
 
 class DepotSelection(models.Model):
@@ -1642,4 +1657,30 @@ class StationMutation(models.Model):
     )
     mutated_original_station = models.ForeignKey(
         Station, related_name="mutatedstation", null=True, on_delete=models.CASCADE
+    )
+
+
+# ToDo better add it as attribute to Station model. not possible without eflips change
+class StationElectrificationExclusions(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE)
+
+
+class EnumCalculationModes(models.TextChoices):
+    AUTOMATIC = "automatic"
+    CONSTANT_POWER = "constant_power"
+    MANUAL = "manual"
+
+
+class ScenarioWizardOptions(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    station_calculation_mode = models.CharField(
+        max_length=20, choices=EnumCalculationModes.choices, null=True, default=None
+    )
+    tco_calculation_mode = models.CharField(
+        max_length=20, choices=EnumCalculationModes.choices, null=True, default=None
+    )
+
+    lca_calculation_mode = models.CharField(
+        max_length=20, choices=EnumCalculationModes.choices, null=True, default=None
     )
