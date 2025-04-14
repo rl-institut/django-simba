@@ -1329,7 +1329,7 @@ def _run_ebus_toolchain(self, task_id):
                 logger.error(traceback.format_exception(e))
             except DelayedTripException as e:
                 # TODO handle it and pass information to user
-                logger.error("There are delys in the Simulation")
+                logger.error("There are delays in the Simulation")
                 logger.error(traceback.format_exception(e))
 
             eflips_assignment = get_assigned_vehicles(task_id)
