@@ -42,10 +42,12 @@
 
   // table styles
   const columnHeaderStyle = ['px-4', 'py-4', 'font-medium', 'text-center'];
+  const headerBtnStyle = ['size-5', 'shrink-0', 'rounded-full', 'border-2', 'border-slate-300'];
   const rowStyle = ['border-t'];
   const rowKeyStyle = ['px-4', 'py-3', 'text-slate-500'];
   const rowValueStyle = ['px-4', 'py-3', 'text-center'];
 
+  /*
   window.onload = _ => {
     // on page start, create basic table
     // row description in first column
@@ -53,7 +55,7 @@
     for (let key of keys) {
       if (key == 'Name')
           continue;  // displayed in table header
-      let tr = table.insertRow();
+      let tr = table.tBodies[0].insertRow();
       tr.classList.add(...rowStyle);
       let td = tr.insertCell(0);
       td.classList.add(...rowKeyStyle);
@@ -112,6 +114,99 @@
     }
     // reset scenario selection
     e.target.value = 0;
+  }
+  */
+
+  window.onload = _ => {
+    // on page start, create basic table
+    // row description in first column
+    const keys = Object.keys(Object.values(scenarios)[0]);
+    for (let key of keys) {
+      if (key == 'Name')
+          continue;  // displayed in table header
+      let tr = table.tBodies[0].insertRow();
+      tr.classList.add(...rowStyle);
+      let td = tr.insertCell(0);
+      td.classList.add(...rowKeyStyle);
+      td.textContent = key;
+    }
+
+    // add column with scenario selection and empty cells
+    // this will always be last column (to add new scenarios for comparison)
+    let th = table.rows[0].insertCell();  // insertCell always inserts TD, not TH?
+    th.classList.add(...columnHeaderStyle);
+    let select = document.createElement('SELECT');
+    th.appendChild(select);
+    let option = document.createElement('option');
+    option.value = '0';
+    option.textContent = '--- Szenario auswählen ---';
+    select.appendChild(option);
+    // options for each scenario
+    for (let [scenario_id, scenario] of Object.entries(scenarios)) {
+      option = document.createElement('option');
+      option.value = scenario_id;
+      option.textContent = scenario.Name;
+      select.appendChild(option);
+    }
+    select.onchange = _ => addColumn(select.value);
+    // empty cells (mainly for visual effect)
+    for (let i=1; i<keys.length; i++) {
+      let td = table.rows[i].insertCell();
+      td.classList.add(...rowValueStyle);
+      td.textContent = '';
+    }
+
+    console.log("req", requested, scenarios[requested]);
+    if (requested && scenarios[requested]) {
+      // show requested scenario fixed as first comparison
+      // use default function to add new comparison
+      addColumn(requested);
+    }
+  };
+
+  function addColumn(scenario_id) {
+    console.log(scenario_id);
+    // add new scenario column to comparison
+    let scenario = scenarios[scenario_id];
+    num_columns = table.rows[0].childElementCount;
+    let th = table.rows[0].insertCell(num_columns-1);
+    th.classList.add(...columnHeaderStyle);
+    let headerDiv = document.createElement('DIV');
+    headerDiv.setAttribute('scenario', scenario_id);
+    headerDiv.style.display = 'flex';
+    let headerSpan = document.createElement('SPAN');
+    headerSpan.textContent = scenario.Name;
+    headerDiv.appendChild(headerSpan);
+    if (scenario_id != requested) {
+      let headerBtn = document.createElement('BUTTON');
+      headerBtn.textContent = '-';
+      headerBtn.classList.add(...headerBtnStyle);
+      headerBtn.onclick = _ => deleteColumn(scenario_id);
+      headerDiv.appendChild(headerBtn);
+    }
+    th.appendChild(headerDiv);
+
+    let values = Object.values(scenario);
+    for (let i=1; i<values.length; i++) {
+      td = table.rows[i].insertCell(num_columns-1);
+      td.classList.add(...rowValueStyle);
+      td.textContent = values[i];
+    }
+  }
+
+  function deleteColumn(scenario_id) {
+    // find column index (prior columns might have been deleted)
+    let index = null;
+    for (let i=0; i<table.rows[0].childElementCount; i++) {
+      let headerDiv = table.rows[0].cells[i].firstElementChild;
+      if (headerDiv && headerDiv.getAttribute('scenario') == scenario_id) {
+        // found scenario column. Hooray for type-agnostic comparisons!
+        index = i;
+        break;
+      }
+    }
+    for (let row of table.rows)
+      row.deleteCell(index);
   }
 
 </script>
