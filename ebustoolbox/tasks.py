@@ -65,6 +65,7 @@ from .models import (
     VehicleTypeMutation,
     VehicleTypeSelection,
     StationMutation,
+    EnumScenarioType,
 )
 from .schedule_readers import ScheduleReader
 
@@ -781,6 +782,8 @@ def init_db_with_trips(
         progress.success = schedule_reader.write_to_db(parent.id)
         scenario.simba_options = vars(get_args(parent))
         find_and_make_depots(parent)
+        scenario.scenario_type = EnumScenarioType.MUTATION
+        parent.scenario_type = EnumScenarioType.SOURCE
         parent.save()
         progress.save()
     except Exception as e:
@@ -872,6 +875,7 @@ def run_and_merge_scenarios(self, parent_id: int, mutation_id: int, simulation_t
         parent_scenario = Scenario.objects.get(id=parent_id)
         mutation_scenario = Scenario.objects.get(id=mutation_id)
         simulation_scenario = create_child_from_mutation(parent_scenario, mutation_scenario)
+        simulation_scenario.scenario_type = EnumScenarioType.SIMULATION
         simulation_scenario.name = "Results for " + simulation_scenario.name
         simulation_scenario.task_id = simulation_task_id
         simulation_scenario.save()
