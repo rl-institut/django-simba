@@ -56,7 +56,7 @@
     for (let key of keys) {
       if (key == 'Name')
           continue;  // displayed in table header
-      let tr = table.insertRow();
+      let tr = table.tBodies[0].insertRow();
       tr.classList.add(...rowStyle);
       let td = tr.insertCell(0);
       td.classList.add(...rowKeyStyle);

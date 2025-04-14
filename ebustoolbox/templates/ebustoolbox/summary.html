@@ -1,4 +1,5 @@
 {% extends 'ebustoolbox/wizard.html' %}
+{% load i18n %}
 
 {% block title %}WeBus - Zusammenfassung{% endblock title %}
 
@@ -46,7 +47,7 @@
   <div class="flex justify-center py-8">
     <button id="simulateButton" hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s
         class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300 cursor-pointer"
-        {% if progress.running or progress.success %}disabled{% endif %}> 
+        {% if progress.running or progress.success %}disabled{% endif %}>
         <div class="flex align-center gap-4">
           <svg width="24" height="24" version="1.1" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
             <path d="m85.938 83.984h-70.312c-1.0781 0-1.9531-0.875-1.9531-1.9531v-76.172c0-1.0781 0.875-1.9531 1.9531-1.9531h70.312c1.0781 0 1.9531 0.875 1.9531 1.9531v76.172c0 1.0781-0.875 1.9531-1.9531 1.9531zm-68.359-3.9062h66.406v-72.266h-66.406z"/>
@@ -65,25 +66,25 @@
         </div>
     </button>
   </div>
-  
+
   <div class="flex justify-center py-8">
     <div id="runner"
         {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
         hx-trigger="notRunning from:body">
     </div>
   </div>
-  
+
   <script>
       // Clicking the simulate button disables it. It will be enabled again if htmx sends notRunning
       $("#simulateButton").click(function () {
-          $(this).attr("disabled", "disabled");
+        $(this).attr("disabled", "disabled");
       });
       htmx.on('#runner', 'htmx:trigger', function (evt) {
-          console.log("notRunning");
-          {#hx is triggered when "notRunning" is sent from progress poll#}
-          const button=document.getElementById("simulateButton")
-          button.disabled = false;
-          button.innerHTML ="Erneut Simulieren"
+        console.log("notRunning");
+        {#hx is triggered when "notRunning" is sent from progress poll#}
+        const button=document.getElementById("simulateButton")
+        button.disabled = false;
+        button.innerHTML ="Erneut Simulieren"
       })
   </script>
 
@@ -91,14 +92,14 @@
   {% if progress %}
     {% include "core/progress_poll.html" with progress_id=progress.task_id template_name="progress_simulation.html" %}
   {% endif %}
-  {#      om case of error allow resimulating#}
-{#  {% if show_rerun %}#}
+  {# in case of error allow resimulating #}
+{# {% if show_rerun %} #}
   <div class="flex justify-center py-8">
-    {#    <button hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s#}
-    {#            class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300 cursor-pointer"> Simulation Erneut Starten#}
-    {#    </button>#}
+    {# <button hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" #}
+    {# class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300 cursor-pointer"> Simulation erneut starten #}
+    {# </button> #}
   </div>
-{#  {% endif %}#}
+{# {% endif %} #}
 
 
     </div>
@@ -577,7 +578,7 @@
               </div>
             </div>
             <div>
-              <a href="{%  url "simba:depots" scenario.task_id  %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{% url 'simba:depots' scenario.task_id %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -601,6 +602,7 @@
   {% url 'simba:depots' task_id as prev_url %}
 
   {% url 'simba:result' task_id as next_url %}
+  {% translate "Simulation starten" as next_text %}
   {{ block.super }}
 {% endblock wizard_buttons %}
 
