@@ -1022,9 +1022,7 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
     return event_list
 
 
-def apply_station_mutation(
-    parent: Scenario, mutation: Scenario, child: Scenario, stack: dict
-) -> None:
+def apply_station_mutation(mutation: Scenario, child: Scenario, stack: dict) -> None:
     station_mutations = StationMutation.objects.filter(scenario=mutation)
 
     # Assert uniqueness of the mutations
@@ -1247,8 +1245,8 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     #     station.is_electrified = False
     #     station.save()
 
-    apply_vehicle_mutation(parent_scenario, mutation, child, stack)
-    apply_station_mutation(parent_scenario, mutation, child, stack)
+    apply_vehicle_mutation(mutation, child, stack)
+    apply_station_mutation(mutation, child, stack)
 
     child.save()
     return child
