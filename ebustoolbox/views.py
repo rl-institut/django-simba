@@ -1226,7 +1226,7 @@ def compare(request):
     # show comparison page, get relevant data of user scenarios
     # allows for optional request parameter "s", which should be a scenario ID a user has access to
     # this scenario will then be shown in the first column of the comparison page
-    scenarios = get_user_scenario_qs(request.user)
+    scenarios = get_user_scenario_qs(request.user).filter(finished__isnull=False)
     scenario_dict = dict()
     for scenario in scenarios:
         stations = scenario.station_set.all()

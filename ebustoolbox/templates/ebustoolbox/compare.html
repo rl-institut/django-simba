@@ -47,75 +47,8 @@
   const rowKeyStyle = ['px-4', 'py-3', 'text-slate-500'];
   const rowValueStyle = ['px-4', 'py-3', 'text-center'];
 
-  /*
-  window.onload = _ => {
-    // on page start, create basic table
-    // row description in first column
-    const keys = Object.keys(Object.values(scenarios)[0]);
-    for (let key of keys) {
-      if (key == 'Name')
-          continue;  // displayed in table header
-      let tr = table.tBodies[0].insertRow();
-      tr.classList.add(...rowStyle);
-      let td = tr.insertCell(0);
-      td.classList.add(...rowKeyStyle);
-      td.textContent = key;
-    }
-
-    // add column with scenario selection and empty cells
-    // this will always be last column (to add new scenarios for comparison)
-    let th = table.rows[0].insertCell();
-    th.classList.add(...columnHeaderStyle);
-    let select = document.createElement('SELECT');
-    th.appendChild(select);
-    let option = document.createElement('option');
-    option.value = '0';
-    option.textContent = '--- Szenario auswählen ---';
-    select.appendChild(option);
-    // options for each scenario
-    for (let [scenario_id, scenario] of Object.entries(scenarios)) {
-      option = document.createElement('option');
-      option.value = scenario_id;
-      option.textContent = scenario.Name;
-      select.appendChild(option);
-    }
-    select.onchange = addColumn
-    // empty cells (mainly for visual effect)
-    for (let i=1; i<keys.length; i++) {
-      let td = table.rows[i].insertCell();
-      td.classList.add(...rowValueStyle);
-      td.textContent = '';
-    }
-
-    if (requested && scenarios[requested]) {
-      // show requested scenario fixed as first comparison
-      // use default function to add new comparison
-      select.value = requested;
-      select.dispatchEvent(new Event('change'));
-    }
-  };
-
-  function addColumn(e) {
-    // add new scenario column to comparison
-    // position: after last scenario, before selection column
-    if (e.target.value == '0')
-      return;
-    let scenario = scenarios[e.target.value];
-    num_columns = table.rows[0].childElementCount;
-    let th = table.rows[0].insertCell(num_columns-1);
-    th.classList.add(...columnHeaderStyle);
-    th.textContent = scenario.Name;
-
-    let values = Object.values(scenario);
-    for (let i=1; i<values.length; i++) {
-      td = table.rows[i].insertCell(num_columns-1);
-      td.classList.add(...rowValueStyle);
-      td.textContent = values[i];
-    }
-    // reset scenario selection
-    e.target.value = 0;
-  }
-  */
+  // keep track which scenarios are not displayed yet
+  var availableScenarios = new Set(Object.keys(scenarios));
 
   window.onload = _ => {
     // on page start, create basic table
@@ -131,45 +64,63 @@
       td.textContent = key;
     }
 
-    // add column with scenario selection and empty cells
-    // this will always be last column (to add new scenarios for comparison)
-    let th = table.rows[0].insertCell();  // insertCell always inserts TD, not TH?
-    th.classList.add(...columnHeaderStyle);
-    let select = document.createElement('SELECT');
-    th.appendChild(select);
-    let option = document.createElement('option');
-    option.value = '0';
-    option.textContent = '--- Szenario auswählen ---';
-    select.appendChild(option);
-    // options for each scenario
-    for (let [scenario_id, scenario] of Object.entries(scenarios)) {
-      option = document.createElement('option');
-      option.value = scenario_id;
-      option.textContent = scenario.Name;
-      select.appendChild(option);
-    }
-    select.onchange = _ => addColumn(select.value);
-    // empty cells (mainly for visual effect)
-    for (let i=1; i<keys.length; i++) {
-      let td = table.rows[i].insertCell();
-      td.classList.add(...rowValueStyle);
-      td.textContent = '';
+    {
+      // add empty column (always last column)
+      let th = table.rows[0].insertCell();  // insertCell always TD, not TH
+      th.classList.add(...columnHeaderStyle);
+      for (let i=1; i<table.rows.length; i++)
+        (table.rows[i].insertCell()).classList.add(...rowValueStyle);
+      // add new scenario button in last column
+      var addBtn = document.createElement('BUTTON');
+      addBtn.id = 'cmp-addBtn';
+      addBtn.classList.add(...headerBtnStyle);
+      addBtn.textContent = '+';
+      // only show if there are more scenarios to compare
+      addBtn.style.display = availableScenarios.size?'':'none';
+      th.appendChild(addBtn);
+
+      addBtn.onclick = _ => {
+        // add button click: create selection with remaining scenarios, hide button
+        addBtn.style.display = 'none';
+        let select = document.createElement('SELECT');
+        select.id = 'cmp-select';
+        th.appendChild(select);
+        let option = document.createElement('option');
+        option.value = '0';
+        option.textContent = '--- Szenario auswählen ---';
+        select.appendChild(option);
+        // options for each available scenario
+        // sort by numeric scenario ID
+        let sorted_ids = Array(...availableScenarios).sort(
+          (a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        for (let scenario_id of sorted_ids) {
+          option = document.createElement('option');
+          option.value = scenario_id;
+          option.textContent = scenarios[scenario_id].Name;
+          select.appendChild(option);
+        }
+        select.onchange = _ => {
+          // scenario selected: add new column before last
+          addColumn(select.value);  // may also make addBtn visible again, depending on availableScenarios
+          th.removeChild(select);
+        }
+      }
     }
 
-    console.log("req", requested, scenarios[requested]);
     if (requested && scenarios[requested]) {
       // show requested scenario fixed as first comparison
       // use default function to add new comparison
+      // empty column must have been added prior (add in second-to-last column)
       addColumn(requested);
     }
   };
 
   function addColumn(scenario_id) {
-    console.log(scenario_id);
     // add new scenario column to comparison
+    // add as second-to-last column
     let scenario = scenarios[scenario_id];
-    num_columns = table.rows[0].childElementCount;
-    let th = table.rows[0].insertCell(num_columns-1);
+    numColumns = table.rows[0].childElementCount;
+    let th = table.rows[0].insertCell(numColumns-1);
     th.classList.add(...columnHeaderStyle);
     let headerDiv = document.createElement('DIV');
     headerDiv.setAttribute('scenario', scenario_id);
@@ -178,6 +129,7 @@
     headerSpan.textContent = scenario.Name;
     headerDiv.appendChild(headerSpan);
     if (scenario_id != requested) {
+      // add minus button, except for requested scenario
       let headerBtn = document.createElement('BUTTON');
       headerBtn.textContent = '-';
       headerBtn.classList.add(...headerBtnStyle);
@@ -186,12 +138,17 @@
     }
     th.appendChild(headerDiv);
 
+    // write values in rows
     let values = Object.values(scenario);
     for (let i=1; i<values.length; i++) {
-      td = table.rows[i].insertCell(num_columns-1);
+      td = table.rows[i].insertCell(numColumns-1);
       td.classList.add(...rowValueStyle);
       td.textContent = values[i];
     }
+
+    availableScenarios.delete(scenario_id);
+    // show add button (again) if there are other scenarios to compare to
+    document.getElementById('cmp-addBtn').style.display = availableScenarios.size?'':'none';
   }
 
   function deleteColumn(scenario_id) {
@@ -200,13 +157,20 @@
     for (let i=0; i<table.rows[0].childElementCount; i++) {
       let headerDiv = table.rows[0].cells[i].firstElementChild;
       if (headerDiv && headerDiv.getAttribute('scenario') == scenario_id) {
-        // found scenario column. Hooray for type-agnostic comparisons!
+        // found scenario column
         index = i;
         break;
       }
     }
     for (let row of table.rows)
       row.deleteCell(index);
+    availableScenarios.add(scenario_id);
+    // show add button again
+    document.getElementById('cmp-addBtn').style.display = '';
+    // remove select if visible
+    let select = document.getElementById('cmp-select');
+    if (select)
+      select.remove();
   }
 
 </script>
