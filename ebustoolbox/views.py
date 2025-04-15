@@ -1012,9 +1012,13 @@ class SummaryView(AuthorizedMixIn, TemplateView):
 def result_view(request: HttpRequest, task_id):
     """View controlling if the wait or success view should be shown"""
     try:
-        if Scenario.objects.get(task_id=task_id).finished:
+        scenario = Scenario.objects.get(task_id=task_id)
+        if scenario.finished:
             request.task_id = str(task_id)
             return ResultView.as_view()(request, task_id=task_id, finished=True)
+        # scenario exists, but is not finished: redirect to dashboard
+        # TODO: redirect to progress page once that exists
+        return redirect(reverse("simba:dashboard"))
     except Scenario.DoesNotExist:
         raise Http404
 
@@ -1238,8 +1242,23 @@ def get_dashboard(request):
     # show all scenarios of a user
     # what about staff?
     scenarios = get_user_scenario_qs(request.user)
-    if scenarios.exists():
-        return render(request, "ebustoolbox/dashboard.html", {"scenarios": scenarios})
+    # get task status from task_id for each scenario
+    scenario_list = list()
+    for scenario in scenarios:
+        progress = scenario.progress_set.filter(progress_type=EnumProgress.RUNNING_SIMULATION)
+        if progress.filter(success=True).exists():
+            scenario.state = "success"
+        elif progress.filter(running=True).exists():
+            scenario.state = "running"
+        elif progress.exists():
+            # not running, no success: fail
+            scenario.state = "error"
+        else:
+            # no progress: still in setup
+            scenario.state = "idle"
+        scenario_list.append(scenario)
+    if scenarios:
+        return render(request, "ebustoolbox/dashboard.html", {"scenarios": scenario_list})
     else:
         return render(request, "ebustoolbox/dashboard-empty-state.html")
 

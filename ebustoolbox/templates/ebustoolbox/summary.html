@@ -1,4 +1,5 @@
 {% extends 'ebustoolbox/wizard.html' %}
+{% load i18n %}
 
 {% block title %}WeBus - Zusammenfassung{% endblock title %}
 
@@ -14,27 +15,76 @@
 {% endblock header %}
 
 {% block wizard_content %}
-  <!-- Use alert when simulating -->
-
-  {#    ToDo. Needs Styling @ Bryan#}
-  <button id="simulateButton" hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s
-          style="background-color:green" {% if progress.running or progress.success %}disabled{% endif %}> Simulation Starten
-  </button>
-  <div id="runner"
-          {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
-       hx-trigger="notRunning from:body">
+  <div
+    class="rounded-md bg-yellow-50 p-4"
+    role="alert"
+  >
+    <div class="flex justify-center">
+      <div class="shrink-0">
+        <svg
+          class="size-5 text-yellow-400"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          aria-hidden="true"
+          data-slot="icon"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"
+            clip-rule="evenodd"
+          />
+        </svg>
+      </div>
+      <div class="ml-3">
+        <h3 class="text-sm font-semibold text-yellow-800" id="alert-title">
+          Bitte überprüfen Sie alle Angaben sorgfältig, da nach Start der Simulation keine Änderungen mehr möglich sind.
+        </h3>
+      </div>
+    </div>
   </div>
+
+  <!-- Use alert when simulating -->
+  <div class="flex justify-center py-8">
+    <button id="simulateButton" hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s
+        class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300 cursor-pointer"
+        {% if progress.running or progress.success %}disabled{% endif %}>
+        <div class="flex align-center gap-4">
+          <svg width="24" height="24" version="1.1" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <path d="m85.938 83.984h-70.312c-1.0781 0-1.9531-0.875-1.9531-1.9531v-76.172c0-1.0781 0.875-1.9531 1.9531-1.9531h70.312c1.0781 0 1.9531 0.875 1.9531 1.9531v76.172c0 1.0781-0.875 1.9531-1.9531 1.9531zm-68.359-3.9062h66.406v-72.266h-66.406z"/>
+            <path d="m85.938 64.453h-70.312c-1.0781 0-1.9531-0.875-1.9531-1.9531v-41.016c0-1.0781 0.875-1.9531 1.9531-1.9531h70.312c1.0781 0 1.9531 0.875 1.9531 1.9531v41.016c0 1.0781-0.875 1.9531-1.9531 1.9531zm-68.359-3.9062h66.406v-37.109h-66.406z"/>
+            <path d="m37.109 97.656h-13.672c-1.0781 0-1.9531-0.875-1.9531-1.9531v-13.672c0-1.0781 0.875-1.9531 1.9531-1.9531h13.672c1.0781 0 1.9531 0.875 1.9531 1.9531v13.672c0 1.0781-0.875 1.9531-1.9531 1.9531zm-11.719-3.9062h9.7656v-9.7656h-9.7656z"/>
+            <path d="m78.125 97.656h-13.672c-1.0781 0-1.9531-0.875-1.9531-1.9531v-13.672c0-1.0781 0.875-1.9531 1.9531-1.9531h13.672c1.0781 0 1.9531 0.875 1.9531 1.9531v13.672c0 1.0781-0.875 1.9531-1.9531 1.9531zm-11.719-3.9062h9.7656v-9.7656h-9.7656z"/>
+            <path d="m29.297 78.125c-3.2305 0-5.8594-2.6289-5.8594-5.8594s2.6289-5.8594 5.8594-5.8594 5.8594 2.6289 5.8594 5.8594-2.6289 5.8594-5.8594 5.8594zm0-7.8125c-1.0781 0-1.9531 0.875-1.9531 1.9531s0.875 1.9531 1.9531 1.9531 1.9531-0.875 1.9531-1.9531-0.875-1.9531-1.9531-1.9531z"/>
+            <path d="m72.266 78.125c-3.2305 0-5.8594-2.6289-5.8594-5.8594s2.6289-5.8594 5.8594-5.8594 5.8594 2.6289 5.8594 5.8594-2.6289 5.8594-5.8594 5.8594zm0-7.8125c-1.0781 0-1.9531 0.875-1.9531 1.9531s0.875 1.9531 1.9531 1.9531 1.9531-0.875 1.9531-1.9531-0.875-1.9531-1.9531-1.9531z"/>
+            <path d="m60.547 74.219h-19.531c-1.0781 0-1.9531-0.875-1.9531-1.9531s0.875-1.9531 1.9531-1.9531h19.531c1.0781 0 1.9531 0.875 1.9531 1.9531s-0.875 1.9531-1.9531 1.9531z"/>
+            <path d="m91.254 54.688h-5.3164c-1.0781 0-1.9531-0.875-1.9531-1.9531v-17.578c0-1.0781 0.875-1.9531 1.9531-1.9531h5.3164c3.5312 0 6.4023 2.8711 6.4023 6.4023v8.6797c0 3.5312-2.8711 6.4023-6.4023 6.4023zm-3.3633-3.9062h3.3633c1.375 0 2.4961-1.1211 2.4961-2.4961v-8.6797c0-1.375-1.1211-2.4961-2.4961-2.4961h-3.3633z"/>
+            <path d="m15.625 54.688h-5.3164c-3.5312 0-6.4023-2.8711-6.4023-6.4023v-8.6797c0-3.5312 2.8711-6.4023 6.4023-6.4023h5.3164c1.0781 0 1.9531 0.875 1.9531 1.9531v17.578c0 1.0781-0.875 1.9531-1.9531 1.9531zm-5.3164-17.578c-1.375 0-2.4961 1.1211-2.4961 2.4961v8.6797c0 1.375 1.1211 2.4961 2.4961 2.4961h3.3633v-13.672z"/>
+            <path d="m39.062 46.484c-0.56641 0-1.125-0.24609-1.5117-0.71484-0.68359-0.83594-0.55859-2.0664 0.27344-2.75l18.621-15.234c0.83594-0.68359 2.0664-0.55859 2.75 0.27344 0.68359 0.83594 0.55859 2.0664-0.27344 2.75l-18.621 15.234c-0.36328 0.29688-0.80078 0.44141-1.2383 0.44141z"/>
+            <path d="m40.758 56.641c-0.56641 0-1.125-0.24609-1.5117-0.71484-0.68359-0.83594-0.55859-2.0664 0.27344-2.75l18.621-15.234c0.83594-0.68359 2.0664-0.55859 2.75 0.27344 0.68359 0.83594 0.55859 2.0664-0.27344 2.75l-18.621 15.234c-0.36719 0.29688-0.80469 0.44141-1.2383 0.44141z"/>
+          </svg>
+          <span class="text-slate-800 font-semibold">Simulation starten</span>
+        </div>
+    </button>
+  </div>
+
+  <div class="flex justify-center py-8">
+    <div id="runner"
+        {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
+        hx-trigger="notRunning from:body">
+    </div>
+  </div>
+
   <script>
       // Clicking the simulate button disables it. It will be enabled again if htmx sends notRunning
       $("#simulateButton").click(function () {
-          $(this).attr("disabled", "disabled");
+        $(this).attr("disabled", "disabled");
       });
       htmx.on('#runner', 'htmx:trigger', function (evt) {
-          console.log("notRunning");
-          {#hx is triggered when "notRunning" is sent from progress poll#}
-          const button=document.getElementById("simulateButton")
-          button.disabled = false;
-          button.innerHTML ="Erneut Simulieren"
+        console.log("notRunning");
+        {#hx is triggered when "notRunning" is sent from progress poll#}
+        const button=document.getElementById("simulateButton")
+        button.disabled = false;
+        button.innerHTML ="Erneut Simulieren"
       })
   </script>
 
@@ -42,18 +92,20 @@
   {% if progress %}
     {% include "core/progress_poll.html" with progress_id=progress.task_id template_name="progress_simulation.html" %}
   {% endif %}
-  {#      om case of error allow resimulating#}
-{#  {% if show_rerun %}#}
-{#    <button hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s#}
-{#            style="background-color:green"> Simulation Erneut Starten#}
-{#    </button>#}
-{#  {% endif %}#}
+  {# in case of error allow resimulating #}
+{# {% if show_rerun %} #}
+  <div class="flex justify-center py-8">
+    {# <button hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" #}
+    {# class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300 cursor-pointer"> Simulation erneut starten #}
+    {# </button> #}
+  </div>
+{# {% endif %} #}
 
 
     </div>
 
-  <main class="flex flex-col items-center">
-    <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+  <main class="flex flex-col items-center flex-grow">
+    <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
       <div class="flex justify-center">
       <div class="inline-flex items-center p-1 gap-1 bg-slate-200 rounded-full">
         <button
@@ -82,7 +134,7 @@
         </button>
       </div>
     </div>
-    <section class="tab-content pb-12" id="content-summary">
+    <section class="tab-content pt-12" id="content-summary">
       <div class="pt-8">
         <div class="pb-8 space-y-2">
           <p class="text-slate-800 font-medium tracking-wide">Szenarioname</p>
@@ -196,11 +248,11 @@
                 <div class="flex flex-col pl-4 font-normal border-l gap-2">
                   <p class="flex">
                     <span class="w-[16rem] text-slate-500">Anzahl Fahrzeuge:</span>
-                    <span class="text-slate-800">Not Implemented</span>
+                    <span class="text-slate-800">not implemented</span>
                   </p>
                   <p class="flex">
                     <span class="w-[16rem] text-slate-500">Gesamtkilometer:</span>
-                    <span class="text-slate-800">Not Implemented</span>
+                    <span class="text-slate-800">not implemented</span>
                   </p>
                   <p class="flex">
                     <span class="w-[16rem] text-slate-500">Nutz. Batteriekapazität:</span>
@@ -210,7 +262,7 @@
               </div>
               <div class="pt-4 pl-4">
                 <div class="inline-flex items-center gap-1 pb-2">
-                  <span class="text-slate-800 font-semibold">Gruppe 1 (Not Implemented)</span>
+                  <span class="text-slate-800 font-semibold">Gruppe 1 (not implemented)</span>
                   <span>(4 Linien</span>
                   <span class="relative inline-flex items-center">
                     <span class="cursor-pointer group">
@@ -414,25 +466,25 @@
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Anschaffungskosten:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">Not implemented 300.00 €/Bus</span>
+                    <span class="text-slate-800">not implemented</span>
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Wartungskosten:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">Not implemented 10.000 €/Jahr</span>
+                    <span class="text-slate-800">not implemented</span>
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Energiekosten:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">Not implemented 10.000</span>
+                    <span class="text-slate-800">not implemented</span>
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Laufzeit:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">Not implemented 5 Jahre</span>
+                    <span class="text-slate-800">not implemented</span>
                   </div>
                 </div>
               </div>
@@ -456,25 +508,25 @@
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">CO₂-Emissionen:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">Not implemented</span>
+                    <span class="text-slate-800">not implemented</span>
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Energieverbrauch:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">Not implemented</span>
+                    <span class="text-slate-800">not implemented</span>
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Ressourcenverbrauch:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">Not implemented</span>
+                    <span class="text-slate-800">not implemented</span>
                   </div>
                 </div>
                 <div class="flex items-center">
                   <span class="w-[18rem] text-slate-500">Lebensdaueranalyse:</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">Not implemented</span>
+                    <span class="text-slate-800">not implemented</span>
                   </div>
                 </div>
               </div>
@@ -512,11 +564,11 @@
                 <div class="flex flex-col pl-4 font-normal border-l gap-2">
                   <p class="flex">
                     <span class="w-[16rem] text-slate-500">Anzahl Ladepunkte:</span>
-                    <span class="text-slate-800">Not IMplemented</span>
+                    <span class="text-slate-800">not implemented</span>
                   </p>
                   <p class="flex">
-                    <span class="w-[16rem] text-slate-500">Leistung pro Punkt:</span>
-                    <span class="text-slate-800">Not IMplemented kW</span>
+                    <span class="w-[16rem] text-slate-500">Leistung pro Punkt [kW]:</span>
+                    <span class="text-slate-800">not implemented</span>
                   </p>
                 </div>
                 <p class="flex pt-4">
@@ -526,7 +578,7 @@
               </div>
             </div>
             <div>
-              <a href="{%  url "simba:depots" scenario.task_id  %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{% url 'simba:depots' scenario.task_id %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -550,6 +602,7 @@
   {% url 'simba:depots' task_id as prev_url %}
 
   {% url 'simba:result' task_id as next_url %}
+  {% translate "Simulation starten" as next_text %}
   {{ block.super }}
 {% endblock wizard_buttons %}
 

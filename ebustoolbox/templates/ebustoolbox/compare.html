@@ -3,9 +3,11 @@
 {% block title %}WeBus - Szenarienvergleich{% endblock title %}
 
 {% block content %}
-<main class="flex flex-col items-center">
+<main class="flex flex-col items-center flex-grow">
+  <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+    <h1 class="text-4xl font-semibold mb-6">Szenarienvergleich</h1>
   {% if scenarios %}
-    <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+    <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
       <div class="flex flex-col">
         <div class="mt-4 shadow border border-slate-100 rounded-lg overflow-auto">
           <div class="bg-white rounded-lg shadow-md overflow-x-auto">
@@ -28,6 +30,7 @@
       + Szenario erstellen
     </a>
   {% endif %}
+  </div>
 
 </main>
 {% endblock content %}
@@ -53,7 +56,7 @@
     for (let key of keys) {
       if (key == 'Name')
           continue;  // displayed in table header
-      let tr = table.insertRow();
+      let tr = table.tBodies[0].insertRow();
       tr.classList.add(...rowStyle);
       let td = tr.insertCell(0);
       td.classList.add(...rowKeyStyle);

@@ -132,9 +132,10 @@ LOGIN_REDIRECT_URL = "/"  # redirect to landing page after login
 #  data. Patrick wrote an HowTo for Linux users
 DATABASES = {"default": env.db("DATABASE_URL")}
 
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
-CELERY_USE = env("CELERY_USE", default="False").lower() == "true"
+CELERY_USE = env.bool("CELERY_USE", default=True)
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=True)
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=None)
 if CELERY_TASK_ALWAYS_EAGER:
     CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=True)
 # Make sure there is a celery broker url provided if celery should be used
@@ -143,7 +144,6 @@ if CELERY_USE:
         "CELERY_BROKER_URL is missing from .env file. If celery should be"
         "used, this URL has to be provided"
     )
-
 
 # For Database visualization
 GRAPH_MODELS = {

@@ -26,7 +26,7 @@ urlpatterns = [
     ),
     path("password_change/", views.changePassword, name="password_change"),
     path("register/", views.signup, name="signup"),
-        path(
+    path(
         "profile/",
         TemplateView.as_view(template_name="core/profile.html"),
         name="profile"

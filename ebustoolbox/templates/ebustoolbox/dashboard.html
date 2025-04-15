@@ -3,14 +3,21 @@
 {% block title %}WeBus - Dashboard{% endblock title %}
 
 {% block content %}
-<main class="flex flex-col items-center">
-  <div class="sm:py-8 lg:py-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <h1 class="text-2xl font-semibold mb-6">Szenarienübersicht</h1>
+<main class="flex flex-col items-center flex-grow">
+  <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+    <h1 class="text-4xl font-semibold mb-6">Szenarienübersicht</h1>
     <div>
       <label for="scenario-search" class="block text-sm/6 font-medium text-slate-800">Suche</label>
-      <div class="mt-2 grid grid-cols-1">
-        <input type="text" name="scenario-search" id="scenario-search" class="col-start-1 row-start-1 block w-full rounded-md bg-white py-1.5 pl-3 pr-10 text-base text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-400 sm:pr-9 sm:text-sm/6" placeholder="Nach Szenarien suchen" oninput="searchScenario(this);">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="pointer-events-none col-start-1 row-start-1 mr-3 size-5 self-center justify-self-end text-slate-400 sm:size-4">
+      <div class="mt-2 relative">
+        <input
+          type="text"
+          name="scenario-search"
+          id="scenario-search"
+          class="block w-full bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
+          placeholder="Nach Szenarien suchen"
+          oninput="searchScenario(this);"
+        >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 pointer-events-none">
           <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
         </svg>
       </div>
@@ -89,7 +96,7 @@
                 {% for scenario in scenarios %}
                   <tr class="px-2 scenario-row" name="{{ scenario.name }}">
                     <td class="whitespace-nowrap px-3 py-4 text-sm font-bold text-black underline decoration-transparent hover:decoration-black transition-all duration-300" sortval="{{ scenario.name }}">
-                      <a href="{% url 'simba:compare' %}?s={{ scenario.id }}" class="flex items-center" {% if scenario.description %}title="{{ scenario.description }}"{% endif %}>
+                      <a href="{% url 'simba:result' scenario.task_id %}" class="flex items-center" {% if scenario.description %}title="{{ scenario.description }}"{% endif %}>
                         <span class="mr-2">
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                             <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 15.75-2.489-2.489m0 0a3.375 3.375 0 1 0-4.773-4.773 3.375 3.375 0 0 0 4.774 4.774ZM21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -97,21 +104,43 @@
                         {{ scenario.name }}
                       </a>
                     </td>
-                    <td class="whitespace-nowrap px-3 py-3" sortval="{% if scenario.finished %}1{% else %}0{% endif %}">
-                      {% if scenario.finished %}
+                    <td class="whitespace-nowrap px-3 py-3" sortval="{{ scenario.state }}">
+                      {% if scenario.state == 'success' %}
+                        <!-- Success -->
+                        <div class="inline-flex items-center px-2 bg-emerald-50 text-sm text-emerald-800 rounded-full">
+                          <span class="pr-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
+                            </svg>
+                          </span>
+                          Abgeschlossen
+                        </div>
+                      {% elif scenario.state == 'running' %}
+                        <!-- Pending -->
+                        <div class="inline-flex items-center px-2 bg-amber-50 text-sm text-amber-800 rounded-full">
+                          <span class="pr-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
+                          </span>
+                          Simulation läuft
+                        </div>
+                      {% elif scenario.state == 'error' %}
+                        <!-- Error -->
                         <div class="inline-flex items-center px-2 bg-red-50 text-sm text-red-800 rounded-full">
                           <span class="pr-2">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
                             </svg>
                           </span>
-                          Erfolgreich
+                          Nicht erfolgreich
                         </div>
-                      {% else %}
+                      {% elif scenario.state == 'idle' %}
+                        <!-- Ongoing -->
                         <div class="inline-flex items-center px-2 bg-sky-50 text-sm text-sky-800 rounded-full">
                           <span class="pr-2">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
+                              <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
                             </svg>
                           </span>
                           In Bearbeitung
