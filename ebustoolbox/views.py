@@ -1195,8 +1195,26 @@ def get_dashboard(request):
         scenario_type=EnumScenarioType.SIMULATION,
     )
     scenarios = get_user_scenario_qs(request.user, scenario_qs=base_qs)
-    if scenarios.exists():
-        return render(request, "ebustoolbox/dashboard.html", {"scenarios": scenarios})
+    # get task status from task_id for each scenario
+    scenario_list = list()
+    for scenario in scenarios:
+        # The progress is linked to the mutation sceanario. The progress task_id is set to the
+        # resulting (SimulatioN) scenario task_id
+        progress = Progress.objects.filter(task_id=scenario.task_id)
+        if progress.filter(success=True).exists():
+            scenario.state = "success"
+        elif progress.filter(running=True).exists():
+            scenario.state = "running"
+        elif progress.exists():
+            # not running, no success: fail
+            scenario.state = "error"
+        else:
+            # no progress: still in setup
+            scenario.state = "idle"
+        scenario_list.append(scenario)
+
+    if scenarios:
+        return render(request, "ebustoolbox/dashboard.html", {"scenarios": scenario_list})
     else:
         return render(request, "ebustoolbox/dashboard-empty-state.html")
 
