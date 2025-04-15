@@ -1042,9 +1042,7 @@ def apply_station_mutation(
         mutated_station.save()
 
 
-def apply_vehicle_mutation(
-    parent: Scenario, mutation: Scenario, child: Scenario, stack: dict
-) -> None:
+def apply_vehicle_mutation(mutation: Scenario, child: Scenario, stack: dict) -> None:
     vehicle_type_mutations = VehicleTypeMutation.objects.filter(
         scenario=mutation,
     )
