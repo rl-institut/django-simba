@@ -92,5 +92,5 @@ urlpatterns = [
     # path("merge_scenario/<uuid:task_id>/", merge_scenario, name="merge_scenario"),
     path("merge_and_run/<uuid:task_id>/", merge_and_run, name="merge_and_run"),
     # superfluous templates, just for show
-    path("DEMO/", TemplateView.as_view(template_name="ebustoolbox/compare_DEMO.html")),
+    path("DEMO/", TemplateView.as_view(template_name="ebustoolbox/dashboard_DEMO.html")),
 ]
