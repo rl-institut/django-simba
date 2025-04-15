@@ -923,7 +923,7 @@ class SummaryView(AuthorizedMixIn, TemplateView):
         context["task_id"] = task_id
         progress = Progress.objects.filter(
             scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
-        ).first()
+        ).last()
         if progress:
             context["progress"] = progress
             # context["show_rerun"]= (not progress.running and not progress.success) or progress.errors
