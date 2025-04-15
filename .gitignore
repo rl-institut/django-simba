@@ -12,4 +12,5 @@ media/
 venv/
 **/node_modules/
 .env
-
+info.log
+data/

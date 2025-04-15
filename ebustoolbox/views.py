@@ -1215,8 +1215,23 @@ def get_dashboard(request):
     # show all scenarios of a user
     # what about staff?
     scenarios = get_user_scenario_qs(request.user)
-    if scenarios.exists():
-        return render(request, "ebustoolbox/dashboard.html", {"scenarios": scenarios})
+    # get task status from task_id for each scenario
+    scenario_list = list()
+    for scenario in scenarios:
+        progress = scenario.progress_set.filter(progress_type=EnumProgress.RUNNING_SIMULATION)
+        if progress.filter(success=True).exists():
+            scenario.state = "success"
+        elif progress.filter(running=True).exists():
+            scenario.state = "running"
+        elif progress.exists():
+            # not running, no success: fail
+            scenario.state = "error"
+        else:
+            # no progress: still in setup
+            scenario.state = "idle"
+        scenario_list.append(scenario)
+    if scenarios:
+        return render(request, "ebustoolbox/dashboard.html", {"scenarios": scenario_list})
     else:
         return render(request, "ebustoolbox/dashboard-empty-state.html")
 
