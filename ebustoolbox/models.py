@@ -1643,6 +1643,7 @@ class VehicleTypeSelection(models.Model):
 
 
 class VehicleTypeMutation(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
     original_vehicle_type = models.ForeignKey(
         VehicleType, related_name="originalvehicletype", null=True, on_delete=models.CASCADE
     )
@@ -1652,6 +1653,7 @@ class VehicleTypeMutation(models.Model):
 
 
 class DepotMutation(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
     original_depot = models.ForeignKey(
         Depot, related_name="originaldepot", null=True, on_delete=models.CASCADE
     )
@@ -1661,6 +1663,7 @@ class DepotMutation(models.Model):
 
 
 class StationMutation(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
     original_station = models.ForeignKey(
         Station, related_name="originalstation", null=True, on_delete=models.CASCADE
     )

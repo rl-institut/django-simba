@@ -37,6 +37,7 @@ from simba.data_container import DataContainer
 from simba.schedule import Schedule as SimbaSchedule
 from . import schedule_readers, forms
 from .models import (
+    DepotMutation,
     User,
     Route,
     Consumption,
@@ -784,6 +785,7 @@ def init_db_with_trips(
         find_and_make_depots(parent)
         scenario.scenario_type = EnumScenarioType.MUTATION
         parent.scenario_type = EnumScenarioType.SOURCE
+        scenario.save()
         parent.save()
         progress.save()
     except Exception as e:
@@ -874,9 +876,11 @@ def run_and_merge_scenarios(self, parent_id: int, mutation_id: int, simulation_t
     try:
         parent_scenario = Scenario.objects.get(id=parent_id)
         mutation_scenario = Scenario.objects.get(id=mutation_id)
+        # Create a deepcopy of the parent which mutation_scnearios things applied
         simulation_scenario = create_child_from_mutation(parent_scenario, mutation_scenario)
         simulation_scenario.scenario_type = EnumScenarioType.SIMULATION
-        simulation_scenario.name = "Results for " + simulation_scenario.name
+        # ToDo do we want to change the name
+        simulation_scenario.name = "Ergebnisse für " + mutation_scenario.name
         simulation_scenario.task_id = simulation_task_id
         simulation_scenario.save()
         if "ebus_map" in settings.INSTALLED_APPS:
@@ -1021,9 +1025,7 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
 def apply_station_mutation(
     parent: Scenario, mutation: Scenario, child: Scenario, stack: dict
 ) -> None:
-    station_mutations = StationMutation.objects.filter(
-        original_station__scenario=parent, mutated_original_station__scenario=mutation
-    )
+    station_mutations = StationMutation.objects.filter(scenario=mutation)
 
     # Assert uniqueness of the mutations
     station_mut_list = station_mutations.values_list("original_station", flat=True)
@@ -1044,7 +1046,7 @@ def apply_vehicle_mutation(
     parent: Scenario, mutation: Scenario, child: Scenario, stack: dict
 ) -> None:
     vehicle_type_mutations = VehicleTypeMutation.objects.filter(
-        original_vehicle_type__scenario=parent, mutated_vehicle_type__scenario=mutation
+        scenario=mutation,
     )
     vt_mut_list = vehicle_type_mutations.values_list("original_vehicle_type", flat=True)
     assert len(vt_mut_list) == len({vt for vt in vt_mut_list})
@@ -1103,6 +1105,9 @@ def deepcopy_scenario(scenario: Scenario) -> tuple[Scenario, dict]:
         exclude_fields={
             DepotSelection._meta.get_field("depots"),
             ElectrificationOptions._meta.get_field("electrified_stations"),
+            VehicleTypeMutation._meta.get_field("original_vehicle_type"),
+            DepotMutation._meta.get_field("original_depot"),
+            StationMutation._meta.get_field("original_station"),
         },
         max_depth=1,
     )
@@ -1151,9 +1156,7 @@ def create_scenario_copy_for_user(mutation_scenario: Scenario):
         vts.vehicle_type = VehicleType.objects.get(id=new_vt_id)
         vts.save()
 
-    vehicle_type_mutation = VehicleTypeMutation.objects.filter(
-        mutated_vehicle_type__scenario=mutation_scenario
-    )
+    vehicle_type_mutation = VehicleTypeMutation.objects.filter(scenario=mutation_scenario)
     for vtm in vehicle_type_mutation:
         new_vt_id = stack[VehicleType][vtm.mutated_vehicle_type.id]
         vtm.id = None
@@ -1274,6 +1277,7 @@ def create_station_mutations(scenario):
     for original, mutation in mutations.items():
         sm = StationMutation(
             id=next_id,
+            scenario=scenario,
             original_station_id=original,
             mutated_original_station_id=mutation,
         )
