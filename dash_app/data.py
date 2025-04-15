@@ -154,7 +154,7 @@ def get_number_of_buses(filter_dict: dict) -> list[str]:
     task_id = filter_dict.pop("task_id")
     vehicles = filter_dict.pop("vehicle__id__in")
 
-    return str(len(vehicles)) + " / " + str(len(get_all_buses(task_id)))
+    return f"{len(vehicles)} / {len(get_all_buses(task_id))}"
 
 
 def get_number_of_stations(task_id: str, get_electrified=True) -> list[str]:

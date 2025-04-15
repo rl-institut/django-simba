@@ -1,11 +1,14 @@
+import json
+import plotly.express as px
+import plotly.graph_objects as go
+
 from dash import Dash, html, dcc
+from dash.dependencies import Input, Output, State  # no fa401
 from dash.exceptions import PreventUpdate
 
-from . import ids, data
-from dash.dependencies import Input, Output, State  # no fa401
-import plotly.graph_objects as go
-import plotly.express as px
 from ebustoolbox.models import Scenario
+
+from . import ids, data
 from .style import set_styling
 
 
@@ -35,7 +38,8 @@ def render_critical_rotations(app: Dash) -> html.Div:
 
         df = data.get_critical_rotations_as_dataframe(s.id, buses)
 
-        # Create a pie chart following line is needed due to plotly bug,
+        # Create a pie chart
+        # following line is needed due to plotly bug,
         # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template="plotly"))
         fig = px.pie(
@@ -78,15 +82,13 @@ def render_bustype(app: Dash) -> html.Div:
         if len(df) == 0:
             raise PreventUpdate
 
-        # Create a pie chart following line is needed due to plotly bug,
+        # Create a pie chart
+        # following line is needed due to plotly bug,
         # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = px.pie(df, values="count", names="name", title="Zusammensetzung der Fahrzeugtypen")
         return fig
 
     return html.Div(dcc.Graph(id=ids.PIE_BUSTYPE), style={"verticalAlign": "top"})
-
-
-import json
 
 
 def get_critical_rotations(buses: list[str], task_id: str) -> str:
@@ -98,7 +100,6 @@ def get_critical_rotations(buses: list[str], task_id: str) -> str:
     :return: JSON string containing the chart data in ECharts format.
     """
 
-    # Simulate getting scenario and data (replace this with your actual data access logic)
     s = Scenario.objects.get(task_id=task_id)
 
     if not data.sim_is_finished(task_id):
@@ -135,7 +136,6 @@ def get_bustype(buses: list[str], task_id: str) -> str:
     :return: JSON string containing the chart data in ECharts format.
     """
 
-    # Simulate getting scenario and data (replace this with your actual data access logic)
     s = Scenario.objects.get(task_id=task_id)
 
     if not data.sim_is_finished(task_id):
