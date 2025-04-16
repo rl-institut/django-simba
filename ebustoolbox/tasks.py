@@ -876,7 +876,8 @@ def run_and_merge_scenarios(self, parent_id: int, mutation_id: int, simulation_t
     try:
         parent_scenario = Scenario.objects.get(id=parent_id)
         mutation_scenario = Scenario.objects.get(id=mutation_id)
-        # Create a deepcopy of the parent which mutation_scnearios things applied
+        # Create a deepcopy of the parent / source scenario.
+        # Apply mutations from the mutation scenario to this copy.
         simulation_scenario = create_child_from_mutation(parent_scenario, mutation_scenario)
         simulation_scenario.scenario_type = EnumScenarioType.SIMULATION
         # ToDo do we want to change the name
