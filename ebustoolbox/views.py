@@ -140,9 +140,9 @@ def get_user_vehicle_types(user) -> QuerySet[VehicleType]:
 
 
 def get_sorted_mutation_scenarios(user) -> QuerySet[Scenario]:
-    """Get a list of scenarios which are accessible by the user and the default scenario
+    """Get a QuerySet of scenarios which are accessible by the user and the default scenario
 
-    The list is ordered by User Scenarios, UserGroup Scenarios and lastly the default Scenario
+    The QuerySet is ordered by User Scenarios, UserGroup Scenarios and lastly the default Scenario
     """
     # Todo Define what admins should see and refactor function with new get_user_scenario_qs
     if not user.is_authenticated:
@@ -153,7 +153,6 @@ def get_sorted_mutation_scenarios(user) -> QuerySet[Scenario]:
         order_id=Cast(F("manager_id"), FloatField()) - user.id,
     )
 
-    print(scenario_qs)
     user_scenarios = get_user_scenario_qs(user, scenario_qs=scenario_qs)
     # Get the Scenario related to the Singleton DefaultScenario as queryset
     default_scenario = Scenario.objects.filter(
