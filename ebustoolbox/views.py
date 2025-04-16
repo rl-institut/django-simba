@@ -8,11 +8,16 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import F, QuerySet, Sum
-from django.db.models.functions import Coalesce
+from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
+from django.db.models.functions import Cast, Coalesce
 from django.db.transaction import atomic
 from django.forms import formset_factory, modelform_factory, widgets
-from django.http import HttpResponse, HttpRequest, Http404, HttpResponseForbidden
+from django.http import (
+    HttpResponse,
+    HttpRequest,
+    Http404,
+    HttpResponseForbidden,
+)
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.views.generic import TemplateView, FormView, ListView
@@ -36,7 +41,7 @@ from .forms import (
     ManualLcaForm,
     DepotChargingAreaForm,
 )
-from .tasks import create_db_url, get_args  # noqa
+from .tasks import create_db_url, get_args, scenario_to_db  # noqa
 from .util import get_unique_task_id
 
 import ebustoolbox
@@ -53,11 +58,10 @@ from ebustoolbox.models import (
     SimulationRange,
     VehicleTypeSelection,
     VehicleTypeMutation,
-    ScenarioDescription,
     StationMutation,
-    StationElectrificationExclusions,
     ScenarioWizardOptions,
     EnumCalculationModes,
+    EnumScenarioType,
 )
 
 logger = logging.getLogger("custom")
@@ -94,18 +98,22 @@ def progress2(request: HttpRequest, progress_id, template_name):
 
 def get_unique_progress_or_none(scenario_task_id):
     progress_db = Progress.objects.filter(
-        scenario__task_id=scenario_task_id, progress_type=EnumProgress.INIT_SCHEDULE
+        scenario__task_id=scenario_task_id,
+        progress_type=EnumProgress.INIT_SCHEDULE,
     )
     assert len(progress_db) <= 1, "Only single progress of scenario upload progress should exist"
     return progress_db.first()
 
 
-def get_or_create_child_vehicle_types(scenario: Scenario) -> QuerySet[VehicleType]:
+def get_or_create_child_vehicle_types(
+    scenario: Scenario,
+) -> QuerySet[VehicleType]:
     """Create vehicle types and mutations according to the scenarios parent."""
     parent_vehicle_types = VehicleType.objects.filter(scenario=scenario.parent)
     for parent_vt in parent_vehicle_types:
         if not VehicleTypeMutation.objects.filter(
-            original_vehicle_type=parent_vt, mutated_vehicle_type__scenario=scenario
+            scenario=scenario,
+            original_vehicle_type=parent_vt,
         ).exists():
             logger.info(f"{parent_vt} has no linked vehicle type. Creating a linked vehicle type")
             org_vt_id = parent_vt.id
@@ -114,11 +122,11 @@ def get_or_create_child_vehicle_types(scenario: Scenario) -> QuerySet[VehicleTyp
             parent_vt.save()
             org_vt = VehicleType.objects.get(id=org_vt_id)
             VehicleTypeMutation.objects.create(
-                original_vehicle_type=org_vt, mutated_vehicle_type=parent_vt
+                scenario=scenario, original_vehicle_type=org_vt, mutated_vehicle_type=parent_vt
             )
     child_vehicle_types = VehicleType.objects.filter(scenario=scenario)
     assert (
-        VehicleTypeMutation.objects.filter(mutated_vehicle_type__scenario=scenario).count()
+        VehicleTypeMutation.objects.filter(scenario=scenario).count()
         == parent_vehicle_types.count()
         == child_vehicle_types.count()
     ), "The number of instances should be equal for VehicleTypeMutations and VehicleTypes (parent and child)"
@@ -131,45 +139,37 @@ def get_user_vehicle_types(user) -> QuerySet[VehicleType]:
     return VehicleType.objects.filter(scenario=default_scenario, opportunity_charging_capable=True)
 
 
-def get_user_scenarios(user) -> list[Scenario]:
-    """Get a list of scenarios which are accessible by the user and the default scenario
+def get_sorted_mutation_scenarios(user) -> QuerySet[Scenario]:
+    """Get a QuerySet of scenarios which are accessible by the user and the default scenario
 
-    The list is ordered by User Scenarios, UserGroup Scenarios and lastly the default Scenario
+    The QuerySet is ordered by User Scenarios, UserGroup Scenarios and lastly the default Scenario
     """
     # Todo Define what admins should see and refactor function with new get_user_scenario_qs
-    user_scenarios = []
-    usergroup_scenarios = []
-    if user.is_superuser:
-        user_scenarios = Scenario.objects.all()
-    elif user.is_authenticated:
-        user_scenarios = Scenario.objects.filter(manager=user)
-        usergroup_scenarios = Scenario.objects.filter(usergroup__users=user)
+    if not user.is_authenticated:
+        # Query for default scenario
+        default_scenario = Scenario.objects.filter(defaultscenario=DefaultScenario.objects.first())
+        return default_scenario
+    scenario_qs = Scenario.objects.filter(scenario_type=EnumScenarioType.MUTATION).annotate(
+        order_id=Cast(F("manager_id"), FloatField()) - user.id,
+    )
 
-    default_scenario = DefaultScenario.objects.first().scenario
-    # Order output.
-    # ToDo: Filter for only Source Scenarios or only Child Scenarios?
-    user_scenarios_ids = [s.id for s in user_scenarios]
-    user_usergroup_ids = {s.id for s in usergroup_scenarios}
-    user_scenarios_ids.extend(user_usergroup_ids)
-    user_scenarios_ids.append(default_scenario.id)
+    user_scenarios = get_user_scenario_qs(user, scenario_qs=scenario_qs)
+    # Get the Scenario related to the Singleton DefaultScenario as queryset
+    default_scenario = Scenario.objects.filter(
+        defaultscenario=DefaultScenario.objects.first()
+    ).annotate(order_id=Value(float("inf"), output_field=FloatField()))
+    all_scenarios = user_scenarios.union(default_scenario)
 
-    all_scenarios = []
-    if user.is_authenticated:
-        all_scenarios = [s for s in get_user_scenario_qs(user)]
-
-    all_scenarios.append(default_scenario)
-    all_scenarios_sorted = list(sorted(all_scenarios, key=lambda x: user_scenarios_ids.index(x.id)))
+    # Annotation is not possible after using union
+    # Order output. User Scenarios first
+    all_scenarios_sorted = all_scenarios.order_by("order_id")
     return all_scenarios_sorted
 
 
-def get_user_scenario_qs(user) -> QuerySet[Scenario]:
-    # get a Queryset containing all scenarios which are accessible by the user
-    scenarios = Scenario.objects.filter(manager=user)
-    usergroups = user.usergroup_set.all()
-    for ug in usergroups:
-        scenarios = scenarios.union(ug.scenarios.all())
-    scenarios = scenarios.order_by("id")
-    return scenarios
+def get_user_scenario_qs(user: User, scenario_qs: QuerySet[Scenario]) -> QuerySet[Scenario]:
+    if not user.is_authenticated:
+        return Scenario.objects.none()
+    return scenario_qs.filter(Q(manager=user) | Q(usergroup__users=user)).order_by("id")
 
 
 class AuthorizedMixIn:
@@ -268,8 +268,7 @@ class TripsView(FormView):
             progress_db = get_unique_progress_or_none(kwargs.get("task_id"))
             context["progress_id"] = progress_db.task_id if progress_db else None
 
-        scenarios = get_user_scenarios(self.request.user)
-
+        scenarios = get_sorted_mutation_scenarios(self.request.user)
         context["scenarios"] = scenarios
         return context
 
@@ -301,8 +300,6 @@ class TripsView(FormView):
         cleaned_data = form.cleaned_data
         task_id = self.kwargs.get("task_id", get_unique_task_id())
 
-        # Create a scenario and description
-
         # Get a User as manager or none
         manager = None
         if self.request.user.is_authenticated:
@@ -310,6 +307,7 @@ class TripsView(FormView):
         # If schedule reading failed before a scenario already exists
         scenario, _ = Scenario.objects.get_or_create(task_id=task_id, manager=manager)
         scenario.name = cleaned_data["scenario_name"]
+        scenario.description = cleaned_data["description"]
         # If schedule reading failed before there is a parent already. Delete it if
         # its only child is the current scenario
         if scenario.parent:
@@ -318,9 +316,6 @@ class TripsView(FormView):
         scenario.parent = None
         scenario.save()
 
-        _ = ScenarioDescription.objects.create(
-            scenario=scenario, description=cleaned_data["description"]
-        )
         data_file = form.files.get("data_file")
         scenario_uuid = form.cleaned_data["existing_scenario"]
 
@@ -381,15 +376,21 @@ class TripsView(FormView):
                     "Asynch result and Progress need to be equal" "for proper fetching of progress"
                 )
         elif scenario_uuid:
-            if not Scenario.objects.get(task_id=scenario_uuid) in get_user_scenarios(
+            if not Scenario.objects.get(task_id=scenario_uuid) in get_sorted_mutation_scenarios(
                 self.request.user
             ):
                 raise Http404
-            parent = Scenario.objects.get(task_id=scenario_uuid)
-            scenario.parent = parent
-            scenario.save()
+            mutation_scenario = Scenario.objects.get(task_id=scenario_uuid)
+            assert mutation_scenario.scenario_type == EnumScenarioType.MUTATION
+            copied_mutation = tasks.create_scenario_copy_for_user(mutation_scenario)
+            copied_mutation.name = scenario.name
+            copied_mutation.name_short = scenario.name_short
+            copied_mutation.description = scenario.description
+            copied_mutation.save()
+            scenario.delete()
+            scenario = copied_mutation
             response = HttpResponse()
-            response["HX-Redirect"] = reverse("simba:vehicles", args=[str(task_id)])
+            response["HX-Redirect"] = reverse("simba:vehicles", args=[str(scenario.task_id)])
             return response
 
         else:
@@ -471,11 +472,18 @@ class VehiclesView(ScenarioMixIn, TemplateView):
                 initial_end_date = end_date
                 initial_end_time = end_time
             simulation_parameters_form = forms.SimulationParameters(
-                initial={"temperature": temperature, "start": start, "end": end},
+                initial={
+                    "temperature": temperature,
+                    "start": start,
+                    "end": end,
+                },
                 instance=SimulationRange.objects.get(scenario=scenario),
             )
         context |= {"min_date": start_date, "max_date": end_date}
-        context |= {"start_date": initial_start_date, "end_date": initial_end_date}
+        context |= {
+            "start_date": initial_start_date,
+            "end_date": initial_end_date,
+        }
         context |= {
             "initial_start_time": initial_start_time,
             "initial_end_time": initial_end_time,
@@ -610,7 +618,7 @@ class StationsView(ScenarioMixIn, TemplateView):
         annotated_query = tasks.annotate_stations_with_lines(parent_station_query)
         station_mutations = {
             s.original_station.id: s.mutated_original_station
-            for s in StationMutation.objects.filter(mutated_original_station__scenario=scenario)
+            for s in StationMutation.objects.filter(scenario=scenario)
         }
         scenario_stations = {}
         # Mutate stations with lines of their annotated parents
@@ -638,6 +646,7 @@ class StationsView(ScenarioMixIn, TemplateView):
         if self.request.method != "POST":
             data = {}
 
+        # ToDo Deprecated with new design
         wizard_options, _ = ScenarioWizardOptions.objects.get_or_create(scenario=scenario)
 
         form_class = modelform_factory(ScenarioWizardOptions, fields=["station_calculation_mode"])
@@ -654,18 +663,9 @@ class StationsView(ScenarioMixIn, TemplateView):
 
         # Settings specific to each station
         context["stations_forms"] = dict()
-        context["stations_exclude_forms"] = dict()
         for station in context["stations"].values():
             context["stations_forms"][station.id] = forms.StationForm(
                 data, instance=station, prefix=self.get_station_prefix(station)
-            )
-            is_excluded = StationElectrificationExclusions.objects.filter(
-                scenario=scenario, station=station
-            ).exists()
-            context["stations_exclude_forms"][station.id] = forms.StationExcludedForm(
-                data,
-                initial={"is_excluded": is_excluded},
-                prefix=self.get_station_prefix(station),
             )
         context["detailedOptionNames"] = list(forms.StationForm().fields.keys())
 
@@ -675,8 +675,7 @@ class StationsView(ScenarioMixIn, TemplateView):
         # Make sure the scenario has its own stations which are linked to its parent scenario
         scenario = self.scenario
         station_mutations = StationMutation.objects.filter(
-            original_station__scenario=scenario.parent,
-            mutated_original_station__scenario=scenario,
+            scenario=scenario,
         )
         if station_mutations.count() != Station.objects.filter(scenario=scenario.parent).count():
             # Not every station from the parent scenario is linked to a new station
@@ -697,42 +696,19 @@ class StationsView(ScenarioMixIn, TemplateView):
 
         match calculation_mode_form.cleaned_data["station_calculation_mode"]:
             case "automatic":
-                # Reset the scenario to its parent state. No Stations are excluded
-                StationElectrificationExclusions.objects.filter(scenario=scenario).delete()
-                ebustoolbox.tasks.create_station_mutations(scenario)
-                pass
+                # Deprecated_Mode
+                raise NotImplementedError
             case "constant_power":
-                form = context["charging_power_form"]
-                if not form.is_valid():
-                    logger.debug("Invalid charging_power_form provided")
-                    return self.render_to_response(context)
-                stations = Station.objects.filter(scenario=scenario)
-                for station in stations:
-                    station.power_total = form.cleaned_data["power_total"]
-                Station.objects.bulk_update(stations, ["power_total"])
+                # Deprecated Mode
+                raise NotImplementedError
             case "manual":
-                all_valid = True
-                for station_id, station_form in context["stations_forms"].items():
-                    exclusion_form = context["stations_exclude_forms"][station_id]
-                    valid = exclusion_form.is_valid()
-                    all_valid = all_valid & valid
-                    # Only station_forms of not excluded stations must be valid
-                    if valid and not exclusion_form.cleaned_data["is_excluded"]:
-                        valid = station_form.is_valid()
-                        if not valid:
-                            # If the station is not set to exclude or electrified its
-                            # automatic -> therefore it does not need a proper station_form
-                            if not station_form.cleaned_data["is_electrified"]:
-                                continue
-                            # it is set to electrified but does not have a proper station_form
-                            # post will not be accepted
-                            all_valid = False
+                all_valid = all(form.is_valid() for form in context["stations_forms"].values())
                 if not all_valid:
                     logger.debug("Invalid StationsForm provided")
                     return self.render_to_response(context)
                 # The forms are valid. Update the stations and exclude stations
                 # from electrification
-                ebustoolbox.tasks.update_stations_and_exclusion(context, scenario)
+                ebustoolbox.tasks.update_stations_and_exclusion(context)
             case _:
                 raise NotImplementedError
         response = redirect(reverse(self.success_name, args=[scenario.task_id]))
@@ -780,7 +756,8 @@ class CostsView(ScenarioMixIn, TemplateView):
         all_valid = True
 
         for form, prefix in zip(
-            [context["cost_mode_form"], context["env_mode_form"]], ["costs", "env"]
+            [context["cost_mode_form"], context["env_mode_form"]],
+            ["costs", "env"],
         ):
             valid = form.is_valid()
             all_valid = all_valid & valid
@@ -938,19 +915,13 @@ class SummaryView(AuthorizedMixIn, TemplateView):
         scenario = get_object_or_404(Scenario, task_id=task_id)
         context["scenario"] = scenario
         context["task_id"] = task_id
-
         progress = Progress.objects.filter(
             scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
-        ).first()
+        ).last()
         if progress:
             context["progress"] = progress
             # context["show_rerun"]= (not progress.running and not progress.success) or progress.errors
 
-        scenario_descriptions = ScenarioDescription.objects.filter(scenario=scenario)
-        assert (
-            scenario_descriptions.count() <= 1
-        ), "Only a single scenario description or None should exist"
-        context["scenario_description"] = scenario_descriptions.first()
         sim_range = SimulationRange.objects.get(scenario=scenario)
         german_weekdays = {
             0: "Mo",
@@ -980,7 +951,7 @@ class SummaryView(AuthorizedMixIn, TemplateView):
         )
         vt_mutations = {
             x.original_vehicle_type.id: x.mutated_vehicle_type
-            for x in VehicleTypeMutation.objects.filter(mutated_vehicle_type__scenario=scenario)
+            for x in VehicleTypeMutation.objects.filter(scenario=scenario)
         }
         annotated_vehicle_types = []
         for vt in annotated_parent_vehicle_types:
@@ -990,10 +961,10 @@ class SummaryView(AuthorizedMixIn, TemplateView):
         context["vehicle_types"] = annotated_vehicle_types
 
         context["electrified_stations"] = scenario_stations.filter(is_electrified=True)
-        excluded = StationElectrificationExclusions.objects.filter(scenario=scenario)
-        excluded_ids = [x.station.id for x in excluded]
-        context["automatic_stations"] = scenario_stations.filter(is_electrified=False).exclude(
-            id__in=excluded_ids
+        excluded = Station.objects.filter(scenario=scenario, is_electrifiable=False)
+        excluded_ids = excluded.values_list("id", flat=True)
+        context["automatic_stations"] = scenario_stations.filter(
+            is_electrified=False, is_electrifiable=True
         )
         context["excluded_stations"] = scenario_stations.filter(id__in=excluded_ids)
         context["depots"] = Station.objects.filter(
@@ -1108,19 +1079,19 @@ def merge_and_run(request: HttpRequest, task_id: str):
     # create scenario from mutation and parent and simulate it
     try:
         async_result = tasks.run_and_merge_scenarios.apply_async(
-            (scenario.parent.id, scenario.id, sim_task_id), task_id=str(sim_task_id)
+            (scenario.parent.id, scenario.id, sim_task_id),
+            task_id=str(sim_task_id),
         )
-    except Exception as e:
-        progress.status = "Fehlgeschlagen"
-        progress.success = False
-        progress.running = False
+    except Exception:
         progress.errors.append(
             "Ein unerwarteter Fehler ist aufgetreten." "Wenden Sie sich an ihren Administrator"
         )
-        logger.error(traceback.format_exc(e))
+        progress.set_failed()
+        logger.error(traceback.format_exc())
 
+    progress.refresh_from_db()
     progress.task_id = async_result.task_id
-    progress.save()
+    progress.save(update_fields=["task_id"])
     context = {}
     context["progress_id"] = async_result.task_id
     context["scenario"] = scenario
@@ -1214,11 +1185,16 @@ def generate_zip(request: HttpRequest, task_id: str):
 def get_dashboard(request):
     # show all scenarios of a user
     # what about staff?
-    scenarios = get_user_scenario_qs(request.user)
+    base_qs = Scenario.objects.filter(
+        scenario_type=EnumScenarioType.SIMULATION,
+    )
+    scenarios = get_user_scenario_qs(request.user, scenario_qs=base_qs)
     # get task status from task_id for each scenario
     scenario_list = list()
     for scenario in scenarios:
-        progress = scenario.progress_set.filter(progress_type=EnumProgress.RUNNING_SIMULATION)
+        # The progress is linked to the mutation sceanario.
+        # The progress task_id is set to the resulting (simulation-) scenario task_id
+        progress = Progress.objects.filter(task_id=scenario.task_id)
         if progress.filter(success=True).exists():
             scenario.state = "success"
         elif progress.filter(running=True).exists():
@@ -1230,6 +1206,7 @@ def get_dashboard(request):
             # no progress: still in setup
             scenario.state = "idle"
         scenario_list.append(scenario)
+
     if scenarios:
         return render(request, "ebustoolbox/dashboard.html", {"scenarios": scenario_list})
     else:
@@ -1241,7 +1218,10 @@ def compare(request):
     # show comparison page, get relevant data of user scenarios
     # allows for optional request parameter "s", which should be a scenario ID a user has access to
     # this scenario will then be shown in the first column of the comparison page
-    scenarios = get_user_scenario_qs(request.user)
+    base_qs = Scenario.objects.filter(
+        scenario_type=EnumScenarioType.SIMULATION, finished__isnull=False
+    )
+    scenarios = get_user_scenario_qs(request.user, scenario_qs=base_qs)
     scenario_dict = dict()
     for scenario in scenarios:
         if not scenario.finished:

@@ -123,6 +123,7 @@ class TripsForm(forms.Form):
     scenario_name = forms.CharField(max_length=100)
     description = forms.CharField(max_length=100, required=False)
 
+    # TODO use clean method instead
     def is_valid(self):
         if not super().is_valid():
             return False
@@ -202,15 +203,25 @@ class ChargingPowerForm(forms.Form):
 
 class StationForm(forms.ModelForm):
     class Meta:
-        fields = ["is_electrified", "amount_charging_places", "power_total"]
+        fields = ["is_electrified", "is_electrifiable", "amount_charging_places", "power_total"]
         model = models.Station
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["amount_charging_places"].widget.attrs.update({"min": 1.0})
         self.fields["power_total"].widget.attrs.update({"min": 1.0})
+        self.fields["amount_charging_places"].required = False  # TODO: make field optional
+        self.fields["power_total"].required = False  # TODO: make field optional
+
+    def clean(self):
+        cleaned_data = self.cleaned_data
+        if not cleaned_data["is_electrifiable"] and cleaned_data["is_electrified"]:
+            # an electrified station must be electrifiable
+            raise ValidationError("A station which is not electrifiable can not be electrified")
+        return cleaned_data
 
 
+# Todo deprecated
 class StationExcludedForm(forms.Form):
     is_excluded = forms.BooleanField(initial=False, required=False)
 

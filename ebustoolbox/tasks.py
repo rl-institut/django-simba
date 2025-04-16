@@ -23,6 +23,7 @@ from django.db.transaction import atomic
 from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.timezone import make_aware, is_aware
+from eflips.depot import UnstableSimulationException, DelayedTripException
 from eflips.depot.api import simulate_scenario, generate_depot_layout
 
 import core.deepcopy
@@ -36,6 +37,7 @@ from simba.data_container import DataContainer
 from simba.schedule import Schedule as SimbaSchedule
 from . import schedule_readers, forms
 from .models import (
+    DepotMutation,
     User,
     Route,
     Consumption,
@@ -64,7 +66,7 @@ from .models import (
     VehicleTypeMutation,
     VehicleTypeSelection,
     StationMutation,
-    StationElectrificationExclusions,
+    EnumScenarioType,
 )
 from .schedule_readers import ScheduleReader
 
@@ -781,6 +783,9 @@ def init_db_with_trips(
         progress.success = schedule_reader.write_to_db(parent.id)
         scenario.simba_options = vars(get_args(parent))
         find_and_make_depots(parent)
+        scenario.scenario_type = EnumScenarioType.MUTATION
+        parent.scenario_type = EnumScenarioType.SOURCE
+        scenario.save()
         parent.save()
         progress.save()
     except Exception as e:
@@ -868,24 +873,18 @@ def run_ebus_toolchain(task_id):
 
 @shared_task(bind=True)
 def run_and_merge_scenarios(self, parent_id: int, mutation_id: int, simulation_task_id):
-    try:
-        parent_scenario = Scenario.objects.get(id=parent_id)
-        mutation_scenario = Scenario.objects.get(id=mutation_id)
-        simulation_scenario = create_child_from_mutation(parent_scenario, mutation_scenario)
-        simulation_scenario.name = "Results for " + simulation_scenario.name
-        simulation_scenario.task_id = simulation_task_id
-        simulation_scenario.save()
-        if "ebus_map" in settings.INSTALLED_APPS:
-            create_stations_for_map(simulation_scenario)
-        run_toolchain_from_scenario(simulation_scenario, assign_vehicles=True)
-    except Exception as e:
-        logger.error(traceback.format_exc(e))
-        progress = Progress.objects.get(scenario=mutation_scenario, task_id=simulation_task_id)
-        progress.status = "Fehlgeschlagen"
-        progress.success = False
-        progress.running = False
-        progress.save()
-
+    mutation_scenario = Scenario.objects.get(id=mutation_id)
+    parent_scenario = Scenario.objects.get(id=parent_id)
+    # Create a deepcopy of the parent / source scenario.
+    # Apply mutations from the mutation scenario to this copy.
+    simulation_scenario = create_child_from_mutation(parent_scenario, mutation_scenario)
+    simulation_scenario.scenario_type = EnumScenarioType.SIMULATION
+    simulation_scenario.name = mutation_scenario.name
+    simulation_scenario.task_id = simulation_task_id
+    simulation_scenario.save()
+    if "ebus_map" in settings.INSTALLED_APPS:
+        create_stations_for_map(simulation_scenario)
+    run_toolchain_from_scenario(simulation_scenario, assign_vehicles=True)
 
 
 def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False):
@@ -1018,12 +1017,8 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
     return event_list
 
 
-def apply_station_mutation(
-    parent: Scenario, mutation: Scenario, child: Scenario, stack: dict
-) -> None:
-    station_mutations = StationMutation.objects.filter(
-        original_station__scenario=parent, mutated_original_station__scenario=mutation
-    )
+def apply_station_mutation(mutation: Scenario, child: Scenario, stack: dict) -> None:
+    station_mutations = StationMutation.objects.filter(scenario=mutation)
 
     # Assert uniqueness of the mutations
     station_mut_list = station_mutations.values_list("original_station", flat=True)
@@ -1040,11 +1035,9 @@ def apply_station_mutation(
         mutated_station.save()
 
 
-def apply_vehicle_mutation(
-    parent: Scenario, mutation: Scenario, child: Scenario, stack: dict
-) -> None:
+def apply_vehicle_mutation(mutation: Scenario, child: Scenario, stack: dict) -> None:
     vehicle_type_mutations = VehicleTypeMutation.objects.filter(
-        original_vehicle_type__scenario=parent, mutated_vehicle_type__scenario=mutation
+        scenario=mutation,
     )
     vt_mut_list = vehicle_type_mutations.values_list("original_vehicle_type", flat=True)
     assert len(vt_mut_list) == len({vt for vt in vt_mut_list})
@@ -1103,6 +1096,9 @@ def deepcopy_scenario(scenario: Scenario) -> tuple[Scenario, dict]:
         exclude_fields={
             DepotSelection._meta.get_field("depots"),
             ElectrificationOptions._meta.get_field("electrified_stations"),
+            VehicleTypeMutation._meta.get_field("original_vehicle_type"),
+            DepotMutation._meta.get_field("original_depot"),
+            StationMutation._meta.get_field("original_station"),
         },
         max_depth=1,
     )
@@ -1125,10 +1121,12 @@ def create_stations_for_map(django_scenario: Scenario):
 
 
 def create_empty_child_scenario(parent_scenario: Scenario, task_id):
-    new_child_scenario = Scenario.objects.create(task_id=task_id)
-    new_child_scenario.manager = parent_scenario.manager
-    new_child_scenario.name = parent_scenario.name
-    new_child_scenario.parent = parent_scenario
+    parent_id = parent_scenario.id
+    # Decouple memory of parent and child
+    new_child_scenario = Scenario.objects.get(id=parent_scenario.id)
+    new_child_scenario.id = ebustoolbox.util.get_next_id(Scenario)
+    new_child_scenario.task_id = task_id
+    new_child_scenario.parent_id = parent_id
     new_child_scenario.save()
     return new_child_scenario
 
@@ -1149,9 +1147,7 @@ def create_scenario_copy_for_user(mutation_scenario: Scenario):
         vts.vehicle_type = VehicleType.objects.get(id=new_vt_id)
         vts.save()
 
-    vehicle_type_mutation = VehicleTypeMutation.objects.filter(
-        mutated_vehicle_type__scenario=mutation_scenario
-    )
+    vehicle_type_mutation = VehicleTypeMutation.objects.filter(scenario=mutation_scenario)
     for vtm in vehicle_type_mutation:
         new_vt_id = stack[VehicleType][vtm.mutated_vehicle_type.id]
         vtm.id = None
@@ -1230,7 +1226,7 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     # child.simba_options.update(ele_dict)
     all_stations = Station.objects.filter(scenario=mutation)
     electrified_stations = Station.objects.filter(scenario=mutation, is_electrified=True)
-    excluded_stations = StationElectrificationExclusions.objects.filter(scenario=mutation)
+    excluded_stations = Station.objects.filter(scenario=mutation, is_electrifiable=True)
     # Some stations are not electrified or excluded -->possible need for optimization
     if all_stations.count() > electrified_stations.count() + excluded_stations.count():
         child.simba_options["modes"] = "sim,station_optimization,report"
@@ -1244,8 +1240,8 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     #     station.is_electrified = False
     #     station.save()
 
-    apply_vehicle_mutation(parent_scenario, mutation, child, stack)
-    apply_station_mutation(parent_scenario, mutation, child, stack)
+    apply_vehicle_mutation(mutation, child, stack)
+    apply_station_mutation(mutation, child, stack)
 
     child.save()
     return child
@@ -1272,6 +1268,7 @@ def create_station_mutations(scenario):
     for original, mutation in mutations.items():
         sm = StationMutation(
             id=next_id,
+            scenario=scenario,
             original_station_id=original,
             mutated_original_station_id=mutation,
         )
@@ -1323,7 +1320,17 @@ def _run_ebus_toolchain(self, task_id):
             )
 
             # Event.objects.filter(scenario=db_scenario).order_by("soc_end").first().soc_end
-            run_eflips(task_id)
+            try:
+                run_eflips(task_id)
+            except UnstableSimulationException as e:
+                # TODO handle it and pass information to user
+                logger.error("The simulation is unstable")
+                logger.error(traceback.format_exception(e))
+            except DelayedTripException as e:
+                # TODO handle it and pass information to user
+                logger.error("There are delays in the Simulation")
+                logger.error(traceback.format_exception(e))
+
             eflips_assignment = get_assigned_vehicles(task_id)
             schedule.assign_vehicles_custom(eflips_assignment)
             # ToDo: Keep that?
@@ -1350,6 +1357,7 @@ def _run_ebus_toolchain(self, task_id):
         except Exception:
             logger.error(traceback.format_exc())
         progress.set_failed()
+        raise
 
 
 def electrify_depot_station_w_default(db_scenario):
@@ -1514,7 +1522,13 @@ def run_eflips(task_id) -> None:
     last_trip_time = Trip.objects.filter(scenario=db_scenario).aggregate(Max("arrival_time"))
     first_trip_time = Trip.objects.filter(scenario=db_scenario).aggregate(Min("departure_time"))
     period = last_trip_time["arrival_time__max"] - first_trip_time["departure_time__min"]
-    simulate_scenario(db_scenario, database_url=db_url, repetition_period=period)
+    simulate_scenario(
+        db_scenario,
+        database_url=db_url,
+        repetition_period=period,
+        ignore_unstable_simulation=True,
+        ignore_delayed_trips=True,
+    )
 
 
 def create_db_url():
@@ -1896,37 +1910,24 @@ def unelectrify_station(station: Station) -> Station:
 
 
 @atomic()
-def update_stations_and_exclusion(context, scenario):
-    StationElectrificationExclusions.objects.filter(scenario=scenario).delete()
+def update_stations_and_exclusion(context):
     stations = []
-    station_exclusions = []
-    next_id = ebustoolbox.util.get_next_id(StationElectrificationExclusions)
-    for key, value in context["stations_exclude_forms"].items():
-        if value.cleaned_data["is_excluded"]:
-            station_exclusions.append(
-                StationElectrificationExclusions(id=next_id, scenario=scenario, station_id=key)
-            )
-            next_id += 1
-            station = Station.objects.get(id=key)
+    for form in context["stations_forms"].values():
+        if not form.cleaned_data["is_electrified"]:
+            station = form.instance
             station = unelectrify_station(station)
         else:
-            form = context["stations_forms"][key]
-            if not form.cleaned_data["is_electrified"]:
-                station = Station.objects.get(id=key)
-                station = unelectrify_station(station)
-            else:
-                # Electrification needs further attributes
-                station = form.save(commit=False)
-                # ToDo Workaround for when bryan is finished.
-                # Fix form with proper naming
-                station: Station
-                station.power_per_charger = station.power_total
-                station.power_total = station.power_per_charger * station.amount_charging_places
-                station.charge_type = EnumChargeType.OPPORTUNITY
-                station.voltage_level = EnumVoltageLevel.VOLTAGE_MV
-                station.is_valid()
+            # Electrification needs further attributes
+            station = form.save(commit=False)
+            # TODO Workaround for when bryan is finished.
+            # Fix form with proper naming
+            station: Station
+            station.power_per_charger = station.power_total
+            station.power_total = station.power_per_charger * station.amount_charging_places
+            station.charge_type = EnumChargeType.OPPORTUNITY
+            station.voltage_level = EnumVoltageLevel.VOLTAGE_MV
+            station.is_valid()
         stations.append(station)
-    StationElectrificationExclusions.objects.bulk_create(station_exclusions)
     Station.objects.bulk_update(
         stations,
         fields=forms.StationForm._meta.fields
