@@ -1226,9 +1226,12 @@ def compare(request):
     # show comparison page, get relevant data of user scenarios
     # allows for optional request parameter "s", which should be a scenario ID a user has access to
     # this scenario will then be shown in the first column of the comparison page
-    scenarios = get_user_scenario_qs(request.user).filter(finished__isnull=False)
+    scenarios = get_user_scenario_qs(request.user)
     scenario_dict = dict()
     for scenario in scenarios:
+        if not scenario.finished:
+            # filter after union not supported
+            continue
         stations = scenario.station_set.all()
         num_electrified_opps = stations.filter(charge_type=EnumChargeType.OPPORTUNITY).count()
         # sum up charging places at depots, defaults to 0 for null values
