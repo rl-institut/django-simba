@@ -1075,10 +1075,10 @@ simpy = ">=4.0.1,<5.0.0"
 
 [[package]]
 name = "eflips-depot"
-version = "4.6.7"
+version = "4.7.1"
 description = "Depot Simulation for eFLIPS"
 optional = false
-python-versions = "^3.10"
+python-versions = ">=3.10, <3.14"
 files = []
 develop = false
 
@@ -1096,7 +1096,7 @@ xlsxwriter = "^3.1.9"
 type = "git"
 url = "https://github.com/mpm-tu-berlin/eflips-depot"
 reference = "main"
-resolved_reference = "31851b2472c762188872e7267fac80a428a2eba2"
+resolved_reference = "c7f86b9631875853433d24604c62814eda54dd86"
 
 [[package]]
 name = "eflips-eval"
@@ -1157,6 +1157,145 @@ numpy = ">=2.2.0,<3.0.0"
 pandas = ">=2.2.0,<3.0.0"
 psycopg2-binary = ">=2.9.10,<3.0.0"
 sqlalchemy = ">=2.0.23,<3.0.0"
+
+[[package]]
+name = "eflips-opt"
+version = "0.2.0"
+description = "A collection of pre-simulation optimization algorithms for eFLIPS."
+optional = false
+python-versions = "<3.14,>=3.10"
+files = [
+    {file = "eflips_opt-0.2.0-py3-none-any.whl", hash = "sha256:6b7645aea39b750e9554fe10355c5370ffdcd5cdfdcf3c56ec66a4353a283ed7"},
+    {file = "eflips_opt-0.2.0.tar.gz", hash = "sha256:3d692a079040080b4e00489084cd582ffbb5998eeaebd807ed0e96d6b0fbc544"},
+]
+
+[package.dependencies]
+dash-cytoscape = ">=1.0.2,<2.0"
+eflips-model = ">=3.0.0,<7.0.0"
+eflips-schedule-rust = ">=2.0.1,<3.0"
+gurobipy = ">=12.0.1,<13.0"
+kaleido = "0.2.1"
+networkx = ">=3.3,<4.0"
+numpy = ">=1.26.4,<3.0"
+openrouteservice = ">=2.3.3,<3.0"
+pandas = ">=2.1,<3.0"
+plotly = ">=5.22.0,<6.0"
+pyomo = ">=6.7.1,<7.0"
+scipy = ">=1.14.0,<2.0"
+shapely = ">=2.0.3,<3.0"
+tqdm = ">=4.66.4,<5.0"
+
+[[package]]
+name = "eflips-schedule-rust"
+version = "2.0.3"
+description = "Vehicle Scheduling in Rust for eFLIPS."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "eflips_schedule_rust-2.0.3-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:fb7908e6351ec03dd40ee32ee6fe5732d1329b345b0dafeb7cf7b78bba4e3476"},
+    {file = "eflips_schedule_rust-2.0.3-cp310-cp310-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:0af64fb4de38a585e8261761f9598c615aa6afce5291fff187372c3b7dde4dce"},
+    {file = "eflips_schedule_rust-2.0.3-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:1f46b2d4e4e2f2466d25cd34c9244469816864d7bd5cee41393cc22560605321"},
+    {file = "eflips_schedule_rust-2.0.3-cp310-cp310-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:d84bd785db83fc97721cc7923a490a99fe5df82da02ef901e5e9624b2234365c"},
+    {file = "eflips_schedule_rust-2.0.3-cp310-cp310-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:99c874b060f0a5b5a9496bd5a827d9b93a2e2de243f14fd126211bde37c353e2"},
+    {file = "eflips_schedule_rust-2.0.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1b4321d88a045d56bffdb002d8942e81160e7efc121ac8d74c5055b6f25127e5"},
+    {file = "eflips_schedule_rust-2.0.3-cp310-cp310-musllinux_1_2_aarch64.whl", hash = "sha256:c2960f6f6f9edf803faf91e9ad3091f28e2ffcd182f5177c3d68b71378f66b4f"},
+    {file = "eflips_schedule_rust-2.0.3-cp310-cp310-musllinux_1_2_armv7l.whl", hash = "sha256:2ddd8d55f8e25aa9bd0499bc7dae2d1111e2e7e1961e9d04b0ff398c762e5a3c"},
+    {file = "eflips_schedule_rust-2.0.3-cp310-cp310-musllinux_1_2_i686.whl", hash = "sha256:7dd86aaaad722afc859d4db66840d9b2239364e708fea10a0b8dc962215356fd"},
+    {file = "eflips_schedule_rust-2.0.3-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:16a65ecb2bfc553d4d3772875fa109957cb46d6a6001c676622990905f896d85"},
+    {file = "eflips_schedule_rust-2.0.3-cp310-cp310-win32.whl", hash = "sha256:5ff8e7f81cb562ca5fc0f8d3fdbbf05fe9cceefb98cf4bab819459e419ba4290"},
+    {file = "eflips_schedule_rust-2.0.3-cp310-cp310-win_amd64.whl", hash = "sha256:c7dc123c37c964ddd67431ba860c2f1653a4a59854ef3b50983a0aeb26f869e2"},
+    {file = "eflips_schedule_rust-2.0.3-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:4249afbde966d6282320467e84eae377fd79c19a71c8452aa43d78eabdbfc4a1"},
+    {file = "eflips_schedule_rust-2.0.3-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:5746c5fb796225900d8ff47e583eaa6e67536a85bf43d93b51bf2c6a0240b494"},
+    {file = "eflips_schedule_rust-2.0.3-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6668977cfdaa794513b3624c67ceee6cd89713f502e02940710fbebfefa7dff1"},
+    {file = "eflips_schedule_rust-2.0.3-cp311-cp311-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:e1bf0e0a1cef4b416ce7a499536a892c7bb50fc77debedd0e877d070e03ab504"},
+    {file = "eflips_schedule_rust-2.0.3-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:4b71bcb46f4a4725413ded383e9010fc8917b095723da4a5c8f470f3a7cf65ab"},
+    {file = "eflips_schedule_rust-2.0.3-cp311-cp311-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:d6319ae2183a0b6c564b8a0236c1dc280edf6071a8c11bfacd0525fc9d6002f7"},
+    {file = "eflips_schedule_rust-2.0.3-cp311-cp311-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:81dce679322d95d8d873731979525bab58b9e7e79d36c240b8a19dd8b55d5022"},
+    {file = "eflips_schedule_rust-2.0.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e3e21f3c4cc366039c7d644baaa588e96782bd1b395e30bda6c4a869be32a193"},
+    {file = "eflips_schedule_rust-2.0.3-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:fcb5e81881a2cca85168e09f42bba3b9ef205c14ef296ededfe42ae5167d843b"},
+    {file = "eflips_schedule_rust-2.0.3-cp311-cp311-musllinux_1_2_armv7l.whl", hash = "sha256:5c3838c61fe1cc02c8730b1f8ce5e2362a4601da73308b71f9f44979a6a8073a"},
+    {file = "eflips_schedule_rust-2.0.3-cp311-cp311-musllinux_1_2_i686.whl", hash = "sha256:a787b5295eb8628cf3574c3390374f990318af5ee0a8163df6bf5da285b6226a"},
+    {file = "eflips_schedule_rust-2.0.3-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:0ed164bac2224ceec34873c8f0b50787a204b1e6c03c7afe63ac83bb07195b8f"},
+    {file = "eflips_schedule_rust-2.0.3-cp311-cp311-win32.whl", hash = "sha256:7532a8996e72e82fed3ca23bdc26599682829014cacbacdb919dd611c4b6e369"},
+    {file = "eflips_schedule_rust-2.0.3-cp311-cp311-win_amd64.whl", hash = "sha256:74227649a7d5eb27bbc12e46915911d038e55e4f8a53fba1059ae500abc44069"},
+    {file = "eflips_schedule_rust-2.0.3-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:36285be4a23f63d69df58960c935160fcec1230346f184ebc88f59f7d2bc7235"},
+    {file = "eflips_schedule_rust-2.0.3-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:7bde8b332db0c90c8095a7e5c0fd013a1526930db07ddea1866fe5956f1361cd"},
+    {file = "eflips_schedule_rust-2.0.3-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e08b8d02469dd2162f3b1c49cd5b7e0d92e86b6650891849d5e4b2e2ca61fe81"},
+    {file = "eflips_schedule_rust-2.0.3-cp312-cp312-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:9f40229cae99a4dd8c01dcae67acb94c4b7de67849ae3f59e099b2e554dd5d53"},
+    {file = "eflips_schedule_rust-2.0.3-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:a7beba7bc6002882c368905e60a960cb856f4ac9e21f751d1b6b0573cfb24497"},
+    {file = "eflips_schedule_rust-2.0.3-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:455df2e049a06c082cc188e9876ca95ea6f7c6acfab0d99024017ab9a0fc56de"},
+    {file = "eflips_schedule_rust-2.0.3-cp312-cp312-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:7542364ce06e1b3cd5234c627eb0a39dba42ac99ed67d419c7aa382fe98fa61e"},
+    {file = "eflips_schedule_rust-2.0.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2bcf6d8c477745a0ff3cd675ba5128ef3731dc68485b5857bcb3c48b311a52eb"},
+    {file = "eflips_schedule_rust-2.0.3-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:acc52187319156d3a5d217226078c69f2bebaf3fc1883c20c938a375489bdc95"},
+    {file = "eflips_schedule_rust-2.0.3-cp312-cp312-musllinux_1_2_armv7l.whl", hash = "sha256:ba6f25ad75905a914ddad8f675d3c17f2a1ba2399a398890643833931f1da854"},
+    {file = "eflips_schedule_rust-2.0.3-cp312-cp312-musllinux_1_2_i686.whl", hash = "sha256:8db86f6ba44c027164d59dc880cf92eb86be4c03768791f7ec54957edc3dd58e"},
+    {file = "eflips_schedule_rust-2.0.3-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:9c2347aba9ab31eba95b63a4a31645a05d33424affd321978df6fcc2e248f9c4"},
+    {file = "eflips_schedule_rust-2.0.3-cp312-cp312-win32.whl", hash = "sha256:4eb55d121a758991fe63e1c83db7cc5857f5a61d03c20733ba228c4d86976e15"},
+    {file = "eflips_schedule_rust-2.0.3-cp312-cp312-win_amd64.whl", hash = "sha256:fcabf001d7c2db7c962607e755e54f00b1b4477ac0ff80ea0826545fed06ee9a"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:ff79fdf299ee5986f1efa2e61c988b0da2bae4e8c7da673fa2eaf47c7f194ede"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:965b6ecb6e237d34c9074547b90a482d76738afeea922290bd212ceb1e1b060a"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:bf05a3e1eb06cb98a85068f3a8a787676e311d26373e62b8294fb89008123865"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:6dd7abe6c281ce6ca5e27950c9489c1e55a684c10a18cd780073c2146904f42e"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:0f61c815b2d72c134df43672462398ff4d2803e7440d2a99ea23b93d3eee75e2"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:6ef78d703edd7e039bf1b38f89bc81b22ba4975695e25efa2a0d95d468a3bb62"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:fdc3237031f9d8892d2d3ed9feee32271be1354f57e5a8abb1ba33224160140a"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:42acecb79fcc5eadb2f3cbaf011fd59ed000d2095edbebbd58e2bd6f28896e7f"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:605ad06b6b3a5a047e0f3eeab2756758d3c87e52530ab122b1851a098ccf674b"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313-musllinux_1_2_armv7l.whl", hash = "sha256:de333a4ae8c6f54d3ff9bf8ba4b5ca41581b9855bf23b6e4f27d2deed82ac435"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313-musllinux_1_2_i686.whl", hash = "sha256:7b9ea16653b225b6cf4c58e860ea2dc2247632887ec902265150a4ab9101b24e"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:9133a0a904f0aa121910ae1f6c64eb8aed2caa64329d4baf837791654a2ef757"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:285607a23945b4433c8275e75c4afc878ea8683aca1ae9a739aeea4ddcbb8330"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313t-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:58cbda37911c53cecc629dc1f664a0ed5971629694cca7d00e11e90ae5d71fb8"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313t-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:6e6541ee324013405f0517fc5cebd5a283d6726e9dff6e52a65194e07931d958"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313t-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:48ae34c0761797ce693f54583f19165c9bd045e8679666b175b596fd7cf4be30"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:cf96be76cdd6ef455392247356d106c73d6e1e904c8c009b9de620db3e5ed695"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313t-musllinux_1_2_armv7l.whl", hash = "sha256:bcc2a22e1f8acc1d870523887a4f0c72c4b9377fd42d2f457ad54d25343628f7"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313t-musllinux_1_2_i686.whl", hash = "sha256:36889e24660f0b2221d24c4d0ee96087c1833aed35024053e10b9f31d075a0d0"},
+    {file = "eflips_schedule_rust-2.0.3-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:958adb12e13f88546f0c3aefff8360c89aa5e57ee49d7bcd32bfe3f53cce5d9e"},
+    {file = "eflips_schedule_rust-2.0.3-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6e6e7c4ecda8ae9ca4c24063f5fece3392eb51f85bf3402a5d50e0a425a82e1f"},
+    {file = "eflips_schedule_rust-2.0.3-cp38-cp38-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:4ef5ebb4bf8ea2e5768a407bd12b0d720f2cdead130d869faaf115d0ae97ee30"},
+    {file = "eflips_schedule_rust-2.0.3-cp38-cp38-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:2bcaa6c368585a65beb7997f375ff1dda9b4a5ede01b723043d4b3ccbe7181ff"},
+    {file = "eflips_schedule_rust-2.0.3-cp38-cp38-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:43d27429430622e8edcd733094f9a5bf1d57bcc14daedafa441aa48a18d04419"},
+    {file = "eflips_schedule_rust-2.0.3-cp38-cp38-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:0b80ec0757e3fc14ef06df576ff475221790aacc674688429865f30bebda995b"},
+    {file = "eflips_schedule_rust-2.0.3-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4237512738b59a4ee1f9659c24bb2ba24eefcad903770063df40390044aae1f1"},
+    {file = "eflips_schedule_rust-2.0.3-cp38-cp38-musllinux_1_2_aarch64.whl", hash = "sha256:6061d0245bc08bb8e98a337b72c5ed8568e0286406f4717010ba0f0e084a9f44"},
+    {file = "eflips_schedule_rust-2.0.3-cp38-cp38-musllinux_1_2_armv7l.whl", hash = "sha256:c69552666cd9dd6c5219ccee689ccfd444391a506a56e04758556410952e07cf"},
+    {file = "eflips_schedule_rust-2.0.3-cp38-cp38-musllinux_1_2_i686.whl", hash = "sha256:1f3c822695e8d2fe222f5d295d71904aa96c900d2c169d64ce435cfa8224d66f"},
+    {file = "eflips_schedule_rust-2.0.3-cp38-cp38-musllinux_1_2_x86_64.whl", hash = "sha256:7464ba19b8eaf5698f02ffa7d08cf1ff4a53aae6fae7bc29af7ee9554b35ba37"},
+    {file = "eflips_schedule_rust-2.0.3-cp38-cp38-win32.whl", hash = "sha256:0be25a802b61fd6c37c30fbf8fe05d64a391eae135b271365dcf349963ee4e4b"},
+    {file = "eflips_schedule_rust-2.0.3-cp38-cp38-win_amd64.whl", hash = "sha256:d4658f784295714ba5ecefb3d03390373a7246d4e3e12bc7344b1fd9f44dd12c"},
+    {file = "eflips_schedule_rust-2.0.3-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:72f90b7f7db5009f11fb61dea98391994cb749f163507590f3e84974578a1bac"},
+    {file = "eflips_schedule_rust-2.0.3-cp39-cp39-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:973828a3fb666f3acaf66355127441554f5b7ae257ed4e1ed67db07fcc667f3a"},
+    {file = "eflips_schedule_rust-2.0.3-cp39-cp39-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:60c76141c83e569808f5007e0e956d9585021484af769ac756c9385a08cec46c"},
+    {file = "eflips_schedule_rust-2.0.3-cp39-cp39-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:7378ae36f5faae38c417a2d4df0c870846b78a197733cf2835026423ed9ebfe1"},
+    {file = "eflips_schedule_rust-2.0.3-cp39-cp39-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:1b4a13553a062f49850512b81b7cdc57c5f6b4ce1a8bbf02729d5c85f1e8b460"},
+    {file = "eflips_schedule_rust-2.0.3-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:70fa3ba912f90fad4459d4b6a396242d6fea607747a59fcdfa7b4204e6eb6681"},
+    {file = "eflips_schedule_rust-2.0.3-cp39-cp39-musllinux_1_2_aarch64.whl", hash = "sha256:36f6beee32c1bd0eca5dc574672e199f035d3244519b8c5d9b96a459cef6c376"},
+    {file = "eflips_schedule_rust-2.0.3-cp39-cp39-musllinux_1_2_armv7l.whl", hash = "sha256:a1591750ea76410f39eb3f4cd335c20ed5d51783acd7f92ce442ac3dc2f03642"},
+    {file = "eflips_schedule_rust-2.0.3-cp39-cp39-musllinux_1_2_i686.whl", hash = "sha256:42acad3075b6c364feb097a3e121073be0a87a82e136df418ca87996330ab323"},
+    {file = "eflips_schedule_rust-2.0.3-cp39-cp39-musllinux_1_2_x86_64.whl", hash = "sha256:24f904bf98f37f8877d3a79870faa9bd47c874d009bc4d023d978860a6ba52b6"},
+    {file = "eflips_schedule_rust-2.0.3-cp39-cp39-win32.whl", hash = "sha256:0cc96ca9f97944ea57d1f94d2f51b88b987afde018d3049d2c284a43ed9a75f6"},
+    {file = "eflips_schedule_rust-2.0.3-cp39-cp39-win_amd64.whl", hash = "sha256:07f454c0ecad489bf9c2ddd8aa51ab6426b1e60394ba9ce94da269f03983e844"},
+    {file = "eflips_schedule_rust-2.0.3-pp310-pypy310_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c2c7179ee0e351979c49d15962e2dd710323a4ed06521c001401a222d946aefe"},
+    {file = "eflips_schedule_rust-2.0.3-pp310-pypy310_pp73-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:775ecd4ccb1413ad21f1841c5546eeaa97aa7065908bb0d1827a3b0db81cf572"},
+    {file = "eflips_schedule_rust-2.0.3-pp310-pypy310_pp73-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:29affdb109e98864def4af0210e8c4181ef842d7e5a43388940064c9ed2d2cf4"},
+    {file = "eflips_schedule_rust-2.0.3-pp310-pypy310_pp73-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:74f18950749cc7f02cfea59e16ff348c2119cbed7b5e87155201c6c100c866da"},
+    {file = "eflips_schedule_rust-2.0.3-pp310-pypy310_pp73-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:4d076c011bd356fd43b61d90104325c016cc54b0393406ecc506914d2f8493d6"},
+    {file = "eflips_schedule_rust-2.0.3-pp310-pypy310_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ad6fd37d36fb23ce8b707186f662ab0b2894f84aff1ff3f44a6627efbc0823a4"},
+    {file = "eflips_schedule_rust-2.0.3-pp310-pypy310_pp73-musllinux_1_2_aarch64.whl", hash = "sha256:5298cb88aecbd1660ea8177ba946928a9940bbfbc4d5d4db5fdaa89ee76b2848"},
+    {file = "eflips_schedule_rust-2.0.3-pp310-pypy310_pp73-musllinux_1_2_armv7l.whl", hash = "sha256:246954652544afb932d6a5abd4c9e536e75b289318d9502f7b995ff16d8a6621"},
+    {file = "eflips_schedule_rust-2.0.3-pp310-pypy310_pp73-musllinux_1_2_i686.whl", hash = "sha256:eb44b2b966c29e3b96d3fee15856c060299def9f7882b2984da054644404513a"},
+    {file = "eflips_schedule_rust-2.0.3-pp310-pypy310_pp73-musllinux_1_2_x86_64.whl", hash = "sha256:2e4822944ba91ae233b4f4849e0200bd0f8f9fa50b6ab8060a3c488c40e8b28b"},
+    {file = "eflips_schedule_rust-2.0.3-pp39-pypy39_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:61eb4133edbb346616eff6cf57c5eb6a68e4d17e03bcbf2cb26394ab1ad18c6a"},
+    {file = "eflips_schedule_rust-2.0.3-pp39-pypy39_pp73-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:efacf54eb7d7462d1ecc1331a43c7f5b770d4c1905dab0a036d9eedbf8080942"},
+    {file = "eflips_schedule_rust-2.0.3-pp39-pypy39_pp73-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:fb9e79c024cf37fe7ab4e0f1fa6dbba522669c49fe653f3c59b2fdeee82d1b31"},
+    {file = "eflips_schedule_rust-2.0.3-pp39-pypy39_pp73-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:14175d3acc2b2aa5facc3998e0a206ea82ded5e48f5d3d40ee434ab3f623ee7c"},
+    {file = "eflips_schedule_rust-2.0.3-pp39-pypy39_pp73-musllinux_1_2_aarch64.whl", hash = "sha256:34b7813df20c355f95799e2c99163b049499cc24da1bfa896b7ab89aa2e254eb"},
+    {file = "eflips_schedule_rust-2.0.3-pp39-pypy39_pp73-musllinux_1_2_armv7l.whl", hash = "sha256:66902bafd09f47ede73e5e87190c028b96067f31ba6b9ca3b4898e5e3dae1983"},
+    {file = "eflips_schedule_rust-2.0.3-pp39-pypy39_pp73-musllinux_1_2_i686.whl", hash = "sha256:92ccec47eac233ac652700c98eda03538690da41ac26c3a3f369231cf855d2be"},
+    {file = "eflips_schedule_rust-2.0.3-pp39-pypy39_pp73-musllinux_1_2_x86_64.whl", hash = "sha256:2367587e5fcb4f6e2d8bfac78766666accde8b4c42626ab004d26721c7d5d356"},
+    {file = "eflips_schedule_rust-2.0.3.tar.gz", hash = "sha256:54198fc11c0b5140514bdf94c1a43cd4f936e851e432a0f286a5a0f12c31bd80"},
+]
 
 [[package]]
 name = "et-xmlfile"
@@ -1433,6 +1572,38 @@ docs = ["Sphinx", "furo"]
 test = ["objgraph", "psutil"]
 
 [[package]]
+name = "gurobipy"
+version = "12.0.1"
+description = "Python interface to Gurobi"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "gurobipy-12.0.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:5e806be3f602d64cc72aac77df3d3047a50490ff2ec7bd4642b023654706a474"},
+    {file = "gurobipy-12.0.1-cp310-cp310-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:0ec876517edf846e2c8f3294dd3a3b07e77d0dcd0ce4abe69cd90cb73ee71db3"},
+    {file = "gurobipy-12.0.1-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:df90c9f7c386658919e49b4fa57013166d9f11ca5b8225baa280f5ad3e3928f2"},
+    {file = "gurobipy-12.0.1-cp310-cp310-win_amd64.whl", hash = "sha256:0296e7f851bf5f87a5813daf13d49e20e22fca170cb21e830639f92af6ce19c4"},
+    {file = "gurobipy-12.0.1-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:11ca2f493afc5ac5f8e2ed74eb07a86781bb6ffecf57aef0a9a526d498c07c00"},
+    {file = "gurobipy-12.0.1-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:b40627838e8bc5d5f608d9a1b0b13340da9933313f6e2dfab165702a3ad2a866"},
+    {file = "gurobipy-12.0.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:4cf692f2fd2984ff669011dbae2f1a2be7dc15e2b96b951dda4f75ad7146d1bf"},
+    {file = "gurobipy-12.0.1-cp311-cp311-win_amd64.whl", hash = "sha256:4b1e4ff859b0b641dc2bff5a0385090c6fd6fe4465bdef545571a07f728f2535"},
+    {file = "gurobipy-12.0.1-cp312-cp312-macosx_10_9_universal2.whl", hash = "sha256:642ac600488a67fbbf82656611a9db5493d70e6ce0964e191c447a64106c325c"},
+    {file = "gurobipy-12.0.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:45ff1dce01f785b2fb5cf7ea62da904a44920bb26e9480fbfedf1d2f67dac1ae"},
+    {file = "gurobipy-12.0.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:e36c57df0330c4277294d090565a56c56a083d83d70c30af8e9c444d80a854a5"},
+    {file = "gurobipy-12.0.1-cp312-cp312-win_amd64.whl", hash = "sha256:f09b84138e17fcb774475f673b9fe7d3ed8137e7eb7834ce3185688e054fc6e2"},
+    {file = "gurobipy-12.0.1-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:ca490ae7a4da730361b33564350a94c0ad605cbf70be733071b1c7b522665355"},
+    {file = "gurobipy-12.0.1-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:c971e40ddce1751e077e160593ed38d76a73d298365fd3f90737c1543104424d"},
+    {file = "gurobipy-12.0.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:6e007cedc2c69f5a17918d0fe34e88e95f1670b5c24ac828a0df2b1716343459"},
+    {file = "gurobipy-12.0.1-cp313-cp313-win_amd64.whl", hash = "sha256:513017eb17eb3cc7a8d32fccbeee046fc40c9b84808243d922523d78df390179"},
+    {file = "gurobipy-12.0.1-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:69159c871680ee799efe4bafba05c9030cc23da843f3a7e0d0eb5ed1e27c203a"},
+    {file = "gurobipy-12.0.1-cp39-cp39-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:f8d582170d0e15c9fff3c1ddd278f040441930e0e175202d2822cbd4f4b8fcca"},
+    {file = "gurobipy-12.0.1-cp39-cp39-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:987ba53699c1a92844fc6c909eff103c9c2faf90d94f0be8362970fba3fb51f8"},
+    {file = "gurobipy-12.0.1-cp39-cp39-win_amd64.whl", hash = "sha256:a990db7482b6bee186ecee5602ac8c6c4ac867f0fa0b0077c376e288febb594d"},
+]
+
+[package.extras]
+matrixapi = ["numpy", "scipy"]
+
+[[package]]
 name = "h11"
 version = "0.14.0"
 description = "A pure-Python, bring-your-own-I/O implementation of HTTP/1.1"
@@ -1495,6 +1666,21 @@ MarkupSafe = ">=2.0"
 
 [package.extras]
 i18n = ["Babel (>=2.7)"]
+
+[[package]]
+name = "kaleido"
+version = "0.2.1"
+description = "Static image export for web-based visualization libraries with zero dependencies"
+optional = false
+python-versions = "*"
+files = [
+    {file = "kaleido-0.2.1-py2.py3-none-macosx_10_11_x86_64.whl", hash = "sha256:ca6f73e7ff00aaebf2843f73f1d3bacde1930ef5041093fe76b83a15785049a7"},
+    {file = "kaleido-0.2.1-py2.py3-none-macosx_11_0_arm64.whl", hash = "sha256:bb9a5d1f710357d5d432ee240ef6658a6d124c3e610935817b4b42da9c787c05"},
+    {file = "kaleido-0.2.1-py2.py3-none-manylinux1_x86_64.whl", hash = "sha256:aa21cf1bf1c78f8fa50a9f7d45e1003c387bd3d6fe0a767cfbbf344b95bdc3a8"},
+    {file = "kaleido-0.2.1-py2.py3-none-manylinux2014_aarch64.whl", hash = "sha256:845819844c8082c9469d9c17e42621fbf85c2b237ef8a86ec8a8527f98b6512a"},
+    {file = "kaleido-0.2.1-py2.py3-none-win32.whl", hash = "sha256:ecc72635860be616c6b7161807a65c0dbd9b90c6437ac96965831e2e24066552"},
+    {file = "kaleido-0.2.1-py2.py3-none-win_amd64.whl", hash = "sha256:4670985f28913c2d063c5734d125ecc28e40810141bdb0a46f15b76c1d45f23c"},
+]
 
 [[package]]
 name = "kiwisolver"
@@ -1941,6 +2127,25 @@ files = [
 ]
 
 [[package]]
+name = "networkx"
+version = "3.4.2"
+description = "Python package for creating and manipulating graphs and networks"
+optional = false
+python-versions = ">=3.10"
+files = [
+    {file = "networkx-3.4.2-py3-none-any.whl", hash = "sha256:df5d4365b724cf81b8c6a7312509d0c22386097011ad1abe274afd5e9d3bbc5f"},
+    {file = "networkx-3.4.2.tar.gz", hash = "sha256:307c3669428c5362aab27c8a1260aa8f47c4e91d3891f48be0141738d8d053e1"},
+]
+
+[package.extras]
+default = ["matplotlib (>=3.7)", "numpy (>=1.24)", "pandas (>=2.0)", "scipy (>=1.10,!=1.11.0,!=1.11.1)"]
+developer = ["changelist (==0.5)", "mypy (>=1.1)", "pre-commit (>=3.2)", "rtoml"]
+doc = ["intersphinx-registry", "myst-nb (>=1.1)", "numpydoc (>=1.8.0)", "pillow (>=9.4)", "pydata-sphinx-theme (>=0.15)", "sphinx (>=7.3)", "sphinx-gallery (>=0.16)", "texext (>=0.6.7)"]
+example = ["cairocffi (>=1.7)", "contextily (>=1.6)", "igraph (>=0.11)", "momepy (>=0.7.2)", "osmnx (>=1.9)", "scikit-learn (>=1.5)", "seaborn (>=0.13)"]
+extra = ["lxml (>=4.6)", "pydot (>=3.0.1)", "pygraphviz (>=1.14)", "sympy (>=1.10)"]
+test = ["pytest (>=7.2)", "pytest-cov (>=4.0)"]
+
+[[package]]
 name = "numpy"
 version = "2.2.3"
 description = "Fundamental package for array computing in Python"
@@ -2017,6 +2222,20 @@ files = [
 
 [package.dependencies]
 et-xmlfile = "*"
+
+[[package]]
+name = "openrouteservice"
+version = "2.3.3"
+description = "Python client for requests to openrouteservice API services"
+optional = false
+python-versions = "*"
+files = [
+    {file = "openrouteservice-2.3.3-py3-none-any.whl", hash = "sha256:a84fe298b1de7a4fb1d8aa19798687f4f66fe212e5206667c703ca2c7e5de0ce"},
+    {file = "openrouteservice-2.3.3.tar.gz", hash = "sha256:3696e0428533cf6bbcb9586c3bcfca7b5e7aaa269650ff16a862a7f61b857f4a"},
+]
+
+[package.dependencies]
+requests = ">=2.0"
 
 [[package]]
 name = "outcome"
@@ -2260,6 +2479,17 @@ packaging = "*"
 tenacity = ">=6.2.0"
 
 [[package]]
+name = "ply"
+version = "3.11"
+description = "Python Lex & Yacc"
+optional = false
+python-versions = "*"
+files = [
+    {file = "ply-3.11-py2.py3-none-any.whl", hash = "sha256:096f9b8350b65ebd2fd1346b12452efe5b9607f7482813ffca50c22722a807ce"},
+    {file = "ply-3.11.tar.gz", hash = "sha256:00c7c1aaa88358b9c765b6d3000c6eec0ba42abca5351b095321aef446081da3"},
+]
+
+[[package]]
 name = "prompt-toolkit"
 version = "3.0.50"
 description = "Library for building powerful interactive command lines in Python"
@@ -2381,6 +2611,49 @@ files = [
     {file = "pyflakes-3.1.0-py2.py3-none-any.whl", hash = "sha256:4132f6d49cb4dae6819e5379898f2b8cce3c5f23994194c24b77d5da2e36f774"},
     {file = "pyflakes-3.1.0.tar.gz", hash = "sha256:a0aae034c444db0071aa077972ba4768d40c830d9539fd45bf4cd3f8f6992efc"},
 ]
+
+[[package]]
+name = "pyomo"
+version = "6.9.1"
+description = "Pyomo: Python Optimization Modeling Objects"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "pyomo-6.9.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:42876df01eae702b78df01ce2bc6d8c517d26d20c64c5e9fcb48206355d3f0b7"},
+    {file = "pyomo-6.9.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:4f899b1f79a5dac7da9090610a6726104e4884c1023b3ced966ede6f3ed3f38a"},
+    {file = "pyomo-6.9.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:52c64e83e7e6a9e95d021fd5fe56d58408d7e94d86556672302eccb693f22eb0"},
+    {file = "pyomo-6.9.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:811d081d4843d6e6c4cfd57a248f3dac86e616e681c1081071ddae9565d28964"},
+    {file = "pyomo-6.9.1-cp310-cp310-win_amd64.whl", hash = "sha256:f291c1b1873ba4a4c48c5e3a80affc790d2e3e014db346041a0cdd2c282d3296"},
+    {file = "pyomo-6.9.1-cp310-cp310-win_arm64.whl", hash = "sha256:5c298bfd885746b4fb069a715297de26b913b195c5d92a52486e1b3c99794a67"},
+    {file = "pyomo-6.9.1-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:6815512c9cf4680519f83827a3cea14035b567a8b5e5242efaa8271788bbd3f8"},
+    {file = "pyomo-6.9.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:4bc59e6ba69c4cdded560646a01b7fbbd0f7f02cef5cd4f6639828c9eba907f8"},
+    {file = "pyomo-6.9.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a512d9e1da174704a72c0549df65dc9ce415e2faa9f29c55aa16c867fac22f66"},
+    {file = "pyomo-6.9.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f39a3b7ca8fc00ba920a5cb62c6a33ae1876c9fc260acaec89cbab9c7fd9d3cc"},
+    {file = "pyomo-6.9.1-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:8be3172f50387d0c6c85eb3009c20dc459f595526a8b2265288df58153b64dd6"},
+    {file = "pyomo-6.9.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:0516d61c6f675f466e4d179e8d556aeef0ac705860aa81fac73e2232ff42f628"},
+    {file = "pyomo-6.9.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f0785771938c5ccd0eb0eac7cbf0d72f1a216392786b891fcb097ee29b2dbb46"},
+    {file = "pyomo-6.9.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1d08319ad543e98474221b67bc67c5a7331c47d553d733ea1f9302854a2020a3"},
+    {file = "pyomo-6.9.1-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:c6f7ad1228718430d393d2bcdeb61566e0b410f23cde95b7d656e14c52d930bb"},
+    {file = "pyomo-6.9.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:8287f2670ef6c6018e4e160847e182c3e2b4b184bfbc3b4c2f92956f473fe798"},
+    {file = "pyomo-6.9.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:75bab1a8d7d12b9c5aa72b19c11a71edc58418287ffbd7000811c5c9b7cd8506"},
+    {file = "pyomo-6.9.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3cfb434a22a55d1b97c14d094d44178d64766b62ef1914b2b0dc1b05e62fe378"},
+    {file = "pyomo-6.9.1-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:1589be745c2f8efc65d21c2a38957b2b59af7f65e24465000c821c28acc26f8f"},
+    {file = "pyomo-6.9.1-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:7b730e118345655ef1f7cd3a77f032963c4aea88166156ce9dcdddbdbc5ca1d8"},
+    {file = "pyomo-6.9.1-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9021101c3dbe6f408b76d4d7f79fef71f1bcc679c4c5f5ab3d5544e381a44dca"},
+    {file = "pyomo-6.9.1-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ef89fe2e53a04a9bea608f78d8f4e6271d120e759654a6682a90d437ddc32a2a"},
+    {file = "pyomo-6.9.1-cp39-cp39-win_amd64.whl", hash = "sha256:37a45eb606b58046ec9c3f06f0dc304f915e18cdc381737a3f911ff2c297b229"},
+    {file = "pyomo-6.9.1-cp39-cp39-win_arm64.whl", hash = "sha256:7ea708be27fac42bf20092e9a6f64851c9289ec534c319699a3769a9515b72e7"},
+    {file = "pyomo-6.9.1-py3-none-any.whl", hash = "sha256:bd5149341335e68172c3b610b8b4180f21bc7b65daa4f3218028fc9437dd4e8f"},
+    {file = "pyomo-6.9.1.tar.gz", hash = "sha256:ccb85fa4b03450c32614a939c6830d073a7ce79461b12b0f1e7809db96ae86de"},
+]
+
+[package.dependencies]
+ply = "*"
+
+[package.extras]
+docs = ["Sphinx (>4,!=8.2.0)", "numpy", "scipy", "sphinx-copybutton", "sphinx-jinja2-compat (>=0.1.1)", "sphinx-toolbox (>=2.16.0)", "sphinx_rtd_theme (>0.5)", "sphinxcontrib-jsmath", "sphinxcontrib-napoleon"]
+optional = ["casadi", "dill", "ipython", "linear-tree", "matplotlib (>=3.6.0,!=3.6.1)", "networkx", "networkx (<3.2)", "numdifftools", "numpy", "openpyxl", "pandas", "pint", "plotly", "python-louvain", "pywin32", "pyyaml", "qtconsole", "scipy", "seaborn", "sympy", "xlrd", "z3-solver"]
+tests = ["coverage", "parameterized", "pybind11", "pytest", "pytest-parallel"]
 
 [[package]]
 name = "pyparsing"
@@ -3213,5 +3486,5 @@ files = [
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.10, <4.0"
-content-hash = "9e1c34dd7d86922d4cceaecfde800383663d6712d7dd2c76e14dd529737b3f55"
+python-versions = ">=3.10, <3.14"
+content-hash = "4c7a2652b38aa9f98c01a583c403f9807bac3fa8b96adb49aaa010533eee1d45"
