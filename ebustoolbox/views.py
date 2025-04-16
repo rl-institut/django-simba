@@ -1244,6 +1244,9 @@ def compare(request):
     scenarios = get_user_scenario_qs(request.user)
     scenario_dict = dict()
     for scenario in scenarios:
+        if not scenario.finished:
+            # filter after union not supported
+            continue
         stations = scenario.station_set.all()
         num_electrified_opps = stations.filter(charge_type=EnumChargeType.OPPORTUNITY).count()
         # sum up charging places at depots, defaults to 0 for null values
@@ -1273,7 +1276,7 @@ def compare(request):
             "Anzahl elektrifizierte Endhaltestellen": num_electrified_opps,
             "Geladene Energie an Endhaltestellen": round(energy_opps),
             "Anzahl Ladeplätze in allen Depots": num_cs_deps,
-            "Geladene Energie an Depots": round(energy_deps),
+            "Geladene Energie an Depots [kWh]": round(energy_deps),
         }
 
     return render(
