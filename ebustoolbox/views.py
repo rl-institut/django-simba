@@ -1258,7 +1258,7 @@ def compare(request):
             "Anzahl elektrifizierte Endhaltestellen": num_electrified_opps,
             "Geladene Energie an Endhaltestellen": round(energy_opps),
             "Anzahl Ladeplätze in allen Depots": num_cs_deps,
-            "Geladene Energie an Depots": round(energy_deps),
+            "Geladene Energie an Depots [kWh]": round(energy_deps),
         }
 
     return render(
