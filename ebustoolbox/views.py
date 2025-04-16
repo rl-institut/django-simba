@@ -1031,8 +1031,13 @@ class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
         task_id = kwargs.get("task_id")
         if task_id is None:
             raise Http404
+        try:
+            scenario = Scenario.objects.get(task_id=task_id)
+        except Scenario.DoesNotExist:
+            raise Http404
         task_id = str(task_id)
         context["task_id"] = task_id
+        context["scenario"] = scenario
 
         return context
 
