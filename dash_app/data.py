@@ -154,10 +154,7 @@ def get_number_of_buses(filter_dict: dict) -> list[str]:
     task_id = filter_dict.pop("task_id")
     vehicles = filter_dict.pop("vehicle__id__in")
 
-    return [
-        "Ausgewählte / Gesamt Anzahl an Bussen:",
-        str(len(vehicles)) + " / " + str(len(get_all_buses(task_id))),
-    ]
+    return f"{len(vehicles)} / {len(get_all_buses(task_id))}"
 
 
 def get_number_of_stations(task_id: str, get_electrified=True) -> list[str]:
@@ -169,16 +166,10 @@ def get_number_of_stations(task_id: str, get_electrified=True) -> list[str]:
         # Count Station objects where is_electrified is True for the scenario
         electrified_stations = Station.objects.filter(scenario_id=s.id, is_electrified=True).count()
 
-        return [
-            "Anzahl elektrifizierter Stationen / Anzahl Stationen",
-            f"{electrified_stations} / {total_stations}",
-        ]
+        return f"{electrified_stations} / {total_stations}"
 
     else:
-        return [
-            "Anzahl Stationen im Szenario:",
-            f"{total_stations}",
-        ]
+        return total_stations
 
 
 def get_frequently_served_station(task_id: str) -> list[str]:
@@ -191,10 +182,7 @@ def get_frequently_served_station(task_id: str) -> list[str]:
 
     station = Station.objects.get(scenario_id=s.id, id=most_common_station)
 
-    return [
-        "Am häufigsten angefahrene Station:",
-        f"{station.name},  {frequency} mal",
-    ]
+    return f"{station.name},  {frequency} mal"
 
 
 def get_scenario_duration(task_id: str) -> dict:
@@ -239,7 +227,7 @@ def get_number_longest_rot(filter_dict: dict):
     longest_rotation = get_longest_distance_rotation(filter_dict)
 
     if longest_rotation and longest_rotation.distance:
-        return [f"Längste Rotation {longest_rotation.name}", f"{longest_rotation.distance:.1f} m"]
+        return [f"{longest_rotation.name}: {longest_rotation.distance/1000:.1f}"]
     else:
         return ["Keine Rotation gefunden!"]
 
@@ -268,10 +256,7 @@ def get_number_shortest_rot(filter_dict: dict):
 
     # Add style if text should have special style
     if shortest_rotation and shortest_rotation.distance:
-        return [
-            f"Kürzeste Rotation {shortest_rotation.name}",
-            f"{shortest_rotation.distance:.1f} m",
-        ]
+        return f"{shortest_rotation.name}: \n{ shortest_rotation.distance/1000:.1f}"
     else:
         return ["Keine Rotation gefunden!"]
 

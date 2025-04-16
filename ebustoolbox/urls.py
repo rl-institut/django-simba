@@ -13,11 +13,12 @@ from ebustoolbox.views import (
     model_export_json,
     merge_and_run,
     run_simulation,
-    ResultView,
     DashboardView,
     get_dashboard,
     compare,
 )
+
+from ebustoolbox import views
 
 # from . import views
 
@@ -44,7 +45,7 @@ urlpatterns = [
     path("progress2/<uuid:progress_id>/<str:template_name>/", progress2, name="progress"),
     path(
         "result/<uuid:task_id>",
-        ResultView.as_view(),
+        views.result_view,  # only way I get MapengineMixin to work
         name="result",
     ),
     path(
@@ -93,4 +94,22 @@ urlpatterns = [
     path("merge_and_run/<uuid:task_id>/", merge_and_run, name="merge_and_run"),
     # superfluous templates, just for show
     path("DEMO/", TemplateView.as_view(template_name="ebustoolbox/dashboard_DEMO.html")),
+    # results endpoints
+    path("result/<uuid:task_id>/soc/", views.get_soc_data, name="soc_data"),
+    path("result/<uuid:task_id>/power-draw/", views.get_power_draw, name="power_draw_data"),
+    path(
+        "result/<uuid:task_id>/station-occupation/",
+        views.get_station_occupation,
+        name="station_occupation",
+    ),
+    path("result/<uuid:task_id>/gantt/", views.get_gantt_data, name="gantt_data"),
+    path("result/<uuid:task_id>/stats/", views.get_stats, name="stats"),
+    path("result/<uuid:task_id>/dist_histogram/", views.get_dist_hist, name="dist_hist_data"),
+    path("result/<uuid:task_id>/speed_histogram/", views.get_speed_hist, name="speed_hist_data"),
+    path(
+        "result/<uuid:task_id>/critical_rotations/",
+        views.render_critical_rotations,
+        name="critical_rotations",
+    ),
+    path("result/<uuid:task_id>/bustype/", views.render_bustype, name="bustype"),
 ]

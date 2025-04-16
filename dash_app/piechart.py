@@ -1,11 +1,14 @@
+import json
+import plotly.express as px
+import plotly.graph_objects as go
+
 from dash import Dash, html, dcc
+from dash.dependencies import Input, Output, State  # no fa401
 from dash.exceptions import PreventUpdate
 
-from . import ids, data
-from dash.dependencies import Input, Output, State  # no fa401
-import plotly.graph_objects as go
-import plotly.express as px
 from ebustoolbox.models import Scenario
+
+from . import ids, data
 from .style import set_styling
 
 
@@ -35,7 +38,8 @@ def render_critical_rotations(app: Dash) -> html.Div:
 
         df = data.get_critical_rotations_as_dataframe(s.id, buses)
 
-        # Create a pie chart following line is needed due to plotly bug,
+        # Create a pie chart
+        # following line is needed due to plotly bug,
         # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = go.Figure(layout=dict(template="plotly"))
         fig = px.pie(
@@ -78,9 +82,84 @@ def render_bustype(app: Dash) -> html.Div:
         if len(df) == 0:
             raise PreventUpdate
 
-        # Create a pie chart following line is needed due to plotly bug,
+        # Create a pie chart
+        # following line is needed due to plotly bug,
         # see https://stackoverflow.com/questions/74367104/dashboard-plotly-valueerror-invalid-value
         fig = px.pie(df, values="count", names="name", title="Zusammensetzung der Fahrzeugtypen")
         return fig
 
     return html.Div(dcc.Graph(id=ids.PIE_BUSTYPE), style={"verticalAlign": "top"})
+
+
+def get_critical_rotations(buses: list[str], task_id: str) -> str:
+    """
+    Returns JSON data for ECharts to visualize the counts of critical and non-critical state of charge (SOC) values for selected buses.
+
+    :param buses: List of buses selected.
+    :param task_id: Task ID of the simulation.
+    :return: JSON string containing the chart data in ECharts format.
+    """
+
+    s = Scenario.objects.get(task_id=task_id)
+
+    if not data.sim_is_finished(task_id):
+        return json.dumps({})  # Empty JSON if simulation is not finished
+
+    df = data.get_critical_rotations_as_dataframe(s.id, buses)
+
+    # Prepare data in ECharts format
+    chart_data = {
+        "title": {
+            "text": "Verteilung der kritischen und unkritischen Umläufe",
+            "left": "center"
+        },
+        "series": [{
+            "name": "Critical Rotations",
+            "type": "pie",
+            "radius": "50%",
+            "data": [
+                {"value": row["Count"], "name": row["Category"]}
+                for _, row in df.iterrows()
+            ]
+        }]
+    }
+
+    return json.dumps(chart_data)
+
+
+def get_bustype(buses: list[str], task_id: str) -> str:
+    """
+    Returns JSON data for ECharts to visualize the distribution of vehicle types for selected buses.
+
+    :param buses: List of buses selected.
+    :param task_id: Task ID of the simulation.
+    :return: JSON string containing the chart data in ECharts format.
+    """
+
+    s = Scenario.objects.get(task_id=task_id)
+
+    if not data.sim_is_finished(task_id):
+        return json.dumps({})  # Empty JSON if simulation is not finished
+
+    df = data.get_vehicle_types(s.id, buses)
+    if len(df) == 0:
+        return json.dumps({})  # Return empty JSON if there's no data
+
+    # Prepare data in ECharts format
+    chart_data = {
+        "title": {
+            "text": "Zusammensetzung der Fahrzeugtypen",
+            "left": "center"
+        },
+        "series": [{
+            "name": "Vehicle Types",
+            "type": "pie",
+            "radius": "50%",
+            "data": [
+                {"value": row["count"], "name": row["name"]}
+                for _, row in df.iterrows()
+            ]
+        }]
+    }
+
+    return json.dumps(chart_data)
