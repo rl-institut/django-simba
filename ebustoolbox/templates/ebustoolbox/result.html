@@ -739,7 +739,7 @@
                 },
                 xAxis: {
                     type: 'time',
-                    name: 'Time',
+                    name: 'Zeit',
                     axisLabel: {
                         formatter: function (value) {
                             const date = new Date(value);
@@ -749,7 +749,14 @@
                 },
                 yAxis: {
                     type: 'value',
-                    name: 'SOC (%)'
+                    name: 'SOC (%)',
+                    min: -1.0,  // Minimum as 1%
+                    max: 1.0,   // Maximum as 100%
+                    axisLabel: {
+                        formatter: function (value) {
+                            return value * 100; // Format x-axis labels
+                        }
+                    }
                 },
                 legend: {
                     show: false // Disables the legend
@@ -761,6 +768,14 @@
         });
     }
     function fetchAndRenderGanttChart(chartName, chartId, titleText) {
+
+        const EVENT_COLORS = {
+            SERVICE: "#7b9ce1",
+            CHARGING_DEPOT: "#bd6d6c",
+            STANDBY_DEPARTURE: "#e0bc78",
+            DRIVING: "#75d874"
+        };
+
         fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
@@ -781,7 +796,7 @@
                         }
                     },
                     title: {
-                        text: 'Bus Dispatch Timeline',
+                        text: 'Bus-Einsatz-Zeitplan',
                         left: 'center'
                     },
                     dataZoom: [
@@ -800,13 +815,13 @@
                             type: 'slider',
                             yAxisIndex: 0,
                             zoomLock: false,
-                            width: 10,
-                            right: 10,
-                            top: 70,
-                            bottom: 20,
+                            width: 40,
+                            right: 65,
+                            top: 50,
+                            bottom: 80,
                             start: 95,
                             end: 100,
-                            handleSize: 10,
+                            handleSize: 30,
                             showDetail: false
                         },
                         {
@@ -825,11 +840,28 @@
                     },
                     xAxis: {
                         type: 'time',
+                        splitNumber: 4,  // Try to limit to 6 ticks across the chart
                         axisLabel: {
                             formatter: function (val) {
                                 const date = new Date(val);
-                                return date.toISOString().substring(0, 19); // Format to ISO (YYYY-MM-DDTHH:mm:ss)
-                            }
+                                const hours = String(date.getHours()).padStart(2, '0');
+                                const minutes = String(date.getMinutes()).padStart(2, '0');
+
+                                const isoDate = date.toISOString().slice(0, 10);
+                                const time = `${hours}:${minutes}`;
+
+                                const totalZoomRange = chart.getModel().getComponent('xAxis').axis.scale._extent;
+                                const zoomWindow = totalZoomRange[1] - totalZoomRange[0];
+
+                                if (zoomWindow > 3 * 24 * 3600 * 1000) {
+                                    return isoDate;
+                                } else if (zoomWindow > 6 * 3600 * 1000) {
+                                    return `${isoDate} ${time}`;
+                                } else {
+                                    return time;
+                                }
+                            },
+                            rotate: 0  // You can override this below
                         }
                     },
                     yAxis: {
@@ -857,11 +889,9 @@
                                 const start = api.coord([api.value(1), categoryIndex]);
                                 const end = api.coord([api.value(2), categoryIndex]);
 
-                                // Dynamically calculate height based on Y-axis scale
-                                const size = api.size([0, 1]); // [width, height] for one data unit
-                                const dynamicHeight = size[1] * 0.8; // 80% of the height for better spacing
+                                const size = api.size([0, 1]);
+                                const dynamicHeight = size[1] * 0.8;
 
-                                // Define the rectangle shape with dynamic height
                                 const rectShape = echarts.graphic.clipRectByRect(
                                     {
                                         x: start[0],
@@ -877,24 +907,27 @@
                                     }
                                 );
 
+                                const eventType = api.value(5);  // event_type is at index 5 in value array
+                                const color = EVENT_COLORS[eventType] || "#000000";
+
                                 return rectShape && {
                                     type: 'rect',
                                     transition: ['shape'],
                                     shape: rectShape,
-                                    style: api.style()
+                                    style: api.style({ fill: color })
                                 };
                             },
                             itemStyle: {
                                 opacity: 0.8
                             },
                             encode: {
-                                x: [1, 2],  // Start and End times
-                                y: 0        // Category index (bus)
+                                x: [1, 2],   // Start and end
+                                y: 0,        // Bus index
+                                itemName: 5  // This will be used in tooltip (readable name)
                             },
-                            data: ganttData
+                            data: ganttData.map(d => [...d.value, d.name, d.event_type]) // Add name + event_type into the value array
                         }
                     ]
-
                 };
 
                 // Initialize ECharts instance and set option
@@ -978,9 +1011,9 @@
 
         if (taskId) {
             // Render the charts
-            fetchAndRenderPieChart("critical_rotations", "chartContainer", "Critical vs Non-Critical Rotations");
-            fetchAndRenderPieChart("bustype", "busTypeChartContainer", "Vehicle Type Distribution");
-            fetchAndRenderLineChart("soc", "lineChart", "Bus SOC over Time", "time_end", "soc_end_prc");
+            fetchAndRenderPieChart("critical_rotations", "chartContainer", "Kritische und nicht kritische Rotationen");
+            fetchAndRenderPieChart("bustype", "busTypeChartContainer", "Verteilung Fahrzeugtyp");
+            fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit", "time_end", "soc_end_prc");
             fetchAndRenderStats("stats", "_", "_")
             fetchAndRenderGanttChart("gantt","ganttChart","_")
             fetchAndRenderHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen");

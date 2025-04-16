@@ -1031,12 +1031,9 @@ class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
         task_id = kwargs.get("task_id")
         if task_id is None:
             raise Http404
-        try:
-            scenario = Scenario.objects.get(task_id=task_id)
-        except Scenario.DoesNotExist:
-            raise Http404
         task_id = str(task_id)
         context["task_id"] = task_id
+        scenario = get_object_or_404(Scenario, task_id=task_id)
         context["scenario"] = scenario
 
         return context
@@ -1474,34 +1471,24 @@ def get_gantt_data(request, task_id: str):
     buses = list(vehicle_name_dict.keys())
     df = data.get_activities_as_dataframe(s.id, buses)
 
-    # Define colors for event types
-    EVENT_COLORS = {
-        "SERVICE": "#7b9ce1",
-        "CHARGING_DEPOT": "#bd6d6c",
-        "STANDBY_DEPARTURE": "#e0bc78",
-        "DRIVING": "#75d874",
-    }
-
     df["time_start"] = pd.to_datetime(df["time_start"])
     df["time_end"] = pd.to_datetime(df["time_end"])
 
     buses = df["V_id"].unique()
-    categories = [f"Bus {bus}" for bus in buses]  # Displaying each bus on a separate row
+    categories = [f"Bus {bus}" for bus in buses]
 
     gantt_data = []
     for _, row in df.iterrows():
-        event_type = row["event_type"]
-        start_time = int(row["time_start"].timestamp() * 1000)  # Convert to milliseconds
+        start_time = int(row["time_start"].timestamp() * 1000)
         end_time = int(row["time_end"].timestamp() * 1000)
         duration = row["duration"]
-        color = EVENT_COLORS.get(event_type, "#000000")  # Default color if type not found
-        bus_index = list(buses).index(row["V_id"])  # Find the bus index for y-axis
+        bus_index = list(buses).index(row["V_id"])
 
         gantt_data.append(
             {
                 "name": row["readable_name"],
                 "value": [bus_index, start_time, end_time, duration],
-                "itemStyle": {"normal": {"color": color}},
+                "event_type": row["event_type"],  # Add event type so the frontend can style
             }
         )
 
