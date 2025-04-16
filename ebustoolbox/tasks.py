@@ -1138,6 +1138,8 @@ def create_scenario_copy_for_user(mutation_scenario: Scenario):
     assert mutation_scenario.parent.parent is None
     mutation_scenario.task_id = ebustoolbox.util.get_unique_task_id()
     copied_scenario, stack = deepcopy_scenario(mutation_scenario)
+
+    # TODO remove this and move copying into deepcopy with excluded fields instead
     vehicle_type_selections = VehicleTypeSelection.objects.filter(
         vehicle_type__scenario=mutation_scenario
     )
@@ -1146,33 +1148,6 @@ def create_scenario_copy_for_user(mutation_scenario: Scenario):
         vts.id = None
         vts.vehicle_type = VehicleType.objects.get(id=new_vt_id)
         vts.save()
-
-    vehicle_type_mutation = VehicleTypeMutation.objects.filter(scenario=mutation_scenario)
-    for vtm in vehicle_type_mutation:
-        new_vt_id = stack[VehicleType][vtm.mutated_vehicle_type.id]
-        vtm.id = None
-        vtm.mutated_vehicle_type = VehicleType.objects.get(id=new_vt_id)
-        vtm.save()
-
-    # ToDo Expand with Depot and Station Mutation if such settings will be introduced
-    #
-    # class DepotMutation(models.Model):
-    #     original_depot = models.ForeignKey(
-    #         Depot, related_name="originaldepot", null=True, on_delete=models.CASCADE
-    #     )
-    #     mutated_original_depot = models.ForeignKey(
-    #         Depot, related_name="mutateddepot", null=True, on_delete=models.CASCADE
-    #     )
-    #
-    #
-    # class StationMutation(models.Model):
-    #     original_station = models.ForeignKey(
-    #         Station, related_name="originalstation", null=True, on_delete=models.CASCADE
-    #     )
-    #     mutated_original_station = models.ForeignKey(
-    #         Station, related_name="mutatedstation", null=True, on_delete=models.CASCADE
-    #     )
-
     return copied_scenario
 
 
