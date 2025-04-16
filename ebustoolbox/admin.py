@@ -4,7 +4,7 @@ from .models import Scenario, UserGroup
 
 
 class ScenarioAdmin(admin.ModelAdmin):
-    list_display = ("name", "created", "finished", "task_id", "manager")
+    list_display = ("name", "scenario_type", "created", "finished", "task_id", "manager")
 
 
 admin.site.register(Scenario, ScenarioAdmin)
