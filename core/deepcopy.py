@@ -15,6 +15,10 @@ from simba.optimizer_util import time_it
 from django.db.models.fields.related import ManyToManyField
 
 
+class DeepcopyException(Exception):
+    pass
+
+
 def deepcopy_and_sequence_reset(
     instance: models.Model,
     exclude_models: None | set[Type[models.Model]] = None,
@@ -360,9 +364,11 @@ def create_m2m_managers(f, obj_copy, org_foreign_values, stack, exclude_models, 
         try:
             new_foreign_values.append(stack[f.related_model][old_foreign.pk])
         except KeyError:
-            assert f in exclude_fields or f.related_model in exclude_models
-            new_foreign_values = org_foreign_values
-            break
+            if f in exclude_fields or f.related_model in exclude_models:
+                new_foreign_values = org_foreign_values
+                break
+            else:
+                raise DeepcopyException(f"No copy found for id:{old_foreign.pk} of field:{f}")
     manager = getattr(obj_copy, f.name)
     return manager, new_foreign_values
 
@@ -372,4 +378,7 @@ def set_new_foreign_value(f, obj_copy, org_foreign_values, stack, exclude_models
         new_foreign_values = stack[f.related_model][org_foreign_values]
         setattr(obj_copy, f.name + "_id", new_foreign_values)
     except KeyError:
-        assert f.related_model in exclude_models or f in exclude_fields
+        if f in exclude_fields or f.related_model in exclude_models:
+            pass
+        else:
+            raise DeepcopyException(f"No copy found for id:{org_foreign_values} of field:{f}")
