@@ -1,4 +1,5 @@
 from datetime import timedelta, datetime
+from enum import auto
 
 from django.core.validators import MinValueValidator, MaxValueValidator
 from fast_update.query import FastUpdateManager
@@ -27,6 +28,12 @@ from simba.ids import INCLINE, LEVEL_OF_LOADING, SPEED, T_AMB, CONSUMPTION
 MINIMAL_TRIP_DURATION_S = 60  # seconds
 
 
+class EnumScenarioType(models.TextChoices):
+    SOURCE = auto()
+    MUTATION = auto()
+    SIMULATION = auto()
+
+
 class Scenario(models.Model):
     """
     Model representing a scenario in the application.
@@ -35,6 +42,8 @@ class Scenario(models.Model):
         name (str): The name of the scenario. Required and cannot be blank.
         name_short (str, optional): A short name for the scenario. Can be blank.
         parent (Scenario, optional): A reference to the parent scenario, if applicable.
+        scenario_type (str, optional): The type of the scenario indicating what data it contains.
+        description (str, optional): A description for the scenario.
         created (datetime): The date and time when the scenario was created.
         task_id (UUID, optional): Unique identifier for the scenario's task. Can be null.
         finished (datetime, optional): The date and time when the scenario was finished, if applicable.
@@ -60,6 +69,9 @@ class Scenario(models.Model):
     name_short = models.TextField(blank=True, null=True)
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
 
+    scenario_type = models.CharField(choices=EnumScenarioType.choices, null=True)
+    description = models.TextField(blank=True, null=True)
+
     created = models.DateTimeField(
         auto_now_add=True, db_default=Now()
     )  # Set to now() on the database side
@@ -78,11 +90,6 @@ class Scenario(models.Model):
             name="default_scenario",
         )
         return scenario.pk
-
-
-class ScenarioDescription(models.Model):
-    scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
-    description = models.TextField(null=True, default="")
 
 
 @receiver(models.signals.pre_delete, sender=Scenario)
@@ -896,6 +903,7 @@ class Station(models.Model):
         name_short (str, optional): A short name for the station. Can be blank.
         scenario (Scenario): The scenario to which the station is associated. Foreign key to the Scenario model.
         is_electrified (bool): Indicates whether the station is electrified. Defaults to False.
+        is_electrifiable (bool): Indicates whether the station could be electrified. Defaults to True.
         charge_type (str, optional): The type of charging available at the station.
                                      Choices defined by EnumChargeType. Defaults to None.
         voltage_level (str, optional): The voltage level of the station.
@@ -937,6 +945,7 @@ class Station(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
     is_electrified = models.BooleanField(default=False)
+    is_electrifiable = models.BooleanField(default=True)
     charge_type = models.CharField(
         max_length=4, choices=EnumChargeType.choices, null=True, default=None
     )
@@ -1634,6 +1643,7 @@ class VehicleTypeSelection(models.Model):
 
 
 class VehicleTypeMutation(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
     original_vehicle_type = models.ForeignKey(
         VehicleType, related_name="originalvehicletype", null=True, on_delete=models.CASCADE
     )
@@ -1643,6 +1653,7 @@ class VehicleTypeMutation(models.Model):
 
 
 class DepotMutation(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
     original_depot = models.ForeignKey(
         Depot, related_name="originaldepot", null=True, on_delete=models.CASCADE
     )
@@ -1652,18 +1663,13 @@ class DepotMutation(models.Model):
 
 
 class StationMutation(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
     original_station = models.ForeignKey(
         Station, related_name="originalstation", null=True, on_delete=models.CASCADE
     )
     mutated_original_station = models.ForeignKey(
         Station, related_name="mutatedstation", null=True, on_delete=models.CASCADE
     )
-
-
-# ToDo better add it as attribute to Station model. not possible without eflips change
-class StationElectrificationExclusions(models.Model):
-    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
-    station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE)
 
 
 class EnumCalculationModes(models.TextChoices):

@@ -82,7 +82,7 @@
               </span>
               Automatisch
             </button>
-            <input type="hidden" id="bulk_is_excluded">
+            <input type="hidden" id="bulk_is_electrifiable">
             <button type="button"
               class="inline-flex items-center justify-center flex-grow py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full"
               data-color="gray"
@@ -182,11 +182,11 @@
 {#        TODO: keine Optionen, sondern: Standardladeleistung angeben, Station-Tabelle entweder immer zeigen oder ausklappbar#}
         <!-- Option 2 -->
         <div class="flex items-center h-12">
-          <input 
+          <input
             id="single"
             name="{{ calculation_mode_form.station_calculation_mode.html_name }}"
-            value="{{ constant_power_value }}" 
-            type="radio" 
+            value="{{ constant_power_value }}"
+            type="radio"
             class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 checked:hover:bg-green-500 checked:focus:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500"
           >
           <label for="single" class="ml-3 block text-sm/6 font-medium text-slate-800">Ladeleistung angeben</label>
@@ -228,7 +228,7 @@
         </div>
       </div>
     </div>
-    
+
     <div id="stations-details" class="hidden w-full pt-8 border-t">
       <div class="flex items-center justify-between space-x-4">
         <div class="w-4/12 pb-4">
@@ -431,7 +431,6 @@
 
             {% for station_id in ordered_stations %}
               {% with stations_forms|get_item:station_id as form %}
-              {% with stations_exclude_forms|get_item:station_id as exclude_form%}
                 {% with stations|get_item:station_id as station %}
             <tr
               class="bg-white station-row" data-value="{{ station.name }}" data-lines="{{ station.lines|join:' ' }}"
@@ -485,7 +484,7 @@
                     Automatisch
                   </button>
 {#                  hidden input which is set via js#}
-                    <input  type="hidden" {{exclude_form.is_excluded|widget_attrs}}>
+                    <input type="hidden" {{form.is_electrifiable|widget_attrs}}>
                   <button type="button"
                     class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full"
                     data-color="gray"
@@ -528,7 +527,6 @@
                 </div>
               </td>
             </tr>
-              {% endwith %}
               {% endwith %}
               {% endwith %}
             {%  endfor %}
@@ -671,17 +669,17 @@
       function setInitialStateOfButtons() {
           rows.forEach((row) => {
               const isElectrifiedDiv = row.querySelector('input[id$="is_electrified"]')
-              const isExcludedDiv = row.querySelector('input[id$="is_excluded"]')
+              const isElectrifiableDiv = row.querySelector('input[id$="is_electrifiable"]')
               var button;
               if (isElectrifiedDiv.value === 'true') {
-                  console.assert(isExcludedDiv.value === 'false');
+                  console.assert(isElectrifiableDiv.value === 'true');
                   button = row.querySelector('[data-value="elektrifizieren"]');
-              } else if (isExcludedDiv.value === 'true') {
+              } else if (isElectrifiableDiv.value === 'false') {
                   console.assert(isElectrifiedDiv.value === 'false');
-                  button = row.querySelector('[data-value="elektrifizieren"]');
+                  button = row.querySelector('[data-value="nicht-elektrifizieren"]');
               } else {
                   console.assert(isElectrifiedDiv.value === 'false');
-                  console.assert(isExcludedDiv.value === 'false');
+                  console.assert(isElectrifiableDiv.value === 'true');
                   button = row.querySelector('[data-value="automatisch"]');
               }
               // click the button according to the passed inputs.
@@ -885,19 +883,19 @@ document.addEventListener("DOMContentLoaded", () => {
             const value = button.getAttribute("data-value");
             if (value === "elektrifizieren") {
                 document.getElementById(prefix + "is_electrified").value = true;
-                document.getElementById(prefix + "is_excluded").value = false;
+                document.getElementById(prefix + "is_electrifiable").value = true;
                 bulkInputContainer.hidden = false;
 
             } else if (value === "nicht-elektrifizieren") {
                 // Hide all inputs for "Nicht elektrifizieren"
                 document.getElementById(prefix + "is_electrified").value = false;
-                document.getElementById(prefix + "is_excluded").value = true;
+                document.getElementById(prefix + "is_electrifiable").value = false;
                 bulkInputContainer.hidden = true;
 
 
             } else if (value === "automatisch") {
                 document.getElementById(prefix + "is_electrified").value = false;
-                document.getElementById(prefix + "is_excluded").value = false;
+                document.getElementById(prefix + "is_electrifiable").value = true;
                 bulkInputContainer.hidden = true;
             }
         })
@@ -909,9 +907,9 @@ document.addEventListener("DOMContentLoaded", () => {
     bulk_submit.onclick = (e)=> {
         let value=null;
         if (document.getElementById("bulk_is_electrified").value==="true"){
-            console.assert(!document.getElementById("bulk_is_excluded").checked)
+            console.assert(document.getElementById("bulk_is_electrifiable").checked)
             value="elektrifizieren"
-        } else if (document.getElementById("bulk_is_excluded").value==="true"){
+        } else if (document.getElementById("bulk_is_electrifiable").value==="false"){
             console.assert(!document.getElementById("bulk_is_electrified").checked)
             value="nicht-elektrifizieren"
         } else {
@@ -970,23 +968,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 if (value === "elektrifizieren") {
                     document.getElementById(prefix + "is_electrified").value = true;
-                    document.getElementById(prefix + "is_excluded").checked = false;
-                    document.getElementById(prefix + "is_excluded").value = false;
+                    document.getElementById(prefix + "is_electrifiable").checked = true;
+                    document.getElementById(prefix + "is_electrifiable").value = true;
                     setFormsRequired(true, allRowInputs);
 
                 } else if (value === "nicht-elektrifizieren") {
                     setFormValuesNull(allRowInputs);
                     // Hide all inputs for "Nicht elektrifizieren"
                     document.getElementById(prefix + "is_electrified").value = false;
-                    document.getElementById(prefix + "is_excluded").checked = true;
-                    document.getElementById(prefix + "is_excluded").value = true;
+                    document.getElementById(prefix + "is_electrifiable").checked = false;
+                    document.getElementById(prefix + "is_electrifiable").value = false;
                     setFormsRequired(false, allRowInputs);
 
                 } else if (value === "automatisch") {
                     setFormValuesNull(allRowInputs);
                     document.getElementById(prefix + "is_electrified").value = false;
-                    document.getElementById(prefix + "is_excluded").checked = false;
-                    document.getElementById(prefix + "is_excluded").value = false;
+                    document.getElementById(prefix + "is_electrifiable").checked = true;
+                    document.getElementById(prefix + "is_electrifiable").value = true;
 
                     setFormsRequired(false, allRowInputs);
 

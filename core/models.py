@@ -50,20 +50,20 @@ class Progress(models.Model):
             return 0
 
     def set_success(self):
-        self.status = "Finished"
+        self.status = "Fertig"
         self.current_work = self.total_work
         self.success = True
         self.running = False
         self.save()
 
     def set_failed(self):
-        self.status = "Failed"
+        self.status = "Fehlgeschlagen"
         self.success = False
         self.running = False
         self.save()
 
     def reset(self):
-        self.status = "Started"
+        self.status = "Gestartet"
         self.current_work = 0
         self.total_work = 1
         self.success = False
