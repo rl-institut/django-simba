@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import F, QuerySet, Sum, Value, FloatField
+from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
 from django.db.models.functions import Cast, Coalesce
 from django.db.transaction import atomic
 from django.forms import formset_factory, modelform_factory, widgets
@@ -169,12 +169,7 @@ def get_sorted_mutation_scenarios(user) -> QuerySet[Scenario]:
 def get_user_scenario_qs(user: User, scenario_qs: QuerySet[Scenario]) -> QuerySet[Scenario]:
     if not user.is_authenticated:
         return Scenario.objects.none()
-
-    user_scenarios = scenario_qs.filter(manager=user)
-    ug_scenarios = scenario_qs.filter(usergroup__users=user)
-    accessible_scenarios = user_scenarios.union(ug_scenarios)
-    accessible_scenarios = accessible_scenarios.order_by("id")
-    return accessible_scenarios
+    return scenario_qs.filter(Q(manager=user) | Q(usergroup__users=user)).order_by("id")
 
 
 class AuthorizedMixIn:
@@ -1087,12 +1082,12 @@ def merge_and_run(request: HttpRequest, task_id: str):
             (scenario.parent.id, scenario.id, sim_task_id),
             task_id=str(sim_task_id),
         )
-    except Exception as e:
+    except Exception:
         progress.errors.append(
             "Ein unerwarteter Fehler ist aufgetreten." "Wenden Sie sich an ihren Administrator"
         )
         progress.set_failed()
-        logger.error(traceback.format_exc(e))
+        logger.error(traceback.format_exc())
 
     progress.refresh_from_db()
     progress.task_id = async_result.task_id
@@ -1197,8 +1192,8 @@ def get_dashboard(request):
     # get task status from task_id for each scenario
     scenario_list = list()
     for scenario in scenarios:
-        # The progress is linked to the mutation sceanario. The progress task_id is set to the
-        # resulting (SimulatioN) scenario task_id
+        # The progress is linked to the mutation sceanario.
+        # The progress task_id is set to the resulting (simulation-) scenario task_id
         progress = Progress.objects.filter(task_id=scenario.task_id)
         if progress.filter(success=True).exists():
             scenario.state = "success"

@@ -873,24 +873,18 @@ def run_ebus_toolchain(task_id):
 
 @shared_task(bind=True)
 def run_and_merge_scenarios(self, parent_id: int, mutation_id: int, simulation_task_id):
-    try:
-        parent_scenario = Scenario.objects.get(id=parent_id)
-        mutation_scenario = Scenario.objects.get(id=mutation_id)
-        # Create a deepcopy of the parent / source scenario.
-        # Apply mutations from the mutation scenario to this copy.
-        simulation_scenario = create_child_from_mutation(parent_scenario, mutation_scenario)
-        simulation_scenario.scenario_type = EnumScenarioType.SIMULATION
-        # ToDo do we want to change the name
-        simulation_scenario.name = "Ergebnisse für " + mutation_scenario.name
-        simulation_scenario.task_id = simulation_task_id
-        simulation_scenario.save()
-        if "ebus_map" in settings.INSTALLED_APPS:
-            create_stations_for_map(simulation_scenario)
-        run_toolchain_from_scenario(simulation_scenario, assign_vehicles=True)
-    except Exception as e:
-        logger.error(traceback.format_exc(e))
-        progress = Progress.objects.get(scenario=mutation_scenario, task_id=simulation_task_id)
-        progress.set_failed()
+    mutation_scenario = Scenario.objects.get(id=mutation_id)
+    parent_scenario = Scenario.objects.get(id=parent_id)
+    # Create a deepcopy of the parent / source scenario.
+    # Apply mutations from the mutation scenario to this copy.
+    simulation_scenario = create_child_from_mutation(parent_scenario, mutation_scenario)
+    simulation_scenario.scenario_type = EnumScenarioType.SIMULATION
+    simulation_scenario.name = mutation_scenario.name
+    simulation_scenario.task_id = simulation_task_id
+    simulation_scenario.save()
+    if "ebus_map" in settings.INSTALLED_APPS:
+        create_stations_for_map(simulation_scenario)
+    run_toolchain_from_scenario(simulation_scenario, assign_vehicles=True)
 
 
 def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False):
