@@ -1470,7 +1470,7 @@ def get_gantt_data(request, task_id: str):
             }
         )
 
-    return JsonResponse({"categories": categories, "data": gantt_data}, safe=False)
+    return JsonResponse({"categories": categories, "data": gantt_data})
 
 
 def get_stats(request, task_id: str):
