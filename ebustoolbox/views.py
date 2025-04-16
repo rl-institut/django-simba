@@ -11,7 +11,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
 from django.db.models.functions import Cast, Coalesce
 from django.db.transaction import atomic
-from django.forms import formset_factory, modelform_factory, widgets
+from django.forms import formset_factory, widgets
 from django.http import HttpResponse, HttpRequest, Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -55,8 +55,6 @@ from ebustoolbox.models import (
     VehicleTypeSelection,
     VehicleTypeMutation,
     StationMutation,
-    ScenarioWizardOptions,
-    EnumCalculationModes,
     EnumScenarioType,
 )
 import pandas as pd
@@ -644,18 +642,6 @@ class StationsView(ScenarioMixIn, TemplateView):
         if self.request.method != "POST":
             data = {}
 
-        # ToDo Deprecated with new design
-        wizard_options, _ = ScenarioWizardOptions.objects.get_or_create(scenario=scenario)
-
-        form_class = modelform_factory(ScenarioWizardOptions, fields=["station_calculation_mode"])
-        if not data:
-            data |= {"station_calculation_mode": wizard_options.station_calculation_mode}
-        form = form_class(data=data, instance=wizard_options)
-        context["calculation_mode_form"] = form
-        context["automatic_value"] = EnumCalculationModes.AUTOMATIC
-        context["constant_power_value"] = EnumCalculationModes.CONSTANT_POWER
-        context["manual_value"] = EnumCalculationModes.MANUAL
-
         # General Charging power defined on top level
         context["charging_power_form"] = forms.ChargingPowerForm(data)
 
@@ -686,29 +672,13 @@ class StationsView(ScenarioMixIn, TemplateView):
     def post(self, request, *args, **kwargs):
         scenario = self.scenario
         context = self.get_context_data(**kwargs)
-        calculation_mode_form = context["calculation_mode_form"]
-        if not calculation_mode_form.is_valid():
-            logger.debug("Invalid Stations Calculation Mode Form provided")
 
-            return self.render_to_response(**kwargs)
-
-        match calculation_mode_form.cleaned_data["station_calculation_mode"]:
-            case "automatic":
-                # Deprecated_Mode
-                raise NotImplementedError
-            case "constant_power":
-                # Deprecated Mode
-                raise NotImplementedError
-            case "manual":
-                all_valid = all(form.is_valid() for form in context["stations_forms"].values())
-                if not all_valid:
-                    logger.debug("Invalid StationsForm provided")
-                    return self.render_to_response(context)
-                # The forms are valid. Update the stations and exclude stations
-                # from electrification
-                ebustoolbox.tasks.update_stations_and_exclusion(context)
-            case _:
-                raise NotImplementedError
+        all_valid = all(form.is_valid() for form in context["stations_forms"].values())
+        if not all_valid:
+            logger.debug("Invalid StationsForm provided")
+            return self.render_to_response(context)
+        # The forms are valid. Update the stations and exclude stations
+        # from electrification
         response = redirect(reverse(self.success_name, args=[scenario.task_id]))
         return response
 
