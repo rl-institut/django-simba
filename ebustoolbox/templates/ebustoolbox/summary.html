@@ -44,7 +44,7 @@
   </div>
 
   <!-- Use alert when simulating -->
-  <div class="flex justify-center py-8">
+  <div class="flex justify-center pt-8">
     <button id="simulateButton" hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s
         class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300 cursor-pointer"
         {% if progress.running or progress.success %}disabled{% endif %}>
@@ -67,7 +67,7 @@
     </button>
   </div>
 
-  <div class="flex justify-center py-8">
+  <div>
     <div id="runner"
         {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
         hx-trigger="notRunning from:body">
@@ -92,14 +92,6 @@
   {% if progress %}
     {% include "core/progress_poll.html" with progress_id=progress.task_id template_name="progress_simulation.html" %}
   {% endif %}
-  {# in case of error allow resimulating #}
-{# {% if show_rerun %} #}
-  <div class="flex justify-center py-8">
-    {# <button hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" #}
-    {# class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300 cursor-pointer"> Simulation erneut starten #}
-    {# </button> #}
-  </div>
-{# {% endif %} #}
 
 
     </div>
