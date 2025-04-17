@@ -256,7 +256,7 @@ class TripsView(FormView):
     form_class = forms.TripsForm
     success_name = "simba:vehicles"
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, request, **kwargs):
         context = super(TripsView, self).get_context_data(**kwargs)
         assert context["form"], "Form view should return context with applied form"
         task_id = kwargs.get("task_id")
@@ -268,6 +268,7 @@ class TripsView(FormView):
 
         scenarios = get_sorted_mutation_scenarios(self.request.user)
         context["scenarios"] = scenarios
+        context["requested"] = request.GET.get("s")
         return context
 
     def get(self, request, *args, **kwargs):
@@ -280,7 +281,7 @@ class TripsView(FormView):
                 response = redirect(reverse("simba:vehicles", args=[str(task_id)]))
                 response["HX-Location"] = reverse("simba:vehicles", args=[str(task_id)])
                 return response
-        return self.render_to_response(self.get_context_data(**kwargs))
+        return self.render_to_response(self.get_context_data(request, **kwargs))
 
     def post(self, request, *args, **kwargs):
         form = self.get_form()
