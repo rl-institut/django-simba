@@ -1512,7 +1512,7 @@ def get_stats(request, task_id: str):
     resp = {
         "longest_rotation": longest_rot,
         "shortest_rotation": shortest_rot,
-        "num_stations": str(num_electrified_opps) + " / " + str(len(stations) - len(depots)),
+        "num_stations": f"{num_electrified_opps} / {len(stations) - len(depots)}",
         "num_busses": num_busses,
         "most_frequented": most_freq,
         "total_dist": total_dist,

@@ -13,7 +13,7 @@
 }
 
 #basemaps-control {
-    display: none; /* This makes the element invisible but still takes up space in the layout */
+    display: none; /* This completely hides the element and removes it from the layout */
 }
 
 #basemaps {
