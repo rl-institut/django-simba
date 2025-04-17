@@ -679,6 +679,7 @@ class StationsView(ScenarioMixIn, TemplateView):
             return self.render_to_response(context)
         # The forms are valid. Update the stations and exclude stations
         # from electrification
+        ebustoolbox.tasks.update_stations_and_exclusion(context)
         response = redirect(reverse(self.success_name, args=[scenario.task_id]))
         return response
 
