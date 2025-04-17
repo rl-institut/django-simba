@@ -416,7 +416,7 @@
               </td>
               <td class="px-4 py-3">
                 <div id="electrifyState" class="flex items-center space-x-2">
-                  <input  type="hidden" {{form.is_electrified|widget_attrs}}>
+                  <input type="hidden"   {{form.is_electrified|widget_attrs}}>
                   <button type="button"
                     class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full"
                     data-color="emerald"
@@ -447,7 +447,7 @@
                     Automatisch
                   </button>
 {#                  hidden input which is set via js#}
-                    <input type="hidden" {{form.is_electrifiable|widget_attrs}}>
+                    <input type="hidden"  {{form.is_electrifiable|widget_attrs}}>
                   <button type="button"
                     class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full"
                     data-color="gray"
@@ -632,7 +632,10 @@
       function setInitialStateOfButtons() {
           rows.forEach((row) => {
               const isElectrifiedDiv = row.querySelector('input[id$="is_electrified"]')
+
               const isElectrifiableDiv = row.querySelector('input[id$="is_electrifiable"]')
+              isElectrifiedDiv.checked = true;
+              isElectrifiableDiv.checked = true;
               var button;
               if (isElectrifiedDiv.value === 'true') {
                   console.assert(isElectrifiableDiv.value === 'true');
@@ -877,7 +880,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 if (value === "elektrifizieren") {
                     document.getElementById(prefix + "is_electrified").value = true;
-                    document.getElementById(prefix + "is_electrifiable").checked = true;
                     document.getElementById(prefix + "is_electrifiable").value = true;
                     setFormsRequired(true, allRowInputs);
 
@@ -885,14 +887,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     setFormValuesNull(allRowInputs);
                     // Hide all inputs for "Nicht elektrifizieren"
                     document.getElementById(prefix + "is_electrified").value = false;
-                    document.getElementById(prefix + "is_electrifiable").checked = false;
                     document.getElementById(prefix + "is_electrifiable").value = false;
                     setFormsRequired(false, allRowInputs);
 
                 } else if (value === "automatisch") {
                     setFormValuesNull(allRowInputs);
                     document.getElementById(prefix + "is_electrified").value = false;
-                    document.getElementById(prefix + "is_electrifiable").checked = true;
                     document.getElementById(prefix + "is_electrifiable").value = true;
 
                     setFormsRequired(false, allRowInputs);
