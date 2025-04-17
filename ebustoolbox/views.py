@@ -1516,7 +1516,7 @@ def get_stats(request, task_id: str):
         "num_busses": num_busses,
         "most_frequented": most_freq,
         "total_dist": total_dist,
-        "total_consumption": np.round(energy_deps + energy_opps,0),
+        "total_consumption": np.round(energy_deps + energy_opps, 0),
         "avg_consumption": "--",
     }
     return JsonResponse(resp)
