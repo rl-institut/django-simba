@@ -1,8 +1,7 @@
 {% load static %}
 
-<!DOCTYPE html>
-    <html lang="en">
-    <head>
+
+
     {# maplibre 4.0 breaks loading images #}
       {#      maplibre 4.0 breaks loading images#}
       <script src="{% static "maplibre-gl.js" %}"></script>
@@ -11,9 +10,6 @@
       <script src="{% static "pubsub.js" %}"></script>
       <link rel="stylesheet" type="text/css" href="{% static 'mapOverlays.css' %}">
 
-    </head>
-
-    <body>
         {% include 'django_mapengine/map.html' %}
         {% include 'django_mapengine/map_json.html' %}
         <div id="map-button">
@@ -29,7 +25,7 @@
         {% include 'django_mapengine/map_js.html' %}
         <script>
             // This is needed, as otherwise map height is zero and therefore not visible (bug in mapengine!)
-            document.getElementById("map").style = "height: 600px"
+            document.getElementById("map").style = "height: 620px"
 
             document.addEventListener("DOMContentLoaded", function() {
 
@@ -52,9 +48,6 @@
                         $('#map-overlay').show();
                     });
 
-                    $('#js-map-layers-box-close').click(function() {
-                        $('#map-overlay').hide();
-                    });
                 });
 
                 // Add an event listener to log a message when the button is clicked
@@ -65,5 +58,4 @@
                 });
             });
         </script>
-    </body>
-</html>
+
