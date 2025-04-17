@@ -31,6 +31,7 @@
       {% for depot_id, form_dict in forms.items %}
         {% with depot=depots|get_item:depot_id %}
           <section class="pb-12">
+          <div id={{ depot_id }}"DepotContent">
 
 
             <div class="overflow-hidden rounded-lg bg-white shadow mb-4">
@@ -177,7 +178,7 @@
                   <div class="flex justify-end">
                     <div class="flex items-center gap-4">
                       <span class="text-sm font-normal">Gesamtleistung</span>
-                      <span class="px-2 py-1 bg-sky-50 font-semibold text-sky-800">2.400 kW</span>
+                      <span class="px-2 py-1 bg-sky-50 font-semibold text-sky-800"><div id="{{ depot_id }}summedTotalPower"></div></span>
                     </div>
                   </div>
                 </div>
@@ -215,6 +216,8 @@
                 </div>
               </div>
             </div>
+
+          </div>
           </section>
         {% endwith %}
     {% endfor %}
