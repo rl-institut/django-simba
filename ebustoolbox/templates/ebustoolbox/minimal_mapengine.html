@@ -37,24 +37,10 @@
                 var mapSection = document.getElementById('map');
                 mapSection.appendChild(button);
 
-                $.get("{% static 'layer_box.html' %}", function(data) {
-                    var $overlay = $(data);
-
-                    // Append the overlay to the map section
-                    $('#map').append($overlay);
-
-                    // Event handlers
-                    $('#map-button button').click(function() {
-                        $('#map-overlay').show();
-                    });
-
-                });
-
                 // Add an event listener to log a message when the button is clicked
                 var buttonElement = button.querySelector('button'); // Select the actual button inside the div
                 buttonElement.addEventListener('click', function() {
                     $('#map-overlay').show();
-                    console.log('Button was clicked!');
                 });
             });
         </script>
