@@ -1488,24 +1488,37 @@ def get_stats(request, task_id: str):
     longest_rot = data.get_number_longest_rot(filter_dict.copy())
     shortest_rot = data.get_number_shortest_rot(filter_dict.copy())
     num_busses = data.get_number_of_buses(filter_dict.copy())
-    num_stations = data.get_number_of_stations(task_id)
     most_freq = data.get_frequently_served_station(task_id)
 
     dist_df = data.get_distances_as_dataframe(s.id, buses)
     total_dist = round(dist_df["total_distance"].sum() / 1000, 0)
-    total_consumption = round(data.get_total_consumption(s), 0)
 
-    avg_consumption = round(total_consumption / (dist_df["total_distance"].sum() / 1000), 3)
+    stations = s.station_set.all()
+    depots = s.depot_set.all()
+    num_electrified_opps = stations.filter(charge_type=EnumChargeType.OPPORTUNITY).count()
+
+    events = s.event_set.all()
+    # calculate charged energy for all events
+    events = events.annotate(
+        charged=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity")
+    )
+    # sum up charged energy by event type. Default value 0 in case of null values
+    energy_opps = events.filter(event_type=EventType.CHARGING_OPPORTUNITY).aggregate(
+        sum_charged=Coalesce(Sum("charged"), 0.0)
+    )["sum_charged"]
+    energy_deps = events.filter(event_type=EventType.CHARGING_DEPOT).aggregate(
+        sum_charged=Coalesce(Sum("charged"), 0.0)
+    )["sum_charged"]
 
     resp = {
         "longest_rotation": longest_rot,
         "shortest_rotation": shortest_rot,
-        "num_stations": num_stations,
+        "num_stations": f"{num_electrified_opps} / {len(stations) - len(depots)}",
         "num_busses": num_busses,
         "most_frequented": most_freq,
         "total_dist": total_dist,
-        "total_consumption": total_consumption,
-        "avg_consumption": avg_consumption,
+        "total_consumption": np.round(energy_deps + energy_opps, 0),
+        "avg_consumption": "--",
     }
     return JsonResponse(resp)
 
@@ -1527,10 +1540,9 @@ def get_speed_hist(request, task_id: str):
     dur_df["avg_speed_kmh"] = (dist_df["total_distance"] / 1000) / (dur_df["duration"] / 3600)
 
     # Set bin width and calculate bins
-    bin_width_kmh = 2.5
+    bin_width_kmh = 10
     max_speed_kmh = dur_df["avg_speed_kmh"].max()
-    min_speed_kmh = dur_df["avg_speed_kmh"].min()
-    bins = np.arange(min_speed_kmh, max_speed_kmh + bin_width_kmh, bin_width_kmh)
+    bins = np.arange(0, max_speed_kmh + bin_width_kmh, bin_width_kmh)
     hist, bin_edges = np.histogram(dur_df["avg_speed_kmh"], bins=bins)
 
     response_data = {
@@ -1567,9 +1579,9 @@ def get_dist_hist(request, task_id: str):
 
     # Calculate the number of bins based on the bin width
     max_distance_km = df["total_distance_km"].max()
-    min_distance_km = df["total_distance_km"].min()
 
-    bins = np.arange(min_distance_km, max_distance_km + bin_width_km, bin_width_km)
+    # Start bins from zero, and make sure the maximum distance is included in the bins
+    bins = np.arange(0, max_distance_km + bin_width_km, bin_width_km)
     hist, bin_edges = np.histogram(df["total_distance_km"], bins=bins)
 
     response_data = {

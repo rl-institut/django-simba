@@ -1,9 +1,9 @@
 <div class="map-overlay" id="map-overlay">
 
 
-    <div class="map__layers-close">
+    <div>
         <button type="button" class="btn-close" id="js-map-layers-box-close"
-                aria-label="Close"></button>
+                aria-label="Close">X</button>
     </div>
     <div class="map-overlay-content">
         <div class="buttons-container">
@@ -35,6 +35,12 @@
             <div id="slider-num_arrival"></div>
         </div>
         <script>
+            $(document).ready(function() {
+                $('#js-map-layers-box-close').click(function() {
+                    $('#map-overlay').hide();  // Hide the overlay when the close button is clicked
+                });
+
+            });
 
             const layers = [
                 {label: 'Depots', toggleFunction: () => updateFilter()},
