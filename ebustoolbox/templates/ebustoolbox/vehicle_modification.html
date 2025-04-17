@@ -116,7 +116,7 @@
                           </svg>
                     <!-- Tooltip -->
                           <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
+                          Der Energieverbrauch wird durch den gewählten Fahrzeugtyp bestimmt.
                           </div>
                         </span>
                 </div>
@@ -124,8 +124,9 @@
               <div class="mt-2">
                 <div
                         class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-slate-400 focus-within:focus-visible:outline-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                          <!--Pseudo Input to show Consumption from selected VehicleType -->
                   <input
-                          type="number"
+
                           name="consumption"
                           id="{{ vt_id }}consumption"
                           disabled
@@ -206,7 +207,9 @@
 
                   {# Overwrite inputs#}
                   battery_capacity.value = document.getElementById(value + "_battery_capacity").getAttribute("data-value")
-                  consumption.value = document.getElementById(value + "_consumption").getAttribute("data-value")
+                  // Setting the value would change the styling. Use placeholder instead
+                  // This input is not in the backend currently since data from the selected vehicle type is used directly
+                  consumption.placeholder = document.getElementById(value + "_consumption").getAttribute("data-value")
                   {# Repeat for other vehicle type attributes#}
 
 
