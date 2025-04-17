@@ -601,9 +601,10 @@
 {% block wizard_buttons %}
   {% url 'simba:depots' task_id as prev_url %}
 
-  {% url 'simba:result' task_id as next_url %}
   {% translate "Simulation starten" as next_text %}
-  {{ block.super }}
+  {% with buttonId="simulateButton" %}
+    {{ block.super }}
+  {% endwith %}
 {% endblock wizard_buttons %}
 
 {% block script %}
