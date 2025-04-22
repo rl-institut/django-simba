@@ -1129,37 +1129,21 @@ def model_export_json(request: HttpRequest, model_str: str, task_id: str):
 
 
 def run_simulation(request: HttpRequest, task_id: str):
-    context = {"task_id": task_id, "progress_type": "simba:scenario_overview"}
-    logger.debug(context)
-    response = HttpResponse(context=context)
-
     try:
-        if request.method == "GET":
-            try:
-                scenario = Scenario.objects.get(task_id=task_id)
-                parent = scenario.parent
-            except Scenario.DoesNotExist:
-                raise Http404
-            # if the scenario has a manager, only this User can run the simulation
-            if scenario.manager and scenario.manager != request.user:
-                raise Http404
-            # This triggers progress polling. If the toolchain is finished,
-            # the progress view will be triggered with the task_id and progress type
-            logger.info("Running Toolchain.")
-
-            sim_task_id = get_unique_task_id()
-            # create scenario from mutation and parent and simulate it
-            async_result = tasks.run_and_merge_scenarios.apply_async(
-                (parent.id, scenario.id, sim_task_id), task_id=str(sim_task_id)
-            )
-            context["task_id"] = sim_task_id
-            context["progress_id"] = async_result.task_id
-            response = render(request, "progress_poll.html", context)
-            response["HX-Trigger"] = "running"
+        try:
+            scenario = Scenario.objects.get(task_id=task_id)
+        except Scenario.DoesNotExist:
+            raise Http404
+        # if the scenario has a manager, only this User can run the simulation
+        if scenario.manager and scenario.manager != request.user:
+            raise Http404
+        # This triggers progress polling. If the toolchain is finished,
+        # the progress view will be triggered with the task_id and progress type
+        logger.info("Running Toolchain.")
+        tasks.run_toolchain_from_scenario(scenario, assign_vehicles=False)
     except Exception:
-        logger.error(traceback.format_exc())
-        response["HX-Trigger"] = "notRunning"
-    return response
+        return HttpResponse("An error occured")
+    return HttpResponse("Your simulation is beeing simulated")
 
 
 def download_scenario(request: HttpRequest, task_id: str):
