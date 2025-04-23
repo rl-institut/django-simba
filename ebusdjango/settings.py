@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
+
 from pathlib import Path
 
 import environ
@@ -53,7 +54,9 @@ if env.bool("DJANGO_LOCAL_DEVELOPMENT", default=False):
     SECURE_PROXY_SSL_HEADER = None
     # https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
     SECURE_SSL_REDIRECT = False
-
+DATA_UPLOAD_MAX_NUMBER_FIELDS = env.int(
+    "DJANGO_DATA_UPLOAD_MAX_NUMBER_FIELDS", 3000
+)  # higher than the count of fields. StationsView can have a couple of hundred stations with 5 fields each.
 # Application definition
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -132,19 +135,14 @@ LOGIN_REDIRECT_URL = "/"  # redirect to landing page after login
 #  data. Patrick wrote an HowTo for Linux users
 DATABASES = {"default": env.db("DATABASE_URL")}
 
-CELERY_USE = env.bool("CELERY_USE", default=True)
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=True)
 if CELERY_TASK_ALWAYS_EAGER:
-    CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=True)  # if set, eager tasks will propagate exceptions
-    CELERY_TASK_STORE_EAGER_RESULT = env.bool("CELERY_TASK_STORE_EAGER_RESULT", default=True)  # if set, eager tasks will save results in backend
+    # if set, eager tasks will propagate exceptions
+    CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=True)
+    # if set, eager tasks will save results in backend
+    CELERY_TASK_STORE_EAGER_RESULT = env.bool("CELERY_TASK_STORE_EAGER_RESULT", default=True)
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=None)
-# Make sure there is a celery broker url provided if celery should be used
-if CELERY_USE:
-    assert CELERY_BROKER_URL, (
-        "CELERY_BROKER_URL is missing from .env file. If celery should be"
-        "used, this URL has to be provided"
-    )
 
 # For Database visualization
 GRAPH_MODELS = {

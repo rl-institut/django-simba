@@ -574,8 +574,15 @@
   </div>
 </main>
 {% endblock wizard_content %}
-<!-- overwrite wizard buttons implementation-->
-{% block wizard_buttons %}{% endblock wizard_buttons %}
+
+{% block wizard_buttons %}
+  {% url 'simba:depots' task_id as prev_url %}
+
+  {% translate "Simulation starten" as next_text %}
+  {% with buttonId="simulateButton" %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock wizard_buttons %}
 
 {% block script %}
 <script>

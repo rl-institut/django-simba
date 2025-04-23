@@ -2,11 +2,11 @@
 {% load static %}
 
 <form id="trips_form"
-      class="w-full max-w-7xl"
-      hx-post="{% url 'simba:trips' %}"
-      hx-encoding="multipart/form-data"
-      hx-trigger="submit"
-      hx-swap="outerHTML"
+  class="w-full max-w-7xl"
+  hx-post="{% url 'simba:trips' %}"
+  hx-encoding="multipart/form-data"
+  hx-trigger="submit"
+  hx-swap="outerHTML"
 >
 
   {% csrf_token %}
@@ -14,7 +14,7 @@
     <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">Umlaufplan</h1>
     <span class="block mb-6 text-sm text-slate-500">Laden Sie ihren Umlaufplan hoch. Alternativ können Sie den Umlaufplan aus einem existierendem Szenario auswählen.</span>
 
-{#  ToDo @Bryan add styling and position div to your liking#}
+{# ToDo @Bryan add styling and position div to your liking #}
   <div id="error-message" style="display:None">Lade eine Datei aus oder wähle ein Szenario aus.</div>
     <div class="grid grid-cols-12 gap-4">
       <div class="col-span-full pb-4">
@@ -50,23 +50,23 @@
           </button>
             </a>
         </div>
-        {#        Make the whole div a drop zone. js will be applied to the drop_zone at the end to make it functional#}
-        {#        by calling it drop_zone the styling of #drop zone will be applied when dragging #}
+        {# Make the whole div a drop zone. js will be applied to the drop_zone at the end to make it functional #}
+        {# by calling it drop_zone the styling of #drop zone will be applied when dragging #}
         <div id="drop_zone"
              class="mt-2 flex justify-center bg-white rounded-lg border border-dashed border-slate-400 px-6 py-10">
           <div class="text-center">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#94a3b8" class="inline-block size-6">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15m0-3-3-3m0 0-3 3m3-3V15" />
             </svg>
-            
+
             <p class="mt-4 pb-2 flex text-sm text-slate-800">
               <label for="{{ form.data_file.auto_id }}"
-                     class="relative w-full cursor-pointer rounded-md text-sm font-semibold text-green-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-green-600 focus-within:ring-offset-2 hover:text-green-600 transition-all duration-300">
+                  class="relative w-full cursor-pointer rounded-md text-sm font-semibold text-green-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-green-600 focus-within:ring-offset-2 hover:text-green-600 transition-all duration-300">
                 <span>Datei hochladen</span>
-                {#              this sets the id=form.data_file.auto_id#}
+                {# this sets the id=form.data_file.auto_id #}
                 <input {{ form.data_file|widget_attrs }} type="file" class="sr-only" accept=".csv" onchange="updateFileName(this)">
-                {# progress bar during upload#}
-                <progress 
+                {# progress bar during upload #}
+                <progress
                   id='progress'
                   class="mt-2"
                   value='0'
@@ -74,7 +74,7 @@
                 ></progress>
               </label>
             <p class="pl-1 text-sm text-slate-500">oder ziehen und ablegen</p>
-            {#              This div is replaced with the list of dropped files. needs styling @Bryan#}
+            {# This div is replaced with the list of dropped files. TODO: @Bryan needs styling #}
             <div
               id="uploaded_file_id"
               class="pt-6 text-md font-semibold text-slate-800"
@@ -92,62 +92,37 @@
         </div>
         <div class="flex-grow">
           <label id="listbox-label" class="block text-sm font-medium text-slate-800">
-            
+
           </label>
 
           <!-- Dropdown -->
           <div class="relative">
-                        <input hidden {{form.existing_scenario|widget_attrs}}>
-            <button
-                    id="assignedToButton"
-                    type="button"
-                    class="flex flex-wrap items-center w-full rounded-md bg-white py-1.5 px-3 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:outline-2 focus-within:outline-green-400 sm:text-sm/6 cursor-pointer"
-                    aria-haspopup="listbox"
-                    aria-expanded="false"
-                    aria-labelledby="listbox-label"
+            <select
+              id="{{ form.existing_scenario.auto_id }}"
+              name="{{ form.existing_scenario.name }}"
+              {# TODO @ Bryan: please check if all these classes are required #}
+              class="flex flex-wrap items-center w-full rounded-md bg-white py-1.5 px-3 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:outline-2 focus-within:outline-green-400 sm:text-sm/6 cursor-pointer"
             >
-
-              <span id="dropDownSpan" class="col-start-1 row-start-1 truncate pr-6">-- Szenario auswählen --</span>
-              <svg class="absolute top-1/2 right-3 h-5 w-5 -translate-y-1/2 text-slate-500 pointer-events-none"
-                   viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
-                <path fill-rule="evenodd"
-                      d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z"
-                      clip-rule="evenodd"/>
-              </svg>
-            </button>
-            <!-- Dropdown list -->
-            <ul
-                    id="assignedToList"
-                    class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm hidden"
-                    tabindex="-1"
-                    role="listbox"
-                    aria-labelledby="listbox-label"
-            >
-                </li>
+              <option value="">-- Szenario auswählen --</option>
               {% for scenario in scenarios %}
-                <li
-                        class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-green-400 hover:text-black"
-                        role="option"
-                        data-dropdown-item="{{ scenario.task_id }}"
-                        data-dropdown-name="{{ scenario.name }}"
-                >
-                  <span class="block truncate font-normal">{{ scenario.name }}</span>
-                </li>
+                <option
+                  value="{{ scenario.task_id }}"
+                  {% if scenario.id|stringformat:"i" == requested %}selected{% endif %}
+                >{{ scenario.name }}</option>
               {% endfor %}
-            </ul>
+            </select>
           </div>
-
         </div>
       </div>
     </div>
     <div class="col-span-full pt-4 border-t">
       <div class="w-full pb-6">
         <label for="{{ form.scenario_name.auto_id }}"
-               class="block text-sm/6 font-medium text-slate-900">Szenarioname</label>
+          class="block text-sm/6 font-medium text-slate-900">Szenario-Name</label>
         <div class="mt-2">
           <input type="text" {{ form.scenario_name|widget_attrs }}
-                 class="block bg-white w-full mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
-                 placeholder="Szenario Name eingeben">
+            class="block bg-white w-full mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
+            placeholder="Szenario-Name eingeben">
         </div>
       </div>
       <div class="w-full">
@@ -159,9 +134,11 @@
         </div>
         <div class="mt-2">
           <textarea type="text" {{ form.description|widget_attrs }} rows="4"
-                    class="block bg-white w-full mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
-                    placeholder="Beschreiben Sie Ihr Szenario..."
-                    aria-describedby="description-optional">{% if form.description.value %}{{ form.description.value }}{% endif %}</textarea>
+            class="block bg-white w-full mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
+            placeholder="Beschreiben Sie Ihr Szenario..."
+            aria-describedby="description-optional">
+            {% if form.description.value %}{{ form.description.value }}{% endif %}
+          </textarea>
         </div>
       </div>
     </div>
@@ -170,34 +147,28 @@
   <button hidden id="hidden_button" onclick="validateAndSubmit()"></button>
 </form>
 {#  load the file drop zone functions and apply them to the drop zone and input field#}
-  <script src="{% static "ebustoolbox/js/file_drop_zone_handling.js" %}" onload="setDropHandler('drop_zone','{{ form.data_file.auto_id}}')">
+  <script src="{% static 'ebustoolbox/js/file_drop_zone_handling.js' %}" onload="setDropHandler('drop_zone','{{ form.data_file.auto_id}}')">
   </script>
 <script>
-    function validateAndSubmit(){
-        // If validation fails submit event will be prevented
-        validateAndResetForm();
+  function validateAndSubmit() {
+    // If validation fails submit event will be prevented
+    let input1 = document.getElementById("{{ form.existing_scenario.auto_id }}")
+    let input2 = document.getElementById("{{ form.data_file.auto_id }}");
+    let val1 = input1.value.trim();
+    let val2 = input2.value.trim();
+    let errorMessage = document.getElementById("error-message");
+    // ! forces to (inverse) boolean together with != this mimics !(bool(x) XOR bool(y))
+    if (!val1 == !val2) {
+        input1.value=null;
+        input2.value=null;
+        let filesDiv = document.getElementById("uploaded_file_id")
+        filesDiv.innerHTML = ""
+        errorMessage.style.display = "block";  // Show error message
+        event.preventDefault()
+    } else {
+        errorMessage.style.display = "none";  // Hide error message if valid
     }
-        function validateAndResetForm() {
-        let input1 = document.getElementById("{{ form.existing_scenario.auto_id }}")
-        let input2 = document.getElementById("{{ form.data_file.auto_id }}");
-        let val1 = input1.value.trim();
-        let val2 = input2.value.trim();
-        let errorMessage = document.getElementById("error-message");
-        // ! forces to (inverse) boolean together with != this mimics !(bool(x) XOR bool(y))
-        if (!val1 == !val2) {
-            input1.value=null;
-            input2.value=null;
-            let drowDownDiv = document.getElementById("dropDownSpan")
-            drowDownDiv.innerHTML = "-- Szeneario auswählen --"
-            let filesDiv = document.getElementById("uploaded_file_id")
-            filesDiv.innerHTML = ""
-            errorMessage.style.display = "block";  // Show error message
-            event.preventDefault()
-        } else {
-            console.log("true")
-            errorMessage.style.display = "none";  // Hide error message if valid
-        }
-    };
+  };
 </script>
 <script>
   function updateFileName(input){
@@ -207,71 +178,3 @@
       uploaded_file_id.textContent = fileName;
   }
 </script>
-
-      <!-- Functionality for simple dropdown -->
-    <script>
-        if(typeof button === 'undefined'){
-      let button = document.getElementById('assignedToButton');
-      let label = document.getElementById('dropDownSpan');
-      let list = document.getElementById('assignedToList');
-      let listItems = list.querySelectorAll('[role="option"]');
-      let selectedItem = '';
-      let hiddenInput;
-        }
-      button = document.getElementById('assignedToButton');
-      label = document.getElementById('dropDownSpan');
-      list = document.getElementById('assignedToList');
-      listItems = list.querySelectorAll('[role="option"]');
-      selectedItem = '';
-      hiddenInput = document.getElementById('{{ form.existing_scenario.auto_id }}')
-
-      // Toggle the dropdown on button click
-      button.addEventListener('click', () => {
-          console.log(button.getAttribute('aria-expanded') )
-        const isExpanded = button.getAttribute('aria-expanded') === 'true';
-        button.setAttribute('aria-expanded', String(!isExpanded));
-        list.classList.toggle('hidden');
-
-        // Whenever it opens, ensure the selected item is highlighted
-        if (!isExpanded) {
-          highlightSelectedItem();
-        }
-      });
-
-      // Handle clicks on list items
-      listItems.forEach(item => {
-        item.addEventListener('click', () => {
-          const value = item.getAttribute('data-dropdown-item');
-          label.textContent = item.getAttribute('data-dropdown-name');
-          label.value = value
-          selectedItem = value;
-          hiddenInput.value = value;
-
-          // Highlight the newly selected item
-          highlightSelectedItem();
-
-          // Close dropdown
-          list.classList.add('hidden');
-          button.setAttribute('aria-expanded', 'false');
-        });
-      });
-
-      // Close dropdown if user clicks outside
-      document.addEventListener('click', e => {
-        if (!button.contains(e.target) && !list.contains(e.target)) {
-          button.setAttribute('aria-expanded', 'false');
-          list.classList.add('hidden');
-        }
-      });
-
-      // Remove the highlight from all items and apply it to the selected item
-      function highlightSelectedItem() {
-        listItems.forEach(li => {
- li.classList.remove('bg-green-100');
-          if (li.getAttribute('data-dropdown-item') === selectedItem) {
-            li.classList.add('bg-green-100');
-          }
-        });
-      }
-
-    </script>

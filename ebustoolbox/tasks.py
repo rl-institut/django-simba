@@ -886,6 +886,7 @@ def run_and_merge_scenarios(self, parent_id: int, mutation_id: int, simulation_t
         create_stations_for_map(simulation_scenario)
     run_toolchain_from_scenario(simulation_scenario, assign_vehicles=True)
 
+
 def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False):
     """Run a Scenario from the database with SimBA
 
@@ -1137,6 +1138,8 @@ def create_scenario_copy_for_user(mutation_scenario: Scenario):
     assert mutation_scenario.parent.parent is None
     mutation_scenario.task_id = ebustoolbox.util.get_unique_task_id()
     copied_scenario, stack = deepcopy_scenario(mutation_scenario)
+
+    # TODO remove this and move copying into deepcopy with excluded fields instead
     vehicle_type_selections = VehicleTypeSelection.objects.filter(
         vehicle_type__scenario=mutation_scenario
     )
@@ -1145,33 +1148,6 @@ def create_scenario_copy_for_user(mutation_scenario: Scenario):
         vts.id = None
         vts.vehicle_type = VehicleType.objects.get(id=new_vt_id)
         vts.save()
-
-    vehicle_type_mutation = VehicleTypeMutation.objects.filter(scenario=mutation_scenario)
-    for vtm in vehicle_type_mutation:
-        new_vt_id = stack[VehicleType][vtm.mutated_vehicle_type.id]
-        vtm.id = None
-        vtm.mutated_vehicle_type = VehicleType.objects.get(id=new_vt_id)
-        vtm.save()
-
-    # ToDo Expand with Depot and Station Mutation if such settings will be introduced
-    #
-    # class DepotMutation(models.Model):
-    #     original_depot = models.ForeignKey(
-    #         Depot, related_name="originaldepot", null=True, on_delete=models.CASCADE
-    #     )
-    #     mutated_original_depot = models.ForeignKey(
-    #         Depot, related_name="mutateddepot", null=True, on_delete=models.CASCADE
-    #     )
-    #
-    #
-    # class StationMutation(models.Model):
-    #     original_station = models.ForeignKey(
-    #         Station, related_name="originalstation", null=True, on_delete=models.CASCADE
-    #     )
-    #     mutated_original_station = models.ForeignKey(
-    #         Station, related_name="mutatedstation", null=True, on_delete=models.CASCADE
-    #     )
-
     return copied_scenario
 
 
@@ -1225,11 +1201,13 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     # child.simba_options.update(ele_dict)
     all_stations = Station.objects.filter(scenario=mutation)
     electrified_stations = Station.objects.filter(scenario=mutation, is_electrified=True)
-    excluded_stations = Station.objects.filter(scenario=mutation, is_electrifiable=True)
+    excluded_stations = Station.objects.filter(scenario=mutation, is_electrifiable=False)
     # Some stations are not electrified or excluded -->possible need for optimization
     if all_stations.count() > electrified_stations.count() + excluded_stations.count():
+        logger.info("Mode is set to optimization.")
         child.simba_options["modes"] = "sim,station_optimization,report"
     else:
+        logger.info("Mode is set to NO optimization.")
         child.simba_options["modes"] = "sim,report"
 
     # org_ele_station_ids = ele_option.electrified_stations.all().values_list("id", flat=True)
