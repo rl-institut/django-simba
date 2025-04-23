@@ -158,7 +158,7 @@ def get_sorted_mutation_scenarios(user) -> QuerySet[Scenario]:
 
     # Annotation is not possible after using union
     # Order output. User Scenarios first
-    all_scenarios_sorted = all_scenarios.order_by("order_id")
+    all_scenarios_sorted = all_scenarios.order_by("order_id", "-id")
     return all_scenarios_sorted
 
 
