@@ -8,8 +8,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
-from django.db.models.functions import Cast, Coalesce
+from django.db.models import F, QuerySet, Sum, Max, Value, FloatField, Q, ExpressionWrapper
+from django.db.models.functions import Cast, Coalesce, Extract
 from django.db.transaction import atomic
 from django.forms import formset_factory, modelform_factory, widgets
 from django.http import HttpResponse, HttpRequest, Http404, HttpResponseForbidden, JsonResponse
@@ -1496,19 +1496,30 @@ def get_stats(request, task_id: str):
     stations = s.station_set.all()
     depots = s.depot_set.all()
     num_electrified_opps = stations.filter(charge_type=EnumChargeType.OPPORTUNITY).count()
-
-    events = s.event_set.all()
+    events = s.event_set.select_related("vehicle_type").all()
     # calculate charged energy for all events
     events = events.annotate(
-        charged=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity")
+        charged=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity"),
+        # Convert the duration to seconds and then divide by 3600 to get hours
+        duration_seconds=Extract(F("time_end") - F("time_start"), "epoch"),
+        duration_hours=(F("duration_seconds") / 3600),
+        charging_power=ExpressionWrapper(
+            (F("charged") / F("duration_hours")), output_field=FloatField()
+        ),
     )
-    # sum up charged energy by event type. Default value 0 in case of null values
+
+    # Calculate sum of charged energy for different event types
     energy_opps = events.filter(event_type=EventType.CHARGING_OPPORTUNITY).aggregate(
         sum_charged=Coalesce(Sum("charged"), 0.0)
     )["sum_charged"]
+
     energy_deps = events.filter(event_type=EventType.CHARGING_DEPOT).aggregate(
         sum_charged=Coalesce(Sum("charged"), 0.0)
     )["sum_charged"]
+
+    peak_power_kw = events.filter(event_type=EventType.CHARGING_DEPOT).aggregate(
+        max_power=Coalesce(Max("charging_power"), 0.0)
+    )["max_power"]
 
     resp = {
         "longest_rotation": longest_rot,
@@ -1518,6 +1529,7 @@ def get_stats(request, task_id: str):
         "most_frequented": most_freq,
         "total_dist": total_dist,
         "total_consumption": np.round(energy_deps + energy_opps, 0),
+        "peak_depot_power": np.round(peak_power_kw, 0),
         "avg_consumption": "--",
     }
     return JsonResponse(resp)

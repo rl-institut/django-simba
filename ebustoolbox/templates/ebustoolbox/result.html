@@ -968,6 +968,7 @@
 
                 document.getElementById('avg_consumption').textContent = data.avg_consumption;
                 document.getElementById('total_consumption').textContent = data.total_consumption;
+                document.getElementById('depots-spitzenleistung').textContent = data.peak_depot_power;
             })
             .catch(error => {
                 console.error('Error fetching statistics:', error);
