@@ -2,8 +2,8 @@ import logging
 import traceback
 import dateutil.parser as parser
 
-import pytz
 from django.conf import settings
+import pytz
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail
@@ -16,8 +16,8 @@ from django.http import HttpResponse, HttpRequest, Http404, HttpResponseForbidde
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.views.generic import TemplateView, FormView, ListView
-from django.views.decorators.http import require_POST
 from eflips.depot.api import simulate_scenario  # noqa
+from django.views.decorators.http import require_POST
 
 from core.models import Progress, EnumProgress
 
@@ -41,6 +41,7 @@ from .util import get_unique_task_id
 
 from dash_app import data
 import ebustoolbox
+import ebustoolbox.tasks
 from ebustoolbox.models import (
     Scenario,
     UserGroup,
@@ -410,7 +411,7 @@ def get_scenario_and_assert_authorization(request, task_id) -> Scenario:
     if request.user.is_superuser:
         return scenario
     if scenario.manager and scenario.manager != request.user:
-        raise Http404
+        raise Http404("No access")
     return scenario
 
 
@@ -641,7 +642,8 @@ class StationsView(ScenarioMixIn, TemplateView):
 
         data = self.request.POST
         if self.request.method != "POST":
-            data = {}
+            default_charge_power = scenario.simba_options["cs_power_opps"]
+            data = {"default_charge_power": default_charge_power}
 
         # General Charging power defined on top level
         context["charging_power_form"] = forms.ChargingPowerForm(data)
@@ -680,7 +682,9 @@ class StationsView(ScenarioMixIn, TemplateView):
             return self.render_to_response(context)
         # The forms are valid. Update the stations and exclude stations
         # from electrification
-        ebustoolbox.tasks.update_stations_and_exclusion(context)
+        ebustoolbox.tasks.update_stations_and_exclusion(
+            context["stations_forms"].values(), scenario.simba_options["cs_power_opps"]
+        )
         response = redirect(reverse(self.success_name, args=[scenario.task_id]))
         return response
 
@@ -1125,6 +1129,7 @@ def model_export_json(request: HttpRequest, model_str: str, task_id: str):
     from django.core import serializers
 
     jsondata = serializers.serialize("json", objects)
+
     return HttpResponse(jsondata, content_type="application/json")
 
 
