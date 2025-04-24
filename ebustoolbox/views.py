@@ -1262,15 +1262,27 @@ def compare(request):
         events = scenario.event_set.all()
         # calculate charged energy for all events
         events = events.annotate(
-            charged=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity")
+            charged=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity"),
+            # Convert the duration to seconds and then divide by 3600 to get hours
+            duration_seconds=Extract(F("time_end") - F("time_start"), "epoch"),
+            duration_hours=(F("duration_seconds") / 3600.0),
+            charging_power=ExpressionWrapper(
+                (F("charged") / F("duration_hours")), output_field=FloatField()
+            ),
         )
-        # sum up charged energy by event type. Default value 0 in case of null values
+
+        # Calculate sum of charged energy for different event types
         energy_opps = events.filter(event_type=EventType.CHARGING_OPPORTUNITY).aggregate(
             sum_charged=Coalesce(Sum("charged"), 0.0)
         )["sum_charged"]
+
         energy_deps = events.filter(event_type=EventType.CHARGING_DEPOT).aggregate(
             sum_charged=Coalesce(Sum("charged"), 0.0)
         )["sum_charged"]
+
+        peak_power_kw = events.filter(event_type=EventType.CHARGING_DEPOT).aggregate(
+            max_power=Coalesce(Max("charging_power"), 0.0)
+        )["max_power"]
 
         scenario_dict[scenario.id] = {
             "Name": scenario.name,
@@ -1282,6 +1294,7 @@ def compare(request):
             "Geladene Energie an Endhaltestellen": round(energy_opps),
             "Anzahl Ladeplätze in allen Depots": num_cs_deps,
             "Geladene Energie an Depots [kWh]": round(energy_deps),
+            "Maximale Ladeleistung im Depot [kW]": round(peak_power_kw),
         }
 
     return render(
