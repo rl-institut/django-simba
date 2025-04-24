@@ -459,7 +459,7 @@
           </nav>
           <div id="soc-tab-contents" class="mt-4">
             <div class="soc-tab-content" data-tab="soc-tab-1">
-              Content 1
+              <div id="soc-heatmap" style="width: 100%; height: 600px;"></div>
             </div>
             <div class="soc-tab-content hidden" data-tab="soc-tab-2">
               Content 2
@@ -1021,6 +1021,105 @@
         })
         .catch(error => console.error('Error fetching histogram data:', error));
 }
+    function fetchAndRenderSoCHistogram(chartName, chartID)
+    {
+        fetch(`/simba/result/${taskId}/${chartName}/`)  // Replace with the actual URL
+  .then((res) => res.json())
+  .then((result) => {
+    const rawData = result.data;
+
+    const xHours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+    const yBins = ["<0", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"];
+
+    // Fill in all (hour, soc_bin) combinations with 0 where missing
+    const dataMap = new Map(rawData.map(item => [`${item.hour}-${item.soc_bin}`, item.count]));
+    const fullData = [];
+
+    for (let h = 0; h < 24; h++) {
+      for (let y = 0; y < yBins.length; y++) {
+        const key = `${h}-${yBins[y]}`;
+        const count = dataMap.get(key) || 0;
+        fullData.push([h, y, count]);
+      }
+    }
+
+    const chart = echarts.init(document.getElementById("soc-heatmap"));
+    const option = {
+      tooltip: {
+        position: 'top',
+        formatter: params =>
+          `Stunde: ${xHours[params.data[0]]}<br>SOC: ${yBins[params.data[1]]}%<br>Fahrzeuge: ${params.data[2]}`
+      },
+      grid: {
+        height: '80%',
+        top: '1%',
+        bottom: '10%'
+      },
+      xAxis: {
+        type: 'category',
+        data: xHours,
+        name: 'Zeit',
+        nameLocation: 'middle',
+        nameGap: 25,
+        axisLine: {
+          lineStyle: {
+            color: '#000',
+            width: 2
+          }
+        }
+      },
+      yAxis: {
+        type: 'category',
+        data: yBins,
+        name: 'SoC (%)',
+        nameLocation: 'middle',
+        nameGap: 40
+      },
+      visualMap: {
+        min: 0,
+        max: Math.max(...fullData.map(item => item[2])),
+        calculable: true,
+        orient: 'horizontal',
+        left: 'center',
+        bottom: '10px',
+        itemHeight: 400,
+        itemWidth: 30,
+        textStyle: {
+          fontSize: 16
+        },
+        inRange: {
+          color: ['#EAFFF7', '#20E3B2', '#00846B']
+        }
+      },
+      series: [{
+        name: 'Anzahl Fahrzeuge',
+        type: 'heatmap',
+        data: fullData,
+        label: {
+          show: true
+        },
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }
+      }],
+      markLine: {
+        symbol: 'none',
+        lineStyle: {
+          color: '#000',
+          width: 2
+        },
+        data: [
+          { xAxis: 0 }  // Thicker vertical line at 0:00
+        ]
+      }
+    };
+    chart.setOption(option);
+  });
+
+    }
 
 
     // Ensure the DOM is fully loaded before running
@@ -1035,6 +1134,7 @@
             fetchAndRenderGanttChart("gantt","ganttChart","_")
             fetchAndRenderHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen");
             fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten");
+            fetchAndRenderSoCHistogram("soc_hist", "_")
         } else {
             console.error("Simulation ID is missing.");
         }

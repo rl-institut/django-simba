@@ -112,4 +112,5 @@ urlpatterns = [
         name="critical_rotations",
     ),
     path("result/<uuid:task_id>/bustype/", views.render_bustype, name="bustype"),
+    path("result/<uuid:task_id>/soc_hist/", views.get_binned_soc_data, name="soc_hist"),
 ]

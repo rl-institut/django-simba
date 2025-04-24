@@ -1393,6 +1393,76 @@ def get_soc_data(request, task_id: str):
     return JsonResponse(response_data)
 
 
+def get_binned_soc_data(request, task_id: str):
+    """
+    Returns binned SOC histogram data over time, forward-filled to hourly resolution,
+    ensuring one (the lowest) SOC entry per vehicle per hour.
+    """
+    # --- load your scenario and raw SOC events ---
+    s = Scenario.objects.get(task_id=task_id)
+    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    buses = list(vehicle_name_dict.keys())
+    df = data.get_soc_as_dataframe(s.id, buses)
+
+    # parse timestamps
+    df["timestamp"] = pd.to_datetime(df["time_start"])
+    df = df[["V_id", "timestamp", "soc_end"]]
+
+    # build the global hourly index
+    all_hours = pd.date_range(
+        start=df["timestamp"].min().floor("h"), end=df["timestamp"].max().ceil("h"), freq="1H"
+    )
+
+    print(all_hours)
+
+    filled_dfs = []
+    # for each vehicle, bucket into 1-hour bins taking the MIN soc_end per hour
+    for vid, group in df.groupby("V_id"):
+        # ensure time ordering
+        group = group.set_index("timestamp").sort_index()
+
+        # 1) resample to hourly, pick the *lowest* SOC seen in that hour
+        hourly_min = group["soc_end"].resample("1H").min()
+
+        # 2) align to the full global index and forward-fill
+        hourly_min = hourly_min.reindex(all_hours)  # introduce any missing hours
+        hourly_filled = hourly_min.ffill()  # carry last known SOC forward
+
+        # 3) package back into a DataFrame
+        tmp = hourly_filled.reset_index()
+        tmp.columns = ["timestamp", "soc_end"]
+        tmp["V_id"] = vid
+
+        filled_dfs.append(tmp)
+
+    # concatenate all vehicles
+    df_filled = pd.concat(filled_dfs, ignore_index=True)
+
+    # drop initial hours where we never had a reading
+    df_filled = df_filled.dropna(subset=["soc_end"])
+
+    # extract hour‐of‐day and bucket into 10% SOC bins
+    df_filled["hour"] = df_filled["timestamp"].dt.hour
+
+    def soc_bin(soc):
+        if soc < 0:
+            return "<0"
+        # each bin is 0–9%, 10–19%, …, 90–100%
+        return f"{int((soc * 100) // 10) * 10}"
+
+    df_filled["soc_bin"] = df_filled["soc_end"].apply(soc_bin)
+
+    # build the histogram: one count per vehicle‐hour in its lowest‐SOC bin
+    heatmap_data = (
+        df_filled.groupby(["hour", "soc_bin"])
+        .size()
+        .reset_index(name="count")
+        .to_dict(orient="records")
+    )
+
+    return JsonResponse({"data": heatmap_data})
+
+
 def get_power_draw(request, task_id: str):
     """
     Returns power draw data over time by station ID for selected buses.
