@@ -110,9 +110,6 @@
                         id="bulk_chargingPointNumber"
                         aria-label="Anzahl an Ladepunkten"
                         class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 focus:outline focus:outline-2 focus:outline-green-500 sm:text-sm/6"
-                        placeholder="0"
-                        min="1"
-                        required
                 >
               </div>
             </div>
@@ -124,10 +121,7 @@
                         name="chargingCapacity"
                         id="bulk_chargingCapacity"
                         class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
-                        placeholder="0"
                         aria-describedby="price-currency"
-                        min="1"
-                        required
                 >
                 <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kW</div>
               </div>
@@ -182,11 +176,11 @@
     <!-- Placeholder -->
     <div class="flex items-center justify-between space-x-4 border-b border-t pt-6 pb-8">
       <div class="w-4/12" id="">
-        <label for="power_total" class="flex items-center text-sm/6 font-medium text-slate-800 pb-2">
+        <label for="default_charge_power" class="flex items-center text-sm/6 font-medium text-slate-800 pb-2">
           <span>Ladeleistung</span>
         </label>
         <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-          <input min="1" step="1" id="power_total" name="power_total" type="number" class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency" required="">
+              <input {{charging_power_form.default_charge_power|widget_attrs}} class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency" >
           <div id="" class="shrink-0 select-none text-slate-500">kW</div>
         </div>
       </div>
@@ -484,7 +478,7 @@
                   data-input="charging-power"
                 >
                   <div class="flex items-center rrounded-md outline outline-1 outline-transparent">
-                    <input {{ form.power_total|widget_attrs }} class="block w-full bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency">
+                    <input {{ form.power_per_charger|widget_attrs }} class="block w-full bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency">
                     <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kW</div>
                   </div>
                 </div>
@@ -847,7 +841,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (value==="elektrifizieren"){
                 const prefix = "id_station_"+station_id+"-";
                 const inputAmountChargingPlaces = document.getElementById(prefix+"amount_charging_places");
-                const inputChargingCapacity = document.getElementById(prefix+"power_total");
+                const inputChargingCapacity = document.getElementById(prefix+"power_per_charger");
                 console.assert(inputAmountChargingPlaces);
                 console.assert(inputChargingCapacity);
                 inputAmountChargingPlaces.value= num_charging.value;
@@ -881,21 +875,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (value === "elektrifizieren") {
                     document.getElementById(prefix + "is_electrified").value = true;
                     document.getElementById(prefix + "is_electrifiable").value = true;
-                    setFormsRequired(true, allRowInputs);
 
                 } else if (value === "nicht-elektrifizieren") {
                     setFormValuesNull(allRowInputs);
                     // Hide all inputs for "Nicht elektrifizieren"
                     document.getElementById(prefix + "is_electrified").value = false;
                     document.getElementById(prefix + "is_electrifiable").value = false;
-                    setFormsRequired(false, allRowInputs);
 
                 } else if (value === "automatisch") {
                     setFormValuesNull(allRowInputs);
                     document.getElementById(prefix + "is_electrified").value = false;
                     document.getElementById(prefix + "is_electrifiable").value = true;
-
-                    setFormsRequired(false, allRowInputs);
 
 
                 } else {

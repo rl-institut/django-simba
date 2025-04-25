@@ -198,20 +198,25 @@ class DepotCalculationForm(forms.Form):
 class ChargingPowerForm(forms.Form):
     # General charging_power is required when radio button constant power is set.
     # Need js to set it to required for front end validation
-    power_total = forms.FloatField(required=False, min_value=1, step_size=1)
+    default_charge_power = forms.FloatField(required=True, min_value=0, step_size=1)
 
 
 class StationForm(forms.ModelForm):
     class Meta:
-        fields = ["is_electrified", "is_electrifiable", "amount_charging_places", "power_total"]
+        fields = [
+            "is_electrified",
+            "is_electrifiable",
+            "amount_charging_places",
+            "power_per_charger",
+        ]
         model = models.Station
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["amount_charging_places"].widget.attrs.update({"min": 1.0})
-        self.fields["power_total"].widget.attrs.update({"min": 1.0})
-        self.fields["amount_charging_places"].required = False  # TODO: make field optional
-        self.fields["power_total"].required = False  # TODO: make field optional
+        self.fields["power_per_charger"].widget.attrs.update({"min": 1.0})
+        self.fields["amount_charging_places"].required = False
+        self.fields["power_per_charger"].required = False
 
     def clean(self):
         cleaned_data = self.cleaned_data
