@@ -613,7 +613,10 @@ class StationsView(ScenarioMixIn, TemplateView):
         parent_station_query = Station.objects.filter(scenario=scenario.parent).exclude(
             charge_type=EnumChargeType.DEPOT
         )
+
         annotated_query = tasks.annotate_stations_with_lines(parent_station_query)
+
+        # Station Mutations where created in get()
         station_mutations = {
             s.original_station.id: s.mutated_original_station
             for s in StationMutation.objects.filter(scenario=scenario)
