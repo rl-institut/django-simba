@@ -1448,10 +1448,10 @@ def create_optimizer_config(db_scenario: Scenario) -> simba.station_optimization
 def run_mode(
     mode: str,
     schedule: SimbaSchedule,
-    scenario: SimbaScenario | None,
+    scenario: "None | SimbaScenario",
     args: Namespace,
     db_scenario: Scenario,
-) -> tuple[SimbaSchedule, SimbaScenario]:
+) -> tuple[SimbaSchedule, "SimbaScenario"]:
     """Run an implemented mode.
 
     SimBA modes are not used to allow access to the optimizer config
@@ -1459,7 +1459,7 @@ def run_mode(
     """
     assert mode in IMPLEMENTED_MODES
     if mode == "sim":
-        new_scenario: SimbaScenario = schedule.run(args, mode="greedy")
+        new_scenario: "SimbaScenario" = schedule.run(args, mode="greedy")
         return schedule, new_scenario
     conf = create_optimizer_config(db_scenario)
     if mode == "station_optimization_single_step":
@@ -1478,7 +1478,7 @@ def run_simba(
     args: Namespace,
     db_scenario: Scenario,
     mode: str,
-    scenario: None | SimbaScenario = None,
+    scenario: "None | SimbaScenario" = None,
 ) -> tuple[SimbaSchedule, "SimbaScenario"]:
     assert mode in IMPLEMENTED_MODES, f"{mode} is not implemented in simba"
 
