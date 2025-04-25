@@ -1336,7 +1336,11 @@ def _run_ebus_toolchain(self, task_id):
         raise
 
 
-def check_event_soc_consistency(db_scenario):
+def check_event_soc_consistency(db_scenario: Scenario):
+    """Give warning if scenario events are not consitent.
+
+    Consistency in this case is that soc_end values are identical to the next events soc_start of the same vehicle.
+    """
     for vehicle in Vehicle.objects.filter(scenario=db_scenario):
         events = list(Event.objects.filter(vehicle=vehicle).order_by("id"))
         for i in range(len(events) - 2):
@@ -1422,6 +1426,10 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
 
 
 def create_optimizer_config(db_scenario: Scenario) -> simba.station_optimization.config:
+    """Create a config for the SimBA optimizer.
+
+    Currently the standard charging power and exclusion stations are passed.
+    """
     conf = simba.optimizer_util.OptimizerConfig()
     exclusion_stations = {
         stat.to_simba_name()
@@ -1438,10 +1446,21 @@ def create_optimizer_config(db_scenario: Scenario) -> simba.station_optimization
     return conf
 
 
-def run_mode(mode, schedule, scenario, args, db_scenario):
+def run_mode(
+    mode: str,
+    schedule: SimbaSchedule,
+    scenario: SimbaScenario | None,
+    args: Namespace,
+    db_scenario: Scenario,
+) -> tuple[SimbaSchedule, SimbaScenario]:
+    """Run an implemented mode.
+
+    SimBA modes are not used to allow access to the optimizer config
+    without the need of reading from a file.
+    """
     if mode == "sim":
-        scenario = schedule.run(args, mode="greedy")
-        return schedule, scenario
+        new_scenario: SimbaScenario = schedule.run(args, mode="greedy")
+        return schedule, new_scenario
     conf = create_optimizer_config(db_scenario)
     if mode == "station_optimization_single_step":
         conf.early_return = True
@@ -1455,7 +1474,11 @@ def run_mode(mode, schedule, scenario, args, db_scenario):
 
 
 def run_simba(
-    schedule: SimbaSchedule, args, db_scenario, mode: str, scenario=None
+    schedule: SimbaSchedule,
+    args: Namespace,
+    db_scenario: Scenario,
+    mode: str,
+    scenario: None | SimbaScenario = None,
 ) -> tuple[SimbaSchedule, "SimbaScenario"]:
     implemented_modes = {"sim", "station_optimization", "station_optimization_single_step"}
     assert mode in implemented_modes, f"{mode} is not implemented in simba"
