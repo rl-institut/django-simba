@@ -641,7 +641,9 @@ class StationsView(ScenarioMixIn, TemplateView):
             td_min_standing_time = datetime.timedelta(minutes=min_standing_time)
             # TODO: check if this is slow for bigger scenarios
             parent_trips_filtered = parent_trips.filter(standing_time__gte=td_min_standing_time)
-            station_ids = parent_trips_filtered.values_list("route__arrival_station_id", flat=True)
+            station_ids = parent_trips_filtered.values_list(
+                "route__arrival_station_id", flat=True
+            ).distinct()
             parent_station_query = Station.objects.filter(id__in=station_ids)
 
         annotated_query = tasks.annotate_stations_with_lines(parent_station_query)
