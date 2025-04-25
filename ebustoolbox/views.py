@@ -1,6 +1,7 @@
 import logging
 import traceback
 import dateutil.parser as parser
+import datetime
 
 from django.conf import settings
 import pytz
@@ -8,7 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
+from django.db.models import F, QuerySet, Sum, Value, FloatField, Q, Window
 from django.db.models.functions import Cast, Coalesce
 from django.db.transaction import atomic
 from django.forms import formset_factory, widgets
@@ -602,6 +603,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
 class StationsView(ScenarioMixIn, TemplateView):
     template_name = "ebustoolbox/stations.html"
     success_name = "simba:costs"
+    default_min_standing_time = 2
 
     @staticmethod
     def get_station_prefix(station):
@@ -613,6 +615,34 @@ class StationsView(ScenarioMixIn, TemplateView):
         parent_station_query = Station.objects.filter(scenario=scenario.parent).exclude(
             charge_type=EnumChargeType.DEPOT
         )
+        try:
+            min_standing_time = int(self.request.GET.get("min_standing_time", "0"))
+        except ValueError:
+            min_standing_time = 0
+
+        if min_standing_time > 0:
+            from django.db.models.functions import Lead
+
+            parent_trips = Trip.objects.filter(scenario=scenario.parent)
+            # Annotate trips with their nextr trip departure time to calculate break duration
+            # Lead gives the next item of the ordered list by departure time, eg. next trip
+            # but only for trips which share the same rotation / vehicle
+            parent_trips = parent_trips.annotate(
+                next_trip_departure=Window(
+                    expression=Lead("departure_time"),
+                    partition_by=[F("rotation")],
+                    order_by=F("departure_time").asc(),
+                )
+            )
+            parent_trips = parent_trips.annotate(
+                standing_time=F("next_trip_departure") - F("arrival_time")
+            )
+
+            td_min_standing_time = datetime.timedelta(minutes=min_standing_time)
+            # TODO: check if this is slow for bigger scenarios
+            parent_trips_filtered = parent_trips.filter(standing_time__gte=td_min_standing_time)
+            station_ids = parent_trips_filtered.values_list("route__arrival_station_id", flat=True)
+            parent_station_query = Station.objects.filter(id__in=station_ids)
 
         annotated_query = tasks.annotate_stations_with_lines(parent_station_query)
 
@@ -630,8 +660,7 @@ class StationsView(ScenarioMixIn, TemplateView):
             scenario_stations[mutated_station.id] = mutated_station
 
         context["ordered_stations"] = (
-            Station.objects.filter(scenario=scenario)
-            .exclude(charge_type=EnumChargeType.DEPOT)
+            Station.objects.filter(id__in=scenario_stations.keys())
             .order_by("name")
             .values_list("id", flat=True)
         )
@@ -664,6 +693,12 @@ class StationsView(ScenarioMixIn, TemplateView):
     def get(self, request, *args, **kwargs):
         # Make sure the scenario has its own stations which are linked to its parent scenario
         scenario = self.scenario
+        if request.GET.get("min_standing_time") is None:
+            return redirect(
+                reverse("simba:stations", args=[scenario.task_id])
+                + "?min_standing_time="
+                + str(self.default_min_standing_time)
+            )
         station_mutations = StationMutation.objects.filter(
             scenario=scenario,
         )
@@ -1531,7 +1566,6 @@ def get_dist_hist(request, task_id: str):
 
     if buses:  # In Presim buses will ne None, if later no buses are selected, it will be empty
         filter_dict["vehicle__id__in"] = buses
-
     df = data.get_distances_as_dataframe(s.id, buses)
 
     # Convert total_distance from meters to kilometers
