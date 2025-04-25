@@ -77,9 +77,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger("custom")
 
 # ToDo: Any better solutions?
-INTEGER_INF = 9999
-MAX_AMOUNT_VEHICLES = 10000
-DEFAULT_TEMPERATURE = 20
+DEFAULT_TEMPERATURE = 20  # °C
+IMPLEMENTED_MODES = {"sim", "station_optimization", "station_optimization_single_step"}
 
 
 @atomic()
@@ -1458,6 +1457,7 @@ def run_mode(
     SimBA modes are not used to allow access to the optimizer config
     without the need of reading from a file.
     """
+    assert mode in IMPLEMENTED_MODES
     if mode == "sim":
         new_scenario: SimbaScenario = schedule.run(args, mode="greedy")
         return schedule, new_scenario
@@ -1480,8 +1480,7 @@ def run_simba(
     mode: str,
     scenario: None | SimbaScenario = None,
 ) -> tuple[SimbaSchedule, "SimbaScenario"]:
-    implemented_modes = {"sim", "station_optimization", "station_optimization_single_step"}
-    assert mode in implemented_modes, f"{mode} is not implemented in simba"
+    assert mode in IMPLEMENTED_MODES, f"{mode} is not implemented in simba"
 
     logger.info(f"Running Simba {datetime.now()} with mode {mode}")
     # TODO don't overwrite output on multiple function calls
