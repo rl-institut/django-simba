@@ -56,6 +56,7 @@ urlpatterns = [
     path(
         "stations/<uuid:task_id>/",
         StationsView.as_view(),
+        {"min_standing_time": 0},
         name="stations",
     ),
     path(
