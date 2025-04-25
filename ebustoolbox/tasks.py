@@ -1323,7 +1323,7 @@ def _run_ebus_toolchain(self, task_id):
             progress.current_work += 90 // (len(wanted_modes) - 1)
             progress.save()
 
-        check_event_soc_consitency(db_scenario)
+        check_event_soc_consistency(db_scenario)
         db_scenario.refresh_from_db()
         db_scenario.finished = timezone.now()
         db_scenario.save()
@@ -1336,7 +1336,7 @@ def _run_ebus_toolchain(self, task_id):
         raise
 
 
-def check_event_soc_consitency(db_scenario):
+def check_event_soc_consistency(db_scenario):
     for vehicle in Vehicle.objects.filter(scenario=db_scenario):
         events = list(Event.objects.filter(vehicle=vehicle).order_by("id"))
         for i in range(len(events) - 2):
@@ -1396,7 +1396,7 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
     counted_vehicles = set()
     for rot in all_rotations:
         first_trip = Trip.objects.filter(rotation=rot).order_by("departure_time").first()
-        assert first_trip is not None, f"Rotation {rot.id} / {rot.name} has not trips"
+        assert first_trip is not None, f"Rotation {rot.id} / {rot.name} has no trips"
         vehicle = rot.vehicle
         assert vehicle is not None, f"Rotation {rot.id} / {rot.name} has no vehicle"
         if vehicle not in counted_vehicles:
