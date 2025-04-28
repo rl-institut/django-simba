@@ -1563,9 +1563,30 @@ def get_stats(request, task_id: str):
         sum_charged=Coalesce(Sum("charged"), 0.0)
     )["sum_charged"]
 
-    peak_power_kw = events.filter(event_type=EventType.CHARGING_DEPOT).aggregate(
-        max_power=Coalesce(Max("charging_power"), 0.0)
-    )["max_power"]
+
+    peak_power_kw = "--"
+    try:
+        engine = _create_engine_from_postgis_url()
+
+        with Session(engine) as session:
+            # Get the scenario from Django ORM
+            scenario = ebusScenario.objects.get(task_id=task_id)
+            scenario_id = scenario.id
+
+            # Query the Area table using SQLAlchemy
+            all_areas = session.query(Area).filter(Area.scenario_id == scenario_id).all()
+            all_area_ids = [area.id for area in all_areas]
+
+            # Prepare the data
+            prepared_data = output_prepare.power_and_occupancy(all_area_ids, session)
+
+            # Extract the 'power' column and find the maximum value
+            peak_power_kw = prepared_data['power'].max()
+
+    except ebusScenario.DoesNotExist:
+        print("Scenario not found.")
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
 
     resp = {
         "longest_rotation": longest_rot,
@@ -1655,3 +1676,33 @@ def get_dist_hist(request, task_id: str):
         "series": [{"data": hist.tolist(), "type": "bar"}],
     }
     return JsonResponse(response_data)
+
+
+from ebustoolbox.models import Scenario as ebusScenario
+from sqlalchemy.orm import Session
+from dash_app.eflips_plots import _create_engine_from_postgis_url, output_prepare
+from eflips.model import Area  # wherever Area is defined
+def get_power_draw_and_occ(request, task_id: str):
+    try:
+        engine = _create_engine_from_postgis_url()
+
+        with Session(engine) as session:
+            # Get the scenario from Django ORM
+            scenario = ebusScenario.objects.get(task_id=task_id)
+            scenario_id = scenario.id
+
+            # Query the Area table using SQLAlchemy
+            all_areas = session.query(Area).filter(Area.scenario_id == scenario_id).all()
+            all_area_ids = [area.id for area in all_areas]
+
+            # Prepare the data
+            prepared_data = output_prepare.power_and_occupancy(all_area_ids, session)
+            prepared_data = prepared_data.to_dict(orient="records")
+
+        # Return the result
+        return JsonResponse({"data": prepared_data})
+
+    except ebusScenario.DoesNotExist:
+        return JsonResponse({"error": "Scenario not found."}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
