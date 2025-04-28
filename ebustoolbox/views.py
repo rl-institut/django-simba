@@ -691,8 +691,8 @@ class StationsView(ScenarioMixIn, TemplateView):
         return context
 
     def get(self, request, *args, **kwargs):
-        # Make sure the scenario has its own stations which are linked to its parent scenario
         scenario = self.scenario
+        # Enforce a queryparam of min_standing time
         if request.GET.get("min_standing_time") is None:
             return redirect(
                 reverse("simba:stations", args=[scenario.task_id])
