@@ -9,8 +9,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import F, QuerySet, Sum, Value, FloatField, Q, Window
-from django.db.models.functions import Cast, Coalesce, Lead
+from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
+from django.db.models.functions import Cast, Coalesce
 from django.db.transaction import atomic
 from django.forms import formset_factory, widgets
 from django.http import HttpResponse, HttpRequest, Http404, HttpResponseForbidden, JsonResponse
@@ -211,7 +211,7 @@ class ScenarioMixIn(AuthorizedMixIn):
     Requires AuthorizedMixin
     """
 
-    scenario = None
+    scenario: Scenario
 
     def dispatch(self, request, *args, **kwargs):
         """Make sure User is authorized and add scenario to class"""
@@ -622,27 +622,13 @@ class StationsView(ScenarioMixIn, TemplateView):
         if min_standing_time > 0:
 
             parent_trips = Trip.objects.filter(scenario=scenario.parent)
-            # Annotate trips with their nextr trip departure time to calculate break duration
-            # Lead gives the next item of the ordered list by departure time, eg. next trip
-            # but only for trips which share the same rotation / vehicle
-            parent_trips = parent_trips.annotate(
-                next_trip_departure=Window(
-                    expression=Lead("departure_time"),
-                    partition_by=[F("rotation")],
-                    order_by=F("departure_time").asc(),
-                )
-            )
-            parent_trips = parent_trips.annotate(
-                standing_time=F("next_trip_departure") - F("arrival_time")
-            )
-
+            parent_trips_annotated = tasks.annotate_trips_with_standing_time(parent_trips)
             td_min_standing_time = datetime.timedelta(minutes=min_standing_time)
             # TODO: check if this is slow for bigger scenarios
-            parent_trips_filtered = parent_trips.filter(standing_time__gte=td_min_standing_time)
-            station_ids = parent_trips_filtered.values_list(
-                "route__arrival_station_id", flat=True
-            ).distinct()
-            parent_station_query = Station.objects.filter(id__in=station_ids)
+            parent_trips_filtered = parent_trips_annotated.filter(
+                standing_time__gte=td_min_standing_time
+            )
+            parent_station_query = tasks.get_distinct_arrival_station(parent_trips_filtered)
 
         annotated_query = tasks.annotate_stations_with_lines(parent_station_query)
 
