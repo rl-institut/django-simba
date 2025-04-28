@@ -29,6 +29,7 @@ from eflips.depot.api import simulate_scenario, generate_depot_layout
 import core.deepcopy
 import ebustoolbox.util
 import simba.optimizer_util
+import simba.station_optimization
 import simba.simulate
 import simba.util
 from core.deepcopy import reset_postgres_auto_increments
@@ -76,9 +77,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger("custom")
 
 # ToDo: Any better solutions?
-INTEGER_INF = 9999
-MAX_AMOUNT_VEHICLES = 10000
-DEFAULT_TEMPERATURE = 20
+DEFAULT_TEMPERATURE = 20  # °C
+IMPLEMENTED_MODES = {"sim", "station_optimization", "station_optimization_single_step"}
 
 
 @atomic()
@@ -1201,11 +1201,13 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     # child.simba_options.update(ele_dict)
     all_stations = Station.objects.filter(scenario=mutation)
     electrified_stations = Station.objects.filter(scenario=mutation, is_electrified=True)
-    excluded_stations = Station.objects.filter(scenario=mutation, is_electrifiable=True)
+    excluded_stations = Station.objects.filter(scenario=mutation, is_electrifiable=False)
     # Some stations are not electrified or excluded -->possible need for optimization
     if all_stations.count() > electrified_stations.count() + excluded_stations.count():
+        logger.info("Mode is set to optimization.")
         child.simba_options["modes"] = "sim,station_optimization,report"
     else:
+        logger.info("Mode is set to NO optimization.")
         child.simba_options["modes"] = "sim,report"
 
     # org_ele_station_ids = ele_option.electrified_stations.all().values_list("id", flat=True)
@@ -1320,6 +1322,7 @@ def _run_ebus_toolchain(self, task_id):
             progress.current_work += 90 // (len(wanted_modes) - 1)
             progress.save()
 
+        check_event_soc_consistency(db_scenario)
         db_scenario.refresh_from_db()
         db_scenario.finished = timezone.now()
         db_scenario.save()
@@ -1327,12 +1330,24 @@ def _run_ebus_toolchain(self, task_id):
     except Exception as e:
         logger.error(traceback.format_exc())
         progress.refresh_from_db()
-        try:
-            progress.errors.append(str(e))
-        except Exception:
-            logger.error(traceback.format_exc())
+        progress.errors.append(str(e))
         progress.set_failed()
         raise
+
+
+def check_event_soc_consistency(db_scenario: Scenario):
+    """Give warning if scenario events are not consitent.
+
+    Consistency in this case is that soc_end values are identical to the next events soc_start of the same vehicle.
+    """
+    for vehicle in Vehicle.objects.filter(scenario=db_scenario):
+        events = list(Event.objects.filter(vehicle=vehicle).order_by("id"))
+        for i in range(len(events) - 2):
+            if not events[i].soc_end == events[i + 1].soc_start:
+                logger.warning(
+                    f"SOC does not align between events for {vehicle=} for "
+                    f"events {events[i]} and {events[i+1]}"
+                )
 
 
 def electrify_depot_station_w_default(db_scenario):
@@ -1384,7 +1399,9 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
     counted_vehicles = set()
     for rot in all_rotations:
         first_trip = Trip.objects.filter(rotation=rot).order_by("departure_time").first()
+        assert first_trip is not None, f"Rotation {rot.id} / {rot.name} has no trips"
         vehicle = rot.vehicle
+        assert vehicle is not None, f"Rotation {rot.id} / {rot.name} has no vehicle"
         if vehicle not in counted_vehicles:
             vt = vehicle.vehicle_type
             if vt.opportunity_charging_capable:
@@ -1407,25 +1424,74 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
     return vehicle_assigns
 
 
+def create_optimizer_config(db_scenario: Scenario) -> simba.station_optimization.config:
+    """Create a config for the SimBA optimizer.
+
+    Currently the standard charging power and exclusion stations are passed.
+    """
+    conf = simba.optimizer_util.OptimizerConfig()
+    exclusion_stations = {
+        stat.to_simba_name()
+        for stat in Station.objects.filter(scenario=db_scenario, is_electrifiable=False)
+    }
+    standard_charging_power = db_scenario.simba_options["cs_power_opps"]
+    standard_opp_station = {
+        "type": "opps",
+        "n_charging_stations": None,
+        "cs_power_opps": standard_charging_power,
+    }
+    conf.exclusion_stations = exclusion_stations
+    conf.standard_opp_station = standard_opp_station
+    return conf
+
+
+def run_mode(
+    mode: str,
+    schedule: SimbaSchedule,
+    scenario: "None | SimbaScenario",
+    args: Namespace,
+    db_scenario: Scenario,
+) -> tuple[SimbaSchedule, "SimbaScenario"]:
+    """Run an implemented mode.
+
+    SimBA modes are not used to allow access to the optimizer config
+    without the need of reading from a file.
+    """
+    assert mode in IMPLEMENTED_MODES
+    if mode == "sim":
+        new_scenario: "SimbaScenario" = schedule.run(args, mode="greedy")
+        return schedule, new_scenario
+    conf = create_optimizer_config(db_scenario)
+    if mode == "station_optimization_single_step":
+        conf.early_return = True
+
+    # For now the optimizer needs a directory, and also expects an
+    # arg which is only set in this function  args.results_directory
+    simba.simulate.create_results_directory(args, 0)
+    return simba.station_optimization.run_optimization(
+        conf, sched=schedule, scen=scenario, args=args
+    )
+
+
 def run_simba(
-    schedule: SimbaSchedule, args, db_scenario, mode=None, scenario=None
-) -> (SimbaSchedule, "SimbaScenario"):
+    schedule: SimbaSchedule,
+    args: Namespace,
+    db_scenario: Scenario,
+    mode: str,
+    scenario: "None | SimbaScenario" = None,
+) -> tuple[SimbaSchedule, "SimbaScenario"]:
+    assert mode in IMPLEMENTED_MODES, f"{mode} is not implemented in simba"
+
     logger.info(f"Running Simba {datetime.now()} with mode {mode}")
     # TODO don't overwrite output on multiple function calls
-    task_id = db_scenario.task_id
-    args.output_directory = Path(settings.UPLOAD_PATH) / str(task_id)
+    args.output_directory = Path(settings.UPLOAD_PATH) / str(db_scenario.task_id)
     args.attach_vehicle_soc = True
 
-    # Default mode is greedy simulation
-    if mode is None or mode == "sim":
-        mode = "sim_greedy"
+    schedule, scenario = run_mode(mode, schedule, scenario, args, db_scenario)
 
-    func = getattr(simba.simulate.Mode, mode)
-    # Run this mode. Iteration number is not changed right now since only the last report is
-    # used from the generated simba files
-    schedule, scenario = func(schedule, scenario, args, 1)
+    # Apply changes to database depending on mode
     match mode:
-        case "sim_greedy" | "report":
+        case "sim":
             pass
         case w if w in ["station_optimization", "station_optimization_single_step"]:
             update_electrified_stations_db(schedule.stations, db_scenario)
@@ -1885,20 +1951,28 @@ def unelectrify_station(station: Station) -> Station:
 
 
 @atomic()
-def update_stations_and_exclusion(context):
+def update_stations_and_exclusion(
+    station_forms: List[forms.StationForm], default_charge_power_per_station: float
+):
     stations = []
-    for form in context["stations_forms"].values():
+    for form in station_forms:
         if not form.cleaned_data["is_electrified"]:
-            station = form.instance
+            station: Station = form.instance
             station = unelectrify_station(station)
         else:
             # Electrification needs further attributes
             station = form.save(commit=False)
-            # TODO Workaround for when bryan is finished.
-            # Fix form with proper naming
-            station: Station
-            station.power_per_charger = station.power_total
-            station.power_total = station.power_per_charger * station.amount_charging_places
+            station.power_per_charger = (
+                station.power_per_charger or default_charge_power_per_station
+            )
+            # TODO: Do we want more logic or user interaction with this?
+            if station.amount_charging_places is not None:
+                station.power_total = station.power_per_charger * station.amount_charging_places
+            else:
+                # If the station might have unlimited charging places,
+                # we dont want the grid_connection/ power_total to restrict power
+                # TODO: Discuss
+                station.power_total = float("inf")
             station.charge_type = EnumChargeType.OPPORTUNITY
             station.voltage_level = EnumVoltageLevel.VOLTAGE_MV
             station.is_valid()
@@ -1906,7 +1980,7 @@ def update_stations_and_exclusion(context):
     Station.objects.bulk_update(
         stations,
         fields=forms.StationForm._meta.fields
-        + ["charge_type", "voltage_level", "power_per_charger"],
+        + ["charge_type", "voltage_level", "power_per_charger", "power_total"],
     )
 
 

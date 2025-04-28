@@ -2,8 +2,8 @@ import logging
 import traceback
 import dateutil.parser as parser
 
-import pytz
 from django.conf import settings
+import pytz
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail
@@ -11,13 +11,13 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F, QuerySet, Sum, Max, Value, FloatField, Q, ExpressionWrapper
 from django.db.models.functions import Cast, Coalesce, Extract
 from django.db.transaction import atomic
-from django.forms import formset_factory, modelform_factory, widgets
+from django.forms import formset_factory, widgets
 from django.http import HttpResponse, HttpRequest, Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.views.generic import TemplateView, FormView, ListView
-from django.views.decorators.http import require_POST
 from eflips.depot.api import simulate_scenario  # noqa
+from django.views.decorators.http import require_POST
 
 from core.models import Progress, EnumProgress
 
@@ -41,6 +41,7 @@ from .util import get_unique_task_id
 
 from dash_app import data
 import ebustoolbox
+import ebustoolbox.tasks
 from ebustoolbox.models import (
     Scenario,
     UserGroup,
@@ -55,8 +56,6 @@ from ebustoolbox.models import (
     VehicleTypeSelection,
     VehicleTypeMutation,
     StationMutation,
-    ScenarioWizardOptions,
-    EnumCalculationModes,
     EnumScenarioType,
 )
 import pandas as pd
@@ -160,7 +159,7 @@ def get_sorted_mutation_scenarios(user) -> QuerySet[Scenario]:
 
     # Annotation is not possible after using union
     # Order output. User Scenarios first
-    all_scenarios_sorted = all_scenarios.order_by("order_id")
+    all_scenarios_sorted = all_scenarios.order_by("order_id", "-id")
     return all_scenarios_sorted
 
 
@@ -412,7 +411,7 @@ def get_scenario_and_assert_authorization(request, task_id) -> Scenario:
     if request.user.is_superuser:
         return scenario
     if scenario.manager and scenario.manager != request.user:
-        raise Http404
+        raise Http404("No access")
     return scenario
 
 
@@ -614,7 +613,10 @@ class StationsView(ScenarioMixIn, TemplateView):
         parent_station_query = Station.objects.filter(scenario=scenario.parent).exclude(
             charge_type=EnumChargeType.DEPOT
         )
+
         annotated_query = tasks.annotate_stations_with_lines(parent_station_query)
+
+        # Station Mutations where created in get()
         station_mutations = {
             s.original_station.id: s.mutated_original_station
             for s in StationMutation.objects.filter(scenario=scenario)
@@ -643,19 +645,8 @@ class StationsView(ScenarioMixIn, TemplateView):
 
         data = self.request.POST
         if self.request.method != "POST":
-            data = {}
-
-        # ToDo Deprecated with new design
-        wizard_options, _ = ScenarioWizardOptions.objects.get_or_create(scenario=scenario)
-
-        form_class = modelform_factory(ScenarioWizardOptions, fields=["station_calculation_mode"])
-        if not data:
-            data |= {"station_calculation_mode": wizard_options.station_calculation_mode}
-        form = form_class(data=data, instance=wizard_options)
-        context["calculation_mode_form"] = form
-        context["automatic_value"] = EnumCalculationModes.AUTOMATIC
-        context["constant_power_value"] = EnumCalculationModes.CONSTANT_POWER
-        context["manual_value"] = EnumCalculationModes.MANUAL
+            default_charge_power = scenario.simba_options["cs_power_opps"]
+            data = {"default_charge_power": default_charge_power}
 
         # General Charging power defined on top level
         context["charging_power_form"] = forms.ChargingPowerForm(data)
@@ -687,29 +678,16 @@ class StationsView(ScenarioMixIn, TemplateView):
     def post(self, request, *args, **kwargs):
         scenario = self.scenario
         context = self.get_context_data(**kwargs)
-        calculation_mode_form = context["calculation_mode_form"]
-        if not calculation_mode_form.is_valid():
-            logger.debug("Invalid Stations Calculation Mode Form provided")
 
-            return self.render_to_response(**kwargs)
-
-        match calculation_mode_form.cleaned_data["station_calculation_mode"]:
-            case "automatic":
-                # Deprecated_Mode
-                raise NotImplementedError
-            case "constant_power":
-                # Deprecated Mode
-                raise NotImplementedError
-            case "manual":
-                all_valid = all(form.is_valid() for form in context["stations_forms"].values())
-                if not all_valid:
-                    logger.debug("Invalid StationsForm provided")
-                    return self.render_to_response(context)
-                # The forms are valid. Update the stations and exclude stations
-                # from electrification
-                ebustoolbox.tasks.update_stations_and_exclusion(context)
-            case _:
-                raise NotImplementedError
+        all_valid = all(form.is_valid() for form in context["stations_forms"].values())
+        if not all_valid:
+            logger.debug("Invalid StationsForm provided")
+            return self.render_to_response(context)
+        # The forms are valid. Update the stations and exclude stations
+        # from electrification
+        ebustoolbox.tasks.update_stations_and_exclusion(
+            context["stations_forms"].values(), scenario.simba_options["cs_power_opps"]
+        )
         response = redirect(reverse(self.success_name, args=[scenario.task_id]))
         return response
 
@@ -1154,41 +1132,26 @@ def model_export_json(request: HttpRequest, model_str: str, task_id: str):
     from django.core import serializers
 
     jsondata = serializers.serialize("json", objects)
+
     return HttpResponse(jsondata, content_type="application/json")
 
 
 def run_simulation(request: HttpRequest, task_id: str):
-    context = {"task_id": task_id, "progress_type": "simba:scenario_overview"}
-    logger.debug(context)
-    response = HttpResponse(context=context)
-
     try:
-        if request.method == "GET":
-            try:
-                scenario = Scenario.objects.get(task_id=task_id)
-                parent = scenario.parent
-            except Scenario.DoesNotExist:
-                raise Http404
-            # if the scenario has a manager, only this User can run the simulation
-            if scenario.manager and scenario.manager != request.user:
-                raise Http404
-            # This triggers progress polling. If the toolchain is finished,
-            # the progress view will be triggered with the task_id and progress type
-            logger.info("Running Toolchain.")
-
-            sim_task_id = get_unique_task_id()
-            # create scenario from mutation and parent and simulate it
-            async_result = tasks.run_and_merge_scenarios.apply_async(
-                (parent.id, scenario.id, sim_task_id), task_id=str(sim_task_id)
-            )
-            context["task_id"] = sim_task_id
-            context["progress_id"] = async_result.task_id
-            response = render(request, "progress_poll.html", context)
-            response["HX-Trigger"] = "running"
+        try:
+            scenario = Scenario.objects.get(task_id=task_id)
+        except Scenario.DoesNotExist:
+            raise Http404
+        # if the scenario has a manager, only this User can run the simulation
+        if scenario.manager and scenario.manager != request.user:
+            raise Http404
+        # This triggers progress polling. If the toolchain is finished,
+        # the progress view will be triggered with the task_id and progress type
+        logger.info("Running Toolchain.")
+        tasks.run_toolchain_from_scenario(scenario, assign_vehicles=False)
     except Exception:
-        logger.error(traceback.format_exc())
-        response["HX-Trigger"] = "notRunning"
-    return response
+        return HttpResponse("An error occured")
+    return HttpResponse("Your simulation is beeing simulated")
 
 
 def download_scenario(request: HttpRequest, task_id: str):
