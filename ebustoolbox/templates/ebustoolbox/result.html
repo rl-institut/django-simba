@@ -792,11 +792,16 @@
                 const chart = echarts.init(document.getElementById(chartId));
 
                 const options = {
+                    title: {
+                        text: titleText,
+                        left: 'center',
+                        textStyle: {
+                            fontSize: 16,
+                            fontWeight: 'bold'
+                        }
+                    },
                     tooltip: {
                         trigger: 'axis'
-                    },
-                    title: {
-                        text: titleText
                     },
                     xAxis: {
                         type: 'category',
@@ -1186,7 +1191,7 @@
             fetchAndRenderPieChart("critical_rotations", "chartContainer", "Kritische und nicht kritische Umläufe");
             fetchAndRenderPieChart("bustype", "busTypeChartContainer", "Verteilung Fahrzeugtyp");
             fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit", "time_end", "soc_end_prc");
-            fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Power and occupancy", "time_end", "soc_end_prc");
+            fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Ladeleistung und Belegung", "time_end", "soc_end_prc");
 
             fetchAndRenderStats("stats", "_", "_")
             fetchAndRenderGanttChart("gantt","ganttChart","_")
