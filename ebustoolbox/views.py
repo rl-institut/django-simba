@@ -603,6 +603,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
 class StationsView(ScenarioMixIn, TemplateView):
     template_name = "ebustoolbox/stations.html"
     success_name = "simba:costs"
+    default_min_standing_time = 2
 
     @staticmethod
     def get_station_prefix(station):
