@@ -10,7 +10,7 @@ from django.contrib.auth.models import User
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F, QuerySet, Sum, Value, FloatField, Q, Window
-from django.db.models.functions import Cast, Coalesce
+from django.db.models.functions import Cast, Coalesce, Lead
 from django.db.transaction import atomic
 from django.forms import formset_factory, widgets
 from django.http import HttpResponse, HttpRequest, Http404, HttpResponseForbidden, JsonResponse
@@ -603,7 +603,6 @@ class VehiclesView(ScenarioMixIn, TemplateView):
 class StationsView(ScenarioMixIn, TemplateView):
     template_name = "ebustoolbox/stations.html"
     success_name = "simba:costs"
-    default_min_standing_time = 2
 
     @staticmethod
     def get_station_prefix(station):
@@ -621,7 +620,6 @@ class StationsView(ScenarioMixIn, TemplateView):
             min_standing_time = 0
 
         if min_standing_time > 0:
-            from django.db.models.functions import Lead
 
             parent_trips = Trip.objects.filter(scenario=scenario.parent)
             # Annotate trips with their nextr trip departure time to calculate break duration
@@ -1568,6 +1566,7 @@ def get_dist_hist(request, task_id: str):
 
     if buses:  # In Presim buses will ne None, if later no buses are selected, it will be empty
         filter_dict["vehicle__id__in"] = buses
+
     df = data.get_distances_as_dataframe(s.id, buses)
 
     # Convert total_distance from meters to kilometers
