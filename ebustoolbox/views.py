@@ -45,6 +45,7 @@ import ebustoolbox
 import ebustoolbox.tasks
 from ebustoolbox.models import (
     Scenario,
+    Temperatures,
     UserGroup,
     UploadedFile,
     VehicleType,
@@ -547,7 +548,10 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         # )
         simulation_parameters_form = context["simulation_parameters_form"]
         if simulation_parameters_form.is_valid():
-            _ = simulation_parameters_form.save()
+            sim_range: SimulationRange = simulation_parameters_form.save()
+            Temperatures.objects.filter(scenario=scenario).delete()
+            # Create temperature instance
+            Temperatures.create_constant_temperatures(scenario, sim_range.temperature)
         forms.append(simulation_parameters_form)
 
         vehicle_modification = context["vehicle_modification"]
