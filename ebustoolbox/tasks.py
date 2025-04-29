@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import csv
 import random
 import shutil
@@ -80,6 +81,8 @@ logger = logging.getLogger("custom")
 # ToDo: Any better solutions?
 DEFAULT_TEMPERATURE = 20  # °C
 IMPLEMENTED_MODES = {"sim", "station_optimization", "station_optimization_single_step"}
+DEFAULT_LOADED_MASS = 0
+DEFAULT_ALLOWED_LOAD = 1000
 
 
 @atomic()
@@ -307,7 +310,12 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
     lines_dict = {line.id: line for line in Line.objects.filter(scenario=django_scenario)}
     simba_trips = list()
     temperatures = Temperatures.objects.filter(scenario=django_scenario)
-    DEFAULT_LOADED_MASS = 0
+    temperature = None
+    if temperatures.exists():
+        assert len(temperatures) == 1, "A scenario can only have a single linked Temperature object"
+        temperature = temperatures.first()
+    # Get a function which produces temperatures with a trip as input
+    get_temperature = get_temperature_function(temperature)
 
     for rot in Rotation.objects.filter(scenario=django_scenario).select_related(
         "vehicle_type", "vehicle"
@@ -329,10 +337,13 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
             allowed_load = None
         vehicle_classes = VehicleClass.objects.filter(vehicle_types=vehicle_type)
         consumption_classes = vehicle_classes.exclude(consumption__isnull=True)
-        assert len(consumption_classes) <= 1
+        assert (
+            len(consumption_classes) <= 1
+        ), "A VehicleType can only have a single VehicleClass with a consumption attached"
         lut_consumption = False
         if len(consumption_classes) == 1:
             lut_consumption = True
+        # TODO: clean up conditionals
         if lut_consumption and not temperatures.exists():
             logger.warning(
                 f"Vehicle Type {rot.vehicle_type.id} uses a consumption LUT for "
@@ -342,7 +353,7 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
             )
 
         if lut_consumption and allowed_load is None:
-            allowed_load = 1000
+            allowed_load = DEFAULT_ALLOWED_LOAD
             logger.warning(
                 f"{rot.id=} is serviced by a vehicle_type with a consumption lut. "
                 "The vehicle_type does not contain the allowed and empty mass. "
@@ -385,25 +396,32 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
                 ),
                 "level_of_loading": level_of_loading,
                 "mean_speed": trip.speed * 3.6,
-                "temperature": DEFAULT_TEMPERATURE,
+                "temperature": get_temperature(trip),
             }
-            if temperatures.exists():
-                assert (
-                    len(temperatures) == 1
-                ), "A scenario can only have a single linked Temperature object"
-                temperature = temperatures.first()
-
-                middle_time = trip.departure_time + 0.5 * (trip.arrival_time - trip.departure_time)
-                # get pseudo mean temperature by using center and boundary temperatures
-                temp = (
-                    0.5 * temperature.get_interpolated_temperature(middle_time)
-                    + 0.25 * temperature.get_interpolated_temperature(trip.arrival_time)
-                    + 0.25 * temperature.get_interpolated_temperature(trip.departure_time)
-                )
-                simba_trip_dict["temperature"] = temp
 
             simba_trips.append(simba_trip_dict)
     return simba_trips
+
+
+def get_temperature_function(temperature: Temperatures | None) -> Callable[[Trip], float]:
+    """Return a function which produces temperatures based on a Trip input
+
+    If the passed temperature arg is None, the DEFAULT_TEMPERATURE constant will be used instead.
+    """
+    if temperature is not None:
+
+        def get_temperature(trip) -> float:
+            middle_time = trip.departure_time + 0.5 * (trip.arrival_time - trip.departure_time)
+            # get pseudo mean temperature by using center and boundary temperatures
+            temp = (
+                0.5 * temperature.get_interpolated_temperature(middle_time)
+                + 0.25 * temperature.get_interpolated_temperature(trip.arrival_time)
+                + 0.25 * temperature.get_interpolated_temperature(trip.departure_time)
+            )
+            return temp
+
+        return get_temperature
+    return lambda _: DEFAULT_TEMPERATURE
 
 
 def get_uuid():
@@ -1192,13 +1210,14 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
         all_depots = Station.objects.filter(scenario=child, charge_type=EnumChargeType.DEPOT)
         depots_to_remove = all_depots.exclude(id__in=copied_depot_ids)
         trim_depots(child, depots_to_remove)
+    temperatures_query = Temperatures.objects.filter(scenario=mutation)
+    if temperatures_query.exists():
+        assert temperatures_query.count() == 1
+        temperature = temperatures_query.first()
+        temperature.id = ebustoolbox.util.get_next_id(Temperatures)
+        temperature.scenario = child
+        temperature.save()
 
-    # ele_option = ElectrificationOptions.objects.get(scenario=mutation)
-    # ele_dict = model_to_dict(ele_option)
-    # del ele_dict["id"]
-    # del ele_dict["scenario"]
-    # del ele_dict["electrified_stations"]
-    #
     # child.simba_options.update(ele_dict)
     all_stations = Station.objects.filter(scenario=mutation)
     electrified_stations = Station.objects.filter(scenario=mutation, is_electrified=True)
