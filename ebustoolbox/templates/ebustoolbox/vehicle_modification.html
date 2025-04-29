@@ -105,6 +105,8 @@
               </div>
             </div>
             {# ToDo: Energieverbrauchsoptionen (fester Wert oder Berechnung im Backend mit Temperatur, Elevation etc) #}
+            <input id="{{vt_id}}enableCustomConsumption" type="checkbox">
+
             <div class="flex-grow">
               <div class="flex items-center gap-2">
                 <label for="consumption" id="{{ vt_id }}consumptionLabel" class="block text-sm/6 font-medium text-slate-800">Energieverbrauch</label>
@@ -172,16 +174,28 @@
           const label = document.getElementById('label_' + input_selection.id);
           const list = document.getElementById(vt_id + "assignedToList");
           const listItems = list.querySelectorAll('[role="option"]');
+          const enableCustomConsumption = container.querySelector("input[id*='enableCustomConsumption']")
 
-          {#Assert all components are found. ! negates to bool -> !! cast to bool#}
-          console.assert(!!vt_id&!!button&!!input_selection&!!label&!!list&!!listItems)
-          let selectedItem = '';
-
-          {#Input values to be overwritten by choosing dropdown#}
+        {#Input values to be overwritten by choosing dropdown#}
           const battery_capacity = container.querySelector("input[id*='battery_capacity']")
           const consumption = container.querySelector("input[id*='consumption']")
-
           {# Repeat for other vehicle type attributes#}
+          //  Handle Consumption overwritting via enabling it through toggle
+          enableCustomConsumption.addEventListener("change", ()=>{
+              consumption.disabled = !consumption.disabled;
+              if (consumption.disabled){
+            consumption.value="";
+
+          } else {
+            consumption.value= consumption.placeholder;
+          }
+        });
+
+          {#Assert all components are found. ! negates to bool -> !! cast to bool#}
+          console.assert(!!vt_id&!!button&!!input_selection&!!label&!!list&!!listItems&!!enableCustomConsumption)
+          let selectedItem = '';
+
+
 
           // Toggle the dropdown on button click
           button.addEventListener('click', () => {
@@ -194,6 +208,9 @@
                   highlightSelectedItem{{ vt_id }}();
               }
           });
+
+
+
 
           // Handle clicks on list items
           listItems{{ vt_id }}.forEach(item => {
