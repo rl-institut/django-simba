@@ -1349,17 +1349,22 @@ def get_soc_data(request, task_id: str):
     buses = list(vehicle_name_dict.keys())
     df = data.get_soc_as_dataframe(s.id, buses)
 
-    selected_columns = df[["V_id", "time_start", "soc_end"]].copy()
-    # Convert 'time_start' to Unix timestamps (in milliseconds) and assign to a new column
-    selected_columns["timestamp"] = (
-        pd.to_datetime(selected_columns["time_start"]).astype(int) // 10**6
-    )
+    selected_columns = df[["V_id", "time_end", "soc_end", "time_start", "soc_start"]].copy()
 
+    # Convert both 'time_end' and 'time_start' to Unix timestamps (in milliseconds)
+    selected_columns["timestamp_end"] = pd.to_datetime(selected_columns["time_end"]).astype(int) // 10 ** 6
+    selected_columns["timestamp_start"] = pd.to_datetime(selected_columns["time_start"]).astype(int) // 10 ** 6
+
+    # Combine both start and end points
+    # Each group will contain a list of [timestamp, soc] pairs for both start and end
     soc_data = (
         selected_columns.groupby("V_id")
         .apply(
-            lambda group: group[["timestamp", "soc_end"]].values.tolist()
-            # Convert each group to a list of [timestamp, soc_end]
+            lambda group: sorted(
+                group[["timestamp_start", "soc_start"]].values.tolist() +
+                group[["timestamp_end", "soc_end"]].values.tolist(),
+                key=lambda x: x[0]  # Sort by timestamp
+            )
         )
         .to_dict()
     )
