@@ -539,13 +539,6 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         forms = []
         scenario = self.scenario
         context = self.get_context_data(scenario=scenario, **kwargs)
-        # simulation_range_form = SimulationParameters(
-        #     data={
-        #         "start": start_dt_utc,
-        #         "end": end_dt_utc,
-        #         "temperature": request.POST["temperature"],
-        #     }
-        # )
         simulation_parameters_form = context["simulation_parameters_form"]
         if simulation_parameters_form.is_valid():
             sim_range: SimulationRange = simulation_parameters_form.save()
@@ -553,7 +546,6 @@ class VehiclesView(ScenarioMixIn, TemplateView):
             # Create temperature instance
             Temperatures.create_constant_temperatures(scenario, sim_range.temperature)
         forms.append(simulation_parameters_form)
-
         vehicle_modification = context["vehicle_modification"]
 
         # Gather all vehicle selection and modification forms
