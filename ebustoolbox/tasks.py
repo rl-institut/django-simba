@@ -18,7 +18,8 @@ from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry, Point
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db import connections
-from django.db.models import Max, Count, Min, QuerySet
+from django.db.models.functions import Lead
+from django.db.models import F, Max, Count, Min, QuerySet, Window
 from django.db.transaction import atomic
 from django.http import HttpRequest
 from django.utils import timezone
@@ -2002,6 +2003,27 @@ def update_vehicle_types_with_defaults(vehicle_type_pairs, task_id, vt_adjustmen
         vt_default.name = vt.name
         vt_default.name_short = vt.name_short
         vt_default.save()
+
+
+def get_distinct_arrival_station(trips: QuerySet[Trip]) -> QuerySet[Station]:
+    station_ids = trips.values_list("route__arrival_station_id", flat=True).distinct()
+    station_query = Station.objects.filter(id__in=station_ids)
+    return station_query
+
+
+def annotate_trips_with_standing_time(parent_trips: QuerySet[Trip]) -> QuerySet[Trip]:
+    # Annotate trips with their nextr trip departure time to calculate break duration
+    # Lead gives the next item of the ordered list by departure time, eg. next trip
+    # but only for trips which share the same rotation / vehicle
+    parent_trips = parent_trips.annotate(
+        next_trip_departure=Window(
+            expression=Lead("departure_time"),
+            partition_by=[F("rotation")],
+            order_by=F("departure_time").asc(),
+        )
+    )
+    parent_trips = parent_trips.annotate(standing_time=F("next_trip_departure") - F("arrival_time"))
+    return parent_trips
 
 
 def annotate_stations_with_lines(station_query):
