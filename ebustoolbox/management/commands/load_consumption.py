@@ -21,7 +21,6 @@ class Command(BaseCommand):
             vts = default_vts.filter(length=length)
             dataframe = pd.read_csv(Path(path))
             for vt in vts:
-                vt = vts[0]
                 vehicle_class = VehicleClass.objects.filter(
                     vehicle_types=vt,
                 )
