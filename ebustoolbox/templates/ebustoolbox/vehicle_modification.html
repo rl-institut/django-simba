@@ -105,7 +105,9 @@
               </div>
             </div>
             {# TODO: @Bryan Better styling, switch instead of checkbox?#}
-            <div><input id="{{vt_id}}enableCustomConsumption" type="checkbox"> Energieverbrauch des gewählten Fahrzeugs überschreiben.</div>
+            <div><input id="{{vt_id}}enableCustomConsumption"
+              {% if modification.vehicle_modification.consumption.initial is not None %}checked{% else %} {% endif %}
+              type="checkbox"> Energieverbrauch des gewählten Fahrzeugs überschreiben.</div>
 
             <div class="flex-grow">
               <div class="flex items-center gap-2">
@@ -128,10 +130,12 @@
                         class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-slate-400 focus-within:focus-visible:outline-2 disabled:opacity-50 disabled:cursor-not-allowed">
                           <!--Pseudo Input to show Consumption from selected VehicleType -->
                   <input
+               {% if modification.vehicle_modification.consumption.initial is None %}type="text"{% endif %}
+
                           {{ modification.vehicle_modification.consumption|widget_attrs}}
-                    {% if modification.vehicle_modification.consumption.data is None %}disabled{% endif %}
+                    {% if modification.vehicle_modification.consumption.initial is None %}disabled{% endif %}
                           class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
-                    placeholder={% if modification.selection.instance is not None %}"{{modification.selection.instance.default_vehicle_type.consumption}}"{% else %}"Wählen Sie ein Fahrzeug aus" {% endif %}
+                    placeholder={% if modification.selection.instance.default_vehicle_type is not None %}"{{modification.selection.instance.default_vehicle_type.consumption}}"{% else %}"Wählen Sie ein Fahrzeug aus" {% endif %}
                           aria-labelledby="consumptionLabel consumptionUnit">
                   <div id="{{ vt_id }}consumptionUnit" class="shrink-0 select-none text-slate-500">kWh/h</div>
                 </div>
