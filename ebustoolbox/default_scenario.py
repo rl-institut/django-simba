@@ -1,13 +1,9 @@
 """File to create all default Scenario models"""
 
-from pathlib import Path
 from django.db import models
-import pandas as pd
 
 
-def get_default_scenario(apps) -> models.Model:
-    DefaultScenario = apps.get_model("ebustoolbox", "DefaultScenario")
-    Scenario = apps.get_model("ebustoolbox", "Scenario")
+def get_default_scenario(DefaultScenario, Scenario) -> models.Model:
     default_scenarios = DefaultScenario.objects.all()
     count = default_scenarios.count()
     if count == 1:
@@ -21,7 +17,9 @@ def get_default_scenario(apps) -> models.Model:
 
 
 def set_default_scenario(apps, schema_editor):
-    default_scenario = get_default_scenario(apps)
+    DefaultScenario = apps.get_model("ebustoolbox", "DefaultScenario")
+    Scenario = apps.get_model("ebustoolbox", "Scenario")
+    default_scenario = get_default_scenario(DefaultScenario, Scenario)
     Scenario = apps.get_model("ebustoolbox", "Scenario")
     # Delete previous Scenario
     old_scenario = default_scenario.scenario
@@ -70,36 +68,3 @@ def set_default_vehicle_type(apps, scenario, name, battery_capacity, length, con
     VehicleType = apps.get_model("ebustoolbox", "VehicleType")
     _ = VehicleType.objects.create(**vehicle_type_args, opportunity_charging_capable=True)
     _ = VehicleType.objects.create(**vehicle_type_args, opportunity_charging_capable=False)
-
-
-def set_default_vehicle_types_consumption(apps, schema_editor):
-    scenario = get_default_scenario(apps)
-    Consumption = apps.get_model("ebustoolbox", "Consumption")
-    VehicleType = apps.get_model("ebustoolbox", "VehicleType")
-    VehicleClass = apps.get_model("ebustoolbox", "VehicleClass")
-    Consumption.objects.last()
-    consumption_paths = {
-        7: "./ebustoolbox/static/ebustoolbox/examples/6m_consumption_sprinter_6m.csv",
-        10: "./ebustoolbox/static/ebustoolbox/examples/10m_consumption_lle_99.csv",
-        12: "./ebustoolbox/static/ebustoolbox/examples/12m_consumption_nor_bus.csv",
-        18: "./ebustoolbox/static/ebustoolbox/examples/18m_consumption_solaris_18m.csv",
-    }
-    default_vts = VehicleType.objects.filter(scenario=scenario)
-    for length, path in consumption_paths.values():  # 12
-        vts = default_vts.filter(length=length)
-        dataframe = pd.read_csv(Path(path))
-        for vt in vts:
-            consumption = Consumption.from_df(dataframe, name=f"Default Consumption {length} m")
-            consumption.scenario = scenario
-            consumption.save()
-            vehicle_class = VehicleClass.objects.filter(vehicle_types__contains=vt)
-            if vehicle_class.exists():
-                assert vehicle_class.count() == 1
-                vehicle_class = vehicle_class.first()
-            else:
-                vehicle_class = VehicleClass(
-                    name=f"Consumption Vehicle Class for default vehicle {vt.name} {vt.id}"
-                )
-
-            consumption.vehicle_class = vehicle_class
-            consumption.save()
