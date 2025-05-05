@@ -85,6 +85,39 @@ DEFAULT_LOADED_MASS = 0
 DEFAULT_ALLOWED_LOAD = 1000
 
 
+def apply_vehicle_type(
+    target_vehicle_type: VehicleType, source_vehicle_type: VehicleType
+) -> VehicleType:
+    """Use a source vehicle type and apply the attributes to a a target vehicle type.
+
+    Scenario, name and name short of the target are not copied over.
+    VehicleClasses of source are copied aswell as consumptions which are linked to vehicle classes
+    """
+    vehicle_classes = source_vehicle_type.vehicle_classes.all()
+    source_vehicle_type.id = target_vehicle_type.id
+    source_vehicle_type.scenario = target_vehicle_type.scenario
+    source_vehicle_type.name = target_vehicle_type.name
+    source_vehicle_type.name_short = target_vehicle_type.name_short
+    source_vehicle_type.save()
+    # Copy vehicle_classes and consumption and add the new vehicle type to it
+    for vehicle_class in vehicle_classes:
+        # Cast consumptions to list to evaluate them early
+        consumptions = list(vehicle_class.consumption_set.all())
+
+        vehicle_class.id = ebustoolbox.util.get_next_id(VehicleClass)
+        vehicle_class.scenario = target_vehicle_type.scenario
+        vehicle_class.save()
+        vehicle_class.vehicle_types.add(source_vehicle_type)
+        if consumptions:
+            assert len(consumptions) == 1
+            c = consumptions[0]
+            c.id = ebustoolbox.util.get_next_id(Consumption)
+            c.scenario = target_vehicle_type.scenario
+            c.vehicle_class = vehicle_class
+            c.save()
+    return source_vehicle_type
+
+
 @atomic()
 def input_files_to_database(cleaned_data: dict, request: HttpRequest):
     """Fill the database with the inputs from the form
@@ -1067,10 +1100,11 @@ def apply_vehicle_mutation(mutation: Scenario, child: Scenario, stack: dict) -> 
     for vt_mut in vehicle_type_mutations:
         org_vt = vt_mut.original_vehicle_type
         vt = vt_mut.mutated_vehicle_type
+        assert vt is not None and org_vt is not None
         copied_vt_id = stack[VehicleType][org_vt.id]
-        vt.id = copied_vt_id
-        vt.scenario = child
-        vt.save()
+        instance = apply_vehicle_type(VehicleType.objects.get(id=copied_vt_id), vt)
+        assert instance.id == copied_vt_id
+        assert instance.scenario == child
 
 
 def assign_new_vehicles_to_db(django_scenario: Scenario, db_name="default") -> None:
@@ -1210,6 +1244,8 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
         all_depots = Station.objects.filter(scenario=child, charge_type=EnumChargeType.DEPOT)
         depots_to_remove = all_depots.exclude(id__in=copied_depot_ids)
         trim_depots(child, depots_to_remove)
+
+    # Copy Temperatures
     temperatures_query = Temperatures.objects.filter(scenario=mutation)
     if temperatures_query.exists():
         assert temperatures_query.count() == 1
@@ -1330,7 +1366,7 @@ def _run_ebus_toolchain(self, task_id):
 
             eflips_assignment = get_assigned_vehicles(task_id)
             schedule.assign_vehicles_custom(eflips_assignment)
-            # ToDo: Keep that?
+            # TODO: Keep that?
             electrify_depot_station_w_default(db_scenario)
             #
             # get electrified stations from db, e.g. depot station from eflips with
