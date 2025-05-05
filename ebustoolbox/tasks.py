@@ -349,11 +349,17 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
         temperature = temperatures.first()
     # Get a function which produces temperatures with a trip as input
     get_temperature = get_temperature_function(temperature)
+    warning_dict = {
+        "missing_allowed_load": True,
+        "missing_temperature": True,
+        "missing_loaded_mass": True,
+        "level_of_loading_out_of_range": True,
+    }
 
     for rot in Rotation.objects.filter(scenario=django_scenario).select_related(
         "vehicle_type", "vehicle"
     ):
-        vehicle_type = str(rot.vehicle_type.id)
+        vehicle_type = rot.vehicle_type.id
         charging_type = (
             EnumChargeType.OPPORTUNITY.value
             if rot.vehicle_type.opportunity_charging_capable
@@ -364,10 +370,6 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
         # filled with non simba ingesters
         simba_id = rot.id
 
-        try:
-            allowed_load = rot.vehicle_type.allowed_mass - rot.vehicle_type.empty_mass
-        except TypeError:
-            allowed_load = None
         vehicle_classes = VehicleClass.objects.filter(vehicle_types=vehicle_type)
         consumption_classes = vehicle_classes.exclude(consumption__isnull=True)
         assert (
@@ -377,22 +379,17 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
         if len(consumption_classes) == 1:
             lut_consumption = True
         # TODO: clean up conditionals
-        if lut_consumption and not temperatures.exists():
-            logger.warning(
-                f"Vehicle Type {rot.vehicle_type.id} uses a consumption LUT for "
-                "consumption calculation but the scenario has no Temperature object for "
-                "temperature lookup. Default value for temperature of "
-                f"{DEFAULT_TEMPERATURE} °C is used."
-            )
 
-        if lut_consumption and allowed_load is None:
-            allowed_load = DEFAULT_ALLOWED_LOAD
-            logger.warning(
-                f"{rot.id=} is serviced by a vehicle_type with a consumption lut. "
-                "The vehicle_type does not contain the allowed and empty mass. "
-                f"The allowed load will be set to {allowed_load} kg."
-            )
+        try:
+            calc_allowed_load = rot.vehicle_type.allowed_mass - rot.vehicle_type.empty_mass
+        except TypeError:
+            calc_allowed_load = None
+        allowed_load = calc_allowed_load or DEFAULT_ALLOWED_LOAD
         # select related means later db access can be skipped
+        if lut_consumption:
+            warning_dict = validate_lut_consumption_inputs(
+                temperatures, calc_allowed_load, rot, warning_dict
+            )
         query = (
             Trip.objects.filter(rotation=rot)
             .select_related("route__arrival_station", "route__departure_station", "route__line")
@@ -400,26 +397,21 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
         )
 
         for trip in query:
-            loaded_mass = trip.loaded_mass
+            loaded_mass = trip.loaded_mass or DEFAULT_LOADED_MASS
             level_of_loading = None
             if allowed_load is not None:
-                if lut_consumption and loaded_mass is None:
-                    loaded_mass = DEFAULT_LOADED_MASS
-                    logger.warning(
-                        f"{trip.id=} has no loaded mass but the vehicle_type which services this "
-                        "trip needs a loaded mass for consumption look up and is set to "
-                        f"{loaded_mass}."
-                    )
                 level_of_loading = loaded_mass / allowed_load
-                if 1 < level_of_loading or 0 > level_of_loading:
-                    logger.warning(f"Level of loading is out of [0,1] range for {trip.id=}")
+                if lut_consumption:
+                    warning_dict = validate_trip_lut_consumption_inputs(
+                        trip, loaded_mass, level_of_loading, warning_dict
+                    )
             simba_trip_dict = {
                 "rotation_id": simba_id,
                 "departure_time": trip.departure_time,
                 "departure_name": trip.route.departure_station.to_simba_name(),
                 "arrival_time": trip.arrival_time,
                 "arrival_name": trip.route.arrival_station.to_simba_name(),
-                "vehicle_type": vehicle_type,
+                "vehicle_type": str(vehicle_type),
                 "charging_type": charging_type,
                 "distance": trip.route.distance,
                 "line": lines_dict[trip.route.line.id].name,
@@ -434,6 +426,57 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
 
             simba_trips.append(simba_trip_dict)
     return simba_trips
+
+
+def validate_trip_lut_consumption_inputs(trip, loaded_mass, level_of_loading, warning_dict) -> dict:
+    if trip.loaded_mass is None:
+        text = (
+            f"{trip.id=} has no loaded mass but the vehicle_type which services this "
+            "trip needs a loaded mass for consumption look up and is set to "
+            f"{loaded_mass}."
+        )
+        if warning_dict["missing_loaded_mass"]:
+            warning_dict["missing_loaded_mass"] = False
+            logger.warning(text + "\n This message is only shown once as warning.")
+        else:
+            logger.debug(text)
+    if 1 < level_of_loading or 0 > level_of_loading:
+        text = f"Level of loading is out of [0,1] range for {trip.id=}"
+        if warning_dict["level_of_loading_out_of_range"]:
+            warning_dict["level_of_loading_out_of_range"] = False
+            logger.warning(text + "\n This message is only shown once as warning.")
+        else:
+            logger.debug(text)
+    return warning_dict
+
+
+def validate_lut_consumption_inputs(temperatures, calc_allowed_load, rot, warning_dict) -> dict:
+    if not temperatures.exists():
+        text = (
+            f"Vehicle Type {rot.vehicle_type.id} uses a consumption LUT for "
+            "consumption calculation but the scenario has no Temperature object for "
+            "temperature lookup. Default value for temperature of "
+            f"{DEFAULT_TEMPERATURE} °C is used."
+        )
+        if warning_dict["missing_temperature"]:
+            warning_dict["missing_temperature"] = False
+            logger.warning(text + "\n This message is only shown once as warning.")
+        else:
+            logger.debug(text)
+
+    if calc_allowed_load is None:
+        text = (
+            f"{rot.id=} is serviced by a vehicle_type with a consumption lut. "
+            "The vehicle_type does not contain the allowed and empty mass. "
+            f"The allowed load will be set to {DEFAULT_ALLOWED_LOAD} kg."
+        )
+        if warning_dict["missing_allowed_load"]:
+            warning_dict["missing_allowed_load"] = False
+            logger.warning(text + "\n This message is only shown once as warning.")
+        else:
+            logger.debug(text)
+
+    return warning_dict
 
 
 def get_temperature_function(temperature: Temperatures | None) -> Callable[[Trip], float]:
