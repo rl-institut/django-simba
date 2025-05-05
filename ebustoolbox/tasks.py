@@ -960,7 +960,7 @@ def run_simba_scenario(
     assign_vehicles=False,
     db_url=None,
     simba_scenario=None,
-    mode=None,
+    mode="sim",
 ):
     """Run a Scenario from the database with SimBA
 
