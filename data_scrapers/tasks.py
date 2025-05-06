@@ -110,7 +110,6 @@ def search_station(
 
     # Search for stations if the search name contains an admin_name
     # Filter entries based on trigram similarity
-    found_ids, names = get_station_ids_contained_by_admin_area(possible_admins_names, station_name)
     for name in names:
         base_query = BusStation.objects.filter(id__in=found_ids)
         query = get_fuzzy_stations(base_query, SIMILARITY_THRESHOLD_W_ADMIN, name)
@@ -150,9 +149,8 @@ def search_exact_station(base_query, station_name) -> QuerySet:
     address_translations_rev = [[x[1], x[0]] for x in address_translations]
     ids = []
     # Search for the name without changes
-    exact_station_query = base_query.filter(name=station_name)
-    if exact_station_query.exists():
-        ids.extend(exact_station_query.values_list("id", flat=True))
+    exact_station_query = base_query.filter(name__iexact=station_name.lower())
+    ids.extend(exact_station_query.values_list("id", flat=True))
 
     # Apply some conversions of the name, e.g. "MainSt." becomes "MainStreet"
     for first, second in address_translations + address_translations_rev:
@@ -160,9 +158,8 @@ def search_exact_station(base_query, station_name) -> QuerySet:
             search_name = station_name.replace(second, first)
         else:
             continue
-        exact_station_query = base_query.filter(name=search_name)
-        if exact_station_query.exists():
-            ids.extend(exact_station_query.values_list("id", flat=True))
+        exact_station_query = base_query.filter(name__iexact=search_name.lower())
+        ids.extend(exact_station_query.values_list("id", flat=True))
     return base_query.filter(id__in=ids)
 
 
