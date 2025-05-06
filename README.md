@@ -234,7 +234,7 @@ but only if the docker is not running
                 - Only the closest matches of the fuzzy search are returned
             - If no unique stations can be found previously found stations are used and:
                 - a convex hull of found stations is with a buffer zone is created. this area is checked for a uniquely identifiable station
-                - admin_areas which contain found stations are fuzzily searched for a  uniquely identifiable station
+                - admin_areas which contain found stations are fuzzily searched for a uniquely identifiable station
     - DB import and export are possible as super user via
     - /data_scrapers/stations/import/ and /export/
         - import is only supported for empty tables of BusStation and AdminArea
