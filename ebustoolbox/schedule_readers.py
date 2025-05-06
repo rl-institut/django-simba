@@ -135,38 +135,39 @@ def place_not_found_stations(scenario):
     If no stations were found, the stations will be placed around Berlin in a random fashion.
     """
     stations_without_geo = Station.objects.filter(scenario=scenario, geom__isnull=True)
-    if Station.objects.filter(scenario=scenario, geom__isnull=False).count() > 1:
-        max_x = (
-            Station.objects.filter(scenario=scenario).aggregate(
-                max_x=Max(X("geom", output_field=models.DecimalField()))
-            )
-        )["max_x"]
-        min_x = (
-            Station.objects.filter(scenario=scenario).aggregate(
-                min_x=Min(X("geom", output_field=models.DecimalField()))
-            )
-        )["min_x"]
-        max_y = (
-            Station.objects.filter(scenario=scenario).aggregate(
-                max_y=Max(Y("geom", output_field=models.DecimalField()))
-            )
-        )["max_y"]
-
-        # Step of longitude so stations are placed horizontally next to each other
-        delta_x = float(max(0.1, max_x - min_x))
-        for i, station in enumerate(stations_without_geo):
-            x = float(float(min_x) + i * delta_x / (max(1, len(stations_without_geo) - 1)))
-            # Stations are placed with a vertical offset to the station with the highest latitude.
-            y = float(max_y) + 0.05
-            station.geom = Point(x, y, 0)
-            station.save()
-    else:
+    if Station.objects.filter(scenario=scenario, geom__isnull=False).count() < 2:
         logger.warning(
-            "Stations are placed randomly around Berlin, since not a single station was located."
+            "Stations are placed randomly around Berlin, since less than two stations were located."
         )
         for station in stations_without_geo:
-            station.geom = Point(51.5 + random(), 12.5 + random() * 10, 0)
+            station.geom = Point(52.4 + random() * 0.3, 13.0 + random() * 0.8, 0)
             station.save()
+        return
+    # place station around the (at least 2) found stations
+    max_x = (
+        Station.objects.filter(scenario=scenario).aggregate(
+            max_x=Max(X("geom", output_field=models.DecimalField()))
+        )
+    )["max_x"]
+    min_x = (
+        Station.objects.filter(scenario=scenario).aggregate(
+            min_x=Min(X("geom", output_field=models.DecimalField()))
+        )
+    )["min_x"]
+    max_y = (
+        Station.objects.filter(scenario=scenario).aggregate(
+            max_y=Max(Y("geom", output_field=models.DecimalField()))
+        )
+    )["max_y"]
+
+    # Step of longitude so stations are placed horizontally next to each other
+    delta_x = float(max(0.1, max_x - min_x))
+    for i, station in enumerate(stations_without_geo):
+        x = float(float(min_x) + i * delta_x / (max(1, len(stations_without_geo) - 1)))
+        # Stations are placed with a vertical offset to the station with the highest latitude.
+        y = float(max_y) + 0.05
+        station.geom = Point(x, y, 0)
+        station.save()
 
 
 class SimbaScheduleReader(ScheduleReader):
