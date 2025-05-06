@@ -67,8 +67,8 @@ Fixes #145
 - Implement VDV Ingester of eflips-ingest
 - Properly populate scenario.simba_options with values after every call of a ScheduleReader
 - Implement local elevation_api with similar spec to openelvation_api
-  - Calling the api the first time will download the necessary dgm200m files
-- Secure this api with an optional token DJANGO_ELEVATION_TOKEN in .env
+  - Calling the API the first time will download the necessary dgm200m files
+- Secure this API with an optional token DJANGO_ELEVATION_TOKEN in .env
   - In this case, a request must contain the key "token" with the given value
 - Pass prints to logger instead
 - Add default_optimizer.cfg file
