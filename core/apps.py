@@ -1,4 +1,6 @@
 from django.apps import AppConfig
+from django.conf import settings
+from django.db import connection
 
 
 class CoreConfig(AppConfig):
@@ -6,8 +8,6 @@ class CoreConfig(AppConfig):
     name = "core"
 
     def ready(self):
-        from django.db import connection
-        from django.conf import settings
 
         with connection.cursor() as cursor:
             db_name = settings.DATABASES["default"]["NAME"]
