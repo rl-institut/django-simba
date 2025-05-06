@@ -39,9 +39,8 @@ from ebustoolbox.models import (
     Trip,
     EnumChargeType,
     EnumVoltageLevel,
-    X,
-    Y,
 )
+from ebus_map.managers import X, Y
 
 logger = logging.getLogger("custom")
 

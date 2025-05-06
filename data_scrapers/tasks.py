@@ -467,7 +467,7 @@ def search_stations(search_station_names: Iterable, use_filter: bool):
     if not use_filter or not found_stations:
         return found_stations
 
-    # Some stations where not found repeat the process of searching for the station, but this time
+    # Some stations where not found. Repeat the process of searching for the station, but this time
     # leverage information about previously found stations. Its expected that stations form
     # clusters so stations are searched within some buffer zone of found stations.
     ids = [x for q in found_stations.values() for x in q.values_list("id", flat=True)]
