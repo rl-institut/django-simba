@@ -1,6 +1,9 @@
 from django.apps import AppConfig
 from django.conf import settings
 from django.db import connection
+import logging
+
+logger = logging.getLogger("custom")
 
 
 class CoreConfig(AppConfig):
@@ -12,4 +15,4 @@ class CoreConfig(AppConfig):
         with connection.cursor() as cursor:
             db_name = settings.DATABASES["default"]["NAME"]
             cursor.execute(f"SELECT pg_size_pretty(pg_database_size('{db_name}'))")
-            print(f"Default DB {db_name} has size of {cursor.fetchone()[0]}.")
+            logger.info(f"Default DB {db_name} has size of {cursor.fetchone()[0]}.")
