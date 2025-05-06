@@ -509,6 +509,10 @@ def get_args(django_scenario) -> Namespace:
     # Read the parse values, in this case the default values
     args, _ = parser.parse_known_args()
 
+    p = get_static_file_path(__package__, "examples/default_optimizer.cfg")
+    args.optimizer_config_path = str(p)
+    if not p.is_file():
+        logger.info("default_optimizer.cfg not found. Optimizer config will use default values.")
     # Overwrite args with scenario specific data
     if django_scenario.simba_options is not None:
         logger.debug(
