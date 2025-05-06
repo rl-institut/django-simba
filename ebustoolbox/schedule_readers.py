@@ -752,7 +752,7 @@ class EflipsIngestScheduleReaderVDV(EflipsIngestScheduleReaderBase):
 def find_station_locations(station_names: Iterable) -> list[tuple]:
     """Search the database for locations of bus stations with the same name"""
     # local import since data_scrapers might not be an installed app.
-    # in this case the function will not be called by adD_station_locations
+    # in this case the function will not be called by add_station_locations
     from data_scrapers.tasks import search_stations
 
     foundStations = search_stations(station_names, use_filter=True)
