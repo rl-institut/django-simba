@@ -1,0 +1,293 @@
+{% extends 'core/base.html' %}
+
+{% block title %}WeBus - Szenarienvergleich{% endblock title %}
+
+{% block content %}
+<main class="flex flex-col items-center">
+  <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+    <div class="flex flex-col">
+      <div class="bg-white rounded-lg shadow-md mb-12">
+        <div class="p-8">
+          <nav class="flex space-x-8 border-b border-slate-300" aria-label="Tabs" id="comparisonTabs">
+            <a
+              href="#"
+              class="comparison-tab whitespace-nowrap border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800"
+              data-tab-button="comparison-tab-1"
+              aria-current="page"
+            >
+              Bus SOC über Zeit
+            </a>
+            <a
+              href="#"
+              class="comparison-tab whitespace-nowrap border-b-4 border-transparent px-4 py-4 text-sm font-medium tracking-wide text-slate-500 hover:border-slate-300 hover:text-slate-700"
+              data-tab-button="comparison-tab-2"
+            >
+              Anzahl Ladeplätze in allen Depots
+            </a>
+            <a
+              href="#"
+              class="comparison-tab whitespace-nowrap border-b-4 border-transparent px-4 py-4 text-sm font-medium tracking-wide text-slate-500 hover:border-slate-300 hover:text-slate-700"
+              data-tab-button="comparison-tab-3"
+            >
+              Elektrische Spitzenleistung
+            </a>
+          </nav>
+
+          <div class="mt-8">
+            <div class="comparison-tab-content" data-tab="comparison-tab-1">
+              <div class="mt-4 shadow border border-slate-100 rounded-lg overflow-auto">
+                <div class="bg-white rounded-lg shadow-md overflow-x-auto">
+                  <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-100 text-slate-800 text-sm">
+                      <tr>
+                        <th class="px-4 py-4 font-medium"> </th>
+                        <th class="px-4 py-4 font-medium text-center">
+                          <div class="flex flex-col items-center gap-2">
+                            <div class="flex items-center gap-2">
+                              <span class="ml-2 text-sm font-normal text-slate-500">Diesel-Szenario</span>
+                              <div class="relative inline-block">
+                                <span class="cursor-pointer group">
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#00856C" class="size-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
+                                  </svg>
+                                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                                    Relativer Vergleich mit Diesel-Szenario.
+                                  </div>
+                                </span>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              id="dieselToggle"
+                              class="relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-300 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+                              role="switch"
+                              aria-checked="false"
+                              aria-labelledby="dieselToggleLabel"
+                            >
+                              <span aria-hidden="true" class="pointer-events-none inline-block size-3 translate-x-0 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                            </button>
+                          </div>
+                          <div class="flex flex-col pt-4">
+                            <span>BVG Test 1</span>
+                            <a href="#" class="flex items-center justify-center gap-2 text-green-600">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                              </svg>
+                              <span class="font-medium cursor-pointer hover:underline pt-1">Details</span>
+                            </a>
+                          </div>
+                        </th>
+                        <th class="px-4 py-4 font-medium text-center align-bottom">
+                          <div class="flex flex-col h-full justify-end">
+                            <span>BVG Test 2</span>
+                            <a href="#" class="flex items-center justify-center gap-2 text-green-600">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                              </svg>
+                              <span class="font-medium cursor-pointer hover:underline pt-1">Details</span>
+                            </a>
+                          </div>
+                        </th>
+                        <th class="px-4 py-4 font-medium text-center align-bottom">
+                          <div class="flex flex-col h-full justify-end">
+                            <span>BVG Test 3</span>
+                            <a href="#" class="flex items-center justify-center gap-2 text-green-600">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                              </svg>
+                              <span class="font-medium cursor-pointer hover:underline pt-1">Details</span>
+                            </a>
+                          </div>
+                        </th>
+                        <th class="px-4 py-4 font-medium text-center align-bottom">
+                          <div class="flex flex-col h-full justify-end">
+                            <span>BVG Test 4</span>
+                            <a href="#" class="flex items-center justify-center gap-2 text-green-600">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                              </svg>
+                              <span class="font-medium cursor-pointer hover:underline pt-1">Details</span>
+                            </a>
+                          </div>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-sm text-slate-700">
+                      <tr class="border-t">
+                        <td class="px-4 py-3 text-slate-500">Gesamtkosten</td>
+                        <td class="px-4 py-3 text-center">5.780.000 €</td>
+                        <td class="px-4 py-3 text-center">5.780.000 €</td>
+                        <td class="px-4 py-3 text-center">5.780.000 €</td>
+                        <td class="px-4 py-3 text-center">5.780.000 €</td>
+                      </tr>
+                      <tr class="border-t">
+                        <td class="px-4 py-3 text-slate-500">Vergleich zu Dieselszenario</td>
+                        <td class="px-4 py-3 text-center">+23,54 %</td>
+                        <td class="px-4 py-3 text-center">+23,54 %</td>
+                        <td class="px-4 py-3 text-center">+23,54 %</td>
+                        <td class="px-4 py-3 text-center">+23,54 %</td>
+                      </tr>
+                      <tr class="border-t">
+                        <td class="px-4 py-3 text-slate-500">Gesamtkilometer</td>
+                        <td class="px-4 py-3 text-center">564,8 km</td>
+                        <td class="px-4 py-3 text-center">564,8 km</td>
+                        <td class="px-4 py-3 text-center">564,8 km</td>
+                        <td class="px-4 py-3 text-center">564,8 km</td>
+                      </tr>
+                      <tr class="border-t">
+                        <td class="px-4 py-3 text-slate-500">Fahrleistung</td>
+                        <td class="px-4 py-3 text-center">160.000 km</td>
+                        <td class="px-4 py-3 text-center">160.000 km</td>
+                        <td class="px-4 py-3 text-center">160.000 km</td>
+                        <td class="px-4 py-3 text-center">160.000 km</td>
+                      </tr>
+                      <tr class="border-t">
+                        <td class="px-4 py-3 text-slate-500">Personal</td>
+                        <td class="px-4 py-3 text-center">12</td>
+                        <td class="px-4 py-3 text-center">12</td>
+                        <td class="px-4 py-3 text-center">12</td>
+                        <td class="px-4 py-3 text-center">12</td>
+                      </tr>
+                      <tr class="border-t">
+                        <td class="px-4 py-3 text-slate-500">Betriebsstunden</td>
+                        <td class="px-4 py-3 text-center">100 h</td>
+                        <td class="px-4 py-3 text-center">100 h</td>
+                        <td class="px-4 py-3 text-center">100 h</td>
+                        <td class="px-4 py-3 text-center">100 h</td>
+                      </tr>
+                      <tr class="border-t">
+                        <td class="px-4 py-3 text-slate-500">Anzahl Fahrzeuge</td>
+                        <td class="px-4 py-3 text-center">20</td>
+                        <td class="px-4 py-3 text-center">20</td>
+                        <td class="px-4 py-3 text-center">20</td>
+                        <td class="px-4 py-3 text-center">20</td>
+                      </tr>
+                      <tr class="border-t">
+                        <td class="px-4 py-3 text-slate-500">Gesamt-CO<sub>2</sub>-Einsparung</td>
+                        <td class="px-4 py-3 text-center">-70,2 %</td>
+                        <td class="px-4 py-3 text-center">-70,2 %</td>
+                        <td class="px-4 py-3 text-center">-70,2 %</td>
+                        <td class="px-4 py-3 text-center">-70,2 %</td>
+                      </tr>
+                      <tr class="border-t">
+                        <td class="px-4 py-3 text-slate-500">Anzahl Elektrifizierte Endhaltestellen</td>
+                        <td class="px-4 py-3 text-center">12</td>
+                        <td class="px-4 py-3 text-center">12</td>
+                        <td class="px-4 py-3 text-center">12</td>
+                        <td class="px-4 py-3 text-center">12</td>
+                      </tr>
+                      <tr class="border-t">
+                        <td class="px-4 py-3 text-slate-500">Geladene Energie an Endhaltestellen</td>
+                        <td class="px-4 py-3 text-center">63 MWh</td>
+                        <td class="px-4 py-3 text-center">63 MWh</td>
+                        <td class="px-4 py-3 text-center">63 MWh</td>
+                        <td class="px-4 py-3 text-center">63 MWh</td>
+                      </tr>
+                      <tr class="border-t">
+                        <td class="px-4 py-3 text-slate-500">Anzahl Ladeplätze in allen Depots</td>
+                        <td class="px-4 py-3 text-center">50</td>
+                        <td class="px-4 py-3 text-center">50</td>
+                        <td class="px-4 py-3 text-center">50</td>
+                        <td class="px-4 py-3 text-center">50</td>
+                      </tr>
+                      <tr class="border-t">
+                        <td class="px-4 py-3 text-slate-500">Geladene Energie an Depots</td>
+                        <td class="px-4 py-3 text-center">400 MWh</td>
+                        <td class="px-4 py-3 text-center">400 MWh</td>
+                        <td class="px-4 py-3 text-center">400 MWh</td>
+                        <td class="px-4 py-3 text-center">400 MWh</td>
+                      </tr>
+                      <tr class="border-t">
+                        <td class="px-4 py-3 text-slate-500">Elektrische Spitzenleistung</td>
+                        <td class="px-4 py-3 text-center">1.200 kW</td>
+                        <td class="px-4 py-3 text-center">1.200 kW</td>
+                        <td class="px-4 py-3 text-center">1.200 kW</td>
+                        <td class="px-4 py-3 text-center">1.200 kW</td>
+                      </tr>
+                      <tr class="border-t">
+                        <td class="px-4 py-3 text-slate-500">Anzahl Umläufe</td>
+                        <td class="px-4 py-3 text-center">112</td>
+                        <td class="px-4 py-3 text-center">112</td>
+                        <td class="px-4 py-3 text-center">112</td>
+                        <td class="px-4 py-3 text-center">112</td>
+                      </tr>
+                      <tr class="border-t">
+                        <td class="px-4 py-3 text-slate-500">Fahrplanwirkungsgrad</td>
+                        <td class="px-4 py-3 text-center">50 %</td>
+                        <td class="px-4 py-3 text-center">50 %</td>
+                        <td class="px-4 py-3 text-center">50 %</td>
+                        <td class="px-4 py-3 text-center">50 %</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="comparison-tab-content hidden" data-tab="comparison-tab-2">
+              Content for "Anzahl Ladeplätze in allen Depots"
+            </div>
+            <div class="comparison-tab-content hidden" data-tab="comparison-tab-3">
+              Content for "Elektrische Spitzenleistung"
+            </div>
+          </div>
+
+        </div>
+      </div>
+  </div>
+</main>
+{% endblock content %}
+
+{% block script %}
+<script>
+  // Tab functionality
+  document.addEventListener('DOMContentLoaded', () => {
+    const comparisonTabs = document.querySelectorAll('.comparison-tab');
+    const comparisonTabContents = document.querySelectorAll('.comparison-tab-content');
+
+    const switchTab = (tabId) => {
+      comparisonTabContents.forEach((content) => {
+        content.classList.add('hidden');
+      });
+
+      comparisonTabs.forEach((tab) => {
+        tab.classList.remove(
+          'border-slate-800',
+          'text-slate-800'
+        );
+        tab.classList.add(
+          'border-transparent',
+          'text-slate-500',
+          'hover:border-slate-300',
+          'hover:text-slate-700'
+        );
+      });
+
+      document
+        .querySelector(`.comparison-tab-content[data-tab="${tabId}"]`)
+        .classList.remove('hidden');
+
+      const activeTab = document.querySelector(
+        `.comparison-tab[data-tab-button="${tabId}"]`
+      );
+      activeTab.classList.add(
+        'border-slate-800',
+        'text-slate-800'
+      );
+      activeTab.classList.remove(
+        'border-transparent',
+        'text-slate-500',
+        'hover:border-slate-300',
+        'hover:text-slate-700'
+      );
+    };
+    comparisonTabs.forEach((tab) => {
+      tab.addEventListener('click', (event) => {
+        event.preventDefault();
+        switchTab(tab.getAttribute('data-tab-button'));
+      });
+    });
+
+    switchTab('comparison-tab-1');
+  });
+</script>
+{% endblock script %}

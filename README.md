@@ -64,6 +64,7 @@
 1. Only if `.env`has a celery broker listed, start a celery worker (in another terminal): `celery -A ebusdjango worker -l info`
     - on macOS `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` before the command may be necessary
 2. Run the server: `python manage.py runserver`
+3. For the design, Tailwind is used. Therefore, styles have to be compiled with `python manage.py tailwind start`. While developing and changing designs, this should run parallel to Django. Later, it might have to be called once to generate styles.
 
 
 ## Development

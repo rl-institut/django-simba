@@ -12,38 +12,42 @@ packages = [{include = "ebustoolbox"},
             {include = "core"}]
 
 [tool.poetry.dependencies]
-python = ">=3.10, <4.0"
+python = ">=3.10, <3.14"
 spice_ev = { git = "https://github.com/rl-institut/spice_ev", rev = "d593930f25ebdcdb0a915c45aa347c60be39e534"}
 simba = { git = "https://github.com/rl-institut/SimBA", rev = "dev"}
 
 Django = "^5.0.0"
-django-environ = ">=0.10.0, <1.0.0"
-django-plotly-dash = "^2.2.1"
 django-appconf = ">=1.0.5, <2.0.0"
+django-bootstrap4 = "23.4"
+django-distill = "^3.1.3"
+django-environ = ">=0.10.0, <1.0.0"
+django-extensions = "^3.2.3"
+django-fast-update = "^0.2.3"
+django-geojson = "^4.0.0"
+django-plotly-dash = "^2.2.1"
+django-tailwind = "^3.8.0"
 djangorestframework = ">=3.14.0, <4.0.0"
 djangorestframework-mvt = ">=0.2.5, <1.0.0"
-django-distill = "^3.1.3"
-django-geojson = "^4.0.0"
 
+eflips-depot = { git = "https://github.com/mpm-tu-berlin/eflips-depot", rev = "main"}
+eflips-eval = "^1.5.5"
+eflips-ingest = "^1.2.77"
+eflips-opt = "^0.2.0"
 
 celery = "^5.3.1"
-psycopg2-binary = "^2.9.6"
-pandas = "^2.0.3"
-matplotlib = "^3.7.2"
 colorbrewer = { git = "https://github.com/henhuy/colorbrewer-python.git" }
+matplotlib = "^3.7.2"
+pandas = "^2.0.3"
+psycopg2-binary = "^2.9.6"
 range-key-dict = "^1.1.0"
-django-extensions = "^3.2.3"
+redis = "^5.0.5"
+scipy = "^1.12.0"
 selenium = "^4.13.0"
 setuptools = "^68.2.2"
-django-bootstrap4 = "23.4"
 tqdm = "^4.66.1"
-eflips-depot = ">=4.4.2, <5.0.0"
-django-fast-update = "^0.2.3"
-scipy = "^1.12.0"
-eflips-ingest = "^1.2.77"
-eflips-eval = "^1.5.5"
-redis = "^5.0.5"
 geopy = "^2.4.1"
+
+
 
 [tool.poetry.group.dev]
 optional = true
@@ -53,6 +57,14 @@ black = "^23.7.0"
 flake8 = "^6.1.0"
 selenium = "^4.11.2"
 geopandas = "^1.0.1"
+django-stubs = "^5.1.3"
+django-types = "^0.20.0"
+
+[tool.mypy]
+plugins = ["mypy_django_plugin.main"]
+
+[tool.django-stubs]
+django_settings_module = "ebusdjango.settings"
 
 [build-system]
 requires = ["poetry-core"]

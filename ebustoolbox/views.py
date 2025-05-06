@@ -1,33 +1,45 @@
 import logging
 import traceback
-from datetime import timedelta, datetime, timezone as tz
+import dateutil.parser as parser
 
+import pytz
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import FileResponse, HttpResponse, JsonResponse, HttpRequest, Http404
-from django.shortcuts import render, redirect
+from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
+from django.db.models.functions import Cast, Coalesce
+from django.db.transaction import atomic
+from django.forms import formset_factory, modelform_factory, widgets
+from django.http import HttpResponse, HttpRequest, Http404, HttpResponseForbidden, JsonResponse
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
-from django.utils.cache import patch_cache_control
-from django.utils import timezone
-from django.views.generic import TemplateView
-from django.views.decorators.http import require_GET, require_POST
+from django.views.generic import TemplateView, FormView, ListView
+from django.views.decorators.http import require_POST
 from eflips.depot.api import simulate_scenario  # noqa
 
-from core.models import Progress
+from core.models import Progress, EnumProgress
 
 from celery.result import AsyncResult
 
 # Unused import of dash_app needed to register app
 from dash_app import dash_app, ids  # noqa: F401
-from django_mapengine.views import MapEngineMixin
-from . import tasks, schedule_readers
-from .forms import ElectrificationOptionsForm, SimulationParameters, VehicleTypeForm
-from .tasks import create_db_url, get_args  # noqa
+from django_mapengine.views import MapEngineMixin  # noqa
+from . import tasks, forms
+from .forms import (
+    VehicleTypeForm,
+    VehicleTypeSelectionForm,
+    FileUploadForm,
+    ScenarioSelection,
+    ManualTcoForm,
+    ManualLcaForm,
+    DepotChargingAreaForm,
+)
+from .tasks import create_db_url, get_args, scenario_to_db  # noqa
 from .util import get_unique_task_id
 
+from dash_app import data
 import ebustoolbox
 from ebustoolbox.models import (
     Scenario,
@@ -37,283 +49,992 @@ from ebustoolbox.models import (
     DefaultScenario,
     Station,
     EnumChargeType,
-    Rotation,
+    EventType,
     Trip,
     SimulationRange,
-    DepotSelection,
-    ElectrificationOptions,
     VehicleTypeSelection,
     VehicleTypeMutation,
+    StationMutation,
+    ScenarioWizardOptions,
+    EnumCalculationModes,
+    EnumScenarioType,
 )
+import pandas as pd
+import numpy as np
 
 logger = logging.getLogger("custom")
 
 
-def show_uploads_view(request: HttpRequest, filename):
-    file = open("uploads/" + filename, "rb")
-    response = FileResponse(file)
+def progress2(request: HttpRequest, progress_id, template_name):
+    context = {"progress_id": progress_id, "status": "", "current_progress": 0}
+
+    context |= {"finished": False}
+    try:
+        progress = Progress.objects.get(task_id=progress_id)
+        context["progress"] = progress
+    except ObjectDoesNotExist:
+        response = render(request, "core/progress.html", context)
+        return response
+
+    context["current_progress"] = max(progress.get_progress(), 1)
+    context["status"] = progress.status
+    status_code = 200
+    hx_trigger = "running"
+    if progress.success or not progress.running or len(progress.errors) != 0:
+        context["errors"] = progress.errors
+        # End polling
+        status_code = 286
+        context["finished"] = True
+        hx_trigger = "notRunning"
+    if progress.success:
+        hx_trigger = "success"
+    response = render(request, f"core/{template_name}", context)
+    response["HX-Trigger"] = hx_trigger
+    response.status_code = status_code
     return response
+
+
+def get_unique_progress_or_none(scenario_task_id):
+    progress_db = Progress.objects.filter(
+        scenario__task_id=scenario_task_id,
+        progress_type=EnumProgress.INIT_SCHEDULE,
+    )
+    assert len(progress_db) <= 1, "Only single progress of scenario upload progress should exist"
+    return progress_db.first()
+
+
+def get_or_create_child_vehicle_types(
+    scenario: Scenario,
+) -> QuerySet[VehicleType]:
+    """Create vehicle types and mutations according to the scenarios parent."""
+    parent_vehicle_types = VehicleType.objects.filter(scenario=scenario.parent)
+    for parent_vt in parent_vehicle_types:
+        if not VehicleTypeMutation.objects.filter(
+            scenario=scenario,
+            original_vehicle_type=parent_vt,
+        ).exists():
+            logger.info(f"{parent_vt} has no linked vehicle type. Creating a linked vehicle type")
+            org_vt_id = parent_vt.id
+            parent_vt.id = None
+            parent_vt.scenario = scenario
+            parent_vt.save()
+            org_vt = VehicleType.objects.get(id=org_vt_id)
+            VehicleTypeMutation.objects.create(
+                scenario=scenario, original_vehicle_type=org_vt, mutated_vehicle_type=parent_vt
+            )
+    child_vehicle_types = VehicleType.objects.filter(scenario=scenario)
+    assert (
+        VehicleTypeMutation.objects.filter(scenario=scenario).count()
+        == parent_vehicle_types.count()
+        == child_vehicle_types.count()
+    ), "The number of instances should be equal for VehicleTypeMutations and VehicleTypes (parent and child)"
+    return child_vehicle_types
+
+
+def get_user_vehicle_types(user) -> QuerySet[VehicleType]:
+    """Get a Queryset of vehicle types which can are accessible by the user"""
+    default_scenario = DefaultScenario.objects.first().scenario
+    return VehicleType.objects.filter(scenario=default_scenario, opportunity_charging_capable=True)
+
+
+def get_sorted_mutation_scenarios(user) -> QuerySet[Scenario]:
+    """Get a QuerySet of scenarios which are accessible by the user and the default scenario
+
+    The QuerySet is ordered by User Scenarios, UserGroup Scenarios and lastly the default Scenario
+    """
+    # Todo Define what admins should see and refactor function with new get_user_scenario_qs
+    if not user.is_authenticated:
+        # Query for default scenario
+        default_scenario = Scenario.objects.filter(defaultscenario=DefaultScenario.objects.first())
+        return default_scenario
+    scenario_qs = Scenario.objects.filter(scenario_type=EnumScenarioType.MUTATION).annotate(
+        order_id=Cast(F("manager_id"), FloatField()) - user.id,
+    )
+
+    user_scenarios = get_user_scenario_qs(user, scenario_qs=scenario_qs)
+    # Get the Scenario related to the Singleton DefaultScenario as queryset
+    default_scenario = Scenario.objects.filter(
+        defaultscenario=DefaultScenario.objects.first()
+    ).annotate(order_id=Value(float("inf"), output_field=FloatField()))
+    all_scenarios = user_scenarios.union(default_scenario)
+
+    # Annotation is not possible after using union
+    # Order output. User Scenarios first
+    all_scenarios_sorted = all_scenarios.order_by("order_id")
+    return all_scenarios_sorted
+
+
+def get_user_scenario_qs(user: User, scenario_qs: QuerySet[Scenario]) -> QuerySet[Scenario]:
+    if not user.is_authenticated:
+        return Scenario.objects.none()
+    return scenario_qs.filter(Q(manager=user) | Q(usergroup__users=user)).order_by("id")
+
+
+class AuthorizedMixIn:
+    """Implements dispatch to check authorization"""
+
+    has_permisson = None
+
+    def get_permission(self, user, task_id):
+        """Make sure User is authorized and add scenario to class"""
+        scenario = get_object_or_404(Scenario, task_id=task_id)
+
+        if user.is_superuser:
+            return True
+
+        if scenario.manager is None:
+            # Scenario is not managed and not protected by authentification
+            return True
+
+        if user.is_anonymous:
+            # Scenario is managed. anonymous user does not have permission
+            return False
+
+        if scenario.manager == user:
+            return True
+        usergroup_scenarios = Scenario.objects.filter(usergroup__users=user)
+        if scenario in usergroup_scenarios:
+            return True
+        return False
+
+    def dispatch(self, request, *args, **kwargs):
+        self.has_permisson = self.get_permission(request.user, kwargs.get("task_id"))
+        if not self.has_permisson:
+            return HttpResponseForbidden("Access Denied")  # Reject the request
+
+        return super().dispatch(request, *args, **kwargs)
+
+
+class ScenarioMixIn(AuthorizedMixIn):
+    """Implements redirect at dispatch if scenario was simulated already and sets default context.
+
+    Requires AuthorizedMixin
+    """
+
+    scenario = None
+
+    def dispatch(self, request, *args, **kwargs):
+        """Make sure User is authorized and add scenario to class"""
+        if not self.get_permission(request.user, kwargs.get("task_id")):
+            return HttpResponseForbidden("Access Denied")  # Reject the request
+        scenario = get_object_or_404(Scenario, task_id=kwargs.get("task_id"))
+        self.scenario = scenario
+        progress = Progress.objects.filter(
+            scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
+        ).first()
+        if progress is not None:
+            context = {"wiz_idx": 3}
+            if progress.running and not progress.success:
+                # Simulation is running, redirect to
+                context |= {
+                    "duration": 4,
+                    "redirect_url": reverse("simba:summary", args=[scenario.task_id]),
+                    "content": "Ihre Simulation wird ausgeführt, daher werden sie zur Zusammenfassung zurückgeleitet.",
+                }
+                return render(request, "core/redirect_with_timer.html", context)
+            if progress.success:
+                # Simulation finished sucessfully
+                # Simulation is running, redirect to
+                context |= {
+                    "duration": 4,
+                    "redirect_url": reverse("simba:result", args=[scenario.task_id]),
+                    "content": "Ihre Simulation ist beendet, daher werden sie zu den Ergebnissen weitergeleitet..",
+                }
+                return render(request, "core/redirect_with_timer.html", context)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        """Add scenario to the context"""
+        context = super().get_context_data(**kwargs)
+        context["scenario"] = self.scenario
+        context["task_id"] = self.scenario.task_id
+        return context
+
+
+class TripsView(FormView):
+    template_name = "ebustoolbox/trips.html"
+    form_class = forms.TripsForm
+    success_name = "simba:vehicles"
+
+    def get_context_data(self, request, **kwargs):
+        context = super(TripsView, self).get_context_data(**kwargs)
+        assert context["form"], "Form view should return context with applied form"
+        task_id = kwargs.get("task_id")
+        if task_id:
+            _ = get_scenario_and_assert_authorization(self.request, task_id)
+            # scenario is created so we pass the progress id so a progress bar can be shown
+            progress_db = get_unique_progress_or_none(kwargs.get("task_id"))
+            context["progress_id"] = progress_db.task_id if progress_db else None
+
+        scenarios = get_sorted_mutation_scenarios(self.request.user)
+        context["scenarios"] = scenarios
+        context["requested"] = request.GET.get("s")
+        return context
+
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get("task_id")
+
+        first = kwargs.get("first", 0)
+        if task_id and first != 1:
+            progress_db = get_unique_progress_or_none(task_id)
+            if progress_db and progress_db.success:
+                response = redirect(reverse("simba:vehicles", args=[str(task_id)]))
+                response["HX-Location"] = reverse("simba:vehicles", args=[str(task_id)])
+                return response
+        return self.render_to_response(self.get_context_data(request, **kwargs))
+
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+        if form.is_valid():
+            return self.form_valid(form)
+        else:
+            logger.debug("Invalid trips form provided")
+            context = self.get_context_data(**kwargs)
+            context["form"] = self.get_form_class()(self.request.POST, self.request.FILES)
+            return render(request, "ebustoolbox/partials/trips_form.html", context)
+            # return render(request, "ebustoolbox/partials/trips_form.html", context)
+
+    def form_valid(self, form):
+        """Handles successful form submission."""
+        cleaned_data = form.cleaned_data
+        task_id = self.kwargs.get("task_id", get_unique_task_id())
+
+        # Get a User as manager or none
+        manager = None
+        if self.request.user.is_authenticated:
+            manager = self.request.user
+        # If schedule reading failed before a scenario already exists
+        scenario, _ = Scenario.objects.get_or_create(task_id=task_id, manager=manager)
+        scenario.name = cleaned_data["scenario_name"]
+        scenario.description = cleaned_data["description"]
+        # If schedule reading failed before there is a parent already. Delete it if
+        # its only child is the current scenario
+        if scenario.parent:
+            if scenario.parent.scenario_set.count() == 1:
+                scenario.parent.delete()
+        scenario.parent = None
+        scenario.save()
+
+        data_file = form.files.get("data_file")
+        scenario_uuid = form.cleaned_data["existing_scenario"]
+
+        if data_file:
+            assert len(form.files) == 1, "Currently only single file uploads are allowed"
+
+            # Loop for possible later multifile support
+            files = dict()
+            for name, file in form.files.items():
+                # check file size
+                if file.size > settings.MAX_FILE_SIZE_B:
+                    # file too large
+                    raise Exception("Datei zu groß")
+                uploaded_file = UploadedFile.objects.create(scenario=scenario, file=file)
+                files[name] = uploaded_file.file.path, uploaded_file.id
+                # Delete the files from cleaned_data, since this is passed to
+                # celery and needs to be json serializable
+                del cleaned_data[name]
+            file_suffix = data_file.name[-3:]
+            parent, scenario = tasks.get_parent(scenario)
+            progress_id = tasks.get_uuid()
+            progress = Progress.objects.create(
+                scenario=scenario,
+                task_id=progress_id,
+                progress_type=EnumProgress.INIT_SCHEDULE,
+            )
+            async_result = None
+            if file_suffix == "csv":
+                # change the file naming according to SimbaScheduleReader
+                async_result = tasks.init_db_with_trips.apply_async(
+                    (
+                        scenario.id,
+                        1,
+                        {"file_path": files["data_file"]},
+                        {},
+                        progress.id,
+                    ),
+                    task_id=progress_id,
+                )
+            elif file_suffix == "zip":
+                async_result = tasks.init_db_with_trips.apply_async(
+                    (scenario.id, 3, files, cleaned_data, progress.id),
+                    task_id=progress_id,
+                )
+            else:
+                progress.success = False
+                progress.running = False
+                progress.errors.append(
+                    (
+                        "Dieser Dateityp wird nicht unterstüzt. Bitte laden sie eine .csv"
+                        "im SimBA-Format oder eine .zip datei im x10 Format hoch."
+                    )
+                )
+                progress.save()
+
+            if async_result is not None:
+                assert progress_id == async_result.task_id, (
+                    "Asynch result and Progress need to be equal" "for proper fetching of progress"
+                )
+        elif scenario_uuid:
+            if not Scenario.objects.get(task_id=scenario_uuid) in get_sorted_mutation_scenarios(
+                self.request.user
+            ):
+                raise Http404
+            mutation_scenario = Scenario.objects.get(task_id=scenario_uuid)
+            assert mutation_scenario.scenario_type == EnumScenarioType.MUTATION
+            copied_mutation = tasks.create_scenario_copy_for_user(mutation_scenario)
+            copied_mutation.name = scenario.name
+            copied_mutation.name_short = scenario.name_short
+            copied_mutation.description = scenario.description
+            copied_mutation.save()
+            scenario.delete()
+            scenario = copied_mutation
+            response = HttpResponse()
+            response["HX-Redirect"] = reverse("simba:vehicles", args=[str(scenario.task_id)])
+            return response
+
+        else:
+            raise NotImplementedError
+        progress_db = Progress.objects.filter(task_id=progress_id).first()
+        if progress_db and progress_db.success:
+            # Processing the scenario finished
+            response = HttpResponse()
+            response["HX-Location"] = reverse("simba:vehicles", args=[str(task_id)])
+            return response
+        response = HttpResponse()
+        # Redirect to the same url with task_id added. this allows insertion of the
+        # backend progress bar
+        response["HX-Redirect"] = reverse("simba:trips", args=[str(task_id), 1])
+        return response
+
+
+def get_scenario_and_assert_authorization(request, task_id) -> Scenario:
+    scenario = get_object_or_404(Scenario, task_id=task_id)
+    if request.user.is_superuser:
+        return scenario
+    if scenario.manager and scenario.manager != request.user:
+        raise Http404
+    return scenario
+
+
+class VehiclesView(ScenarioMixIn, TemplateView):
+    template_name = "ebustoolbox/vehicles.html"
+    success_name = "simba:stations"
+
+    def get_context_data(self, **kwargs):
+        scenario = self.scenario
+        context = super().get_context_data(**kwargs)
+        data = {}
+        if self.request.method == "POST":
+            data = self.request.POST
+        context |= self.get_simulation_parameters_context(data, scenario)
+        context |= self.get_vehicles_context(data, scenario)
+        return context
+
+    @staticmethod
+    def get_simulation_parameters_context(data, scenario: Scenario) -> dict:
+        """Get context for Simulation Range"""
+        context = {}
+        trips = Trip.objects.filter(scenario=scenario.parent).order_by("departure_time")
+        start = trips.first().departure_time
+        end = trips.last().arrival_time
+        start_date = start.date().isoformat()
+        start_time = start.time().isoformat()
+        end_date = end.date().isoformat()
+        end_time = end.time().isoformat()
+        sim_range, _ = SimulationRange.objects.get_or_create(scenario=scenario)
+        temperature = None
+        if data:
+            start, end = VehiclesView.parse_start_end_utc_from_POST(data)
+            initial_start_date = start.date().isoformat()
+            initial_start_time = start.time().isoformat()
+            initial_end_date = end.date().isoformat()
+            initial_end_time = end.time().isoformat()
+            temperature = data["temperature"]
+            simulation_parameters_form = forms.SimulationParameters(
+                data={"temperature": temperature, "start": start, "end": end},
+                instance=SimulationRange.objects.get(scenario=scenario),
+            )
+        else:
+            if sim_range.start and sim_range.end:
+                assert SimulationRange.objects.filter(scenario=scenario).count() == 1
+                # Times are provided to the context not via form, since different widgets
+                # are used.
+                start, end = sim_range.start, sim_range.end
+                initial_start_date = sim_range.start.date().isoformat()
+                initial_start_time = sim_range.start.time().isoformat()
+                initial_end_date = sim_range.end.date().isoformat()
+                initial_end_time = sim_range.end.time().isoformat()
+                temperature = sim_range.temperature
+            else:
+                initial_start_date = start_date
+                initial_start_time = start_time
+                initial_end_date = end_date
+                initial_end_time = end_time
+            simulation_parameters_form = forms.SimulationParameters(
+                initial={
+                    "temperature": temperature,
+                    "start": start,
+                    "end": end,
+                },
+                instance=SimulationRange.objects.get(scenario=scenario),
+            )
+        context |= {"min_date": start_date, "max_date": end_date}
+        context |= {
+            "start_date": initial_start_date,
+            "end_date": initial_end_date,
+        }
+        context |= {
+            "initial_start_time": initial_start_time,
+            "initial_end_time": initial_end_time,
+        }
+        context |= {
+            "task_id": scenario.task_id,
+            "simulation_parameters_form": simulation_parameters_form,
+        }
+        return context
+
+    def get_vehicles_context(self, data, scenario: Scenario) -> dict:
+        """Get context for vehicle types"""
+        context = {}
+
+        # Get all default vehicle types. Only Opportunity charging capable for now
+        # Expand the query for desired vehicle types which can be selected
+        default_vehicle_types = get_user_vehicle_types(self.request.user)
+        # if the child / mutation scenario has no vehicle types create them
+        # for each parent vehicle type, with a mutated vehicle type of this scenario. PseudoCode:
+        child_vehicle_types = get_or_create_child_vehicle_types(scenario)
+        vehicle_modification = {}
+        for vt in child_vehicle_types:
+            vt_select, _ = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
+            selection = VehicleTypeSelectionForm(
+                data,
+                prefix=f"selection_{vt.id}",
+                vehicle_type=vt,
+                choices_queryset=default_vehicle_types,
+                instance=vt_select,
+            )
+            modification = VehicleTypeForm(data, instance=vt, prefix=f"mutation_{vt.id}")
+            vehicle_modification[vt.id] = {
+                "vehicle_type": vt,
+                "vehicle_choices": default_vehicle_types,
+                "selection": selection,
+                "vehicle_modification": modification,
+            }
+
+        context["vehicle_modification"] = vehicle_modification
+        context["choice_vts"] = default_vehicle_types
+
+        return context
+
+    @staticmethod
+    def parse_start_end_utc_from_POST(data):
+        start_dt = parser.parse(f"{data['start-date']} {data['start-time']}")
+        start_dt_utc = start_dt.replace(tzinfo=pytz.UTC)
+        end_dt = parser.parse(f"{data['end-date']} {data['end-time']}")
+        end_dt_utc = end_dt.replace(tzinfo=pytz.UTC)
+        return start_dt_utc, end_dt_utc
+
+    def post(self, request, *args, **kwargs):
+        forms = []
+        scenario = self.scenario
+        context = self.get_context_data(scenario=scenario, **kwargs)
+        # simulation_range_form = SimulationParameters(
+        #     data={
+        #         "start": start_dt_utc,
+        #         "end": end_dt_utc,
+        #         "temperature": request.POST["temperature"],
+        #     }
+        # )
+        simulation_parameters_form = context["simulation_parameters_form"]
+        if simulation_parameters_form.is_valid():
+            _ = simulation_parameters_form.save()
+        forms.append(simulation_parameters_form)
+
+        vehicle_modification = context["vehicle_modification"]
+
+        # Gather all vehicle selection and modification forms
+        for d_values in vehicle_modification.values():
+            form = d_values["selection"]
+            forms.append(form)
+            form = d_values["vehicle_modification"]
+            forms.append(form)
+
+        # Validate vehicle forms
+        if all(f.is_valid() for f in forms):
+            return self.forms_valid(forms, scenario)
+
+        else:
+            for f in forms:
+                if not f.is_valid():
+                    logger.info(f"{f.errors}")
+            return self.render_to_response(context)
+
+    @atomic()
+    def forms_valid(self, forms, scenario):
+        """Handles successful form submission."""
+        # Delete previous selections
+        VehicleTypeSelection.objects.filter(vehicle_type__scenario=scenario).delete()
+        VehicleTypeSelectionForms = list(
+            filter(lambda x: x._meta.model == VehicleTypeSelection, forms)
+        )
+        for form in VehicleTypeSelectionForms:
+            form.save()
+
+        VehicleTypeForms = list(filter(lambda x: x._meta.model == VehicleType, forms))
+        for form in VehicleTypeForms:
+            # Mutate the vehicle according to the selected default vehicle
+            instance = form.instance
+            d_vt = VehicleTypeSelection.objects.get(vehicle_type=instance).default_vehicle_type
+            d_vt.id = instance.id
+            d_vt.scenario = instance.scenario
+            d_vt.name = instance.name
+            d_vt.name_short = instance.name_short
+            d_vt.save()
+            # Overwrite the instance with the data from the form
+            VehicleTypeForm(self.request.POST, instance=d_vt, prefix=form.prefix).save()
+        response = redirect(reverse(self.success_name, args=[scenario.task_id]))
+        return response
+
+    def form_invalid(self, form, **kwargs):
+        logger.debug("Invalid Vehicles Form provided")
+        return self.render_to_response(self.get_context_data(**kwargs, form=form))
+
+
+class StationsView(ScenarioMixIn, TemplateView):
+    template_name = "ebustoolbox/stations.html"
+    success_name = "simba:costs"
+
+    @staticmethod
+    def get_station_prefix(station):
+        return f"station_{station.id}"
+
+    def get_context_data(self, **kwargs):
+        scenario = self.scenario
+        context = super().get_context_data(**kwargs)
+        parent_station_query = Station.objects.filter(scenario=scenario.parent).exclude(
+            charge_type=EnumChargeType.DEPOT
+        )
+        annotated_query = tasks.annotate_stations_with_lines(parent_station_query)
+        station_mutations = {
+            s.original_station.id: s.mutated_original_station
+            for s in StationMutation.objects.filter(scenario=scenario)
+        }
+        scenario_stations = {}
+        # Mutate stations with lines of their annotated parents
+        for station in annotated_query:
+            station_lines = {*station.lines_departure, *station.lines_arrival}
+            mutated_station = station_mutations[station.id]
+            mutated_station.lines = station_lines
+            scenario_stations[mutated_station.id] = mutated_station
+
+        context["ordered_stations"] = (
+            Station.objects.filter(scenario=scenario)
+            .exclude(charge_type=EnumChargeType.DEPOT)
+            .order_by("name")
+            .values_list("id", flat=True)
+        )
+        context["stations"] = scenario_stations
+
+        # Might be more elegant to to that in a db query
+        # Merge the lines for each stations so they can be filtered by
+        context["all_lines"] = set()
+        for stat in context["stations"].values():
+            context["all_lines"] = context["all_lines"].union(stat.lines)
+
+        data = self.request.POST
+        if self.request.method != "POST":
+            data = {}
+
+        # ToDo Deprecated with new design
+        wizard_options, _ = ScenarioWizardOptions.objects.get_or_create(scenario=scenario)
+
+        form_class = modelform_factory(ScenarioWizardOptions, fields=["station_calculation_mode"])
+        if not data:
+            data |= {"station_calculation_mode": wizard_options.station_calculation_mode}
+        form = form_class(data=data, instance=wizard_options)
+        context["calculation_mode_form"] = form
+        context["automatic_value"] = EnumCalculationModes.AUTOMATIC
+        context["constant_power_value"] = EnumCalculationModes.CONSTANT_POWER
+        context["manual_value"] = EnumCalculationModes.MANUAL
+
+        # General Charging power defined on top level
+        context["charging_power_form"] = forms.ChargingPowerForm(data)
+
+        # Settings specific to each station
+        context["stations_forms"] = dict()
+        for station in context["stations"].values():
+            context["stations_forms"][station.id] = forms.StationForm(
+                data, instance=station, prefix=self.get_station_prefix(station)
+            )
+        context["detailedOptionNames"] = list(forms.StationForm().fields.keys())
+
+        return context
+
+    def get(self, request, *args, **kwargs):
+        # Make sure the scenario has its own stations which are linked to its parent scenario
+        scenario = self.scenario
+        station_mutations = StationMutation.objects.filter(
+            scenario=scenario,
+        )
+        if station_mutations.count() != Station.objects.filter(scenario=scenario.parent).count():
+            # Not every station from the parent scenario is linked to a new station
+            # Delete the current stations, create new ones and link them
+            ebustoolbox.tasks.create_station_mutations(scenario)
+        return self.render_to_response(
+            self.get_context_data(**kwargs),
+        )
+
+    def post(self, request, *args, **kwargs):
+        scenario = self.scenario
+        context = self.get_context_data(**kwargs)
+        calculation_mode_form = context["calculation_mode_form"]
+        if not calculation_mode_form.is_valid():
+            logger.debug("Invalid Stations Calculation Mode Form provided")
+
+            return self.render_to_response(**kwargs)
+
+        match calculation_mode_form.cleaned_data["station_calculation_mode"]:
+            case "automatic":
+                # Deprecated_Mode
+                raise NotImplementedError
+            case "constant_power":
+                # Deprecated Mode
+                raise NotImplementedError
+            case "manual":
+                all_valid = all(form.is_valid() for form in context["stations_forms"].values())
+                if not all_valid:
+                    logger.debug("Invalid StationsForm provided")
+                    return self.render_to_response(context)
+                # The forms are valid. Update the stations and exclude stations
+                # from electrification
+                ebustoolbox.tasks.update_stations_and_exclusion(context)
+            case _:
+                raise NotImplementedError
+        response = redirect(reverse(self.success_name, args=[scenario.task_id]))
+        return response
+
+
+class CostsView(ScenarioMixIn, TemplateView):
+    success_name = "simba:depots"
+    template_name = "ebustoolbox/costs.html"
+
+    def get_context_data(self, **kwargs):
+        data = {}
+        if self.request.method == "POST":
+            data = self.request.POST
+
+        context = super().get_context_data(**kwargs)
+        # Todo define which scenarios can be picked
+        selectable_scenarios = Scenario.objects.filter(id__gte=590)
+        costs_form = forms.CostInputModeForm(data=data, prefix="costsRadio")
+        context["cost_mode_form"] = costs_form
+        lca_form = forms.CostInputModeForm(data=data, prefix="envRadio")
+        context["env_mode_form"] = lca_form
+        # Radio Button Values
+        context["radio_values"] = dict()
+        for choice in forms.CostInputModeForm.CHOICES:
+            val = choice[0]
+            context["radio_values"][val] = choice[0]
+
+        for prefix in ["costs", "env"]:
+            context[prefix + "_fileUpload"] = FileUploadForm(data=data, prefix=prefix)
+            form = ScenarioSelection(data=data, queryset=selectable_scenarios, prefix=prefix)
+            form.is_valid()
+            context[prefix + "_scenario_selection"] = form
+
+        context["costs_manual"] = ManualTcoForm(data=data, prefix="costs")
+        context["env_manual"] = ManualLcaForm(data=data, prefix="env")
+
+        return context
+
+    def get(self, request, *args, **kwargs):
+        return self.render_to_response(self.get_context_data(**kwargs))
+
+    def post(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        all_valid = True
+
+        for form, prefix in zip(
+            [context["cost_mode_form"], context["env_mode_form"]],
+            ["costs", "env"],
+        ):
+            valid = form.is_valid()
+            all_valid = all_valid & valid
+            if not valid:
+                logger.debug("Invalid Costs Form provided")
+
+                break
+            match form.cleaned_data["input_mode"]:
+                case "no_input":
+                    pass
+                case "file_upload":
+                    file_form = context[prefix + "_fileUpload"]
+                    if not file_form.is_valid():
+                        logger.debug("Invalid Costs File Form provided")
+                        all_valid = False
+                        break
+                    raise NotImplementedError("file upload is not yet implemented")
+                    pass
+                case "reference_scenario":
+                    scenario_selection = context[prefix + "_scenario_selection"]
+                    if not scenario_selection.is_valid():
+                        logger.debug("Invalid Costs Scenario Selection provided")
+                        all_valid = False
+                        break
+                    raise NotImplementedError("scenario_selection is not yet implemented")
+                case "manual":
+                    manual_form = context[prefix + "_manual"]
+                    if not manual_form.is_valid():
+                        logger.debug("Invalid Cost Manual Form provided")
+                        all_valid = False
+                        break
+                    raise NotImplementedError("manual_form is not yet implemented")
+                case _:
+                    raise NotImplementedError(f"Mode {form.cleaned_data['input_mode']}")
+        if not all_valid:
+            return self.render_to_response(context)
+
+        return redirect(reverse(self.success_name, args=[kwargs["task_id"]]))
+
+
+class DepotsView(ScenarioMixIn, TemplateView):
+    template_name = "ebustoolbox/depots.html"
+    success_name = "simba:summary"
+
+    def get_context_data(self, **kwargs):
+        scenario = self.scenario
+        context = super().get_context_data(**kwargs)
+        data = {}
+        if self.request.method == "POST":
+            data = self.request.POST
+        # ToDo: Depots could get queried for the sim_range. below method returns the stations
+        # from the parent, this needs fixing if this functionality is desired.
+        # Instead the stations from the scenario should be returned. this can be done
+        # through the StationMutation
+        # depots_query = get_depots(scenario)
+        depots_query = Station.objects.filter(scenario=scenario, charge_type=EnumChargeType.DEPOT)
+        context["depots"] = {depot.id: depot for depot in depots_query}
+        context["forms"] = dict()
+        for depot in depots_query:
+            formset_prefix = f"depot_area_{depot.id}"
+            if self.request.method == "GET":
+                formset_data = {
+                    f"{formset_prefix}-TOTAL_FORMS": "1",
+                    f"{formset_prefix}-INITIAL_FORMS": "1",
+                }
+                data.update(formset_data)
+            context["forms"][depot.id] = dict()
+
+            stations_mode_form = forms.DepotCalculationForm(
+                data, prefix=f"depot_calc_mode_{depot.id}"
+            )
+            # change the type of station mode form since in this case its not a radio
+            # but just hidden value toggle
+            # Use a text input in this case
+            stations_mode_form.base_fields["calculation_mode"].widget = widgets.TextInput()
+
+            context["forms"][depot.id]["calculation_mode_form"] = stations_mode_form
+            context["forms"][depot.id]["depot_info_form"] = forms.DepotInfoForm(
+                data, instance=depot, prefix=f"depot_info_{depot.id}"
+            )
+            context["forms"][depot.id]["depot_area_forms"] = formset_factory(
+                DepotChargingAreaForm,
+            )(
+                data,
+                prefix=formset_prefix,
+            )
+        return context
+
+    def get(self, request, *args, **kwargs):
+        return self.render_to_response(self.get_context_data(**kwargs))
+
+    def post(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        all_valid = True
+        all_forms = dict()
+        for depot_id, form_dict in context["forms"].items():
+            form = form_dict["calculation_mode_form"]
+            all_forms[depot_id] = list()
+            all_forms[depot_id].append(form)
+            if not form.is_valid():
+                logger.info("Invalid Depots Calculation Mode Form Provided")
+                continue
+            mode = form.cleaned_data["calculation_mode"]
+            if mode == "automatic":
+                continue
+            elif mode == "manual":
+                all_forms[depot_id].append(form_dict["depot_info_form"])
+                depot_area_forms = [form for form in form_dict["depot_area_forms"].forms]
+                assert len(depot_area_forms) > 0
+                all_forms[depot_id].extend(depot_area_forms)
+            else:
+                raise NotImplementedError(f"Mode {mode} not supported")
+
+        for depot_id, d_forms in all_forms.items():
+            for form in d_forms:
+                if not form.is_valid():
+                    logger.info(f"Invalid Depots {form} provided")
+                    all_valid = False
+
+        if all_valid:
+            for depot_id, d_forms in all_forms.items():
+                forms_ = list(filter(lambda x: isinstance(x, forms.DepotInfoForm), d_forms))
+                if len(forms_) == 1:
+                    instance = forms_[0].save()
+                elif len(forms_) > 1:
+                    raise Exception("There should only be a single DepotInfoForm per depot")
+
+                forms_ = list(filter(lambda x: isinstance(x, DepotChargingAreaForm), d_forms))
+                for form in forms_:
+                    instance = Station.objects.get(id=depot_id)
+                    for key, value in form.cleaned_data.items():
+                        setattr(instance, key, value)
+                    instance.save()
+                    # ToDo only the first form is handled since a station only has a single
+                    # area right now
+                    break
+
+            # Todo: Implement Database stuff of multiple areas and calcuation mode
+            logger.warning(
+                "Depot forms are valid, but are not implemented yet. Unclear how Manual and "
+                "automatic calculation and area definition should be stored"
+            )
+            response = redirect(reverse(self.success_name, args=[self.scenario.task_id]))
+            return response
+
+        return self.render_to_response(context)
+
+
+class SummaryView(AuthorizedMixIn, TemplateView):
+    template_name = "ebustoolbox/summary.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        task_id = kwargs.get("task_id")
+        scenario = get_object_or_404(Scenario, task_id=task_id)
+        context["scenario"] = scenario
+        context["task_id"] = task_id
+        progress = Progress.objects.filter(
+            scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
+        ).last()
+        if progress:
+            context["progress"] = progress
+            # context["show_rerun"]= (not progress.running and not progress.success) or progress.errors
+
+        sim_range = SimulationRange.objects.get(scenario=scenario)
+        german_weekdays = {
+            0: "Mo",
+            1: "Di",
+            2: "Mi",
+            3: "Do",
+            4: "Fr",
+            5: "Sa",
+            6: "So",
+        }
+        _format = "%d:%m:%Y, %H:%M"
+        start = sim_range.start
+        end = sim_range.end
+        context["sim_duration"] = (
+            f"{german_weekdays[start.weekday()]} {start.strftime(_format)} - "
+            f"{german_weekdays[end.weekday()]} {end.strftime(_format)}"
+        )
+        context["temperature"] = sim_range.temperature
+        parent_vehicle_types = VehicleType.objects.filter(scenario=scenario.parent)
+
+        scenario_stations = Station.objects.filter(scenario=scenario).exclude(
+            charge_type=EnumChargeType.DEPOT
+        )
+
+        annotated_parent_vehicle_types = tasks.annotate_vehicletypes_with_lines(
+            parent_vehicle_types
+        )
+        vt_mutations = {
+            x.original_vehicle_type.id: x.mutated_vehicle_type
+            for x in VehicleTypeMutation.objects.filter(scenario=scenario)
+        }
+        annotated_vehicle_types = []
+        for vt in annotated_parent_vehicle_types:
+            mutated_vt = vt_mutations[vt.id]
+            mutated_vt.lines = vt.lines
+            annotated_vehicle_types.append(mutated_vt)
+        context["vehicle_types"] = annotated_vehicle_types
+
+        context["electrified_stations"] = scenario_stations.filter(is_electrified=True)
+        excluded = Station.objects.filter(scenario=scenario, is_electrifiable=False)
+        excluded_ids = excluded.values_list("id", flat=True)
+        context["automatic_stations"] = scenario_stations.filter(
+            is_electrified=False, is_electrifiable=True
+        )
+        context["excluded_stations"] = scenario_stations.filter(id__in=excluded_ids)
+        context["depots"] = Station.objects.filter(
+            scenario=scenario, charge_type=EnumChargeType.DEPOT
+        )
+        return context
+
+    def post(self, request, *args, **kwargs):
+        raise NotImplementedError()
+        return self.render_to_response(self.get_context_data())
 
 
 def result_view(request: HttpRequest, task_id):
     """View controlling if the wait or success view should be shown"""
     try:
-        if Scenario.objects.get(task_id=task_id).finished:
+        scenario = Scenario.objects.get(task_id=task_id)
+        if scenario.finished:
             request.task_id = str(task_id)
-            return SuccessView.as_view()(request, task_id=task_id, finished=True)
-        else:
-            return wait_view(request, task_id)
+            return ResultView.as_view()(request, task_id=task_id, finished=True)
+        # scenario exists, but is not finished: redirect to dashboard
+        # TODO: redirect to progress page once that exists
+        return redirect(reverse("simba:dashboard"))
     except Scenario.DoesNotExist:
-        html = "<html><body>task_id is not valid</body></html>"
-        return HttpResponse(html)
+        raise Http404
 
 
-def wait_view(request, task_id):
-    """View while waiting for results. Will trigger success view as soon as long-running task
-    returns pending"""
-    logger.info("SimBA is calculating. Showing wait view")
-    return render(request, "wait.html", {"task_id": task_id})
-
-
-class SuccessView(TemplateView, MapEngineMixin):
-    """View which generates the page containing simulation results"""
-
-    template_name = "result.html"
+class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
+    template_name = "ebustoolbox/result.html"
 
     def get_context_data(self, **kwargs):
-        context = super(SuccessView, self).get_context_data(**kwargs)
+        context = super(ResultView, self).get_context_data(**kwargs)
         task_id = kwargs.get("task_id")
         if task_id is None:
             raise Http404
         task_id = str(task_id)
         context["task_id"] = task_id
-
-        session = self.request.session
-        from dash_app.dash_app import create_app
-
-        # By creating a specific app for this task ID, the app "knows" which data to load
-        # ToDO make sure only authorized users can view this
-        create_app(task_id=task_id)
-        # the dictionary in "django_plotly_dash" appears in the session_state of the app, which
-        # is an optional kwarg in app.callbacks
-        session["django_plotly_dash"] = {"task_id": task_id}
+        scenario = get_object_or_404(Scenario, task_id=task_id)
+        context["scenario"] = scenario
 
         return context
 
 
-@require_GET
-def long_running_task_status_view(request):
-    """Returns a Json with a success field. The field is True if the task has finished and
-    False if it is still pending"""
-    task_id = request.GET.get("task_id")
-    task_result = AsyncResult(task_id)
-    if (
-        task_result.ready()
-        or Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
-    ):
-        logger.info("Task is finished")
-        return JsonResponse({"success": True})
-    logger.info("Task is pending")
-    return JsonResponse({"success": False})
+class DashboardView(TemplateView):
+    empty_template_name = "ebustoolbox/dashboard-empty-state.html"
+    template_name = "ebustoolbox/dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        context = {}
+        if not self.request.user.is_authenticated:
+            raise Http404()
+        scenarios = Scenario.objects.filter(manager=self.request.user)
+        context["scenarios"] = scenarios
+        if len(scenarios) == 0:
+            self.render_to_response(context)
+        return context
+
+    @login_required(login_url="/login/")
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        if len(context["scenarios"]) == 0:
+            return render(request, template_name=self.empty_template_name, context=context)
+
+        return render(request, template_name=self.template_name, context=context)
+
+    def post(self, request, *args, **kwargs):
+        raise Http404()
 
 
-def schedule(request: HttpRequest, task_id, finished):
-    """Generate the home view of the tool chain with input forms"""
-    # Schedule uploading triggers a progress which will send finished="true" if the upload is
-    # finished
-    if finished == "true":
-        scenario = Scenario.objects.get(task_id=task_id)
-        task_id = scenario.task_id
-        scenario.task_id = ebustoolbox.util.get_unique_task_id()
-        scenario.save()
-        _ = tasks.create_empty_child_scenario(scenario, task_id=task_id)
-        scenario.name = "Parent of " + scenario.name
-        scenario.save()
-        return redirect(reverse("simba:simulation_parameters", args=[str(task_id)]))
-    if task_id is None:
-        task_id = get_unique_task_id()
-    context = {
-        "task_id": task_id,
-    }
-    return render(request, "schedule.html", context)
-
-
-def get_simulation_parameters(request: HttpRequest, task_id):
-    """Generate the home view of the tool chain with input forms"""
-    try:
-        scenario = Scenario.objects.get(task_id=task_id)
-        parent = scenario.parent
-
-    except Scenario.DoesNotExist:
-        raise Http404
-    # if the scenario has a manager, only this User can run the simulation
-    if scenario.manager and scenario.manager != request.user:
-        raise Http404
-    context = {}
-    simulation_parameters_form = SimulationParameters()
-    if request.method == "POST":
-        simulation_parameters_form = SimulationParameters(request.POST)
-        if simulation_parameters_form.is_valid():
-            date_range = simulation_parameters_form.cleaned_data["date_range"]
-            from_date, to_date = date_range  # Unpack the tuple
-            time_delta = timedelta(days=(to_date - from_date).days + 1)
-            from_datetime = datetime.combine(from_date, datetime.min.time())
-            from_datetime_aware = timezone.make_aware(from_datetime, timezone=tz.utc)
-
-            if tasks.get_rotations_by_timespan(parent, time_delta, from_datetime_aware).count() > 0:
-                sim_range = SimulationRange.objects.filter(scenario=scenario).first()
-                if sim_range is None:
-                    sim_range = SimulationRange(scenario=scenario)
-                sim_range.start = from_datetime_aware
-                sim_range.end = from_datetime_aware + time_delta
-                sim_range.save()
-                return redirect(reverse("simba:vehicle_types", args=[str(task_id)]))
-            error = "Zeitspanne enthält keine Umläufe."
-            context["error"] = error
-        else:
-            logging.warning("Simulation parameters are invalid")
-
-    trips = Trip.objects.filter(scenario=parent).order_by("departure_time")
-    start = trips.first().departure_time.date().isoformat()
-    end = trips.last().arrival_time.date().isoformat()
-    sim_range = SimulationRange.objects.filter(scenario=scenario).first()
-    if sim_range:
-        initial_start = sim_range.start.date().isoformat()
-        initial_end = (sim_range.end - timedelta(days=1)).isoformat()
-    else:
-        initial_start = start
-        initial_end = end
-    context |= {"min_date": start, "max_date": end}
-    context |= {"start_date": initial_start, "end_date": initial_end}
-    context |= {"task_id": task_id, "form": simulation_parameters_form}
-    return render(request, "simulation_parameters.html", context)
-
-
-def get_options(request: HttpRequest, task_id, reader_num: int):
-    context = {
-        "reader_num": reader_num,
-        "task_id": task_id,
-        "max_file_size_b": settings.MAX_FILE_SIZE_B,
-    }
-    response = HttpResponse(context)
-    try:
-        form = schedule_readers.get_options_form(reader_num)()
-        context |= {"form": form}
-        response = render(request, "schedule_reader_options.html", context)
-    except:  # noqa
-        logger.error(traceback.format_exc())
-        # 204 - No Content https://htmx.org/docs/#requests
-        response.status_code = 204
-    return response
-
-
-def get_vehicle_types(request: HttpRequest, task_id):
-    context = {"task_id": task_id}
-
-    try:
-        scenario = Scenario.objects.get(task_id=task_id)
-        parent = scenario.parent
-    except Scenario.DoesNotExist:
-        raise Http404
-    # if the scenario has a manager, only this User can run the simulation
-    if scenario.manager and scenario.manager != request.user:
-        raise Http404
-
-    default_scenario = DefaultScenario.objects.first().scenario
-    vehicle_types = VehicleType.objects.filter(scenario=parent)
-    # Get all default vehicle types. Only Opportunity charging capable for now
-    default_vehicle_types = VehicleType.objects.filter(
-        scenario=default_scenario, opportunity_charging_capable=True
-    )
-
-    # if the child / mutation scenario has no vehicle types create them
-    child_vehicle_types = VehicleType.objects.filter(scenario=scenario)
-    if child_vehicle_types.count() == 0:
-        for vt in vehicle_types:
-            org_vt_id = vt.id
-            vt.id = None
-            vt.scenario = scenario
-            vt.save()
-            org_vt = VehicleType.objects.get(id=org_vt_id)
-            VehicleTypeMutation.objects.create(
-                original_vehicle_type=org_vt, mutated_vehicle_type=vt
-            )
-
-    context["vehicle_types"] = vehicle_types
-    # Create form for every selection of a default vehicle type
-    from django.forms import modelformset_factory
-
-    VehicleTypeSelectionFormSet = modelformset_factory(
-        VehicleTypeSelection, fields=["default_vehicle_type"], extra=0
-    )
-    for vt in child_vehicle_types:
-        vt_select, _ = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
-
-    formset_vt = VehicleTypeSelectionFormSet(
-        queryset=VehicleTypeSelection.objects.filter(vehicle_type__in=child_vehicle_types),
-        prefix="dvt_selection",
-    )
-
-    # Make the choice of the default vehicle type visible
-    for form in formset_vt:
-        form.fields["default_vehicle_type"].queryset = default_vehicle_types
-        form.fields["default_vehicle_type"].widget.attrs["type"] = "visible"
-    context["formset_vt"] = formset_vt
-
-    # Form for every default vehicle type to allow mutation of default vehicle values
-    VehicleTypeFormSet = modelformset_factory(VehicleType, form=VehicleTypeForm, extra=0)
-    formset_dvt = VehicleTypeFormSet(
-        queryset=VehicleType.objects.filter(id__in=default_vehicle_types), prefix="dvt_mutation"
-    )
-    context["formset_dvt"] = formset_dvt
-    context["default_vehicle_types"] = default_vehicle_types
-
-    # check if can be skipped by seeing if vehicle types have relevant data
-    skippable = reverse("simba:depots", args=[str(task_id)])
-    for vt in vehicle_types:
-        if vt.consumption is None:
-            skippable = False
-            break
-    context["skippable"] = skippable
-
-    if request.method == "POST":
-        vt_type_mutations = VehicleTypeFormSet(request.POST, prefix="dvt_mutation")
-        vt_selection = VehicleTypeSelectionFormSet(request.POST, prefix="dvt_selection")
-        if not vt_type_mutations.is_valid() or not vt_selection.is_valid():
-            return render(request, "vehicle_types.html", context)
-
-        vt_type_mutations = {form.instance.id: form.instance for form in vt_type_mutations}
-        vt_selection.save()
-
-        # Change every vehicle to the selected default vehicle type properties
-        for form in vt_selection:
-            vt, dvt = form.instance.vehicle_type, form.instance.default_vehicle_type
-            changed_dvt = vt_type_mutations[dvt.id]
-            # overwrite mutation vt with the new values of the mutated default vehicle type
-            changed_dvt.id = vt.id
-            # Restore some values from original vt
-            changed_dvt.name = vt.name
-            changed_dvt.scenario = vt.scenario
-            changed_dvt.name_short = vt.name_short
-            changed_dvt.save()
-        return redirect(reverse("simba:depots", args=[str(task_id)]))
-
-    return render(request, "vehicle_types.html", context)
-
-
-def get_depots(request: HttpRequest, task_id):
-    """View for the depot input tab. Either continues to next wizard step or renders depot page."""
-    context = {"task_id": task_id}
-    try:
-        scenario = Scenario.objects.get(task_id=task_id)
-        parent = scenario.parent
-    except Scenario.DoesNotExist:
-        raise Http404
-    # if the scenario has a manager, only this User can run the simulation
-    if scenario.manager and scenario.manager != request.user:
-        raise Http404
-
+def get_depots(scenario):
     # Get filtered depots by simrange
+    parent = scenario.parent
     sim_range = SimulationRange.objects.filter(scenario=scenario).first()
     if sim_range:
         # If a simulation range is given, only allow filtering of depots which service rotations
@@ -329,244 +1050,8 @@ def get_depots(request: HttpRequest, task_id):
         depots_query = Station.objects.filter(id__in=station_ids)
     else:
         depots_query = Station.objects.filter(scenario=parent)
-
     depots_query = depots_query.filter(charge_type=EnumChargeType.DEPOT).order_by("id")
-    if request.method == "POST":
-        depot_ids = [dep.id for dep in depots_query]
-        dep_sel, _ = DepotSelection.objects.get_or_create(scenario=scenario)
-        if len(depot_ids) == 1:
-            dep_sel.depots.add(*depot_ids)
-            return redirect(reverse("simba:electrification", args=[str(task_id)]))
-        if len(depot_ids) > 1:
-            selected_depot_ids = []
-            for dep in depots_query:
-                if request.POST.get(f"sim_depot_{dep.id}") == "on":
-                    selected_depot_ids.append(dep.id)
-            if len(selected_depot_ids) >= 1:
-                dep_sel.depots.add(*depot_ids)
-                # tasks.trim_depots(scenario, depots_to_remove)
-                return redirect(reverse("simba:electrification", args=[str(task_id)]))
-        context["error"] = "Wähle mindestens ein Depot aus."
-        context["depots"] = depots_query
-        return render(request, "depots.html", context)
-    else:
-        depots = (
-            depots_query.filter(scenario=parent)
-            .filter(charge_type=EnumChargeType.DEPOT)
-            .order_by("id")
-        )
-        context["depots"] = depots
-        return render(request, "depots.html", context)
-
-
-def get_electrification(request: HttpRequest, task_id):
-    try:
-        scenario = Scenario.objects.get(task_id=task_id)
-        parent = scenario.parent
-    except Scenario.DoesNotExist:
-        raise Http404
-        # if the scenario has a manager, only this User can run the simulation
-    if scenario.manager and scenario.manager != request.user:
-        raise Http404
-    electrification_option = ElectrificationOptions.objects.filter(scenario=scenario).first()
-    if electrification_option is None:
-        electrification_option = ElectrificationOptions.objects.create(
-            scenario=scenario, station_optimization=False
-        )
-        electrification_option.electrified_stations.add(
-            *list(
-                Station.objects.filter(
-                    scenario=parent, is_electrified=True, charge_type=EnumChargeType.OPPORTUNITY
-                )
-            )
-        )
-        electrification_option.save()
-    form = ElectrificationOptionsForm(instance=electrification_option)
-    context = {"task_id": task_id, "form": form}
-    stations = (
-        Station.objects.filter(scenario=parent)
-        .exclude(charge_type=EnumChargeType.DEPOT)
-        .order_by("id")
-    )
-    opp_count = Rotation.objects.filter(scenario=parent).filter(allow_opportunity_charging=True)
-    is_depot_scenario = True if len(opp_count) == 0 else False
-    context["stations"] = stations
-    context["electrified_stations"] = electrification_option.electrified_stations.all()
-    context["is_depot_scenario"] = is_depot_scenario
-
-    if request.method == "GET":
-        return render(request, "input_electrification.html", context)
-    elif request.method == "POST":
-        if is_depot_scenario:
-            response = redirect(reverse("simba:scenario_overview", args=[str(task_id)]))
-            return response
-
-        form = ElectrificationOptionsForm(request.POST, instance=electrification_option)
-        context["form"] = form
-        if not form.is_valid():
-            return render(request, "input_electrification.html", context)
-
-        station_id_list = request.POST.getlist(key="station_id")
-        electrified_stations = Station.objects.filter(scenario=parent, id__in=station_id_list)
-        ElectrificationOptions.objects.filter(scenario=scenario).delete()
-        ele_option = form.save()
-        ele_option.electrified_stations.add(*electrified_stations)
-        ele_option.save()
-
-        # redirect to "simulation overview" page which can start a simulation
-        response = redirect(reverse("simba:scenario_overview", args=[str(task_id)]))
-        return response
-    else:
-        return HttpResponse("Method is not allowed", status=405)
-
-
-def scenario_overview_view(request: HttpRequest, task_id, finished=None):
-    """View controlling if the wait or success view should be shown"""
-    try:
-        scenario = Scenario.objects.get(task_id=task_id)
-    except Scenario.DoesNotExist:
-        raise Http404
-        # if the scenario has a manager, only this User can run the simulation
-    if scenario.manager and scenario.manager != request.user:
-        raise Http404
-
-    if finished == "true":
-        return redirect(reverse("simba:result", args=[task_id]))
-
-    try:
-        if not scenario.finished:
-            request.task_id = str(task_id)
-            session = request.session
-            from dash_app.dash_app import create_app
-
-            # By creating a specific app for this task ID, the app "knows" which data to load
-            # ToDO make sure only authorized users can view this
-            create_app(task_id=str(task_id))
-            # the dictionary in "django_plotly_dash" appears in the session_state of the app, which
-            # is an optional kwarg in app.callbacks
-            session["django_plotly_dash"] = {"task_id": str(task_id)}
-
-            response = ScenarioOverview.as_view()(request, task_id=task_id, finished=False)
-
-            # Setting Cache-Control header
-            patch_cache_control(response, no_cache=True, no_store=True, must_revalidate=True)
-            return response
-        else:
-            url = reverse("simba:result", args=[task_id])
-            duration = 2
-            content = "This scenario has already been simulated."
-            return render(
-                request,
-                "redirect_timer.html",
-                {"content": content, "duration": duration, "redirect_url": url},
-            )
-
-    except Scenario.DoesNotExist:
-        html = "<html><body>task_id is not valid</body></html>"
-        return HttpResponse(html)
-
-
-class ScenarioOverview(TemplateView, MapEngineMixin):
-    template_name = "scenario_overview.html"
-
-    def get_context_data(self, **kwargs):
-        context = super(ScenarioOverview, self).get_context_data(**kwargs)
-        task_id = kwargs.get("task_id")
-        if task_id is None:
-            raise Http404
-        task_id = str(task_id)
-        context["task_id"] = task_id
-
-        return context
-
-
-def progress(request: HttpRequest, progress_id, progress_type: str):
-    context = {"progress_id": progress_id, "status": "", "current_progress": 0}
-    context |= {"finished": False}
-    try:
-        progress = Progress.objects.get(task_id=progress_id)
-    except ObjectDoesNotExist:
-        response = render(request, "progress.html", context)
-        return response
-
-    context["current_progress"] = max(progress.get_progress(), 1)
-    context["status"] = progress.status
-    status_code = 200
-    hx_trigger = "running"
-    if progress.success or not progress.running or len(progress.errors) != 0:
-        context["errors"] = progress.errors
-        # End polling
-        status_code = 286
-        context["finished"] = True
-        hx_trigger = "notRunning"
-    response = render(request, "progress.html", context)
-    if context["finished"] and len(context["errors"]) == 0:
-        task_id = progress.scenario.task_id
-        response["HX-Redirect"] = reverse(progress_type, args=[task_id, "true"])
-    response["HX-Trigger"] = hx_trigger
-    response.status_code = status_code
-    return response
-
-
-@require_POST
-def upload_trips(request: HttpRequest, task_id: str, reader_num: int):
-    context = {"task_id": task_id, "progress_type": "simba:schedule"}
-    try:
-        form = schedule_readers.get_options_form(reader_num)(request.POST, request.FILES)
-        # set in TimezoneMiddleware in core.middleware
-        now = timezone.localtime()
-        now_str = now.strftime(format="%Y-%m-%d %H:%M")
-        scenario_name = request.POST.get("scenario_name")
-        if scenario_name == "":
-            scenario_name = f"Mein Szenario vom {now_str}"
-        if not form.is_valid():
-            context = {
-                "form": form,
-                "task_id": task_id,
-                "reader_num": reader_num,
-                "max_file_size_b": settings.MAX_FILE_SIZE_B,
-            }
-            response = render(request, "schedule_reader_options.html", context)
-            response["HX-Retarget"] = "#options_form"
-            return response
-        s, _ = Scenario.objects.get_or_create(task_id=task_id)
-        s.name = scenario_name
-        if request.user.is_authenticated:
-            s.manager = request.user
-
-        s.save()
-
-        cleaned_data = form.cleaned_data
-
-        # check sum of file sizes
-        if sum([f.size for f in request.FILES.values()]) > settings.MAX_FILE_SIZE_B:
-            raise Exception("Upload zu groß")
-
-        files = dict()
-        for name, file in request.FILES.items():
-            # check file size
-            if file.size > settings.MAX_FILE_SIZE_B:
-                # file too large
-                raise Exception("Datei zu groß")
-            uploaded_file = UploadedFile.objects.create(scenario=s, file=file)
-            files[name] = uploaded_file.file.path, uploaded_file.id
-            del cleaned_data[name]
-        # what kind of file is uploaded
-        async_result = tasks.init_db_with_trips.apply_async((s.id, reader_num, files, cleaned_data))
-        context["progress_id"] = async_result.task_id
-
-        response = render(request, "progress_poll.html", context)
-        response["HX-Trigger"] = "running"
-        return response
-    except AssertionError as e:
-        html = f"<html>{str(e)}</html>"
-        response = HttpResponse(html)
-        return response
-    except Exception as e:
-        html = f"<html>{str(e)}</html>"
-        response = HttpResponse(html)
-        response["HX-Trigger"] = "notRunning"
-        return response
+    return depots_query
 
 
 @require_POST
@@ -574,10 +1059,6 @@ def cancel_upload(request: HttpRequest, task_id: str):
     # cause a SoftTimeLimitExceeded in task and redirect to schedule upload
     AsyncResult(task_id).revoke(terminate=True, signal="SIGUSR1")
     return redirect(reverse("simba:schedule"))
-
-
-def landing_page(request: HttpRequest):
-    return render(request, "landing_page.html")
 
 
 def copy_scenario(request: HttpRequest, task_id: str):
@@ -592,15 +1073,94 @@ def copy_scenario(request: HttpRequest, task_id: str):
         copied_scenario = tasks.create_scenario_copy_for_user(scenario)
     except AssertionError:
         raise Http404
-    print(copied_scenario.task_id)
     response = redirect(reverse("simba:scenario_overview", args=[str(copied_scenario.task_id)]))
     return response
+
+
+def merge_and_run(request: HttpRequest, task_id: str):
+    scenario = get_scenario_and_assert_authorization(request, task_id)
+    simulation_progess = Progress.objects.filter(
+        scenario=scenario,
+        progress_type=EnumProgress.RUNNING_SIMULATION,
+    )
+    if simulation_progess.filter(running=True).exists():
+        error_text = "Starting multiple Simulations from the same source is not allowed"
+        logger.info(error_text)
+        return HttpResponseForbidden()
+
+    if simulation_progess.filter(success=True).exists():
+        error_text = "Starting a Simulation which was sucessfully simulated is not allowed"
+        logger.info(error_text)
+        return HttpResponseForbidden(error_text)
+
+    sim_task_id = get_unique_task_id()
+    progress = Progress.objects.create(
+        scenario=scenario,
+        progress_type=EnumProgress.RUNNING_SIMULATION,
+        task_id=sim_task_id,
+    )
+    logger.info("Running Toolchain.")
+
+    # create scenario from mutation and parent and simulate it
+    try:
+        async_result = tasks.run_and_merge_scenarios.apply_async(
+            (scenario.parent.id, scenario.id, sim_task_id),
+            task_id=str(sim_task_id),
+        )
+    except Exception:
+        progress.errors.append(
+            "Ein unerwarteter Fehler ist aufgetreten." "Wenden Sie sich an ihren Administrator"
+        )
+        progress.set_failed()
+        logger.error(traceback.format_exc())
+
+    progress.refresh_from_db()
+    progress.task_id = async_result.task_id
+    progress.save(update_fields=["task_id"])
+    context = {}
+    context["progress_id"] = async_result.task_id
+    context["scenario"] = scenario
+    context["template_name"] = "progress_simulation.html"
+    context["progress"] = progress
+    response = render(request, "core/progress_poll.html", context)
+
+    return response
+
+
+class ModelListView(ListView):
+    model = None
+
+    def get_queryset(self, *args, **kwargs):
+        import django.apps
+
+        scenario = get_scenario_and_assert_authorization(self.request, self.kwargs["task_id"])
+        model = django.apps.apps.app_configs["ebustoolbox"].models[self.kwargs["model"]]
+        self.model = model
+        qs = super(ModelListView, self).get_queryset(*args, **kwargs)
+        qs = qs.filter(scenario=scenario)
+        qs = qs.order_by("-id")
+        return qs
+
+
+def model_export_json(request: HttpRequest, model_str: str, task_id: str):
+    import django.apps
+
+    scenario = get_scenario_and_assert_authorization(request, task_id)
+    model = django.apps.apps.app_configs["ebustoolbox"].models[model_str]
+    if model_str.lower() != "scenario":
+        objects = model.objects.filter(scenario=scenario)
+    else:
+        objects = model.objects.filter(task_id=task_id)
+    from django.core import serializers
+
+    jsondata = serializers.serialize("json", objects)
+    return HttpResponse(jsondata, content_type="application/json")
 
 
 def run_simulation(request: HttpRequest, task_id: str):
     context = {"task_id": task_id, "progress_type": "simba:scenario_overview"}
     logger.debug(context)
-    response = HttpResponse(context)
+    response = HttpResponse(context=context)
 
     try:
         if request.method == "GET":
@@ -647,27 +1207,91 @@ def generate_zip(request: HttpRequest, task_id: str):
 
 
 @login_required(login_url="/login/")
-def scenarios(request):
-    # show all scenarios of a user. Also endpoint for update and delete (POST)
-    if request.method == "POST":
-        if "update" in request.POST:
-            # manager can update scenario user groups
-            scenario = Scenario.objects.get(id=request.POST["update"], manager=request.user)
-            usergroups = map(int, request.POST["values"].split(","))
-            for ug in request.user.usergroup_set.all():
-                if ug.id in usergroups:
-                    ug.scenarios.add(scenario)
-                elif scenario in ug.scenarios.all():
-                    ug.scenarios.remove(scenario)
-            return HttpResponse(status=201)  # created
-        if "delete" in request.POST:
-            Scenario.objects.filter(id=request.POST["delete"], manager=request.user).delete()
-    scenarios = Scenario.objects.filter(manager=request.user)
-    usergroups = request.user.usergroup_set.all()
-    for ug in usergroups:
-        scenarios = scenarios.union(ug.scenarios.all())
-    scenarios = scenarios.order_by("id")
-    return render(request, "scenarios.html", {"scenarios": scenarios})
+def get_dashboard(request):
+    # show all scenarios of a user
+    # what about staff?
+    base_qs = Scenario.objects.filter(
+        scenario_type=EnumScenarioType.SIMULATION,
+    )
+    scenarios = get_user_scenario_qs(request.user, scenario_qs=base_qs)
+    # get task status from task_id for each scenario
+    scenario_list = list()
+    for scenario in scenarios:
+        # The progress is linked to the mutation sceanario.
+        # The progress task_id is set to the resulting (simulation-) scenario task_id
+        progress = Progress.objects.filter(task_id=scenario.task_id)
+        if progress.filter(success=True).exists():
+            scenario.state = "success"
+        elif progress.filter(running=True).exists():
+            scenario.state = "running"
+        elif progress.exists():
+            # not running, no success: fail
+            scenario.state = "error"
+        else:
+            # no progress: still in setup
+            scenario.state = "idle"
+        scenario_list.append(scenario)
+
+    if scenarios:
+        return render(request, "ebustoolbox/dashboard.html", {"scenarios": scenario_list})
+    else:
+        return render(request, "ebustoolbox/dashboard-empty-state.html")
+
+
+@login_required(login_url="/login/")
+def compare(request):
+    # show comparison page, get relevant data of user scenarios
+    # allows for optional request parameter "s", which should be a scenario ID a user has access to
+    # this scenario will then be shown in the first column of the comparison page
+    base_qs = Scenario.objects.filter(
+        scenario_type=EnumScenarioType.SIMULATION, finished__isnull=False
+    )
+    scenarios = get_user_scenario_qs(request.user, scenario_qs=base_qs)
+    scenario_dict = dict()
+    for scenario in scenarios:
+        if not scenario.finished:
+            # filter after union not supported
+            continue
+        stations = scenario.station_set.all()
+        num_electrified_opps = stations.filter(charge_type=EnumChargeType.OPPORTUNITY).count()
+        # sum up charging places at depots, defaults to 0 for null values
+        num_cs_deps = stations.filter(charge_type=EnumChargeType.DEPOT).aggregate(
+            cs=Coalesce(Sum("amount_charging_places"), 0)
+        )["cs"]
+        rotations = scenario.rotation_set.all()
+        events = scenario.event_set.all()
+        # calculate charged energy for all events
+        events = events.annotate(
+            charged=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity")
+        )
+        # sum up charged energy by event type. Default value 0 in case of null values
+        energy_opps = events.filter(event_type=EventType.CHARGING_OPPORTUNITY).aggregate(
+            sum_charged=Coalesce(Sum("charged"), 0.0)
+        )["sum_charged"]
+        energy_deps = events.filter(event_type=EventType.CHARGING_DEPOT).aggregate(
+            sum_charged=Coalesce(Sum("charged"), 0.0)
+        )["sum_charged"]
+
+        scenario_dict[scenario.id] = {
+            "Name": scenario.name,
+            "Erstellt": scenario.created.strftime("%d.%m.%Y"),
+            "Fahrzeuge": scenario.vehicle_set.count(),
+            "Umläufe": scenario.rotation_set.count(),
+            "Gesamtkilometer": round(sum([r.get_distance() / 1000 for r in rotations])),
+            "Anzahl elektrifizierte Endhaltestellen": num_electrified_opps,
+            "Geladene Energie an Endhaltestellen": round(energy_opps),
+            "Anzahl Ladeplätze in allen Depots": num_cs_deps,
+            "Geladene Energie an Depots [kWh]": round(energy_deps),
+        }
+
+    return render(
+        request,
+        "ebustoolbox/compare.html",
+        {
+            "scenarios": scenario_dict,
+            "requested": request.GET.get("s"),
+        },
+    )
 
 
 @login_required(login_url="/login/")
@@ -706,3 +1330,258 @@ def usergroups(request):
                 ug.delete()
     usergroups = request.user.usergroup_set.all()
     return render(request, "usergroups.html", {"usergroups": usergroups})
+
+
+def render_critical_rotations(request, task_id: str):
+    """Returns raw JSON data for critical rotations (critical vs. non-critical)"""
+    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    buses = list(vehicle_name_dict.keys())
+
+    s = Scenario.objects.get(task_id=task_id)
+
+    df = data.get_critical_rotations_as_dataframe(s.id, buses)
+
+    # Return only raw values
+    return JsonResponse(
+        {"data": [{"value": row["Count"], "name": row["Category"]} for _, row in df.iterrows()]}
+    )
+
+
+def render_bustype(request, task_id: str):
+    """Returns raw JSON data for vehicle type distribution"""
+    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    buses = list(vehicle_name_dict.keys())
+
+    s = Scenario.objects.get(task_id=task_id)
+
+    df = data.get_vehicle_types(s.id, buses)
+    if len(df) == 0:
+        return JsonResponse({"data": []})
+
+    return JsonResponse(
+        {"data": [{"value": row["count"], "name": row["name"]} for _, row in df.iterrows()]}
+    )
+
+
+def get_soc_data(request, task_id: str):
+    """
+    Returns SOC (State of Charge) data over time for selected buses in JSON format.
+    """
+    s = Scenario.objects.get(task_id=task_id)
+
+    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    buses = list(vehicle_name_dict.keys())
+    df = data.get_soc_as_dataframe(s.id, buses)
+
+    selected_columns = df[["V_id", "time_start", "soc_end"]].copy()
+    # Convert 'time_start' to Unix timestamps (in milliseconds) and assign to a new column
+    selected_columns["timestamp"] = (
+        pd.to_datetime(selected_columns["time_start"]).astype(int) // 10**6
+    )
+
+    soc_data = (
+        selected_columns.groupby("V_id")
+        .apply(
+            lambda group: group[["timestamp", "soc_end"]].values.tolist()
+            # Convert each group to a list of [timestamp, soc_end]
+        )
+        .to_dict()
+    )
+
+    response_data = {"data": soc_data}
+
+    return JsonResponse(response_data)
+
+
+def get_power_draw(request, task_id: str):
+    """
+    Returns power draw data over time by station ID for selected buses.
+    """
+    s = Scenario.objects.get(task_id=task_id)
+
+    buses = request.GET.getlist("buses[]")
+    df = data.get_powerdraw_as_dataframe(s.id, buses)
+
+    df["time_start"] = pd.to_datetime(df["time_start"])
+    df["time_end"] = pd.to_datetime(df["time_end"])
+
+    charging_status = []
+
+    all_times = pd.date_range(start=df["time_start"].min(), end=df["time_end"].max(), freq="min")
+
+    for time_point in all_times:
+        charging_vehicles = df[
+            (df["time_start"] <= time_point) & (df["time_end"] > time_point) & (df["Power"] > 0)
+        ]
+        total_power = charging_vehicles["Power"].sum()
+        charging_status.append({"time": time_point.isoformat(), "total_power": total_power})
+
+    return JsonResponse({"data": charging_status})
+
+
+def get_station_occupation(request, task_id: str):
+    """
+    Returns the number of vehicles charging at a station over time.
+    """
+    s = Scenario.objects.get(task_id=task_id)
+
+    df = data.get_powerdraw_as_dataframe(s.id, request.GET.getlist("buses[]"))
+    df["time_start"] = pd.to_datetime(df["time_start"])
+    df["time_end"] = pd.to_datetime(df["time_end"])
+
+    charging_status = []
+
+    all_times = pd.date_range(start=df["time_start"].min(), end=df["time_end"].max(), freq="min")
+    for time_point in all_times:
+        charging_vehicles = (
+            ((df["time_start"] <= time_point) & (df["time_end"] > time_point)) & (df["Power"] > 0)
+        ).sum()
+        charging_status.append(
+            {"time": time_point.isoformat(), "vehicles_charging": charging_vehicles}
+        )
+
+    return JsonResponse({"data": charging_status})
+
+
+def get_gantt_data(request, task_id: str):
+    s = Scenario.objects.get(task_id=task_id)
+
+    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    buses = list(vehicle_name_dict.keys())
+    df = data.get_activities_as_dataframe(s.id, buses)
+
+    df["time_start"] = pd.to_datetime(df["time_start"])
+    df["time_end"] = pd.to_datetime(df["time_end"])
+
+    buses = df["V_id"].unique()
+    categories = [f"Bus {bus}" for bus in buses]
+
+    gantt_data = []
+    for _, row in df.iterrows():
+        start_time = int(row["time_start"].timestamp() * 1000)
+        end_time = int(row["time_end"].timestamp() * 1000)
+        duration = row["duration"]
+        bus_index = list(buses).index(row["V_id"])
+
+        gantt_data.append(
+            {
+                "name": row["readable_name"],
+                "value": [bus_index, start_time, end_time, duration],
+                "event_type": row["event_type"],  # Add event type so the frontend can style
+            }
+        )
+
+    return JsonResponse({"categories": categories, "data": gantt_data})
+
+
+def get_stats(request, task_id: str):
+    s = Scenario.objects.get(task_id=task_id)
+
+    filter_dict = dict(task_id=task_id)
+
+    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    buses = list(vehicle_name_dict.keys())
+
+    if buses:  # In Presim buses will be None, if later no buses are selected, it will be empty
+        filter_dict["vehicle__id__in"] = buses
+
+    longest_rot = data.get_number_longest_rot(filter_dict.copy())
+    shortest_rot = data.get_number_shortest_rot(filter_dict.copy())
+    num_busses = data.get_number_of_buses(filter_dict.copy())
+    num_stations = data.get_number_of_stations(task_id)
+    most_freq = data.get_frequently_served_station(task_id)
+
+    dist_df = data.get_distances_as_dataframe(s.id, buses)
+    total_dist = round(dist_df["total_distance"].sum() / 1000, 0)
+    total_consumption = round(data.get_total_consumption(s), 0)
+
+    avg_consumption = round(total_consumption / (dist_df["total_distance"].sum() / 1000), 3)
+
+    resp = {
+        "longest_rotation": longest_rot,
+        "shortest_rotation": shortest_rot,
+        "num_stations": num_stations,
+        "num_busses": num_busses,
+        "most_frequented": most_freq,
+        "total_dist": total_dist,
+        "total_consumption": total_consumption,
+        "avg_consumption": avg_consumption,
+    }
+    return JsonResponse(resp)
+
+
+def get_speed_hist(request, task_id: str):
+    s = Scenario.objects.get(task_id=task_id)
+
+    filter_dict = dict(task_id=task_id)
+
+    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    buses = list(vehicle_name_dict.keys())
+
+    if buses:  # In Presim buses will be None, if later no buses are selected, it will be empty
+        filter_dict["vehicle__id__in"] = buses
+
+    dur_df = data.get_duration_as_dataframe(s.id, buses)
+    dist_df = data.get_distances_as_dataframe(s.id, buses)
+    # Calculate average speed in km/h
+    dur_df["avg_speed_kmh"] = (dist_df["total_distance"] / 1000) / (dur_df["duration"] / 3600)
+
+    # Set bin width and calculate bins
+    bin_width_kmh = 2.5
+    max_speed_kmh = dur_df["avg_speed_kmh"].max()
+    min_speed_kmh = dur_df["avg_speed_kmh"].min()
+    bins = np.arange(min_speed_kmh, max_speed_kmh + bin_width_kmh, bin_width_kmh)
+    hist, bin_edges = np.histogram(dur_df["avg_speed_kmh"], bins=bins)
+
+    response_data = {
+        "xAxis": {
+            "type": "category",
+            "data": [
+                f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km/h" for i in range(len(bin_edges) - 1)
+            ],
+        },
+        "yAxis": {"type": "value"},
+        "series": [{"data": hist.tolist(), "type": "bar"}],
+    }
+    return JsonResponse(response_data)
+
+
+def get_dist_hist(request, task_id: str):
+    s = Scenario.objects.get(task_id=task_id)
+
+    filter_dict = dict(task_id=task_id)
+
+    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    buses = list(vehicle_name_dict.keys())
+
+    if buses:  # In Presim buses will ne None, if later no buses are selected, it will be empty
+        filter_dict["vehicle__id__in"] = buses
+
+    df = data.get_distances_as_dataframe(s.id, buses)
+
+    # Convert total_distance from meters to kilometers
+    df["total_distance_km"] = df["total_distance"] / 1000
+
+    # Set the desired bin width in kilometers
+    bin_width_km = 50
+
+    # Calculate the number of bins based on the bin width
+    max_distance_km = df["total_distance_km"].max()
+    min_distance_km = df["total_distance_km"].min()
+
+    bins = np.arange(min_distance_km, max_distance_km + bin_width_km, bin_width_km)
+    hist, bin_edges = np.histogram(df["total_distance_km"], bins=bins)
+
+    response_data = {
+        "xaxis_title": "Distanz",
+        "xAxis": {
+            "type": "category",
+            "data": [
+                f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km" for i in range(len(bin_edges) - 1)
+            ],
+        },
+        "yaxis_title": "Abs.Häufigkeit",
+        "yAxis": {"type": "value"},
+        "series": [{"data": hist.tolist(), "type": "bar"}],
+    }
+    return JsonResponse(response_data)

@@ -1,0 +1,102 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+{% block wizard_navigation %}
+  <nav aria-label="Progress" class="bg-white">
+    <ol role="list" class="divide-y divide-slate-300 border-b border-slate-200 md:flex md:divide-y-0">
+
+      {% for i in '123456' %}
+        {% cycle 'Umlaufplan' 'Fahrzeuge' 'Endhaltestellen' 'Kosten' 'Depots' 'Zusammenfassung' 'Simulation' as wiz_text silent %}
+        {% url 'simba:trips' task_id as url_trips %}
+        {% url 'simba:vehicles' task_id as url_vehicles %}
+        {% url 'simba:stations'  task_id as url_stations %}
+        {% url 'simba:costs' task_id as url_costs %}
+        {% url 'simba:depots' task_id as url_depots %}
+        {% url 'simba:summary' task_id as url_summary %}
+        {% url 'simba:simulation' task_id as url_simulation %}
+        {% cycle url_trips url_vehicles url_stations url_costs url_depots url_summary url_simulation as wiz_url silent %}
+
+        <li class="relative md:flex md:flex-1">
+          {% if wiz_idx > forloop.counter %}
+            <!-- Completed Step -->
+            <a href="{{ wiz_url }}" class="group flex w-full items-center" aria-label="Schritt {{ i }}: {{ wiz_text }}">
+              <span class="flex items-center px-3 lg:px-5 py-4 lg:mx-auto lg:-translate-x-4 text-sm font-medium">
+                <span class="flex size-5 shrink-0 items-center justify-center rounded-full bg-slate-800 group-hover:bg-black">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#ffffff" class="size-3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                </span>
+                <span class="ml-2 lg:ml-3 text-sm font-normal text-slate-800">{{ wiz_text }}</span>
+              </span>
+            </a>
+          {% elif wiz_idx == forloop.counter %}
+            <!-- Current Step -->
+            <span class="flex items-center px-3 lg:px-5 py-4 lg:mx-auto lg:-translate-x-4 text-sm font-medium" aria-current="step" aria-label="Schritt {{forloop.counter}}: {{ wiz_text }}">
+              <span class="flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-green-400">
+                <div class="size-2 rounded-full bg-green-400"></div>
+              </span>
+              <span class="ml-2 lg:ml-3 text-sm font-semibold text-slate-800">{{ wiz_text }}</span>
+            </span>
+          {% else %}
+            <!-- Upcoming Step -->
+            <span class="flex items-center lg:mx-auto lg:-translate-x-4" aria-label="Schritt {{forloop.counter}}: {{ wiz_text }}" aria-disabled="true" role="presentation">
+              <span class="flex items-center px-3 lg:px-5 py-4 text-sm font-medium">
+                <span class="flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-300"></span>
+                <span class="ml-2 lg:ml-3 text-sm font-normal text-slate-500">{{ wiz_text }}</span>
+              </span>
+            </span>
+          {% endif %}
+          {% if not forloop.last %}
+          <!-- Arrow separator for lg screens and up -->
+          <div class="absolute right-0 top-0 hidden h-full w-5 md:block" aria-hidden="true">
+            <svg class="size-full text-slate-300" viewBox="0 0 22 80" fill="none" preserveAspectRatio="none">
+              <path d="M0 -2L20 40L0 82" vector-effect="non-scaling-stroke" stroke="currentcolor" stroke-linejoin="round" />
+            </svg>
+          </div>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+  </nav>
+{% endblock wizard_navigation %}
+
+<!-- For alerts -->
+ <!--
+<aside class="flex flex-col items-center">
+  <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+    // Add component here
+  </div>
+</aside>
+-->
+
+{% block wizard_content %}{% endblock wizard_content %}
+
+{% block wizard_buttons %}
+<nav>
+  <div class="mx-auto max-w-7xl px-2 pt-4 pb-8 sm:px-6 lg:px-8">
+    <div class="flex justify-end gap-4">
+      {% if prev_url %}
+        <a href="{{ prev_url }}" class="px-6 py-2 bg-slate-200 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
+          <span class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+            </svg>
+            <span>Zurück</span>
+          </span>
+        </a>
+      {% endif %}
+        <button type="button" onclick="{{buttonId}}.click()" class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300">
+        <span class="flex justify-center items-center gap-2">
+          <span>
+            {{ next_text|default:"Weiter" }}
+          </span>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+          </svg>
+        </span>
+      </button>
+    </div>
+  </div>
+</nav>
+{% endblock wizard_buttons %}
+{% endblock content %}
