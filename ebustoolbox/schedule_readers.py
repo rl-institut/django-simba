@@ -153,7 +153,7 @@ def place_not_found_stations(scenario):
         )["max_y"]
 
         # Step of longitude so stations are placed horizontally next to each other
-        delta_x = float(min(0.1, max_x - min_x))
+        delta_x = float(max(0.1, max_x - min_x))
         for i, station in enumerate(stations_without_geo):
             x = float(float(min_x) + i * delta_x / (max(1, len(stations_without_geo) - 1)))
             # Stations are placed with a vertical offset to the station with the highest latitude.
