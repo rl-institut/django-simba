@@ -121,7 +121,7 @@ def create_export_buffer():
     zip_buffer = io.BytesIO()
 
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        # Write the dataframe to a buffer. use this buffer to write zo a deflated zip
+        # Write the dataframe to a buffer. use this buffer to write to a deflated zip
         # Write dataframe to buffer and then to deflated zip.
         csv_buffer = io.StringIO()
         df_areas.to_csv(csv_buffer, index=False)
