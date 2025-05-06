@@ -2719,6 +2719,8 @@ benchmark = ["pytest-benchmark"]
 dev = ["cython"]
 geopandas = ["geopandas"]
 test = ["pytest", "pytest-cov"]
+
+[[package]]
 name = "pyomo"
 version = "6.9.1"
 description = "Pyomo: Python Optimization Modeling Objects"

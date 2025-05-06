@@ -30,22 +30,38 @@ df_admin = gpd.read_file("admin.osm.xml", layer=layers[3])
 df_admin.loc[df_admin.admin_level.isna(), "admin_level"] = 0
 df_admin.admin_level = df_admin.admin_level.astype(int)
 
-# We only care about Bundesländer and bigger up to level 9 which is close to Gemeinden or Bezirke
+
+# restrict administation levels between Bundesländer (level 4) and Gemeinden/Bezirke (level 9)
 df_admin = df_admin[df_admin.admin_level >= 4]
 df_admin = df_admin[df_admin.admin_level <= 9]
 df_admin.reset_index(drop=True, inplace=True)
 
 logging.info("Finding admin areas contained within each other using STRtree")
-# Find the admin areas which contain the centroid of each admin area
-all_centers = [a.centroid for a in df_admin.geometry]
+# Find the admin areas which contain the representative_point of each admin area
+
+# Each geometry is cast to a representative point which is guranteed to be part of itself
+all_centers = [a.representative_point() for a in df_admin.geometry]
+
+# Create a STRtree
+# A query - only R - tree spatial index created using the Sort-Tile-Recursive(STR) algorithm.
+# This allows for spatial queries of other geometries.
 stree = STRtree(df_admin.geometry)
-results = stree.query(all_centers, predicate="intersects")
-#  Return the integer indices of all combinations of each input geometry and tree geometries where
-#  the bounding box of each input geometry intersects the bounding box of a tree geometry. This
-# does not gurantee that the point is contained in the geometry.
+
+# Find geometries which contain the points.
+# stree.query(all_centers) returns all matches of input geometry and tree geometries,
+# where the bounding box of each input geometry intersects the bounding box of the tree geometry.
+# This does not gurantee that the point is contained in the geometry.
 # Therefore the predicate kwarg is given. predicate="intersects" further filters those geometries
 # that meet the predicate("interesect") when comparing the input geometry to the tree geometry.
-# This differs from comparison to the bounding box and guarantees true containment.
+# This differs from the comparison of the bounding boxes and guarantees true containment.
+
+# results has content looking like this
+# [0,0,  0,  1, 1,..]
+# [5,0,322,1023,6,..]
+# all_centers[0] is contained by the STRree elments 5,0 and 322.
+# The matching indicies 0-0 indicate that the point is contained by the geometry itself.
+results = stree.query(all_centers, predicate="intersects")
+
 
 # instantiate new column, which is filled via the result of the STRtree
 df_admin.upper_admin_area = None
@@ -54,7 +70,7 @@ for row in tqdm.tqdm(df_admin.itertuples(), total=len(df_admin)):
     index = row.Index
     mask = results[0] == index
     result = results[1][mask]
-    # centroid is contained in itself -> remove it
+    # point is contained in itself -> remove it
     result = result[result != index]
     # filter out admin_areas with lower admin_levels than itself
     result = list(filter(lambda x: df_admin.loc[x, "admin_level"] < row.admin_level, result))
