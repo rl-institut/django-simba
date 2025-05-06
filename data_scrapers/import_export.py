@@ -26,7 +26,11 @@ class Z(models.functions.Func):
     function = "ST_Z"
 
 
-def model_list_to_df(model_list):
+def model_list_to_df(model_list: list[models.Model]) -> pd.DataFrame:
+    """Return a dataframe for a list of instances of the same Model.
+
+    The dataframe contains data of the model fields.
+    """
     model_type = type(model_list[0])
     fields = [x.column for x in model_type._meta.fields]
     data = list(map(lambda x: {field: getattr(x, field) for field in fields}, model_list))
@@ -34,6 +38,7 @@ def model_list_to_df(model_list):
 
 
 def get_admin_areas_df():
+    """Return a dataframe for all admina_areas of the Database"""
     admin_areas = AdminArea.objects.all()
     columns = ["id", "name", "osm_id", "admin_level", "upper_admin_area"]
     data = admin_areas.values_list(*columns)
@@ -42,6 +47,7 @@ def get_admin_areas_df():
 
 
 def get_bus_stations_df():
+    """Return a dataframe for all BusStations of the Database"""
     bus_stations = BusStation.objects.all()
     columns = ["id", "name", "osm_id", "geom_x", "geom_y", "geom_z", "admin_area"]
     data = bus_stations.annotate(
@@ -58,7 +64,8 @@ def get_bus_stations_df():
 
 
 @atomic()
-def import_data(df_areas, df_stations):
+def import_data(df_areas: pd.DataFrame, df_stations: pd.DataFrame):
+    """Import DataFrames of AdminAreas and BusStations into the database"""
     df = df_areas
     admin_areas = []
     missing_osm_id = df.osm_id.isna()
