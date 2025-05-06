@@ -23,7 +23,6 @@ class BusStationListView(ListView):
         if not found_stations:
             raise Http404(
                 "No stations found. If searching for multiple stations use '|' as separator."
-                " If the name contains '+' signs they need to be replaced by '%2B'"
             )
         geoms = []
         for key, stations in found_stations.items():
