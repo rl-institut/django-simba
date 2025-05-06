@@ -214,7 +214,7 @@ but only if the docker is not running
 - Introduces an API and map to find bus stops by name.
     - /data_scrapers/stations/map/?search_stations=S%2BU Alexanderplatz/Memhardstraße
     - /data_scrapers/stations/api/?search_stations=S%2BU Alexanderplatz/Memhardstraße
-    - the API returns the results as json
+    - the API returns the results as JSON
     - if querying for multiple stations use '|' as delimiter
     - the keyword query param '&filter=true' can be added to use filters, which try to uniquely identify the searched stations. Default is filter=false
     - /data_scrapers/stations/api/?search_stations=Alexanderplatz
