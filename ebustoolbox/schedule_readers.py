@@ -129,7 +129,7 @@ def get_schedule_reader_factory(reader_num: int) -> type(ScheduleReader):
 
 
 def place_not_found_stations(scenario):
-    """Place all stations of the scenario which are not geo located yet.
+    """Place all stations of the scenario which are not geolocated yet.
 
     Stations are placed at the border of the cluster of found stations.
     If no stations were found, the stations will be placed around Berlin in a random fashion.
