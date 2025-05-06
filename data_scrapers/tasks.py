@@ -31,7 +31,7 @@ SIMILARITY_THRESHOLD_WO_ADMIN = 0.5  # Adjust this threshold as needed
 def geom_distance(geom1, geom2):
     """Wrapper for geopy.distance to calculate distance.
 
-    geopy.distance will calculate the distance between two points, expecting (lat,lon) coordinates
+    geopy.distance will calculate the distance between two points, expecting (lat,lon) coordinates,
     while geom are converted to tuples as (lon, lat, z)
     """
     return geopy_distance((geom1.y, geom1.x), (geom2.y, geom2.x))
