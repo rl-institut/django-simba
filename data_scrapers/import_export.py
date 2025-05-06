@@ -1,4 +1,5 @@
 import io
+import logging
 import pandas as pd
 import zipfile
 
@@ -7,6 +8,8 @@ from django.db.transaction import atomic
 from django.contrib.gis.db import models
 
 from data_scrapers.models import AdminArea, BusStation
+
+logger = logging.getLogger("custom")
 
 
 # pylint: disable=W0223
@@ -58,9 +61,11 @@ def get_bus_stations_df():
 def import_data(df_areas, df_stations):
     df = df_areas
     admin_areas = []
+    missing_osm_id = df.osm_id.isna()
+    logger.info(f"{sum(missing_osm_id)} AdminAreas have no OSM ID and are not imported")
     # Remove areas without an osm_id
-    ids_with_no_osm_id = df[df.osm_id.isna()].index
-    df = df.loc[~df.osm_id.isna(), :]
+    ids_with_no_osm_id = df[missing_osm_id].index
+    df = df.loc[~missing_osm_id, :]
     for row in df.itertuples():
         try:
             upper_admin_area = int(row.upper_admin_area)
@@ -76,10 +81,15 @@ def import_data(df_areas, df_stations):
         admin_areas.append(admin_area)
 
     AdminArea.objects.bulk_create(admin_areas)
-
+    logger.info(f"{len(admin_areas)} AdminAreas were created.")
     df = df_stations
     bus_stations = []
-    df = df[~df.admin_area.isna()]
+    missing_admin_area_stations = ~df.admin_area.isna()
+    logger.info(
+        f"{sum(missing_admin_area_stations)} Stations have no admin area and are not imported"
+    )
+    # Remove stations with no associated admin_area
+    df = df[missing_admin_area_stations]
     for row in df.itertuples():
         if row.admin_area in ids_with_no_osm_id:
             continue
@@ -92,6 +102,7 @@ def import_data(df_areas, df_stations):
         )
         bus_stations.append(bus_station)
     BusStation.objects.bulk_create(bus_stations)
+    logger.info(f"{len(bus_stations)} BusStations were created.")
 
 
 def create_export_buffer():
