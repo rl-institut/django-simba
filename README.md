@@ -208,7 +208,6 @@ but only if the docker is not running
 
 ## data_scrapers
 ### stations
-- Contains functionality to query Busstation data from open street maps / overpass-api
 - Search function provided with local db.
 - Admin Areas from level 4 (Bundesland) to 8 (Gemeinden) for Germany are queried in a hierarchical manner
 - bus_stops are queried with a guaranteed relation to the highest found admin_level up to level 8. The admin area hierarchy in Germany is complicated. Not every location is part of an admin area of level 8. In these cases the highest found admin area is used
