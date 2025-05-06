@@ -166,7 +166,7 @@ def search_exact_station(base_query, station_name) -> QuerySet:
     return base_query.filter(id__in=ids)
 
 
-def filter_for_search_area(query, search_area: shapely.area):
+def filter_for_search_area(query, search_area: shapely.geometry.base.BaseGeometry):
     ids = []
     for element in query:
         if search_area.contains(Point(element.geom)):
