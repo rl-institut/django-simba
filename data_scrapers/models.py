@@ -29,7 +29,7 @@ class AdminArea(models.Model):
     name = models.CharField(max_length=100)
     admin_level = models.IntegerField(default=4)
     osm_id = models.BigIntegerField(unique=True)
-    last_check = models.DateTimeField(null=True)
+    updated_at = models.DateTimeField(null=True)
     upper_admin_area = models.ForeignKey("self", on_delete=models.CASCADE, null=True)
 
 
