@@ -172,7 +172,7 @@ Optional check your networks
   ```
 run a postgis instance in this network. Set your database according to your settings
 ```bash
- sudo docker run --name my-docker-postgres -e  POSTGRES_PASSWORD=1234 -e POSTGRES_USER=myprojectuser -e  POSTGRES_DB=mydb -d --network=mynetwork postgis/postgis
+ sudo docker run --name my-docker-postgres -e POSTGRES_PASSWORD=1234 -e POSTGRES_USER=myprojectuser -e  POSTGRES_DB=mydb -d --network=mynetwork postgis/postgis
   ```
 
  Go into your Django .env file and make sure the host is the same as in the above db, e.g. my-docker-postgres. this replaces "localhost" in the database url, e.g.

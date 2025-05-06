@@ -2,8 +2,8 @@
  a file to import into the database of webus. First use osmium-tool to generate
 filtered files of admin areas and bus_stops in the terminal via:
 
-osmium tags-filter  "germany-latest.osm.pbf" n/highway=bus_stop -o bus_stops.osm.xml
-osmium tags-filter  germany-latest.osm.pbf"  wr/boundary=administrative -o admin.osm.xml
+osmium tags-filter "germany-latest.osm.pbf" n/highway=bus_stop -o bus_stops.osm.xml
+osmium tags-filter "germany-latest.osm.pbf"  wr/boundary=administrative -o admin.osm.xml
 
 osmium-tool can be downloaded from:
 https://osmcode.org/osmium-tool/
@@ -15,7 +15,8 @@ Bus stops are annotated with the lowest admin area they are contained in.
 This data can be used to properly locate bus_stops with non unique names, but with extra data,
 e.g. while the Bus Stop "Mitte" is a bus stop name of multiple bus stops in germany, using
 "Berlin, Mitte" might be able to locate this bus stop, since there is a unique bus stop in Berlin,
-called "Mitte". """
+called "Mitte"."""
+
 import geopandas as gpd
 from shapely import STRtree
 import tqdm

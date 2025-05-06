@@ -46,7 +46,7 @@ Fixes #145
 
     - During Simulation a deepcopied RawScenario will be mutated by the Mutation scenario. This is a child Scenario of the Mutation Scenario.
 
-- MutationScenarios can be copied by calling  _simba/copy/_{_task_id_}
+- MutationScenarios can be copied by calling _simba/copy/_{_task_id_}
 
 
 
