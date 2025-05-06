@@ -164,10 +164,7 @@ def search_exact_station(base_query, station_name) -> QuerySet:
 
 
 def filter_for_search_area(query, search_area: shapely.geometry.base.BaseGeometry):
-    ids = []
-    for element in query:
-        if search_area.contains(Point(element.geom)):
-            ids.append(element.id)
+    ids = query.filter(geom__within=search_area).values_list("id", flat=True)
     query = query.model.objects.filter(id__in=ids)
     return query
 
