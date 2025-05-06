@@ -9,6 +9,6 @@ def get_static_file_path(package, path_from_static):
         # use app static folder
         if p.is_absolute():
             # remove first slash
-            p = Path(str(p)[1:])
+            p = Path(str(p).lstrip("/"))
         p = Path(settings.BASE_DIR, package, p)
     return p
