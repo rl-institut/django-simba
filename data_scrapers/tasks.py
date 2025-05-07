@@ -80,11 +80,25 @@ def filter_query_distance(query: QuerySet, distance_threshold_m):
 
 def search_station(
     station_name: str,
-    possible_admins_names,
+    possible_admins_names: Iterable[str],
     filter_stack: Callable[[QuerySet], QuerySet],
     return_all=False,
 ) -> QuerySet:
+    """Return a QuerySet with matching BusStations.
 
+    Searches for a given station name and returns a query with found BusStations.
+    Several steps for searching a station name exists with increasing complexity.
+    The flag return_all= True will return a query containing all found BusStations of all steps.
+    return_all=False will return a QuerySet as soon as a step returned any BusStation.
+    The filter_stack is a function which filters the QuerySet. The filter is applied in each step.
+    possible_admins_names is an iterable of strings which are connected to administrative areas.
+    The 2nd and 3rd search step remove these names from the searched name and restricts the search
+    to these admin areas
+    E.g. the station_name "Berlin, Alexanderplatz" might not exist in the Database.
+    Passing "Berlin" in possible_admins_names removes "Berlin" from the search_name,
+    e.g. "Alexanderplatz" is searched but the pool of BusStations is reduced to BusStations which
+    are contained in an AdminArea named "Berlin"
+    """
     # Search directly for the name, if the coordinates are close to each other
     # i.e. closer than DISTANCE_THRESHOLD, their ids are returned
     ids = []
