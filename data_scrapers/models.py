@@ -14,7 +14,7 @@ class AdminArea(models.Model):
         admin_level (int): Administrative level of the AdminArea
         osm_id (int): OpenStreetMap identifier
         updated_at (Datetime): Last time this was updated
-        upper_admin_area (int|AdminArea|None): AdminArea with the highest admin_level
+        upper_admin_area (AdminArea|None): AdminArea with the highest admin_level
         the current AdminArea is contained in.
     """
 
@@ -33,7 +33,7 @@ class BusStation(models.Model):
         name (str): Name of BusStation
         osm_id (int): OpenStreetMap identifier
         geom (django.contrib.gis.geos.Point|None)): Geolocation of BusStation in SRID 4326
-        admin_area (int|AdminArea): AdminArea with the highest admin_level the BusStation is contained in.
+        admin_area (AdminArea): AdminArea with the highest admin_level the BusStation is contained in.
     """
 
     name = models.CharField(max_length=100)

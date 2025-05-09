@@ -106,21 +106,38 @@ def search_station(
     query = search_exact_station(base_query, station_name)
     query = filter_stack(query)
     if not return_all and query.exists():
+        logger.debug(
+            f"Found {query.count()} Stations for {station_name} searching with the exact name"
+        )
         return query
     ids.extend(query.values_list("id", flat=True))
+
+    before = len(ids)
+    all_stations_count = BusStation.objects.all().count()
+    logger.debug(f"Found {before} stations searching with the exact name")
 
     # no stations where found, or stations with exact name are further apart than
     # DISTANCE_THRESHOLD
     # Check if filtering by possible admin areas gives a clear result
-
     found_ids, names = get_station_ids_contained_by_admin_area(possible_admins_names, station_name)
     for name in names:
+        logger.debug(f"Searching for {name}")
         base_query = BusStation.objects.filter(id__in=found_ids)
         query = search_exact_station(base_query, name)
         query = filter_stack(query)
         if not return_all and query.exists():
+            logger.debug(
+                f"Found {query.count()} Stations for {name=} searching in a pool of "
+                f"{len(found_ids)}/{all_stations_count} Stations"
+            )
             return query
         ids.extend(query.values_list("id", flat=True))
+
+    logger.debug(
+        f"Found {len(ids)-before} Stations for {station_name} searching in a pool of "
+        f"{len(found_ids)}/{all_stations_count} Stations"
+    )
+    before = len(ids)
 
     # Search for stations if the search name contains an admin_name
     # Filter entries based on trigram similarity
@@ -129,8 +146,19 @@ def search_station(
         query = get_fuzzy_stations(base_query, SIMILARITY_THRESHOLD_W_ADMIN, name)
         query = filter_stack(query)
         if not return_all and query.exists():
+            logger.debug(
+                f"Found {query.count()} Stations for {name=} searching fuzzily in a pool of "
+                f"{len(found_ids)}/{all_stations_count} Stations.\n"
+                "Similarity Threshold={SIMILARITY_THRESHOLD_W_ADMIN} "
+            )
             return query
         ids.extend(query.values_list("id", flat=True))
+
+    logger.debug(
+        f"Found {len(ids)-before} Stations for {station_name} searching fuzzily in a pool of "
+        f"{len(found_ids)}/{all_stations_count} Stations.\n Similarity Threshold={SIMILARITY_THRESHOLD_W_ADMIN} "
+    )
+    before = len(ids)
 
     # Ambiguous result: try again everywhere. This can be slow.
     # Possible optimization by indexing names or searching only unique names via a database view.
@@ -140,11 +168,23 @@ def search_station(
     query = get_fuzzy_stations(base_query, SIMILARITY_THRESHOLD_WO_ADMIN, station_name)
     query = filter_stack(query)
     if not return_all and query.exists():
+        logger.debug(
+            f"Found {query.count()} Stations for {station_name} searching fuzzily in all Stations."
+            f"\n Similarity Threshold={SIMILARITY_THRESHOLD_WO_ADMIN} "
+        )
+
         # Log this since it might make sense to remove this part, if it rarely finds stations
         logger.info("Found a station via slow fuzzy search over all stations")
         return query
     ids.extend(query.values_list("id", flat=True))
 
+    logger.debug(
+        f"Found {len(ids)-before} Stations for {station_name} searching fuzzily in all Stations."
+        f"\n Similarity Threshold={SIMILARITY_THRESHOLD_WO_ADMIN} "
+    )
+    before = len(ids)
+
+    logger.debug(f"Found {base_query.count()} Stations in total.")
     return base_query.filter(id__in=ids)
 
 
@@ -163,7 +203,7 @@ def search_exact_station(base_query, station_name) -> QuerySet:
     address_translations_rev = [[x[1], x[0]] for x in address_translations]
     ids = []
     # Search for the name without changes
-    exact_station_query = base_query.filter(name__iexact=station_name.lower())
+    exact_station_query = base_query.filter(name__iexact=station_name)
     ids.extend(exact_station_query.values_list("id", flat=True))
 
     # Apply some conversions of the name, e.g. "MainSt." becomes "MainStreet"
@@ -172,7 +212,7 @@ def search_exact_station(base_query, station_name) -> QuerySet:
             search_name = station_name.replace(second, first)
         else:
             continue
-        exact_station_query = base_query.filter(name__iexact=search_name.lower())
+        exact_station_query = base_query.filter(name__iexact=search_name)
         ids.extend(exact_station_query.values_list("id", flat=True))
     return base_query.filter(id__in=ids)
 
@@ -190,10 +230,20 @@ def get_station_ids_contained_by_admin_area(possible_admins_names, station_name)
         if part in possible_admins_names:
             admin_name = part
             # AdminArea names are not unique, especially below level 9 (Gemeinden, Bezirke etc.)
-            admin_areas = AdminArea.objects.filter(name=admin_name)
+            admin_areas = AdminArea.objects.filter(name__iexact=admin_name)
             all_children = get_lower_admin_areas(admin_areas)
-
-            names.append(station_name.replace(part, "").strip())
+            logger.debug(
+                f"Found {admin_areas.count()} admin Areas with the name {admin_name} and the ids "
+                f"{admin_areas.values_list('id', flat=True)}. These Areas contain "
+                f"{all_children.count()} AdminAreas which are also searched."
+            )
+            stripped_name = station_name.replace(part, "").strip()
+            # Remove special characters which might have separated the admin area name from the actual BusStation name
+            # e.g. "Mitte, Alexanderplatz" -> ", Alexanderplatz" should further be reduced to "Alexanderplatz"
+            stripped_name = strip_chars(
+                stripped_name, [" ", ",", "-", ":", "/", "(", ")", "[", "]"]
+            )
+            names.append(stripped_name)
             found_ids.extend(
                 BusStation.objects.filter(admin_area__in=all_children).values_list("id", flat=True)
             )
@@ -227,6 +277,11 @@ def get_fuzzy_stations(base_query: QuerySet, similarity_threshold, station_name)
         best_similarity = fuzzy_stations.first().similarity
         # Without delta lookup fails at times
         fuzzy_stations = fuzzy_stations.filter(similarity__gte=best_similarity - 0.01)
+        newl = "\n"
+        logger.debug(
+            "Found Stations have the following similaritis:\n"
+            f"{newl.join(fuzzy_stations.values_list('similarity', flat=True))}"
+        )
     fuzz_station_query_w_admin_ids = list(fuzzy_stations.values_list("id", flat=True))
     fuzzy_stations = BusStation.objects.filter(id__in=fuzz_station_query_w_admin_ids)
     return fuzzy_stations
@@ -428,6 +483,15 @@ def replace_german_chars(text: str) -> str:
     ]
     for search, replace in encoding_issues:
         text = text.replace(search, replace)
+    return text
+
+
+def strip_chars(text: str, chars: Iterable[str]) -> str:
+    len_before = float("inf")
+    while len_before > len(text):
+        len_before = len(text)
+        for char in chars:
+            text = text.strip(char)
     return text
 
 
