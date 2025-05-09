@@ -18,7 +18,7 @@ class AdminArea(models.Model):
         the current AdminArea is contained in.
     """
 
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, db_index=True)
     admin_level = models.IntegerField(default=4)
     osm_id = models.BigIntegerField(unique=True)
     updated_at = models.DateTimeField(null=True)
@@ -36,7 +36,7 @@ class BusStation(models.Model):
         admin_area (AdminArea): AdminArea with the highest admin_level the BusStation is contained in.
     """
 
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, db_index=True)
     osm_id = models.BigIntegerField(unique=True)
     geom = models.PointField(dim=3, srid=4326, null=True)
     admin_area = models.ForeignKey(AdminArea, on_delete=models.CASCADE)
