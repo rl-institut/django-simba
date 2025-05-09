@@ -1,7 +1,15 @@
+from datetime import datetime
 import numpy as np
+from django.utils.timezone import make_aware
+import logging
 
-from data_scrapers.tasks import get_antipodals, rotating_caliper
-from django.test import SimpleTestCase
+from data_scrapers.models import BusStation, AdminArea
+from data_scrapers.tasks import get_antipodals, is_delimited, rotating_caliper, strip_delimiters
+from django.test import SimpleTestCase, TransactionTestCase, override_settings
+from django.contrib.gis.geos import Point
+
+logger = logging.getLogger("custom")
+logger.setLevel(logging.DEBUG)
 
 
 # SimpleTestCase since no DB access is needed
@@ -52,3 +60,158 @@ class RotatingCaliperTest(SimpleTestCase):
         # Calculate distance. Should be 2.5 since extra_point should connect with half circle
         # intersection at [1,0]
         assert self.distance(point1, point2) == 2.5
+
+
+class StringHandlingTest(SimpleTestCase):
+    def test_is_delimited(self):
+        substring = "bar"
+        assert is_delimited("bar foo", substring)
+        assert is_delimited("(bar)foo", substring)
+        assert is_delimited("bar/foo", substring)
+        assert is_delimited(" bar foo", substring)
+        assert is_delimited("foo bar foo", substring)
+        assert is_delimited("foo bar", substring)
+
+        assert not is_delimited("foobarfoo", substring)
+        assert not is_delimited("foobar foo", substring)
+        assert not is_delimited("foo barfoo", substring)
+        assert not is_delimited("barfoo", substring)
+
+    def test_strip_delimiters(self):
+        assert strip_delimiters("foo") == "foo"
+        assert strip_delimiters("-, foo ,-/") == "foo"
+        assert strip_delimiters("(foo)") == "foo"
+        assert strip_delimiters("()[[],]foo)") == "foo"
+        # Is not expected to be an delimiter
+        assert strip_delimiters("()[[].foo)") == ".foo"
+        # Just like other special characters
+        # Stripping stops after the first non strippable character
+        assert strip_delimiters("§()[[].foo)") == "§()[[].foo"
+
+
+class StationSearchTest(TransactionTestCase):
+    def setUp(self) -> None:
+        now = make_aware(datetime.now())
+        AdminArea.objects.create(
+            name="Berlin", osm_id=1, admin_level=4, upper_admin_area=None, updated_at=now
+        )
+        AdminArea.objects.create(
+            name="Mitte", osm_id=2, admin_level=6, upper_admin_area_id=1, updated_at=now
+        )
+        AdminArea.objects.create(
+            name="Brandenburg",
+            osm_id=3,
+            admin_level=4,
+            upper_admin_area=None,
+            updated_at=now,
+        )
+        AdminArea.objects.create(
+            name="Mitte", osm_id=4, admin_level=4, upper_admin_area_id=3, updated_at=now
+        )
+
+        # BusStation in Berlin/ Mitte
+        BusStation.objects.create(
+            name="Alexanderplatz", osm_id=101, admin_area_id=2, geom=Point(10, 10, 0)
+        )
+        # BusStation in Brandenburg
+        BusStation.objects.create(
+            name="Alexanderplatz", osm_id=102, admin_area_id=3, geom=Point(20, 10, 10)
+        )
+        # BusStation in Brandenburg / Mitte
+        BusStation.objects.create(
+            name="Alexanderplatz", osm_id=103, admin_area_id=4, geom=Point(40, 10, 30)
+        )
+
+        # BusStation with slightly different name in Brandenburg / Mitte
+        BusStation.objects.create(
+            name="AleKanderplatz", osm_id=104, admin_area_id=4, geom=Point(40, 10, 30)
+        )
+
+    @override_settings(DEBUG=True)
+    @override_settings(LOG_LEVEL="DEBUG")
+    def test_station_search(self):
+        from data_scrapers.tasks import search_station
+
+        # 3 Stations with exact matching Station names are found
+        found_stations = search_station(
+            "Alexanderplatz", possible_admins_names=[], return_all=False, filter_stack=lambda x: x
+        )
+        assert found_stations.count() == 3
+
+        # The searched name is slightly misspelled. Since no exact matches are returned early,
+        # all 4 Stations are found, since they fuzzily match the search
+        found_stations = search_station(
+            "Aleanderplatz", possible_admins_names=[], return_all=False, filter_stack=lambda x: x
+        )
+        assert found_stations.count() == 4
+
+        # The name is slightly misspelled but favors Alekanderplatz.
+        found_stations = search_station(
+            "Alekanderplat", possible_admins_names=[], return_all=False, filter_stack=lambda x: x
+        )
+        assert found_stations.count() == 1
+
+        # Setting return_all to True other similar named stations are returned
+
+        found_stations = search_station(
+            "Alekanderplat", possible_admins_names=[], return_all=True, filter_stack=lambda x: x
+        )
+        assert found_stations.count() == 4
+
+        # The name is slightly misspelled but favors Alexanderplatz.
+        found_stations = search_station(
+            "Alexanderplat", possible_admins_names=[], return_all=False, filter_stack=lambda x: x
+        )
+        assert found_stations.count() == 3
+
+        # Abbreviations are found too
+        found_stations = search_station(
+            "Alekanderpl.", possible_admins_names=[], return_all=True, filter_stack=lambda x: x
+        )
+        assert found_stations.count() == 1
+
+        # Maybe the Station Name is given with an AdminArea name as prefix or suffix
+        # If no possible_admin_names re given the name will fuzzily match all Alexanderplatz
+        # Stations, even if they are not in Brandenburg
+        found_stations = search_station(
+            "Brandenburg Alexanderplatz",
+            possible_admins_names=[],
+            return_all=False,
+            filter_stack=lambda x: x,
+        )
+        assert found_stations.count() == 3
+        assert "Berlin" in found_stations.values_list(
+            "admin_area__upper_admin_area__name", flat=True
+        )
+
+        # If "Brandenburg" is passed as possible_admin_name,
+        # AdminAreas with this name or children from it will be searched,
+        # if the station has this admin name as substring. This should result in 2 matches
+        found_stations = search_station(
+            "Brandenburg Alexanderplatz",
+            possible_admins_names=["Brandenburg"],
+            return_all=False,
+            filter_stack=lambda x: x,
+        )
+        assert found_stations.count() == 2
+        assert "Berlin" not in found_stations.values_list(
+            "admin_area__upper_admin_area__name", flat=True
+        )
+        brandenburg_ids = list(found_stations.values_list("id", flat=True))
+
+        # This should also work with various Formatting
+        search_strings = [
+            "(Brandenburg) Alexanderplatz",
+            "Brandenburg - Alexanderplatz",
+            "Brandenburg/Alexanderplatz",
+            "Brandenburg, Alexanderplatz",
+        ]
+        for search_string in search_strings:
+            search_string = "(Brandenburg) Alexanderplatz"
+            found_stations = search_station(
+                search_string,
+                possible_admins_names=["Brandenburg"],
+                return_all=False,
+                filter_stack=lambda x: x,
+            )
+            assert list(found_stations.values_list("id", flat=True)) == brandenburg_ids

@@ -8,7 +8,7 @@ import operator
 import numpy as np
 import shapely
 from shapely.geometry import Point, MultiPoint
-from typing import Callable, Iterable
+from typing import Callable, Iterable, List
 
 from django.db.models import QuerySet
 from django.contrib.postgres.search import TrigramSimilarity
@@ -26,6 +26,8 @@ DISTANCE_THRESHOLD_M = 400  # m
 # Value between [0,1]. Higher values mean that words must be more similar to be considered a match.
 SIMILARITY_THRESHOLD_W_ADMIN = 0.5  # Adjust this threshold as needed
 SIMILARITY_THRESHOLD_WO_ADMIN = 0.5  # Adjust this threshold as needed
+
+DELIMITING_CHARACTERS = [" ", ",", "-", ":", "/", "(", ")", "[", "]"]
 
 
 def geom_distance(geom1, geom2):
@@ -82,7 +84,7 @@ def search_station(
     station_name: str,
     possible_admins_names: Iterable[str],
     filter_stack: Callable[[QuerySet], QuerySet],
-    return_all=False,
+    return_all: bool = False,
 ) -> QuerySet:
     """Return a QuerySet with matching BusStations.
 
@@ -165,7 +167,9 @@ def search_station(
     # Querying a subset of ids with unique names does not work,
     # since large sets of ids like ID in [...] are slow, when mixed with trigram search.
     base_query = BusStation.objects.all()
-    query = get_fuzzy_stations(base_query, SIMILARITY_THRESHOLD_WO_ADMIN, station_name)
+    query = get_fuzzy_stations(
+        base_query, SIMILARITY_THRESHOLD_WO_ADMIN, station_name, filter_best=(not return_all)
+    )
     query = filter_stack(query)
     if not return_all and query.exists():
         logger.debug(
@@ -182,10 +186,10 @@ def search_station(
         f"Found {len(ids)-before} Stations for {station_name} searching fuzzily in all Stations."
         f"\n Similarity Threshold={SIMILARITY_THRESHOLD_WO_ADMIN} "
     )
-    before = len(ids)
-
+    # Resolve ids to query with a "simple" indexed query
+    base_query = base_query.filter(id__in=ids)
     logger.debug(f"Found {base_query.count()} Stations in total.")
-    return base_query.filter(id__in=ids)
+    return base_query
 
 
 def search_exact_station(base_query, station_name) -> QuerySet:
@@ -223,30 +227,57 @@ def filter_for_search_area(query, search_area: shapely.geometry.base.BaseGeometr
     return query
 
 
-def get_station_ids_contained_by_admin_area(possible_admins_names, station_name):
+def get_station_ids_contained_by_admin_area(
+    possible_admins_names: Iterable[str], station_name: str
+) -> tuple[List[int], List[str]]:
+    """
+    Return a list of BusStation ids, that are contained in a found AdminArea inside the station_name
+
+    The station name is searched for a substring of the possible_admins_names. If a match is
+    found, station ids which are inside this AdminArea are returned, aswell as the name of the
+    BusStation stripped of this indicator.
+    Example:
+    possible_admin_names= ["Prenzlauer Berg"}
+    station_name = "(Prenzlauer Berg), Am Bahnhof"
+
+    The station name is matched with the admin_name.
+    BusStation Ids inside "Prenzlauer Berg" are returned.
+
+
+    :param possible_admins_names: Names of AdminAreas which are compared with the station_name
+    :param station_name: Name, which is checked it contains a name of an AdminArea
+    :return:List of BusStation ids inside matched AdminAreas,
+        the station name stripped of the AdminArea name
+    """
+
     found_ids = []
     names = []
-    for part in station_name.replace(",", " ").split(" "):
-        if part in possible_admins_names:
-            admin_name = part
-            # AdminArea names are not unique, especially below level 9 (Gemeinden, Bezirke etc.)
-            admin_areas = AdminArea.objects.filter(name__iexact=admin_name)
-            all_children = get_lower_admin_areas(admin_areas)
-            logger.debug(
-                f"Found {admin_areas.count()} admin Areas with the name {admin_name} and the ids "
-                f"{admin_areas.values_list('id', flat=True)}. These Areas contain "
-                f"{all_children.count()} AdminAreas which are also searched."
-            )
-            stripped_name = station_name.replace(part, "").strip()
-            # Remove special characters which might have separated the admin area name from the actual BusStation name
-            # e.g. "Mitte, Alexanderplatz" -> ", Alexanderplatz" should further be reduced to "Alexanderplatz"
-            stripped_name = strip_chars(
-                stripped_name, [" ", ",", "-", ":", "/", "(", ")", "[", "]"]
-            )
-            names.append(stripped_name)
-            found_ids.extend(
-                BusStation.objects.filter(admin_area__in=all_children).values_list("id", flat=True)
-            )
+    for admin_name in possible_admins_names:
+        if admin_name not in station_name:
+            # The admin_name was not found in the station_name
+            continue
+
+        # Make sure the admin name is delimited from the rest of the station name in some way
+        # Berliner Strasse should not match with the AdminArea "Berlin"
+        if not is_delimited(station_name, admin_name):
+            continue
+
+        # AdminArea names are not unique, especially below level 9 (Gemeinden, Bezirke etc.)
+        admin_areas = AdminArea.objects.filter(name__iexact=admin_name)
+        all_children = get_lower_admin_areas(admin_areas)
+        logger.debug(
+            f"Found {admin_areas.count()} admin Areas with the name {admin_name} and the ids "
+            f"{admin_areas.values_list('id', flat=True)}. These Areas contain "
+            f"{all_children.count()} AdminAreas which are also searched."
+        )
+        name_without_admin = station_name.replace(admin_name, "")
+        # Remove special characters which might have separated the admin area name from the actual BusStation name
+        # e.g. "Mitte, Alexanderplatz" -> ", Alexanderplatz" should further be reduced to "Alexanderplatz"
+        stripped_name = strip_delimiters(name_without_admin)
+        names.append(stripped_name)
+        found_ids.extend(
+            BusStation.objects.filter(admin_area__in=all_children).values_list("id", flat=True)
+        )
     return found_ids, names
 
 
@@ -267,20 +298,23 @@ def get_lower_admin_areas(admin_areas):
     return AdminArea.objects.filter(id__in=set(x.id for x in all_children))
 
 
-def get_fuzzy_stations(base_query: QuerySet, similarity_threshold, station_name):
+def get_fuzzy_stations(
+    base_query: QuerySet, similarity_threshold, station_name, filter_best: bool = True
+):
     fuzzy_stations = (
         base_query.annotate(similarity=TrigramSimilarity("name", station_name))
         .filter(similarity__gte=similarity_threshold)
         .order_by("-similarity")
     )
-    if fuzzy_stations.exists():
+    if fuzzy_stations.exists() and filter_best:
         best_similarity = fuzzy_stations.first().similarity
         # Without delta lookup fails at times
         fuzzy_stations = fuzzy_stations.filter(similarity__gte=best_similarity - 0.01)
         newl = "\n"
+        similarities = fuzzy_stations.values_list("similarity", flat=True)
         logger.debug(
             "Found Stations have the following similaritis:\n"
-            f"{newl.join(fuzzy_stations.values_list('similarity', flat=True))}"
+            f"{newl.join(map(str,similarities ))}"
         )
     fuzz_station_query_w_admin_ids = list(fuzzy_stations.values_list("id", flat=True))
     fuzzy_stations = BusStation.objects.filter(id__in=fuzz_station_query_w_admin_ids)
@@ -486,6 +520,16 @@ def replace_german_chars(text: str) -> str:
     return text
 
 
+def remove_chars(text: str, chars: Iterable[str]) -> str:
+    for char in chars:
+        text = text.replace(char, "")
+    return text
+
+
+def remove_delimiters(text: str) -> str:
+    return remove_chars(text, DELIMITING_CHARACTERS)
+
+
 def strip_chars(text: str, chars: Iterable[str]) -> str:
     len_before = float("inf")
     while len_before > len(text):
@@ -493,6 +537,27 @@ def strip_chars(text: str, chars: Iterable[str]) -> str:
         for char in chars:
             text = text.strip(char)
     return text
+
+
+def strip_delimiters(text: str) -> str:
+    return strip_chars(text, DELIMITING_CHARACTERS)
+
+
+def is_delimited(text: str, substring: str) -> bool:
+    """Returns True if the substring is surrounded by the end of the string or a delimiter"""
+    i = 0
+    while i < len(text) - len(substring):
+        ii = text.find(substring, i)
+        if ii < 0:
+            return False
+        left_delimited = ii == 0 or text[ii - 1] in DELIMITING_CHARACTERS
+        right_delimited = (
+            ii + len(substring) == len(text) or text[ii + len(substring)] in DELIMITING_CHARACTERS
+        )
+        if left_delimited and right_delimited:
+            return True
+        i = ii + 1
+    return False
 
 
 def search_stations(search_station_names: Iterable, use_filter: bool):
@@ -597,7 +662,7 @@ def search_stations(search_station_names: Iterable, use_filter: bool):
         start_query = BusStation.objects.all()
         search_query = fuzzy_filter(start_query)
         fuzzy_stations_in_hit_admin_areas = get_fuzzy_stations(
-            search_query, SIMILARITY_THRESHOLD_W_ADMIN, station_name
+            search_query, SIMILARITY_THRESHOLD_W_ADMIN, station_name, filter_best=True
         )
         if fuzzy_stations_in_hit_admin_areas.exists():
             query = filter_inner_distance(fuzzy_stations_in_hit_admin_areas)

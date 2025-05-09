@@ -3,20 +3,22 @@
 from django.db import migrations, models
 import django.db.models.deletion
 
-from ebustoolbox.models import Station
+# from ebustoolbox.models import Station
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ebustoolbox', '0039_consumption_consumption_unique_with_scenario_and_more'),
+        ("ebustoolbox", "0039_consumption_consumption_unique_with_scenario_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='depot',
-            name='station',
-            field=models.ForeignKey(default=Station.get_default_pk, on_delete=django.db.models.deletion.CASCADE, to='ebustoolbox.station'),
+            model_name="depot",
+            name="station",
+            field=models.ForeignKey(
+                default=None, on_delete=django.db.models.deletion.CASCADE, to="ebustoolbox.station"
+            ),
             preserve_default=False,
         ),
     ]
