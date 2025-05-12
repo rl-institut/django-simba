@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.views.generic import ListView
-from django.http import Http404, JsonResponse, HttpResponse
+from django.http import Http404, HttpRequest, JsonResponse, HttpResponse
 import logging
 from data_scrapers.models import BusStation, AdminArea
 from data_scrapers.import_export import create_export_buffer, import_data
@@ -10,13 +10,21 @@ import pandas as pd
 logger = logging.getLogger("custom")
 
 
+def get_station_search(request: HttpRequest) -> list[str]:
+    param = "search_stations"
+    search_stations_request = request.GET.get(param)
+    if search_stations_request is None:
+        raise Http404(f"The Station search API needs the Param '{param}'.")
+    return search_stations_request.split("|")
+
+
 class BusStationListView(ListView):
     model = BusStation
     template_name = "minimal_leaflet_map_w_content.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        search_stations_request = self.request.GET.get("search_stations").split("|")
+        search_stations_request = get_station_search(self.request)
         logger.info(f"Searching for {len(search_stations_request)} stations")
         use_filter = self.request.GET.get("filter", "false").lower() == "true"
         found_stations = search_stations(search_stations_request, use_filter)
@@ -46,7 +54,7 @@ class BusStationListView(ListView):
 
 
 def json_view(request):
-    search_stations_request = request.GET.get("search_stations", "").split("|")
+    search_stations_request = get_station_search(request)
     use_filter = request.GET.get("filter", "false").lower() == "true"
     if len(search_stations_request) == 0:
         raise Http404(
