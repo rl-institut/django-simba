@@ -631,13 +631,14 @@ def search_stations(search_station_names: Iterable[str], use_filter: bool):
                 "Station lookup does not work properly if stations cover more than "
                 "half of the globe or are situated around +-180° longitude."
             )
-        lat_lon_distance = approximate_lat_lon_distance(max_y)
+        avg_y = (convex_hull.bounds[1] + convex_hull.bounds[3]) / 2
+        lat_lon_distance = approximate_lat_lon_distance(avg_y)
         delta_lat_lon = BUS_SYSTEM_MAX_DISTANCE / lat_lon_distance
         area = convex_hull.buffer(delta_lat_lon)
     else:
         m_point = multi_point_from_query(query)
-        max_y = max(abs(m_point.bounds[1]), m_point.bounds[3])
-        lat_lon_distance = approximate_lat_lon_distance(max_y)
+        avg_y = (m_point.bounds[1] + m_point.bounds[3]) / 2
+        lat_lon_distance = approximate_lat_lon_distance(avg_y)
         delta_lat_lon = BUS_SYSTEM_MAX_DISTANCE / lat_lon_distance
         area = m_point.buffer(delta_lat_lon)
     # Create filter which only returns stations within the buffer area
