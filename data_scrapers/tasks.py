@@ -613,10 +613,9 @@ def search_stations(search_station_names: Iterable[str], use_filter: bool):
     # which searches for stations close to previously found stations
     if not use_filter or not found_stations:
         return found_stations
-
-    # Some stations were not found. Repeat the process of searching for the station, but this time
-    # leverage information about previously found stations. Its expected that stations form
-    # clusters so stations are searched within some buffer zone of found stations.
+    # Some stations were not found.
+    # Search these stations again, but this time, use information about previously found stations.
+    # Stations usually form clusters, so stations are searched within some buffer zone of found stations.
     ids = [x for q in found_stations.values() for x in q.values_list("id", flat=True)]
     query = BusStation.objects.filter(pk__in=ids)
     if query.count() >= 3:
@@ -695,10 +694,15 @@ def search_stations(search_station_names: Iterable[str], use_filter: bool):
 
 
 def get_convex_hull_from_query(query):
+    """Return a convex hull from a query with a geom field
+
+    Uses BOCK_SIZE to create a convex hull in batches.
+    This is faster than creating a convex hull in one step.
+    """
     ids = list(query.values_list("id", flat=True))
     BLOCK_SIZE = 1000
     convex_hull = shapely.Polygon()
-    while len(ids) > 0:
+    while ids:
         pop_ids = ids[:BLOCK_SIZE]
         ids = ids[BLOCK_SIZE:]
         query = query.model.objects.filter(pk__in=pop_ids)
