@@ -1,7 +1,9 @@
-from datetime import datetime
 import numpy as np
-from django.utils.timezone import make_aware
 import logging
+from datetime import datetime
+
+from django.urls import reverse
+from django.utils.timezone import make_aware
 
 from data_scrapers.models import BusStation, AdminArea
 from data_scrapers.tasks import (
@@ -99,17 +101,17 @@ class StringHandlingTest(SimpleTestCase):
 class SearchUtilTest(TransactionTestCase):
     def setUp(self) -> None:
         now = make_aware(datetime.now())
-        AdminArea.objects.create(
+        berlin = AdminArea.objects.create(
             name="Berlin", osm_id=1, admin_level=4, upper_admin_area=None, updated_at=now
         )
-        AdminArea.objects.create(
-            name="Mitte", osm_id=2, admin_level=8, upper_admin_area_id=1, updated_at=now
+        mitte = AdminArea.objects.create(
+            name="Mitte", osm_id=2, admin_level=8, upper_admin_area=berlin, updated_at=now
         )
         AdminArea.objects.create(
-            name="Moabit", osm_id=3, admin_level=9, upper_admin_area_id=2, updated_at=now
+            name="Moabit", osm_id=3, admin_level=9, upper_admin_area=mitte, updated_at=now
         )
         AdminArea.objects.create(
-            name="Wedding", osm_id=4, admin_level=9, upper_admin_area_id=2, updated_at=now
+            name="Wedding", osm_id=4, admin_level=9, upper_admin_area=mitte, updated_at=now
         )
 
     def test_get_lower_admin_areas(self):
@@ -133,39 +135,39 @@ class SearchUtilTest(TransactionTestCase):
 class StationSearchTest(TransactionTestCase):
     def setUp(self) -> None:
         now = make_aware(datetime.now())
-        AdminArea.objects.create(
+        berlin = AdminArea.objects.create(
             name="Berlin", osm_id=1, admin_level=4, upper_admin_area=None, updated_at=now
         )
-        AdminArea.objects.create(
-            name="Mitte", osm_id=2, admin_level=6, upper_admin_area_id=1, updated_at=now
+        berlin_mitte = AdminArea.objects.create(
+            name="Mitte", osm_id=2, admin_level=6, upper_admin_area=berlin, updated_at=now
         )
-        AdminArea.objects.create(
+        brandenburg = AdminArea.objects.create(
             name="Brandenburg",
             osm_id=3,
             admin_level=4,
             upper_admin_area=None,
             updated_at=now,
         )
-        AdminArea.objects.create(
-            name="Mitte", osm_id=4, admin_level=4, upper_admin_area_id=3, updated_at=now
+        brandenburg_mitte = AdminArea.objects.create(
+            name="Mitte", osm_id=4, admin_level=4, upper_admin_area=brandenburg, updated_at=now
         )
 
         # BusStation in Berlin/ Mitte
         BusStation.objects.create(
-            name="Alexanderplatz", osm_id=101, admin_area_id=2, geom=Point(10, 10, 0)
+            name="Alexanderplatz", osm_id=101, admin_area=berlin_mitte, geom=Point(10, 10, 0)
         )
         # BusStation in Brandenburg
         BusStation.objects.create(
-            name="Alexanderplatz", osm_id=102, admin_area_id=3, geom=Point(20, 10, 10)
+            name="Alexanderplatz", osm_id=102, admin_area=brandenburg, geom=Point(20, 10, 10)
         )
         # BusStation in Brandenburg / Mitte
         BusStation.objects.create(
-            name="Alexanderplatz", osm_id=103, admin_area_id=4, geom=Point(40, 10, 30)
+            name="Alexanderplatz", osm_id=103, admin_area=brandenburg_mitte, geom=Point(40, 10, 30)
         )
 
         # BusStation with slightly different name in Brandenburg / Mitte
         BusStation.objects.create(
-            name="AleKanderplatz", osm_id=104, admin_area_id=4, geom=Point(40, 10, 30)
+            name="AleKanderplatz", osm_id=104, admin_area=brandenburg_mitte, geom=Point(40, 10, 30)
         )
 
     @override_settings(DEBUG=True)
@@ -255,3 +257,33 @@ class StationSearchTest(TransactionTestCase):
                 filter_stack=lambda x: x,
             )
             assert list(found_stations.values_list("id", flat=True)) == brandenburg_ids
+
+    @override_settings(DEBUG=True)
+    def test_stations_search_api(self):
+        url = reverse("data_scrapers:busstation_api")
+        params = {"search_stations": "Alexanderplatz|Alekanderplatz"}
+        # API does not work without a search query
+        response = self.client.get(url)
+        assert response.status_code == 404
+
+        response = self.client.get(url, params)
+        assert response.status_code == 200
+        data = response.json()
+        assert "results" in data
+
+        assert "Alekanderplatz" in data["results"]
+        assert "Alexanderplatz" in data["results"]
+        assert len(data["results"]["Alekanderplatz"]) == 1
+        assert len(data["results"]["Alexanderplatz"]) == 3
+
+        search_strings = [
+            "Berlin Alexanderplatz",
+            "Berlin, Alexanderplatz",
+            "(Berlin) Alexanderplatz",
+        ]
+        for search in search_strings:
+            search = search_strings[-1]
+            params = {"search_stations": search}
+            response = self.client.get(url, params)
+            data = response.json()
+            assert len(data["results"][search]) == 1
