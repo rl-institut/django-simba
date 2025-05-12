@@ -2,7 +2,6 @@ from functools import partial
 from functools import reduce
 import json
 import logging
-import math
 import operator
 
 import numpy as np
@@ -417,8 +416,8 @@ def rotating_caliper(xys):
         :return: maximum distance and point of edge with the maximum distance
         """
 
-        dist1_squared = math.pow(edge[0][0] - vertex[0], 2) + math.pow(edge[0][1] - vertex[1], 2)
-        dist2_squared = math.pow(edge[1][0] - vertex[0], 2) + math.pow(edge[1][1] - vertex[1], 2)
+        dist1_squared = (edge[0][0] - vertex[0]) ** 2 + (edge[0][1] - vertex[1]) ** 2
+        dist2_squared = (edge[1][0] - vertex[0]) ** 2 + (edge[1][1] - vertex[1]) ** 2
         if dist1_squared > dist2_squared:
             return dist1_squared, edge[0]
         return dist2_squared, edge[1]
