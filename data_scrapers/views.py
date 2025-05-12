@@ -80,7 +80,7 @@ def import_view(request):
 
     if request.method == "POST":
         if AdminArea.objects.all().exists() or BusStation.objects.all().exists():
-            return Http404(
+            raise Http404(
                 f"Data can only be imported in empty database. "
                 f"There are {AdminArea.objects.count()} AdminAreas \n"
                 f"There are {BusStation.objects.count()} BusStations"
