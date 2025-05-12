@@ -27,7 +27,7 @@ DISTANCE_THRESHOLD_M = 400  # m
 SIMILARITY_THRESHOLD_W_ADMIN = 0.5  # Adjust this threshold as needed
 SIMILARITY_THRESHOLD_WO_ADMIN = 0.5  # Adjust this threshold as needed
 
-DELIMITING_CHARACTERS = [" ", ",", "-", ":", "/", "(", ")", "[", "]"]
+DELIMITING_CHARACTERS = [" ", ",", ":", "/", "(", ")", "[", "]"]
 
 
 def geom_distance(geom1, geom2):
@@ -519,13 +519,20 @@ def replace_german_chars(text: str) -> str:
         ("Ã¼", "ü"),
         ("ã¶", "ö"),
         ("ãÿ", "ß"),
-        ("Ã–", "Ö"),
-        ("Ã„", "Ä"),
-        ("Ãœ", "Ü"),
     ]
     for search, replace in encoding_issues:
         text = text.replace(search, replace)
     return text
+
+
+def remove_chars(text: str, chars: Iterable[str]) -> str:
+    for char in chars:
+        text = text.replace(char, "")
+    return text
+
+
+def remove_delimiters(text: str) -> str:
+    return remove_chars(text, DELIMITING_CHARACTERS)
 
 
 def strip_chars(text: str, chars: Iterable[str]) -> str:
@@ -558,14 +565,19 @@ def is_delimited(text: str, substring: str) -> bool:
     return False
 
 
-def search_stations(search_station_names: Iterable, use_filter: bool):
+def search_stations(search_station_names: Iterable[str], use_filter: bool):
     names = list()
     for station_name in search_station_names:
         search_name = replace_german_chars(station_name)
-        names.extend(search_name.replace(",", " ").split(" "))
+        # Split the station name respecting only whitespaces.
+        # Delimiting characters are removed afterwards, e.g. Brackets
+        search_name_list = [
+            remove_delimiters(substring) for substring in search_name.replace(",", " ").split(" ")
+        ]
+        names.extend(search_name_list)
     names_set = set(names)
     # Names often contain short parts like Am, Zu, Im, Ch, An and also some one-letter abbreviations.
-    # This destroys the filtering capability of name__contains below, which would produce to many
+    # This hinders the filtering capability of name__contains below, which would produce too many
     # false positives.
     names_set_filtered = set(x for x in names_set if len(x) > 2)
     possible_admins = AdminArea.objects.filter(
@@ -602,7 +614,7 @@ def search_stations(search_station_names: Iterable, use_filter: bool):
     if not use_filter or not found_stations:
         return found_stations
 
-    # Some stations where not found. Repeat the process of searching for the station, but this time
+    # Some stations were not found. Repeat the process of searching for the station, but this time
     # leverage information about previously found stations. Its expected that stations form
     # clusters so stations are searched within some buffer zone of found stations.
     ids = [x for q in found_stations.values() for x in q.values_list("id", flat=True)]
