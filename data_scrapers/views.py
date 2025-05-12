@@ -2,8 +2,8 @@ from django.shortcuts import render
 from django.views.generic import ListView
 from django.http import Http404, JsonResponse, HttpResponse
 import logging
-import data_scrapers.models
 from data_scrapers.models import BusStation, AdminArea
+from data_scrapers.import_export import create_export_buffer, import_data
 from data_scrapers.tasks import search_stations
 import pandas as pd
 
@@ -92,7 +92,7 @@ def import_view(request):
         df_areas = pd.read_csv(request.FILES["file_admin_areas"])
         df_stations = pd.read_csv(request.FILES["file_stations"])
         logger.info("Starting import of admin areas and bus stations.")
-        data_scrapers.models.import_data(df_areas, df_stations)
+        import_data(df_areas, df_stations)
         area_count = AdminArea.objects.count()
         station_count = BusStation.objects.count()
         return HttpResponse(
@@ -104,7 +104,7 @@ def import_view(request):
 def export_view(request):
     if not request.user.is_superuser:
         raise Http404("Only Admins can export data")
-    zip_buffer = data_scrapers.models.create_export_buffer()
+    zip_buffer = create_export_buffer()
     response = HttpResponse(zip_buffer, content_type="application/zip")
     response["Content-Disposition"] = "attachment; filename=export.zip"
     return response
