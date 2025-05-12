@@ -182,7 +182,7 @@ class BatteryType(models.Model):
     # relative to gross capacity
     specific_mass = models.FloatField(null=False, blank=True)
     # defined in eFLIPS-LCA
-    chemistry = models.JSONField(null=True, default=dict)
+    chemistry = models.JSONField(null=False, default=dict)
 
 
 class AssocVehicleTypeVehicleClass(models.Model):
@@ -361,9 +361,9 @@ class Consumption(models.Model):
     """
 
     name = models.CharField(max_length=100)
-    vehicle_class = models.ForeignKey(VehicleClass, null=True, on_delete=models.CASCADE)
+    vehicle_class = models.ForeignKey(VehicleClass, null=False, on_delete=models.CASCADE)
     # Scenario might be null for default consumption tables
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     columns = models.JSONField([], null=False)
     data_points = ArrayField(ArrayField(models.FloatField(), size=None), size=None, null=False)
     values = ArrayField(models.FloatField(), size=None, null=False)
@@ -1504,6 +1504,7 @@ class Depot(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     name = models.TextField(null=False, blank=False)
     name_short = models.TextField(null=True, blank=True)
+    bounding_box = models.PolygonField(dim=2, srid=4326, null=True)
     station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE)  # Added in schema v3
 
     default_plan = models.OneToOneField("Plan", null=False, on_delete=models.CASCADE)
@@ -1563,7 +1564,9 @@ class Area(models.Model):
     vehicle_type = models.ForeignKey(VehicleType, null=True, on_delete=models.CASCADE)
     name = models.TextField(null=True)
     name_short = models.TextField(null=True)
-    area_type = models.CharField(max_length=15, choices=AreaType.choices, null=True, default=None)
+    area_type = models.CharField(max_length=14, choices=AreaType.choices, null=True, default=None)
+    bounding_box = models.PolygonField(dim=2, srid=4326, null=True)
+    row_count = models.IntegerField(null=True)
     capacity = models.IntegerField(null=False)
     processes = models.ManyToManyField(Process, through="AssocAreaProcess")
 
