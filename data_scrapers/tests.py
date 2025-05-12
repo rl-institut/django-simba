@@ -151,27 +151,27 @@ class StationSearchTest(TransactionTestCase):
         )
         assert found_stations.count() == 1
 
-        # Setting return_all to True other similar named stations are returned
-
+        # With the return_all=True all similar named stations are returned
         found_stations = search_station(
             "Alekanderplat", possible_admins_names=[], return_all=True, filter_stack=lambda x: x
         )
         assert found_stations.count() == 4
 
+        # With return_all=False only the most likely stations are returned.
         # The name is slightly misspelled but favors Alexanderplatz.
         found_stations = search_station(
             "Alexanderplat", possible_admins_names=[], return_all=False, filter_stack=lambda x: x
         )
         assert found_stations.count() == 3
 
-        # Abbreviations are found too
+        # Some abbreviations are found too
         found_stations = search_station(
             "Alekanderpl.", possible_admins_names=[], return_all=True, filter_stack=lambda x: x
         )
         assert found_stations.count() == 1
 
-        # Maybe the Station Name is given with an AdminArea name as prefix or suffix
-        # If no possible_admin_names re given the name will fuzzily match all Alexanderplatz
+        # Maybe the station name is given with an AdminArea name as prefix or suffix
+        # If no possible_admin_names are given the name will fuzzily match all Alexanderplatz
         # Stations, even if they are not in Brandenburg
         found_stations = search_station(
             "Brandenburg Alexanderplatz",
@@ -186,7 +186,8 @@ class StationSearchTest(TransactionTestCase):
 
         # If "Brandenburg" is passed as possible_admin_name,
         # AdminAreas with this name or children from it will be searched,
-        # if the station has this admin name as substring. This should result in 2 matches
+        # if the station has this admin name as substring.
+        # This should result in 2 matches with the exact name Alexanderplatz in Brandenburg.
         found_stations = search_station(
             "Brandenburg Alexanderplatz",
             possible_admins_names=["Brandenburg"],
