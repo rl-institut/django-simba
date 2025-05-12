@@ -281,15 +281,23 @@ def get_station_ids_contained_by_admin_area(
     return found_ids, names
 
 
-def get_lower_admin_areas(admin_areas):
-    parents = list(admin_areas.distinct())
+def get_lower_admin_areas(admin_areas: QuerySet[AdminArea]) -> QuerySet[AdminArea]:
+    """Get all children admin areas of the given admin areas.
+
+    The admin_areas are resolved at a admin_level of at least 8 if possible.
+    This behavior is improved search results for inaccurate station names in real world data.
+    """
+    # Return the empty QuerySet if an empty Queryset was passed
+    if not admin_areas.exists():
+        return admin_areas
+
+    parents = admin_areas.distinct()
+    parent_ids = set()
     # Make sure all parents are at least level 8
-    for i in range(len(parents)):
-        parent = parents[i]
-        while parent.admin_level >= 9:
+    for parent in parents:
+        while parent.admin_level >= 9 and parent.upper_admin_area is not None:
             parent = parent.upper_admin_area
-        parents[i] = parent
-    parent_ids = {p.id for p in parents}
+        parent_ids.add(parent.id)
     all_children = [*(AdminArea.objects.filter(id__in=parent_ids))]
     children = AdminArea.objects.filter(upper_admin_area__in=all_children)
     while children.exists():
@@ -449,7 +457,7 @@ def get_antipodals(xys):
         edge = np.array(point2) - np.array(point1)
         direction = None
         # Iterate over all the elements minus the current edge
-        num_elements = (0, len(xys) - 1, 1)
+        num_elements = (0, len(xys) - 1)
         first_antipodal = None
         if edge_antipodals:
             # first antipodal found in the last iteration
@@ -458,7 +466,7 @@ def get_antipodals(xys):
                 # initiate the loop a single index before the last switch was found
                 # handle negative values, by cycling back / using modulo
                 first_node = (prev_antipodal - 2 - i) % len(xys)
-                num_elements = (first_node, first_node + len(xys) - 1, 1)
+                num_elements = (first_node, first_node + len(xys) - 1)
         direction_zero_at_start = True
         for ii in range(*num_elements):
             # handle cycling
@@ -472,7 +480,7 @@ def get_antipodals(xys):
             # We only care about the sign
             direction = direction or np.sign(np.cross(edge, next_edge))
             if direction == 0 and direction_zero_at_start:
-                # ignore elements which have are parallel but next to the current edge.
+                # ignore elements which are parallel but next to the current edge.
                 # we need to find a direction != 0 first before we care about parallel edges
                 continue
             direction_zero_at_start = False
@@ -497,7 +505,7 @@ def get_antipodals(xys):
                 break
         else:
             raise AssertionError("Convex hull needs an antipodal for each edge")
-    # replace indicies with points
+    # replace indices with points
     for i, vals in enumerate(edge_antipodals):
         edge_antipodals[i][2] = [xys[ind] for ind in vals[2]]
 
@@ -518,16 +526,6 @@ def replace_german_chars(text: str) -> str:
     for search, replace in encoding_issues:
         text = text.replace(search, replace)
     return text
-
-
-def remove_chars(text: str, chars: Iterable[str]) -> str:
-    for char in chars:
-        text = text.replace(char, "")
-    return text
-
-
-def remove_delimiters(text: str) -> str:
-    return remove_chars(text, DELIMITING_CHARACTERS)
 
 
 def strip_chars(text: str, chars: Iterable[str]) -> str:

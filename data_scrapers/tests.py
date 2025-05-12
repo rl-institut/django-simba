@@ -4,7 +4,14 @@ from django.utils.timezone import make_aware
 import logging
 
 from data_scrapers.models import BusStation, AdminArea
-from data_scrapers.tasks import get_antipodals, is_delimited, rotating_caliper, strip_delimiters
+from data_scrapers.tasks import (
+    get_antipodals,
+    is_delimited,
+    rotating_caliper,
+    strip_delimiters,
+    get_lower_admin_areas,
+    search_station,
+)
 from django.test import SimpleTestCase, TransactionTestCase, override_settings
 from django.contrib.gis.geos import Point
 
@@ -89,6 +96,40 @@ class StringHandlingTest(SimpleTestCase):
         assert strip_delimiters("§()[[].foo)") == "§()[[].foo"
 
 
+class SearchUtilTest(TransactionTestCase):
+    def setUp(self) -> None:
+        now = make_aware(datetime.now())
+        AdminArea.objects.create(
+            name="Berlin", osm_id=1, admin_level=4, upper_admin_area=None, updated_at=now
+        )
+        AdminArea.objects.create(
+            name="Mitte", osm_id=2, admin_level=8, upper_admin_area_id=1, updated_at=now
+        )
+        AdminArea.objects.create(
+            name="Moabit", osm_id=3, admin_level=9, upper_admin_area_id=2, updated_at=now
+        )
+        AdminArea.objects.create(
+            name="Wedding", osm_id=4, admin_level=9, upper_admin_area_id=2, updated_at=now
+        )
+
+    def test_get_lower_admin_areas(self):
+        assert get_lower_admin_areas(AdminArea.objects.none()).count() == 0
+        berlin = AdminArea.objects.filter(name="Berlin")
+        mitte = AdminArea.objects.filter(name="Mitte")
+        moabit = AdminArea.objects.filter(name="Moabit")
+        _ = AdminArea.objects.filter(name="Wedding")
+
+        # Including all 3 children + berlin itself -> 4 children
+        assert get_lower_admin_areas(berlin).count() == 4
+
+        # Including all 2 children + mitte itself -> 3 children
+        assert get_lower_admin_areas(mitte).count() == 3
+
+        # moabit is admin_level 9.
+        # Since at least admin_level 8 is looked up the result is equal to above-> 3 children
+        assert get_lower_admin_areas(moabit).count() == 3
+
+
 class StationSearchTest(TransactionTestCase):
     def setUp(self) -> None:
         now = make_aware(datetime.now())
@@ -130,8 +171,6 @@ class StationSearchTest(TransactionTestCase):
     @override_settings(DEBUG=True)
     @override_settings(LOG_LEVEL="DEBUG")
     def test_station_search(self):
-        from data_scrapers.tasks import search_station
-
         # 3 Stations with exact matching Station names are found
         found_stations = search_station(
             "Alexanderplatz", possible_admins_names=[], return_all=False, filter_stack=lambda x: x
