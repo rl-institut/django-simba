@@ -243,7 +243,7 @@ def get_schedule_from_db(
     :param django_scenario: Scenario
     :type django_scenario: .models.Scenario
     :return: (SimBA Schedule, args)
-    :rtype: (SimBA.schedule.Schedule, Namespace)
+    :rtype: (simba.schedule.Schedule, Namespace)
     """
     data_container = DataContainer()
 
