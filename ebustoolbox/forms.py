@@ -195,7 +195,6 @@ class DepotCalculationForm(forms.Form):
 
 class ChargingPowerForm(forms.Form):
     # General charging_power is required when radio button constant power is set.
-    # Need js to set it to required for front end validation
     default_charge_power = forms.FloatField(required=True, min_value=0, step_size=1)
 
 
