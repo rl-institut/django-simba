@@ -111,7 +111,7 @@
             </svg>
             <!-- Tooltip -->
             <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge.
+                Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.
             </div>
           </span>
         </div>
@@ -146,7 +146,7 @@
 
 
       {% include "ebustoolbox/vehicle_modification.html" with modification=modification vt_id=vt_id choice_vts=choice_vts %}
-{#      validate() is defined in vehicle_modification since thos content is what is validated#}
+{#      validate() is defined in vehicle_modification since this content is what is validated#}
       <button id="SubmitButton" hidden onclick="validate()"></button>
 
     </section>
