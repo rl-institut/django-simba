@@ -1086,22 +1086,6 @@ def cancel_upload(request: HttpRequest, task_id: str):
     return redirect(reverse("simba:schedule"))
 
 
-def copy_scenario(request: HttpRequest, task_id: str):
-    try:
-        scenario = Scenario.objects.get(task_id=task_id)
-    except Scenario.DoesNotExist:
-        raise Http404
-    # if the scenario has a manager, only this User can run the simulation
-    if scenario.manager and scenario.manager != request.user:
-        raise Http404
-    try:
-        copied_scenario = tasks.create_scenario_copy_for_user(scenario)
-    except AssertionError:
-        raise Http404
-    response = redirect(reverse("simba:scenario_overview", args=[str(copied_scenario.task_id)]))
-    return response
-
-
 def merge_and_run(request: HttpRequest, task_id: str):
     scenario = get_scenario_and_assert_authorization(request, task_id)
     simulation_progess = Progress.objects.filter(
