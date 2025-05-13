@@ -45,8 +45,10 @@ import ebustoolbox
 import ebustoolbox.tasks
 from ebustoolbox.models import (
     Scenario,
+    Temperatures,
     UserGroup,
     UploadedFile,
+    VehicleClass,
     VehicleType,
     DefaultScenario,
     Station,
@@ -538,18 +540,13 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         forms = []
         scenario = self.scenario
         context = self.get_context_data(scenario=scenario, **kwargs)
-        # simulation_range_form = SimulationParameters(
-        #     data={
-        #         "start": start_dt_utc,
-        #         "end": end_dt_utc,
-        #         "temperature": request.POST["temperature"],
-        #     }
-        # )
         simulation_parameters_form = context["simulation_parameters_form"]
         if simulation_parameters_form.is_valid():
-            _ = simulation_parameters_form.save()
+            sim_range: SimulationRange = simulation_parameters_form.save()
+            Temperatures.objects.filter(scenario=scenario).delete()
+            # Create temperature instance
+            Temperatures.create_constant_temperatures(scenario, sim_range.temperature)
         forms.append(simulation_parameters_form)
-
         vehicle_modification = context["vehicle_modification"]
 
         # Gather all vehicle selection and modification forms
@@ -580,18 +577,46 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         for form in VehicleTypeSelectionForms:
             form.save()
 
-        VehicleTypeForms = list(filter(lambda x: x._meta.model == VehicleType, forms))
-        for form in VehicleTypeForms:
+        # Make Sure there are no conflicting VehicleClasses.
+        # This might be the case if the scenario was deepcopied
+        VehicleClass.objects.filter(scenario=scenario).delete()
+
+        vehicle_type_forms = list(filter(lambda x: x._meta.model == VehicleType, forms))
+        for form in vehicle_type_forms:
             # Mutate the vehicle according to the selected default vehicle
             instance = form.instance
             d_vt = VehicleTypeSelection.objects.get(vehicle_type=instance).default_vehicle_type
-            d_vt.id = instance.id
-            d_vt.scenario = instance.scenario
-            d_vt.name = instance.name
-            d_vt.name_short = instance.name_short
-            d_vt.save()
+            instance = tasks.apply_vehicle_type(
+                target_vehicle_type=instance, source_vehicle_type=d_vt
+            )
+
             # Overwrite the instance with the data from the form
-            VehicleTypeForm(self.request.POST, instance=d_vt, prefix=form.prefix).save()
+            vehicle_type_form = VehicleTypeForm(
+                self.request.POST, instance=instance, prefix=form.prefix
+            )
+            mutated_vt = vehicle_type_form.save()
+            # ConsumptionCalc. prioritizes ConsumptionTables linked to the respective VehicleClass.
+            # If the user passed a constant consumption,
+            # the vehicle type is delinked from the VehicleClass which has a consumption table.
+            if vehicle_type_form.cleaned_data["consumption"] is not None:
+                logger.info(f"{mutated_vt=} will not use a consumption table")
+                mutated_vt.save()
+                vc = VehicleClass.objects.filter(
+                    scenario=mutated_vt.scenario,
+                    consumption__isnull=False,
+                    vehicle_types=mutated_vt,
+                )
+                assert vc.count() == 1
+                vc = vc.first()
+                vc.vehicle_types.remove(mutated_vt)
+                logger.info(f"{vc=}, {vc.vehicle_types.all()=}")
+            else:
+                logger.info(
+                    f"{mutated_vt=} will use a consumption table. Constant consumption is deleted"
+                )
+                mutated_vt.consumption = None
+                mutated_vt.save()
+
         response = redirect(reverse(self.success_name, args=[scenario.task_id]))
         return response
 

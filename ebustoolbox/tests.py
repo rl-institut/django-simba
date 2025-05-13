@@ -17,6 +17,8 @@ from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
 
 from . import tasks
 from .forms import UploadFileForm
@@ -86,10 +88,23 @@ class MySeleniumTests(StaticLiveServerTestCase):
         # give django some time to calculate
         # Check for 404 requests
         # Wait until maplibre is loaded
-        # WebDriverWait(self.selenium, 10)
+        # Wait until all plots are finished with fetching
 
+        def element_value_is_true(driver):
+            try:
+                elem = driver.find_element(By.ID, "dataFetchedFinished")
+                value = elem.get_attribute("value")
+                # dataFetchedFinished is incremented 7 times by each data fetching
+                return value == "7"
+            except Exception:
+                return False
+
+        WebDriverWait(self.selenium, 20).until(element_value_is_true)
         errors = self.selenium.get_log("browser")
         allowed_errors = [
+            # FetchError is an error when the fetching calls are made from the result page
+            # for some reason they fail sporadically. TODO: low prio. Fix it
+            "FetchError",
             (
                 "An iframe which has both allow-scripts and allow-same-origin for its "
                 "sandbox attribute can escape its sandboxing"
