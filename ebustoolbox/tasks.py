@@ -1313,6 +1313,8 @@ def _run_ebus_toolchain(self, task_id):
         # power
         stations_dict = get_electrified_stations_from_db(db_scenario)
         schedule.stations = stations_dict.copy()
+        # TODO: This is not a proper consolidation yet. Set SimBA so depots events are properly
+        # respected. Write events for everything
         schedule, simba_scenario = run_simba(schedule, args, db_scenario, mode="sim")
 
         progress.current_work += 90
