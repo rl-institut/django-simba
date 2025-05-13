@@ -14,7 +14,7 @@ The hierarchy lets each admin area know which next higher level admin area they 
 Bus stops are annotated with the lowest admin area they are contained in.
 This data can be used to properly locate bus stops with non unique names.
 Example: "Mitte" is the name of multiple bus stops in Germany.
-Using "Berlin, Mitte" it is possible to identify a unique bus stop in Berlin, called "Mitte". """
+Using "Berlin, Mitte" it is possible to identify a unique bus stop in Berlin, called "Mitte"."""
 
 import geopandas as gpd
 from shapely import STRtree
@@ -31,7 +31,7 @@ df_admin.loc[df_admin.admin_level.isna(), "admin_level"] = 0
 df_admin.admin_level = df_admin.admin_level.astype(int)
 
 
-# restrict administation levels between Bundesländer (level 4) and Gemeinden/Bezirke (level 9)
+# restrict administration levels between Bundesländer (level 4) and Gemeinden/Bezirke (level 9)
 df_admin = df_admin[df_admin.admin_level >= 4]
 df_admin = df_admin[df_admin.admin_level <= 9]
 df_admin.reset_index(drop=True, inplace=True)
@@ -50,16 +50,16 @@ stree = STRtree(df_admin.geometry)
 # Find geometries which contain the points.
 # stree.query(all_centers) returns all matches of input geometry and tree geometries,
 # where the bounding box of each input geometry intersects the bounding box of the tree geometry.
-# This does not gurantee that the point is contained in the geometry.
+# This does not guarantee that the point is contained in the geometry.
 # Therefore the predicate kwarg is given. predicate="intersects" further filters those geometries
-# that meet the predicate("interesect") when comparing the input geometry to the tree geometry.
+# that meet the predicate("intersect") when comparing the input geometry to the tree geometry.
 # This differs from the comparison of the bounding boxes and guarantees true containment.
 
 # results has content looking like this
 # [0,0,  0,  1, 1,..]
 # [5,0,322,1023,6,..]
-# all_centers[0] is contained by the STRree elments 5,0 and 322.
-# The matching indicies 0-0 indicate that the point is contained by the geometry itself.
+# all_centers[0] is contained by the STRree elements 5,0 and 322.
+# The matching indices 0-0 indicate that the point is contained by the geometry itself.
 results = stree.query(all_centers, predicate="intersects")
 
 
@@ -97,7 +97,7 @@ df_bus.geom_z = None
 logging.info("Annotating bus stop data with parent admin areas")
 left = 0
 for row in tqdm.tqdm(df_bus.itertuples(), total=len(df_bus)):
-    # get the admin areas of this index. equivalent to
+    # get the admin areas of this index. Equivalent to:
     # mask = results_bus_stops[0] == row.index
     # but much more performant, since sorting is leveraged
     mask = gpd.np.zeros(len(df_bus)).astype(bool)
