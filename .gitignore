@@ -1,4 +1,3 @@
-ebustoolbox/static/
 db.sqlite3
 uploads/
 media/
@@ -12,4 +11,5 @@ media/
 venv/
 **/node_modules/
 .env
-
+info.log
+data/

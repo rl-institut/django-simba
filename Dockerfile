@@ -1,4 +1,4 @@
-FROM python:3.11
+FROM python:3.11-slim
 
 # Add django as user and group
 RUN addgroup --system django \

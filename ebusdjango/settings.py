@@ -73,6 +73,8 @@ INSTALLED_APPS = [
     # Django plotly dash
     "django_plotly_dash.apps.DjangoPlotlyDashConfig",
     "bootstrap4",
+    "tailwind",
+    "tailwind_theme",
 ]
 
 
@@ -94,7 +96,7 @@ ROOT_URLCONF = "ebusdjango.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates", BASE_DIR / "ebus_map/static"],
+        "DIRS": [BASE_DIR / "ebus_map/static"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -122,7 +124,7 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 LOGIN_REDIRECT_URL = "/"  # redirect to landing page after login
-LOGOUT_REDIRECT_URL = "/login/"  # redirect to login after logout
+# LOGOUT_REDIRECT_URL = "/"  # don't set: show custom logged out view
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
@@ -130,18 +132,14 @@ LOGOUT_REDIRECT_URL = "/login/"  # redirect to login after logout
 #  data. Patrick wrote an HowTo for Linux users
 DATABASES = {"default": env.db("DATABASE_URL")}
 
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
-CELERY_USE = env("CELERY_USE", default="False").lower() == "true"
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=True)
 if CELERY_TASK_ALWAYS_EAGER:
+    # if set, eager tasks will propagate exceptions
     CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=True)
-# Make sure there is a celery broker url provided if celery should be used
-if CELERY_USE:
-    assert CELERY_BROKER_URL, (
-        "CELERY_BROKER_URL is missing from .env file. If celery should be"
-        "used, this URL has to be provided"
-    )
-
+    # if set, eager tasks will save results in backend
+    CELERY_TASK_STORE_EAGER_RESULT = env.bool("CELERY_TASK_STORE_EAGER_RESULT", default=True)
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=None)
 
 # For Database visualization
 GRAPH_MODELS = {
@@ -274,3 +272,6 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+
+TAILWIND_APP_NAME = "tailwind_theme"
+INTERNAL_IPS = ["localhost", "127.0.0.1"]

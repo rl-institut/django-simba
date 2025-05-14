@@ -1,0 +1,40 @@
+{% load static %}
+
+<script src="{% static 'templates/js/custom.js' %}"></script>
+<script src="{% static "jquery.min.js" %}"></script>
+<script src="{% static "popper.js" %}"></script>
+<script src="{% static "bootstrap.min.js" %}"></script>
+<script src="{% static "htmx.min.js" %}"></script>
+<script src="{% static "class-tools.js" %}"></script>
+{#ToDo remove cdn #}
+<script src=" https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js "></script>
+<script src="{% static "chart.umd.js" %}"> type="module"</script>
+<script src="{% static "nouislider.min.js" %}"></script>
+<link href="{%  static "nouislider.min.css" %}" rel="stylesheet">
+
+{#to do move to appropriate spot?#}
+<style>
+    .drag_drop_zone {
+        border-color: var(--green-050);
+        outline: 4px solid var(--green-400);
+        background-color: var(--green-050);
+    }
+
+    .errorlist {
+        list-style: none;
+    }
+</style>
+
+
+
+<script>
+    // Timezone settings
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // e.g. "America/New_York"
+
+    // Create the cookie string with SameSite attribute
+    document.cookie = "django_timezone=" + timezone + "; SameSite=Strict; path=/";
+
+    // You can adjust the SameSite attribute as per your requirement
+    // document.cookie = "django_timezone=" + timezone + "; SameSite=Strict; path=/";
+    // document.cookie = "django_timezone=" + timezone + "; SameSite=None; Secure; path=/";
+</script>
