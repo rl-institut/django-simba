@@ -986,3 +986,59 @@ class TemperaturesTestCase(TestCase):
         )
         # Different dates raise an attribute error
         self.assertRaises(AttributeError, t_instance.save)
+
+
+class SerializerTest(TestCase):
+    def test_serializer(self):
+        from ebustoolbox.import_export import visit_all_scenario_queries, ScenarioJSONExporter
+
+        count_before = count_all_rows()
+        print(count_before)
+        django_scenario, _, _ = build_scenario()
+        count_after = count_all_rows()
+        print(count_after)
+        exporter = ScenarioJSONExporter()
+        visit_all_scenario_queries(exporter, django_scenario)
+        visitor_objects_count = 0
+        for model, x in exporter.object_data.items():
+            current = len(x)
+            print(model, current)
+            visitor_objects_count += current
+        print(visitor_objects_count)
+        # The visited objects is missing the AssocVehicleTypeVehicleClass instance
+        # The table is not linked to the scenario directly.
+        # ManyToMany Relations can be accessed through the related manager of the instances.
+        assert visitor_objects_count + 1 == count_after - count_before
+
+        json_data = exporter.renderJSON()
+        exporter.loads(json_data)
+        # Write the data to instances of the models. They should be identical to the instances which
+        # where first read
+
+        # Objects data is flushed when loading json data
+        assert exporter.object_data == dict()
+        exporter.generate_instances()
+
+        new_exporter = ScenarioJSONExporter()
+        visit_all_scenario_queries(new_exporter, django_scenario)
+        # for model_class, instances in exporter.object_data.items():
+        #     for i, instance in enumerate(instances):
+        #         try:
+        #             assert model_to_dict(instance) == model_to_dict(
+        #                 new_exporter.object_data[model_class][i]
+        #             )
+        #         except:
+        #             a = 1
+        exporter.adjust_foreign_keys()
+
+
+def count_all_rows() -> int:
+    import django.apps
+
+    ebus_models = django.apps.apps.get_app_config("ebustoolbox").get_models()
+    count = 0
+    for model in ebus_models:
+        current = model.objects.count()
+        print(model, current)
+        count += current
+    return count
