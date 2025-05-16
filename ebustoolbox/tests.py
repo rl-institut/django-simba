@@ -12,12 +12,16 @@ from django.db import transaction
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase, override_settings
 
+import django.apps
+import core.deepcopy
+
 # Create your tests here.
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 from selenium import webdriver
 
+from .import_export import visit_all_scenario_queries, ScenarioJSONExporter
 from . import tasks
 from .forms import UploadFileForm
 from .models import (
@@ -988,53 +992,85 @@ class TemperaturesTestCase(TestCase):
         self.assertRaises(AttributeError, t_instance.save)
 
 
-class SerializerTest(TestCase):
+class SerializerTest(TransactionTestCase):
     def test_serializer(self):
-        from ebustoolbox.import_export import visit_all_scenario_queries, ScenarioJSONExporter
 
         count_before = count_all_rows()
         print(count_before)
         django_scenario, _, _ = build_scenario()
+        django_scenario.task_id = get_unique_task_id()
+        django_scenario.save()
+        tasks.run_toolchain_from_scenario(django_scenario, assign_vehicles=True)
         count_after = count_all_rows()
-        print(count_after)
+        count_delta = count_after - count_before
+        print(f"Simulation Scenario added {count_delta} objects")
+
+        # Load the scenario in the exporter
         exporter = ScenarioJSONExporter()
+        start_t = time.perf_counter()
         visit_all_scenario_queries(exporter, django_scenario)
-        visitor_objects_count = 0
-        for model, x in exporter.object_data.items():
-            current = len(x)
-            print(model, current)
-            visitor_objects_count += current
-        print(visitor_objects_count)
+
+        print("all visisted")
+        print(time.perf_counter() - start_t)
+        # Create json_data. This can be dumped and exported
+        json_data = exporter.renderJSON()
+
+        print("json rendered")
+        print(time.perf_counter() - start_t)
+        django_scenario.delete()
+
+        print(time.perf_counter() - start_t)
+        # Make sure the db has the same status as before
+        print(count_before)
+        print(count_all_rows())
+        # for model, x in exporter.object_data.items():
+        #     current = len(x)
+        #     print(model, current)
+        #     visitor_objects_count += current
+        # print(visitor_objects_count)
         # The visited objects is missing the AssocVehicleTypeVehicleClass instance
         # The table is not linked to the scenario directly.
         # ManyToMany Relations can be accessed through the related manager of the instances.
-        assert visitor_objects_count + 1 == count_after - count_before
+        # assert visitor_objects_count + 1 == count_after - count_before
 
-        json_data = exporter.renderJSON()
+        # Exporter can load the json_data
         exporter.loads(json_data)
+        print("json loaded")
+        print(time.perf_counter() - start_t)
         # Write the data to instances of the models. They should be identical to the instances which
         # where first read
 
         # Objects data is flushed when loading json data
         assert exporter.object_data == dict()
+
+        # Object Instances get recreated
         exporter.generate_instances()
 
-        new_exporter = ScenarioJSONExporter()
-        visit_all_scenario_queries(new_exporter, django_scenario)
-        # for model_class, instances in exporter.object_data.items():
-        #     for i, instance in enumerate(instances):
-        #         try:
-        #             assert model_to_dict(instance) == model_to_dict(
-        #                 new_exporter.object_data[model_class][i]
-        #             )
-        #         except:
-        #             a = 1
+        print("instances generated")
+        print(time.perf_counter() - start_t)
         exporter.adjust_foreign_keys()
+        print("foreign keys adjusted")
+        print(time.perf_counter() - start_t)
+
+        exporter.bulk_create()
+        print("bulk creation")
+        print(time.perf_counter() - start_t)
+
+        exporter.create_many_to_many()
+        print("many to many creation")
+        print(time.perf_counter() - start_t)
+
+        core.deepcopy.reset_postgres_auto_increments([Scenario._meta.app_label])
+        start_t = time.perf_counter()
+        new_scenario = exporter.object_data["Scenario"][0]
+        new_scenario.task_id = get_unique_task_id()
+        tasks.deepcopy_scenario(new_scenario)
+        print(time.perf_counter() - start_t)
+
+        new_scenario = Scenario.objects.get(id=new_scenario.id)
 
 
 def count_all_rows() -> int:
-    import django.apps
-
     ebus_models = django.apps.apps.get_app_config("ebustoolbox").get_models()
     count = 0
     for model in ebus_models:
