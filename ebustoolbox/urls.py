@@ -16,6 +16,8 @@ from ebustoolbox.views import (
     DashboardView,
     get_dashboard,
     compare,
+    export_scenario,
+    import_scenario,
 )
 
 from ebustoolbox import views
@@ -82,6 +84,16 @@ urlpatterns = [
         "export/<str:model_str>/<uuid:task_id>",
         model_export_json,
         name="model_export_json",
+    ),
+    path(
+        "export/<uuid:task_id>",
+        export_scenario,
+        name="JSON_export_scenario",
+    ),
+    path(
+        "import/",
+        import_scenario,
+        name="JSON_import_scenario",
     ),
     # path("export/<str:model>/<uuid:task_id>", ModelListView.as_view(), name="model_export_json"),
     path(

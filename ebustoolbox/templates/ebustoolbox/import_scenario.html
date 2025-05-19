@@ -1,17 +1,17 @@
-{% extends 'base.html' %}
+{% extends 'core/base.html' %}
 
 {% block content %}
-<h1> Szenario Import </h1>
+<h3 class="text-xl font-semibold pb-2">Szenario Import</h3>
   <div class="alert alert-danger" role="alert">
   Wähle eine Datei aus, um sie in die Datenbank zu importieren. Die Datei sollte aus einem vorherigen Szenario-Export stammen.
   </div>
   <form method="POST" enctype="multipart/form-data">{% csrf_token %}
     <div class="input-group">
-      <input title='json Datei eines vorherigen Exports' type="file" class="form-control" required="" name="file_stations"
+      <input title='json Datei eines vorherigen Exports' type="file" class="form-control" required="" name="scenario_json"
              accept="application/json"
              style="max-width: 30ch">
       <span class="input-group-text">Szenario Datei (.json)</span>
     </div>
-    <button type="submit">Submit</button>
+    <button type="submit" class="px-6 py-2 bg-slate-800 text-white text-base font-semibold tracking-wide rounded-full hover:bg-black hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-900 transition-all duration-300"">Submit</button>
   </form>
 {% endblock %}

@@ -54,8 +54,12 @@ class ScenarioJSONImporterExporter:
     def renderJSON(self):
         return JSONRenderer().render(self.object_data)
 
-    def loads(self, json_bytes):
-        stream = io.BytesIO(json_bytes)
+    def loads(self, json_bytes=None, in_memory_file=None):
+        assert bool(json_bytes) != bool(in_memory_file), "Pass json_bytes xor in_memory file"
+        if json_bytes:
+            stream = io.BytesIO(json_bytes)
+        else:
+            stream = in_memory_file
         data = JSONParser().parse(stream)
         self.parsed_data = data
         self.object_data = dict()
