@@ -3,7 +3,9 @@ Module for importing and exporting WeBus Scenarios.
 Uses an Iterator to visit all relevant Scenario objects to export the Scenario to json"""
 
 import io
+import logging
 from pathlib import Path
+
 from django.core.exceptions import FieldError
 from django.core.serializers import serialize  # noqa
 from django.contrib.gis.db import models
@@ -14,22 +16,24 @@ from django.db.models.fields.related import ForeignKey, ManyToManyField, OneToOn
 from rest_framework import serializers
 from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
+
 from ebustoolbox.models import (
     Scenario,
 )
 from ebustoolbox.util import get_next_id
 
+logger = logging.getLogger("custom")
+
 
 def visit_all_scenario_queries(visitor, scenario: Scenario):
-    import django.apps
 
     ebus_models = django.apps.apps.get_app_config("ebustoolbox").get_models()
     # All relevant models have a foreign key to this scenario
     for model in ebus_models:
-        # Scenario has a foreign key to its parent which we want to ignore. instead we use
-        # the passed scenario.itself
+        # Scenario has a foreign key to its parent which we want to ignore.
+        # Instead we use the passed scenario itself
         if model == Scenario:
-            # vist expects a query
+            # visit expects a query
             visitor.visit(Scenario.objects.filter(id=scenario.id))
             continue
         try:
@@ -254,57 +258,3 @@ def generate_serializer(model_class: models.Model):
         },
     )
     return serializer_class
-
-
-#
-# from ebustoolbox.tests import build_scenario
-#
-# django_scenario, _, _ = build_scenario()
-# exporter = ScenarioJSONExporter()
-# visit_all_scenario_queries(exporter, django_scenario)
-# visitor_objects_count = 0
-# for model, x in exporter.object_data.items():
-#     current = len(x)
-#     print(model, current)
-#     visitor_objects_count += current
-# print(visitor_objects_count)
-# json_data = exporter.renderJSON()
-# type(json_data)
-# json_data
-# exporter.loads(json_data)
-# type(exporter.parsed_data["Consumption"])
-# exporter.generate_instances()
-# stream = io.BytesIO(json_data)
-# data = JSONParser().parse(stream)
-# data
-# gen = iter(data)
-# model = next(gen)
-# model
-#
-# MODEL = django.apps.apps.get_model("ebustoolbox", model)
-# MODEL
-# serializer_class = generate_serializer(MODEL)
-# data[model]
-# serializer = serializer_class(data=data[model], many=True)
-# serializer.is_valid()
-# serializer.validated_data[0]
-# assert serializer.initial_data[0]["id"]
-# # Cast to dict. This ignores ManyToManyRelationships.
-# # Original id is part of initial_data but no of validated date
-# original_scenario = model_to_dict(django_scenario)
-# del original_scenario["id"]
-# imported_scenario = model_to_dict(serializer.validated_data[0])
-# model_to_dict(serializer.validated_data[0])
-# del imported_scenario["id"]
-# assert original_scenario == imported_scenario
-# VehicleType._meta.get_fields()
-#
-# model = "VehicleType"
-# MODEL = django.apps.apps.get_model("ebustoolbox", model)
-# MODEL
-# serializer_class = generate_serializer(MODEL)
-# data[model]
-# serializer = serializer_class(data=data[model], many=True)
-# serializer.is_valid()
-# serializer.validated_data[0]
-# assert serializer.initial_data[0]["id"]
