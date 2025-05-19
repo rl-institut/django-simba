@@ -746,6 +746,16 @@ class Temperatures(models.Model):
         self.temperature_closest_function = get_datetime_closest_function(self.datetimes, self.data)
         super().save(*args, **kwargs)
 
+    @staticmethod
+    def create_constant_temperatures(scenario, temperature: float) -> "Temperatures":
+        self = Temperatures()
+        self.scenario = scenario
+        self.use_only_time = True
+        self.datetimes = [datetime(1900, 1, 1)]
+        self.data = [temperature]
+        self.save()
+        return self
+
     def get_interpolated_temperature(self, date_time: datetime) -> float:
         """
         Retrieves the interpolated temperature for a given datetime.
@@ -784,6 +794,10 @@ def get_datetime_closest_function(datetimes: list[datetime], data: list):
     Returns:
         function: A datetime interpolation function.
     """
+    # In the case of a single temperature just return the temperature
+    if len(data) == 1:
+        return lambda _: data[0]
+
     # sort by key
     sort_index = np.argsort(np.array(datetimes), axis=0)
     sorted_data = (np.array([datetimes, data]).T)[sort_index]

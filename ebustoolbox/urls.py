@@ -27,7 +27,7 @@ app_name = "simba"
 urlpatterns = [
     path("compare/", compare, name="compare"),
     path(
-        "costs/<uuid:task_id>",
+        "costs/<uuid:task_id>/",
         CostsView.as_view(),
         name="costs",
     ),
@@ -38,28 +38,23 @@ urlpatterns = [
         name="dashboard2",
     ),
     path(
-        "depots/<uuid:task_id>",
+        "depots/<uuid:task_id>/",
         DepotsView.as_view(),
         name="depots",
     ),
     path("progress2/<uuid:progress_id>/<str:template_name>/", progress2, name="progress"),
     path(
-        "result/<uuid:task_id>",
+        "result/<uuid:task_id>/",
         views.result_view,  # only way I get MapengineMixin to work
         name="result",
     ),
     path(
-        "stations/",
-        TemplateView.as_view(template_name="ebustoolbox/stations.html"),
-        name="stations",
-    ),
-    path(
-        "stations/<uuid:task_id>",
+        "stations/<uuid:task_id>/",
         StationsView.as_view(),
         name="stations",
     ),
     path(
-        "summary/<uuid:task_id>",
+        "summary/<uuid:task_id>/",
         SummaryView.as_view(),
         name="summary",
     ),
@@ -69,23 +64,22 @@ urlpatterns = [
         name="trips",
     ),
     path(
-        "trips/<uuid:task_id>",
+        "trips/<uuid:task_id>/",
         TripsView.as_view(),
         name="trips",
     ),
     path(
-        "trips/<uuid:task_id>/<int:first>",
+        "trips/<uuid:task_id>/<int:first>/",
         TripsView.as_view(),
         name="trips",
     ),
     path(
-        "export/<str:model_str>/<uuid:task_id>",
+        "export/<str:model_str>/<uuid:task_id>/",
         model_export_json,
         name="model_export_json",
     ),
-    # path("export/<str:model>/<uuid:task_id>", ModelListView.as_view(), name="model_export_json"),
     path(
-        "vehicles/<uuid:task_id>",
+        "vehicles/<uuid:task_id>/",
         VehiclesView.as_view(),
         name="vehicles",
     ),

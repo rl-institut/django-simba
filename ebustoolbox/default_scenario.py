@@ -3,9 +3,7 @@
 from django.db import models
 
 
-def get_default_scenario(apps) -> models.Model:
-    DefaultScenario = apps.get_model("ebustoolbox", "DefaultScenario")
-    Scenario = apps.get_model("ebustoolbox", "Scenario")
+def get_default_scenario(DefaultScenario, Scenario) -> models.Model:
     default_scenarios = DefaultScenario.objects.all()
     count = default_scenarios.count()
     if count == 1:
@@ -19,7 +17,9 @@ def get_default_scenario(apps) -> models.Model:
 
 
 def set_default_scenario(apps, schema_editor):
-    default_scenario = get_default_scenario(apps)
+    DefaultScenario = apps.get_model("ebustoolbox", "DefaultScenario")
+    Scenario = apps.get_model("ebustoolbox", "Scenario")
+    default_scenario = get_default_scenario(DefaultScenario, Scenario)
     Scenario = apps.get_model("ebustoolbox", "Scenario")
     # Delete previous Scenario
     old_scenario = default_scenario.scenario
