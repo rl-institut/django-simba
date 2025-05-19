@@ -996,7 +996,6 @@ class SerializerTest(TransactionTestCase):
     def test_serializer(self):
 
         count_before = count_all_rows()
-        print(count_before)
         django_scenario, _, _ = build_scenario()
         django_scenario.task_id = get_unique_task_id()
         django_scenario.save()
@@ -1007,74 +1006,35 @@ class SerializerTest(TransactionTestCase):
 
         # Load the scenario in the exporter
         exporter = ScenarioJSONImporterExporter()
-        start_t = time.perf_counter()
         visit_all_scenario_queries(exporter, django_scenario)
 
-        print("all visisted")
-        print(time.perf_counter() - start_t)
         # Create json_data. This can be dumped and exported
         json_data = exporter.renderJSON()
-
-        print("json rendered")
-        print(time.perf_counter() - start_t)
         django_scenario.delete()
-
-        print(time.perf_counter() - start_t)
         # Make sure the db has the same status as before
-        print(count_before)
-        print(count_all_rows())
-        # for model, x in exporter.object_data.items():
-        #     current = len(x)
-        #     print(model, current)
-        #     visitor_objects_count += current
-        # print(visitor_objects_count)
-        # The visited objects is missing the AssocVehicleTypeVehicleClass instance
-        # The table is not linked to the scenario directly.
-        # ManyToMany Relations can be accessed through the related manager of the instances.
-        # assert visitor_objects_count + 1 == count_after - count_before
-
-        # Exporter can load the json_data
-        exporter.loads(json_data)
-        print("json loaded")
-        print(time.perf_counter() - start_t)
-        # Write the data to instances of the models. They should be identical to the instances which
-        # where first read
+        # exporter can load the json_data. Passing an InMemoryUploadedFile is also possible
+        exporter.loads(json_bytes=json_data)
 
         # Objects data is flushed when loading json data
         assert exporter.object_data == dict()
 
         # Object Instances get recreated
         exporter.generate_instances()
-
-        print("instances generated")
-        print(time.perf_counter() - start_t)
         exporter.adjust_foreign_keys()
-        print("foreign keys adjusted")
-        print(time.perf_counter() - start_t)
-
         exporter.bulk_create()
-        print("bulk creation")
-        print(time.perf_counter() - start_t)
-
         exporter.create_many_to_many()
-        print("many to many creation")
-        print(time.perf_counter() - start_t)
-
+        # The exporter bulk creates objects.
+        # To reset the postgres auto increment counter this command is called.
         core.deepcopy.reset_postgres_auto_increments([Scenario._meta.app_label])
-        start_t = time.perf_counter()
-        new_scenario = exporter.object_data["Scenario"][0]
-        new_scenario.task_id = get_unique_task_id()
-        tasks.deepcopy_scenario(new_scenario)
-        print(time.perf_counter() - start_t)
-
-        new_scenario = Scenario.objects.get(id=new_scenario.id)
+        # Importing the scenario creates the same number of objects/rows as the exported scenario.
+        assert count_delta == count_all_rows() - count_before
 
 
 def count_all_rows() -> int:
+    """Iterate over all ebustoolbox models and sum up the rows"""
     ebus_models = django.apps.apps.get_app_config("ebustoolbox").get_models()
     count = 0
     for model in ebus_models:
         current = model.objects.count()
-        print(model, current)
         count += current
     return count
