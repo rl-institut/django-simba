@@ -38,7 +38,7 @@ def visit_all_scenario_queries(visitor, scenario: Scenario):
             print(f"{model} has no field 'scenario'")
 
 
-class ScenarioJSONExporter:
+class ScenarioJSONImporterExporter:
     def __init__(self):
         # Stores all objects to be serialized with the modelname as key
         self.object_data: dict[str, list[object]] = dict()

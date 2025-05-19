@@ -37,6 +37,8 @@ from .forms import (
     DepotChargingAreaForm,
 )
 from .tasks import create_db_url, get_args, scenario_to_db  # noqa
+from .import_export import ScenarioJSONImporterExporter, visit_all_scenario_queries
+
 from .util import get_unique_task_id
 
 from dash_app import data
@@ -175,7 +177,8 @@ class AuthorizedMixIn:
 
     has_permisson = None
 
-    def get_permission(self, user, task_id):
+    @staticmethod
+    def get_permission(user, task_id):
         """Make sure User is authorized and add scenario to class"""
         scenario = get_object_or_404(Scenario, task_id=task_id)
 
@@ -1597,3 +1600,22 @@ def get_dist_hist(request, task_id: str):
         "series": [{"data": hist.tolist(), "type": "bar"}],
     }
     return JsonResponse(response_data)
+
+
+# TODO: Implement import and export view for Scenarios
+# Only allow import of SOURCE and SIMULATION_SCENARIO -> Remove parent
+# MUTATION_SCENARIOS can only be exported from the merged state
+# MUTATION SCENARIOS do not have enough state and would require merged export of not just parent
+# scenario but also of the default scenario, since mutation scenarios reference default objects
+# like VehicleTypes. Import could not guarantee these ids remain constant
+
+
+def export_scenario(request, task_id: str):
+    """Allow admins and authorized users to download a json export of their scenario"""
+    # Raise an exception if user is not authorized for this task_id
+    AuthorizedMixIn.get_permission(request.user, task_id)
+    scenario = Scenario.objects.get(task_id=task_id)
+    exporter = ScenarioJSONImporterExporter()
+    visit_all_scenario_queries(exporter, scenario)
+    json_data = exporter.renderJSON()
+    return JsonResponse(json_data)

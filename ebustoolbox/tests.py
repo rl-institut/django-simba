@@ -21,7 +21,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 from selenium import webdriver
 
-from .import_export import visit_all_scenario_queries, ScenarioJSONExporter
+from .import_export import visit_all_scenario_queries, ScenarioJSONImporterExporter
 from . import tasks
 from .forms import UploadFileForm
 from .models import (
@@ -1006,7 +1006,7 @@ class SerializerTest(TransactionTestCase):
         print(f"Simulation Scenario added {count_delta} objects")
 
         # Load the scenario in the exporter
-        exporter = ScenarioJSONExporter()
+        exporter = ScenarioJSONImporterExporter()
         start_t = time.perf_counter()
         visit_all_scenario_queries(exporter, django_scenario)
 
