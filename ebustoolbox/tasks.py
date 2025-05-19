@@ -1255,7 +1255,6 @@ def create_station_mutations(scenario):
 @shared_task(bind=True)
 def _run_ebus_toolchain(self, task_id):
     """Run the tool chain"""
-    print("new toolchain")
     db_scenario = Scenario.objects.get(task_id=task_id)
     progress, created = Progress.objects.get_or_create(task_id=self.request.id)
     if created:
@@ -1319,89 +1318,6 @@ def _run_ebus_toolchain(self, task_id):
 
         progress.current_work += 90
         progress.save()
-
-        db_scenario.refresh_from_db()
-        db_scenario.finished = timezone.now()
-        db_scenario.save()
-        progress.set_success()
-    except Exception as e:
-        logger.error(traceback.format_exc())
-        progress.refresh_from_db()
-        try:
-            progress.errors.append(str(e))
-        except Exception:
-            logger.error(traceback.format_exc())
-        progress.set_failed()
-        raise
-
-
-@shared_task(bind=True)
-def _run_ebus_toolchain_old(self, task_id):
-    """Run the tool chain"""
-    db_scenario = Scenario.objects.get(task_id=task_id)
-    progress, created = Progress.objects.get_or_create(task_id=self.request.id)
-    if created:
-        progress.scenario = db_scenario.parent
-        progress.save()
-    assert progress.scenario == db_scenario.parent, "Progress needs to be linked with parent"
-    progress.reset()
-
-    try:
-        logger.info(f"Getting schedule from db {datetime.now()}")
-        schedule, args = get_schedule_from_db(db_scenario)
-
-        # in the first run Depots can stay un electrified
-        # ToDo keep that?
-        for depot in Depot.objects.filter(scenario=db_scenario):
-            try:
-                del schedule.stations[depot.station.to_simba_name()]
-            except KeyError:
-                pass
-        progress.total_work = 100
-        progress.current_work = 0
-        progress.save()
-
-        # call SimBA and eFLIPS
-        try:
-            wanted_modes = args.modes.split(",")
-        except AttributeError:
-            wanted_modes = args.mode
-        assert wanted_modes[-1] == "report"
-        simba_scenario = None
-        # Chain of modes with mode->eFLIPS -> sim. Last mode is "report" and can be outside of loop
-        for mode in wanted_modes[:-1]:
-            # Delete old events
-            Event.objects.filter(scenario=db_scenario).delete()
-
-            schedule, simba_scenario = run_simba(
-                schedule, args, db_scenario, mode=mode, scenario=simba_scenario
-            )
-
-            # Event.objects.filter(scenario=db_scenario).order_by("soc_end").first().soc_end
-            try:
-                run_eflips(task_id)
-            except UnstableSimulationException as e:
-                # TODO handle it and pass information to user
-                logger.error("The simulation is unstable")
-                logger.error(traceback.format_exception(e))
-            except DelayedTripException as e:
-                # TODO handle it and pass information to user
-                logger.error("There are delays in the Simulation")
-                logger.error(traceback.format_exception(e))
-
-            eflips_assignment = get_assigned_vehicles(task_id)
-            schedule.assign_vehicles_custom(eflips_assignment)
-            # ToDo: Keep that?
-            electrify_depot_station_w_default(db_scenario)
-            #
-            # get electrified stations from db, e.g. depot station from eFLIPS with
-            # power
-            stations_dict = get_electrified_stations_from_db(db_scenario)
-            schedule.stations = stations_dict.copy()
-            schedule, simba_scenario = run_simba(schedule, args, db_scenario, mode="sim")
-
-            progress.current_work += 90 // (len(wanted_modes) - 1)
-            progress.save()
 
         db_scenario.refresh_from_db()
         db_scenario.finished = timezone.now()
