@@ -182,7 +182,7 @@ class BatteryType(models.Model):
     # relative to gross capacity
     specific_mass = models.FloatField(null=False, blank=True)
     # defined in eFLIPS-LCA
-    chemistry = models.JSONField(null=True, default=dict)
+    chemistry = models.JSONField(null=False, default=dict)
 
 
 class AssocVehicleTypeVehicleClass(models.Model):
@@ -361,9 +361,8 @@ class Consumption(models.Model):
     """
 
     name = models.CharField(max_length=100)
-    vehicle_class = models.ForeignKey(VehicleClass, null=True, on_delete=models.CASCADE)
-    # Scenario might be null for default consumption tables
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    vehicle_class = models.ForeignKey(VehicleClass, null=False, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     columns = models.JSONField([], null=False)
     data_points = ArrayField(ArrayField(models.FloatField(), size=None), size=None, null=False)
     values = ArrayField(models.FloatField(), size=None, null=False)
@@ -747,6 +746,16 @@ class Temperatures(models.Model):
         self.temperature_closest_function = get_datetime_closest_function(self.datetimes, self.data)
         super().save(*args, **kwargs)
 
+    @staticmethod
+    def create_constant_temperatures(scenario, temperature: float) -> "Temperatures":
+        self = Temperatures()
+        self.scenario = scenario
+        self.use_only_time = True
+        self.datetimes = [datetime(1900, 1, 1)]
+        self.data = [temperature]
+        self.save()
+        return self
+
     def get_interpolated_temperature(self, date_time: datetime) -> float:
         """
         Retrieves the interpolated temperature for a given datetime.
@@ -785,6 +794,10 @@ def get_datetime_closest_function(datetimes: list[datetime], data: list):
     Returns:
         function: A datetime interpolation function.
     """
+    # In the case of a single temperature just return the temperature
+    if len(data) == 1:
+        return lambda _: data[0]
+
     # sort by key
     sort_index = np.argsort(np.array(datetimes), axis=0)
     sorted_data = (np.array([datetimes, data]).T)[sort_index]
@@ -1504,6 +1517,7 @@ class Depot(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     name = models.TextField(null=False, blank=False)
     name_short = models.TextField(null=True, blank=True)
+    bounding_box = models.PolygonField(dim=2, srid=4326, null=True, default=None)
     station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE)  # Added in schema v3
 
     default_plan = models.OneToOneField("Plan", null=False, on_delete=models.CASCADE)
@@ -1563,7 +1577,9 @@ class Area(models.Model):
     vehicle_type = models.ForeignKey(VehicleType, null=True, on_delete=models.CASCADE)
     name = models.TextField(null=True)
     name_short = models.TextField(null=True)
-    area_type = models.CharField(max_length=15, choices=AreaType.choices, null=True, default=None)
+    area_type = models.CharField(max_length=14, choices=AreaType.choices, null=True, default=None)
+    bounding_box = models.PolygonField(dim=2, srid=4326, null=True, default=None)
+    row_count = models.IntegerField(null=True, default=None)
     capacity = models.IntegerField(null=False)
     processes = models.ManyToManyField(Process, through="AssocAreaProcess")
 

@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
+
 from pathlib import Path
 
 import environ
@@ -53,7 +54,9 @@ if env.bool("DJANGO_LOCAL_DEVELOPMENT", default=False):
     SECURE_PROXY_SSL_HEADER = None
     # https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
     SECURE_SSL_REDIRECT = False
-
+DATA_UPLOAD_MAX_NUMBER_FIELDS = env.int(
+    "DJANGO_DATA_UPLOAD_MAX_NUMBER_FIELDS", 3000
+)  # higher than the count of fields. StationsView can have a couple of hundred stations with 5 fields each.
 # Application definition
 INSTALLED_APPS = [
     "django.contrib.admin",
