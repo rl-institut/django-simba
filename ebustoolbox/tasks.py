@@ -980,7 +980,7 @@ def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
 
     args = get_args(scenario)
     start_simulation = events.order_by("time_start").first().time_start
-    stop_simulation = events.order_by("-time_end").first().time_end
+    stop_simulation = events.order_by("time_end").last().time_end
 
     # SpiceEV vehicle types
     vehicle_types = {
@@ -996,20 +996,18 @@ def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
     }
 
     vehicles = dict()
+    vehicle_soc = get_initial_vehicle_soc(scenario)
     for vehicle in scenario.vehicle_set.all():
         vid = vehicle.name
         if vid in vehicles:
             # guarantee uniqueness
             vid = f"{vid} ({vehicle.id})"
 
-        # find initial soc -> SoC on first departure
-        first_event = events.filter(vehicle=vehicle).order_by("-time_end").first()
-        if first_event is not None:
-            vehicles[vid] = {
-                "connected_charging_station": None,
-                "soc": first_event.soc_end,
-                "vehicle_type": vehicle.vehicle_type_id,
-            }
+        vehicles[vid] = {
+            "connected_charging_station": None,
+            "soc": vehicle_soc[vehicle.id],
+            "vehicle_type": vehicle.vehicle_type_id,
+        }
 
     stations = get_electrified_stations_from_db(scenario)
     grid_connectors = dict()
@@ -1126,6 +1124,20 @@ def simulate_depot_strategy(spice_ev_scenario_dict: dict, strategy: str) -> Simb
     return spice_ev_scenario
 
 
+def get_initial_vehicle_soc(scenario):
+    # get initial SoC of all vehicles
+    vehicles = scenario.vehicle_set.all()
+    events = scenario.event_set.order_by("time_start")
+    vehicle_soc = dict()
+    for vehicle in vehicles:
+        first_vehicle_event = events.filter(vehicle=vehicle).first()
+        if first_vehicle_event is not None:
+            vehicle_soc[vehicle.id] = first_vehicle_event.soc_start
+        else:
+            vehicle_soc[vehicle.id] = None
+    return vehicle_soc
+
+
 def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
     # Create SpiceEV-like event dictionaries for a Scenario
 
@@ -1136,13 +1148,7 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
     # all events known at scenario start
     scenario_start_time = events.first().time_start
 
-    # get initial SoC of all vehicles
-    vehicles = scenario.vehicle_set.all()
-    vehicle_soc = dict()  # store current soc of vehicles
-    for vehicle in vehicles:
-        first_vehicle_event = events.filter(vehicle=vehicle).first()
-        if first_vehicle_event is not None:
-            vehicle_soc[vehicle.id] = first_vehicle_event.soc_start
+    vehicle_soc = get_initial_vehicle_soc(scenario)
 
     # avoid non-station events from older simulations
     events = events.filter(station_id__isnull=False)
