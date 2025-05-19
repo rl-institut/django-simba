@@ -17,10 +17,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.views.generic import TemplateView, FormView, ListView
 from django.views.decorators.http import require_POST
-from eflips.depot.api import simulate_scenario  # noqa
+from rest_framework.parsers import JSONParser  # noqa
 
 from core.models import Progress, EnumProgress
-
+import core.deepcopy
 from celery.result import AsyncResult
 
 # Unused import of dash_app needed to register app
@@ -1618,4 +1618,46 @@ def export_scenario(request, task_id: str):
     exporter = ScenarioJSONImporterExporter()
     visit_all_scenario_queries(exporter, scenario)
     json_data = exporter.renderJSON()
-    return JsonResponse(json_data)
+    return HttpResponse(json_data, content_type="application/json")
+
+
+def import_scenario(request):
+    if not request.user.is_authenticated:
+        return HttpResponseForbidden("Importing data is only allowed for logged in Users")
+
+    if request.method == "GET":
+        return render(request, "ebustoolbox/import_scenario.html")
+
+    if request.method == "POST":
+        assert request.FILES["scenario_json"]
+        importer = ScenarioJSONImporterExporter()
+        importer.loads(in_memory_file=request.FILES["scenario_json"])
+
+        importer.generate_instances()
+        assert (
+            len(importer.object_data["Scenario"]) == 1
+        ), "Importing is only supported for single scenarios"
+        scenario: Scenario = importer.object_data["Scenario"][0]
+        if Scenario.objects.filter(task_id=scenario.task_id).exists():
+            new_task_id = ebustoolbox.util.get_unique_task_id()
+            logger.warn(
+                f"task_id {scenario.task_id} already exists in the database. "
+                "Imported Scenario will get a new task_id of {new_task_id}"
+            )
+            scenario.task_id = new_task_id
+            scenario.manager = request.user
+        if scenario.scenario_type not in (EnumScenarioType.SIMULATION, EnumScenarioType.SOURCE):
+            return Http404("Only Simulation and Source Scenarios can be imported currently.")
+        importer.adjust_foreign_keys()
+        importer.bulk_create()
+        importer.create_many_to_many()
+        core.deepcopy.reset_postgres_auto_increments([Scenario._meta.app_label])
+        task_id = scenario.task_id
+        # TODO: Run Simulation is not working on this branch.
+        # Refactor with Split: Merge + Run  and (Merge + Run)
+        return HttpResponse(
+            f"Scenario succesfully imported with task_id {task_id}. "
+            f"View <a href={reverse('simba:result', args=[task_id])}>results</a> or "
+            f"<a href={reverse('simba:run_simulation', args=[task_id])} > run the simulation</a>"
+        )
+    return Http404("Something went wrong importing the scenario")
