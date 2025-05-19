@@ -39,7 +39,7 @@ def visit_all_scenario_queries(visitor, scenario: Scenario):
         try:
             visitor.visit(model.objects.filter(scenario=scenario))
         except FieldError:
-            print(f"{model} has no field 'scenario'")
+            logger.debug(f"{model} has no field 'scenario'")
 
 
 class ScenarioJSONImporterExporter:
@@ -151,7 +151,7 @@ class ScenarioJSONImporterExporter:
                         new_key = self.instance_lookup[field.related_model][old_id]
                         setattr(instance, field.name + "_id", new_key)
                     except KeyError:
-                        print(
+                        logger.info(
                             f"{model_class} Import Error: Field {field.name} could not be adjusted"
                             " with an imported Instance. Trying to set it to None"
                         )
@@ -183,7 +183,7 @@ class ScenarioJSONImporterExporter:
             for field in many_fields:
                 through_model = getattr(model_class, field.name).through
                 if through_model in already_created:
-                    print(f"{through_model} already created")
+                    logger.debug(f"{through_model} already created")
                     continue
                 already_created.add(through_model)
                 fields = through_model._meta.fields
@@ -213,13 +213,6 @@ class ScenarioJSONImporterExporter:
                         break
                 else:
                     raise AssertionError()
-                # field_name_lookup = [
-                #     (
-                #         f.name if not isinstance(f, ForeignKey) else f.name + "_id",
-                #         f.name,
-                #     )
-                #     for f in through_model._meta.fields
-                # ]
                 next_id = get_next_id(through_model)
                 # Only the initial data has the many to many relationships annotated to the instances
                 assoc_instances = []
@@ -241,7 +234,7 @@ class ScenarioJSONImporterExporter:
                         }
                         assoc_instances.append(through_model(**dict_data))
                 through_model.objects.bulk_create(assoc_instances)
-                print(f"{len(assoc_instances)} objects of {through_model} created")
+                logger.debug(f"{len(assoc_instances)} objects of {through_model} created")
 
 
 def generate_serializer(model_class: models.Model):
