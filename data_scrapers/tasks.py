@@ -321,6 +321,7 @@ def get_fuzzy_stations(
         logger.debug(
             "Found Stations have the following similaritis:\n" + "\n".join(map(str, similarities))
         )
+    # cast fuzzy stations queryset to list to force query evaluation
     fuzz_station_query_w_admin_ids = list(fuzzy_stations.values_list("id", flat=True))
     fuzzy_stations = BusStation.objects.filter(id__in=fuzz_station_query_w_admin_ids)
     return fuzzy_stations
