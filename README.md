@@ -176,7 +176,7 @@ run a postgis instance in this network. Set your database according to your sett
  sudo docker run --name my-docker-postgres -e POSTGRES_PASSWORD=1234 -e POSTGRES_USER=myprojectuser -e POSTGRES_DB=mydb -d --network=mynetwork postgis/postgis
   ```
 
- Go into your Django .env file and make sure the host is the same as in the above db, e.T. my-docker-postgres. This replaces "localhost" in the database url, e.g.
+ Go into your Django .env file and make sure the host is the same as in the above db, e.g. my-docker-postgres. This replaces "localhost" in the database url, e.g.
 ```bash
 DATABASE_URL=postgis://myprojectuser:1234@my-docker-postgres:5432/mydb
   ```
