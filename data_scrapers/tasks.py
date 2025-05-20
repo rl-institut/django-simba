@@ -317,11 +317,9 @@ def get_fuzzy_stations(
         best_similarity = fuzzy_stations.first().similarity
         # Without delta lookup fails at times
         fuzzy_stations = fuzzy_stations.filter(similarity__gte=best_similarity - 0.01)
-        newl = "\n"
         similarities = fuzzy_stations.values_list("similarity", flat=True)
         logger.debug(
-            "Found Stations have the following similaritis:\n"
-            f"{newl.join(map(str,similarities ))}"
+            "Found Stations have the following similaritis:\n" + "\n".join(map(str, similarities))
         )
     fuzz_station_query_w_admin_ids = list(fuzzy_stations.values_list("id", flat=True))
     fuzzy_stations = BusStation.objects.filter(id__in=fuzz_station_query_w_admin_ids)
