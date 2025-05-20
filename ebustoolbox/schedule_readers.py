@@ -521,8 +521,7 @@ class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
     def __init__(self):
         """
         This method initializes the class. In the django-simba world, initial validity checks could be done here.
-        However, per Paul's EMail from 2024-03-24, eflips-ingest shims should do the initial validity checks in the
-        meth:`write_to_db` method.
+        eflips-ingest shims should do the initial validity checks in the meth:`write_to_db` method.
 
         This method needs to be overridden by the subclasses. The arguments during initialization should be the
         parameters that are needed for the meth:`validate` method of the eflips-ingest class that the shim is
