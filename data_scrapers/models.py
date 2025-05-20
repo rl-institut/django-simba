@@ -32,7 +32,8 @@ class BusStation(models.Model):
     Attributes:
         name (str): Name of BusStation
         osm_id (int): OpenStreetMap identifier
-        geom (django.contrib.gis.geos.Point|None)): Geolocation of BusStation in SRID 4326
+        geom (django.contrib.gis.geos.Point|None)): Geolocation of BusStation in SRID 4326 with
+        elevation in meters.
         admin_area (AdminArea): AdminArea with the highest admin_level the BusStation is contained in.
     """
 
