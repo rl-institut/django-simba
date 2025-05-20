@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import csv
 import random
 import shutil
@@ -18,7 +19,8 @@ from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry, Point
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db import connections
-from django.db.models import Max, Count, Min, QuerySet
+from django.db.models.functions import Lead
+from django.db.models import F, Max, Count, Min, QuerySet, Window
 from django.db.transaction import atomic
 from django.http import HttpRequest
 from django.utils import timezone
@@ -29,6 +31,7 @@ from eflips.depot.api import simulate_scenario, generate_depot_layout
 import core.deepcopy
 import ebustoolbox.util
 import simba.optimizer_util
+import simba.station_optimization
 import simba.simulate
 import simba.util
 from core.deepcopy import reset_postgres_auto_increments
@@ -76,9 +79,43 @@ if TYPE_CHECKING:
 logger = logging.getLogger("custom")
 
 # ToDo: Any better solutions?
-INTEGER_INF = 9999
-MAX_AMOUNT_VEHICLES = 10000
-DEFAULT_TEMPERATURE = 20
+DEFAULT_TEMPERATURE = 20  # °C
+IMPLEMENTED_MODES = {"sim", "station_optimization", "station_optimization_single_step"}
+DEFAULT_LOADED_MASS = 0
+DEFAULT_ALLOWED_LOAD = 1000
+
+
+def apply_vehicle_type(
+    target_vehicle_type: VehicleType, source_vehicle_type: VehicleType
+) -> VehicleType:
+    """Use a source vehicle type and apply the attributes to a a target vehicle type.
+
+    Scenario, name and name short of the target are not copied over.
+    VehicleClasses of source are copied aswell as consumptions which are linked to vehicle classes
+    """
+    vehicle_classes = source_vehicle_type.vehicle_classes.all()
+    source_vehicle_type.id = target_vehicle_type.id
+    source_vehicle_type.scenario = target_vehicle_type.scenario
+    source_vehicle_type.name = target_vehicle_type.name
+    source_vehicle_type.name_short = target_vehicle_type.name_short
+    source_vehicle_type.save()
+    # Copy vehicle_classes and consumption and add the new vehicle type to it
+    for vehicle_class in vehicle_classes:
+        # Cast consumptions to list to evaluate them early
+        consumptions = list(vehicle_class.consumption_set.all())
+
+        vehicle_class.id = ebustoolbox.util.get_next_id(VehicleClass)
+        vehicle_class.scenario = target_vehicle_type.scenario
+        vehicle_class.save()
+        vehicle_class.vehicle_types.add(source_vehicle_type)
+        if consumptions:
+            assert len(consumptions) == 1
+            c = consumptions[0]
+            c.id = ebustoolbox.util.get_next_id(Consumption)
+            c.scenario = target_vehicle_type.scenario
+            c.vehicle_class = vehicle_class
+            c.save()
+    return source_vehicle_type
 
 
 @atomic()
@@ -306,12 +343,23 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
     lines_dict = {line.id: line for line in Line.objects.filter(scenario=django_scenario)}
     simba_trips = list()
     temperatures = Temperatures.objects.filter(scenario=django_scenario)
-    DEFAULT_LOADED_MASS = 0
+    temperature = None
+    if temperatures.exists():
+        assert len(temperatures) == 1, "A scenario can only have a single linked Temperature object"
+        temperature = temperatures.first()
+    # Get a function which produces temperatures with a trip as input
+    get_temperature = get_temperature_function(temperature)
+    warning_dict = {
+        "missing_allowed_load": True,
+        "missing_temperature": True,
+        "missing_loaded_mass": True,
+        "level_of_loading_out_of_range": True,
+    }
 
     for rot in Rotation.objects.filter(scenario=django_scenario).select_related(
         "vehicle_type", "vehicle"
     ):
-        vehicle_type = str(rot.vehicle_type.id)
+        vehicle_type = rot.vehicle_type.id
         charging_type = (
             EnumChargeType.OPPORTUNITY.value
             if rot.vehicle_type.opportunity_charging_capable
@@ -322,32 +370,26 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
         # filled with non SimBA ingesters
         simba_id = rot.id
 
-        try:
-            allowed_load = rot.vehicle_type.allowed_mass - rot.vehicle_type.empty_mass
-        except TypeError:
-            allowed_load = None
         vehicle_classes = VehicleClass.objects.filter(vehicle_types=vehicle_type)
         consumption_classes = vehicle_classes.exclude(consumption__isnull=True)
-        assert len(consumption_classes) <= 1
+        assert (
+            len(consumption_classes) <= 1
+        ), "A VehicleType can only have a single VehicleClass with a consumption attached"
         lut_consumption = False
         if len(consumption_classes) == 1:
             lut_consumption = True
-        if lut_consumption and not temperatures.exists():
-            logger.warning(
-                f"Vehicle Type {rot.vehicle_type.id} uses a consumption LUT for "
-                "consumption calculation but the scenario has no Temperature object for "
-                "temperature lookup. Default value for temperature of "
-                f"{DEFAULT_TEMPERATURE} °C is used."
-            )
+        # TODO: clean up conditionals
 
-        if lut_consumption and allowed_load is None:
-            allowed_load = 1000
-            logger.warning(
-                f"{rot.id=} is serviced by a vehicle_type with a consumption lut. "
-                "The vehicle_type does not contain the allowed and empty mass. "
-                f"The allowed load will be set to {allowed_load} kg."
-            )
+        try:
+            calc_allowed_load = rot.vehicle_type.allowed_mass - rot.vehicle_type.empty_mass
+        except TypeError:
+            calc_allowed_load = None
+        allowed_load = calc_allowed_load or DEFAULT_ALLOWED_LOAD
         # select related means later db access can be skipped
+        if lut_consumption:
+            warning_dict = validate_lut_consumption_inputs(
+                temperatures, calc_allowed_load, rot, warning_dict
+            )
         query = (
             Trip.objects.filter(rotation=rot)
             .select_related("route__arrival_station", "route__departure_station", "route__line")
@@ -355,26 +397,21 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
         )
 
         for trip in query:
-            loaded_mass = trip.loaded_mass
+            loaded_mass = trip.loaded_mass or DEFAULT_LOADED_MASS
             level_of_loading = None
             if allowed_load is not None:
-                if lut_consumption and loaded_mass is None:
-                    loaded_mass = DEFAULT_LOADED_MASS
-                    logger.warning(
-                        f"{trip.id=} has no loaded mass but the vehicle_type which services this "
-                        "trip needs a loaded mass for consumption look up and is set to "
-                        f"{loaded_mass}."
-                    )
                 level_of_loading = loaded_mass / allowed_load
-                if 1 < level_of_loading or 0 > level_of_loading:
-                    logger.warning(f"Level of loading is out of [0,1] range for {trip.id=}")
+                if lut_consumption:
+                    warning_dict = validate_trip_lut_consumption_inputs(
+                        trip, loaded_mass, level_of_loading, warning_dict
+                    )
             simba_trip_dict = {
                 "rotation_id": simba_id,
                 "departure_time": trip.departure_time,
                 "departure_name": trip.route.departure_station.to_simba_name(),
                 "arrival_time": trip.arrival_time,
                 "arrival_name": trip.route.arrival_station.to_simba_name(),
-                "vehicle_type": vehicle_type,
+                "vehicle_type": str(vehicle_type),
                 "charging_type": charging_type,
                 "distance": trip.route.distance,
                 "line": lines_dict[trip.route.line.id].name,
@@ -384,25 +421,83 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
                 ),
                 "level_of_loading": level_of_loading,
                 "mean_speed": trip.speed * 3.6,
-                "temperature": DEFAULT_TEMPERATURE,
+                "temperature": get_temperature(trip),
             }
-            if temperatures.exists():
-                assert (
-                    len(temperatures) == 1
-                ), "A scenario can only have a single linked Temperature object"
-                temperature = temperatures.first()
-
-                middle_time = trip.departure_time + 0.5 * (trip.arrival_time - trip.departure_time)
-                # get pseudo mean temperature by using center and boundary temperatures
-                temp = (
-                    0.5 * temperature.get_interpolated_temperature(middle_time)
-                    + 0.25 * temperature.get_interpolated_temperature(trip.arrival_time)
-                    + 0.25 * temperature.get_interpolated_temperature(trip.departure_time)
-                )
-                simba_trip_dict["temperature"] = temp
 
             simba_trips.append(simba_trip_dict)
     return simba_trips
+
+
+def validate_trip_lut_consumption_inputs(trip, loaded_mass, level_of_loading, warning_dict) -> dict:
+    if trip.loaded_mass is None:
+        text = (
+            f"{trip.id=} has no loaded mass but the vehicle_type which services this "
+            "trip needs a loaded mass for consumption look up and is set to "
+            f"{loaded_mass}."
+        )
+        if warning_dict["missing_loaded_mass"]:
+            warning_dict["missing_loaded_mass"] = False
+            logger.warning(text + "\n This message is only shown once as warning.")
+        else:
+            logger.debug(text)
+    if 1 < level_of_loading or 0 > level_of_loading:
+        text = f"Level of loading is out of [0,1] range for {trip.id=}"
+        if warning_dict["level_of_loading_out_of_range"]:
+            warning_dict["level_of_loading_out_of_range"] = False
+            logger.warning(text + "\n This message is only shown once as warning.")
+        else:
+            logger.debug(text)
+    return warning_dict
+
+
+def validate_lut_consumption_inputs(temperatures, calc_allowed_load, rot, warning_dict) -> dict:
+    if not temperatures.exists():
+        text = (
+            f"Vehicle Type {rot.vehicle_type.id} uses a consumption LUT for "
+            "consumption calculation but the scenario has no Temperature object for "
+            "temperature lookup. Default value for temperature of "
+            f"{DEFAULT_TEMPERATURE} °C is used."
+        )
+        if warning_dict["missing_temperature"]:
+            warning_dict["missing_temperature"] = False
+            logger.warning(text + "\n This message is only shown once as warning.")
+        else:
+            logger.debug(text)
+
+    if calc_allowed_load is None:
+        text = (
+            f"{rot.id=} is serviced by a vehicle_type with a consumption lut. "
+            "The vehicle_type does not contain the allowed and empty mass. "
+            f"The allowed load will be set to {DEFAULT_ALLOWED_LOAD} kg."
+        )
+        if warning_dict["missing_allowed_load"]:
+            warning_dict["missing_allowed_load"] = False
+            logger.warning(text + "\n This message is only shown once as warning.")
+        else:
+            logger.debug(text)
+
+    return warning_dict
+
+
+def get_temperature_function(temperature: Temperatures | None) -> Callable[[Trip], float]:
+    """Return a function which produces temperatures based on a Trip input
+
+    If the passed temperature arg is None, the DEFAULT_TEMPERATURE constant will be used instead.
+    """
+    if temperature is not None:
+
+        def get_temperature(trip) -> float:
+            middle_time = trip.departure_time + 0.5 * (trip.arrival_time - trip.departure_time)
+            # get pseudo mean temperature by using center and boundary temperatures
+            temp = (
+                0.5 * temperature.get_interpolated_temperature(middle_time)
+                + 0.25 * temperature.get_interpolated_temperature(trip.arrival_time)
+                + 0.25 * temperature.get_interpolated_temperature(trip.departure_time)
+            )
+            return temp
+
+        return get_temperature
+    return lambda _: DEFAULT_TEMPERATURE
 
 
 def get_uuid():
@@ -908,7 +1003,7 @@ def run_simba_scenario(
     assign_vehicles=False,
     db_url=None,
     simba_scenario=None,
-    mode=None,
+    mode="sim",
 ):
     """Run a Scenario from the database with SimBA
 
@@ -1048,10 +1143,11 @@ def apply_vehicle_mutation(mutation: Scenario, child: Scenario, stack: dict) -> 
     for vt_mut in vehicle_type_mutations:
         org_vt = vt_mut.original_vehicle_type
         vt = vt_mut.mutated_vehicle_type
+        assert vt is not None and org_vt is not None
         copied_vt_id = stack[VehicleType][org_vt.id]
-        vt.id = copied_vt_id
-        vt.scenario = child
-        vt.save()
+        instance = apply_vehicle_type(VehicleType.objects.get(id=copied_vt_id), vt)
+        assert instance.id == copied_vt_id
+        assert instance.scenario == child
 
 
 def assign_new_vehicles_to_db(django_scenario: Scenario, db_name="default") -> None:
@@ -1192,20 +1288,25 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
         depots_to_remove = all_depots.exclude(id__in=copied_depot_ids)
         trim_depots(child, depots_to_remove)
 
-    # ele_option = ElectrificationOptions.objects.get(scenario=mutation)
-    # ele_dict = model_to_dict(ele_option)
-    # del ele_dict["id"]
-    # del ele_dict["scenario"]
-    # del ele_dict["electrified_stations"]
-    #
+    # Copy Temperatures
+    temperatures_query = Temperatures.objects.filter(scenario=mutation)
+    if temperatures_query.exists():
+        assert temperatures_query.count() == 1
+        temperature = temperatures_query.first()
+        temperature.id = ebustoolbox.util.get_next_id(Temperatures)
+        temperature.scenario = child
+        temperature.save()
+
     # child.simba_options.update(ele_dict)
     all_stations = Station.objects.filter(scenario=mutation)
     electrified_stations = Station.objects.filter(scenario=mutation, is_electrified=True)
-    excluded_stations = Station.objects.filter(scenario=mutation, is_electrifiable=True)
+    excluded_stations = Station.objects.filter(scenario=mutation, is_electrifiable=False)
     # Some stations are not electrified or excluded -->possible need for optimization
     if all_stations.count() > electrified_stations.count() + excluded_stations.count():
+        logger.info("Mode is set to optimization.")
         child.simba_options["modes"] = "sim,station_optimization,report"
     else:
+        logger.info("Mode is set to NO optimization.")
         child.simba_options["modes"] = "sim,report"
 
     # org_ele_station_ids = ele_option.electrified_stations.all().values_list("id", flat=True)
@@ -1288,10 +1389,14 @@ def _run_ebus_toolchain(self, task_id):
 
         schedule, simba_scenario = run_simba(schedule, args, db_scenario, mode="sim", scenario=None)
 
+        progress.current_work = 25
+        progress.save()
         schedule, simba_scenario = run_simba(
             schedule, args, db_scenario, mode="station_optimization", scenario=simba_scenario
         )
 
+        progress.current_work = 45
+        progress.save()
         try:
             run_eflips(task_id)
         except UnstableSimulationException as e:
@@ -1303,6 +1408,8 @@ def _run_ebus_toolchain(self, task_id):
             logger.error("There are delays in the Simulation")
             logger.error(traceback.format_exception(e))
 
+        progress.current_work = 75
+        progress.save()
         eflips_assignment = get_assigned_vehicles(task_id)
         schedule.assign_vehicles_custom(eflips_assignment)
         # TODO: Keep that? / Set Depot values for final SimBA simulation?
@@ -1316,9 +1423,10 @@ def _run_ebus_toolchain(self, task_id):
         # respected. Write events for everything
         schedule, simba_scenario = run_simba(schedule, args, db_scenario, mode="sim")
 
-        progress.current_work += 90
+        progress.current_work = 95
         progress.save()
 
+        check_event_soc_consistency(db_scenario)
         db_scenario.refresh_from_db()
         db_scenario.finished = timezone.now()
         db_scenario.save()
@@ -1326,12 +1434,24 @@ def _run_ebus_toolchain(self, task_id):
     except Exception as e:
         logger.error(traceback.format_exc())
         progress.refresh_from_db()
-        try:
-            progress.errors.append(str(e))
-        except Exception:
-            logger.error(traceback.format_exc())
+        progress.errors.append(str(e))
         progress.set_failed()
         raise
+
+
+def check_event_soc_consistency(db_scenario: Scenario):
+    """Give warning if scenario events are not consistent.
+
+    Consistency in this case is that soc_end values are identical to the next events soc_start of the same vehicle.
+    """
+    for vehicle in Vehicle.objects.filter(scenario=db_scenario):
+        events = list(Event.objects.filter(vehicle=vehicle).order_by("id"))
+        for i in range(len(events) - 2):
+            if not events[i].soc_end == events[i + 1].soc_start:
+                logger.warning(
+                    f"SOC does not align between events for {vehicle=} for "
+                    f"events {events[i]} and {events[i+1]}"
+                )
 
 
 def electrify_depot_station_w_default(db_scenario):
@@ -1383,7 +1503,9 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
     counted_vehicles = set()
     for rot in all_rotations:
         first_trip = Trip.objects.filter(rotation=rot).order_by("departure_time").first()
+        assert first_trip is not None, f"Rotation {rot.id} / {rot.name} has no trips"
         vehicle = rot.vehicle
+        assert vehicle is not None, f"Rotation {rot.id} / {rot.name} has no vehicle"
         if vehicle not in counted_vehicles:
             vt = vehicle.vehicle_type
             if vt.opportunity_charging_capable:
@@ -1406,25 +1528,74 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
     return vehicle_assigns
 
 
+def create_optimizer_config(db_scenario: Scenario) -> simba.station_optimization.config:
+    """Create a config for the SimBA optimizer.
+
+    Currently the standard charging power and exclusion stations are passed.
+    """
+    conf = simba.optimizer_util.OptimizerConfig()
+    exclusion_stations = {
+        stat.to_simba_name()
+        for stat in Station.objects.filter(scenario=db_scenario, is_electrifiable=False)
+    }
+    standard_charging_power = db_scenario.simba_options["cs_power_opps"]
+    standard_opp_station = {
+        "type": "opps",
+        "n_charging_stations": None,
+        "cs_power_opps": standard_charging_power,
+    }
+    conf.exclusion_stations = exclusion_stations
+    conf.standard_opp_station = standard_opp_station
+    return conf
+
+
+def run_mode(
+    mode: str,
+    schedule: SimbaSchedule,
+    scenario: "None | SimbaScenario",
+    args: Namespace,
+    db_scenario: Scenario,
+) -> tuple[SimbaSchedule, "SimbaScenario"]:
+    """Run an implemented mode.
+
+    SimBA modes are not used to allow access to the optimizer config
+    without the need of reading from a file.
+    """
+    assert mode in IMPLEMENTED_MODES
+    if mode == "sim":
+        new_scenario: "SimbaScenario" = schedule.run(args, mode="greedy")
+        return schedule, new_scenario
+    conf = create_optimizer_config(db_scenario)
+    if mode == "station_optimization_single_step":
+        conf.early_return = True
+
+    # For now the optimizer needs a directory, and also expects an
+    # arg which is only set in this function  args.results_directory
+    simba.simulate.create_results_directory(args, 0)
+    return simba.station_optimization.run_optimization(
+        conf, sched=schedule, scen=scenario, args=args
+    )
+
+
 def run_simba(
-    schedule: SimbaSchedule, args, db_scenario, mode=None, scenario=None
-) -> (SimbaSchedule, "SimbaScenario"):
-    logger.info(f"Running SimBA {datetime.now()} with mode {mode}")
+    schedule: SimbaSchedule,
+    args: Namespace,
+    db_scenario: Scenario,
+    mode: str,
+    scenario: "None | SimbaScenario" = None,
+) -> tuple[SimbaSchedule, "SimbaScenario"]:
+    assert mode in IMPLEMENTED_MODES, f"{mode} is not implemented in simba"
+
+    logger.info(f"Running Simba {datetime.now()} with mode {mode}")
     # TODO don't overwrite output on multiple function calls
-    task_id = db_scenario.task_id
-    args.output_directory = Path(settings.UPLOAD_PATH) / str(task_id)
+    args.output_directory = Path(settings.UPLOAD_PATH) / str(db_scenario.task_id)
     args.attach_vehicle_soc = True
 
-    # Default mode is greedy simulation
-    if mode is None or mode == "sim":
-        mode = "sim_greedy"
+    schedule, scenario = run_mode(mode, schedule, scenario, args, db_scenario)
 
-    func = getattr(simba.simulate.Mode, mode)
-    # Run this mode. Iteration number is not changed right now since only the last report is
-    # used from the generated SimBA files
-    schedule, scenario = func(schedule, scenario, args, 1)
+    # Apply changes to database depending on mode
     match mode:
-        case "sim_greedy" | "report":
+        case "sim":
             pass
         case w if w in ["station_optimization", "station_optimization_single_step"]:
             update_electrified_stations_db(schedule.stations, db_scenario)
@@ -1884,20 +2055,28 @@ def unelectrify_station(station: Station) -> Station:
 
 
 @atomic()
-def update_stations_and_exclusion(context):
+def update_stations_and_exclusion(
+    station_forms: List[forms.StationForm], default_charge_power_per_station: float
+):
     stations = []
-    for form in context["stations_forms"].values():
+    for form in station_forms:
         if not form.cleaned_data["is_electrified"]:
-            station = form.instance
+            station: Station = form.instance
             station = unelectrify_station(station)
         else:
             # Electrification needs further attributes
             station = form.save(commit=False)
-            # TODO Workaround for when bryan is finished.
-            # Fix form with proper naming
-            station: Station
-            station.power_per_charger = station.power_total
-            station.power_total = station.power_per_charger * station.amount_charging_places
+            station.power_per_charger = (
+                station.power_per_charger or default_charge_power_per_station
+            )
+            # TODO: Do we want more logic or user interaction with this?
+            if station.amount_charging_places is not None:
+                station.power_total = station.power_per_charger * station.amount_charging_places
+            else:
+                # If the station might have unlimited charging places,
+                # we dont want the grid_connection/ power_total to restrict power
+                # TODO: Discuss
+                station.power_total = float("inf")
             station.charge_type = EnumChargeType.OPPORTUNITY
             station.voltage_level = EnumVoltageLevel.VOLTAGE_MV
             station.is_valid()
@@ -1905,7 +2084,7 @@ def update_stations_and_exclusion(context):
     Station.objects.bulk_update(
         stations,
         fields=forms.StationForm._meta.fields
-        + ["charge_type", "voltage_level", "power_per_charger"],
+        + ["charge_type", "voltage_level", "power_per_charger", "power_total"],
     )
 
 
@@ -1927,6 +2106,27 @@ def update_vehicle_types_with_defaults(vehicle_type_pairs, task_id, vt_adjustmen
         vt_default.name = vt.name
         vt_default.name_short = vt.name_short
         vt_default.save()
+
+
+def get_distinct_arrival_station(trips: QuerySet[Trip]) -> QuerySet[Station]:
+    station_ids = trips.values_list("route__arrival_station_id", flat=True).distinct()
+    station_query = Station.objects.filter(id__in=station_ids)
+    return station_query
+
+
+def annotate_trips_with_standing_time(parent_trips: QuerySet[Trip]) -> QuerySet[Trip]:
+    # Annotate trips with their nextr trip departure time to calculate break duration
+    # Lead gives the next item of the ordered list by departure time, eg. next trip
+    # but only for trips which share the same rotation / vehicle
+    parent_trips = parent_trips.annotate(
+        next_trip_departure=Window(
+            expression=Lead("departure_time"),
+            partition_by=[F("rotation")],
+            order_by=F("departure_time").asc(),
+        )
+    )
+    parent_trips = parent_trips.annotate(standing_time=F("next_trip_departure") - F("arrival_time"))
+    return parent_trips
 
 
 def annotate_stations_with_lines(station_query):

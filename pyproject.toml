@@ -29,7 +29,6 @@ django-tailwind = "^3.8.0"
 djangorestframework = ">=3.14.0, <4.0.0"
 djangorestframework-mvt = ">=0.2.5, <1.0.0"
 
-eflips-depot = { git = "https://github.com/mpm-tu-berlin/eflips-depot", rev = "main"}
 eflips-eval = "^1.5.5"
 eflips-ingest = "^1.2.77"
 
@@ -45,6 +44,7 @@ selenium = "^4.13.0"
 setuptools = "^68.2.2"
 tqdm = "^4.66.1"
 eflips-opt = "^0.2.0"
+eflips-depot = "^4.7.1"
 
 [tool.mypy]
 plugins = ["mypy_django_plugin.main"]
@@ -65,6 +65,9 @@ django-types = "^0.20.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.djlint]
+indent =2
 
 [tool.black]
 line-length = 100
