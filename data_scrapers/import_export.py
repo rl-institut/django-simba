@@ -38,7 +38,7 @@ def model_list_to_df(model_list: list[models.Model]) -> pd.DataFrame:
 
 
 def get_admin_areas_df():
-    """Return a dataframe for all admina_areas of the Database"""
+    """Return a dataframe for all AdminAreas of the Database"""
     admin_areas = AdminArea.objects.all()
     columns = ["id", "name", "osm_id", "admin_level", "upper_admin_area"]
     data = admin_areas.values_list(*columns)
@@ -69,7 +69,8 @@ def import_data(df_areas: pd.DataFrame, df_stations: pd.DataFrame):
     df = df_areas
     admin_areas = []
     missing_osm_id = df.osm_id.isna()
-    logger.info(f"{sum(missing_osm_id)} AdminAreas have no OSM ID and are not imported")
+    if missing_osm_id:
+        logger.info(f"{sum(missing_osm_id)} AdminAreas have no OSM ID and are not imported")
     # Remove areas without an osm_id
     ids_with_no_osm_id = df[missing_osm_id].index
     df = df.loc[~missing_osm_id, :]
@@ -91,12 +92,13 @@ def import_data(df_areas: pd.DataFrame, df_stations: pd.DataFrame):
     logger.info(f"{len(admin_areas)} AdminAreas were created.")
     df = df_stations
     bus_stations = []
-    missing_admin_area_stations = ~df.admin_area.isna()
-    logger.info(
-        f"{sum(missing_admin_area_stations)} Stations have no admin area and are not imported"
-    )
+    missing_admin_area_stations = df.admin_area.isna()
+    if missing_admin_area_stations:
+        logger.info(
+            f"{len(missing_admin_area_stations)} Stations have no admin area and are not imported"
+        )
     # Remove stations with no associated admin_area
-    df = df[missing_admin_area_stations]
+    df = df[~missing_admin_area_stations]
     for row in df.itertuples():
         if row.admin_area in ids_with_no_osm_id:
             continue
@@ -121,7 +123,6 @@ def create_export_buffer():
     zip_buffer = io.BytesIO()
 
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        # Write the dataframe to a buffer. use this buffer to write to a deflated zip
         # Write dataframe to buffer and then to deflated zip.
         csv_buffer = io.StringIO()
         df_areas.to_csv(csv_buffer, index=False)
