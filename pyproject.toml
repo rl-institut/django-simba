@@ -66,6 +66,9 @@ django-types = "^0.20.0"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.djlint]
+indent =2
+
 [tool.black]
 line-length = 100
 target-version = ['py310']

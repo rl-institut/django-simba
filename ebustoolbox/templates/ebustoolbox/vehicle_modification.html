@@ -87,7 +87,7 @@
                           </svg>
                     <!-- Tooltip -->
                           <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
+                          {{  modification.vehicle_modification.battery_capacity.help_text  }}
                           </div>
                         </span>
                 </div>
@@ -104,10 +104,14 @@
                 </div>
               </div>
             </div>
-            {# ToDo: Energieverbrauchsoptionen (fester Wert oder Berechnung im Backend mit Temperatur, Elevation etc) #}
+            {# TODO: @Bryan Better styling, switch instead of checkbox?#}
+            <div><input id="{{vt_id}}enableCustomConsumption"
+              {% if modification.vehicle_modification.consumption.initial is not None %}checked{% else %} {% endif %}
+              type="checkbox"> Energieverbrauch des gewählten Fahrzeugs überschreiben.</div>
+
             <div class="flex-grow">
               <div class="flex items-center gap-2">
-                <label for="consumption" id="{{ vt_id }}consumptionLabel" class="block text-sm/6 font-medium text-slate-800">Energieverbrauch</label>
+                <label for="{{modification.vehicle_modification.consumption.auto_id}}" id="{{ vt_id }}consumptionLabel" class="block text-sm/6 font-medium text-slate-800">Energieverbrauch</label>
                 <div class="relative inline-block">
                   <!-- Info Icon -->
                   <span class="cursor-pointer group">
@@ -116,7 +120,7 @@
                           </svg>
                     <!-- Tooltip -->
                           <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                          Der Energieverbrauch wird durch den gewählten Fahrzeugtyp bestimmt.
+                          {{ modification.vehicle_modification.consumption.help_text}}
                           </div>
                         </span>
                 </div>
@@ -126,12 +130,12 @@
                         class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-slate-400 focus-within:focus-visible:outline-2 disabled:opacity-50 disabled:cursor-not-allowed">
                           <!--Pseudo Input to show Consumption from selected VehicleType -->
                   <input
+               {% if modification.vehicle_modification.consumption.initial is None %}type="text"{% endif %}
 
-                          name="consumption"
-                          id="{{ vt_id }}consumption"
-                          disabled
+                          {{ modification.vehicle_modification.consumption|widget_attrs}}
+                    {% if modification.vehicle_modification.consumption.initial is None %}disabled{% endif %}
                           class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
-                          placeholder="1,5"
+                    placeholder={% if modification.selection.instance.default_vehicle_type is not None %}"{{modification.selection.instance.default_vehicle_type.consumption}}"{% else %}"Wählen Sie ein Fahrzeug aus" {% endif %}
                           aria-labelledby="consumptionLabel consumptionUnit">
                   <div id="{{ vt_id }}consumptionUnit" class="shrink-0 select-none text-slate-500">kWh/km</div>
                 </div>
@@ -172,16 +176,29 @@
           const label = document.getElementById('label_' + input_selection.id);
           const list = document.getElementById(vt_id + "assignedToList");
           const listItems = list.querySelectorAll('[role="option"]');
+          const enableCustomConsumption = container.querySelector("input[id*='enableCustomConsumption']")
 
-          {#Assert all components are found. ! negates to bool -> !! cast to bool#}
-          console.assert(!!vt_id&!!button&!!input_selection&!!label&!!list&!!listItems)
-          let selectedItem = '';
-
-          {#Input values to be overwritten by choosing dropdown#}
+        {#Input values to be overwritten by choosing dropdown#}
           const battery_capacity = container.querySelector("input[id*='battery_capacity']")
           const consumption = container.querySelector("input[id*='consumption']")
-
           {# Repeat for other vehicle type attributes#}
+          //  Handle Consumption overwritting via enabling it through toggle
+          enableCustomConsumption.addEventListener("change", ()=>{
+              consumption.disabled = !consumption.disabled;
+              if (consumption.disabled){
+            consumption.type="text";
+            consumption.value="";
+          } else {
+            consumption.type="number";
+            consumption.value= consumption.placeholder;
+          }
+        });
+
+          {#Assert all components are found. ! negates to bool -> !! cast to bool#}
+          console.assert(!!vt_id&!!button&!!input_selection&!!label&!!list&!!listItems&!!enableCustomConsumption)
+          let selectedItem = '';
+
+
 
           // Toggle the dropdown on button click
           button.addEventListener('click', () => {
@@ -195,16 +212,17 @@
               }
           });
 
+
+
+
           // Handle clicks on list items
-          listItems{{ vt_id }}.forEach(item => {
+          listItems.forEach(item => {
               item.addEventListener('click', () => {
                   const value = item.getAttribute('data-dropdown-item');
                   label.textContent = item.getAttribute('data-dropdown-name');
                   label.value = value;
                   selectedItem = value;
                   input_selection.setAttribute("value", value);
-                  input_selection.value = value;
-
                   {# Overwrite inputs#}
                   battery_capacity.value = document.getElementById(value + "_battery_capacity").getAttribute("data-value")
                   // Setting the value would change the styling. Use placeholder instead
@@ -221,6 +239,7 @@
                   button.setAttribute('aria-expanded', 'false');
               });
           });
+
 
           // Close dropdown if user clicks outside
           document.addEventListener('click', e => {
@@ -312,16 +331,13 @@
         plot_selected_charging_curve(input_selection.value);
         listItems.forEach((item)=>{
             item.addEventListener("click",function () {
-                console.log("change input")
                 let selected_vehicle_type=item.getAttribute('data-dropdown-item');
-                console.log(selected_vehicle_type);
                 plot_selected_charging_curve(selected_vehicle_type);
                 myChart.resize();
             })
         });
 
         function resizeChart() {
-            console.log(chartDom.offsetWidth)
             if (chartDom.offsetWidth > 0) {
                 myChart.resize();
             }

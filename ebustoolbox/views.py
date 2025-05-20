@@ -1,9 +1,9 @@
 import logging
 import traceback
 from collections import defaultdict
-from datetime import datetime
 
 import dateutil.parser as parser
+import datetime
 
 from django.conf import settings
 import pytz
@@ -58,8 +58,10 @@ import ebustoolbox
 import ebustoolbox.tasks
 from ebustoolbox.models import (
     Scenario,
+    Temperatures,
     UserGroup,
     UploadedFile,
+    VehicleClass,
     VehicleType,
     DefaultScenario,
     Station,
@@ -231,7 +233,7 @@ class ScenarioMixIn(AuthorizedMixIn):
     Requires AuthorizedMixin
     """
 
-    scenario = None
+    scenario: Scenario
 
     def dispatch(self, request, *args, **kwargs):
         """Make sure User is authorized and add scenario to class"""
@@ -558,18 +560,13 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         forms = []
         scenario = self.scenario
         context = self.get_context_data(scenario=scenario, **kwargs)
-        # simulation_range_form = SimulationParameters(
-        #     data={
-        #         "start": start_dt_utc,
-        #         "end": end_dt_utc,
-        #         "temperature": request.POST["temperature"],
-        #     }
-        # )
         simulation_parameters_form = context["simulation_parameters_form"]
         if simulation_parameters_form.is_valid():
-            _ = simulation_parameters_form.save()
+            sim_range: SimulationRange = simulation_parameters_form.save()
+            Temperatures.objects.filter(scenario=scenario).delete()
+            # Create temperature instance
+            Temperatures.create_constant_temperatures(scenario, sim_range.temperature)
         forms.append(simulation_parameters_form)
-
         vehicle_modification = context["vehicle_modification"]
 
         # Gather all vehicle selection and modification forms
@@ -600,18 +597,46 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         for form in VehicleTypeSelectionForms:
             form.save()
 
-        VehicleTypeForms = list(filter(lambda x: x._meta.model == VehicleType, forms))
-        for form in VehicleTypeForms:
+        # Make Sure there are no conflicting VehicleClasses.
+        # This might be the case if the scenario was deepcopied
+        VehicleClass.objects.filter(scenario=scenario).delete()
+
+        vehicle_type_forms = list(filter(lambda x: x._meta.model == VehicleType, forms))
+        for form in vehicle_type_forms:
             # Mutate the vehicle according to the selected default vehicle
             instance = form.instance
             d_vt = VehicleTypeSelection.objects.get(vehicle_type=instance).default_vehicle_type
-            d_vt.id = instance.id
-            d_vt.scenario = instance.scenario
-            d_vt.name = instance.name
-            d_vt.name_short = instance.name_short
-            d_vt.save()
+            instance = tasks.apply_vehicle_type(
+                target_vehicle_type=instance, source_vehicle_type=d_vt
+            )
+
             # Overwrite the instance with the data from the form
-            VehicleTypeForm(self.request.POST, instance=d_vt, prefix=form.prefix).save()
+            vehicle_type_form = VehicleTypeForm(
+                self.request.POST, instance=instance, prefix=form.prefix
+            )
+            mutated_vt = vehicle_type_form.save()
+            # ConsumptionCalc. prioritizes ConsumptionTables linked to the respective VehicleClass.
+            # If the user passed a constant consumption,
+            # the vehicle type is delinked from the VehicleClass which has a consumption table.
+            if vehicle_type_form.cleaned_data["consumption"] is not None:
+                logger.info(f"{mutated_vt=} will not use a consumption table")
+                mutated_vt.save()
+                vc = VehicleClass.objects.filter(
+                    scenario=mutated_vt.scenario,
+                    consumption__isnull=False,
+                    vehicle_types=mutated_vt,
+                )
+                assert vc.count() == 1
+                vc = vc.first()
+                vc.vehicle_types.remove(mutated_vt)
+                logger.info(f"{vc=}, {vc.vehicle_types.all()=}")
+            else:
+                logger.info(
+                    f"{mutated_vt=} will use a consumption table. Constant consumption is deleted"
+                )
+                mutated_vt.consumption = None
+                mutated_vt.save()
+
         response = redirect(reverse(self.success_name, args=[scenario.task_id]))
         return response
 
@@ -623,6 +648,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
 class StationsView(ScenarioMixIn, TemplateView):
     template_name = "ebustoolbox/stations.html"
     success_name = "simba:costs"
+    default_min_standing_time = 2
 
     @staticmethod
     def get_station_prefix(station):
@@ -634,6 +660,20 @@ class StationsView(ScenarioMixIn, TemplateView):
         parent_station_query = Station.objects.filter(scenario=scenario.parent).exclude(
             charge_type=EnumChargeType.DEPOT
         )
+        try:
+            min_standing_time = int(self.request.GET.get("min_standing_time", "0"))
+        except ValueError:
+            min_standing_time = 0
+
+        if min_standing_time > 0:
+            parent_trips = Trip.objects.filter(scenario=scenario.parent)
+            parent_trips_annotated = tasks.annotate_trips_with_standing_time(parent_trips)
+            td_min_standing_time = datetime.timedelta(minutes=min_standing_time)
+            # TODO: check if this is slow for bigger scenarios
+            parent_trips_filtered = parent_trips_annotated.filter(
+                standing_time__gte=td_min_standing_time
+            )
+            parent_station_query = tasks.get_distinct_arrival_station(parent_trips_filtered)
 
         annotated_query = tasks.annotate_stations_with_lines(parent_station_query)
 
@@ -651,8 +691,7 @@ class StationsView(ScenarioMixIn, TemplateView):
             scenario_stations[mutated_station.id] = mutated_station
 
         context["ordered_stations"] = (
-            Station.objects.filter(scenario=scenario)
-            .exclude(charge_type=EnumChargeType.DEPOT)
+            Station.objects.filter(id__in=scenario_stations.keys())
             .order_by("name")
             .values_list("id", flat=True)
         )
@@ -683,8 +722,14 @@ class StationsView(ScenarioMixIn, TemplateView):
         return context
 
     def get(self, request, *args, **kwargs):
-        # Make sure the scenario has its own stations which are linked to its parent scenario
         scenario = self.scenario
+        # Enforce a queryparam of min_standing time
+        if request.GET.get("min_standing_time") is None:
+            return redirect(
+                reverse("simba:stations", args=[scenario.task_id])
+                + "?min_standing_time="
+                + str(self.default_min_standing_time)
+            )
         station_mutations = StationMutation.objects.filter(
             scenario=scenario,
         )
@@ -1058,22 +1103,6 @@ def cancel_upload(request: HttpRequest, task_id: str):
     # cause a SoftTimeLimitExceeded in task and redirect to schedule upload
     AsyncResult(task_id).revoke(terminate=True, signal="SIGUSR1")
     return redirect(reverse("simba:schedule"))
-
-
-def copy_scenario(request: HttpRequest, task_id: str):
-    try:
-        scenario = Scenario.objects.get(task_id=task_id)
-    except Scenario.DoesNotExist:
-        raise Http404
-    # if the scenario has a manager, only this User can run the simulation
-    if scenario.manager and scenario.manager != request.user:
-        raise Http404
-    try:
-        copied_scenario = tasks.create_scenario_copy_for_user(scenario)
-    except AssertionError:
-        raise Http404
-    response = redirect(reverse("simba:scenario_overview", args=[str(copied_scenario.task_id)]))
-    return response
 
 
 def merge_and_run(request: HttpRequest, task_id: str):
@@ -1678,7 +1707,7 @@ def get_stats(request, task_id: str):
         "longest_rotation": longest_rot,
         "shortest_rotation": shortest_rot,
         "total_dist": total_dist,
-        "num_stations": f"{num_electrified_opps} / {len(stations) - len(depots)}",
+        "num_stations": f"{num_electrified_opps} / {stations.count() - depots.count()}",
         "num_busses": num_busses,
         "most_frequented": most_freq,
         "total_consumption": np.round(energy_deps + energy_opps, 0),
@@ -1829,7 +1858,7 @@ def get_soc_gantt(request, task_id: str):
                     continue
 
                 # Build time-segmented records with start/end + soc
-                times = [datetime.fromisoformat(t) for t in event.timeseries["time"]]
+                times = [datetime.datetime.fromisoformat(t) for t in event.timeseries["time"]]
                 socs = event.timeseries["soc"]
                 if len(times) != len(socs):
                     continue  # Skip inconsistent timeseries
@@ -1853,7 +1882,7 @@ def get_soc_gantt(request, task_id: str):
         vehicle_first_times = defaultdict(lambda: float("inf"))
         for r in records:
             try:
-                timestamp = datetime.fromisoformat(r["start"]).timestamp()
+                timestamp = datetime.datetime.fromisoformat(r["start"]).timestamp()
                 if timestamp < vehicle_first_times[r["vehicle"]]:
                     vehicle_first_times[r["vehicle"]] = timestamp
             except Exception:

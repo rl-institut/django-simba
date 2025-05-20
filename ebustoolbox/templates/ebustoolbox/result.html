@@ -122,64 +122,14 @@
     </div>
   </div>
 </header>
-<link
-  rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"
-/>
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.3.2/dist/echarts.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
-    <style>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.3.2/dist/echarts.min.js"></script>
+<style>
     .chart-container {
         width: 100%;
         height: 600px;
         margin: 20px;
     }
-
- .choices__inner {
-    border: 2px solid #20E3B2;
-    border-radius: 6px;
-    min-height: 44px;
-    padding: 4px 6px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
- .choices__input {
-  border: none !important;
-  outline: none;
-  width: 100% !important;
-  min-width: 0 !important;
-  box-shadow: none;
-  background: transparent;
-}
-
-  .choices__list--multiple .choices__item {
-    background-color: #20E3B2;
-    color: black;
-    border-radius: 20px;
-    padding: 6px 10px 6px 12px;
-    font-size: 14px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    max-width: fit-content;
-    position: relative;
-  }
-
-
-  .choices__list--multiple .choices__item .choices__button span {
-    display: none;
-  }
-
-  .choices__list--dropdown .choices__item {
-    background-color: #20E3B2;
-    color: black;
-    border-radius: 4px;
-    margin-bottom: 2px;
-  }
-  
 </style>
 
 <main class="flex flex-col items-center flex-grow">
@@ -699,6 +649,7 @@
         </div>
     </div>
   </div>
+<div id="dataFetchedFinished" value="0"></div>
 </main>
 {% endblock content %}
 
