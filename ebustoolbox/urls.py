@@ -81,7 +81,7 @@ urlpatterns = [
         name="model_export_json",
     ),
     path(
-        "export/<uuid:task_id>",
+        "export/<uuid:task_id>/",
         export_scenario,
         name="JSON_export_scenario",
     ),
