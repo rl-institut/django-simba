@@ -176,7 +176,7 @@ run a postgis instance in this network. Set your database according to your sett
  sudo docker run --name my-docker-postgres -e POSTGRES_PASSWORD=1234 -e POSTGRES_USER=myprojectuser -e POSTGRES_DB=mydb -d --network=mynetwork postgis/postgis
   ```
 
- Go into your Django .env file and make sure the host is the same as in the above db, e.g. my-docker-postgres. this replaces "localhost" in the database url, e.g.
+ Go into your Django .env file and make sure the host is the same as in the above db, e.T. my-docker-postgres. This replaces "localhost" in the database url, e.g.
 ```bash
 DATABASE_URL=postgis://myprojectuser:1234@my-docker-postgres:5432/mydb
   ```
@@ -189,13 +189,13 @@ run the created docker in this network and expose the port
 ```bash
  sudo docker run -p 8000:8000 --network=mynetwork django-simba
   ```
-Optional you can use the flag -d to start the container as detached. this means closing the terminal will NOT stop the container
+Optional you can use the flag -d to start the container as detached. This means closing the terminal will NOT stop the container
 to stop the container
 ```bash
  sudo docker stop CONTAINER_ID
  ```
 
-In the above options only docker compose uses a permanent storage for the database. By creating the volume postgres_data. In other words stopping the container and starting it again, the database will not have lost its data. At the same time, migrations have to respect the existing data aswell.
+In the above options only docker compose uses a permanent storage for the database. By creating the volume postgres_data. In other words stopping the container and starting it again, the database will not have lost its data. At the same time, migrations have to respect the existing data as well.
 ### Volumes can be checked using
 ```bash
 sudo docker volume ls
@@ -225,16 +225,16 @@ but only if the docker is not running
           -/data_scrapers/stations/api/?search_stations=S%2BU%20Alexanderplatz/Memhardstra%C3%9Fe|Alexanderplatz&filter=false
         - finds the station at Memhardstraße and several Alexanderplatz stops around Germany
           -/data_scrapers/stations/api/?search_stations=S%2BU%20Alexanderplatz/Memhardstra%C3%9Fe|Alexanderplatz&filter=true
-            - Finds the stop at Memhardstraße. Since this station is uniquly identified Alexanderplatz is found as well, since its assumed that stations of a bus system are located next to each other.
+            - Finds the stop at Memhardstraße. Since this station is uniquely identified Alexanderplatz is found as well, since it's assumed that stations of a bus system are located next to each other.
     - Search Features:
         - Checks for Admin area names inside of searched name up to admin_level 8
             - /data_scrapers/stations/api/?search_stations=Berlin+Alexanderplatz
             - will find only the Alexanderplatz which is in Berlin
         - Fuzzy search with trigram similarity
-            - Alekanderplatz find bus_stop around Germany called Alexanderplatz
+            - Alekanderplatz finds bus_stop around Germany called Alexanderplatz
                 - Only the closest matches of the fuzzy search are returned
-            - If no unique stations can be found previously found stations are used and:
-                - a convex hull of found stations is with a buffer zone is created. this area is checked for a uniquely identifiable station
+            - If no unique stations can be found, previously found stations are used and:
+                - a convex hull of found stations with a buffer zone is created. This area is checked for a uniquely identifiable station
                 - admin_areas which contain found stations are fuzzily searched for a uniquely identifiable station
-    - DB import and export are possible as super user via /data_scrapers/stations/import/ and /export/
+    - DB import and export are possible as superuser via /data_scrapers/stations/import/ and /export/
         - import is only supported for empty tables of BusStation and AdminArea
