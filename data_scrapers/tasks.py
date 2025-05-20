@@ -230,21 +230,21 @@ def get_station_ids_contained_by_admin_area(
     possible_admins_names: Iterable[str], station_name: str
 ) -> tuple[List[int], List[str]]:
     """
-    Return a list of BusStation ids, that are contained in a found AdminArea inside the station_name
+    Return a list of BusStation ids that are contained in a found AdminArea inside the station_name.
 
-    The station name is searched for a substring of the possible_admins_names. If a match is
-    found, station ids which are inside this AdminArea are returned, aswell as the name of the
-    BusStation stripped of this indicator.
+    The station name is searched for a substring of the possible_admins_names.
+    If a match is found, station ids which are inside this AdminArea are returned,
+    as well as the name of the BusStation stripped of this indicator.
     Example:
     possible_admin_names= ["Prenzlauer Berg"}
     station_name = "(Prenzlauer Berg), Am Bahnhof"
 
     The station name is matched with the admin_name.
-    BusStation Ids inside "Prenzlauer Berg" are returned.
+    BusStation ids inside "Prenzlauer Berg" are returned.
 
 
     :param possible_admins_names: Names of AdminAreas which are compared with the station_name
-    :param station_name: Name, which is checked it contains a name of an AdminArea
+    :param station_name: Name, which is checked if it contains a name of an AdminArea
     :return:List of BusStation ids inside matched AdminAreas,
         the station name stripped of the AdminArea name
     """
@@ -284,7 +284,7 @@ def get_lower_admin_areas(admin_areas: QuerySet[AdminArea]) -> QuerySet[AdminAre
     """Get all children admin areas of the given admin areas.
 
     The admin_areas are resolved at a admin_level of at least 8 if possible.
-    This behavior is improved search results for inaccurate station names in real world data.
+    This behavior improves search results for inaccurate station names in real world data.
     """
     # Return the empty QuerySet if an empty Queryset was passed
     if not admin_areas.exists():
