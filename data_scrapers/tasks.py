@@ -694,7 +694,7 @@ def search_stations(search_station_names: Iterable[str], use_filter: bool):
 def get_convex_hull_from_query(query):
     """Return a convex hull from a query with a geom field
 
-    Uses BOCK_SIZE to create a convex hull in batches.
+    Uses BLOCK_SIZE to create a convex hull in batches.
     This is faster than creating a convex hull in one step.
     """
     ids = list(query.values_list("id", flat=True))
