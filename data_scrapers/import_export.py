@@ -95,7 +95,7 @@ def import_data(df_areas: pd.DataFrame, df_stations: pd.DataFrame):
     missing_admin_area_stations = df.admin_area.isna()
     if not missing_admin_area_stations.empty:
         logger.info(
-            f"{len(missing_admin_area_stations)} Stations have no admin area and are not imported"
+            f"{sum(missing_admin_area_stations)} Stations have no admin area and are not imported"
         )
     # Remove stations with no associated admin_area
     df = df[~missing_admin_area_stations]
