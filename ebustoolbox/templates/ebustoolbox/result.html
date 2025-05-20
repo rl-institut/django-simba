@@ -122,14 +122,64 @@
     </div>
   </div>
 </header>
-
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"
+/>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.3.2/dist/echarts.min.js"></script>
-<style>
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
+    <style>
     .chart-container {
         width: 100%;
         height: 600px;
         margin: 20px;
     }
+
+ .choices__inner {
+    border: 2px solid #20E3B2;
+    border-radius: 6px;
+    min-height: 44px;
+    padding: 4px 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+ .choices__input {
+  border: none !important;
+  outline: none;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-shadow: none;
+  background: transparent;
+}
+
+  .choices__list--multiple .choices__item {
+    background-color: #20E3B2;
+    color: black;
+    border-radius: 20px;
+    padding: 6px 10px 6px 12px;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: fit-content;
+    position: relative;
+  }
+
+
+  .choices__list--multiple .choices__item .choices__button span {
+    display: none;
+  }
+
+  .choices__list--dropdown .choices__item {
+    background-color: #20E3B2;
+    color: black;
+    border-radius: 4px;
+    margin-bottom: 2px;
+  }
+  
 </style>
 
 <main class="flex flex-col items-center flex-grow">
@@ -530,7 +580,7 @@
                             <p class="text-slate-800">
                                 <span id="num_busses" class="text-2xl font-semibold">--</span>
                             </p>
-                            <p class="text-sm text-slate-500">Ausgewählte Busse /<br>gesamt Busse</p>
+                            <p class="text-sm text-slate-500">Anzahl Fahrzeuge</p>
                         </div>
                         <div class="w-1/3 text-center">
                             <p class="text-slate-800">
@@ -561,10 +611,10 @@
                         </div>
                         <div class="w-1/3 text-center">
                             <p class="text-slate-800">
-                                <span id="endhaltestellen-spitzenleistung" class="text-2xl font-semibold">--</span>
+                                <span id="installed_power" class="text-2xl font-semibold">--</span>
                                 <span class="text-base font-normal">kW</span>
                             </p>
-                            <p class="text-sm text-slate-500">Spitzenleistung</p>
+                            <p class="text-sm text-slate-500">Installierte Leistung</p>
                         </div>
                     </div>
                 </div>
@@ -582,7 +632,7 @@
                         <div class="w-1/3 text-center border-r border-slate-300">
                             <p class="text-slate-800">
                                 <span id="depots-energie" class="text-2xl font-semibold">--</span>
-                                <span class="text-base font-normal">MWh</span>
+                                <span class="text-base font-normal">kWh</span>
                             </p>
                             <p class="text-sm text-slate-500">Energie</p>
                         </div>
@@ -623,6 +673,7 @@
                 <div id="lineChart" class="chart-container"></div>
                 <div id="DepotlineChart" class="chart-container"></div>
                 <div id="ganttChart" class="chart-container"></div>
+                <div id="soc-gant" class="chart-container"></div>
                 <div id="DistHistogramChart" class="chart-container"></div>
                 <div id="SpeedHistogramChart" class="chart-container"></div>
             </div>
@@ -835,8 +886,6 @@
                 console.error('Error fetching or rendering chart:', error);
             });
     }
-
-
     function fetchAndRenderGanttChart(chartName, chartId, titleText) {
 
         const EVENT_COLORS = {
@@ -1013,6 +1062,131 @@
             })
             .catch(error => console.error('Error loading Gantt data:', error));
     }
+    function fetchAndRenderGanttChartSOC(chartName, chartId, titleText) {
+        fetch(`/simba/result/${taskId}/${chartName}/`)
+            .then(response => response.json())
+            .then(data => {
+
+                const vehicles = data.vehicles;
+                const records = data.records;
+
+                const vehicleIndex = Object.fromEntries(vehicles.map((v, i) => [v, i]));
+
+                // Function to interpolate between two colors
+                function interpolateColor(startColor, endColor, factor) {
+                    const startRgb = hexToRgb(startColor);
+                    const endRgb = hexToRgb(endColor);
+
+                    const r = Math.round(startRgb.r + factor * (endRgb.r - startRgb.r));
+                    const g = Math.round(startRgb.g + factor * (endRgb.g - startRgb.g));
+                    const b = Math.round(startRgb.b + factor * (endRgb.b - startRgb.b));
+
+                    return `rgb(${r},${g},${b})`;
+                }
+
+                // Helper function to convert hex color to RGB
+                function hexToRgb(hex) {
+                    const bigint = parseInt(hex.slice(1), 16);
+                    return {
+                        r: (bigint >> 16) & 255,
+                        g: (bigint >> 8) & 255,
+                        b: bigint & 255
+                    };
+                }
+
+                // Function to convert SoC to a color in the given gradient range
+                function socToColor(soc) {
+                    const fullColor = '#00FF00';  // Full SoC color
+                    const emptyColor = '#FF0000';  // Empty SoC color
+                    const factor = soc;  // Normalize SoC between 0 and 1
+                    return interpolateColor(emptyColor, fullColor, factor);  // Get interpolated color
+                }
+
+                // Preparing the series for the custom chart
+                const series = {
+                    type: 'custom',
+                    renderItem: function (params, api) {
+                        const categoryIndex = api.value(0);
+                        const start = api.coord([api.value(1), categoryIndex]);
+                        const end = api.coord([api.value(2), categoryIndex]);
+                        const height = api.size([0, 1])[1] * 0.8; // Control bar height
+
+                        // Calculate gradient color based on soc_start and soc_end
+                        const colorStart = socToColor(api.value(3));  // Color at start of SoC
+                        const colorEnd = socToColor(api.value(4));    // Color at end of SoC
+
+                        return {
+                            type: 'rect',
+                            shape: {
+                                x: start[0],
+                                y: start[1] - height / 2,
+                                width: end[0] - start[0],
+                                height: height
+                            },
+                            style: {
+                                // Use a linear gradient between the two colors
+                                fill: {
+                                    type: 'linear',
+                                    x: 0, y: 0, x2: 1, y2: 0, // Horizontal gradient
+                                    colorStops: [
+                                        { offset: 0, color: colorStart },
+                                        { offset: 1, color: colorEnd }
+                                    ]
+                                }
+                            }
+                        };
+                    },
+                    encode: {
+                        x: [1, 2], // Start, End times
+                        y: 0       // Category index for vehicle
+                    },
+                    // Data for each vehicle's SoC record
+                    data: records.map(d => [
+                        vehicleIndex[d.vehicle],           // Vehicle index
+                        +new Date(d.start),                // Start time in milliseconds
+                        +new Date(d.end),                  // End time in milliseconds
+                        d.soc_start,                       // soc_start value
+                        d.soc_end                          // soc_end value
+                    ])
+                };
+
+                // Set up the chart options
+                const chart = echarts.init(document.getElementById(chartId)); // Use chartId passed
+
+                chart.setOption({
+                    tooltip: {
+                        formatter: function (params) {
+                            const socStart = (params.value[3] * 100).toFixed(2);
+                            const socEnd = (params.value[4] * 100).toFixed(2);
+                            return `${vehicles[params.value[0]]}<br/>
+                                    ${new Date(params.value[1]).toLocaleString()} → ${new Date(params.value[2]).toLocaleString()}<br/>
+                                    SoC: ${socStart}% → ${socEnd}%`;
+                        }
+                    },
+                    title: {
+                        text: titleText,
+                        left: 'center'
+                    },
+                    xAxis: {
+                        type: 'time',
+                        name: 'Time'
+                    },
+                    yAxis: {
+                        type: 'category',
+                        data: vehicles,
+                        inverse: true,  // Invert to show first vehicle at the top
+                        name: 'Vehicle'
+                    },
+                    grid: {
+                        containLabel: true
+                    },
+                    series: [series]
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching or rendering SOC Gantt chart:', error);
+            });
+    }
     function fetchAndRenderStats(chartName, chartId, titleText) {
 
         fetch(`/simba/result/${taskId}/${chartName}/`)
@@ -1023,12 +1197,16 @@
                 document.getElementById('shortest_rotation').textContent = data.shortest_rotation;
                 document.getElementById('total_dist').textContent = data.total_dist;
 
-                document.getElementById('most_frequented').textContent = data.most_frequented;
                 document.getElementById('num_stations').textContent = data.num_stations;
                 document.getElementById('num_busses').textContent = data.num_busses;
+                document.getElementById('most_frequented').textContent = data.most_frequented;
 
-                document.getElementById('avg_consumption').textContent = data.avg_consumption;
                 document.getElementById('total_consumption').textContent = data.total_consumption;
+                document.getElementById('avg_consumption').textContent = data.avg_consumption;
+                document.getElementById('installed_power').textContent = data.installed_power;
+
+                document.getElementById('depots-anzahl-stellplaetze').textContent = data.num_busses;
+                document.getElementById('depots-energie').textContent = data.depot_energy;
                 document.getElementById('depots-spitzenleistung').textContent = data.peak_depot_power;
             })
             .catch(error => {
@@ -1082,103 +1260,102 @@
         })
         .catch(error => console.error('Error fetching histogram data:', error));
 }
-    function fetchAndRenderSoCHistogram(chartName, chartID)
-    {
+    function fetchAndRenderSoCHistogram(chartName, chartID) {
         fetch(`/simba/result/${taskId}/${chartName}/`)  // Replace with the actual URL
-  .then((res) => res.json())
-  .then((result) => {
-    const rawData = result.data;
+      .then((res) => res.json())
+      .then((result) => {
+        const rawData = result.data;
 
-    const xHours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
-    const yBins = ["<0", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"];
+        const xHours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+        const yBins = ["<0", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"];
 
-    // Fill in all (hour, soc_bin) combinations with 0 where missing
-    const dataMap = new Map(rawData.map(item => [`${item.hour}-${item.soc_bin}`, item.count]));
-    const fullData = [];
+        // Fill in all (hour, soc_bin) combinations with 0 where missing
+        const dataMap = new Map(rawData.map(item => [`${item.hour}-${item.soc_bin}`, item.count]));
+        const fullData = [];
 
-    for (let h = 0; h < 24; h++) {
-      for (let y = 0; y < yBins.length; y++) {
-        const key = `${h}-${yBins[y]}`;
-        const count = dataMap.get(key) || 0;
-        fullData.push([h, y, count]);
-      }
-    }
-
-    const chart = echarts.init(document.getElementById("soc-heatmap"));
-    const option = {
-      tooltip: {
-        position: 'top',
-        formatter: params =>
-          `Stunde: ${xHours[params.data[0]]}<br>SOC: ${yBins[params.data[1]]}%<br>Fahrzeuge: ${params.data[2]}`
-      },
-      grid: {
-        height: '80%',
-        top: '1%',
-        bottom: '10%'
-      },
-      xAxis: {
-        type: 'category',
-        data: xHours,
-        name: 'Zeit',
-        nameLocation: 'middle',
-        nameGap: 25,
-        axisLine: {
-          lineStyle: {
-            color: '#000',
-            width: 2
+        for (let h = 0; h < 24; h++) {
+          for (let y = 0; y < yBins.length; y++) {
+            const key = `${h}-${yBins[y]}`;
+            const count = dataMap.get(key) || 0;
+            fullData.push([h, y, count]);
           }
         }
-      },
-      yAxis: {
-        type: 'category',
-        data: yBins,
-        name: 'SoC (%)',
-        nameLocation: 'middle',
-        nameGap: 40
-      },
-      visualMap: {
-        min: 0,
-        max: Math.max(...fullData.map(item => item[2])),
-        calculable: true,
-        orient: 'horizontal',
-        left: 'center',
-        bottom: '10px',
-        itemHeight: 400,
-        itemWidth: 30,
-        textStyle: {
-          fontSize: 16
-        },
-        inRange: {
-          color: ['#EAFFF7', '#20E3B2', '#00846B']
-        }
-      },
-      series: [{
-        name: 'Anzahl Fahrzeuge',
-        type: 'heatmap',
-        data: fullData,
-        label: {
-          show: true
-        },
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowColor: 'rgba(0, 0, 0, 0.5)'
+
+        const chart = echarts.init(document.getElementById(chartID));
+        const option = {
+          tooltip: {
+            position: 'top',
+            formatter: params =>
+              `Stunde: ${xHours[params.data[0]]}<br>SOC: ${yBins[params.data[1]]}%<br>Fahrzeuge: ${params.data[2]}`
+          },
+          grid: {
+            height: '80%',
+            top: '1%',
+            bottom: '10%'
+          },
+          xAxis: {
+            type: 'category',
+            data: xHours,
+            name: 'Zeit',
+            nameLocation: 'middle',
+            nameGap: 25,
+            axisLine: {
+              lineStyle: {
+                color: '#000',
+                width: 2
+              }
+            }
+          },
+          yAxis: {
+            type: 'category',
+            data: yBins,
+            name: 'SoC (%)',
+            nameLocation: 'middle',
+            nameGap: 40
+          },
+          visualMap: {
+            min: 0,
+            max: Math.max(...fullData.map(item => item[2])),
+            calculable: true,
+            orient: 'horizontal',
+            left: 'center',
+            bottom: '10px',
+            itemHeight: 400,
+            itemWidth: 30,
+            textStyle: {
+              fontSize: 16
+            },
+            inRange: {
+              color: ['#EAFFF7', '#20E3B2', '#00846B']
+            }
+          },
+          series: [{
+            name: 'Anzahl Fahrzeuge',
+            type: 'heatmap',
+            data: fullData,
+            label: {
+              show: true
+            },
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            }
+          }],
+          markLine: {
+            symbol: 'none',
+            lineStyle: {
+              color: '#000',
+              width: 2
+            },
+            data: [
+              { xAxis: 0 }  // Thicker vertical line at 0:00
+            ]
           }
-        }
-      }],
-      markLine: {
-        symbol: 'none',
-        lineStyle: {
-          color: '#000',
-          width: 2
-        },
-        data: [
-          { xAxis: 0 }  // Thicker vertical line at 0:00
-        ]
-      }
-    };
-    chart.setOption(option);
-  });
+        };
+        chart.setOption(option);
+      });
 
     }
 
@@ -1197,7 +1374,8 @@
             fetchAndRenderGanttChart("gantt","ganttChart","_")
             fetchAndRenderHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen");
             fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten");
-            fetchAndRenderSoCHistogram("soc_hist", "_")
+            fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap");
+            fetchAndRenderGanttChartSOC("soc_gantt", "soc-gant", "Vehicle State of Charge Over Time");
         } else {
             console.error("Simulation ID is missing.");
         }

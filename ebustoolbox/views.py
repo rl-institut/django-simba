@@ -1,5 +1,8 @@
 import logging
 import traceback
+from collections import defaultdict
+from datetime import datetime
+
 import dateutil.parser as parser
 
 from django.conf import settings
@@ -8,7 +11,17 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import F, QuerySet, Sum, Max, Value, FloatField, Q, ExpressionWrapper
+from django.db.models import (
+    F,
+    QuerySet,
+    Sum,
+    Max,
+    Value,
+    FloatField,
+    Q,
+    ExpressionWrapper,
+    Prefetch,
+)
 from django.db.models.functions import Cast, Coalesce, Extract
 from django.db.transaction import atomic
 from django.forms import formset_factory, widgets
@@ -16,12 +29,13 @@ from django.http import HttpResponse, HttpRequest, Http404, HttpResponseForbidde
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.views.generic import TemplateView, FormView, ListView
-from eflips.depot.api import simulate_scenario  # noqa
 from django.views.decorators.http import require_POST
 
 from core.models import Progress, EnumProgress
 
 from celery.result import AsyncResult
+
+from sqlalchemy.orm import Session
 
 # Unused import of dash_app needed to register app
 from dash_app import dash_app, ids  # noqa: F401
@@ -57,7 +71,14 @@ from ebustoolbox.models import (
     VehicleTypeMutation,
     StationMutation,
     EnumScenarioType,
+    Event,
 )
+
+from ebustoolbox.models import Scenario as ebusScenario
+from dash_app.eflips_plots import _create_engine_from_postgis_url, output_prepare
+from eflips.model import Area  # wherever Area is defined
+from eflips.depot.api import simulate_scenario  # noqa
+
 import pandas as pd
 import numpy as np
 
@@ -1352,8 +1373,12 @@ def get_soc_data(request, task_id: str):
     selected_columns = df[["V_id", "time_end", "soc_end", "time_start", "soc_start"]].copy()
 
     # Convert both 'time_end' and 'time_start' to Unix timestamps (in milliseconds)
-    selected_columns["timestamp_end"] = pd.to_datetime(selected_columns["time_end"]).astype(int) // 10 ** 6
-    selected_columns["timestamp_start"] = pd.to_datetime(selected_columns["time_start"]).astype(int) // 10 ** 6
+    selected_columns["timestamp_end"] = (
+        pd.to_datetime(selected_columns["time_end"]).astype(int) // 10**6
+    )
+    selected_columns["timestamp_start"] = (
+        pd.to_datetime(selected_columns["time_start"]).astype(int) // 10**6
+    )
 
     # Combine both start and end points
     # Each group will contain a list of [timestamp, soc] pairs for both start and end
@@ -1361,9 +1386,9 @@ def get_soc_data(request, task_id: str):
         selected_columns.groupby("V_id")
         .apply(
             lambda group: sorted(
-                group[["timestamp_start", "soc_start"]].values.tolist() +
-                group[["timestamp_end", "soc_end"]].values.tolist(),
-                key=lambda x: x[0]  # Sort by timestamp
+                group[["timestamp_start", "soc_start"]].values.tolist()
+                + group[["timestamp_end", "soc_end"]].values.tolist(),
+                key=lambda x: x[0],  # Sort by timestamp
             )
         )
         .to_dict()
@@ -1391,10 +1416,8 @@ def get_binned_soc_data(request, task_id: str):
 
     # build the global hourly index
     all_hours = pd.date_range(
-        start=df["timestamp"].min().floor("h"), end=df["timestamp"].max().ceil("h"), freq="1H"
+        start=df["timestamp"].min().floor("h"), end=df["timestamp"].max().ceil("h"), freq="1h"
     )
-
-    print(all_hours)
 
     filled_dfs = []
     # for each vehicle, bucket into 1-hour bins taking the MIN soc_end per hour
@@ -1403,7 +1426,7 @@ def get_binned_soc_data(request, task_id: str):
         group = group.set_index("timestamp").sort_index()
 
         # 1) resample to hourly, pick the *lowest* SOC seen in that hour
-        hourly_min = group["soc_end"].resample("1H").min()
+        hourly_min = group["soc_end"].resample("1h").min()
 
         # 2) align to the full global index and forward-fill
         hourly_min = hourly_min.reindex(all_hours)  # introduce any missing hours
@@ -1568,7 +1591,65 @@ def get_stats(request, task_id: str):
         sum_charged=Coalesce(Sum("charged"), 0.0)
     )["sum_charged"]
 
+    # Aggregate total installed power
+    # first, for vehicles with non-null amount of charging spaces
+    stations = s.station_set.all()
+    opp_stations = stations.filter(charge_type=EnumChargeType.OPPORTUNITY)
 
+    installed_power = opp_stations.annotate(
+        charger_count=F("amount_charging_places"),
+        charger_power=F("power_per_charger"),
+        installed_power=ExpressionWrapper(
+            F("amount_charging_places") * F("power_per_charger"), output_field=FloatField()
+        ),
+    ).aggregate(total_installed_power=Coalesce(Sum("installed_power"), 0.0))[
+        "total_installed_power"
+    ]
+
+    # Some stations may not have a specified amount of chargers,
+    # the maximum amount of simultaneously charging buses is determined
+    charging_events = events.filter(event_type=EventType.CHARGING_OPPORTUNITY).select_related(
+        "station"
+    )
+
+    stations_with_null_amount = opp_stations.filter(
+        amount_charging_places__isnull=True,
+    ).prefetch_related(Prefetch("event_set", queryset=charging_events, to_attr="charging_events"))
+
+    station_peak_chargers = {}
+
+    for station in stations_with_null_amount:
+        timeline = []
+        for event in station.charging_events:
+            timeline.append((event.time_start, +1))  # Charger starts
+            timeline.append((event.time_end, -1))  # Charger ends
+
+        # Sort timeline
+        timeline.sort()
+        concurrent = 0
+        peak = 0
+        for _, delta in timeline:
+            concurrent += delta
+            peak = max(peak, concurrent)
+
+        station_peak_chargers[station.id] = peak
+
+    fallback_power = sum(
+        peak * station.power_per_charger
+        for station in stations_with_null_amount
+        if station.power_per_charger and (peak := station_peak_chargers.get(station.id))
+    )
+
+    total_installed_power = installed_power + fallback_power
+
+    # Average consumption
+    driving_events = events.filter(event_type=EventType.DRIVING)
+
+    total_energy_used = driving_events.aggregate(sum_energy=Coalesce(Sum("charged"), 0.0))[
+        "sum_energy"
+    ]
+
+    average_consumption = total_energy_used / total_dist
     peak_power_kw = "--"
     try:
         engine = _create_engine_from_postgis_url()
@@ -1586,23 +1667,25 @@ def get_stats(request, task_id: str):
             prepared_data = output_prepare.power_and_occupancy(all_area_ids, session)
 
             # Extract the 'power' column and find the maximum value
-            peak_power_kw = prepared_data['power'].max()
+            peak_power_kw = prepared_data["power"].max()
 
     except ebusScenario.DoesNotExist:
-        print("Scenario not found.")
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
+        pass
+    except Exception:
+        pass
 
     resp = {
         "longest_rotation": longest_rot,
         "shortest_rotation": shortest_rot,
+        "total_dist": total_dist,
         "num_stations": f"{num_electrified_opps} / {len(stations) - len(depots)}",
         "num_busses": num_busses,
         "most_frequented": most_freq,
-        "total_dist": total_dist,
         "total_consumption": np.round(energy_deps + energy_opps, 0),
+        "avg_consumption": np.abs(np.round(average_consumption, 3)),
+        "installed_power": np.round(total_installed_power, 0),
+        "depot_energy": np.round(energy_deps, 0),
         "peak_depot_power": np.round(peak_power_kw, 0),
-        "avg_consumption": "--",
     }
     return JsonResponse(resp)
 
@@ -1683,10 +1766,6 @@ def get_dist_hist(request, task_id: str):
     return JsonResponse(response_data)
 
 
-from ebustoolbox.models import Scenario as ebusScenario
-from sqlalchemy.orm import Session
-from dash_app.eflips_plots import _create_engine_from_postgis_url, output_prepare
-from eflips.model import Area  # wherever Area is defined
 def get_power_draw_and_occ(request, task_id: str):
     try:
         engine = _create_engine_from_postgis_url()
@@ -1709,5 +1788,83 @@ def get_power_draw_and_occ(request, task_id: str):
 
     except ebusScenario.DoesNotExist:
         return JsonResponse({"error": "Scenario not found."}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+def get_soc_gantt(request, task_id: str):
+    try:
+        engine = _create_engine_from_postgis_url()
+
+        with Session(engine):
+            # Get all events for the scenario, ordered
+            events = (
+                Event.objects.select_related("vehicle")
+                .filter(scenario__task_id=task_id)
+                .exclude(vehicle=None)
+                .order_by("vehicle__name", "time_start")
+            )
+
+            records = []
+            for event in events:
+                vehicle_name = event.vehicle.name
+                tz_start = event.time_start
+                tz_end = event.time_end
+
+                # Fallback in case timeseries is missing or invalid
+                if (
+                    not event.timeseries
+                    or "time" not in event.timeseries
+                    or "soc" not in event.timeseries
+                ):
+                    records.append(
+                        {
+                            "vehicle": vehicle_name,
+                            "start": tz_start.isoformat(),
+                            "end": tz_end.isoformat(),
+                            "soc_start": event.soc_start,
+                            "soc_end": event.soc_end,
+                        }
+                    )
+                    continue
+
+                # Build time-segmented records with start/end + soc
+                times = [datetime.fromisoformat(t) for t in event.timeseries["time"]]
+                socs = event.timeseries["soc"]
+                if len(times) != len(socs):
+                    continue  # Skip inconsistent timeseries
+
+                # Prepend and append actual event bounds
+                times = [tz_start] + times + [tz_end]
+                socs = [event.soc_start] + socs + [event.soc_end]
+
+                for i in range(len(times) - 1):
+                    records.append(
+                        {
+                            "vehicle": vehicle_name,
+                            "start": times[i].isoformat(),
+                            "end": times[i + 1].isoformat(),
+                            "soc_start": socs[i],
+                            "soc_end": socs[i + 1],
+                        }
+                    )
+
+        # Safely track the earliest start time as a timestamp per vehicle
+        vehicle_first_times = defaultdict(lambda: float("inf"))
+        for r in records:
+            try:
+                timestamp = datetime.fromisoformat(r["start"]).timestamp()
+                if timestamp < vehicle_first_times[r["vehicle"]]:
+                    vehicle_first_times[r["vehicle"]] = timestamp
+            except Exception:
+                continue  # Skip if date parsing fails
+
+        # Sort vehicles by their earliest event start time
+        vehicles = [
+            v for v, _ in sorted(vehicle_first_times.items(), key=lambda x: x[1], reverse=True)
+        ]
+
+        return JsonResponse({"vehicles": vehicles, "records": records})
+
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
