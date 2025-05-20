@@ -3,7 +3,7 @@ Meant to be run once locally to generate a file that can be imported into the da
 First use osmium-tool to generate filtered files of admin areas and bus stops in the terminal via:
 
 osmium tags-filter "germany-latest.osm.pbf" n/highway=bus_stop -o bus_stops.osm.xml
-osmium tags-filter "germany-latest.osm.pbf"  wr/boundary=administrative -o admin.osm.xml
+osmium tags-filter "germany-latest.osm.pbf" wr/boundary=administrative -o admin.osm.xml
 
 osmium-tool can be downloaded from:
 https://osmcode.org/osmium-tool/
