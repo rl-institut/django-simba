@@ -685,8 +685,7 @@ def search_stations(search_station_names: Iterable[str], use_filter: bool):
             "The following station names could not be found "
             "or were not specific enough to determine a single location, "
             "even when filtering for an estimated system area.\n"
-            "Not found Stations: \n"
-            "\n".join(sorted(still_not_found))
+            "Not found Stations: \n" + "\n".join(sorted(still_not_found))
         )
     return found_stations
 
