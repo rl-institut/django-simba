@@ -173,7 +173,7 @@ Optional check your networks
   ```
 run a postgis instance in this network. Set your database according to your settings
 ```bash
- sudo docker run --name my-docker-postgres -e POSTGRES_PASSWORD=1234 -e POSTGRES_USER=myprojectuser -e  POSTGRES_DB=mydb -d --network=mynetwork postgis/postgis
+ sudo docker run --name my-docker-postgres -e POSTGRES_PASSWORD=1234 -e POSTGRES_USER=myprojectuser -e POSTGRES_DB=mydb -d --network=mynetwork postgis/postgis
   ```
 
  Go into your Django .env file and make sure the host is the same as in the above db, e.g. my-docker-postgres. this replaces "localhost" in the database url, e.g.
@@ -187,7 +187,7 @@ Build your Django-simba docker
   ```
 run the created docker in this network and expose the port
 ```bash
- sudo docker run -p 8000:8000  --network=mynetwork django-simba
+ sudo docker run -p 8000:8000 --network=mynetwork django-simba
   ```
 Optional you can use the flag -d to start the container as detached. this means closing the terminal will NOT stop the container
 to stop the container
