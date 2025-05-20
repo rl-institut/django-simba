@@ -302,7 +302,7 @@ def get_schedule_from_db(
 
     consumptions = Consumption.objects.filter(scenario__in=[django_scenario, None])
     for consumption in consumptions:
-        data_container.add_consumption_data(consumption.name, consumption.to_df())
+        data_container.add_consumption_data(consumption.to_simba_name(), consumption.to_df())
 
     args = get_args(django_scenario=django_scenario)
     schedule, args = simba.simulate.pre_simulation(args, data_container)
@@ -528,7 +528,7 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
         if len(query) > 0:
             assert mileage is None
             assert len(query) == 1
-            mileage = Consumption.objects.get(vehicle_class=query[0]).name
+            mileage = Consumption.objects.get(vehicle_class=query[0]).to_simba_name()
 
         vehicle_types[str(vehicle_type.id)][charge_type] = {
             "name": vehicle_type.name,
