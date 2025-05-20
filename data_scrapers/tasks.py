@@ -678,16 +678,15 @@ def search_stations(search_station_names: Iterable[str], use_filter: bool):
                 continue
         else:
             still_not_found.add(station_name)
-    newl = "\n"
-    logger.info(
-        f"Found {len(found_stations)} of {len(search_station_names)}. "
-        f"The following station names could not be found "
-        f"or were not specific enough to determine a single location, "
-        f"even when filtering for an estimated system area."
-        f"Not found Stations: \n"
-        f"{newl.join(sorted(still_not_found))}"
-    )
-
+    logger.info(f"Found {len(found_stations)} of {len(search_station_names)}. ")
+    if still_not_found:
+        logger.info(
+            "The following station names could not be found "
+            "or were not specific enough to determine a single location, "
+            "even when filtering for an estimated system area.\n"
+            "Not found Stations: \n"
+            "\n".join(sorted(still_not_found))
+        )
     return found_stations
 
 
