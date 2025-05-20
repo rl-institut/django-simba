@@ -1,11 +1,13 @@
+import logging
+import pandas as pd
+
 from django.shortcuts import render
 from django.views.generic import ListView
 from django.http import Http404, HttpRequest, JsonResponse, HttpResponse
-import logging
+
 from data_scrapers.models import BusStation, AdminArea
 from data_scrapers.import_export import create_export_buffer, import_data
 from data_scrapers.tasks import search_stations
-import pandas as pd
 
 logger = logging.getLogger("custom")
 
