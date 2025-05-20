@@ -3,8 +3,6 @@
 from django.db import migrations, models
 import django.db.models.deletion
 
-# from ebustoolbox.models import Station
-
 
 class Migration(migrations.Migration):
 
