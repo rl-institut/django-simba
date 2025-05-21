@@ -362,7 +362,7 @@ class Consumption(models.Model):
     name = models.CharField(max_length=100)
     vehicle_class = models.ForeignKey(VehicleClass, null=False, on_delete=models.CASCADE)
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
-    columns = models.JSONField(default=[], null=False)
+    columns = models.JSONField(default=list, null=False)
     data_points = ArrayField(ArrayField(models.FloatField(), size=None), size=None, null=False)
     values = ArrayField(models.FloatField(), size=None, null=False)
 
