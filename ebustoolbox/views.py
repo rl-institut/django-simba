@@ -1608,8 +1608,12 @@ def generate_email_notification(scenario: Scenario, user):
     subject = f'Deine Simulation "{scenario.name}" ist {"fertig" if scenario.finished else "fehlgeschlagen"}'
     to = [user.email]
     from_email = None  # uses DEFAULT_FROM_EMAIL
-    text_content = render_to_string("emails/welcome_email.txt", context)
-    html_content = render_to_string("emails/welcome_email.html", context)
+    text_content = render_to_string(
+        "ebustoolbox/emails/simulation_success_notification.txt", context
+    )
+    html_content = render_to_string(
+        "ebustoolbox/emails/simulation_success_notification.html", context
+    )
 
     msg = EmailMultiAlternatives(subject, text_content, from_email, to)
     msg.attach_alternative(html_content, "text/html")
