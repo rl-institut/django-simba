@@ -1,0 +1,6 @@
+Hallo {{user_name}},
+deine WeBus-Simulation wurde erfolgreich simuliert.
+Die Ergebnisse findest du hier:
+{{url "simba:result" scenario.task_id}}
+
+Hinweis: Dies ist eine automatisch generierte E-Mail von einer System-E-Mail-Adresse. Bitte antworten Sie nicht auf diese E-Mail.
