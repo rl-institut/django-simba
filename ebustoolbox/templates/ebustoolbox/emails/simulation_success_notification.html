@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+    body { font-family: Arial, sans-serif; color: #333; }
+    .btn { background-color: #007bff; color: white; padding: 10px; text-decoration: none; }
+    </style>
+  </head>
+  <body>
+
+    <h2>Hallo {{user_name}} </h2>
+    <p> deine WeBus-Simulation wurde erfolgreich simuliert.</p>
+    <p> Die Ergebnisse findest du hier:</p>
+    <h1><a href="{{url "simba:result" scenario.task_id}}">Simulationsergebnisse für {{scenario.name}} </a></h1>
+
+    Hinweis: Dies ist eine automatisch generierte E-Mail von einer System-E-Mail-Adresse. Bitte antworten Sie nicht auf diese E-Mail.
+  </body>
+</html>
