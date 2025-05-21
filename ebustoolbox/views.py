@@ -1,5 +1,6 @@
 import logging
 import traceback
+from celery.result import AsyncResult
 import dateutil.parser as parser
 import datetime
 
@@ -8,7 +9,9 @@ import pytz
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail
+from django.core.mail import EmailMultiAlternatives
 from django.core.exceptions import ObjectDoesNotExist
+from django.template.loader import render_to_string
 from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
 from django.db.models.functions import Cast, Coalesce
 from django.db.transaction import atomic
@@ -17,12 +20,10 @@ from django.http import HttpResponse, HttpRequest, Http404, HttpResponseForbidde
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.views.generic import TemplateView, FormView, ListView
-from eflips.depot.api import simulate_scenario  # noqa
 from django.views.decorators.http import require_POST
 
 from core.models import Progress, EnumProgress
-
-from celery.result import AsyncResult
+from eflips.depot.api import simulate_scenario  # noqa
 
 # Unused import of dash_app needed to register app
 from dash_app import dash_app, ids  # noqa: F401
@@ -1591,3 +1592,25 @@ def get_dist_hist(request, task_id: str):
         "series": [{"data": hist.tolist(), "type": "bar"}],
     }
     return JsonResponse(response_data)
+
+
+def generate_email_notification(scenario: Scenario, user):
+    """Generate an email when the scenario finished or failed."""
+    # TODO: Make optional? Scenario specific setting? User specific setting?
+    # Is abstraction through another table useful?
+
+    context = {
+        "results_url": "http.localhost.8000/login/",
+        # TODO: Better way to address user? just full email?
+        "user_name": user.email.split("@")[0],
+        "scenario": scenario,
+    }
+    subject = f'Deine Simulation "{scenario.name}" ist {"fertig" if scenario.finished else "fehlgeschlagen"}'
+    to = [user.email]
+    from_email = None  # uses DEFAULT_FROM_EMAIL
+    text_content = render_to_string("emails/welcome_email.txt", context)
+    html_content = render_to_string("emails/welcome_email.html", context)
+
+    msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+    msg.attach_alternative(html_content, "text/html")
+    msg.send()
