@@ -107,7 +107,7 @@ def import_data(df_areas: pd.DataFrame, df_stations: pd.DataFrame):
             name=row.name,
             osm_id=int(row.osm_id),
             geom=Point(row.geom_x, row.geom_y, row.geom_z),
-            admin_area_id=row.admin_area,
+            admin_area_id=int(row.admin_area),
         )
         bus_stations.append(bus_station)
     BusStation.objects.bulk_create(bus_stations)
