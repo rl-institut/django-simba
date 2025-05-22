@@ -7,6 +7,8 @@
 
   </head>
   <body>
+{% if not geoms %}<h2> No stations found</h2>{% endif %}
+  {% if error %}<h2> {{error }}</h2>{% endif %}
   <div id="map" style="height:1000px;"></div>
 
 

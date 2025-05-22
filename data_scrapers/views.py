@@ -10,7 +10,6 @@ from django.http import (
     HttpResponse,
     HttpResponseForbidden,
     HttpResponseBadRequest,
-    HttpResponseServerError,
 )
 
 from data_scrapers.models import BusStation, AdminArea
@@ -19,12 +18,18 @@ from data_scrapers.tasks import search_stations
 
 logger = logging.getLogger("custom")
 
+QUERY_PARAM = "search_stations"
+
+
+def is_request_valid(request: HttpRequest) -> bool:
+    search_stations_request = request.GET.get(QUERY_PARAM)
+    if search_stations_request is None or search_stations_request == "":
+        return False
+    return True
+
 
 def get_station_search(request: HttpRequest) -> list[str]:
-    param = "search_stations"
-    search_stations_request = request.GET.get(param)
-    if search_stations_request is None:
-        return HttpResponseBadRequest(f"The Station search API needs the Param '{param}'.")
+    search_stations_request = request.GET.get(QUERY_PARAM)
     return search_stations_request.split("|")
 
 
@@ -34,14 +39,15 @@ class BusStationListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        search_stations_request = get_station_search(self.request)
-        logger.info(f"Searching for {len(search_stations_request)} stations")
-        use_filter = self.request.GET.get("filter", "false").lower() == "true"
-        found_stations = search_stations(search_stations_request, use_filter)
-        if not found_stations:
-            return HttpResponseServerError(
-                "No stations found. If searching for multiple stations use '|' as separator."
-            )
+        found_stations = dict()
+        if not is_request_valid(self.request):
+            # Let the user know that the query was bad
+            context["error"] = f"The Station search API needs the non empty param '{QUERY_PARAM}'."
+        else:
+            search_stations_request = get_station_search(self.request)
+            logger.info(f"Searching for {len(search_stations_request)} stations")
+            use_filter = self.request.GET.get("filter", "false").lower() == "true"
+            found_stations = search_stations(search_stations_request, use_filter)
         geoms = []
         for key, stations in found_stations.items():
             for station in stations:
@@ -56,8 +62,12 @@ class BusStationListView(ListView):
             f"Found {len(found_stations)} stations with {sum([len(x) for x in found_stations.values()])}"
             f" separate stops"
         )
-        context["center_lat"] = sum(geom["lat"] for geom in geoms) / len(geoms)
-        context["center_lon"] = sum(geom["lon"] for geom in geoms) / len(geoms)
+
+        context["center_lat"] = 0
+        context["center_lon"] = 0
+        if geoms:
+            context["center_lat"] = sum(geom["lat"] for geom in geoms) / len(geoms)
+            context["center_lon"] = sum(geom["lon"] for geom in geoms) / len(geoms)
         context["geoms"] = geoms
 
         return context
