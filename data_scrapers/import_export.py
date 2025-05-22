@@ -80,10 +80,10 @@ def import_data(df_areas: pd.DataFrame, df_stations: pd.DataFrame):
         except (TypeError, ValueError):
             upper_admin_area = None
         admin_area = AdminArea(
-            id=row.id,
+            id=int(row.id),
             name=row.name,
-            osm_id=row.osm_id,
-            admin_level=row.admin_level,
+            osm_id=int(row.osm_id),
+            admin_level=int(row.admin_level),
             upper_admin_area_id=upper_admin_area,
         )
         admin_areas.append(admin_area)
@@ -103,9 +103,9 @@ def import_data(df_areas: pd.DataFrame, df_stations: pd.DataFrame):
         if row.admin_area in ids_with_no_osm_id:
             continue
         bus_station = BusStation(
-            id=row.id,
+            id=int(row.id),
             name=row.name,
-            osm_id=row.osm_id,
+            osm_id=int(row.osm_id),
             geom=Point(row.geom_x, row.geom_y, row.geom_z),
             admin_area_id=row.admin_area,
         )
