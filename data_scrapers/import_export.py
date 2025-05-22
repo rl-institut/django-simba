@@ -43,6 +43,7 @@ def get_admin_areas_df():
     columns = ["id", "name", "osm_id", "admin_level", "upper_admin_area"]
     data = admin_areas.values_list(*columns)
     df = pd.DataFrame(columns=columns, data=data)
+    df.upper_admin_area = df.upper_admin_area.astype("Int64")
     return df
 
 
