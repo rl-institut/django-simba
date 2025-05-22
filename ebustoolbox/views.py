@@ -1121,6 +1121,7 @@ def merge_and_run(request: HttpRequest, task_id: str):
             (scenario.parent.id, scenario.id, sim_task_id),
             task_id=str(sim_task_id),
         )
+        assert async_result.task_id == sim_task_id, "Task ids are expected to be equal"
     except Exception:
         progress.errors.append(
             "Ein unerwarteter Fehler ist aufgetreten." "Wenden Sie sich an ihren Administrator"
@@ -1129,10 +1130,10 @@ def merge_and_run(request: HttpRequest, task_id: str):
         logger.error(traceback.format_exc())
 
     progress.refresh_from_db()
-    progress.task_id = async_result.task_id
+    progress.task_id = sim_task_id
     progress.save(update_fields=["task_id"])
     context = {}
-    context["progress_id"] = async_result.task_id
+    context["progress_id"] = sim_task_id
     context["scenario"] = scenario
     context["template_name"] = "progress_simulation.html"
     context["progress"] = progress
