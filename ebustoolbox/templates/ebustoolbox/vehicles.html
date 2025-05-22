@@ -35,8 +35,6 @@
         </div>
       </h2>
       <span class="block mb-6 text-sm text-slate-500">Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.</span>
-    <!-- ToDo Bryan: Styling and positioning of errors -->
-      <div id="sim_range_errors"><ul>{% for error in simulation_parameters_form.errors.values %}<li>{{ error }}</li>{% endfor %}</ul></div>
         <fieldset class="flex items-center gap-4">
           <span class="text-slate-600">Von</span>
 
@@ -98,6 +96,13 @@
               required>
           </div>
         </fieldset>
+        <!-- ToDo Bryan: Styling and positioning of errors -->
+        <div id="sim_range_errors">
+          <ul class="text-red-500 text-sm mt-2">
+            {% for error in simulation_parameters_form.errors.values %}
+            <li>{{ error }}</li>{% endfor %}
+          </ul>
+        </div>
     </section>
 
     <section class="pb-12">
