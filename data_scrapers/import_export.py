@@ -69,7 +69,7 @@ def import_data(df_areas: pd.DataFrame, df_stations: pd.DataFrame):
     df = df_areas
     admin_areas = []
     missing_osm_id = df.osm_id.isna()
-    if not missing_osm_id.empty:
+    if sum(missing_osm_id) > 0:
         logger.info(f"{sum(missing_osm_id)} AdminAreas have no OSM ID and are not imported")
     # Remove areas without an osm_id
     ids_with_no_osm_id = df[missing_osm_id].index
@@ -93,7 +93,7 @@ def import_data(df_areas: pd.DataFrame, df_stations: pd.DataFrame):
     df = df_stations
     bus_stations = []
     missing_admin_area_stations = df.admin_area.isna()
-    if not missing_admin_area_stations.empty:
+    if sum(missing_admin_area_stations) > 0:
         logger.info(
             f"{sum(missing_admin_area_stations)} Stations have no admin area and are not imported"
         )

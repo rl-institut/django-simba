@@ -12,7 +12,8 @@ class CoreConfig(AppConfig):
 
     def ready(self):
 
-        with connection.cursor() as cursor:
-            db_name = settings.DATABASES["default"]["NAME"]
-            cursor.execute(f"SELECT pg_size_pretty(pg_database_size('{db_name}'))")
-            logger.info(f"Default DB {db_name} has size of {cursor.fetchone()[0]}.")
+        if settings.DEBUG:
+            with connection.cursor() as cursor:
+                db_name = settings.DATABASES["default"]["NAME"]
+                cursor.execute(f"SELECT pg_size_pretty(pg_database_size('{db_name}'))")
+                logger.info(f"Default DB {db_name} has size of {cursor.fetchone()[0]}.")

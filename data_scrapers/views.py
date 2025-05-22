@@ -22,7 +22,7 @@ def get_station_search(request: HttpRequest) -> list[str]:
 
 class BusStationListView(ListView):
     model = BusStation
-    template_name = "minimal_leaflet_map_w_content.html"
+    template_name = "data_scrapers/minimal_leaflet_map_w_content.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -91,9 +91,9 @@ def import_view(request):
     if request.method == "POST":
         if AdminArea.objects.all().exists() or BusStation.objects.all().exists():
             raise Http404(
-                f"Data can only be imported in empty database. "
-                f"There are {AdminArea.objects.count()} AdminAreas \n"
-                f"There are {BusStation.objects.count()} BusStations"
+                f"Data can only be imported in empty database.\n"
+                f"There are {AdminArea.objects.count()} AdminAreas.\n"
+                f"There are {BusStation.objects.count()} BusStations."
             )
 
         assert request.FILES["file_stations"]
