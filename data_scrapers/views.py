@@ -126,7 +126,7 @@ def import_view(request):
         return HttpResponse(
             f"Success. {area_count} AdminAreas and {station_count} Stations imported"
         )
-    raise HttpResponseNotAllowed("Only GET and POST are allowed")
+    return HttpResponseNotAllowed("Only GET and POST are allowed")
 
 
 def export_view(request):
