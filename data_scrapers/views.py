@@ -3,7 +3,15 @@ import pandas as pd
 
 from django.shortcuts import render
 from django.views.generic import ListView
-from django.http import Http404, HttpRequest, JsonResponse, HttpResponse
+from django.http import (
+    HttpRequest,
+    HttpResponseNotAllowed,
+    JsonResponse,
+    HttpResponse,
+    HttpResponseForbidden,
+    HttpResponseBadRequest,
+    HttpResponseServerError,
+)
 
 from data_scrapers.models import BusStation, AdminArea
 from data_scrapers.import_export import create_export_buffer, import_data
@@ -16,7 +24,7 @@ def get_station_search(request: HttpRequest) -> list[str]:
     param = "search_stations"
     search_stations_request = request.GET.get(param)
     if search_stations_request is None:
-        raise Http404(f"The Station search API needs the Param '{param}'.")
+        return HttpResponseBadRequest(f"The Station search API needs the Param '{param}'.")
     return search_stations_request.split("|")
 
 
@@ -31,7 +39,7 @@ class BusStationListView(ListView):
         use_filter = self.request.GET.get("filter", "false").lower() == "true"
         found_stations = search_stations(search_stations_request, use_filter)
         if not found_stations:
-            raise Http404(
+            return HttpResponseServerError(
                 "No stations found. If searching for multiple stations use '|' as separator."
             )
         geoms = []
@@ -59,7 +67,7 @@ def json_view(request):
     search_stations_request = get_station_search(request)
     use_filter = request.GET.get("filter", "false").lower() == "true"
     if len(search_stations_request) == 0:
-        raise Http404(
+        return HttpResponseBadRequest(
             "search_stations must be part of the query."
             "If searching for multiple stations use | as seperator."
             "If all found stations should be returned, add &filter=False to the query"
@@ -84,13 +92,13 @@ def json_view(request):
 
 def import_view(request):
     if not request.user.is_superuser:
-        raise Http404("Only admins can import data")
+        return HttpResponseForbidden("Only admins can import data")
     if request.method == "GET":
         return render(request, "data_scrapers/import.html")
 
     if request.method == "POST":
         if AdminArea.objects.all().exists() or BusStation.objects.all().exists():
-            raise Http404(
+            return HttpResponseForbidden(
                 f"Data can only be imported in empty database.\n"
                 f"There are {AdminArea.objects.count()} AdminAreas.\n"
                 f"There are {BusStation.objects.count()} BusStations."
@@ -108,12 +116,12 @@ def import_view(request):
         return HttpResponse(
             f"Success. {area_count} AdminAreas and {station_count} Stations imported"
         )
-    return Http404("Something went wrong")
+    raise HttpResponseNotAllowed("Only GET and POST are allowed")
 
 
 def export_view(request):
     if not request.user.is_superuser:
-        raise Http404("Only Admins can export data")
+        return HttpResponseForbidden("Only Admins can export data")
     zip_buffer = create_export_buffer()
     response = HttpResponse(zip_buffer, content_type="application/zip")
     response["Content-Disposition"] = "attachment; filename=export.zip"
