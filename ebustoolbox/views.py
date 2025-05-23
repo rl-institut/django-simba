@@ -13,7 +13,14 @@ from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
 from django.db.models.functions import Cast, Coalesce
 from django.db.transaction import atomic
 from django.forms import formset_factory, widgets
-from django.http import HttpResponse, HttpRequest, Http404, HttpResponseForbidden, JsonResponse
+from django.http import (
+    HttpResponse,
+    HttpRequest,
+    Http404,
+    HttpResponseForbidden,
+    JsonResponse,
+    HttpResponseBadRequest,
+)
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -39,7 +46,7 @@ from .forms import (
     ManualLcaForm,
     DepotChargingAreaForm,
 )
-from .tasks import create_db_url, get_args, scenario_to_db  # noqa
+from .tasks import merge_scenario
 from .import_export import ScenarioJSONImporterExporter, visit_all_scenario_queries
 
 from .util import get_unique_task_id
@@ -57,6 +64,7 @@ from ebustoolbox.models import (
     DefaultScenario,
     Station,
     EnumChargeType,
+    Event,
     EventType,
     Trip,
     SimulationRange,
@@ -1118,7 +1126,7 @@ def merge_and_run(request: HttpRequest, task_id: str):
     # create scenario from mutation and parent and simulate it
     try:
         async_result = tasks.run_and_merge_scenarios.apply_async(
-            (scenario.parent.id, scenario.id, sim_task_id),
+            (scenario.id, sim_task_id),
             task_id=str(sim_task_id),
         )
         assert async_result.task_id == sim_task_id, "Task ids are expected to be equal"
@@ -1185,10 +1193,12 @@ def run_simulation(request: HttpRequest, task_id: str):
         # This triggers progress polling. If the toolchain is finished,
         # the progress view will be triggered with the task_id and progress type
         logger.info("Running Toolchain.")
-        tasks.run_toolchain_from_scenario(scenario, assign_vehicles=False)
+        tasks.run_toolchain_from_scenario(scenario, assign_vehicles=True)
     except Exception:
         return HttpResponse("An error occured")
-    return HttpResponse("Your simulation is beeing simulated")
+
+    redirection = f"<a href={reverse('simba:result', args=[task_id])}>Zu den Ergebnissen</a>"
+    return HttpResponse("Die Simulation war erfolgreich." + redirection)
 
 
 def download_scenario(request: HttpRequest, task_id: str):
@@ -1599,22 +1609,22 @@ def get_dist_hist(request, task_id: str):
     return JsonResponse(response_data)
 
 
-# TODO: Implement import and export view for Scenarios
-# Only allow import of SOURCE and SIMULATION_SCENARIO -> Remove parent
-# MUTATION_SCENARIOS can only be exported from the merged state
-# MUTATION SCENARIOS do not have enough state and would require merged export of not just parent
-# scenario but also of the default scenario, since mutation scenarios reference default objects
-# like VehicleTypes. Import could not guarantee these ids remain constant
-
-
 def export_scenario(request, task_id: str):
     """Allow admins and authorized users to download a json export of their scenario"""
     # Raise an exception if user is not authorized for this task_id
     AuthorizedMixIn.get_permission(request.user, task_id)
     scenario = Scenario.objects.get(task_id=task_id)
+    child = None
+    if scenario.scenario_type == EnumScenarioType.MUTATION:
+        task_id = get_unique_task_id()
+        child = merge_scenario(scenario.id, task_id)
+        scenario = child
     exporter = ScenarioJSONImporterExporter()
     visit_all_scenario_queries(exporter, scenario)
     json_data = exporter.renderJSON()
+    # If a child was created delete it
+    if child is not None:
+        child.delete()
     return HttpResponse(json_data, content_type="application/json")
 
 
@@ -1636,25 +1646,37 @@ def import_scenario(request):
         ), "Importing is only supported for single scenarios"
         scenario: Scenario = importer.object_data["Scenario"][0]
         if Scenario.objects.filter(task_id=scenario.task_id).exists():
-            new_task_id = ebustoolbox.util.get_unique_task_id()
-            logger.warn(
+            new_task_id = get_unique_task_id()
+            logger.warning(
                 f"task_id {scenario.task_id} already exists in the database. "
-                "Imported Scenario will get a new task_id of {new_task_id}"
+                f"Imported Scenario will get a new task_id of {new_task_id}"
             )
             scenario.task_id = new_task_id
             scenario.manager = request.user
-        if scenario.scenario_type not in (EnumScenarioType.SIMULATION, EnumScenarioType.SOURCE):
-            return Http404("Only Simulation and Source Scenarios can be imported currently.")
+        if scenario.scenario_type not in (
+            EnumScenarioType.SIMULATION,
+            EnumScenarioType.MUTATION,
+            EnumScenarioType.SOURCE,
+        ):
+            return HttpResponseBadRequest(
+                f"{scenario.scenario_type} is not supported for exporting."
+            )
         importer.adjust_foreign_keys()
         importer.bulk_create()
         importer.create_many_to_many()
         core.deepcopy.reset_postgres_auto_increments([Scenario._meta.app_label])
         task_id = scenario.task_id
-        # TODO: Run Simulation is not working on this branch.
-        # Refactor with Split: Merge + Run  and (Merge + Run)
+        redirect_suggestion = ""
+        if (
+            not Event.objects.filter(scenario=scenario).exists()
+            and scenario.scenario_type == EnumScenarioType.SIMULATION
+        ):
+            redirect_suggestion = f"<a href={reverse('simba:run_simulation', args=[task_id])} > run the simulation</a>"
+        else:
+            redirect_suggestion = (
+                f"View <a href={reverse('simba:result', args=[task_id])}>results</a>"
+            )
         return HttpResponse(
-            f"Scenario succesfully imported with task_id {task_id}. "
-            f"View <a href={reverse('simba:result', args=[task_id])}>results</a> or "
-            f"<a href={reverse('simba:run_simulation', args=[task_id])} > run the simulation</a>"
+            f"Scenario succesfully imported with task_id {task_id}. " + redirect_suggestion
         )
-    return Http404("Something went wrong importing the scenario")
+    return HttpResponseBadRequest("Use POST or GET")
