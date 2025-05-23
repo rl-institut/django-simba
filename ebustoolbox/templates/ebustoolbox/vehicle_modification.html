@@ -75,8 +75,8 @@
       <!-- Tab content -->
       <div id="{{ vt_id }}tab-contents">
         <div class="tab-content" data-tab="tab-1">
-          <div class="flex flex-col gap-6">
-            <div class="flex-grow">
+          <div class="flex flex-col">
+            <div class="flex-grow pb-6">
               <div class="flex items-center gap-2">
                 <label for="{{modification.vehicle_modification.battery_capacity.auto_id}}" id="{{ vt_id }}batteryCapacityLabel" class="block text-sm/6 font-medium text-slate-800">Nutzbare Batteriekapazität</label>
                 <div class="relative inline-block">
@@ -127,6 +127,7 @@
                 </label>
               </div>
             </div>
+            <div class="text-sm text-slate-500 pt-1 pb-6 pl-6">(Ignoriert die globale Umgebungstemperatur für diesen Fahrzeugtyp)</div>
             <div class="flex-grow">
               <div class="flex items-center gap-2">
                 <label for="{{modification.vehicle_modification.consumption.auto_id}}" id="{{ vt_id }}consumptionLabel" class="block text-sm/6 font-medium text-slate-800">Energieverbrauch</label>
