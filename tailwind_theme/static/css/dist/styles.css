@@ -1130,6 +1130,26 @@ select {
   max-height: 15rem;
 }
 
+.max-h-\[60rem\] {
+  max-height: 60rem;
+}
+
+.max-h-\[30rem\] {
+  max-height: 30rem;
+}
+
+.max-h-\[20rem\] {
+  max-height: 20rem;
+}
+
+.max-h-\[50rem\] {
+  max-height: 50rem;
+}
+
+.max-h-\[45rem\] {
+  max-height: 45rem;
+}
+
 .min-h-full {
   min-height: 100%;
 }
