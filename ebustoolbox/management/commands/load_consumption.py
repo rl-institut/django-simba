@@ -10,15 +10,27 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         scenario = get_default_scenario(DefaultScenario, Scenario).scenario
-        consumption_paths = {
-            7: "./ebustoolbox/static/ebustoolbox/examples/6m_consumption_sprinter_6m.csv",
-            10: "./ebustoolbox/static/ebustoolbox/examples/10m_consumption_lle_99.csv",
-            12: "./ebustoolbox/static/ebustoolbox/examples/12m_consumption_nor_bus.csv",
-            18: "./ebustoolbox/static/ebustoolbox/examples/18m_consumption_solaris_18m.csv",
-        }
+        root = "./ebustoolbox/static/ebustoolbox/examples/"
+        consumption_paths = [
+            (10, root + "consumption_ebus2030_no_diesel_10m.csv"),
+            (12, root + "consumption_ebus2030_no_diesel_12m.csv"),
+            (14, root + "consumption_ebus2030_no_diesel_14m.csv"),
+            (18, root + "consumption_ebus2030_no_diesel_18m.csv"),
+            (7, root + "consumption_ebus2030_no_diesel_7m.csv"),
+            (10, root + "consumption_ebus2030_w_diesel_10m.csv"),
+            (12, root + "consumption_ebus2030_w_diesel_12m.csv"),
+            (14, root + "consumption_ebus2030_w_diesel_14m.csv"),
+            (18, root + "consumption_ebus2030_w_diesel_18m.csv"),
+            (7, root + "consumption_ebus2030_w_diesel_7m.csv"),
+        ]
+
         default_vts = VehicleType.objects.filter(scenario=scenario)
-        for length, path in consumption_paths.items():
+        for length, path in consumption_paths:
             vts = default_vts.filter(length=length)
+            if "no_diesel" in path:
+                vts = vts.exclude(name__icontains="zusatzheizung")
+            else:
+                vts = vts.filter(name__icontains="zusatzheizung")
             dataframe = pd.read_csv(Path(path))
             for vt in vts:
                 vehicle_class = VehicleClass.objects.filter(
