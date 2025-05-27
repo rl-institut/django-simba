@@ -235,7 +235,7 @@ class ScenarioMixIn(AuthorizedMixIn):
                 }
                 return render(request, "core/redirect_with_timer.html", context)
             if progress.success:
-                # Simulation finished sucessfully
+                # Simulation finished successfully
                 # Simulation is running, redirect to
                 context |= {
                     "duration": 4,

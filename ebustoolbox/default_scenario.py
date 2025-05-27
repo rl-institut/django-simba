@@ -1,9 +1,7 @@
 """File to create all default Scenario models"""
 
-from django.db import models
 
-
-def get_default_scenario(DefaultScenario, Scenario) -> models.Model:
+def get_default_scenario(DefaultScenario, Scenario) -> "DefaultScenario":  # noqa
     default_scenarios = DefaultScenario.objects.all()
     count = default_scenarios.count()
     if count == 1:
@@ -49,6 +47,12 @@ def set_default_vehicle_types(apps, scenario) -> None:
         ("Solobus_Zusatzheizung", 400, 12, 1.4),
         ("Gelenkbus", 650, 18, 2.6),
         ("Gelenkbus_Zusatzheizung", 500, 18, 1.8),
+        ("Minibus", 120, 7, 0.9),
+        ("Minibus_Zusatzheizung", 120, 7, 0.7),
+        # TODO: Mit TU Berlin werte klären
+        ("EN", 450, 10, 1.8),
+        ("DD", 500, 12, 2),
+        ("GN", 650, 18, 2.6),
     ]
     for vehicle_data in vehicle_data_list:
         set_default_vehicle_type(apps, scenario, *vehicle_data)
@@ -67,4 +71,5 @@ def set_default_vehicle_type(apps, scenario, name, battery_capacity, length, con
     }
     VehicleType = apps.get_model("ebustoolbox", "VehicleType")
     _ = VehicleType.objects.create(**vehicle_type_args, opportunity_charging_capable=True)
-    _ = VehicleType.objects.create(**vehicle_type_args, opportunity_charging_capable=False)
+    # Removed, since currently we dont allow pure depot chargers
+    # _ = VehicleType.objects.create(**vehicle_type_args, opportunity_charging_capable=False)
