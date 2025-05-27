@@ -11,6 +11,7 @@ from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
 from scipy.spatial._qhull import QhullError
 import shutil
 import warnings
+import traceback
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -467,8 +468,12 @@ class Consumption(models.Model):
             self.nearest_interpolator = find_nearest
             return
         try:
-            self.linear_interpolator = LinearNDInterpolator(self.data_points, self.values)
+            self.linear_interpolator = LinearNDInterpolator(
+                self.data_points,
+                self.values,
+            )
         except QhullError:
+            warnings.warn(traceback.format_exc())
             warnings.warn(
                 "Consumption table does not contain enough elements for multidimensional"
                 " linear interpolation. Nearest Interpolation is used instead."
