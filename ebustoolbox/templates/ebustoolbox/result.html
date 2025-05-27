@@ -802,31 +802,88 @@
                             fontWeight: 'bold'
                         }
                     },
+                    stateAnimation: {
+                        duration: 300,
+                        easing: 'cubicOut'
+                    },
                     tooltip: {
-                        trigger: 'axis'
+                        trigger: 'axis',
+                        formatter: function (params) {
+                            // params is an array of series values at the hovered x-value
+                            const dateStr = params[0].axisValue;  // assuming all share the same x-axis value (time)
+                            const date = new Date(dateStr);
+                            const formattedDate = date.toLocaleString('en-GB', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false
+                            });
+
+                            let tooltipContent = `<strong>${formattedDate}</strong><br/>`;
+                            params.forEach(item => {
+                                let value = item.value;
+                                if (item.seriesName === 'Ladeleistung (kW)') {
+                                    value = parseFloat(value).toFixed(2);
+                                }
+                                tooltipContent += `${item.marker} ${item.seriesName}: ${value}<br/>`;
+                            });
+                            return tooltipContent;
+                        }
                     },
                     xAxis: {
                         type: 'category',
                         data: times
                     },
-                    yAxis: {
-                        type: 'value'
-                    },
+                    yAxis: [
+                        {
+                            type: 'value',
+                            name: 'Belegung',
+                            position: 'left'
+                        },
+                        {
+                            type: 'value',
+                            name: 'Ladeleistung (kW)',
+                            position: 'right'
+                        }
+                    ],
                     series: [
                         {
-                            name: 'Power',
+                            name: 'Ladeleistung (kW)',
                             type: 'line',
-                            data: powers
+                            data: powers,
+                            yAxisIndex: 1,
+                            lineStyle: {
+                                width: 3
+                            },
+                            emphasis: {
+                                focus: 'series',
+                            }
                         },
                         {
-                            name: 'Occupancy Charging',
+                            name: 'Belegung ladend',
                             type: 'line',
-                            data: occupancyCharging
+                            data: occupancyCharging,
+                            yAxisIndex: 0,
+                            lineStyle: {
+                                width: 3
+                            },
+                            emphasis: {
+                                focus: 'series',
+                            }
                         },
                         {
-                            name: 'Occupancy Total',
+                            name: 'Belegung total',
                             type: 'line',
-                            data: occupancyTotal
+                            data: occupancyTotal,
+                            yAxisIndex: 0,
+                            lineStyle: {
+                                width: 3
+                            },
+                            emphasis: {
+                                focus: 'series',
+                            }
                         }
                     ]
                 };
@@ -855,8 +912,10 @@
                 const categories = data.categories;  // Array of bus categories
                 const ganttData = data.data;         // Array of Gantt data
 
-                // Define a fixed bar height
-                const fixedBarHeight = 20;
+
+                const totalVehicles = categories.length;
+                const visibleTracks = 10;
+                const visiblePercent = (visibleTracks / totalVehicles) * 100;
 
                 // Prepare ECharts option
                 const option = {
@@ -895,9 +954,9 @@
                             width: 40,
                             right: 65,
                             top: 50,
-                            bottom: 80,
-                            start: 95,
-                            end: 100,
+                            bottom: 110,
+                            start: 0,                  // Start at the top
+                            end: visiblePercent,       // Show top N vehicles
                             handleSize: 30,
                             showDetail: false
                         },
@@ -905,15 +964,42 @@
                             type: 'inside',
                             id: 'insideY',
                             yAxisIndex: 0,
-                            start: 95,
+                            start: 100 - visiblePercent,
                             end: 100,
                             zoomOnMouseWheel: false,
                             moveOnMouseMove: true,
                             moveOnMouseWheel: true
                         }
                     ],
+                    tooltip: {
+                        formatter: function (params) {
+                            const eventType = params.value[5];
+                            const color = EVENT_COLORS[eventType] || '#000';
+
+                            const marker = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
+                            const startTime = new Date(params.value[1]);
+                            const endTime = new Date(params.value[2]);
+                            const durationMs = params.value[3];
+
+                            const formatDate = (date) => {
+                                const pad = n => String(n).padStart(2, '0');
+                                return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+                            };
+
+                            const durationFraction = durationMs / (60 * 60);
+                            const formatFractionToHHmm = (fraction) => {
+                                const hours = Math.floor(fraction);
+                                const minutes = Math.round((fraction % 1) * 60);
+                                const pad = n => String(n).padStart(2, '0');
+                                return `${pad(hours)}:${pad(minutes)}`;
+                            };
+                            const durationFormatted = formatFractionToHHmm(durationFraction);
+
+                            return `${marker}${params.name}<br>${formatDate(startTime)} - Dauer: ${durationFormatted} h`;
+                        }
+                    },
                     grid: {
-                        height: '75%'  // Adjust grid height for more space
+                        height: '70%'  // Adjust grid height for more space
                     },
                     xAxis: {
                         type: 'time',
@@ -943,6 +1029,7 @@
                     },
                     yAxis: {
                         type: 'category',
+                        inverse: true,
                         data: categories,
                         // Ensure enough space for each category (bus)
                         axisLabel: {
@@ -1023,21 +1110,21 @@
 
                 const vehicleIndex = Object.fromEntries(vehicles.map((v, i) => [v, i]));
 
-                // Function to interpolate between two colors
-                function interpolateColor(startColor, endColor, factor) {
-                    const startRgb = hexToRgb(startColor);
-                    const endRgb = hexToRgb(endColor);
+                const totalVehicles = vehicles.length;
+                const visibleTracks = 10;
+                const visiblePercent = (visibleTracks / totalVehicles) * 100;
 
-                    const r = Math.round(startRgb.r + factor * (endRgb.r - startRgb.r));
-                    const g = Math.round(startRgb.g + factor * (endRgb.g - startRgb.g));
-                    const b = Math.round(startRgb.b + factor * (endRgb.b - startRgb.b));
+                const viridisAnchors = [
+                  '#ff0000', // red for -1
+                  '#440154', // dark purple
+                  '#414487', // indigo
+                  '#2a788e', // teal
+                  '#22a884', // green
+                  '#fde725'  // yellow
+                ];
 
-                    return `rgb(${r},${g},${b})`;
-                }
-
-                // Helper function to convert hex color to RGB
-                function hexToRgb(hex) {
-                    const bigint = parseInt(hex.slice(1), 16);
+                function hexToRgb(hexString) {
+                    const bigint = parseInt(hexString.slice(1), 16);
                     return {
                         r: (bigint >> 16) & 255,
                         g: (bigint >> 8) & 255,
@@ -1045,15 +1132,41 @@
                     };
                 }
 
-                // Function to convert SoC to a color in the given gradient range
-                function socToColor(soc) {
-                    const fullColor = '#00FF00';  // Full SoC color
-                    const emptyColor = '#FF0000';  // Empty SoC color
-                    const factor = soc;  // Normalize SoC between 0 and 1
-                    return interpolateColor(emptyColor, fullColor, factor);  // Get interpolated color
+                function rgbToHex({ r, g, b }) {
+                    return "#" + [r, g, b].map(x =>
+                        x.toString(16).padStart(2, '0')
+                    ).join('');
                 }
 
-                // Preparing the series for the custom chart
+                function interpolateColor(color1, color2, factor) {
+                    const rgb1 = hexToRgb(color1);
+                    const rgb2 = hexToRgb(color2);
+                    return rgbToHex({
+                        r: Math.round(rgb1.r + (rgb2.r - rgb1.r) * factor),
+                        g: Math.round(rgb1.g + (rgb2.g - rgb1.g) * factor),
+                        b: Math.round(rgb1.b + (rgb2.b - rgb1.b) * factor)
+                    });
+                }
+
+                function socToColor(soc) {
+                  const anchors = viridisAnchors;
+                  const n = anchors.length - 1;
+
+                  // Clamp soc to the range [-1, 1]
+                  const clampedSoc = Math.max(-1, Math.min(1, soc));
+
+                  // Normalize soc from [-1, 1] to [0, 1]
+                  const normalizedSoc = (clampedSoc + 1) / 2;
+
+                  const scaled = normalizedSoc * n;
+                  const index = Math.floor(scaled);
+                  const factor = scaled - index;
+
+                  if (index >= n) return anchors[n];
+                  return interpolateColor(anchors[index], anchors[index + 1], factor);
+                }
+
+
                 const series = {
                     type: 'custom',
                     renderItem: function (params, api) {
@@ -1109,27 +1222,137 @@
                         formatter: function (params) {
                             const socStart = (params.value[3] * 100).toFixed(2);
                             const socEnd = (params.value[4] * 100).toFixed(2);
+
+                            const formatDate = (date) => {
+                                const d = new Date(date);
+                                const pad = n => String(n).padStart(2, '0');
+                                return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                            };
+
+                            const startFormatted = formatDate(params.value[1]);
+                            const endFormatted = formatDate(params.value[2]);
+
                             return `${vehicles[params.value[0]]}<br/>
-                                    ${new Date(params.value[1]).toLocaleString()} → ${new Date(params.value[2]).toLocaleString()}<br/>
+                                    ${startFormatted} → ${endFormatted}<br/>
                                     SoC: ${socStart}% → ${socEnd}%`;
-                        }
+                        }q
+
+
+
+
                     },
                     title: {
                         text: titleText,
                         left: 'center'
                     },
+                    dataZoom: [
+                        {
+                            type: 'slider',
+                            filterMode: 'weakFilter',
+                            showDataShadow: false,
+                            top: 550,
+                            labelFormatter: ''
+                        },
+                        {
+                            type: 'inside',
+                            filterMode: 'weakFilter'
+                        },
+                        {
+                            type: 'slider',
+                            yAxisIndex: 0,
+                            zoomLock: false,
+                            width: 40,
+                            right: 65,
+                            top: 50,
+                            bottom: 110,
+                            start: 100 - visiblePercent, // Show bottom N vehicles (since axis is inverse)
+                            end: 100,
+                            handleSize: 30,
+                            showDetail: false
+                        },
+                        {
+                            type: 'inside',
+                            id: 'insideY',
+                            yAxisIndex: 0,
+                            start: 100 - visiblePercent,
+                            end: 100,
+                            zoomOnMouseWheel: false,
+                            moveOnMouseMove: true,
+                            moveOnMouseWheel: true
+                        }
+                    ],
+                    visualMap: {
+                        type: 'continuous',
+                        min: -1,
+                        max: 1,
+                        calculable: false,
+                        orient: 'horizontal',
+                        left: 'center',
+                        bottom: 60,
+                        inRange: {
+                            color: [
+                                '#ff0000', // SoC -1
+                                '#440154',
+                                '#414487',
+                                '#2a788e',
+                                '#22a884',
+                                '#fde725'  // SoC 1
+                            ]
+                        },
+                        formatter: function (value) {
+                            return `${(value * 100).toFixed(0)}%`;
+                        },
+                        text: ['100%', '-100%'],
+                        itemHeight: 500,
+                        itemWidth: 35
+                    },
+                    grid: {
+                        height: '70%',  // Adjust grid height for more space
+                        containLabel: true,
+                        left: '20px'
+                    },
                     xAxis: {
                         type: 'time',
-                        name: 'Time'
+                        splitNumber: 4,  // Try to limit to 6 ticks across the chart
+                        axisLabel: {
+                            formatter: function (val) {
+                                const date = new Date(val);
+                                const hours = String(date.getHours()).padStart(2, '0');
+                                const minutes = String(date.getMinutes()).padStart(2, '0');
+
+                                const isoDate = date.toISOString().slice(0, 10);
+                                const time = `${hours}:${minutes}`;
+
+                                const totalZoomRange = chart.getModel().getComponent('xAxis').axis.scale._extent;
+                                const zoomWindow = totalZoomRange[1] - totalZoomRange[0];
+
+                                if (zoomWindow > 3 * 24 * 3600 * 1000) {
+                                    return isoDate;
+                                } else if (zoomWindow > 6 * 3600 * 1000) {
+                                    return `${isoDate} ${time}`;
+                                } else {
+                                    return time;
+                                }
+                            },
+                            rotate: 0  // You can override this below
+                        }
                     },
                     yAxis: {
                         type: 'category',
                         data: vehicles,
-                        inverse: true,  // Invert to show first vehicle at the top
-                        name: 'Vehicle'
-                    },
-                    grid: {
-                        containLabel: true
+                        // Ensure enough space for each category (bus)
+                        axisLabel: {
+                            interval: 0,  // Display all bus labels
+                            formatter: function (value) {
+                                return value;  // Keep the category labels (bus names) as they are
+                            }
+                        },
+                        axisTick: {
+                            show: false  // Hide ticks to save space
+                        },
+                        splitLine: {
+                            show: false  // Hide grid lines between categories
+                        }
                     },
                     series: [series]
                 });
@@ -1164,6 +1387,90 @@
                 console.error('Error fetching statistics:', error);
             });
     };
+    function fetchAndRenderStackedHistogram(chartName, chartId, titleText) {
+        fetch(`/simba/result/${taskId}/${chartName}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error("Error loading histogram data:", data.error);
+                    return;
+                }
+
+                const option = {
+                    title: {
+                        text: titleText,
+                        left: 'center',
+                        top: 20,
+                        textStyle: {
+                            fontSize: 18
+                        }
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: {
+                            type: 'shadow'
+                        }
+                    },
+                    legend: {
+                        top: 50,
+                        data: ['Nicht kritisch', 'kritisch']
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '10%',
+                        containLabel: true
+                    },
+                    xAxis: {
+                        type: 'category',
+                        name: data.xaxis_title || 'Distanz (km)',
+                        data: data.xAxis.data,
+                        axisLabel: {
+                            rotate: 30,
+                            interval: 0
+                        }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: data.yaxis_title || 'Abs. Häufigkeit'
+                    },
+                    series: [
+                        {
+                            name: 'Nicht kritisch',
+                            type: 'bar',
+                            stack: 'total',
+                            barWidth: '60%',
+                            itemStyle: {
+                                color: '#20E3B2'
+                            },
+                            emphasis: {
+                                focus: 'series'
+                            },
+                            data: data.series[0].data
+                        },
+                        {
+                            name: 'kritisch',
+                            type: 'bar',
+                            stack: 'total',
+                            barWidth: '60%',
+                            itemStyle: {
+                                color: '#555555'
+                            },
+                            emphasis: {
+                                focus: 'series'
+                            },
+                            data: data.series[1].data
+                        }
+                    ]
+                };
+
+                const chart = echarts.init(document.getElementById(chartId));
+                chart.setOption(option);
+            })
+            .catch(error => {
+                console.error('Error fetching histogram data:', error);
+            });
+    }
     function fetchAndRenderHistogram(chartName, chartId, titleText) {
     fetch(`/simba/result/${taskId}/${chartName}/`)
         .then(response => response.json())
@@ -1199,7 +1506,7 @@
                         type: 'bar',
                         barWidth: '60%',
                         itemStyle: {
-                            color: '#5470C6'
+                            color: '#20E3B2'
                         }
                     }
                 ]
@@ -1323,10 +1630,10 @@
 
             fetchAndRenderStats("stats", "_", "_")
             fetchAndRenderGanttChart("gantt","ganttChart","_")
-            fetchAndRenderHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen");
+            fetchAndRenderStackedHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen");
             fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten");
             fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap");
-            fetchAndRenderGanttChartSOC("soc_gantt", "soc-gant", "Vehicle State of Charge Over Time");
+            fetchAndRenderGanttChartSOC("soc_gantt", "soc-gant", "Fahrzeug Ladestand über Zeit");
         } else {
             console.error("Simulation ID is missing.");
         }

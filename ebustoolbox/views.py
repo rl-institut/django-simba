@@ -1365,12 +1365,19 @@ def render_critical_rotations(request, task_id: str):
 
     s = Scenario.objects.get(task_id=task_id)
 
+    # Get per-rotation data
     df = data.get_critical_rotations_as_dataframe(s.id, buses)
 
-    # Return only raw values
-    return JsonResponse(
-        {"data": [{"value": row["Count"], "name": row["Category"]} for _, row in df.iterrows()]}
+    # Aggregate category counts
+    category_counts = df["SOC_category"].value_counts().reindex(
+        ["Nicht kritisch", "kritisch"], fill_value=0
     )
+
+    # Format for JSON
+    return JsonResponse({
+        "data": [{"value": count, "name": category} for category, count in category_counts.items()]
+    })
+
 
 
 def render_bustype(request, task_id: str):
@@ -1756,42 +1763,68 @@ def get_speed_hist(request, task_id: str):
 
 def get_dist_hist(request, task_id: str):
     s = Scenario.objects.get(task_id=task_id)
-
     filter_dict = dict(task_id=task_id)
 
     vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
-    if buses:  # In Presim buses will ne None, if later no buses are selected, it will be empty
+    if buses:
         filter_dict["vehicle__id__in"] = buses
 
+    # Get distances and criticality
     df = data.get_distances_as_dataframe(s.id, buses)
+    critical_df = data.get_critical_rotations_as_dataframe(s.id, buses)
 
-    # Convert total_distance from meters to kilometers
+    # Merge both DataFrames
+    # Assuming both share a common ID per trip (e.g., 'R_id' = route/rotation id)
+    df = df.rename(columns={"rotation_id": "R_id"})  # adapt if needed
     df["total_distance_km"] = df["total_distance"] / 1000
 
-    # Set the desired bin width in kilometers
+    # Merge to attach SOC_category to each trip
+    merged_df = df.merge(critical_df, how="left", on="R_id")
+
+    # Fill missing SOC_category as "Nicht kritisch" (assume OK if unknown)
+    merged_df["SOC_category"] = merged_df["SOC_category"].fillna("Nicht kritisch")
+
+    # Define bins
     bin_width_km = 50
-
-    # Calculate the number of bins based on the bin width
-    max_distance_km = df["total_distance_km"].max()
-
-    # Start bins from zero, and make sure the maximum distance is included in the bins
+    max_distance_km = merged_df["total_distance_km"].max()
     bins = np.arange(0, max_distance_km + bin_width_km, bin_width_km)
-    hist, bin_edges = np.histogram(df["total_distance_km"], bins=bins)
 
+    # Bin distances
+    merged_df["distance_bin"] = pd.cut(
+        merged_df["total_distance_km"],
+        bins=bins,
+        labels=[
+            f"{bins[i]:.1f}-{bins[i + 1]:.1f} km"
+            for i in range(len(bins) - 1)
+        ],
+        include_lowest=True
+    )
+
+    # Group by bin and criticality
+    grouped = (
+        merged_df.groupby(["distance_bin", "SOC_category"], observed=False)
+        .size()
+        .unstack(fill_value=0)
+        .reindex(columns=["Nicht kritisch", "kritisch"], fill_value=0)  # Ensure consistent order
+    )
+
+    # Return in ECharts format
     response_data = {
-        "xaxis_title": "Distanz",
         "xAxis": {
             "type": "category",
-            "data": [
-                f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km" for i in range(len(bin_edges) - 1)
-            ],
+            "data": grouped.index.tolist(),
         },
         "yaxis_title": "Abs.Häufigkeit",
+        "xaxis_title": "Distanz (km)",
         "yAxis": {"type": "value"},
-        "series": [{"data": hist.tolist(), "type": "bar"}],
+        "series": [
+            {"name": "Nicht kritisch", "type": "bar", "stack": "total", "data": grouped["Nicht kritisch"].tolist()},
+            {"name": "kritisch", "type": "bar", "stack": "total", "data": grouped["kritisch"].tolist()},
+        ],
     }
+
     return JsonResponse(response_data)
 
 
