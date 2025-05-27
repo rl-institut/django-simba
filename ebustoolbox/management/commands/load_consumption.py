@@ -39,6 +39,8 @@ class Command(BaseCommand):
             else:
                 vts = vts.filter(name__icontains="zusatzheizung")
             dataframe = pd.read_csv(Path(path))
+            if vts.count() == 0:
+                logger.warning(f"Default VehicleType with length {length}m not found")
             for vt in vts:
                 vehicle_class = VehicleClass.objects.filter(
                     vehicle_types=vt,
