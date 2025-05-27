@@ -1,18 +1,17 @@
-from functools import partial
-from functools import reduce
+from functools import partial, reduce
 import json
 import logging
 import operator
+from typing import Callable, Iterable, List
 
+from geopy.distance import distance as geopy_distance
 import numpy as np
 import shapely
 from shapely.geometry import Point, MultiPoint
-from typing import Callable, Iterable, List
 
 from django.db.models import QuerySet
 from django.contrib.postgres.search import TrigramSimilarity
 from django.db.models import Q
-from geopy.distance import distance as geopy_distance
 
 from ebusdjango import util
 from .models import BusStation, AdminArea
