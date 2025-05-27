@@ -1,6 +1,7 @@
 import base64
 from celery import uuid
 from io import BytesIO
+import logging
 import matplotlib
 from matplotlib import pyplot as plt
 import pandas as pd
@@ -11,6 +12,9 @@ from django.db.models import Max
 
 from .models import Consumption, Scenario
 from dash_app.data import get_powerdraw_as_dataframe
+
+
+logger = logging.getLogger("custom")
 
 if not any(["selenium" in str(x) for x in sys.modules.values()]):
     # do not use tkagg during testing since it does not work with headless selenium
@@ -76,7 +80,7 @@ def generate_consumption_lut_plot(consumption: Consumption):
         mask = df_reduced.loc[:, column] == value
         df_reduced = df_reduced.loc[mask, :]
         if not any(mask):
-            print(f"Column {column} with value {value} not found")
+            logger.warning(f"Column {column} with value {value} not found")
             return
     df = df_reduced
     figure, ax = generate_2d_plot_from_lut(df_reduced, x_axis=X_AXIS, y_axis=Y_AXIS)
@@ -119,7 +123,6 @@ def generate_2d_plot_from_lut(df: pd.DataFrame, x_axis: str, y_axis: str):
         mask = df.loc[:, x_axis] == x_value
         # Make sure that the variation column is unique per x_axis value.
         assert len(df.loc[mask, variation_column].unique()) == len(df.loc[mask, variation_column])
-    print("creating plot")
     fig, ax = plt.subplots()
     ax.set_xlabel(x_axis)
     ax.set_ylabel(y_axis)

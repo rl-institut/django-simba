@@ -112,4 +112,4 @@ class Command(BaseCommand):
                     plt.close()
                 break
             else:
-                print(name, " not found")
+                logger.warning(name, " not found")
