@@ -1855,78 +1855,72 @@ def get_power_draw_and_occ(request, task_id: str):
 
 
 def get_soc_gantt(request, task_id: str):
-    try:
-        engine = _create_engine_from_postgis_url()
 
-        with Session(engine):
-            # Get all events for the scenario, ordered
-            events = (
-                Event.objects.select_related("vehicle")
-                .filter(scenario__task_id=task_id)
-                .exclude(vehicle=None)
-                .order_by("vehicle__name", "time_start")
+    # Get all events for the scenario, ordered
+    events = (
+        Event.objects.select_related("vehicle")
+        .filter(scenario__task_id=task_id)
+        .exclude(vehicle=None)
+        .order_by("vehicle__name", "time_start")
+    )
+
+    records = []
+    for event in events:
+        vehicle_name = event.vehicle.name
+        tz_start = event.time_start
+        tz_end = event.time_end
+
+        # Fallback in case timeseries is missing or invalid
+        if (
+            not event.timeseries
+            or "time" not in event.timeseries
+            or "soc" not in event.timeseries
+        ):
+            records.append(
+                {
+                    "vehicle": vehicle_name,
+                    "start": tz_start.isoformat(),
+                    "end": tz_end.isoformat(),
+                    "soc_start": event.soc_start,
+                    "soc_end": event.soc_end,
+                }
+            )
+            continue
+
+        # Build time-segmented records with start/end + soc
+        times = [datetime.datetime.fromisoformat(t) for t in event.timeseries["time"]]
+        socs = event.timeseries["soc"]
+        if len(times) != len(socs):
+            continue  # Skip inconsistent timeseries
+
+        # Prepend and append actual event bounds
+        times = [tz_start] + times + [tz_end]
+        socs = [event.soc_start] + socs + [event.soc_end]
+
+        for i in range(len(times) - 1):
+            records.append(
+                {
+                    "vehicle": vehicle_name,
+                    "start": times[i].isoformat(),
+                    "end": times[i + 1].isoformat(),
+                    "soc_start": socs[i],
+                    "soc_end": socs[i + 1],
+                }
             )
 
-            records = []
-            for event in events:
-                vehicle_name = event.vehicle.name
-                tz_start = event.time_start
-                tz_end = event.time_end
+    # Safely track the earliest start time as a timestamp per vehicle
+    vehicle_first_times = defaultdict(lambda: float("inf"))
+    for r in records:
+        try:
+            timestamp = datetime.datetime.fromisoformat(r["start"]).timestamp()
+            if timestamp < vehicle_first_times[r["vehicle"]]:
+                vehicle_first_times[r["vehicle"]] = timestamp
+        except Exception:
+            continue  # Skip if date parsing fails
 
-                # Fallback in case timeseries is missing or invalid
-                if (
-                    not event.timeseries
-                    or "time" not in event.timeseries
-                    or "soc" not in event.timeseries
-                ):
-                    records.append(
-                        {
-                            "vehicle": vehicle_name,
-                            "start": tz_start.isoformat(),
-                            "end": tz_end.isoformat(),
-                            "soc_start": event.soc_start,
-                            "soc_end": event.soc_end,
-                        }
-                    )
-                    continue
+    # Sort vehicles by their earliest event start time
+    vehicles = [
+        v for v, _ in sorted(vehicle_first_times.items(), key=lambda x: x[1], reverse=True)
+    ]
 
-                # Build time-segmented records with start/end + soc
-                times = [datetime.datetime.fromisoformat(t) for t in event.timeseries["time"]]
-                socs = event.timeseries["soc"]
-                if len(times) != len(socs):
-                    continue  # Skip inconsistent timeseries
-
-                # Prepend and append actual event bounds
-                times = [tz_start] + times + [tz_end]
-                socs = [event.soc_start] + socs + [event.soc_end]
-
-                for i in range(len(times) - 1):
-                    records.append(
-                        {
-                            "vehicle": vehicle_name,
-                            "start": times[i].isoformat(),
-                            "end": times[i + 1].isoformat(),
-                            "soc_start": socs[i],
-                            "soc_end": socs[i + 1],
-                        }
-                    )
-
-        # Safely track the earliest start time as a timestamp per vehicle
-        vehicle_first_times = defaultdict(lambda: float("inf"))
-        for r in records:
-            try:
-                timestamp = datetime.datetime.fromisoformat(r["start"]).timestamp()
-                if timestamp < vehicle_first_times[r["vehicle"]]:
-                    vehicle_first_times[r["vehicle"]] = timestamp
-            except Exception:
-                continue  # Skip if date parsing fails
-
-        # Sort vehicles by their earliest event start time
-        vehicles = [
-            v for v, _ in sorted(vehicle_first_times.items(), key=lambda x: x[1], reverse=True)
-        ]
-
-        return JsonResponse({"vehicles": vehicles, "records": records})
-
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    return JsonResponse({"vehicles": vehicles, "records": records})
