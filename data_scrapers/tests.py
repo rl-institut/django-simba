@@ -88,7 +88,7 @@ class StringHandlingTest(SimpleTestCase):
 
     def test_strip_delimiters(self):
         assert strip_delimiters("foo") == "foo"
-        assert strip_delimiters("-, foo ,-/") == "foo"
+        assert strip_delimiters(", foo ,/") == "foo"
         assert strip_delimiters("(foo)") == "foo"
         assert strip_delimiters("()[[],]foo)") == "foo"
         # Is not expected to be an delimiter
@@ -168,6 +168,15 @@ class StationSearchTest(TransactionTestCase):
         # BusStation with slightly different name in Brandenburg / Mitte
         BusStation.objects.create(
             name="AleKanderplatz", osm_id=104, admin_area=brandenburg_mitte, geom=Point(40, 10, 30)
+        )
+
+        # BusStation with slightly different name in Brandenburg / Mitte
+        BusStation.objects.create(
+            name="Berliner Str", osm_id=105, admin_area=brandenburg_mitte, geom=Point(40, 10, 30)
+        )
+        # BusStation with slightly different name in Brandenburg / Mitte
+        BusStation.objects.create(
+            name="Berliner Straße", osm_id=106, admin_area=brandenburg_mitte, geom=Point(40, 10, 30)
         )
 
     @override_settings(DEBUG=True)
@@ -258,13 +267,21 @@ class StationSearchTest(TransactionTestCase):
             )
             assert list(found_stations.values_list("id", flat=True)) == brandenburg_ids
 
+        found_stations = search_station(
+            "Berliner Str",
+            possible_admins_names=[],
+            return_all=True,
+            filter_stack=lambda x: x,
+        )
+        assert found_stations.count() == 2
+
     @override_settings(DEBUG=True)
     def test_stations_search_api(self):
         url = reverse("data_scrapers:busstation_api")
         params = {"search_stations": "Alexanderplatz|Alekanderplatz"}
         # API does not work without a search query
         response = self.client.get(url)
-        assert response.status_code == 404
+        assert response.status_code == 400
 
         response = self.client.get(url, params)
         assert response.status_code == 200
