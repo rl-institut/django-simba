@@ -135,9 +135,7 @@
           <textarea type="text" {{ form.description|widget_attrs }} rows="4"
             class="bg-white w-full px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 sm:text-sm/6"
             placeholder="Beschreiben Sie Ihr Szenario..."
-            aria-describedby="description-optional">
-            {% if form.description.value %}{{ form.description.value }}{% endif %}
-          </textarea>
+            aria-describedby="description-optional">{% if form.description.value %}{{ form.description.value }}{% endif %}</textarea>
         </div>
       </div>
     </div>
