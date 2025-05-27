@@ -74,14 +74,14 @@ class BusStationListView(ListView):
 
 
 def json_view(request):
-    search_stations_request = get_station_search(request)
-    use_filter = request.GET.get("filter", "false").lower() == "true"
-    if len(search_stations_request) == 0:
+    if not is_request_valid(request):
         return HttpResponseBadRequest(
             "search_stations must be part of the query."
             "If searching for multiple stations use | as seperator."
             "If all found stations should be returned, add &filter=False to the query"
         )
+    search_stations_request = get_station_search(request)
+    use_filter = request.GET.get("filter", "false").lower() == "true"
     results = {"results": dict()}
     logger.info(f"Searching for {len(search_stations_request)} stations")
     stations = search_stations(search_stations_request, use_filter=use_filter)

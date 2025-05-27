@@ -212,7 +212,7 @@ def search_exact_station(base_query, station_name) -> QuerySet:
     # Apply some conversions of the name, e.g. "MainSt." becomes "MainStreet"
     for first, second in address_translations + address_translations_rev:
         if second in station_name_lower:
-            search_name = station_name.replace(second, first)
+            search_name = station_name_lower.replace(second, first)
         else:
             continue
         exact_station_query = base_query.filter(name__iexact=search_name)
