@@ -62,14 +62,7 @@ class BusStationListView(ListView):
             f"Found {len(found_stations)} stations with {sum([len(x) for x in found_stations.values()])}"
             f" separate stops"
         )
-
-        context["center_lat"] = 0
-        context["center_lon"] = 0
-        if geoms:
-            context["center_lat"] = sum(geom["lat"] for geom in geoms) / len(geoms)
-            context["center_lon"] = sum(geom["lon"] for geom in geoms) / len(geoms)
         context["geoms"] = geoms
-
         return context
 
 
