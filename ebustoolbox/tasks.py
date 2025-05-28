@@ -29,6 +29,7 @@ from eflips.depot import UnstableSimulationException, DelayedTripException
 from eflips.depot.api import simulate_scenario, generate_depot_layout
 
 import core.deepcopy
+from ebusdjango.util import get_static_file_path
 import ebustoolbox.util
 import simba.optimizer_util
 import simba.station_optimization
@@ -610,17 +611,10 @@ def get_args(django_scenario) -> Namespace:
     # Read the parse values, in this case the default values
     args, _ = parser.parse_known_args()
 
-    # Add default optimizer config
-    p = Path(settings.STATIC_URL, __package__, "examples", "default_optimizer.cfg")
-    # use app static folder
-    if p.is_absolute() and not p.is_file():
-        # remove first slash
-        p = Path(str(p)[1:])
-        p = Path(settings.BASE_DIR, __package__, p)
+    p = get_static_file_path(__package__, "examples/default_optimizer.cfg")
     args.optimizer_config_path = str(p)
     if not p.is_file():
         logger.info("default_optimizer.cfg not found. Optimizer config will use default values.")
-
     # Overwrite args with scenario specific data
     if django_scenario.simba_options is not None:
         logger.debug(
@@ -666,13 +660,7 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
             f = UploadedFile.objects.create(scenario=scenario, file=request.FILES[k])
             args[k] = f.file.path
             continue
-        p = Path(settings.STATIC_URL, __package__, "examples", v)
-        if settings.DEBUG:
-            # use app static folder
-            if p.is_absolute():
-                # remove first slash
-                p = Path(str(p)[1:])
-            p = Path(settings.BASE_DIR, __package__, p)
+        p = get_static_file_path(__package__, "examples/" + v)
         if not p.exists():
             logger.warning(f"FILE ERROR: {k} COULD NOT BE SET ({str(p)})")
             continue
