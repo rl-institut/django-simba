@@ -623,7 +623,7 @@
                 <div id="lineChart" class="chart-container"></div>
                 <div id="DepotlineChart" class="chart-container"></div>
                 <div id="ganttChart" class="chart-container"></div>
-                <div id="soc-gant" class="chart-container"></div>
+                <div id="soc-gantt" class="chart-container"></div>
                 <div id="DistHistogramChart" class="chart-container"></div>
                 <div id="SpeedHistogramChart" class="chart-container"></div>
             </div>
@@ -756,14 +756,14 @@
                             const date = new Date(value);
                             return date.toLocaleString(); // Format x-axis labels
                         },
-                        rotate: 0  // You can override this below
+                        rotate: 0
                     }
                 },
                 yAxis: {
                     type: 'value',
                     name: 'SOC (%)',
-                    min: -0.2,  // Minimum as 1%
-                    max: 1.0,   // Maximum as 100%
+                    min: -0.2,
+                    max: 1.0,
                     axisLabel: {
                         formatter: function (value) {
                             return value * 100; // Format x-axis labels
@@ -773,7 +773,7 @@
                 legend: {
                     show: false // Disables the legend
                 },
-                series: seriesData // Multiple series for each bus
+                series: seriesData
             };
 
             chart.setOption(options);
@@ -783,7 +783,7 @@
         fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(responseData => {
-                const rawData = responseData.data;  // array of objects
+                const rawData = responseData.data;
 
                 // Extract x and y arrays
                 const times = rawData.map(row => row.time);
@@ -955,8 +955,8 @@
                             right: 65,
                             top: 50,
                             bottom: 110,
-                            start: 0,                  // Start at the top
-                            end: visiblePercent,       // Show top N vehicles
+                            start: 0,
+                            end: visiblePercent,
                             handleSize: 30,
                             showDetail: false
                         },
@@ -1131,33 +1131,22 @@
                     };
                 }
 
-                function rgbToHex({ r, g, b }) {
-                    return "#" + [r, g, b].map(x =>
-                        x.toString(16).padStart(2, '0')
-                    ).join('');
-                }
-
                 function interpolateColor(color1, color2, factor) {
                     const rgb1 = hexToRgb(color1);
                     const rgb2 = hexToRgb(color2);
-                    return rgbToHex({
-                        r: Math.round(rgb1.r + (rgb2.r - rgb1.r) * factor),
-                        g: Math.round(rgb1.g + (rgb2.g - rgb1.g) * factor),
-                        b: Math.round(rgb1.b + (rgb2.b - rgb1.b) * factor)
-                    });
+                    const r = Math.round(rgb1.r + (rgb2.r - rgb1.r) * factor);
+                    const g = Math.round(rgb1.g + (rgb2.g - rgb1.g) * factor);
+                    const b = Math.round(rgb1.b + (rgb2.b - rgb1.b) * factor);
+                    return `rgb(${r}, ${g}, ${b})`;
                 }
 
                 function socToColor(soc) {
+                    if (soc < 0)
+                        return "red";
+
                   const anchors = viridisAnchors;
                   const n = anchors.length - 1;
-
-                  // Clamp soc to the range [-1, 1]
-                  const clampedSoc = Math.max(-1, Math.min(1, soc));
-
-                  // Normalize soc from [-1, 1] to [0, 1]
-                  const normalizedSoc = (clampedSoc + 1) / 2;
-
-                  const scaled = normalizedSoc * n;
+                  const scaled = soc * n;
                   const index = Math.floor(scaled);
                   const factor = scaled - index;
 
@@ -1260,7 +1249,7 @@
                             right: 65,
                             top: 50,
                             bottom: 110,
-                            start: 100 - visiblePercent, // Show bottom N vehicles (since axis is inverse)
+                            start: 100 - visiblePercent,
                             end: 100,
                             handleSize: 30,
                             showDetail: false
@@ -1278,7 +1267,7 @@
                     ],
                     visualMap: {
                         type: 'continuous',
-                        min: -1,
+                        min: 0,
                         max: 1,
                         calculable: false,
                         orient: 'horizontal',
@@ -1296,7 +1285,7 @@
                         formatter: function (value) {
                             return `${(value * 100).toFixed(0)}%`;
                         },
-                        text: ['100%', '-100%'],
+                        text: ['100%', '0%'],
                         itemHeight: 500,
                         itemWidth: 35
                     },
@@ -1627,7 +1616,7 @@
             fetchAndRenderStackedHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen");
             fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten");
             fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap");
-            fetchAndRenderGanttChartSOC("soc_gantt", "soc-gant", "Fahrzeug Ladestand über Zeit");
+            fetchAndRenderGanttChartSOC("soc_gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit");
         } else {
             console.error("Simulation ID is missing.");
         }
