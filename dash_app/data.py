@@ -455,15 +455,11 @@ def get_vehicle_types(scenario_id, buses):
 
 def get_critical_rotations_as_dataframe(scenario_id, buses):
     """
-    Retrieves critical rotations data as a DataFrame for specified buses in a given scenario.
+    Retrieves per-rotation criticality information for specified buses in a scenario.
 
     :param scenario_id: The ID of the scenario.
-    :type scenario_id: str
-    :param buses: List of bus IDs to retrieve critical rotations data for.
-    :type buses: list[str]
-
-    :return: DataFrame containing critical rotation data.
-    :rtype: pandas.DataFrame
+    :param buses: List of bus IDs to include.
+    :return: DataFrame with R_id, V_id, soc_end, and SOC_category columns.
     """
     result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
 
@@ -478,18 +474,7 @@ def get_critical_rotations_as_dataframe(scenario_id, buses):
         lambda x: "Nicht kritisch" if x > CRITICAL_SOC else "kritisch"
     )
 
-    category_counts = df["SOC_category"].value_counts()
-
-    # Ensure all categories are included, even if the count is zero
-    all_categories = ["Nicht kritisch", "kritisch"]
-    category_counts = category_counts.reindex(all_categories, fill_value=0)
-
-    # Convert to DataFrame suitable for plotly
-    category_counts_df = category_counts.reset_index()
-    category_counts_df.columns = ["Category", "Count"]
-
-    return category_counts_df
-
+    return df
 
 def apply_id(rotation):
     try:

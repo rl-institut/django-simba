@@ -35,10 +35,9 @@ from core.models import Progress, EnumProgress
 
 from celery.result import AsyncResult
 
+import sqlalchemy
 from sqlalchemy.orm import Session
 
-# Unused import of dash_app needed to register app
-from dash_app import dash_app, ids  # noqa: F401
 from django_mapengine.views import MapEngineMixin  # noqa
 from . import tasks, forms
 from .forms import (
@@ -77,9 +76,9 @@ from ebustoolbox.models import (
 )
 
 from ebustoolbox.models import Scenario as ebusScenario
-from dash_app.eflips_plots import _create_engine_from_postgis_url, output_prepare
-from eflips.model import Area  # wherever Area is defined
+from eflips.model import Area
 from eflips.depot.api import simulate_scenario  # noqa
+from eflips.eval.output.prepare import power_and_occupancy
 
 import pandas as pd
 import numpy as np
@@ -1358,6 +1357,17 @@ def usergroups(request):
     return render(request, "usergroups.html", {"usergroups": usergroups})
 
 
+def _create_engine_from_postgis_url() -> sqlalchemy.engine.Engine:
+    """
+    Create a sqlalchemy engine from the DATABASE_URL environment variable.
+    Replace the 'postgis' scheme with 'postgresql'
+    """
+    from ebustoolbox.tasks import create_db_url
+
+    db_url = create_db_url()
+
+    return sqlalchemy.create_engine(db_url)
+
 def render_critical_rotations(request, task_id: str):
     """Returns raw JSON data for critical rotations (critical vs. non-critical)"""
     vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
@@ -1700,7 +1710,7 @@ def get_stats(request, task_id: str):
             all_area_ids = [area.id for area in all_areas]
 
             # Prepare the data
-            prepared_data = output_prepare.power_and_occupancy(all_area_ids, session)
+            prepared_data = power_and_occupancy(all_area_ids, session)
 
             # Extract the 'power' column and find the maximum value
             peak_power_kw = prepared_data["power"].max()
@@ -1842,7 +1852,7 @@ def get_power_draw_and_occ(request, task_id: str):
             all_area_ids = [area.id for area in all_areas]
 
             # Prepare the data
-            prepared_data = output_prepare.power_and_occupancy(all_area_ids, session)
+            prepared_data = power_and_occupancy(all_area_ids, session)
             prepared_data = prepared_data.to_dict(orient="records")
 
         # Return the result
