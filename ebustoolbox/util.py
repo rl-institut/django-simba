@@ -9,7 +9,7 @@ import sys
 from django.db.models import Max
 
 from .models import Scenario
-from dash_app.data import get_powerdraw_as_dataframe
+from ebustoolbox.data import get_powerdraw_as_dataframe
 
 if not any(["selenium" in str(x) for x in sys.modules.values()]):
     # do not use tkagg during testing since it does not work with headless selenium
