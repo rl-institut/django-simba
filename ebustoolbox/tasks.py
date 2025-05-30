@@ -20,10 +20,11 @@ from django.contrib.gis.geos import GEOSGeometry, Point
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db import connections
 from django.db.models.functions import Lead
-from django.db.models import F, Max, Count, Min, QuerySet, Window
+from django.db.models import F, Max, Count, Min, QuerySet, Window, OuterRef, Subquery
 from django.db.transaction import atomic
 from django.http import HttpRequest
 from django.utils import timezone
+from django.utils.html import escape
 from django.utils.timezone import make_aware, is_aware
 from eflips.depot import UnstableSimulationException, DelayedTripException
 from eflips.depot.api import simulate_scenario, generate_depot_layout
@@ -70,6 +71,9 @@ from .models import (
     VehicleTypeMutation,
     VehicleTypeSelection,
     StationMutation,
+    Notification,
+    EnumNotificationLevels,
+    EnumNotificationType,
     EnumScenarioType,
 )
 from .schedule_readers import ScheduleReader
@@ -2186,3 +2190,69 @@ def trim_depots(scenario, depot_ids: list[int]):
         f"stations: {station_before_count} ->{Station.objects.filter(scenario=scenario).count()}\n"
         f"vehicles: {vehicle_before_count} ->{Vehicle.objects.filter(scenario=scenario).count()}\n"
     )
+
+
+@atomic()
+def split_blocks_with_intermediate_depot_stops(scenario):
+    # from ebustoolbox.models import *  # noqa
+
+    scenario = Scenario.objects.filter(
+        scenario_type=EnumScenarioType.SIMULATION, finished__isnull=False
+    ).last()
+
+    depots = Station.objects.filter(scenario=scenario, charge_type=EnumChargeType.DEPOT)
+    all_trips = Trip.objects.filter(scenario=scenario)
+    depot_trips = all_trips.filter(route__arrival_station__in=depots)
+
+    # Only the last trip of a block should arrive in a depot station. The other ones should be split
+    # This query expects a outer ref to a rotation and returns the ordered trips by arrival time
+    # with the last arrival first
+    last_trip_subquery = Trip.objects.filter(rotation=OuterRef("pk")).order_by("-arrival_time")
+
+    # Get the ids of the each rotations last trip
+    last_trip_ids = (
+        Rotation.objects.filter(scenario=scenario)
+        .annotate(last_trip_id=Subquery(last_trip_subquery.values("id")[:1]))
+        .values_list("last_trip_id", flat=True)
+    )
+
+    rotations_to_split = []
+    for trip in depot_trips:
+        if trip.id not in last_trip_ids:
+            # the trip ends in the depot but is not the last trip
+            # this rotation needs to be split
+            rotations_to_split.append(trip.rotation)
+
+    next_id = ebustoolbox.util.get_next_id(Rotation)
+    for rotation in rotations_to_split:
+        rotation_depot_trips_q = depot_trips.filter(rotation=rotation).order_by("arrival_time")
+        rotation_depot_trips = list(rotation_depot_trips_q)
+        first_depot_trip = rotation_depot_trips_q.first()
+        if not isinstance(first_depot_trip, Trip):
+            assert False, "Rotation without trips should not exist"
+        # Generate a time before the first trip
+        last_rotation_departure_time = first_depot_trip.departure_time - timedelta(days=1)
+        i = 0
+        rotation_name = rotation.name
+        while rotation_depot_trips:
+            rotation_name_short = rotation.name_short
+            # while there are depot trips, generate slices of the trips to create new rotations
+            first_depot_trip = rotation_depot_trips.pop(0)
+            new_rotation_trips = rotation_depot_trips_q.filter(
+                arrival_time__lte=first_depot_trip.arrival_time,
+                departure_time=last_rotation_departure_time,
+            )
+            last_rotation_departure_time = first_depot_trip.departure_time
+            # Create a new rotation with a name indicating its been sliced
+            rotation.name = f"{rotation_name}_{i}"
+            rotation.name_short = f"{rotation_name_short}_{i}"
+            rotation.id = next_id
+            next_id += 1
+            rotation.save()
+            new_rotation_trips.update(rotation=rotation)
+        Notification.objects.create(
+            scenario=scenario,
+            level=EnumNotificationLevels.WARNING,
+            notification_type=EnumNotificationType.SCHEDULE_READER,
+            message=f"Umlauf {escape(rotation.name)} wurde geteilt, da er mehrmals im Depot ankommt",
+        )
