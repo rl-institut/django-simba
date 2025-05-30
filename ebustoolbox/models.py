@@ -71,9 +71,8 @@ class Scenario(models.Model):
     scenario_type = models.CharField(choices=EnumScenarioType.choices, null=True)
     description = models.TextField(blank=True, null=True)
 
-    created = models.DateTimeField(
-        auto_now_add=True, db_default=Now()
-    )  # Set to now() on the database side
+    # Set to now() on the database side
+    created = models.DateTimeField(auto_now_add=True, db_default=Now())
     task_id = models.UUIDField(default=None, null=True, unique=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
     simba_options = models.JSONField(default=dict, null=True)
@@ -1701,3 +1700,30 @@ class ScenarioWizardOptions(models.Model):
     lca_calculation_mode = models.CharField(
         max_length=20, choices=EnumCalculationModes.choices, null=True, default=None
     )
+
+
+class EnumNotificationLevels(models.TextChoices):
+    """Defintions for notification levels which define the criticality of the message"""
+
+    DEBUG = "debug"
+    INFO = "info"
+    ERROR = "error"
+    WARNING = "warning"
+
+
+class EnumNotificationType(models.TextChoices):
+    """Defintions for notification types which define where the message is shown"""
+
+    SCHEDULE_READER = "schedule_reader"
+
+
+class Notification(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True, db_default=Now())
+    sender = models.CharField(max_length=255)
+    level = models.CharField(max_length=20, choices=EnumNotificationLevels.choices)
+    message = models.CharField(max_length=20)
+    notification_type = models.CharField(max_length=20, choices=EnumNotificationType.choices)
+
+    def __str__(self):
+        return f"[{self.level}] {self.sender}: {self.message[:50]}"
