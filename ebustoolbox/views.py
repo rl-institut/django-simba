@@ -44,6 +44,8 @@ from dash_app import data
 import ebustoolbox
 import ebustoolbox.tasks
 from ebustoolbox.models import (
+    EnumNotificationType,
+    Notification,
     Scenario,
     Temperatures,
     UserGroup,
@@ -428,6 +430,9 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         data = {}
         if self.request.method == "POST":
             data = self.request.POST
+        context["notifications"] = Notification.objects.filter(
+            scenario=scenario, notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK
+        )
         context |= self.get_simulation_parameters_context(data, scenario)
         context |= self.get_vehicles_context(data, scenario)
         return context

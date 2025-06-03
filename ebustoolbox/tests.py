@@ -1011,6 +1011,11 @@ class RotationSplitTest(TestCase):
             temp = station1
             station1 = station2
             station2 = temp
-        print(123)
+        assert Trip.objects.filter(scenario=django_scenario).count() == even_count
         tasks.split_blocks_with_intermediate_depot_stops(django_scenario)
-        print(Rotation.objects.filter(scenario=django_scenario))
+
+        # Number of trips stays the same
+        assert Trip.objects.filter(scenario=django_scenario).count() == even_count
+        # The rotation arrives at the depot every 2 trips
+        # the new number of trips should be trips/2
+        assert Rotation.objects.filter(scenario=django_scenario).count() == even_count / 2

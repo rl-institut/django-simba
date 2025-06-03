@@ -782,6 +782,7 @@ def add_station_locations(query: QuerySet):
         logger.error("Data scraper not available")
         return
     station_names = query.values_list("name", flat=True)
+    logger.info(f"Searching {len(station_names)} Station Locations")
     locations = find_station_locations(station_names)
     stations_with_geom = []
     not_found = []

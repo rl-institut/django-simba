@@ -854,11 +854,11 @@ def init_db_with_trips(
     progress.status = "Gestartet"
     progress.save()
     file_paths = {key: value[0] for key, value in files.items()}
+    schedule_reader_factory = schedule_readers.get_schedule_reader_factory(reader_num)
+    schedule_reader: ScheduleReader = schedule_reader_factory(**file_paths, **cleaned_data)
+    # The progress is linked to the child scenario.
+    schedule_reader.set_observer(progress)
     try:
-        schedule_reader_factory = schedule_readers.get_schedule_reader_factory(reader_num)
-        schedule_reader: ScheduleReader = schedule_reader_factory(**file_paths, **cleaned_data)
-        # The progress is linked to the child scenario.
-        schedule_reader.set_observer(progress)
         scenario = Scenario.objects.get(id=scenario_id)
         progress.scenario = scenario
         progress.save()
@@ -873,6 +873,7 @@ def init_db_with_trips(
         scenario.scenario_type = EnumScenarioType.MUTATION
         parent.scenario_type = EnumScenarioType.SOURCE
         scenario.save()
+        split_blocks_with_intermediate_depot_stops(parent, scenario)
         parent.save()
         progress.save()
     except Exception as e:
@@ -2193,17 +2194,11 @@ def trim_depots(scenario, depot_ids: list[int]):
 
 
 @atomic()
-def split_blocks_with_intermediate_depot_stops(scenario):
-    # from ebustoolbox.models import *  # noqa
-
-    # scenario = Scenario.objects.filter(
-    #     scenario_type=EnumScenarioType.SIMULATION, finished__isnull=False
-    # ).last()
-    #
-    depots = Station.objects.filter(scenario=scenario, charge_type=EnumChargeType.DEPOT)
-    all_trips = Trip.objects.filter(scenario=scenario)
+def split_blocks_with_intermediate_depot_stops(parent: Scenario, child: Scenario):
+    depots = Station.objects.filter(scenario=parent, charge_type=EnumChargeType.DEPOT)
+    all_trips = Trip.objects.filter(scenario=parent)
     depot_trips = all_trips.filter(route__arrival_station__in=depots)
-
+    print(1)
     # Only the last trip of a block should arrive in a depot station. The other ones should be split
     # This query expects a outer ref to a rotation and returns the ordered trips by arrival time
     # with the last arrival first
@@ -2211,37 +2206,39 @@ def split_blocks_with_intermediate_depot_stops(scenario):
 
     # Get the ids of the each rotations last trip
     last_trip_ids = (
-        Rotation.objects.filter(scenario=scenario)
+        Rotation.objects.filter(scenario=parent)
         .annotate(last_trip_id=Subquery(last_trip_subquery.values("id")[:1]))
         .values_list("last_trip_id", flat=True)
     )
 
-    rotations_to_split: list[Rotation] = []
+    rotations_to_split: set[Rotation] = set()
     for trip in depot_trips:
         if trip.id not in last_trip_ids:
             # the trip ends in the depot but is not the last trip
             # this rotation needs to be split
-            rotations_to_split.append(trip.rotation)
+            rotations_to_split.add(trip.rotation)
 
     next_id = ebustoolbox.util.get_next_id(Rotation)
     for rotation in rotations_to_split:
         rotation_depot_trips_q = depot_trips.filter(rotation=rotation).order_by("arrival_time")
         rotation_depot_trips = list(rotation_depot_trips_q)
+        all_trips = Trip.objects.filter(rotation=rotation)
         first_depot_trip = rotation_depot_trips_q.first()
         if not isinstance(first_depot_trip, Trip):
             assert False, "Rotation without trips should not exist"
         # Generate a time before the first trip
-        last_rotation_departure_time = first_depot_trip.departure_time - timedelta(days=1)
+        last_rotation_arrival_time = first_depot_trip.departure_time - timedelta(days=1)
+        org_rotation_id = rotation.id
         rotation_name = rotation.name
         i = 0
         while rotation_depot_trips:
             # while there are depot trips, generate slices of the trips to create new rotations
             first_depot_trip = rotation_depot_trips.pop(0)
-            new_rotation_trips = rotation_depot_trips_q.filter(
+            new_rotation_trips = all_trips.filter(
                 arrival_time__lte=first_depot_trip.arrival_time,
-                departure_time=last_rotation_departure_time,
+                departure_time__gte=last_rotation_arrival_time,
             )
-            last_rotation_departure_time = first_depot_trip.departure_time
+            last_rotation_arrival_time = first_depot_trip.arrival_time
             # Create a new rotation with a name indicating its been sliced
             rotation.name = f"{rotation_name}_{i}"
             rotation.id = next_id
@@ -2249,10 +2246,15 @@ def split_blocks_with_intermediate_depot_stops(scenario):
             i += 1
             rotation.save()
             new_rotation_trips.update(rotation=rotation)
-        Notification.objects.create(
-            scenario=scenario,
-            level=EnumNotificationLevels.WARNING,
-            notification_type=EnumNotificationType.SCHEDULE_READER,
-            message=f"Umlauf {escape(rotation.name)} wurde geteilt, da er mehrmals im Depot ankommt",
-        )
-        logger.warning(f"{rotation.id} was split into {i} new rotations")
+        # Give both scenarios a notification about splitting the rotations
+        for scenario in [parent, child]:
+            Notification.objects.create(
+                scenario=scenario,
+                level=EnumNotificationLevels.WARNING,
+                notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK,
+                message=f"Umlauf {escape(rotation_name)} wurde geteilt, da er mehrmals im Depot ankommt",
+            )
+        assert Trip.objects.filter(rotation_id=org_rotation_id).count() == 0
+        Rotation.objects.get(id=org_rotation_id).delete()
+
+        logger.warning(f"{rotation.name} with id:{rotation.id} was split into {i} new rotations")
