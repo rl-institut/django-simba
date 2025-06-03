@@ -13,15 +13,24 @@ from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
 from django.db.models.functions import Cast, Coalesce
 from django.db.transaction import atomic
 from django.forms import formset_factory, widgets
-from django.http import HttpResponse, HttpRequest, Http404, HttpResponseForbidden, JsonResponse
+from django.http import (
+    HttpResponse,
+    HttpRequest,
+    Http404,
+    HttpResponseForbidden,
+    JsonResponse,
+    HttpResponseBadRequest,
+)
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
-from django.views.generic import TemplateView, FormView, ListView
-from eflips.depot.api import simulate_scenario  # noqa
 from django.views.decorators.http import require_POST
+from django.views.generic import TemplateView, FormView, ListView
+from rest_framework.parsers import JSONParser  # noqa
+
+from eflips.depot.api import simulate_scenario  # noqa
 
 from core.models import Progress, EnumProgress
-
+import core.deepcopy
 from celery.result import AsyncResult
 
 # Unused import of dash_app needed to register app
@@ -37,7 +46,9 @@ from .forms import (
     ManualLcaForm,
     DepotChargingAreaForm,
 )
-from .tasks import create_db_url, get_args, scenario_to_db  # noqa
+from .tasks import merge_scenario
+from .import_export import ScenarioJSONImporterExporter, visit_all_scenario_queries
+
 from .util import get_unique_task_id
 
 from dash_app import data
@@ -53,6 +64,7 @@ from ebustoolbox.models import (
     DefaultScenario,
     Station,
     EnumChargeType,
+    Event,
     EventType,
     Trip,
     SimulationRange,
@@ -177,7 +189,8 @@ class AuthorizedMixIn:
 
     has_permisson = None
 
-    def get_permission(self, user, task_id):
+    @staticmethod
+    def get_permission(user, task_id):
         """Make sure User is authorized and add scenario to class"""
         scenario = get_object_or_404(Scenario, task_id=task_id)
 
@@ -1113,9 +1126,10 @@ def merge_and_run(request: HttpRequest, task_id: str):
     # create scenario from mutation and parent and simulate it
     try:
         async_result = tasks.run_and_merge_scenarios.apply_async(
-            (scenario.parent.id, scenario.id, sim_task_id),
+            (scenario.id, sim_task_id),
             task_id=str(sim_task_id),
         )
+        assert async_result.task_id == sim_task_id, "Task ids are expected to be equal"
     except Exception:
         progress.errors.append(
             "Ein unerwarteter Fehler ist aufgetreten." "Wenden Sie sich an ihren Administrator"
@@ -1124,10 +1138,10 @@ def merge_and_run(request: HttpRequest, task_id: str):
         logger.error(traceback.format_exc())
 
     progress.refresh_from_db()
-    progress.task_id = async_result.task_id
+    progress.task_id = sim_task_id
     progress.save(update_fields=["task_id"])
     context = {}
-    context["progress_id"] = async_result.task_id
+    context["progress_id"] = sim_task_id
     context["scenario"] = scenario
     context["template_name"] = "progress_simulation.html"
     context["progress"] = progress
@@ -1179,10 +1193,12 @@ def run_simulation(request: HttpRequest, task_id: str):
         # This triggers progress polling. If the toolchain is finished,
         # the progress view will be triggered with the task_id and progress type
         logger.info("Running Toolchain.")
-        tasks.run_toolchain_from_scenario(scenario, assign_vehicles=False)
+        tasks.run_toolchain_from_scenario(scenario, assign_vehicles=True)
     except Exception:
         return HttpResponse("An error occured")
-    return HttpResponse("Your simulation is beeing simulated")
+
+    redirection = f"<a href={reverse('simba:result', args=[task_id])}>Zu den Ergebnissen</a>"
+    return HttpResponse("Die Simulation war erfolgreich." + redirection)
 
 
 def download_scenario(request: HttpRequest, task_id: str):
@@ -1591,3 +1607,76 @@ def get_dist_hist(request, task_id: str):
         "series": [{"data": hist.tolist(), "type": "bar"}],
     }
     return JsonResponse(response_data)
+
+
+def export_scenario(request, task_id: str):
+    """Allow admins and authorized users to download a json export of their scenario"""
+    # Raise an exception if user is not authorized for this task_id
+    AuthorizedMixIn.get_permission(request.user, task_id)
+    scenario = Scenario.objects.get(task_id=task_id)
+    child = None
+    if scenario.scenario_type == EnumScenarioType.MUTATION:
+        task_id = get_unique_task_id()
+        child = merge_scenario(scenario.id, task_id)
+        scenario = child
+    exporter = ScenarioJSONImporterExporter()
+    visit_all_scenario_queries(exporter, scenario)
+    json_data = exporter.renderJSON()
+    # If a child was created delete it
+    if child is not None:
+        child.delete()
+    return HttpResponse(json_data, content_type="application/json")
+
+
+def import_scenario(request):
+    if not request.user.is_authenticated:
+        return HttpResponseForbidden("Importing data is only allowed for logged in Users")
+
+    if request.method == "GET":
+        return render(request, "ebustoolbox/import_scenario.html")
+
+    if request.method == "POST":
+        assert request.FILES["scenario_json"]
+        importer = ScenarioJSONImporterExporter()
+        importer.loads(in_memory_file=request.FILES["scenario_json"])
+
+        importer.generate_instances()
+        assert (
+            len(importer.object_data["Scenario"]) == 1
+        ), "Importing is only supported for single scenarios"
+        scenario: Scenario = importer.object_data["Scenario"][0]
+        if Scenario.objects.filter(task_id=scenario.task_id).exists():
+            new_task_id = get_unique_task_id()
+            logger.warning(
+                f"task_id {scenario.task_id} already exists in the database. "
+                f"Imported Scenario will get a new task_id of {new_task_id}"
+            )
+            scenario.task_id = new_task_id
+            scenario.manager = request.user
+        if scenario.scenario_type not in (
+            EnumScenarioType.SIMULATION,
+            EnumScenarioType.MUTATION,
+            EnumScenarioType.SOURCE,
+        ):
+            return HttpResponseBadRequest(
+                f"{scenario.scenario_type} is not supported for exporting."
+            )
+        importer.adjust_foreign_keys()
+        importer.bulk_create()
+        importer.create_many_to_many()
+        core.deepcopy.reset_postgres_auto_increments([Scenario._meta.app_label])
+        task_id = scenario.task_id
+        redirect_suggestion = ""
+        if (
+            not Event.objects.filter(scenario=scenario).exists()
+            and scenario.scenario_type == EnumScenarioType.SIMULATION
+        ):
+            redirect_suggestion = f"<a href={reverse('simba:run_simulation', args=[task_id])} > run the simulation</a>"
+        else:
+            redirect_suggestion = (
+                f"View <a href={reverse('simba:result', args=[task_id])}>results</a>"
+            )
+        return HttpResponse(
+            f"Scenario succesfully imported with task_id {task_id}. " + redirect_suggestion
+        )
+    return HttpResponseBadRequest("Use POST or GET")

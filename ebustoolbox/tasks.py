@@ -954,17 +954,31 @@ def run_ebus_toolchain(task_id):
     return async_result
 
 
-@shared_task(bind=True)
-def run_and_merge_scenarios(self, parent_id: int, mutation_id: int, simulation_task_id):
+def merge_scenario(mutation_id, simulation_task_id):
+    """Create a simulation scenario from a mutation scenario.
+
+    Mutations are applied from the mutation to the parent.
+    Only works if the parent is a Scenario of type SOURCE
+    The new scenario is saved and returned
+    """
     mutation_scenario = Scenario.objects.get(id=mutation_id)
-    parent_scenario = Scenario.objects.get(id=parent_id)
+    parent = mutation_scenario.parent
+    assert parent is not None
+    assert parent.scenario_type == EnumScenarioType.SOURCE
+
     # Create a deepcopy of the parent / source scenario.
     # Apply mutations from the mutation scenario to this copy.
-    simulation_scenario = create_child_from_mutation(parent_scenario, mutation_scenario)
+    simulation_scenario = create_child_from_mutation(parent, mutation_scenario)
     simulation_scenario.scenario_type = EnumScenarioType.SIMULATION
     simulation_scenario.name = mutation_scenario.name
     simulation_scenario.task_id = simulation_task_id
     simulation_scenario.save()
+    return simulation_scenario
+
+
+@shared_task(bind=True)
+def run_and_merge_scenarios(self, mutation_id: int, simulation_task_id):
+    simulation_scenario = merge_scenario(mutation_id, simulation_task_id)
     if "ebus_map" in settings.INSTALLED_APPS:
         create_stations_for_map(simulation_scenario)
     run_toolchain_from_scenario(simulation_scenario, assign_vehicles=True)
