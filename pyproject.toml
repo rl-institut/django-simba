@@ -29,12 +29,15 @@ django-tailwind = "^3.8.0"
 djangorestframework = ">=3.14.0, <4.0.0"
 djangorestframework-mvt = ">=0.2.5, <1.0.0"
 
-eflips-depot = { git = "https://github.com/mpm-tu-berlin/eflips-depot", rev = "main"}
 eflips-eval = "^1.5.5"
 eflips-ingest = "^1.2.77"
+eflips-opt = "^0.2.0"
+eflips-depot = "^4.7.1"
 
 celery = "^5.3.1"
 colorbrewer = { git = "https://github.com/henhuy/colorbrewer-python.git" }
+geopy = "^2.4.1"
+geopandas = "^1.0.1"
 matplotlib = "^3.7.2"
 pandas = "^2.0.3"
 psycopg2-binary = "^2.9.6"
@@ -44,13 +47,8 @@ scipy = "^1.12.0"
 selenium = "^4.13.0"
 setuptools = "^68.2.2"
 tqdm = "^4.66.1"
-eflips-opt = "^0.2.0"
 
-[tool.mypy]
-plugins = ["mypy_django_plugin.main"]
 
-[tool.django-stubs]
-django_settings_module = "ebusdjango.settings"
 
 [tool.poetry.group.dev]
 optional = true
@@ -62,9 +60,18 @@ selenium = "^4.11.2"
 django-stubs = "^5.1.3"
 django-types = "^0.20.0"
 
+[tool.mypy]
+plugins = ["mypy_django_plugin.main"]
+
+[tool.django-stubs]
+django_settings_module = "ebusdjango.settings"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.djlint]
+indent =2
 
 [tool.black]
 line-length = 100

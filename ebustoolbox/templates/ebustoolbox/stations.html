@@ -110,9 +110,6 @@
                         id="bulk_chargingPointNumber"
                         aria-label="Anzahl an Ladepunkten"
                         class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 focus:outline focus:outline-2 focus:outline-green-500 sm:text-sm/6"
-                        placeholder="0"
-                        min="0"
-                        max="8"
                 >
               </div>
             </div>
@@ -124,7 +121,6 @@
                         name="chargingCapacity"
                         id="bulk_chargingCapacity"
                         class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
-                        placeholder="0"
                         aria-describedby="price-currency"
                 >
                 <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kW</div>
@@ -172,64 +168,25 @@
       type="submit"
       method ="POST">
       {% csrf_token %}
-    <fieldset class="pb-8">
-      <legend class="text-sm/6 font-semibold text-slate-800">Ladeleistung</legend>
+
       <p class="mt-1 text-sm text-slate-500 leading-6">
         Standardmäßig berechnet die Simulation, ob die Endstationen elektrifiziert werden müssen, und bestimmt dabei automatisch die Anzahl der Ladepunkte. Sie haben jedoch die Möglichkeit, die Endstationen manuell zu elektrifizieren und die Anzahl der Ladepunkte sowie die Ladeleistung festzulegen – oder alternativ die Elektrifizierung vollständig auszuschließen.
       </p>
 
-      <div id="{{ calculation_mode_form.station_calculation_mode.auto_id }}" class="mt-6">
-{#        TODO: keine Optionen, sondern: Standardladeleistung angeben, Station-Tabelle entweder immer zeigen oder ausklappbar#}
-        <!-- Option 2 -->
-        <div class="flex items-center h-12">
-          <input
-            id="single"
-            name="{{ calculation_mode_form.station_calculation_mode.html_name }}"
-            value="{{ constant_power_value }}"
-            type="radio"
-            class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 checked:hover:bg-green-500 checked:focus:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500"
-          >
-          <label for="single" class="ml-3 block text-sm/6 font-medium text-slate-800">Ladeleistung angeben</label>
-          <div class="ml-4 mt-2 hidden" id="charging-power">
-            <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-              <input
-                      {{  charging_power_form.power_total|widget_attrs}}
-                class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
-                placeholder="0,00"
-                aria-describedby="price-currency"
-              >
-              <div id="chargingPowerUnit" class="shrink-0 select-none text-slate-500">kW</div>
-            </div>
-          </div>
-        </div>
-        <!-- Option 3 -->
-        <div class="flex items-center h-12">
-          <input
-            id="detailed"
-            name="{{ calculation_mode_form.station_calculation_mode.html_name }}"
-            value="{{ manual_value}}"
-            type="radio"
-            class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-green-500 checked:bg-green-500 checked:hover:bg-green-500 checked:focus:bg-green-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500"
-          >
-          <label for="detailed" class="ml-3 block text-sm/6 font-medium text-slate-800">Details zu den Stationen angeben</label>
-        </div>
-      </div>
-    </fieldset>
-
     <!-- Placeholder -->
     <div class="flex items-center justify-between space-x-4 border-b border-t pt-6 pb-8">
       <div class="w-4/12" id="">
-        <label for="power_total" class="flex items-center text-sm/6 font-medium text-slate-800 pb-2">
+        <label for="default_charge_power" class="flex items-center text-sm/6 font-medium text-slate-800 pb-2">
           <span>Ladeleistung</span>
         </label>
         <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-          <input min="1" step="1" id="power_total" name="power_total" type="number" class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency" required="">
+              <input {{charging_power_form.default_charge_power|widget_attrs}} class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency" >
           <div id="" class="shrink-0 select-none text-slate-500">kW</div>
         </div>
       </div>
     </div>
 
-    <div id="stations-details" class="hidden w-full pt-8 border-t">
+    <div id="stations-details" class="w-full pt-8 border-t">
       <div class="flex items-center justify-between space-x-4">
         <div class="w-4/12 pb-4">
           <label for="stationSearch" class="flex items-center space-x-2 text-sm/6 font-medium text-slate-500">
@@ -340,7 +297,7 @@
           </div>
         </div>
       </div>
-      <div class="mt-4 shadow border border-slate-100 rounded-lg overflow-auto">
+      <div class="mt-4 shadow border border-slate-100 rounded-lg overflow-auto max-h-[45rem]">
         <table class="min-w-full divide-y divide-slate-200">
           <thead class="bg-slate-100">
             <tr>
@@ -453,7 +410,7 @@
               </td>
               <td class="px-4 py-3">
                 <div id="electrifyState" class="flex items-center space-x-2">
-                  <input  type="hidden" {{form.is_electrified|widget_attrs}}>
+                  <input type="hidden"   {{form.is_electrified|widget_attrs}}>
                   <button type="button"
                     class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full"
                     data-color="emerald"
@@ -484,7 +441,7 @@
                     Automatisch
                   </button>
 {#                  hidden input which is set via js#}
-                    <input type="hidden" {{form.is_electrifiable|widget_attrs}}>
+                    <input type="hidden"  {{form.is_electrifiable|widget_attrs}}>
                   <button type="button"
                     class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full"
                     data-color="gray"
@@ -521,7 +478,7 @@
                   data-input="charging-power"
                 >
                   <div class="flex items-center rrounded-md outline outline-1 outline-transparent">
-                    <input {{ form.power_total|widget_attrs }} class="block w-full bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency">
+                    <input {{ form.power_per_charger|widget_attrs }} class="block w-full bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency">
                     <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kW</div>
                   </div>
                 </div>
@@ -669,7 +626,10 @@
       function setInitialStateOfButtons() {
           rows.forEach((row) => {
               const isElectrifiedDiv = row.querySelector('input[id$="is_electrified"]')
+
               const isElectrifiableDiv = row.querySelector('input[id$="is_electrifiable"]')
+              isElectrifiedDiv.checked = true;
+              isElectrifiableDiv.checked = true;
               var button;
               if (isElectrifiedDiv.value === 'true') {
                   console.assert(isElectrifiableDiv.value === 'true');
@@ -749,60 +709,6 @@
           clickedButton.classList.replace("text-slate-500", `text-${color}-700`);
       }
 
-
-// Dynamic content based on radio button selection
-document.addEventListener("DOMContentLoaded", () => {
-  const singleInput = document.getElementById("charging-power");
-  const detailedDiv = document.getElementById("stations-details");
-  const rows = document.querySelectorAll(".station-row");
-  {#const detailed_options_endings = JSON.parse(document.getElementById('detailedOptionNames').textContent);#}
-    {#Selector for all elements with ids ending with a form / detailed option#}
-    {#const selector = detailed_options_endings.map(e => `input[id$="${e}"]`).join(",");#}
-    // get all the inputs inside the divs which are hidden and unhidden to set their
-    // "required". Only with required==true they will be validated in the frontend
-    // non required elemts will still be validated if their values!=null
-    const generalFormDivs = singleInput.querySelectorAll('input');
-    //Eclude the station serach and the checkboxes which select stations
-    const detailedFormDivs = detailedDiv.querySelectorAll('input:not(#stationSearch):not([id*=select])');
-    console.assert(generalFormDivs);
-    console.assert(detailedFormDivs);
-
-
-    // Inital state no extra form is required and auto mode is expected
-    setFormsRequired(false,detailedFormDivs);
-    setFormsRequired(false,generalFormDivs);
-
-    // Handle radio input changes
-    document.querySelectorAll('input[name="{{ calculation_mode_form.station_calculation_mode.html_name }}"]').forEach((radio) => {
-        radio.addEventListener("change", (event) => {
-            const value = event.target.id;
-
-            // Hide all dynamic sections initially
-            // this is the case for "auto" mode
-            singleInput.classList.add("hidden");
-            detailedDiv.classList.add("hidden");
-            // Forms are not required in "auto" mode
-            // Inital state no extra form is required and auto mode is expected
-            setFormsRequired(false, detailedFormDivs);
-            setFormsRequired(false, generalFormDivs);
-            // Show the relevant section based on the selected radio button
-            if (value === "single") {
-                singleInput.classList.remove("hidden");
-
-                setFormsRequired(false,detailedFormDivs);
-                setFormsRequired(true,generalFormDivs);
-
-
-            } else if (value === "detailed") {
-                detailedDiv.classList.remove("hidden");
-
-
-                setRowFormsRequiredByState(rows);
-                setFormsRequired(false,generalFormDivs);
-            }
-        });
-    });
-});
 </script>
 
 <script>
@@ -907,10 +813,10 @@ document.addEventListener("DOMContentLoaded", () => {
     bulk_submit.onclick = (e)=> {
         let value=null;
         if (document.getElementById("bulk_is_electrified").value==="true"){
-            console.assert(document.getElementById("bulk_is_electrifiable").checked)
+            console.assert(document.getElementById("bulk_is_electrifiable").value==="true")
             value="elektrifizieren"
         } else if (document.getElementById("bulk_is_electrifiable").value==="false"){
-            console.assert(!document.getElementById("bulk_is_electrified").checked)
+            console.assert(document.getElementById("bulk_is_electrified").value==="false")
             value="nicht-elektrifizieren"
         } else {
             value ="automatisch"
@@ -935,7 +841,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (value==="elektrifizieren"){
                 const prefix = "id_station_"+station_id+"-";
                 const inputAmountChargingPlaces = document.getElementById(prefix+"amount_charging_places");
-                const inputChargingCapacity = document.getElementById(prefix+"power_total");
+                const inputChargingCapacity = document.getElementById(prefix+"power_per_charger");
                 console.assert(inputAmountChargingPlaces);
                 console.assert(inputChargingCapacity);
                 inputAmountChargingPlaces.value= num_charging.value;
@@ -968,25 +874,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 if (value === "elektrifizieren") {
                     document.getElementById(prefix + "is_electrified").value = true;
-                    document.getElementById(prefix + "is_electrifiable").checked = true;
                     document.getElementById(prefix + "is_electrifiable").value = true;
-                    setFormsRequired(true, allRowInputs);
 
                 } else if (value === "nicht-elektrifizieren") {
                     setFormValuesNull(allRowInputs);
                     // Hide all inputs for "Nicht elektrifizieren"
                     document.getElementById(prefix + "is_electrified").value = false;
-                    document.getElementById(prefix + "is_electrifiable").checked = false;
                     document.getElementById(prefix + "is_electrifiable").value = false;
-                    setFormsRequired(false, allRowInputs);
 
                 } else if (value === "automatisch") {
                     setFormValuesNull(allRowInputs);
                     document.getElementById(prefix + "is_electrified").value = false;
-                    document.getElementById(prefix + "is_electrifiable").checked = true;
                     document.getElementById(prefix + "is_electrifiable").value = true;
-
-                    setFormsRequired(false, allRowInputs);
 
 
                 } else {
@@ -1014,10 +913,10 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
 
-//now that the buttons have click functionality set the state by clicking them according to the input
-        setInitialStateOfButtons();
-        updateCounts();
     });
+//now that the buttons have click functionality set the state by clicking them according to the input
+    setInitialStateOfButtons();
+    updateCounts();
 });
 
 </script>

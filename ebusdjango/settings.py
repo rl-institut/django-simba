@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
+
 from pathlib import Path
 
 import environ
@@ -33,6 +34,7 @@ env.read_env(str(ROOT_DIR.path(".env")))
 
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DJANGO_ELEVATION_TOKEN = env.str("DJANGO_ELEVATION_TOKEN", "notoken")
+OPENELEVATION_URL = env.str("OPENELEVATION_URL", "")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
@@ -53,7 +55,9 @@ if env.bool("DJANGO_LOCAL_DEVELOPMENT", default=False):
     SECURE_PROXY_SSL_HEADER = None
     # https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
     SECURE_SSL_REDIRECT = False
-
+DATA_UPLOAD_MAX_NUMBER_FIELDS = env.int(
+    "DJANGO_DATA_UPLOAD_MAX_NUMBER_FIELDS", 3000
+)  # higher than the count of fields. StationsView can have a couple of hundred stations with 5 fields each.
 # Application definition
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -65,6 +69,7 @@ INSTALLED_APPS = [
     "django_extensions",
     # custom apps
     "core",
+    "data_scrapers",
     "ebustoolbox",
     "elevation_api",
     "django_mapengine",

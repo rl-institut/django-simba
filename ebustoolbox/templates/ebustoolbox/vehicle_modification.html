@@ -11,7 +11,7 @@
         </p>
         <button
                 id="{{vt_id}}assignedToButton"
-  
+
                 type="button"
                 class="grid cursor-default grid-cols-1 rounded-md bg-white py-1.5 px-3 text-left text-slate-800 outline outline-1 -outline-offset-0 outline-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
                 style="width: 20rem"
@@ -75,8 +75,8 @@
       <!-- Tab content -->
       <div id="{{ vt_id }}tab-contents">
         <div class="tab-content" data-tab="tab-1">
-          <div class="flex flex-col gap-4">
-            <div class="flex-grow">
+          <div class="flex flex-col">
+            <div class="flex-grow pb-6">
               <div class="flex items-center gap-2">
                 <label for="{{modification.vehicle_modification.battery_capacity.auto_id}}" id="{{ vt_id }}batteryCapacityLabel" class="block text-sm/6 font-medium text-slate-800">Nutzbare Batteriekapazität</label>
                 <div class="relative inline-block">
@@ -87,7 +87,7 @@
                           </svg>
                     <!-- Tooltip -->
                           <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
+                          {{  modification.vehicle_modification.battery_capacity.help_text  }}
                           </div>
                         </span>
                 </div>
@@ -104,10 +104,33 @@
                 </div>
               </div>
             </div>
-            {# ToDo: Energieverbrauchsoptionen (fester Wert oder Berechnung im Backend mit Temperatur, Elevation etc) #}
+            {# TODO: @Bryan Better styling, switch instead of checkbox?#}
+            {# Kept checkbox as switch was bringing too many complications, but used used customized styling #}
+            <div class="flex gap-2 items-center">
+              <div class="group grid size-4 grid-cols-1">
+                <input
+                  id="{{ vt_id }}enableCustomConsumption"
+                  name="{{ vt_id }}enableCustomConsumption"
+                  data-station-id="{{ vt_id }}"
+                  aria-describedby="{{ vt_id }}-description"
+                  type="checkbox"
+                  {% if modification.vehicle_modification.consumption.initial is not None %}checked{% endif %}
+                  class="col-start-1 row-start-1 appearance-none rounded border border-slate-400 checked:border-green-500 checked:bg-green-500 checked:focus:bg-green-500 checked:hover:bg-green-500 focus:ring-green-500 focus-ring:outline focus-ring:outline-2 focus-ring:outline-offset-2 focus-ring:outline-green-500">
+                <svg class="pointer-events-none size-3.5 self-center justify-self-center stroke-white" viewBox="0 0 14 14" fill="none">
+                  <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path class="opacity-0" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+              <div class="text-sm text-slate-700">
+                <label for="{{ vt_id }}enableCustomConsumption" class="font-medium">
+                  Energieverbrauch des gewählten Fahrzeugs überschreiben.
+                </label>
+              </div>
+            </div>
+            <div class="text-sm text-slate-500 pt-1 pb-6 pl-6">(Ignoriert die globale Umgebungstemperatur für diesen Fahrzeugtyp)</div>
             <div class="flex-grow">
               <div class="flex items-center gap-2">
-                <label for="consumption" id="{{ vt_id }}consumptionLabel" class="block text-sm/6 font-medium text-slate-800">Energieverbrauch</label>
+                <label for="{{modification.vehicle_modification.consumption.auto_id}}" id="{{ vt_id }}consumptionLabel" class="block text-sm/6 font-medium text-slate-800">Energieverbrauch</label>
                 <div class="relative inline-block">
                   <!-- Info Icon -->
                   <span class="cursor-pointer group">
@@ -116,7 +139,7 @@
                           </svg>
                     <!-- Tooltip -->
                           <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                            Bottom Left-Aligned Tooltip
+                          {{ modification.vehicle_modification.consumption.help_text}}
                           </div>
                         </span>
                 </div>
@@ -124,13 +147,14 @@
               <div class="mt-2">
                 <div
                         class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-slate-400 focus-within:focus-visible:outline-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                          <!--Pseudo Input to show Consumption from selected VehicleType -->
                   <input
-                          type="number"
-                          name="consumption"
-                          id="{{ vt_id }}consumption"
-                          disabled
+               {% if modification.vehicle_modification.consumption.initial is None %}type="text"{% endif %}
+
+                          {{ modification.vehicle_modification.consumption|widget_attrs}}
+                    {% if modification.vehicle_modification.consumption.initial is None %}disabled{% endif %}
                           class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
-                          placeholder="1,5"
+                    placeholder={% if modification.selection.instance.default_vehicle_type is not None %}"{{modification.selection.instance.default_vehicle_type.consumption}}"{% else %}"Wählen Sie ein Fahrzeug aus" {% endif %}
                           aria-labelledby="consumptionLabel consumptionUnit">
                   <div id="{{ vt_id }}consumptionUnit" class="shrink-0 select-none text-slate-500">kWh/h</div>
                 </div>
@@ -141,12 +165,28 @@
         <div class="tab-content hidden" data-tab="tab-2">This is the content for Tab 2.</div>
       </div>
     </div>
-    <div id="{{ vt_id }}busTypeHiddenSection" class="flex-grow text-slate-700">
-      <div id="{{ vt_id }}stateOfChargeChart" class="flex justify-center bg-slate-100" style="height: 180px;"></div>
+    <div id="{{ vt_id }}busTypeHiddenSection" class="flex-grow bg-slate-100">
+      <div id="{{ vt_id }}ChartPlaceholder" class="flex flex-col justify-center items-center text-sm text-slate-500 h-full">
+        <div>Wählen Sie einen Bus aus.</div>
+        <div>Hier wird Ihnen die Ladekurve des Fahrzeugs angezeigt.</div>
+      </div>
+      <div id="{{ vt_id }}stateOfChargeChart" class="flex justify-center bg-slate-100"></div>
     </div>
   </div>
 </div>
   {% endfor %}
+
+
+{# Insert all attributes which should be passed to the vehicle type inputs from the selectable choices.#}
+{% for choice_vt in choice_vts %}
+<div id="{{ choice_vt.id }}_battery_capacity" data-value="{{ choice_vt.battery_capacity }}"></div>
+<div id="{{ choice_vt.id }}_consumption" data-value="{{ choice_vt.consumption}}"></div>
+  {% with choice_vt.id|stringformat:"s"|add:"_charging_curve" as script_id %}
+      {{ choice_vt.charging_curve|json_script:script_id }}
+  {% endwith %}
+{% endfor %}
+
+
    <!-- Functionality for simple dropdown -->
 
     <script>
@@ -158,16 +198,29 @@
           const label = document.getElementById('label_' + input_selection.id);
           const list = document.getElementById(vt_id + "assignedToList");
           const listItems = list.querySelectorAll('[role="option"]');
+          const enableCustomConsumption = container.querySelector("input[id*='enableCustomConsumption']")
 
-          {#Assert all components are found. ! negates to bool -> !! cast to bool#}
-          console.assert(!!vt_id&!!button&!!input_selection&!!label&!!list&!!listItems)
-          let selectedItem = '';
-
-          {#Input values to be overwritten by choosing dropdown#}
+        {#Input values to be overwritten by choosing dropdown#}
           const battery_capacity = container.querySelector("input[id*='battery_capacity']")
           const consumption = container.querySelector("input[id*='consumption']")
-
           {# Repeat for other vehicle type attributes#}
+          //  Handle Consumption overwritting via enabling it through toggle
+          enableCustomConsumption.addEventListener("change", ()=>{
+              consumption.disabled = !consumption.disabled;
+              if (consumption.disabled){
+            consumption.type="text";
+            consumption.value="";
+          } else {
+            consumption.type="number";
+            consumption.value= consumption.placeholder;
+          }
+        });
+
+          {#Assert all components are found. ! negates to bool -> !! cast to bool#}
+          console.assert(!!vt_id&!!button&!!input_selection&!!label&!!list&!!listItems&!!enableCustomConsumption)
+          let selectedItem = '';
+
+
 
           // Toggle the dropdown on button click
           button.addEventListener('click', () => {
@@ -181,19 +234,22 @@
               }
           });
 
+
+
+
           // Handle clicks on list items
-          listItems{{ vt_id }}.forEach(item => {
+          listItems.forEach(item => {
               item.addEventListener('click', () => {
                   const value = item.getAttribute('data-dropdown-item');
                   label.textContent = item.getAttribute('data-dropdown-name');
                   label.value = value;
                   selectedItem = value;
                   input_selection.setAttribute("value", value);
-                  input_selection.value = value;
-
                   {# Overwrite inputs#}
                   battery_capacity.value = document.getElementById(value + "_battery_capacity").getAttribute("data-value")
-                  consumption.value = document.getElementById(value + "_consumption").getAttribute("data-value")
+                  // Setting the value would change the styling. Use placeholder instead
+                  // This input is not in the backend currently since data from the selected vehicle type is used directly
+                  consumption.placeholder = document.getElementById(value + "_consumption").getAttribute("data-value")
                   {# Repeat for other vehicle type attributes#}
 
 
@@ -205,6 +261,7 @@
                   button.setAttribute('aria-expanded', 'false');
               });
           });
+
 
           // Close dropdown if user clicks outside
           document.addEventListener('click', e => {
@@ -228,123 +285,12 @@
 
     </script>
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        containers.forEach((container)=> {
-          const vt_id = container.getAttribute("data-value");
-          const tabs = document.getElementById(vt_id+'tabs');
-          const tabContents = document.getElementById(vt_id+'tab-contents');
-          const addTabButton = document.getElementById(vt_id+'add-tab');
-          let tabCount = 1; // Starts at 1 because the first tab is already present.
-          {#Assert all components are found. ! negates to bool -> !! cast to bool#}
-            console.assert(!!vt_id&!!tabs&!!tabContents&!!addTabButton)
-        // Function to switch tabs
-        const switchTab= (tabId) => {
-            // Hide all tab contents
-            tabContents.querySelectorAll('.tab-content').forEach((content) => {
-                content.classList.add('hidden');
-            });
-
-            // Show the selected tab content
-            const activeContent = tabContents.querySelector(`[data-tab="${tabId}"]`);
-            if (activeContent) activeContent.classList.remove('hidden');
-
-            // Update tab styles
-            document.querySelectorAll('.tab').forEach((tab) => {
-                tab.classList.remove('border-slate-800', 'text-slate-800');
-                tab.classList.add('border-transparent', 'text-slate-500', 'hover:border-slate-300', 'hover:text-slate-700');
-            });
-
-            const activeTab = tabContents{{ vt_id }}.querySelector(`[data-tab-button="${tabId}"]`);
-            if (activeTab) {
-                activeTab.classList.add('border-slate-800', 'text-slate-800');
-                activeTab.classList.remove('border-transparent', 'text-slate-500', 'hover:border-slate-300', 'hover:text-slate-700');
-            }
-        };
-
-        // Attach event listeners to existing tabs
-        document.querySelectorAll('.tab').forEach((tab) => {
-            tab.addEventListener('click', (e) => {
-                e.preventDefault();
-                const tabId = tab.getAttribute('data-tab-button');
-                switchTab(tabId);
-            });
-        });
-
-        // Add new tab and content
-        addTabButton.addEventListener('click', () => {
-            tabCount++;
-            const newTabId = `tab-${tabCount}`;
-
-            // Create the new tab
-            const newTabButton = document.createElement('a');
-            newTabButton.href = '#';
-            newTabButton.className = 'whitespace-nowrap tab border-b-4 border-transparent px-4 py-4 text-sm font-medium text-slate-500 hover:border-slate-300 hover:text-slate-700';
-            newTabButton.setAttribute('data-tab-button', newTabId);
-            newTabButton.setAttribute('type', "button");
-            newTabButton.innerText = `Gruppe ${tabCount}`;
-            newTabButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                switchTab(newTabId);
-            });
-
-            // Create the new content
-            const newTabContent = document.createElement('div');
-            newTabContent.className = 'tab-content hidden';
-            newTabContent.setAttribute('data-tab', newTabId);
-            newTabContent.innerText = `This is the content for Tab ${tabCount}.`;
-
-            // Add to DOM
-            tabs.insertBefore(newTabButton, addTabButton);
-            tabContents.appendChild(newTabContent);
-
-            // Switch to the new tab
-            switchTab(newTabId);
-        });
-
-        // Initialize the first tab as active
-        switchTab('tab-1');
-        })
-      });
-</script>
-
-<!-- More Toggle Button in Bus Type Card -->
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        containers.forEach((container) => {
-            const vt_id = container.getAttribute("data-value");
-            const toggleButton = document.getElementById(vt_id+'busTypeMoreButton');
-            const toggleSection = document.getElementById(vt_id+'busTypeHiddenSection');
-            const icon = document.getElementById(vt_id+'chevronIcon');
-            {#Assert all components are found. ! negates to bool -> !! cast to bool#}
-
-            console.assert(!!vt_id&!!toggleButton&!!toggleSection&!!icon)
-
-            toggleButton.addEventListener('click', () => {
-                const isHidden = toggleSection.classList.contains('hidden');
-
-                if (isHidden) {
-                    toggleSection.classList.remove('hidden');
-                    toggleButton.setAttribute('aria-expanded', 'true');
-                    toggleButton.querySelector('span').lastElementChild.innerText = 'Weniger';
-                    icon.classList.add('rotate-180'); // Rotate the icon
-                } else {
-                    toggleSection.classList.add('hidden');
-                    toggleButton.setAttribute('aria-expanded', 'false');
-                    toggleButton.querySelector('span').lastElementChild.innerText = 'Mehr';
-                    icon.classList.remove('rotate-180'); // Reset the rotation
-                }
-            });
-
-        })
-
-    });
-</script>
-<script>
     containers.forEach((container) => {
         var chartDom = container.querySelector('[id*="stateOfChargeChart"]');
         const list = container.querySelector('[id*="assignedToList"]');
         const listItems = list.querySelectorAll('[role="option"]');
         const input_selection = container.querySelector("input[id*='default_vehicle_type']");
+        const placeHolder = container.querySelector('[id*="ChartPlaceholder"]');
         var myChart = echarts.init(chartDom);
         console.assert(!!chartDom&!!input_selection&!!listItems);
 
@@ -352,7 +298,9 @@
             if (selected_vehicle_type === "") {
                 return;
             }
+            chartDom.style.height = "180px";
             let charging_curve = JSON.parse(document.getElementById(selected_vehicle_type+"_charging_curve").textContent)
+            if (placeHolder) placeHolder.remove();
 
             var option = {
                 grid: {
@@ -405,30 +353,23 @@
         plot_selected_charging_curve(input_selection.value);
         listItems.forEach((item)=>{
             item.addEventListener("click",function () {
-                console.log("change input")
                 let selected_vehicle_type=item.getAttribute('data-dropdown-item');
-                console.log(selected_vehicle_type);
                 plot_selected_charging_curve(selected_vehicle_type);
                 myChart.resize();
             })
         });
 
         function resizeChart() {
-            console.log(chartDom.offsetWidth)
             if (chartDom.offsetWidth > 0) {
                 myChart.resize();
             }
         }
+        resizeChart();
 
         // Improved resize handler
         window.addEventListener('resize', function () {
             resizeChart();
 
-        })
-        const toggleButton = container.querySelector('[id*="busTypeMoreButton"]');
-        toggleButton.addEventListener('click', function () {
-            // Use timeout to let the resizing take place after expanding
-            setTimeout(resizeChart, 50);
         })
 
     });
@@ -462,13 +403,3 @@ function validate(){
 }
 
 </script>
-
-
-{# Insert all attributes which should be passed to the vehicle type inputs from the selectable choices.#}
-{% for choice_vt in choice_vts %}
-<div id="{{ choice_vt.id }}_battery_capacity" data-value="{{ choice_vt.battery_capacity }}"></div>
-<div id="{{ choice_vt.id }}_consumption" data-value="{{ choice_vt.consumption}}"></div>
-  {% with choice_vt.id|stringformat:"s"|add:"_charging_curve" as script_id %}
-      {{ choice_vt.charging_curve|json_script:script_id }}
-  {% endwith %}
-{% endfor %}

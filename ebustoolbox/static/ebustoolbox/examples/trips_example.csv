@@ -1,6 +1,6 @@
 line,departure_name,departure_time,arrival_time,arrival_name,distance,pause,rotation_id,vehicle_type,temperature,level_of_loading,charging_type
-LINE_2,Station-0,2022-03-08 05:26,2022-03-08 05:55,Station-6,84097,0,0,AB,,,
-LINE_2,Station-6,2022-03-08 06:26,2022-03-08 07:02,Station-0,124097,14,0,AB,,,
+LINE_2,Station-0,2022-03-08 05:26,2022-03-08 05:55,Station-6,8409,0,0,AB,,,
+LINE_2,Station-6,2022-03-08 06:26,2022-03-08 07:02,Station-0,12409,14,0,AB,,,
 LINE_2,Station-0,2022-03-07 20:25,2022-03-07 20:26,Station-6,0.06,0,1,AB,,,
 LINE_2,Station-6,2022-03-07 20:26,2022-03-07 20:56,Station-12,54097,14,1,AB,,,
 LINE_2,Station-12,2022-03-07 21:10,2022-03-07 21:38,Station-6,13.19,8,1,AB,,,
