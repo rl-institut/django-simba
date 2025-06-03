@@ -19,7 +19,6 @@ from django.test import SimpleTestCase, TransactionTestCase, override_settings
 from django.contrib.gis.geos import Point
 
 logger = logging.getLogger("custom")
-logger.setLevel(logging.DEBUG)
 
 
 # SimpleTestCase since no DB access is needed
@@ -277,10 +276,11 @@ class StationSearchTest(StaticLiveServerTestCase):
 
     @override_settings(DEBUG=True)
     def test_stations_search_api(self):
-        url = reverse("data_scrapers:busstation_api")
+        url = f"{self.live_server_url}{reverse('data_scrapers:busstation_api')}"
+        print(url)
         params = {"search_stations": "Alexanderplatz|Alekanderplatz"}
         # API does not work without a search query
-        response = self.client.get(f"{self.live_server_url}{url}")
+        response = self.client.get(url)
         assert response.status_code == 400, f"Unexpected response code {response.status_code}"
         response = self.client.get(url, params)
         assert response.status_code == 200
