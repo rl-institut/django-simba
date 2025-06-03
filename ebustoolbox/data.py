@@ -4,7 +4,6 @@ This way data should be easily swappable, while the dash_layout allows for swapp
 """
 import warnings
 import logging
-from collections import defaultdict
 import datetime
 
 import numpy as np
@@ -1107,111 +1106,73 @@ def get_stats_as_json(task_id: str):
 
 def get_speed_hist_as_json(task_id: str):
     scenario = Scenario.objects.get(task_id=task_id)
-
-    filter_dict = dict(task_id=task_id)
-
     vehicle_name_dict, _ = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
-    if buses:  # In Presim buses will be None, if later no buses are selected, it will be empty
-        filter_dict["vehicle__id__in"] = buses
-
     dur_df = get_duration_as_dataframe(scenario.id, buses)
     dist_df = get_distances_as_dataframe(scenario.id, buses)
+
     # Calculate average speed in km/h
     dur_df["avg_speed_kmh"] = (dist_df["total_distance"] / 1000) / (dur_df["duration"] / 3600)
 
-    # Set bin width and calculate bins
+    # Bin speeds
     bin_width_kmh = 10
     max_speed_kmh = dur_df["avg_speed_kmh"].max()
     bins = np.arange(0, max_speed_kmh + bin_width_kmh, bin_width_kmh)
+
     hist, bin_edges = np.histogram(dur_df["avg_speed_kmh"], bins=bins)
 
-    response_data = {
-        "xAxis": {
-            "type": "category",
-            "data": [
-                f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km/h" for i in range(len(bin_edges) - 1)
-            ],
-        },
-        "yAxis": {"type": "value"},
-        "series": [{"data": hist.tolist(), "type": "bar"}],
+    return {
+        "bins": [
+            f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km/h" for i in range(len(bin_edges) - 1)
+        ],
+        "counts": hist.tolist(),
     }
-
-    return response_data
 
 
 def get_dist_hist_as_json(task_id: str):
     scenario = Scenario.objects.get(task_id=task_id)
-    filter_dict = dict(task_id=task_id)
-
     vehicle_name_dict, _ = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
+    filter_dict = dict(task_id=task_id)
     if buses:
         filter_dict["vehicle__id__in"] = buses
 
-    # Get distances and criticality
     df = get_distances_as_dataframe(scenario.id, buses)
     critical_df = get_critical_rotations_as_dataframe(scenario.id, buses)
 
-    # Merge both DataFrames
-    # Assuming both share a common ID per trip (e.g., 'R_id' = route/rotation id)
-    df = df.rename(columns={"rotation_id": "R_id"})  # adapt if needed
+    df = df.rename(columns={"rotation_id": "R_id"})
     df["total_distance_km"] = df["total_distance"] / 1000
-
-    # Merge to attach SOC_category to each trip
     merged_df = df.merge(critical_df, how="left", on="R_id")
-
-    # Fill missing SOC_category as "Nicht kritisch" (assume OK if unknown)
     merged_df["SOC_category"] = merged_df["SOC_category"].fillna("Nicht kritisch")
 
-    # Define bins
     bin_width_km = 50
     max_distance_km = merged_df["total_distance_km"].max()
     bins = np.arange(0, max_distance_km + bin_width_km, bin_width_km)
 
-    # Bin distances
+    bin_labels = [f"{bins[i]:.1f}-{bins[i+1]:.1f} km" for i in range(len(bins) - 1)]
     merged_df["distance_bin"] = pd.cut(
         merged_df["total_distance_km"],
         bins=bins,
-        labels=[f"{bins[i]:.1f}-{bins[i + 1]:.1f} km" for i in range(len(bins) - 1)],
+        labels=bin_labels,
         include_lowest=True,
     )
 
-    # Group by bin and criticality
     grouped = (
         merged_df.groupby(["distance_bin", "SOC_category"], observed=False)
         .size()
         .unstack(fill_value=0)
-        .reindex(columns=["Nicht kritisch", "kritisch"], fill_value=0)  # Ensure consistent order
+        .reindex(columns=["Nicht kritisch", "kritisch"], fill_value=0)
     )
 
-    # Return in ECharts format
-    response_data = {
-        "xAxis": {
-            "type": "category",
-            "data": grouped.index.tolist(),
+    return {
+        "bins": grouped.index.tolist(),
+        "data": {
+            "Nicht kritisch": grouped["Nicht kritisch"].tolist(),
+            "kritisch": grouped["kritisch"].tolist(),
         },
-        "yaxis_title": "Abs.Häufigkeit",
-        "xaxis_title": "Distanz (km)",
-        "yAxis": {"type": "value"},
-        "series": [
-            {
-                "name": "Nicht kritisch",
-                "type": "bar",
-                "stack": "total",
-                "data": grouped["Nicht kritisch"].tolist(),
-            },
-            {
-                "name": "kritisch",
-                "type": "bar",
-                "stack": "total",
-                "data": grouped["kritisch"].tolist(),
-            },
-        ],
     }
-    return response_data
 
 
 def get_power_draw_and_occ_as_json(task_id: str):
@@ -1232,11 +1193,11 @@ def get_power_draw_and_occ_as_json(task_id: str):
 
 def get_soc_gantt_as_json(task_id: str):
     # Get all events for the scenario, ordered
+    scenario = Scenario.objects.get(task_id=task_id)
     events = (
-        Event.objects.select_related("vehicle")
-        .filter(scenario__task_id=task_id)
-        .exclude(vehicle=None)
+        scenario.event_set.exclude(vehicle=None)
         .order_by("vehicle__name", "time_start")
+        .select_related("vehicle")
     )
 
     records = []
@@ -1279,17 +1240,17 @@ def get_soc_gantt_as_json(task_id: str):
                 }
             )
 
-    # Safely track the earliest start time as a timestamp per vehicle
-    vehicle_first_times = defaultdict(lambda: float("inf"))
-    for r in records:
-        try:
-            timestamp = datetime.datetime.fromisoformat(r["start"]).timestamp()
-            if timestamp < vehicle_first_times[r["vehicle"]]:
-                vehicle_first_times[r["vehicle"]] = timestamp
-        except Exception:
-            continue  # Skip if date parsing fails
+    vehicle_first_times = {v.name: float("inf") for v in scenario.vehicle_set.all()}
+    # dict vehicle name -> first event start time. Default: inf.
+    # iterate over all events in reverse order (latest start time first) and update vehicle_first_time
+    # the earliest event start time will be the final entry in the dict
+    for event in events.order_by("-vehicle__name", "-time_start"):
+        ts = event.time_start.timestamp()
+        vehicle_first_times[event.vehicle.name] = ts
 
     # Sort vehicles by their earliest event start time
-    vehicles = [v for v, _ in sorted(vehicle_first_times.items(), key=lambda x: x[1], reverse=True)]
+    vehicles = [
+        str(v) for v, _ in sorted(vehicle_first_times.items(), key=lambda x: x[1], reverse=True)
+    ]
 
     return vehicles, records

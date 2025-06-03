@@ -1379,20 +1379,17 @@
                     return;
                 }
 
-                const option = {
+                const chart = echarts.init(document.getElementById(chartId));
+                chart.setOption({
                     title: {
                         text: titleText,
                         left: 'center',
                         top: 20,
-                        textStyle: {
-                            fontSize: 18
-                        }
+                        textStyle: { fontSize: 18 }
                     },
                     tooltip: {
                         trigger: 'axis',
-                        axisPointer: {
-                            type: 'shadow'
-                        }
+                        axisPointer: { type: 'shadow' }
                     },
                     legend: {
                         top: 50,
@@ -1406,16 +1403,13 @@
                     },
                     xAxis: {
                         type: 'category',
-                        name: data.xaxis_title || 'Distanz (km)',
-                        data: data.xAxis.data,
-                        axisLabel: {
-                            rotate: 30,
-                            interval: 0
-                        }
+                        name: 'Distanz (km)',
+                        data: data.bins,
+                        axisLabel: { rotate: 30, interval: 0 }
                     },
                     yAxis: {
                         type: 'value',
-                        name: data.yaxis_title || 'Abs. Häufigkeit'
+                        name: 'Abs. Häufigkeit'
                     },
                     series: [
                         {
@@ -1423,84 +1417,72 @@
                             type: 'bar',
                             stack: 'total',
                             barWidth: '60%',
-                            itemStyle: {
-                                color: '#20E3B2'
-                            },
-                            emphasis: {
-                                focus: 'series'
-                            },
-                            data: data.series[0].data
+                            itemStyle: { color: '#20E3B2' },
+                            emphasis: { focus: 'series' },
+                            data: data.data['Nicht kritisch']
                         },
                         {
                             name: 'kritisch',
                             type: 'bar',
                             stack: 'total',
                             barWidth: '60%',
-                            itemStyle: {
-                                color: '#555555'
-                            },
-                            emphasis: {
-                                focus: 'series'
-                            },
-                            data: data.series[1].data
+                            itemStyle: { color: '#555555' },
+                            emphasis: { focus: 'series' },
+                            data: data.data['kritisch']
                         }
                     ]
-                };
-
-                const chart = echarts.init(document.getElementById(chartId));
-                chart.setOption(option);
+                });
             })
             .catch(error => {
                 console.error('Error fetching histogram data:', error);
             });
     }
     function fetchAndRenderHistogram(chartName, chartId, titleText) {
-    fetch(`/simba/result/${taskId}/${chartName}/`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                console.error("Error loading histogram data:", data.error);
-                return;
-            }
+        fetch(`/simba/result/${taskId}/${chartName}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error("Error loading histogram data:", data.error);
+                    return;
+                }
 
-            const option = {
-                title: {
-                    text: titleText,
-                    left: 'center'
-                },
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: {
-                        type: 'shadow'
-                    }
-                },
-                xAxis: {
-                    type: 'category',
-                    data: data.xAxis.data,
-                    name: data.xaxis_title || "Geschwindigkeit (km/h)"
-                },
-                yAxis: {
-                    type: 'value',
-                    name: data.yaxis_title || "Abs. Häufigkeit"
-                },
-                series: [
-                    {
-                        data: data.series[0].data,
+                const option = {
+                    title: {
+                        text: titleText,
+                        left: 'center',
+                        top: 20,
+                        textStyle: { fontSize: 18 }
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: { type: 'shadow' }
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: data.bins,
+                        name: "Geschwindigkeit (km/h)",
+                        axisLabel: { rotate: 30 }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: "Abs. Häufigkeit"
+                    },
+                    series: [{
+                        name: "Durchschnittsgeschwindigkeit",
                         type: 'bar',
                         barWidth: '60%',
                         itemStyle: {
                             color: '#20E3B2'
-                        }
-                    }
-                ]
-            };
+                        },
+                        data: data.counts
+                    }]
+                };
 
-            // Initialize ECharts instance and set option
-            const chart = echarts.init(document.getElementById(chartId));
-            chart.setOption(option);
-        })
-        .catch(error => console.error('Error fetching histogram data:', error));
-}
+                const chart = echarts.init(document.getElementById(chartId));
+                chart.setOption(option);
+            })
+            .catch(error => console.error('Error fetching histogram data:', error));
+    }
     function fetchAndRenderSoCHistogram(chartName, chartID) {
         fetch(`/simba/result/${taskId}/${chartName}/`)  // Replace with the actual URL
       .then((res) => res.json())
