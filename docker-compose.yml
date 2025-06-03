@@ -2,7 +2,9 @@ version: '3'
 
 services:
   web:
-    build: .
+    build:
+      context: .
+    image: django-web:latest
     command:
       /start
     volumes:
@@ -13,7 +15,9 @@ services:
       - my-docker-postgres
 
   celery:
-    build: .
+    # Celery and Web can use the same image.
+    # Reference the image from above.
+    image: django-web:latest
     command:
       /start_celery
     volumes:
@@ -21,6 +25,7 @@ services:
     depends_on:
       - my-docker-postgres
       - my-docker-redis
+      - web
 
 
   my-docker-redis:
