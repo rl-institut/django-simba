@@ -75,8 +75,8 @@
       <!-- Tab content -->
       <div id="{{ vt_id }}tab-contents">
         <div class="tab-content" data-tab="tab-1">
-          <div class="flex flex-col gap-4">
-            <div class="flex-grow">
+          <div class="flex flex-col">
+            <div class="flex-grow pb-6">
               <div class="flex items-center gap-2">
                 <label for="{{modification.vehicle_modification.battery_capacity.auto_id}}" id="{{ vt_id }}batteryCapacityLabel" class="block text-sm/6 font-medium text-slate-800">Nutzbare Batteriekapazität</label>
                 <div class="relative inline-block">
@@ -105,10 +105,29 @@
               </div>
             </div>
             {# TODO: @Bryan Better styling, switch instead of checkbox?#}
-            <div><input id="{{vt_id}}enableCustomConsumption"
-              {% if modification.vehicle_modification.consumption.initial is not None %}checked{% else %} {% endif %}
-              type="checkbox"> Energieverbrauch des gewählten Fahrzeugs überschreiben.</div>
-
+            {# Kept checkbox as switch was bringing too many complications, but used used customized styling #}
+            <div class="flex gap-2 items-center">
+              <div class="group grid size-4 grid-cols-1">
+                <input
+                  id="{{ vt_id }}enableCustomConsumption"
+                  name="{{ vt_id }}enableCustomConsumption"
+                  data-station-id="{{ vt_id }}"
+                  aria-describedby="{{ vt_id }}-description"
+                  type="checkbox"
+                  {% if modification.vehicle_modification.consumption.initial is not None %}checked{% endif %}
+                  class="col-start-1 row-start-1 appearance-none rounded border border-slate-400 checked:border-green-500 checked:bg-green-500 checked:focus:bg-green-500 checked:hover:bg-green-500 focus:ring-green-500 focus-ring:outline focus-ring:outline-2 focus-ring:outline-offset-2 focus-ring:outline-green-500">
+                <svg class="pointer-events-none size-3.5 self-center justify-self-center stroke-white" viewBox="0 0 14 14" fill="none">
+                  <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path class="opacity-0" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+              <div class="text-sm text-slate-700">
+                <label for="{{ vt_id }}enableCustomConsumption" class="font-medium">
+                  Energieverbrauch des gewählten Fahrzeugs überschreiben.
+                </label>
+              </div>
+            </div>
+            <div class="text-sm text-slate-500 pt-1 pb-6 pl-6">(Ignoriert die globale Umgebungstemperatur für diesen Fahrzeugtyp)</div>
             <div class="flex-grow">
               <div class="flex items-center gap-2">
                 <label for="{{modification.vehicle_modification.consumption.auto_id}}" id="{{ vt_id }}consumptionLabel" class="block text-sm/6 font-medium text-slate-800">Energieverbrauch</label>
@@ -146,8 +165,11 @@
         <div class="tab-content hidden" data-tab="tab-2">This is the content for Tab 2.</div>
       </div>
     </div>
-    <div id="{{ vt_id }}busTypeHiddenSection" class="flex-grow text-slate-700">
-      <div id="{{ vt_id }}ChartPlaceholder" class="flex justify-center items-center" style="height: 180px;">Wählen Sie einen Bus aus. Hier wird Ihnen die Ladekurve des Fahrzeugs angezeigt.</div>
+    <div id="{{ vt_id }}busTypeHiddenSection" class="flex-grow bg-slate-100">
+      <div id="{{ vt_id }}ChartPlaceholder" class="flex flex-col justify-center items-center text-sm text-slate-500 h-full">
+        <div>Wählen Sie einen Bus aus.</div>
+        <div>Hier wird Ihnen die Ladekurve des Fahrzeugs angezeigt.</div>
+      </div>
       <div id="{{ vt_id }}stateOfChargeChart" class="flex justify-center bg-slate-100"></div>
     </div>
   </div>

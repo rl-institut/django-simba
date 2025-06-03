@@ -8,9 +8,11 @@ from typing import Iterable
 import pandas as pd
 from django.conf import settings
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
-from django.db import transaction
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase, override_settings
+
+import django.apps
+import core.deepcopy
 
 # Create your tests here.
 from django.urls import reverse
@@ -20,6 +22,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
+from .import_export import visit_all_scenario_queries, ScenarioJSONImporterExporter
 from . import tasks
 from .forms import UploadFileForm
 from .models import (
@@ -536,13 +539,25 @@ class ConsumptionTestCase(TransactionTestCase):
         django_scenario, simba_schedule, args = build_scenario()
         vehicle_types = VehicleType.objects.filter(scenario=django_scenario)
         cons = Consumption.objects.filter(scenario=django_scenario)
-        for c in cons:
-            c.scenario = None
-            c.vehicle_class = None
-            c.save()
+
+        # consumption.scenario and vehicle_classes are not nullable
+        def check_nullable_scenario(consumption):
+            consumption.scenario = None
+            consumption.save()
+
+        def check_nullable_vehicle_class(consumption):
+            consumption.vehicle_class = None
+            consumption.save()
+
+        with self.assertRaises(Exception):
+            check_nullable_scenario(cons.first())
+
+        with self.assertRaises(Exception):
+            check_nullable_vehicle_class(cons.first())
 
         for vt in vehicle_types:
             vt.consumption = None
+            vt.vehicle_classes.set([])
             vt.save()
 
         # Should fail because neither vehicle_type has consumption nor a consumption points towards
@@ -571,10 +586,8 @@ class ConsumptionTestCase(TransactionTestCase):
 
         self.assertAlmostEqual(sum_consumption * 2, sum_consumption_double)
 
-        for c in cons:
-            c.scenario = django_scenario
-            c.vehicle_class = VehicleClass.objects.first()
-            c.save()
+        for vt in vehicle_types:
+            vt.vehicle_classes.add(VehicleClass.objects.first())
 
         # Should fail because vehicle_type has consumption but also consumption objects point
         # towards the same vehicle type
@@ -657,11 +670,15 @@ class ConsumptionTestCase(TransactionTestCase):
         assert sum_consumption_new != sum_consumption
 
     def test_get_consumption(self):
+        scenario = Scenario.objects.create(name="my scenario")
+        vehicle_class = VehicleClass.objects.create(name="my vehicle class", scenario=scenario)
         consumption_instance = Consumption.objects.create(
             name="My Consumption",
             columns=["speed", "other"],
             data_points=[[10, 1], [100, 3]],
             values=[1, 2],
+            vehicle_class=vehicle_class,
+            scenario=scenario,
         )
 
         assert consumption_instance.get_consumption({"speed": 10, "other": 1}) == 1
@@ -677,6 +694,8 @@ class ConsumptionTestCase(TransactionTestCase):
             ],
             data_points=[1, 10, 50, 100],
             values=[1, 2, 3, 50],
+            vehicle_class=vehicle_class,
+            scenario=scenario,
         )
         c2 = Consumption.objects.create(
             name="My Other Consumption 2",
@@ -685,6 +704,8 @@ class ConsumptionTestCase(TransactionTestCase):
             ],
             data_points=[[1], [10], [50], [100]],
             values=[1, 2, 3, 50],
+            vehicle_class=vehicle_class,
+            scenario=scenario,
         )
         assert c1.get_consumption((1)) == 1 == c2.get_consumption((1))
         assert c1.get_consumption((5.5)) == 1.5 == c2.get_consumption((5.5))
@@ -708,6 +729,8 @@ class ConsumptionTestCase(TransactionTestCase):
                 [0, 30, 3],
             ],
             values=[1, 2, 3, 4, 5, 6, 7, 8],
+            vehicle_class=vehicle_class,
+            scenario=scenario,
         )
         self.assertAlmostEqual(c.get_consumption((10, 20, 1)), 1)
         self.assertAlmostEqual(c.get_consumption((5, 20, 1)), 3)
@@ -716,52 +739,6 @@ class ConsumptionTestCase(TransactionTestCase):
         delta = 1e-9
         self.assertAlmostEqual(c.get_consumption((0 + delta, 30 - delta, 3 - delta)), 8)
         self.assertNotEqual(c.get_consumption((0 + delta, 30 - delta, 3 - delta)), 8)
-
-    def test_model_creation(self):
-        consumption_instance = Consumption.objects.create(
-            name="My Consumption",
-            columns=["speed", "consumption"],
-            data_points=[[10, 1], [100, 3]],
-            values=[1, 2],
-        )
-
-        name = "My other Consumption"
-        builder_kwargs = dict(
-            name=name,
-            columns=["speed", "consumption"],
-            data_points=[[10, 1], [100, 3]],
-            values=[1, 2],
-        )
-        # The same consumption name cannot exist twice, except when its bound by a scenario
-        Consumption.objects.create(**builder_kwargs)
-        assert Consumption.objects.filter(name=name).count() == 1
-        with transaction.atomic():
-            self.assertRaises(Exception, lambda: Consumption.objects.create(**builder_kwargs))
-        assert Consumption.objects.filter(name=name).count() == 1
-        # The name can be shared it its associated with a scenario
-        s = Scenario.objects.create(name="foo")
-        Consumption.objects.create(**builder_kwargs, scenario=s)
-        assert Consumption.objects.filter(name=name).count() == 2
-        # but only once
-        with transaction.atomic():
-            self.assertRaises(
-                Exception,
-                lambda: Consumption.objects.create(**builder_kwargs, scenario=s),
-            )
-        assert Consumption.objects.filter(name=name).count() == 2
-
-        # but another scenario can have the same consumption name aswell
-        s = Scenario.objects.create(name="bar")
-        Consumption.objects.create(**builder_kwargs, scenario=s)
-        assert Consumption.objects.filter(name=name).count() == 3
-
-        # Wrong number of input dims
-        self.assertRaises(Exception, lambda: consumption_instance.get_consumption((999, 3, 5)))
-        # Wrong keys in input dict
-        self.assertRaises(
-            Exception,
-            lambda: consumption_instance.get_consumption({"speesdfd": 100, "consumption": 3}),
-        )
 
 
 class TripTestCase(TestCase):
@@ -1001,3 +978,51 @@ class TemperaturesTestCase(TestCase):
         )
         # Different dates raise an attribute error
         self.assertRaises(AttributeError, t_instance.save)
+
+
+class SerializerTest(TransactionTestCase):
+    def test_serializer(self):
+
+        count_before = count_all_rows()
+        django_scenario, _, _ = build_scenario()
+        django_scenario.task_id = get_unique_task_id()
+        django_scenario.save()
+        tasks.run_toolchain_from_scenario(django_scenario, assign_vehicles=True)
+        count_after = count_all_rows()
+        count_delta = count_after - count_before
+        print(f"Simulation Scenario added {count_delta} objects")
+
+        # Load the scenario in the exporter
+        exporter = ScenarioJSONImporterExporter()
+        visit_all_scenario_queries(exporter, django_scenario)
+
+        # Create json_data. This can be dumped and exported
+        json_data = exporter.renderJSON()
+        django_scenario.delete()
+        # Make sure the db has the same status as before
+        # exporter can load the json_data. Passing an InMemoryUploadedFile is also possible
+        exporter.loads(json_bytes=json_data)
+
+        # Objects data is flushed when loading json data
+        assert exporter.object_data == dict()
+
+        # Object Instances get recreated
+        exporter.generate_instances()
+        exporter.adjust_foreign_keys()
+        exporter.bulk_create()
+        exporter.create_many_to_many()
+        # The exporter bulk creates objects.
+        # To reset the postgres auto increment counter this command is called.
+        core.deepcopy.reset_postgres_auto_increments([Scenario._meta.app_label])
+        # Importing the scenario creates the same number of objects/rows as the exported scenario.
+        assert count_delta == count_all_rows() - count_before
+
+
+def count_all_rows() -> int:
+    """Iterate over all ebustoolbox models and sum up the rows"""
+    ebus_models = django.apps.apps.get_app_config("ebustoolbox").get_models()
+    count = 0
+    for model in ebus_models:
+        current = model.objects.count()
+        count += current
+    return count

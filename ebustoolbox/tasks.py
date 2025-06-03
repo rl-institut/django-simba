@@ -29,6 +29,7 @@ from eflips.depot import UnstableSimulationException, DelayedTripException
 from eflips.depot.api import simulate_scenario, generate_depot_layout
 
 import core.deepcopy
+from ebusdjango.util import get_static_file_path
 import ebustoolbox.util
 import simba.optimizer_util
 import simba.station_optimization
@@ -272,19 +273,19 @@ def temperatures_to_db(
 def get_schedule_from_db(
     django_scenario: Scenario,
 ) -> tuple[simba.schedule.Schedule, Namespace]:
-    """Takes a django Scenario and returns the simba Schedule and arguments
+    """Takes a django Scenario and returns the SimBA Schedule and arguments
 
     Can be used to run a previously stored Django Scenario again straight from the database without
     using files, by returning schedule and args.
 
     :param django_scenario: Scenario
     :type django_scenario: .models.Scenario
-    :return: (simba Schedule, args)
+    :return: (SimBA Schedule, args)
     :rtype: (simba.schedule.Schedule, Namespace)
     """
     data_container = DataContainer()
 
-    # get SimBa station_data
+    # get SimBA station_data
     station_data = get_station_data_from_db(django_scenario)
     data_container.add_station_geo_data(station_data)
 
@@ -302,7 +303,7 @@ def get_schedule_from_db(
 
     consumptions = Consumption.objects.filter(scenario__in=[django_scenario, None])
     for consumption in consumptions:
-        data_container.add_consumption_data(consumption.name, consumption.to_df())
+        data_container.add_consumption_data(consumption.to_simba_name(), consumption.to_df())
 
     args = get_args(django_scenario=django_scenario)
     schedule, args = simba.simulate.pre_simulation(args, data_container)
@@ -318,7 +319,7 @@ def get_schedule_from_db(
             "Database assignments will be ignored."
         )
 
-    # Simba does not disallow opportunity charging for rotations.
+    # SimBA does not disallow opportunity charging for rotations.
     # By default, it is allowed for all rotations.
     # If the database contains information about not allowing opportunity charging,
     # the schedule is overwritten here
@@ -333,7 +334,7 @@ def get_schedule_from_db(
 
 
 def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
-    """Create simba rotations with trips from a database with a scenario as a key
+    """Create SimBA rotations with trips from a database with a scenario as a key
 
     :param django_scenario: Django scenario
     :param station_data: dictionary with all stations and elevation
@@ -367,7 +368,7 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
         )
 
         # Use the id/pk instead of the name, since names might not be unique, when database is
-        # filled with non simba ingesters
+        # filled with non SimBA ingesters
         simba_id = rot.id
 
         vehicle_classes = VehicleClass.objects.filter(vehicle_types=vehicle_type)
@@ -505,7 +506,7 @@ def get_uuid():
 
 
 def get_vehicle_types_from_db(django_scenario) -> dict:
-    """Create simba rotations with trips from database with scenario as key
+    """Create SimBA rotations with trips from database with scenario as key
 
     :param django_scenario: Django scenario
     :return: vehicle_types
@@ -528,7 +529,7 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
         if len(query) > 0:
             assert mileage is None
             assert len(query) == 1
-            mileage = Consumption.objects.get(vehicle_class=query[0]).name
+            mileage = Consumption.objects.get(vehicle_class=query[0]).to_simba_name()
 
         vehicle_types[str(vehicle_type.id)][charge_type] = {
             "name": vehicle_type.name,
@@ -545,7 +546,7 @@ def get_vehicle_types_from_db(django_scenario) -> dict:
 
 
 def get_electrified_stations_from_db(django_scenario) -> dict:
-    """Create simba electrified stations from database with scenario as key
+    """Create SimBA electrified stations from database with scenario as key
 
     :param django_scenario: Django scenario
     :return: electrified_stations
@@ -597,7 +598,7 @@ def get_station_data_from_db(django_scenario) -> dict:
 def get_args(django_scenario) -> Namespace:
     """Creates arguments from django Scenario
 
-    Creates arguments for SimBA by getting default arguments from simba, updating them with
+    Creates arguments for SimBA by getting default arguments from SimBA, updating them with
     the options from the django_scenario and
 
     :param django_scenario: Scenario in the django database
@@ -610,17 +611,10 @@ def get_args(django_scenario) -> Namespace:
     # Read the parse values, in this case the default values
     args, _ = parser.parse_known_args()
 
-    # Add default optimizer config
-    p = Path(settings.STATIC_URL, __package__, "examples", "default_optimizer.cfg")
-    # use app static folder
-    if p.is_absolute() and not p.is_file():
-        # remove first slash
-        p = Path(str(p)[1:])
-        p = Path(settings.BASE_DIR, __package__, p)
+    p = get_static_file_path(__package__, "examples/default_optimizer.cfg")
     args.optimizer_config_path = str(p)
     if not p.is_file():
         logger.info("default_optimizer.cfg not found. Optimizer config will use default values.")
-
     # Overwrite args with scenario specific data
     if django_scenario.simba_options is not None:
         logger.debug(
@@ -666,13 +660,7 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
             f = UploadedFile.objects.create(scenario=scenario, file=request.FILES[k])
             args[k] = f.file.path
             continue
-        p = Path(settings.STATIC_URL, __package__, "examples", v)
-        if settings.DEBUG:
-            # use app static folder
-            if p.is_absolute():
-                # remove first slash
-                p = Path(str(p)[1:])
-            p = Path(settings.BASE_DIR, __package__, p)
+        p = get_static_file_path(__package__, "examples/" + v)
         if not p.exists():
             logger.warning(f"FILE ERROR: {k} COULD NOT BE SET ({str(p)})")
             continue
@@ -685,7 +673,7 @@ def scenario_to_db(cleaned_data, request) -> Scenario:
 
 def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
     """Takes a dictionary of vehicle types and writes them into the db with the scenario as handle
-    :param schedule: simba Schedule
+    :param schedule: SimBA Schedule
     :param scenario: django model Scenario
     :return: None
     """
@@ -731,7 +719,7 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
 
 def stations_to_db(simba_schedule: SimbaSchedule, scenario):
     """Takes a dictionary of vehicle types and writes them into the db with the scenario as handle
-    :param schedule: simba Schedule
+    :param schedule: SimBA Schedule
     :param scenario: django model Scenario
     :return: None
     """
@@ -754,7 +742,7 @@ def stations_to_db(simba_schedule: SimbaSchedule, scenario):
             params = dict(id=last_id, scenario=scenario, geom=geom, name=str(key))
             new_station = Station(**params)
             object_list.append(new_station)
-            # try renaming the station in the simba context, so it gets access to the database.
+            # try renaming the station in the SimBA context, so it gets access to the database.
             # This is needed to guarantee uniqueness of station names which is not enforced by the
             # database
             station_translation[key] = new_station.to_simba_name()
@@ -966,17 +954,31 @@ def run_ebus_toolchain(task_id):
     return async_result
 
 
-@shared_task(bind=True)
-def run_and_merge_scenarios(self, parent_id: int, mutation_id: int, simulation_task_id):
+def merge_scenario(mutation_id, simulation_task_id):
+    """Create a simulation scenario from a mutation scenario.
+
+    Mutations are applied from the mutation to the parent.
+    Only works if the parent is a Scenario of type SOURCE
+    The new scenario is saved and returned
+    """
     mutation_scenario = Scenario.objects.get(id=mutation_id)
-    parent_scenario = Scenario.objects.get(id=parent_id)
+    parent = mutation_scenario.parent
+    assert parent is not None
+    assert parent.scenario_type == EnumScenarioType.SOURCE
+
     # Create a deepcopy of the parent / source scenario.
     # Apply mutations from the mutation scenario to this copy.
-    simulation_scenario = create_child_from_mutation(parent_scenario, mutation_scenario)
+    simulation_scenario = create_child_from_mutation(parent, mutation_scenario)
     simulation_scenario.scenario_type = EnumScenarioType.SIMULATION
     simulation_scenario.name = mutation_scenario.name
     simulation_scenario.task_id = simulation_task_id
     simulation_scenario.save()
+    return simulation_scenario
+
+
+@shared_task(bind=True)
+def run_and_merge_scenarios(self, mutation_id: int, simulation_task_id):
+    simulation_scenario = merge_scenario(mutation_id, simulation_task_id)
     if "ebus_map" in settings.INSTALLED_APPS:
         create_stations_for_map(simulation_scenario)
     run_toolchain_from_scenario(simulation_scenario, assign_vehicles=True)
@@ -1379,47 +1381,52 @@ def _run_ebus_toolchain(self, task_id):
         progress.current_work = 0
         progress.save()
 
-        # call simba and eflips
+        # call SimBA and eFLIPS
+        # Currently the toolchain is called in the same way independent from input
+        # SimBA Simulation
+        # SimBA optimization if blocks are negative
+        # eFLIPS Simulation
+        # SimBA consolidation
+        Event.objects.filter(scenario=db_scenario).delete()
+
+        schedule, simba_scenario = run_simba(schedule, args, db_scenario, mode="sim", scenario=None)
+
+        progress.current_work = 25
+        progress.save()
+        schedule, simba_scenario = run_simba(
+            schedule, args, db_scenario, mode="station_optimization", scenario=simba_scenario
+        )
+
+        progress.current_work = 45
+        progress.save()
         try:
-            wanted_modes = args.modes.split(",")
-        except AttributeError:
-            wanted_modes = args.mode
-        assert wanted_modes[-1] == "report"
-        simba_scenario = None
-        # Chain of modes with mode->eflips -> sim. Last mode is "report" and can be outside of loop
-        for mode in wanted_modes[:-1]:
-            # Delete old events
-            Event.objects.filter(scenario=db_scenario).delete()
+            run_eflips(task_id)
+        except UnstableSimulationException as e:
+            # TODO handle it and pass information to user
+            logger.error("The simulation is unstable")
+            logger.error(traceback.format_exception(e))
+        except DelayedTripException as e:
+            # TODO handle it and pass information to user
+            logger.error("There are delays in the Simulation")
+            logger.error(traceback.format_exception(e))
 
-            schedule, simba_scenario = run_simba(
-                schedule, args, db_scenario, mode=mode, scenario=simba_scenario
-            )
+        progress.current_work = 75
+        progress.save()
+        eflips_assignment = get_assigned_vehicles(task_id)
+        schedule.assign_vehicles_custom(eflips_assignment)
+        # TODO: Keep that? / Set Depot values for final SimBA simulation?
+        electrify_depot_station_w_default(db_scenario)
+        #
+        # get electrified stations from db, e.g. depot station from eFLIPS with
+        # power
+        stations_dict = get_electrified_stations_from_db(db_scenario)
+        schedule.stations = stations_dict.copy()
+        # TODO: This is not a proper consolidation yet. Set SimBA so depots events are properly
+        # respected. Write events for everything
+        schedule, simba_scenario = run_simba(schedule, args, db_scenario, mode="sim")
 
-            # Event.objects.filter(scenario=db_scenario).order_by("soc_end").first().soc_end
-            try:
-                run_eflips(task_id)
-            except UnstableSimulationException as e:
-                # TODO handle it and pass information to user
-                logger.error("The simulation is unstable")
-                logger.error(traceback.format_exception(e))
-            except DelayedTripException as e:
-                # TODO handle it and pass information to user
-                logger.error("There are delays in the Simulation")
-                logger.error(traceback.format_exception(e))
-
-            eflips_assignment = get_assigned_vehicles(task_id)
-            schedule.assign_vehicles_custom(eflips_assignment)
-            # TODO: Keep that?
-            electrify_depot_station_w_default(db_scenario)
-            #
-            # get electrified stations from db, e.g. depot station from eflips with
-            # power
-            stations_dict = get_electrified_stations_from_db(db_scenario)
-            schedule.stations = stations_dict.copy()
-            schedule, simba_scenario = run_simba(schedule, args, db_scenario, mode="sim")
-
-            progress.current_work += 90 // (len(wanted_modes) - 1)
-            progress.save()
+        progress.current_work = 95
+        progress.save()
 
         check_event_soc_consistency(db_scenario)
         db_scenario.refresh_from_db()
@@ -1435,7 +1442,7 @@ def _run_ebus_toolchain(self, task_id):
 
 
 def check_event_soc_consistency(db_scenario: Scenario):
-    """Give warning if scenario events are not consitent.
+    """Give warning if scenario events are not consistent.
 
     Consistency in this case is that soc_end values are identical to the next events soc_start of the same vehicle.
     """
@@ -1597,9 +1604,9 @@ def run_simba(
         case _:
             raise NotImplementedError
 
-    logger.info(f"Creating Simba Events {datetime.now()}")
+    logger.info(f"Creating SimBA Events {datetime.now()}")
     create_event_output(scenario, db_scenario)
-    logger.info(f"Simba Events Created {datetime.now()}")
+    logger.info(f"SimBA Events Created {datetime.now()}")
     reset_postgres_auto_increments(apps=[Event._meta.app_label])
     return schedule, scenario
 
@@ -1649,7 +1656,7 @@ def depot_rotation_to_eflips_input(db_rotation, db_scenario, input_for_eflips, r
 
 def run_eflips(task_id) -> None:
     # ToDo Replace with logger
-    logger.info(f"Running eflips {datetime.now()}")
+    logger.info(f"Running eFLIPS {datetime.now()}")
     db_scenario = Scenario.objects.get(task_id=task_id)
 
     # Constructing the database URL manually
@@ -1658,7 +1665,7 @@ def run_eflips(task_id) -> None:
         db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=True
     )
 
-    # calculate total scenario time for eflips repetition period
+    # calculate total scenario time for eFLIPS repetition period
     last_trip_time = Trip.objects.filter(scenario=db_scenario).aggregate(Max("arrival_time"))
     first_trip_time = Trip.objects.filter(scenario=db_scenario).aggregate(Min("departure_time"))
     period = last_trip_time["arrival_time__max"] - first_trip_time["departure_time__min"]
@@ -1793,7 +1800,7 @@ def example_electrification_optimization(scenario: Scenario):
 
 def create_event_output(simba_scenario: "SimbaScenario", db_scenario) -> list[Event]:  # noqa: C901
     # collect data from DB
-    # Delete old simba events
+    # Delete old SimBA events
 
     (
         # Query the Event model for entries that meet the following criteria:
@@ -1804,17 +1811,17 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario) -> list[Ev
             # - CHARGING_OPPORTUNITY
             # - DRIVING
             # - STANDBY_DEPARTURE
-            # These are created by simba
+            # These are created by SimBA
             event_type__in=[
                 EventType.CHARGING_OPPORTUNITY,
                 EventType.DRIVING,
                 EventType.STANDBY_DEPARTURE,
             ],
-            # The `area` field must be NULL (or not set) because simba does not create events with area.
+            # The `area` field must be NULL (or not set) because SimBA does not create events with area.
             area__isnull=True,
         )
-        # Simba STANDBY_DEPARTURE events have a Station.
-        # Events without a station could come from eflips and are not excluded
+        # SimBA STANDBY_DEPARTURE events have a Station.
+        # Events without a station could come from eFLIPS and are not excluded
         .exclude(
             # The `event_type` is STANDBY_DEPARTURE AND the `station` field is NULL.
             event_type=EventType.STANDBY_DEPARTURE,
@@ -1913,7 +1920,7 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario) -> list[Ev
         if aware_start_time >= last_arrival_time:
             current_rotation = None
             current_vehicle = None
-            # Do not save events passed their rotation time. This is done by eflips
+            # Do not save events passed their rotation time. This is done by eFLIPS
             continue
         else:
             last_aware = aware_start_time

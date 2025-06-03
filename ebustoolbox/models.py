@@ -16,9 +16,8 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
-from django.db.models import QuerySet, Sum, Q, Case, When, Value, IntegerField, Func, F
+from django.db.models import QuerySet, Sum, Case, When, Value, IntegerField, Func, F
 from django.db.models.functions import Now, Length
-from django.db.models.constraints import UniqueConstraint
 from django.dispatch import receiver
 from django.utils.timezone import make_aware
 
@@ -363,7 +362,7 @@ class Consumption(models.Model):
     name = models.CharField(max_length=100)
     vehicle_class = models.ForeignKey(VehicleClass, null=False, on_delete=models.CASCADE)
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
-    columns = models.JSONField([], null=False)
+    columns = models.JSONField(default=list, null=False)
     data_points = ArrayField(ArrayField(models.FloatField(), size=None), size=None, null=False)
     values = ArrayField(models.FloatField(), size=None, null=False)
 
@@ -372,18 +371,20 @@ class Consumption(models.Model):
     one_dim = False
 
     class Meta:
-        constraints = [
-            UniqueConstraint(fields=["name", "scenario"], name="unique_with_scenario"),
-            UniqueConstraint(
-                fields=["name"], condition=Q(scenario=None), name="unique_without_scenario"
-            ),
-        ]
-
         db_table = "ConsumptionLut"
 
     def __str__(self):
         avg = np.array(self.values).mean()
         return f"Consumption table {self.name} with average consumption of {avg:.1f} "
+
+    def to_simba_name(self) -> str:
+        """Create a verbose unique name for simba"""
+        return self.name + "_" + str(self.id)
+
+    @classmethod
+    def get_id_from_simba_name(cls, name) -> int:
+        """Return the id of a verbose unique name from simba"""
+        return int(name.split("_")[-1])
 
     def to_df(self):
         """
@@ -415,6 +416,8 @@ class Consumption(models.Model):
         columns = [INCLINE, T_AMB, LEVEL_OF_LOADING, SPEED]
         data_points = np.array(df.loc[:, columns].values).tolist()
         values = np.array(df.loc[:, CONSUMPTION].values).tolist()
+        # Consumption is returned without scenario and vehicle_class.
+        # This needs to be patched in before the Consumption can be saved.
         return Consumption(
             name=name,
             columns=columns,
@@ -497,14 +500,6 @@ class Consumption(models.Model):
             if len(data.shape) == 1:
                 # Transform a list like [1,2,3] to [[1],[2],[3]]
                 self.data_points = np.expand_dims(self.data_points, 0).T.tolist()
-        assert (
-            len(
-                Consumption.objects.filter(scenario=self.scenario, name=self.name).exclude(
-                    id=self.id
-                )
-            )
-            == 0
-        )
         self._set_interpolators()
         super().save(*args, **kwargs)
 
