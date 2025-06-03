@@ -280,9 +280,8 @@ class StationSearchTest(StaticLiveServerTestCase):
         logger.warning("Using url: ", url)
         params = {"search_stations": "Alexanderplatz|Alekanderplatz"}
         # API does not work without a search query
-        response = self.client.get(url)
-        assert response.status_code == 400, f"Unexpected response code {response.status_code}"
         response = self.client.get(url, params)
+        assert response.status_code == 400, f"Unexpected response code {response.status_code}"
         assert response.status_code == 200
         data = response.json()
         assert "results" in data
