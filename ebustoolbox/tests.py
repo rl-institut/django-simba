@@ -272,8 +272,8 @@ class WriteReadScenarioToDatabase(TestCase):
         vehicle = Rotation.objects.filter(scenario=django_scenario).first().vehicle
         vehicle_type = vehicle.vehicle_type
         consumption_table = Consumption.objects.get(vehicle_class__vehicletype=vehicle_type)
-
         station = Station.objects.get(scenario=django_scenario, name="Station-0")
+
         vehicle_type.charging_curve[1][1] = vehicle_type.charging_curve[0][1] * 0.8
         vehicle_type.save()
 
@@ -974,3 +974,43 @@ class TemperaturesTestCase(TestCase):
         )
         # Different dates raise an attribute error
         self.assertRaises(AttributeError, t_instance.save)
+
+
+class RotationSplitTest(TestCase):
+    def test_rotation_split(self):
+        django_scenario, simba_schedule, args = build_scenario()
+        from django.db.models import Count
+
+        rotations = Rotation.objects.filter(scenario=django_scenario)
+        # Reduce the scenario to a single rotation
+        rotation = rotations.annotate(num_trips=Count("trip")).order_by("num_trips").last()
+
+        rotations.exclude(id=rotation.id).delete()
+        depot = Station.objects.filter(
+            scenario=django_scenario, charge_type=EnumChargeType.DEPOT
+        ).first()
+        station = (
+            Station.objects.filter(scenario=django_scenario)
+            .exclude(charge_type=EnumChargeType.DEPOT)
+            .first()
+        )
+        trips = Trip.objects.filter(rotation=rotation).order_by("arrival_time")
+        even_count = (trips.count() // 2) * 2
+        station1 = depot
+        station2 = station
+        for i, trip in enumerate(list(trips)):
+            # Make sure the rotation ends in the depot by deleting access trips
+            if i + 1 > even_count:
+                trip.delete()
+                continue
+            route: Route = trip.route
+            route.departure_station = station1
+            route.arrival_station = station2
+            route.save()
+            # Swap stations
+            temp = station1
+            station1 = station2
+            station2 = temp
+        print(123)
+        tasks.split_blocks_with_intermediate_depot_stops(django_scenario)
+        print(Rotation.objects.filter(scenario=django_scenario))

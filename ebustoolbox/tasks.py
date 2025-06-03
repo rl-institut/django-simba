@@ -2196,10 +2196,10 @@ def trim_depots(scenario, depot_ids: list[int]):
 def split_blocks_with_intermediate_depot_stops(scenario):
     # from ebustoolbox.models import *  # noqa
 
-    scenario = Scenario.objects.filter(
-        scenario_type=EnumScenarioType.SIMULATION, finished__isnull=False
-    ).last()
-
+    # scenario = Scenario.objects.filter(
+    #     scenario_type=EnumScenarioType.SIMULATION, finished__isnull=False
+    # ).last()
+    #
     depots = Station.objects.filter(scenario=scenario, charge_type=EnumChargeType.DEPOT)
     all_trips = Trip.objects.filter(scenario=scenario)
     depot_trips = all_trips.filter(route__arrival_station__in=depots)
@@ -2216,7 +2216,7 @@ def split_blocks_with_intermediate_depot_stops(scenario):
         .values_list("last_trip_id", flat=True)
     )
 
-    rotations_to_split = []
+    rotations_to_split: list[Rotation] = []
     for trip in depot_trips:
         if trip.id not in last_trip_ids:
             # the trip ends in the depot but is not the last trip
@@ -2232,10 +2232,9 @@ def split_blocks_with_intermediate_depot_stops(scenario):
             assert False, "Rotation without trips should not exist"
         # Generate a time before the first trip
         last_rotation_departure_time = first_depot_trip.departure_time - timedelta(days=1)
-        i = 0
         rotation_name = rotation.name
+        i = 0
         while rotation_depot_trips:
-            rotation_name_short = rotation.name_short
             # while there are depot trips, generate slices of the trips to create new rotations
             first_depot_trip = rotation_depot_trips.pop(0)
             new_rotation_trips = rotation_depot_trips_q.filter(
@@ -2245,9 +2244,9 @@ def split_blocks_with_intermediate_depot_stops(scenario):
             last_rotation_departure_time = first_depot_trip.departure_time
             # Create a new rotation with a name indicating its been sliced
             rotation.name = f"{rotation_name}_{i}"
-            rotation.name_short = f"{rotation_name_short}_{i}"
             rotation.id = next_id
             next_id += 1
+            i += 1
             rotation.save()
             new_rotation_trips.update(rotation=rotation)
         Notification.objects.create(
@@ -2256,3 +2255,4 @@ def split_blocks_with_intermediate_depot_stops(scenario):
             notification_type=EnumNotificationType.SCHEDULE_READER,
             message=f"Umlauf {escape(rotation.name)} wurde geteilt, da er mehrmals im Depot ankommt",
         )
+        logger.warning(f"{rotation.id} was split into {i} new rotations")

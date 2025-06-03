@@ -1722,7 +1722,7 @@ class Notification(models.Model):
     created = models.DateTimeField(auto_now_add=True, db_default=Now())
     sender = models.CharField(max_length=255)
     level = models.CharField(max_length=20, choices=EnumNotificationLevels.choices)
-    message = models.CharField(max_length=20)
+    message = models.CharField(max_length=1000)
     notification_type = models.CharField(max_length=20, choices=EnumNotificationType.choices)
 
     def __str__(self):
