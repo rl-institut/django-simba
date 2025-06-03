@@ -1714,7 +1714,7 @@ class EnumNotificationLevels(models.TextChoices):
 class EnumNotificationType(models.TextChoices):
     """Defintions for notification types which define where the message is shown"""
 
-    SCHEDULE_READER = "schedule_reader"
+    MULTIPLE_DEPOT_TRIPS_IN_BLOCK = "multi_dep_trips_in_block"
 
 
 class Notification(models.Model):
@@ -1723,7 +1723,7 @@ class Notification(models.Model):
     sender = models.CharField(max_length=255)
     level = models.CharField(max_length=20, choices=EnumNotificationLevels.choices)
     message = models.CharField(max_length=1000)
-    notification_type = models.CharField(max_length=20, choices=EnumNotificationType.choices)
+    notification_type = models.CharField(max_length=40, choices=EnumNotificationType.choices)
 
     def __str__(self):
         return f"[{self.level}] {self.sender}: {self.message[:50]}"
