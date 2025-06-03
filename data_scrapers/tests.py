@@ -277,7 +277,7 @@ class StationSearchTest(StaticLiveServerTestCase):
     @override_settings(DEBUG=True)
     def test_stations_search_api(self):
         url = f"{self.live_server_url}{reverse('data_scrapers:busstation_api')}"
-        print(url)
+        logger.warning("Using url: ", url)
         params = {"search_stations": "Alexanderplatz|Alekanderplatz"}
         # API does not work without a search query
         response = self.client.get(url)
