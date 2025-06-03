@@ -1,3 +1,4 @@
+from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 import numpy as np
 import logging
 from datetime import datetime
@@ -132,7 +133,7 @@ class SearchUtilTest(TransactionTestCase):
         assert get_lower_admin_areas(moabit).count() == 3
 
 
-class StationSearchTest(TransactionTestCase):
+class StationSearchTest(StaticLiveServerTestCase):
     def setUp(self) -> None:
         now = make_aware(datetime.now())
         berlin = AdminArea.objects.create(
@@ -277,16 +278,16 @@ class StationSearchTest(TransactionTestCase):
 
     @override_settings(DEBUG=True)
     def test_stations_search_api(self):
-        url = reverse("data_scrapers:busstation_api")
+        url = f"{self.live_server_url}{reverse('data_scrapers:busstation_api')}"
         params = {"search_stations": "Alexanderplatz|Alekanderplatz"}
-        # API does not work without a search query
-        response = self.client.get(url)
-        assert response.status_code == 400
+        response = self.client.get(url, params, follow=True)
+        assert response.status_code == 200, f"Unexpected status code {response.status_code}"
 
-        response = self.client.get(url, params)
-        assert response.status_code == 200
         data = response.json()
         assert "results" in data
+        # API does not work without a search query
+        response = self.client.get(url, follow=True)
+        assert response.status_code == 400, f"Unexpected status code {response.status_code}"
 
         assert "Alekanderplatz" in data["results"]
         assert "Alexanderplatz" in data["results"]
@@ -301,6 +302,6 @@ class StationSearchTest(TransactionTestCase):
         for search in search_strings:
             search = search_strings[-1]
             params = {"search_stations": search}
-            response = self.client.get(url, params)
+            response = self.client.get(url, params, follow=True)
             data = response.json()
             assert len(data["results"][search]) == 1
