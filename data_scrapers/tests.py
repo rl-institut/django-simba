@@ -280,6 +280,8 @@ class StationSearchTest(StaticLiveServerTestCase):
     def test_stations_search_api(self):
         url = f"{self.live_server_url}{reverse('data_scrapers:busstation_api')}"
         params = {"search_stations": "Alexanderplatz|Alekanderplatz"}
+        # Set follow to true, since in github ci a redirection is triggered.
+        # Only when following the redirection the JSON response is received
         response = self.client.get(url, params, follow=True)
         assert response.status_code == 200, f"Unexpected status code {response.status_code}"
 
