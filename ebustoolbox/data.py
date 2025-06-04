@@ -2,6 +2,7 @@
 
 This way data should be easily swappable, while the dash_layout allows for swapping of the design
 """
+
 import warnings
 import logging
 import datetime
