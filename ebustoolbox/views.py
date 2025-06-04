@@ -33,8 +33,6 @@ from core.models import Progress, EnumProgress
 import core.deepcopy
 from celery.result import AsyncResult
 
-# Unused import of dash_app needed to register app
-from dash_app import dash_app, ids  # noqa: F401
 from django_mapengine.views import MapEngineMixin  # noqa
 from . import tasks, forms
 from .forms import (
@@ -51,7 +49,7 @@ from .import_export import ScenarioJSONImporterExporter, visit_all_scenario_quer
 
 from .util import get_unique_task_id
 
-from dash_app import data
+from . import data
 import ebustoolbox
 import ebustoolbox.tasks
 from ebustoolbox.models import (
@@ -73,8 +71,6 @@ from ebustoolbox.models import (
     StationMutation,
     EnumScenarioType,
 )
-import pandas as pd
-import numpy as np
 
 logger = logging.getLogger("custom")
 
@@ -1351,9 +1347,17 @@ def render_critical_rotations(request, task_id: str):
 
     df = data.get_critical_rotations_as_dataframe(s.id, buses)
 
-    # Return only raw values
+    # Aggregate category counts
+    category_counts = (
+        df["SOC_category"].value_counts().reindex(["Nicht kritisch", "kritisch"], fill_value=0)
+    )
+
     return JsonResponse(
-        {"data": [{"value": row["Count"], "name": row["Category"]} for _, row in df.iterrows()]}
+        {
+            "data": [
+                {"value": count, "name": category} for category, count in category_counts.items()
+            ]
+        }
     )
 
 
@@ -1377,236 +1381,66 @@ def get_soc_data(request, task_id: str):
     """
     Returns SOC (State of Charge) data over time for selected buses in JSON format.
     """
-    s = Scenario.objects.get(task_id=task_id)
-
-    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
-    buses = list(vehicle_name_dict.keys())
-    df = data.get_soc_as_dataframe(s.id, buses)
-
-    selected_columns = df[["V_id", "time_start", "soc_end"]].copy()
-    # Convert 'time_start' to Unix timestamps (in milliseconds) and assign to a new column
-    selected_columns["timestamp"] = (
-        pd.to_datetime(selected_columns["time_start"]).astype(int) // 10**6
-    )
-
-    soc_data = (
-        selected_columns.groupby("V_id")
-        .apply(
-            lambda group: group[["timestamp", "soc_end"]].values.tolist()
-            # Convert each group to a list of [timestamp, soc_end]
-        )
-        .to_dict()
-    )
-
-    response_data = {"data": soc_data}
+    response_data = data.get_soc_as_json(task_id)
 
     return JsonResponse(response_data)
+
+
+def get_binned_soc_data(request, task_id: str):
+    """
+    Returns binned SOC histogram data over time, forward-filled to hourly resolution,
+    ensuring one (the lowest) SOC entry per vehicle per hour.
+    """
+
+    response_data = data.get_binned_soc_as_json(task_id)
+
+    return JsonResponse({"data": response_data})
 
 
 def get_power_draw(request, task_id: str):
     """
     Returns power draw data over time by station ID for selected buses.
     """
-    s = Scenario.objects.get(task_id=task_id)
 
-    buses = request.GET.getlist("buses[]")
-    df = data.get_powerdraw_as_dataframe(s.id, buses)
+    response_data = data.get_power_draw_as_json(request, task_id)
 
-    df["time_start"] = pd.to_datetime(df["time_start"])
-    df["time_end"] = pd.to_datetime(df["time_end"])
-
-    charging_status = []
-
-    all_times = pd.date_range(start=df["time_start"].min(), end=df["time_end"].max(), freq="min")
-
-    for time_point in all_times:
-        charging_vehicles = df[
-            (df["time_start"] <= time_point) & (df["time_end"] > time_point) & (df["Power"] > 0)
-        ]
-        total_power = charging_vehicles["Power"].sum()
-        charging_status.append({"time": time_point.isoformat(), "total_power": total_power})
-
-    return JsonResponse({"data": charging_status})
-
-
-def get_station_occupation(request, task_id: str):
-    """
-    Returns the number of vehicles charging at a station over time.
-    """
-    s = Scenario.objects.get(task_id=task_id)
-
-    df = data.get_powerdraw_as_dataframe(s.id, request.GET.getlist("buses[]"))
-    df["time_start"] = pd.to_datetime(df["time_start"])
-    df["time_end"] = pd.to_datetime(df["time_end"])
-
-    charging_status = []
-
-    all_times = pd.date_range(start=df["time_start"].min(), end=df["time_end"].max(), freq="min")
-    for time_point in all_times:
-        charging_vehicles = (
-            ((df["time_start"] <= time_point) & (df["time_end"] > time_point)) & (df["Power"] > 0)
-        ).sum()
-        charging_status.append(
-            {"time": time_point.isoformat(), "vehicles_charging": charging_vehicles}
-        )
-
-    return JsonResponse({"data": charging_status})
+    return JsonResponse({"data": response_data})
 
 
 def get_gantt_data(request, task_id: str):
-    s = Scenario.objects.get(task_id=task_id)
-
-    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
-    buses = list(vehicle_name_dict.keys())
-    df = data.get_activities_as_dataframe(s.id, buses)
-
-    df["time_start"] = pd.to_datetime(df["time_start"])
-    df["time_end"] = pd.to_datetime(df["time_end"])
-
-    buses = df["V_id"].unique()
-    categories = [f"Bus {bus}" for bus in buses]
-
-    gantt_data = []
-    for _, row in df.iterrows():
-        start_time = int(row["time_start"].timestamp() * 1000)
-        end_time = int(row["time_end"].timestamp() * 1000)
-        duration = row["duration"]
-        bus_index = list(buses).index(row["V_id"])
-
-        gantt_data.append(
-            {
-                "name": row["readable_name"],
-                "value": [bus_index, start_time, end_time, duration],
-                "event_type": row["event_type"],  # Add event type so the frontend can style
-            }
-        )
+    categories, gantt_data = data.get_event_gantt_as_json(task_id)
 
     return JsonResponse({"categories": categories, "data": gantt_data})
 
 
 def get_stats(request, task_id: str):
-    s = Scenario.objects.get(task_id=task_id)
+    response_data = data.get_stats_as_json(task_id)
 
-    filter_dict = dict(task_id=task_id)
-
-    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
-    buses = list(vehicle_name_dict.keys())
-
-    if buses:  # In Presim buses will be None, if later no buses are selected, it will be empty
-        filter_dict["vehicle__id__in"] = buses
-
-    longest_rot = data.get_number_longest_rot(filter_dict.copy())
-    shortest_rot = data.get_number_shortest_rot(filter_dict.copy())
-    num_busses = data.get_number_of_buses(filter_dict.copy())
-    most_freq = data.get_frequently_served_station(task_id)
-
-    dist_df = data.get_distances_as_dataframe(s.id, buses)
-    total_dist = round(dist_df["total_distance"].sum() / 1000, 0)
-
-    stations = s.station_set.all()
-    depots = s.depot_set.all()
-    num_electrified_opps = stations.filter(charge_type=EnumChargeType.OPPORTUNITY).count()
-
-    events = s.event_set.all()
-    # calculate charged energy for all events
-    events = events.annotate(
-        charged=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity")
-    )
-    # sum up charged energy by event type. Default value 0 in case of null values
-    energy_opps = events.filter(event_type=EventType.CHARGING_OPPORTUNITY).aggregate(
-        sum_charged=Coalesce(Sum("charged"), 0.0)
-    )["sum_charged"]
-    energy_deps = events.filter(event_type=EventType.CHARGING_DEPOT).aggregate(
-        sum_charged=Coalesce(Sum("charged"), 0.0)
-    )["sum_charged"]
-
-    resp = {
-        "longest_rotation": longest_rot,
-        "shortest_rotation": shortest_rot,
-        "num_stations": f"{num_electrified_opps} / {len(stations) - len(depots)}",
-        "num_busses": num_busses,
-        "most_frequented": most_freq,
-        "total_dist": total_dist,
-        "total_consumption": np.round(energy_deps + energy_opps, 0),
-        "avg_consumption": "--",
-    }
-    return JsonResponse(resp)
+    return JsonResponse(response_data)
 
 
 def get_speed_hist(request, task_id: str):
-    s = Scenario.objects.get(task_id=task_id)
+    response_data = data.get_speed_hist_as_json(task_id)
 
-    filter_dict = dict(task_id=task_id)
-
-    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
-    buses = list(vehicle_name_dict.keys())
-
-    if buses:  # In Presim buses will be None, if later no buses are selected, it will be empty
-        filter_dict["vehicle__id__in"] = buses
-
-    dur_df = data.get_duration_as_dataframe(s.id, buses)
-    dist_df = data.get_distances_as_dataframe(s.id, buses)
-    # Calculate average speed in km/h
-    dur_df["avg_speed_kmh"] = (dist_df["total_distance"] / 1000) / (dur_df["duration"] / 3600)
-
-    # Set bin width and calculate bins
-    bin_width_kmh = 10
-    max_speed_kmh = dur_df["avg_speed_kmh"].max()
-    bins = np.arange(0, max_speed_kmh + bin_width_kmh, bin_width_kmh)
-    hist, bin_edges = np.histogram(dur_df["avg_speed_kmh"], bins=bins)
-
-    response_data = {
-        "xAxis": {
-            "type": "category",
-            "data": [
-                f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km/h" for i in range(len(bin_edges) - 1)
-            ],
-        },
-        "yAxis": {"type": "value"},
-        "series": [{"data": hist.tolist(), "type": "bar"}],
-    }
     return JsonResponse(response_data)
 
 
 def get_dist_hist(request, task_id: str):
-    s = Scenario.objects.get(task_id=task_id)
+    response_data = data.get_dist_hist_as_json(task_id)
 
-    filter_dict = dict(task_id=task_id)
-
-    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
-    buses = list(vehicle_name_dict.keys())
-
-    if buses:  # In Presim buses will ne None, if later no buses are selected, it will be empty
-        filter_dict["vehicle__id__in"] = buses
-
-    df = data.get_distances_as_dataframe(s.id, buses)
-
-    # Convert total_distance from meters to kilometers
-    df["total_distance_km"] = df["total_distance"] / 1000
-
-    # Set the desired bin width in kilometers
-    bin_width_km = 50
-
-    # Calculate the number of bins based on the bin width
-    max_distance_km = df["total_distance_km"].max()
-
-    # Start bins from zero, and make sure the maximum distance is included in the bins
-    bins = np.arange(0, max_distance_km + bin_width_km, bin_width_km)
-    hist, bin_edges = np.histogram(df["total_distance_km"], bins=bins)
-
-    response_data = {
-        "xaxis_title": "Distanz",
-        "xAxis": {
-            "type": "category",
-            "data": [
-                f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km" for i in range(len(bin_edges) - 1)
-            ],
-        },
-        "yaxis_title": "Abs.Häufigkeit",
-        "yAxis": {"type": "value"},
-        "series": [{"data": hist.tolist(), "type": "bar"}],
-    }
     return JsonResponse(response_data)
+
+
+def get_power_draw_and_occ(request, task_id: str):
+    response_data = data.get_power_draw_and_occ_as_json(task_id)
+
+    return JsonResponse({"data": response_data})
+
+
+def get_soc_gantt(request, task_id: str):
+    vehicles, records = data.get_soc_gantt_as_json(task_id)
+
+    return JsonResponse({"vehicles": vehicles, "records": records})
 
 
 def export_scenario(request, task_id: str):
