@@ -1,7 +1,7 @@
 {% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}WeBus - Ergebnisse{% endblock title %}
+{% block title %} WeBus - Ergebnisse{% endblock title %}
 
 {% block content %}
 <header class="flex flex-col items-center bg-white">
@@ -649,138 +649,138 @@
         </div>
     </div>
   </div>
-<div id="dataFetchedFinished" value="0"></div>
+<div id="dataFetchedFinished" data-value="0"></div>
 </main>
 {% endblock content %}
 
 {% block script %}
 <script>
     // eCharts functionality
-    const taskId = document.getElementById("task-id").value;
-    //console.log("Simulation ID:", taskId);
+  const taskId = document.getElementById("task-id").value;
+  //console.log("Simulation ID:", taskId);
 
-    function fetchAndRenderPieChart(chartName, chartId, titleText) {
-        fetch(`/simba/result/${taskId}/${chartName}/`)
+  function fetchAndRenderPieChart(chartName, chartId, titleText) {
+        return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
                 // Filter out categories with zero values
                 const chartData = (data.data || []).filter(item => item.value > 0);
 
-                const chart = echarts.init(document.getElementById(chartId));
+  const chart = echarts.init(document.getElementById(chartId));
 
-                const options = {
-                    title: {
-                        text: titleText,
-                        left: 'center',
-                        textStyle: {
-                            fontSize: 16,
-                            fontWeight: 'bold'
+  const options = {
+    title: {
+    text: titleText,
+  left: 'center',
+  textStyle: {
+    fontSize: 16,
+  fontWeight: 'bold'
                         }
                     },
-                    tooltip: {
-                        trigger: 'item',
-                        formatter: '{b}: {c} ({d}%)'
+  tooltip: {
+    trigger: 'item',
+  formatter: '{b}: {c} ({d}%)'
                     },
-                    legend: {
-                        orient: 'vertical',
-                        left: 'left'
+  legend: {
+    orient: 'vertical',
+  left: 'left'
                     },
-                    series: [{
-                        name: titleText,
-                        type: 'pie',
-                        radius: '50%',
-                        data: chartData,  // Use the filtered data without zero values
-                        label: {
-                            show: true  // Always show labels
+  series: [{
+    name: titleText,
+  type: 'pie',
+  radius: '50%',
+  data: chartData,  // Use the filtered data without zero values
+  label: {
+    show: true  // Always show labels
                         },
-                        labelLine: {
-                            show: true  // Always show label lines
+  labelLine: {
+    show: true  // Always show label lines
                         },
-                        emphasis: {
-                            itemStyle: {
-                                shadowBlur: 10,
-                                shadowOffsetX: 0,
-                                shadowColor: 'rgba(0, 0, 0, 0.5)'
+  emphasis: {
+    itemStyle: {
+    shadowBlur: 10,
+  shadowOffsetX: 0,
+  shadowColor: 'rgba(0, 0, 0, 0.5)'
                             }
                         }
                     }]
                 };
 
-                chart.setOption(options);
+  chart.setOption(options);
             });
     }
-    function fetchAndRenderLineChart(chartName, chartId, titleText, xKey, yKey) {
+  function fetchAndRenderLineChart(chartName, chartId, titleText, xKey, yKey) {
 
-        fetch(`/simba/result/${taskId}/${chartName}/`)
+        return fetch(`/simba/result/${taskId}/${chartName}/`)
         .then(response => response.json())
         .then(data => {
 
             const chart = echarts.init(document.getElementById(chartId));
 
-            // Prepare the series data for each bus (V_id)
-            var seriesData = [];
-            for (let v_id in data.data) {
-                let busData = data.data[v_id];
-                seriesData.push({
-                    name: `Bus ${v_id}`, // Name for the legend
-                    type: 'line',
-                    data: busData, // The actual time-series data for this bus
-                    smooth: false
+  // Prepare the series data for each bus (V_id)
+  var seriesData = [];
+  for (let v_id in data.data) {
+    let busData = data.data[v_id];
+  seriesData.push({
+    name: `Bus ${v_id}`, // Name for the legend
+  type: 'line',
+  data: busData, // The actual time-series data for this bus
+  smooth: false
                 });
             }
 
-            var options = {
-                title: {
-                    text: titleText,
-                    left: 'center',
-                    textStyle: {
-                        fontSize: 16,
-                        fontWeight: 'bold'
+  var options = {
+    title: {
+    text: titleText,
+  left: 'center',
+  textStyle: {
+    fontSize: 16,
+  fontWeight: 'bold'
                     }
                 },
-                tooltip: {
-                    trigger: 'axis',
-                    formatter: function (params) {
+  tooltip: {
+    trigger: 'axis',
+  formatter: function (params) {
                         const timestamp = params[0].value[0]; // Unix timestamp
-                        const soc = params[0].value[1] *100 ; // SOC value
-                        const date = new Date(timestamp);
-                        return `${date.toLocaleString()} : ${soc.toFixed(2)}%`; // Format the tooltip
+  const soc = params[0].value[1] *100 ; // SOC value
+  const date = new Date(timestamp);
+  return `${date.toLocaleString()} : ${soc.toFixed(2)}%`; // Format the tooltip
                     }
                 },
-                xAxis: {
-                    type: 'time',
-                    name: 'Zeit',
-                    splitNumber: 4,
-                    axisLabel: {
-                        formatter: function (value) {
+  xAxis: {
+    type: 'time',
+  name: 'Zeit',
+  splitNumber: 4,
+  axisLabel: {
+    formatter: function (value) {
                             const date = new Date(value);
-                            return date.toLocaleString(); // Format x-axis labels
+  return date.toLocaleString(); // Format x-axis labels
                         },
-                        rotate: 0
+  rotate: 0
                     }
                 },
-                yAxis: {
-                    type: 'value',
-                    name: 'SOC (%)',
-                    min: -0.2,
-                    max: 1.0,
-                    axisLabel: {
-                        formatter: function (value) {
+  yAxis: {
+    type: 'value',
+  name: 'SOC (%)',
+  min: -0.2,
+  max: 1.0,
+  axisLabel: {
+    formatter: function (value) {
                             return value * 100; // Format x-axis labels
                         }
                     }
                 },
-                legend: {
-                    show: false // Disables the legend
+  legend: {
+    show: false // Disables the legend
                 },
-                series: seriesData
+  series: seriesData
             };
 
-            chart.setOption(options);
+  chart.setOption(options);
         });
     }
-    function fetchAndRenderDepotChart(chartName, chartId, titleText, xKey, yKey) {
-        fetch(`/simba/result/${taskId}/${chartName}/`)
+  function fetchAndRenderDepotChart(chartName, chartId, titleText, xKey, yKey) {
+        return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(responseData => {
                 const rawData = responseData.data;
@@ -791,230 +791,230 @@
                 const occupancyCharging = rawData.map(row => row.occupancy_charging);
                 const occupancyTotal = rawData.map(row => row.occupancy_total);
 
-                const chart = echarts.init(document.getElementById(chartId));
+  const chart = echarts.init(document.getElementById(chartId));
 
-                const options = {
-                    title: {
-                        text: titleText,
-                        left: 'center',
-                        textStyle: {
-                            fontSize: 16,
-                            fontWeight: 'bold'
+  const options = {
+    title: {
+    text: titleText,
+  left: 'center',
+  textStyle: {
+    fontSize: 16,
+  fontWeight: 'bold'
                         }
                     },
-                    stateAnimation: {
-                        duration: 300,
-                        easing: 'cubicOut'
+  stateAnimation: {
+    duration: 300,
+  easing: 'cubicOut'
                     },
-                    tooltip: {
-                        trigger: 'axis',
-                        formatter: function (params) {
+  tooltip: {
+    trigger: 'axis',
+  formatter: function (params) {
                             // params is an array of series values at the hovered x-value
                             const dateStr = params[0].axisValue;  // assuming all share the same x-axis value (time)
-                            const date = new Date(dateStr);
-                            const formattedDate = date.toLocaleString('en-GB', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                hour12: false
+  const date = new Date(dateStr);
+  const formattedDate = date.toLocaleString('en-GB', {
+    day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false
                             });
 
-                            let tooltipContent = `<strong>${formattedDate}</strong><br/>`;
+  let tooltipContent = `<strong>${formattedDate}</strong><br />`;
                             params.forEach(item => {
-                                let value = item.value;
-                                if (item.seriesName === 'Ladeleistung (kW)') {
-                                    value = parseFloat(value).toFixed(2);
+    let value = item.value;
+  if (item.seriesName === 'Ladeleistung (kW)') {
+    value = parseFloat(value).toFixed(2);
                                 }
-                                tooltipContent += `${item.marker} ${item.seriesName}: ${value}<br/>`;
+  tooltipContent += `${item.marker} ${item.seriesName}: ${value}<br />`;
                             });
-                            return tooltipContent;
+  return tooltipContent;
                         }
                     },
-                    xAxis: {
-                        type: 'category',
-                        data: times
+  xAxis: {
+    type: 'category',
+  data: times
                     },
-                    yAxis: [
-                        {
-                            type: 'value',
-                            name: 'Belegung',
-                            position: 'left'
+  yAxis: [
+  {
+    type: 'value',
+  name: 'Belegung',
+  position: 'left'
                         },
-                        {
-                            type: 'value',
-                            name: 'Ladeleistung (kW)',
-                            position: 'right'
+  {
+    type: 'value',
+  name: 'Ladeleistung (kW)',
+  position: 'right'
                         }
-                    ],
-                    series: [
-                        {
-                            name: 'Ladeleistung (kW)',
-                            type: 'line',
-                            data: powers,
-                            yAxisIndex: 1,
-                            lineStyle: {
-                                width: 3
+  ],
+  series: [
+  {
+    name: 'Ladeleistung (kW)',
+  type: 'line',
+  data: powers,
+  yAxisIndex: 1,
+  lineStyle: {
+    width: 3
                             },
-                            emphasis: {
-                                focus: 'series',
+  emphasis: {
+    focus: 'series',
                             }
                         },
-                        {
-                            name: 'Belegung ladend',
-                            type: 'line',
-                            data: occupancyCharging,
-                            yAxisIndex: 0,
-                            lineStyle: {
-                                width: 3
+  {
+    name: 'Belegung ladend',
+  type: 'line',
+  data: occupancyCharging,
+  yAxisIndex: 0,
+  lineStyle: {
+    width: 3
                             },
-                            emphasis: {
-                                focus: 'series',
+  emphasis: {
+    focus: 'series',
                             }
                         },
-                        {
-                            name: 'Belegung total',
-                            type: 'line',
-                            data: occupancyTotal,
-                            yAxisIndex: 0,
-                            lineStyle: {
-                                width: 3
+  {
+    name: 'Belegung total',
+  type: 'line',
+  data: occupancyTotal,
+  yAxisIndex: 0,
+  lineStyle: {
+    width: 3
                             },
-                            emphasis: {
-                                focus: 'series',
+  emphasis: {
+    focus: 'series',
                             }
                         }
-                    ]
+  ]
                 };
 
-                chart.setOption(options);
+  chart.setOption(options);
             })
             .catch(error => {
-                console.error('Error fetching or rendering chart:', error);
+    console.error('Error fetching or rendering chart:', error);
             });
     }
-    function fetchAndRenderGanttChart(chartName, chartId, titleText) {
+  function fetchAndRenderGanttChart(chartName, chartId, titleText) {
 
         const EVENT_COLORS = {
-            DRIVING: "#d9534f",
-            CHARGING_OPPORTUNITY: "#32d682",
-            CHARGING_DEPOT: "#75df74",
-            SERVICE: "#e0bc78",
-            STANDBY_DEPARTURE: "#9e85e1",
-            PRECONDITIONING: "#f4a261",
-            STANDBY: "#bb33ff"
+    DRIVING: "#d9534f",
+  CHARGING_OPPORTUNITY: "#32d682",
+  CHARGING_DEPOT: "#75df74",
+  SERVICE: "#e0bc78",
+  STANDBY_DEPARTURE: "#9e85e1",
+  PRECONDITIONING: "#f4a261",
+  STANDBY: "#bb33ff"
         };
 
-        fetch(`/simba/result/${taskId}/${chartName}/`)
+  return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
                 const categories = data.categories;  // Array of bus categories
-                const ganttData = data.data;         // Array of Gantt data
+  const ganttData = data.data;         // Array of Gantt data
 
 
-                const totalVehicles = categories.length;
-                const visibleTracks = 10;
-                const visiblePercent = (visibleTracks / totalVehicles) * 100;
+  const totalVehicles = categories.length;
+  const visibleTracks = 10;
+  const visiblePercent = (visibleTracks / totalVehicles) * 100;
 
-                // Prepare ECharts option
-                const option = {
-                    tooltip: {
-                        formatter: function (params) {
+  // Prepare ECharts option
+  const option = {
+    tooltip: {
+    formatter: function (params) {
                             const eventType = params.value[5];  // event_type is at index 5
-                            const color = EVENT_COLORS[eventType] || '#000';
+  const color = EVENT_COLORS[eventType] || '#000';
 
-                            const marker = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
-                            const startTime = new Date(params.value[1]);
-                            const endTime = new Date(params.value[2]);
+  const marker = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
+  const startTime = new Date(params.value[1]);
+  const endTime = new Date(params.value[2]);
 
-                            return `${marker}${params.name}: ${startTime.toISOString()} - ${endTime.toISOString()} (${params.value[3]} ms)`;
+  return `${marker}${params.name}: ${startTime.toISOString()} - ${endTime.toISOString()} (${params.value[3]} ms)`;
                         }
                     },
-                    title: {
-                        text: 'Bus-Einsatz-Zeitplan',
-                        left: 'center'
+  title: {
+    text: 'Bus-Einsatz-Zeitplan',
+  left: 'center'
                     },
-                    dataZoom: [
-                        {
-                            type: 'slider',
-                            filterMode: 'weakFilter',
-                            showDataShadow: false,
-                            top: 550,
-                            labelFormatter: ''
+  dataZoom: [
+  {
+    type: 'slider',
+  filterMode: 'weakFilter',
+  showDataShadow: false,
+  top: 550,
+  labelFormatter: ''
                         },
-                        {
-                            type: 'inside',
-                            filterMode: 'weakFilter'
+  {
+    type: 'inside',
+  filterMode: 'weakFilter'
                         },
-                        {
-                            type: 'slider',
-                            yAxisIndex: 0,
-                            zoomLock: false,
-                            width: 40,
-                            right: 65,
-                            top: 50,
-                            bottom: 110,
-                            start: 0,
-                            end: visiblePercent,
-                            handleSize: 30,
-                            showDetail: false
+  {
+    type: 'slider',
+  yAxisIndex: 0,
+  zoomLock: false,
+  width: 40,
+  right: 65,
+  top: 50,
+  bottom: 110,
+  start: 0,
+  end: visiblePercent,
+  handleSize: 30,
+  showDetail: false
                         },
-                        {
-                            type: 'inside',
-                            id: 'insideY',
-                            yAxisIndex: 0,
-                            start: 100 - visiblePercent,
-                            end: 100,
-                            zoomOnMouseWheel: false,
-                            moveOnMouseMove: true,
-                            moveOnMouseWheel: true
+  {
+    type: 'inside',
+  id: 'insideY',
+  yAxisIndex: 0,
+  start: 100 - visiblePercent,
+  end: 100,
+  zoomOnMouseWheel: false,
+  moveOnMouseMove: true,
+  moveOnMouseWheel: true
                         }
-                    ],
-                    tooltip: {
-                        formatter: function (params) {
+  ],
+  tooltip: {
+    formatter: function (params) {
                             const eventType = params.value[5];
-                            const color = EVENT_COLORS[eventType] || '#000';
+  const color = EVENT_COLORS[eventType] || '#000';
 
-                            const marker = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
-                            const startTime = new Date(params.value[1]);
-                            const endTime = new Date(params.value[2]);
-                            const durationMs = params.value[3];
+  const marker = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
+  const startTime = new Date(params.value[1]);
+  const endTime = new Date(params.value[2]);
+  const durationMs = params.value[3];
 
                             const formatDate = (date) => {
                                 const pad = n => String(n).padStart(2, '0');
-                                return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
                             };
 
-                            const durationFraction = durationMs / (60 * 60);
+  const durationFraction = durationMs / (60 * 60);
                             const formatFractionToHHmm = (fraction) => {
                                 const hours = Math.floor(fraction);
-                                const minutes = Math.round((fraction % 1) * 60);
+  const minutes = Math.round((fraction % 1) * 60);
                                 const pad = n => String(n).padStart(2, '0');
-                                return `${pad(hours)}:${pad(minutes)}`;
+  return `${pad(hours)}:${pad(minutes)}`;
                             };
-                            const durationFormatted = formatFractionToHHmm(durationFraction);
+  const durationFormatted = formatFractionToHHmm(durationFraction);
 
-                            return `${marker}${params.name}<br>${formatDate(startTime)} - Dauer: ${durationFormatted} h`;
+  return `${marker}${params.name}<br>${formatDate(startTime)} - Dauer: ${durationFormatted} h`;
                         }
                     },
-                    grid: {
-                        height: '70%'  // Adjust grid height for more space
+    grid: {
+      height: '70%'  // Adjust grid height for more space
                     },
-                    xAxis: {
-                        type: 'time',
-                        splitNumber: 4,  // Try to limit to 6 ticks across the chart
-                        axisLabel: {
-                            formatter: function (val) {
+    xAxis: {
+      type: 'time',
+    splitNumber: 4,  // Try to limit to 6 ticks across the chart
+    axisLabel: {
+      formatter: function (val) {
                                 const date = new Date(val);
-                                const hours = String(date.getHours()).padStart(2, '0');
-                                const minutes = String(date.getMinutes()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
 
-                                const isoDate = date.toISOString().slice(0, 10);
-                                const time = `${hours}:${minutes}`;
+    const isoDate = date.toISOString().slice(0, 10);
+    const time = `${hours}:${minutes}`;
 
-                                const totalZoomRange = chart.getModel().getComponent('xAxis').axis.scale._extent;
-                                const zoomWindow = totalZoomRange[1] - totalZoomRange[0];
+    const totalZoomRange = chart.getModel().getComponent('xAxis').axis.scale._extent;
+    const zoomWindow = totalZoomRange[1] - totalZoomRange[0];
 
                                 if (zoomWindow > 3 * 24 * 3600 * 1000) {
                                     return isoDate;
@@ -1024,290 +1024,290 @@
                                     return time;
                                 }
                             },
-                            rotate: 0  // You can override this below
+    rotate: 0  // You can override this below
                         }
                     },
-                    yAxis: {
-                        type: 'category',
-                        inverse: true,
-                        data: categories,
-                        // Ensure enough space for each category (bus)
-                        axisLabel: {
-                            interval: 0,  // Display all bus labels
-                            formatter: function (value) {
+    yAxis: {
+      type: 'category',
+    inverse: true,
+    data: categories,
+    // Ensure enough space for each category (bus)
+    axisLabel: {
+      interval: 0,  // Display all bus labels
+    formatter: function (value) {
                                 return value;  // Keep the category labels (bus names) as they are
                             }
                         },
-                        axisTick: {
-                            show: false  // Hide ticks to save space
+    axisTick: {
+      show: false  // Hide ticks to save space
                         },
-                        splitLine: {
-                            show: false  // Hide grid lines between categories
+    splitLine: {
+      show: false  // Hide grid lines between categories
                         }
                     },
-                    series: [
-                        {
-                            type: 'custom',
-                            renderItem: function (params, api) {
+    series: [
+    {
+      type: 'custom',
+    renderItem: function (params, api) {
                                 const categoryIndex = api.value(0);
-                                const start = api.coord([api.value(1), categoryIndex]);
-                                const end = api.coord([api.value(2), categoryIndex]);
+    const start = api.coord([api.value(1), categoryIndex]);
+    const end = api.coord([api.value(2), categoryIndex]);
 
-                                const size = api.size([0, 1]);
-                                const dynamicHeight = size[1] * 0.8;
+    const size = api.size([0, 1]);
+    const dynamicHeight = size[1] * 0.8;
 
-                                const rectShape = echarts.graphic.clipRectByRect(
-                                    {
-                                        x: start[0],
-                                        y: start[1] - dynamicHeight / 2,
-                                        width: end[0] - start[0],
-                                        height: dynamicHeight
+    const rectShape = echarts.graphic.clipRectByRect(
+    {
+      x: start[0],
+    y: start[1] - dynamicHeight / 2,
+    width: end[0] - start[0],
+    height: dynamicHeight
                                     },
-                                    {
-                                        x: params.coordSys.x,
-                                        y: params.coordSys.y,
-                                        width: params.coordSys.width,
-                                        height: params.coordSys.height
+    {
+      x: params.coordSys.x,
+    y: params.coordSys.y,
+    width: params.coordSys.width,
+    height: params.coordSys.height
                                     }
-                                );
+    );
 
-                                const eventType = api.value(5);  // event_type is at index 5 in value array
-                                const color = EVENT_COLORS[eventType] || "#000000";
+    const eventType = api.value(5);  // event_type is at index 5 in value array
+    const color = EVENT_COLORS[eventType] || "#000000";
 
-                                return rectShape && {
-                                    type: 'rect',
-                                    transition: ['shape'],
-                                    shape: rectShape,
-                                    style: api.style({ fill: color })
+    return rectShape && {
+      type: 'rect',
+    transition: ['shape'],
+    shape: rectShape,
+    style: api.style({fill: color })
                                 };
                             },
-                            itemStyle: {
-                                opacity: 0.8
+    itemStyle: {
+      opacity: 0.8
                             },
-                            encode: {
-                                x: [1, 2],   // Start and end
-                                y: 0,        // Bus index
-                                itemName: 5  // This will be used in tooltip (readable name)
+    encode: {
+      x: [1, 2],   // Start and end
+    y: 0,        // Bus index
+    itemName: 5  // This will be used in tooltip (readable name)
                             },
                             data: ganttData.map(d => [...d.value, d.name, d.event_type]) // Add name + event_type into the value array
                         }
-                    ]
+    ]
                 };
 
-                // Initialize ECharts instance and set option
-                const chart = echarts.init(document.getElementById(chartId));
-                chart.setOption(option);
+    // Initialize ECharts instance and set option
+    const chart = echarts.init(document.getElementById(chartId));
+    chart.setOption(option);
             })
             .catch(error => console.error('Error loading Gantt data:', error));
     }
     function fetchAndRenderGanttChartSOC(chartName, chartId, titleText) {
-        fetch(`/simba/result/${taskId}/${chartName}/`)
+        return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
 
                 const vehicles = data.vehicles;
-                const records = data.records;
+    const records = data.records;
 
                 const vehicleIndex = Object.fromEntries(vehicles.map((v, i) => [v, i]));
 
-                const totalVehicles = vehicles.length;
-                const visibleTracks = 10;
-                const visiblePercent = (visibleTracks / totalVehicles) * 100;
+    const totalVehicles = vehicles.length;
+    const visibleTracks = 10;
+    const visiblePercent = (visibleTracks / totalVehicles) * 100;
 
-                const viridisAnchors = [
-                  '#440154', // dark purple
-                  '#414487', // indigo
-                  '#2a788e', // teal
-                  '#22a884', // green
-                  '#fde725'  // yellow
-                ];
+    const viridisAnchors = [
+    '#440154', // dark purple
+    '#414487', // indigo
+    '#2a788e', // teal
+    '#22a884', // green
+    '#fde725'  // yellow
+    ];
 
-                function hexToRgb(hexString) {
+    function hexToRgb(hexString) {
                     const bigint = parseInt(hexString.slice(1), 16);
-                    return {
-                        r: (bigint >> 16) & 255,
+    return {
+      r: (bigint >> 16) & 255,
                         g: (bigint >> 8) & 255,
-                        b: bigint & 255
+    b: bigint & 255
                     };
                 }
 
-                function interpolateColor(color1, color2, factor) {
+    function interpolateColor(color1, color2, factor) {
                     const rgb1 = hexToRgb(color1);
-                    const rgb2 = hexToRgb(color2);
-                    const r = Math.round(rgb1.r + (rgb2.r - rgb1.r) * factor);
-                    const g = Math.round(rgb1.g + (rgb2.g - rgb1.g) * factor);
-                    const b = Math.round(rgb1.b + (rgb2.b - rgb1.b) * factor);
-                    return `rgb(${r}, ${g}, ${b})`;
+    const rgb2 = hexToRgb(color2);
+    const r = Math.round(rgb1.r + (rgb2.r - rgb1.r) * factor);
+    const g = Math.round(rgb1.g + (rgb2.g - rgb1.g) * factor);
+    const b = Math.round(rgb1.b + (rgb2.b - rgb1.b) * factor);
+    return `rgb(${r}, ${g}, ${b})`;
                 }
 
-                function socToColor(soc) {
+    function socToColor(soc) {
                     if (soc < 0)
-                        return "red";
+    return "red";
 
-                  const anchors = viridisAnchors;
-                  const n = anchors.length - 1;
-                  const scaled = soc * n;
-                  const index = Math.floor(scaled);
-                  const factor = scaled - index;
+    const anchors = viridisAnchors;
+    const n = anchors.length - 1;
+    const scaled = soc * n;
+    const index = Math.floor(scaled);
+    const factor = scaled - index;
 
                   if (index >= n) return anchors[n];
-                  return interpolateColor(anchors[index], anchors[index + 1], factor);
+    return interpolateColor(anchors[index], anchors[index + 1], factor);
                 }
 
 
-                const series = {
-                    type: 'custom',
-                    renderItem: function (params, api) {
+    const series = {
+      type: 'custom',
+    renderItem: function (params, api) {
                         const categoryIndex = api.value(0);
-                        const start = api.coord([api.value(1), categoryIndex]);
-                        const end = api.coord([api.value(2), categoryIndex]);
-                        const height = api.size([0, 1])[1] * 0.8; // Control bar height
+    const start = api.coord([api.value(1), categoryIndex]);
+    const end = api.coord([api.value(2), categoryIndex]);
+    const height = api.size([0, 1])[1] * 0.8; // Control bar height
 
-                        // Calculate gradient color based on soc_start and soc_end
-                        const colorStart = socToColor(api.value(3));  // Color at start of SoC
-                        const colorEnd = socToColor(api.value(4));    // Color at end of SoC
+    // Calculate gradient color based on soc_start and soc_end
+    const colorStart = socToColor(api.value(3));  // Color at start of SoC
+    const colorEnd = socToColor(api.value(4));    // Color at end of SoC
 
-                        return {
-                            type: 'rect',
-                            shape: {
-                                x: start[0],
-                                y: start[1] - height / 2,
-                                width: end[0] - start[0],
-                                height: height
+    return {
+      type: 'rect',
+    shape: {
+      x: start[0],
+    y: start[1] - height / 2,
+    width: end[0] - start[0],
+    height: height
                             },
-                            style: {
-                                // Use a linear gradient between the two colors
-                                fill: {
-                                    type: 'linear',
-                                    x: 0, y: 0, x2: 1, y2: 0, // Horizontal gradient
-                                    colorStops: [
-                                        { offset: 0, color: colorStart },
-                                        { offset: 1, color: colorEnd }
-                                    ]
+    style: {
+      // Use a linear gradient between the two colors
+      fill: {
+      type: 'linear',
+    x: 0, y: 0, x2: 1, y2: 0, // Horizontal gradient
+    colorStops: [
+    {offset: 0, color: colorStart },
+    {offset: 1, color: colorEnd }
+    ]
                                 }
                             }
                         };
                     },
-                    encode: {
-                        x: [1, 2], // Start, End times
-                        y: 0       // Category index for vehicle
+    encode: {
+      x: [1, 2], // Start, End times
+    y: 0       // Category index for vehicle
                     },
                     // Data for each vehicle's SoC record
                     data: records.map(d => [
-                        vehicleIndex[d.vehicle],           // Vehicle index
-                        +new Date(d.start),                // Start time in milliseconds
-                        +new Date(d.end),                  // End time in milliseconds
-                        d.soc_start,                       // soc_start value
-                        d.soc_end                          // soc_end value
-                    ])
+    vehicleIndex[d.vehicle],           // Vehicle index
+    +new Date(d.start),                // Start time in milliseconds
+    +new Date(d.end),                  // End time in milliseconds
+    d.soc_start,                       // soc_start value
+    d.soc_end                          // soc_end value
+    ])
                 };
 
-                // Set up the chart options
-                const chart = echarts.init(document.getElementById(chartId)); // Use chartId passed
+    // Set up the chart options
+    const chart = echarts.init(document.getElementById(chartId)); // Use chartId passed
 
-                chart.setOption({
-                    tooltip: {
-                        formatter: function (params) {
+    chart.setOption({
+      tooltip: {
+      formatter: function (params) {
                             const socStart = (params.value[3] * 100).toFixed(2);
-                            const socEnd = (params.value[4] * 100).toFixed(2);
+    const socEnd = (params.value[4] * 100).toFixed(2);
 
                             const formatDate = (date) => {
                                 const d = new Date(date);
                                 const pad = n => String(n).padStart(2, '0');
-                                return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
                             };
 
-                            const startFormatted = formatDate(params.value[1]);
-                            const endFormatted = formatDate(params.value[2]);
+    const startFormatted = formatDate(params.value[1]);
+    const endFormatted = formatDate(params.value[2]);
 
-                            return `${vehicles[params.value[0]]}<br/>
-                                    ${startFormatted} → ${endFormatted}<br/>
-                                    SoC: ${socStart}% → ${socEnd}%`;
+    return `${vehicles[params.value[0]]}<br />
+    ${startFormatted} → ${endFormatted}<br />
+    SoC: ${socStart}% → ${socEnd}%`;
                         }
                     },
-                    title: {
-                        text: titleText,
-                        left: 'center'
+    title: {
+      text: titleText,
+    left: 'center'
                     },
-                    dataZoom: [
-                        {
-                            type: 'slider',
-                            filterMode: 'weakFilter',
-                            showDataShadow: false,
-                            top: 550,
-                            labelFormatter: ''
+    dataZoom: [
+    {
+      type: 'slider',
+    filterMode: 'weakFilter',
+    showDataShadow: false,
+    top: 550,
+    labelFormatter: ''
                         },
-                        {
-                            type: 'inside',
-                            filterMode: 'weakFilter'
+    {
+      type: 'inside',
+    filterMode: 'weakFilter'
                         },
-                        {
-                            type: 'slider',
-                            yAxisIndex: 0,
-                            zoomLock: false,
-                            width: 40,
-                            right: 65,
-                            top: 50,
-                            bottom: 110,
-                            start: 100 - visiblePercent,
-                            end: 100,
-                            handleSize: 30,
-                            showDetail: false
+    {
+      type: 'slider',
+    yAxisIndex: 0,
+    zoomLock: false,
+    width: 40,
+    right: 65,
+    top: 50,
+    bottom: 110,
+    start: 100 - visiblePercent,
+    end: 100,
+    handleSize: 30,
+    showDetail: false
                         },
-                        {
-                            type: 'inside',
-                            id: 'insideY',
-                            yAxisIndex: 0,
-                            start: 100 - visiblePercent,
-                            end: 100,
-                            zoomOnMouseWheel: false,
-                            moveOnMouseMove: true,
-                            moveOnMouseWheel: true
+    {
+      type: 'inside',
+    id: 'insideY',
+    yAxisIndex: 0,
+    start: 100 - visiblePercent,
+    end: 100,
+    zoomOnMouseWheel: false,
+    moveOnMouseMove: true,
+    moveOnMouseWheel: true
                         }
-                    ],
-                    visualMap: {
-                        type: 'continuous',
-                        min: 0,
-                        max: 1,
-                        calculable: false,
-                        orient: 'horizontal',
-                        left: 'center',
-                        bottom: 60,
-                        inRange: {
-                            color: [
-                                '#440154',
-                                '#414487',
-                                '#2a788e',
-                                '#22a884',
-                                '#fde725'  // SoC 1
-                            ]
+    ],
+    visualMap: {
+      type: 'continuous',
+    min: 0,
+    max: 1,
+    calculable: false,
+    orient: 'horizontal',
+    left: 'center',
+    bottom: 60,
+    inRange: {
+      color: [
+    '#440154',
+    '#414487',
+    '#2a788e',
+    '#22a884',
+    '#fde725'  // SoC 1
+    ]
                         },
-                        formatter: function (value) {
+    formatter: function (value) {
                             return `${(value * 100).toFixed(0)}%`;
                         },
-                        text: ['100%', '0%'],
-                        itemHeight: 500,
-                        itemWidth: 35
+    text: ['100%', '0%'],
+    itemHeight: 500,
+    itemWidth: 35
                     },
-                    grid: {
-                        height: '70%',  // Adjust grid height for more space
-                        containLabel: true,
-                        left: '20px'
+    grid: {
+      height: '70%',  // Adjust grid height for more space
+    containLabel: true,
+    left: '20px'
                     },
-                    xAxis: {
-                        type: 'time',
-                        splitNumber: 4,  // Try to limit to 6 ticks across the chart
-                        axisLabel: {
-                            formatter: function (val) {
+    xAxis: {
+      type: 'time',
+    splitNumber: 4,  // Try to limit to 6 ticks across the chart
+    axisLabel: {
+      formatter: function (val) {
                                 const date = new Date(val);
-                                const hours = String(date.getHours()).padStart(2, '0');
-                                const minutes = String(date.getMinutes()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
 
-                                const isoDate = date.toISOString().slice(0, 10);
-                                const time = `${hours}:${minutes}`;
+    const isoDate = date.toISOString().slice(0, 10);
+    const time = `${hours}:${minutes}`;
 
-                                const totalZoomRange = chart.getModel().getComponent('xAxis').axis.scale._extent;
-                                const zoomWindow = totalZoomRange[1] - totalZoomRange[0];
+    const totalZoomRange = chart.getModel().getComponent('xAxis').axis.scale._extent;
+    const zoomWindow = totalZoomRange[1] - totalZoomRange[0];
 
                                 if (zoomWindow > 3 * 24 * 3600 * 1000) {
                                     return isoDate;
@@ -1317,290 +1317,300 @@
                                     return time;
                                 }
                             },
-                            rotate: 0  // You can override this below
+    rotate: 0  // You can override this below
                         }
                     },
-                    yAxis: {
-                        type: 'category',
-                        data: vehicles,
-                        // Ensure enough space for each category (bus)
-                        axisLabel: {
-                            interval: 0,  // Display all bus labels
-                            formatter: function (value) {
+    yAxis: {
+      type: 'category',
+    data: vehicles,
+    // Ensure enough space for each category (bus)
+    axisLabel: {
+      interval: 0,  // Display all bus labels
+    formatter: function (value) {
                                 return value;  // Keep the category labels (bus names) as they are
                             }
                         },
-                        axisTick: {
-                            show: false  // Hide ticks to save space
+    axisTick: {
+      show: false  // Hide ticks to save space
                         },
-                        splitLine: {
-                            show: false  // Hide grid lines between categories
+    splitLine: {
+      show: false  // Hide grid lines between categories
                         }
                     },
-                    series: [series]
+    series: [series]
                 });
             })
             .catch(error => {
-                console.error('Error fetching or rendering SOC Gantt chart:', error);
+      console.error('Error fetching or rendering SOC Gantt chart:', error);
             });
     }
     function fetchAndRenderStats(chartName, chartId, titleText) {
 
-        fetch(`/simba/result/${taskId}/${chartName}/`)
+        return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
 
-                document.getElementById('longest_rotation').textContent = data.longest_rotation;
-                document.getElementById('shortest_rotation').textContent = data.shortest_rotation;
-                document.getElementById('total_dist').textContent = data.total_dist;
+      document.getElementById('longest_rotation').textContent = data.longest_rotation;
+    document.getElementById('shortest_rotation').textContent = data.shortest_rotation;
+    document.getElementById('total_dist').textContent = data.total_dist;
 
-                document.getElementById('num_stations').textContent = data.num_stations;
-                document.getElementById('num_busses').textContent = data.num_busses;
-                document.getElementById('most_frequented').textContent = data.most_frequented;
+    document.getElementById('num_stations').textContent = data.num_stations;
+    document.getElementById('num_busses').textContent = data.num_busses;
+    document.getElementById('most_frequented').textContent = data.most_frequented;
 
-                document.getElementById('total_consumption').textContent = data.total_consumption;
-                document.getElementById('avg_consumption').textContent = data.avg_consumption;
-                document.getElementById('installed_power').textContent = data.installed_power;
+    document.getElementById('total_consumption').textContent = data.total_consumption;
+    document.getElementById('avg_consumption').textContent = data.avg_consumption;
+    document.getElementById('installed_power').textContent = data.installed_power;
 
-                document.getElementById('depots-anzahl-stellplaetze').textContent = data.num_busses;
-                document.getElementById('depots-energie').textContent = data.depot_energy;
-                document.getElementById('depots-spitzenleistung').textContent = data.peak_depot_power;
+    document.getElementById('depots-anzahl-stellplaetze').textContent = data.num_busses;
+    document.getElementById('depots-energie').textContent = data.depot_energy;
+    document.getElementById('depots-spitzenleistung').textContent = data.peak_depot_power;
             })
             .catch(error => {
-                console.error('Error fetching statistics:', error);
+      console.error('Error fetching statistics:', error);
             });
     };
     function fetchAndRenderStackedHistogram(chartName, chartId, titleText) {
-        fetch(`/simba/result/${taskId}/${chartName}/`)
+        return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
-                    console.error("Error loading histogram data:", data.error);
-                    return;
+      console.error("Error loading histogram data:", data.error);
+    return;
                 }
 
-                const chart = echarts.init(document.getElementById(chartId));
-                chart.setOption({
-                    title: {
-                        text: titleText,
-                        left: 'center',
-                        top: 20,
-                        textStyle: { fontSize: 18 }
+    const chart = echarts.init(document.getElementById(chartId));
+    chart.setOption({
+      title: {
+      text: titleText,
+    left: 'center',
+    top: 20,
+    textStyle: {fontSize: 18 }
                     },
-                    tooltip: {
-                        trigger: 'axis',
-                        axisPointer: { type: 'shadow' }
+    tooltip: {
+      trigger: 'axis',
+    axisPointer: {type: 'shadow' }
                     },
-                    legend: {
-                        top: 50,
-                        data: ['Nicht kritisch', 'kritisch']
+    legend: {
+      top: 50,
+    data: ['Nicht kritisch', 'kritisch']
                     },
-                    grid: {
-                        left: '3%',
-                        right: '4%',
-                        bottom: '10%',
-                        containLabel: true
+    grid: {
+      left: '3%',
+    right: '4%',
+    bottom: '10%',
+    containLabel: true
                     },
-                    xAxis: {
-                        type: 'category',
-                        name: 'Distanz (km)',
-                        data: data.bins,
-                        axisLabel: { rotate: 30, interval: 0 }
+    xAxis: {
+      type: 'category',
+    name: 'Distanz (km)',
+    data: data.bins,
+    axisLabel: {rotate: 30, interval: 0 }
                     },
-                    yAxis: {
-                        type: 'value',
-                        name: 'Abs. Häufigkeit'
+    yAxis: {
+      type: 'value',
+    name: 'Abs. Häufigkeit'
                     },
-                    series: [
-                        {
-                            name: 'Nicht kritisch',
-                            type: 'bar',
-                            stack: 'total',
-                            barWidth: '60%',
-                            itemStyle: { color: '#20E3B2' },
-                            emphasis: { focus: 'series' },
-                            data: data.data['Nicht kritisch']
+    series: [
+    {
+      name: 'Nicht kritisch',
+    type: 'bar',
+    stack: 'total',
+    barWidth: '60%',
+    itemStyle: {color: '#20E3B2' },
+    emphasis: {focus: 'series' },
+    data: data.data['Nicht kritisch']
                         },
-                        {
-                            name: 'kritisch',
-                            type: 'bar',
-                            stack: 'total',
-                            barWidth: '60%',
-                            itemStyle: { color: '#555555' },
-                            emphasis: { focus: 'series' },
-                            data: data.data['kritisch']
+    {
+      name: 'kritisch',
+    type: 'bar',
+    stack: 'total',
+    itemStyle: {color: '#555555' },
+    barWidth: '60%',
+    emphasis: {focus: 'series' },
+    data: data.data['kritisch']
                         }
-                    ]
+    ]
                 });
             })
             .catch(error => {
-                console.error('Error fetching histogram data:', error);
+      console.error('Error fetching histogram data:', error);
+    throw error;
             });
     }
     function fetchAndRenderHistogram(chartName, chartId, titleText) {
-        fetch(`/simba/result/${taskId}/${chartName}/`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    console.error("Error loading histogram data:", data.error);
-                    return;
-                }
+      return fetch(`/simba/result/${taskId}/${chartName}/`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            console.error("Error loading histogram data:", data.error);
+            return;
+          }
 
-                const option = {
-                    title: {
-                        text: titleText,
-                        left: 'center',
-                        top: 20,
-                        textStyle: { fontSize: 18 }
-                    },
-                    tooltip: {
-                        trigger: 'axis',
-                        axisPointer: { type: 'shadow' }
-                    },
-                    xAxis: {
-                        type: 'category',
-                        data: data.bins,
-                        name: "Geschwindigkeit (km/h)",
-                        axisLabel: { rotate: 30 }
-                    },
-                    yAxis: {
-                        type: 'value',
-                        name: "Abs. Häufigkeit"
-                    },
-                    series: [{
-                        name: "Durchschnittsgeschwindigkeit",
-                        type: 'bar',
-                        barWidth: '60%',
-                        itemStyle: {
-                            color: '#20E3B2'
-                        },
-                        data: data.counts
-                    }]
-                };
+          const option = {
+            title: {
+              text: titleText,
+              left: 'center',
+              top: 20,
+              textStyle: { fontSize: 18 }
+            },
+            tooltip: {
+              trigger: 'axis',
+              axisPointer: { type: 'shadow' }
+            },
+            xAxis: {
+              type: 'category',
+              data: data.bins,
+              name: "Geschwindigkeit (km/h)",
+              axisLabel: { rotate: 30 }
+            },
+            yAxis: {
+              type: 'value',
+              name: "Abs. Häufigkeit"
+            },
+            series: [{
+              name: "Durchschnittsgeschwindigkeit",
+              type: 'bar',
+              barWidth: '60%',
+              itemStyle: {
+                color: '#20E3B2'
+              },
+              data: data.counts
+            }]
+          };
 
-                const chart = echarts.init(document.getElementById(chartId));
-                chart.setOption(option);
-            })
-            .catch(error => console.error('Error fetching histogram data:', error));
+          const chart = echarts.init(document.getElementById(chartId));
+          chart.setOption(option);
+        })
+        .catch(error => console.error('Error fetching histogram data:', error));
     }
     function fetchAndRenderSoCHistogram(chartName, chartID) {
-        fetch(`/simba/result/${taskId}/${chartName}/`)  // Replace with the actual URL
+        return fetch(`/simba/result/${taskId}/${chartName}/`)  // Replace with the actual URL
       .then((res) => res.json())
       .then((result) => {
         const rawData = result.data;
 
-        const xHours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
-        const yBins = ["<0", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"];
+    const xHours = Array.from({length: 24 }, (_, i) => `${i}:00`);
+    const yBins = ["<0", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"];
 
         // Fill in all (hour, soc_bin) combinations with 0 where missing
         const dataMap = new Map(rawData.map(item => [`${item.hour}-${item.soc_bin}`, item.count]));
-        const fullData = [];
+    const fullData = [];
 
-        for (let h = 0; h < 24; h++) {
+    for (let h = 0; h < 24; h++) {
           for (let y = 0; y < yBins.length; y++) {
             const key = `${h}-${yBins[y]}`;
-            const count = dataMap.get(key) || 0;
-            fullData.push([h, y, count]);
+    const count = dataMap.get(key) || 0;
+    fullData.push([h, y, count]);
           }
         }
 
-        const chart = echarts.init(document.getElementById(chartID));
-        const option = {
-          tooltip: {
-            position: 'top',
+    const chart = echarts.init(document.getElementById(chartID));
+    const option = {
+      tooltip: {
+      position: 'top',
             formatter: params =>
-              `Stunde: ${xHours[params.data[0]]}<br>SOC: ${yBins[params.data[1]]}%<br>Fahrzeuge: ${params.data[2]}`
+    `Stunde: ${xHours[params.data[0]]}<br>SOC: ${yBins[params.data[1]]}%<br>Fahrzeuge: ${params.data[2]}`
           },
-          grid: {
-            height: '80%',
-            top: '1%',
-            bottom: '10%'
+      grid: {
+        height: '80%',
+      top: '1%',
+      bottom: '10%'
           },
-          xAxis: {
-            type: 'category',
-            data: xHours,
-            name: 'Zeit',
-            nameLocation: 'middle',
-            nameGap: 25,
-            axisLine: {
-              lineStyle: {
-                color: '#000',
-                width: 2
+      xAxis: {
+        type: 'category',
+      data: xHours,
+      name: 'Zeit',
+      nameLocation: 'middle',
+      nameGap: 25,
+      axisLine: {
+        lineStyle: {
+        color: '#000',
+      width: 2
               }
             }
           },
-          yAxis: {
-            type: 'category',
-            data: yBins,
-            name: 'SoC (%)',
-            nameLocation: 'middle',
-            nameGap: 40
+      yAxis: {
+        type: 'category',
+      data: yBins,
+      name: 'SoC (%)',
+      nameLocation: 'middle',
+      nameGap: 40
           },
-          visualMap: {
-            min: 0,
+      visualMap: {
+        min: 0,
             max: Math.max(...fullData.map(item => item[2])),
-            calculable: true,
-            orient: 'horizontal',
-            left: 'center',
-            bottom: '10px',
-            itemHeight: 400,
-            itemWidth: 30,
-            textStyle: {
-              fontSize: 16
+      calculable: true,
+      orient: 'horizontal',
+      left: 'center',
+      bottom: '10px',
+      itemHeight: 400,
+      itemWidth: 30,
+      textStyle: {
+        fontSize: 16
             },
-            inRange: {
-              color: ['#EAFFF7', '#20E3B2', '#00846B']
+      inRange: {
+        color: ['#EAFFF7', '#20E3B2', '#00846B']
             }
           },
-          series: [{
-            name: 'Anzahl Fahrzeuge',
-            type: 'heatmap',
-            data: fullData,
-            label: {
-              show: true
+      series: [{
+        name: 'Anzahl Fahrzeuge',
+      type: 'heatmap',
+      data: fullData,
+      label: {
+        show: true
             },
-            emphasis: {
-              itemStyle: {
-                shadowBlur: 10,
-                shadowColor: 'rgba(0, 0, 0, 0.5)'
+      emphasis: {
+        itemStyle: {
+        shadowBlur: 10,
+      shadowColor: 'rgba(0, 0, 0, 0.5)'
               }
             }
           }],
-          markLine: {
-            symbol: 'none',
-            lineStyle: {
-              color: '#000',
-              width: 2
+      markLine: {
+        symbol: 'none',
+      lineStyle: {
+        color: '#000',
+      width: 2
             },
-            data: [
-              { xAxis: 0 }  // Thicker vertical line at 0:00
-            ]
+      data: [
+      {xAxis: 0 }  // Thicker vertical line at 0:00
+      ]
           }
         };
-        chart.setOption(option);
+      chart.setOption(option);
       });
 
     }
 
 
-    // Ensure the DOM is fully loaded before running
-    document.addEventListener("DOMContentLoaded", function() {
+      // Ensure the DOM is fully loaded before running
+      document.addEventListener("DOMContentLoaded", function() {
 
-        if (taskId) {
-            // Render the charts
-            fetchAndRenderPieChart("critical_rotations", "chartContainer", "Kritische und nicht kritische Umläufe");
-            fetchAndRenderPieChart("bustype", "busTypeChartContainer", "Verteilung Fahrzeugtyp");
-            fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit", "time_end", "soc_end_prc");
-            fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Ladeleistung und Belegung", "time_end", "soc_end_prc");
+        const el = document.getElementById("dataFetchedFinished");
+      if (taskId) {
+            const chartPromises =[
+      // Render the charts
+      fetchAndRenderPieChart("critical_rotations", "chartContainer", "Kritische und nicht kritische Umläufe"),
+      fetchAndRenderPieChart("bustype", "busTypeChartContainer", "Verteilung Fahrzeugtyp"),
+      fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit", "time_end", "soc_end_prc"),
+      fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Ladeleistung und Belegung", "time_end", "soc_end_prc"),
 
-            fetchAndRenderStats("stats", "_", "_")
-            fetchAndRenderGanttChart("gantt","ganttChart","_")
-            fetchAndRenderStackedHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen");
-            fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten");
-            fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap");
-            fetchAndRenderGanttChartSOC("soc_gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit");
-        } else {
-            console.error("Simulation ID is missing.");
+      fetchAndRenderStats("stats", "_", "_"),
+      fetchAndRenderGanttChart("gantt","ganttChart","_"),
+      fetchAndRenderStackedHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen"),
+      fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten"),
+      fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap"),
+      fetchAndRenderGanttChartSOC("soc_gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit")];
+
+            Promise.allSettled(chartPromises).then((results)=>{
+                const allSuccessful = results.every(r => r.status === "fulfilled");
+      el.setAttribute("data-status", allSuccessful ? "success" : "error");
+      el.setAttribute("data-value", "1");
+            });
+    }else {
+
+        console.error("Simulation ID is missing.");
         }
     });
 
@@ -1610,8 +1620,8 @@
   // More button functionality
   document.addEventListener("DOMContentLoaded", () => {
     const dropdownButton = document.getElementById("dropdownButton");
-    const dropdownMenu = document.getElementById("dropdownMenu");
-    const dropdownArrow = document.getElementById("dropdownArrow");
+      const dropdownMenu = document.getElementById("dropdownMenu");
+      const dropdownArrow = document.getElementById("dropdownArrow");
 
     dropdownButton.addEventListener("click", () => {
       const isExpanded = dropdownButton.getAttribute("aria-expanded") === "true";
@@ -1634,213 +1644,213 @@
     document.addEventListener("click", (event) => {
       if (!dropdownButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
         dropdownMenu.classList.add("hidden");
-        dropdownArrow.classList.remove("rotate-180");
-        dropdownButton.setAttribute("aria-expanded", "false");
+      dropdownArrow.classList.remove("rotate-180");
+      dropdownButton.setAttribute("aria-expanded", "false");
       }
     });
   });
-</script>
+    </script>
 
-<!-- Functionality for simple dropdown -->
-<script>
-  const button = document.getElementById('assignedToButton');
-  const label = document.getElementById('assignedToLabel');
-  const list = document.getElementById('assignedToList');
-  const listItems = list.querySelectorAll('[role="option"]');
-  let selectedItem = '';
+      <!--Functionality for simple dropdown-- >
+      <script>
+        const button = document.getElementById('assignedToButton');
+        const label = document.getElementById('assignedToLabel');
+        const list = document.getElementById('assignedToList');
+        const listItems = list.querySelectorAll('[role="option"]');
+        let selectedItem = '';
 
   // Toggle the dropdown on button click
   button.addEventListener('click', () => {
     const isExpanded = button.getAttribute('aria-expanded') === 'true';
-    button.setAttribute('aria-expanded', String(!isExpanded));
-    list.classList.toggle('hidden');
+        button.setAttribute('aria-expanded', String(!isExpanded));
+        list.classList.toggle('hidden');
 
-    // Whenever it opens, ensure the selected item is highlighted
-    if (!isExpanded) {
-      highlightSelectedItem();
+        // Whenever it opens, ensure the selected item is highlighted
+        if (!isExpanded) {
+          highlightSelectedItem();
     }
   });
 
   // Handle clicks on list items
   listItems.forEach(item => {
-    item.addEventListener('click', () => {
-      const value = item.getAttribute('data-dropdown-item');
-      label.textContent = value;
-      selectedItem = value;
+          item.addEventListener('click', () => {
+            const value = item.getAttribute('data-dropdown-item');
+            label.textContent = value;
+            selectedItem = value;
 
-      // Highlight the newly selected item
-      highlightSelectedItem();
+            // Highlight the newly selected item
+            highlightSelectedItem();
 
-      // Close dropdown
-      list.classList.add('hidden');
-      button.setAttribute('aria-expanded', 'false');
-    });
+            // Close dropdown
+            list.classList.add('hidden');
+            button.setAttribute('aria-expanded', 'false');
+          });
   });
 
   // Close dropdown if user clicks outside
   document.addEventListener('click', e => {
     if (!button.contains(e.target) && !list.contains(e.target)) {
-      button.setAttribute('aria-expanded', 'false');
-      list.classList.add('hidden');
+          button.setAttribute('aria-expanded', 'false');
+        list.classList.add('hidden');
     }
   });
 
-  // Remove the highlight from all items and apply it to the selected item
-  function highlightSelectedItem() {
-    listItems.forEach(li => {
-      li.classList.remove('bg-green-100');
-      if (li.getAttribute('data-dropdown-item') === selectedItem) {
-        li.classList.add('bg-green-100');
-      }
-    });
+        // Remove the highlight from all items and apply it to the selected item
+        function highlightSelectedItem() {
+          listItems.forEach(li => {
+            li.classList.remove('bg-green-100');
+            if (li.getAttribute('data-dropdown-item') === selectedItem) {
+              li.classList.add('bg-green-100');
+            }
+          });
   }
-</script>
+      </script>
 
-<!-- Costs Tabs Functionality -->
-<script>
+      <!--Costs Tabs Functionality-- >
+      <script>
   document.addEventListener('DOMContentLoaded', () => {
 const switchCostsTab = (tabId) => {
-document.querySelectorAll('.costs-tab-content').forEach((content) => {
-  content.classList.toggle('hidden', content.getAttribute('data-tab') !== tabId);
-});
+          document.querySelectorAll('.costs-tab-content').forEach((content) => {
+            content.classList.toggle('hidden', content.getAttribute('data-tab') !== tabId);
+          });
 
 document.querySelectorAll('.costs-tab').forEach((tab) => {
   const isActive = tab.getAttribute('data-tab-button') === tabId;
-  tab.classList.toggle('border-slate-800', isActive);
-  tab.classList.toggle('text-slate-800', isActive);
-  tab.classList.toggle('border-transparent', !isActive);
-  tab.classList.toggle('text-slate-500', !isActive);
-  tab.classList.toggle('hover:border-slate-300', !isActive);
-  tab.classList.toggle('hover:text-slate-700', !isActive);
+        tab.classList.toggle('border-slate-800', isActive);
+        tab.classList.toggle('text-slate-800', isActive);
+        tab.classList.toggle('border-transparent', !isActive);
+        tab.classList.toggle('text-slate-500', !isActive);
+        tab.classList.toggle('hover:border-slate-300', !isActive);
+        tab.classList.toggle('hover:text-slate-700', !isActive);
 });
 };
 
 document.querySelectorAll('.costs-tab').forEach((tab) => {
-tab.addEventListener('click', (e) => {
-  e.preventDefault();
-  switchCostsTab(tab.getAttribute('data-tab-button'));
-});
-});
-
-// Initialize with the first tab active
-switchCostsTab('costs-tab-1');
+          tab.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchCostsTab(tab.getAttribute('data-tab-button'));
+          });
 });
 
-</script>
+        // Initialize with the first tab active
+        switchCostsTab('costs-tab-1');
+});
 
-<script>
+      </script>
+
+      <script>
   // ECharts example
-  document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function () {
     const chartDom = document.getElementById("kostenverlaufChart");
-    const myChart = echarts.init(chartDom);
+        const myChart = echarts.init(chartDom);
 
-    const option = {
-      title: {
-        text: "Kostenverlauf",
+        const option = {
+          title: {
+          text: "Kostenverlauf",
         left: "center",
         textStyle: {
           fontSize: 16,
-          fontWeight: "400",
-          color: "#475569",
+        fontWeight: "400",
+        color: "#475569",
         },
       },
-      tooltip: {
-        trigger: "axis",
+        tooltip: {
+          trigger: "axis",
         axisPointer: {
           type: "shadow",
         },
       },
-      grid: {
-        left: "3%",
+        grid: {
+          left: "3%",
         right: "4%",
         bottom: "10%",
         containLabel: true,
       },
-      xAxis: {
-        type: "category",
+        xAxis: {
+          type: "category",
         data: [
-          "2025",
-          "2026",
-          "2027",
-          "2028",
-          "2029",
-          "2030",
-          "2031",
-          "2032",
-          "2033",
-          "2034",
-          "2035",
-          "2036",
-          "2037",
-          "2038",
-          "2039",
-          "2040",
-          "2041",
-          "2042",
-          "2043",
-          "2044",
-          "2045",
+        "2025",
+        "2026",
+        "2027",
+        "2028",
+        "2029",
+        "2030",
+        "2031",
+        "2032",
+        "2033",
+        "2034",
+        "2035",
+        "2036",
+        "2037",
+        "2038",
+        "2039",
+        "2040",
+        "2041",
+        "2042",
+        "2043",
+        "2044",
+        "2045",
         ],
         axisLabel: {
           interval: 0,
-          rotate: 45,
+        rotate: 45,
         },
       },
-      yAxis: {
-        type: "value",
+        yAxis: {
+          type: "value",
         name: "Kosten (Tsd. €)",
       },
-      series: [
+        series: [
         {
           name: "Kosten pro Jahr",
-          type: "bar",
-          data: [
-            5000, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500,
-            1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500,
-          ],
-          itemStyle: {
-            color: "#3B82F6",
+        type: "bar",
+        data: [
+        5000, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500,
+        1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500,
+        ],
+        itemStyle: {
+          color: "#3B82F6",
           },
-          barWidth: 16,
+        barWidth: 16,
         },
-      ],
-      legend: {
-        bottom: 0,
+        ],
+        legend: {
+          bottom: 0,
         data: ["Kosten pro Jahr"],
       },
     };
 
-    myChart.setOption(option);
+        myChart.setOption(option);
 
-    // Responsiveness
-    window.addEventListener("resize", function () {
-      myChart.resize();
+        // Responsiveness
+        window.addEventListener("resize", function () {
+          myChart.resize();
     });
   });
-</script>
+      </script>
 
-<!-- Details Button Functionality -->
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
+      <!--Details Button Functionality-- >
+      <script>
+        document.addEventListener("DOMContentLoaded", function () {
     const detailsButton = document.getElementById("detailsButton");
-    const detailsContent = document.getElementById("detailsContent");
-    const detailsArrow = document.getElementById("detailsArrow");
+        const detailsContent = document.getElementById("detailsContent");
+        const detailsArrow = document.getElementById("detailsArrow");
 
-    detailsButton.addEventListener("click", function () {
+        detailsButton.addEventListener("click", function () {
       const isExpanded = detailsContent.classList.toggle("hidden");
-      detailsArrow.style.transform = isExpanded ? "rotate(0deg)" : "rotate(180deg)";
-      detailsButton.setAttribute("aria-expanded", !isExpanded);
+        detailsArrow.style.transform = isExpanded ? "rotate(0deg)" : "rotate(180deg)";
+        detailsButton.setAttribute("aria-expanded", !isExpanded);
     });
   });
-</script>
+      </script>
 
-<!-- SOC Tabs Functionality -->
-<script>
+      <!--SOC Tabs Functionality-- >
+      <script>
   document.addEventListener('DOMContentLoaded', () => {
     const switchSocTab = (tabId) => {
-      document.querySelectorAll('.soc-tab-content').forEach((content) => {
-        content.classList.toggle('hidden', content.getAttribute('data-tab') !== tabId);
-      });
+          document.querySelectorAll('.soc-tab-content').forEach((content) => {
+            content.classList.toggle('hidden', content.getAttribute('data-tab') !== tabId);
+          });
 
       document.querySelectorAll('.soc-tab').forEach((tab) => {
         const isActive = tab.getAttribute('data-tab-button') === tabId;
@@ -1854,24 +1864,24 @@ switchCostsTab('costs-tab-1');
     };
 
     document.querySelectorAll('.soc-tab').forEach((tab) => {
-      tab.addEventListener('click', (e) => {
-        e.preventDefault();
-        switchSocTab(tab.getAttribute('data-tab-button'));
-      });
+          tab.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchSocTab(tab.getAttribute('data-tab-button'));
+          });
     });
 
-    // Initialize with the first tab active
-    switchSocTab('soc-tab-1');
+        // Initialize with the first tab active
+        switchSocTab('soc-tab-1');
   });
-</script>
+      </script>
 
-<!-- Load Profile Tabs Functionality -->
-<script>
+      <!--Load Profile Tabs Functionality-- >
+      <script>
   document.addEventListener('DOMContentLoaded', () => {
     const switchLoadProfileTab = (tabId) => {
-      document.querySelectorAll('.load-profile-tab-content').forEach((content) => {
-        content.classList.toggle('hidden', content.getAttribute('data-tab') !== tabId);
-      });
+          document.querySelectorAll('.load-profile-tab-content').forEach((content) => {
+            content.classList.toggle('hidden', content.getAttribute('data-tab') !== tabId);
+          });
 
       document.querySelectorAll('.load-profile-tab').forEach((tab) => {
         const isActive = tab.getAttribute('data-tab-button') === tabId;
@@ -1885,14 +1895,14 @@ switchCostsTab('costs-tab-1');
     };
 
     document.querySelectorAll('.load-profile-tab').forEach((tab) => {
-      tab.addEventListener('click', (e) => {
-        e.preventDefault();
-        switchLoadProfileTab(tab.getAttribute('data-tab-button'));
-      });
+          tab.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchLoadProfileTab(tab.getAttribute('data-tab-button'));
+          });
     });
 
-    // Set the first tab as active by default
-    switchLoadProfileTab('load-profile-tab-1');
+        // Set the first tab as active by default
+        switchLoadProfileTab('load-profile-tab-1');
   });
-</script>
-{% endblock script %}
+      </script>
+      {% endblock script %}

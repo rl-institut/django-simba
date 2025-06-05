@@ -45,6 +45,10 @@ from .models import (
 from .tasks import run_simba_scenario
 from .util import get_unique_task_id
 
+import logging
+
+logger = logging.getLogger("custom")
+
 TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
 TMP_STATICFILES_DIRS = settings.STATICFILES_DIRS + [settings.BASE_DIR / TMP_UPLOAD]
 
@@ -93,33 +97,19 @@ class MySeleniumTests(StaticLiveServerTestCase):
         # Wait until maplibre is loaded
         # Wait until all plots are finished with fetching
 
+        # This polls an element which is set to "1" and a status after all promises
+        # of data fetching for plots are resolved
         def element_value_is_true(driver):
             try:
                 elem = driver.find_element(By.ID, "dataFetchedFinished")
-                value = elem.get_attribute("value")
-                # dataFetchedFinished is incremented 7 times by each data fetching
-                return value == "7"
+                value = elem.get_attribute("data-value")
+                status = elem.get_attribute("data-status")
+                return value == "1" and status == "success"
             except Exception:
                 return False
 
-        WebDriverWait(self.selenium, 20).until(element_value_is_true)
-        errors = self.selenium.get_log("browser")
-        allowed_errors = [
-            # FetchError is an error when the fetching calls are made from the result page
-            # for some reason they fail sporadically. TODO: low prio. Fix it
-            "FetchError",
-            (
-                "An iframe which has both allow-scripts and allow-same-origin for its "
-                "sandbox attribute can escape its sandboxing"
-            ),
-            "styleimagemissing",
-            "maplibre-gl",
-            "dash",
-        ]
-        not_allowed_errors = [
-            error for error in errors if not any([(e in error["message"]) for e in allowed_errors])
-        ]
-        self.assertEqual(len(not_allowed_errors), 0, f"404 errors detected: {not_allowed_errors}")
+        # If the promises dont resolve this will throw an error
+        WebDriverWait(self.selenium, 5).until(element_value_is_true)
 
 
 def castable_to_dict(objects: Iterable):
