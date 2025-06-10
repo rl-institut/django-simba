@@ -1603,8 +1603,8 @@
         fetchAndRenderGanttChartSOC("soc_gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit")];
 
         Promise.allSettled(chartPromises).then((results)=>{
-          el.setAttribute("data-status", allSuccessful ? "success" : "error");
           const allSuccessful = results.every(r => r.status === "fulfilled");
+          el.setAttribute("data-status", allSuccessful ? "success" : "error");
           el.setAttribute("data-value", "1");
         });
       }else {
