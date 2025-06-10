@@ -2208,7 +2208,17 @@ def trim_depots(scenario, depot_ids: list[int]):
 
 
 @atomic()
-def split_blocks_with_intermediate_depot_stops(parent: Scenario, child: Scenario):
+def split_blocks_with_intermediate_depot_stops(parent: Scenario, child: Scenario) -> None:
+    """
+    Search rotations which arrive multiple times at a depot.
+
+    These rotations are split into multiple rotations.
+    Parent and child scenario get a notification with information about split rotations.
+
+    :param parent: Source scenario
+    :param child: Child scenario which is notified about split rotation
+    """
+
     depots = Station.objects.filter(scenario=parent, charge_type=EnumChargeType.DEPOT)
     all_trips = Trip.objects.filter(scenario=parent)
     depot_trips = all_trips.filter(route__arrival_station__in=depots)
