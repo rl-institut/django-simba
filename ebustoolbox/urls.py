@@ -16,6 +16,8 @@ from ebustoolbox.views import (
     DashboardView,
     get_dashboard,
     compare,
+    export_scenario,
+    import_scenario,
 )
 
 from ebustoolbox import views
@@ -79,6 +81,16 @@ urlpatterns = [
         name="model_export_json",
     ),
     path(
+        "export/<uuid:task_id>/",
+        export_scenario,
+        name="JSON_export_scenario",
+    ),
+    path(
+        "import/",
+        import_scenario,
+        name="JSON_import_scenario",
+    ),
+    path(
         "vehicles/<uuid:task_id>/",
         VehiclesView.as_view(),
         name="vehicles",
@@ -91,11 +103,6 @@ urlpatterns = [
     # results endpoints
     path("result/<uuid:task_id>/soc/", views.get_soc_data, name="soc_data"),
     path("result/<uuid:task_id>/power-draw/", views.get_power_draw, name="power_draw_data"),
-    path(
-        "result/<uuid:task_id>/station-occupation/",
-        views.get_station_occupation,
-        name="station_occupation",
-    ),
     path("result/<uuid:task_id>/gantt/", views.get_gantt_data, name="gantt_data"),
     path("result/<uuid:task_id>/stats/", views.get_stats, name="stats"),
     path("result/<uuid:task_id>/dist_histogram/", views.get_dist_hist, name="dist_hist_data"),
@@ -106,4 +113,7 @@ urlpatterns = [
         name="critical_rotations",
     ),
     path("result/<uuid:task_id>/bustype/", views.render_bustype, name="bustype"),
+    path("result/<uuid:task_id>/soc_hist/", views.get_binned_soc_data, name="soc_hist"),
+    path("result/<uuid:task_id>/depot_power/", views.get_power_draw_and_occ, name="eflips_power"),
+    path("result/<uuid:task_id>/soc_gantt/", views.get_soc_gantt, name="soc_gantt"),
 ]

@@ -11,6 +11,9 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase, override_settings
 
+import django.apps
+import core.deepcopy
+
 # Create your tests here.
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
@@ -19,6 +22,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
+from .import_export import visit_all_scenario_queries, ScenarioJSONImporterExporter
 from . import tasks
 from .forms import UploadFileForm
 from .models import (
@@ -1019,3 +1023,51 @@ class RotationSplitTest(TestCase):
         # The rotation arrives at the depot every 2 trips
         # the new number of trips should be trips/2
         assert Rotation.objects.filter(scenario=django_scenario).count() == even_count / 2
+
+
+class SerializerTest(TransactionTestCase):
+    def test_serializer(self):
+
+        count_before = count_all_rows()
+        django_scenario, _, _ = build_scenario()
+        django_scenario.task_id = get_unique_task_id()
+        django_scenario.save()
+        tasks.run_toolchain_from_scenario(django_scenario, assign_vehicles=True)
+        count_after = count_all_rows()
+        count_delta = count_after - count_before
+        print(f"Simulation Scenario added {count_delta} objects")
+
+        # Load the scenario in the exporter
+        exporter = ScenarioJSONImporterExporter()
+        visit_all_scenario_queries(exporter, django_scenario)
+
+        # Create json_data. This can be dumped and exported
+        json_data = exporter.renderJSON()
+        django_scenario.delete()
+        # Make sure the db has the same status as before
+        # exporter can load the json_data. Passing an InMemoryUploadedFile is also possible
+        exporter.loads(json_bytes=json_data)
+
+        # Objects data is flushed when loading json data
+        assert exporter.object_data == dict()
+
+        # Object Instances get recreated
+        exporter.generate_instances()
+        exporter.adjust_foreign_keys()
+        exporter.bulk_create()
+        exporter.create_many_to_many()
+        # The exporter bulk creates objects.
+        # To reset the postgres auto increment counter this command is called.
+        core.deepcopy.reset_postgres_auto_increments([Scenario._meta.app_label])
+        # Importing the scenario creates the same number of objects/rows as the exported scenario.
+        assert count_delta == count_all_rows() - count_before
+
+
+def count_all_rows() -> int:
+    """Iterate over all ebustoolbox models and sum up the rows"""
+    ebus_models = django.apps.apps.get_app_config("ebustoolbox").get_models()
+    count = 0
+    for model in ebus_models:
+        current = model.objects.count()
+        count += current
+    return count
