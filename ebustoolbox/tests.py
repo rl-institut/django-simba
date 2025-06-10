@@ -45,9 +45,6 @@ from .models import (
 from .tasks import run_simba_scenario
 from .util import get_unique_task_id
 
-import logging
-
-logger = logging.getLogger("custom")
 
 TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
 TMP_STATICFILES_DIRS = settings.STATICFILES_DIRS + [settings.BASE_DIR / TMP_UPLOAD]
