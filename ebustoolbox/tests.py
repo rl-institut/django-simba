@@ -26,6 +26,7 @@ from .import_export import visit_all_scenario_queries, ScenarioJSONImporterExpor
 from . import tasks
 from .forms import UploadFileForm
 from .models import (
+    Notification,
     Route,
     Scenario,
     UploadedFile,
@@ -1016,7 +1017,12 @@ class RotationSplitTest(TestCase):
             station1 = station2
             station2 = temp
         assert Trip.objects.filter(scenario=django_scenario).count() == even_count
-        tasks.split_blocks_with_intermediate_depot_stops(django_scenario)
+        # Split the rotations of the source but also notifiy the child
+        # for testing passing the same scenario works
+        assert Notification.objects.filter(scenario=django_scenario).count() == 0
+        tasks.split_blocks_with_intermediate_depot_stops(django_scenario, django_scenario)
+
+        assert Notification.objects.filter(scenario=django_scenario).count() > 0
 
         # Number of trips stays the same
         assert Trip.objects.filter(scenario=django_scenario).count() == even_count
