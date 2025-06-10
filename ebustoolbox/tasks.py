@@ -1,6 +1,5 @@
 from collections.abc import Callable
 import csv
-import random
 import shutil
 import traceback
 import warnings
@@ -16,7 +15,6 @@ import environ
 from celery import shared_task, uuid
 import django.apps
 from django.conf import settings
-from django.contrib.gis.geos import GEOSGeometry, Point
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db import connections
 from django.db.models.functions import Lead
@@ -717,60 +715,6 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
                 )
 
 
-def stations_to_db(simba_schedule: SimbaSchedule, scenario):
-    """Takes a dictionary of vehicle types and writes them into the db with the scenario as handle
-    :param schedule: SimBA Schedule
-    :param scenario: django model Scenario
-    :return: None
-    """
-    object_list = []
-    station_translation = dict()
-
-    try:
-        last_id = Station.objects.aggregate(Max("id"))["id__max"]
-        if last_id is None:
-            last_id = -1
-    except Exception:
-        last_id = -1
-    for key, station in simba_schedule.station_data.copy().items():
-        last_id += 1
-        try:
-            long = float(station["long"])
-            lat = float(station["lat"])
-            elevation = float(station["elevation"])
-            geom = GEOSGeometry(f"POINT({long} {lat} {elevation})")
-            params = dict(id=last_id, scenario=scenario, geom=geom, name=str(key))
-            new_station = Station(**params)
-            object_list.append(new_station)
-            # try renaming the station in the SimBA context, so it gets access to the database.
-            # This is needed to guarantee uniqueness of station names which is not enforced by the
-            # database
-            station_translation[key] = new_station.to_simba_name()
-            simba_schedule.station_data[new_station.to_simba_name()] = station
-            del simba_schedule.station_data[key]
-            try:
-                simba_schedule.stations[new_station.to_simba_name()] = simba_schedule.stations[key]
-                del simba_schedule.stations[key]
-            except KeyError:
-                pass
-        except Exception:
-            logger.error(traceback.format_exc())
-            pass
-    Station.objects.bulk_create(object_list)
-
-    # Update db stations which are electrified with info from electrified_stations dictionary
-    update_electrified_stations_db(simba_schedule.stations, scenario)
-
-    # mutate the schedule, so trip names are identical with new database names
-    for rot_key in simba_schedule.rotations.copy().keys():
-        rot = simba_schedule.rotations[rot_key]
-        rot.arrival_name = station_translation[rot.arrival_name]
-        rot.departure_name = station_translation[rot.departure_name]
-        for trip in rot.trips:
-            trip.arrival_name = station_translation[trip.arrival_name]
-            trip.departure_name = station_translation[trip.departure_name]
-
-
 def update_electrified_stations_db(electrified_stations, scenario):
     """Update stations which are electrified with info from electrified_stations dictionary"""
     for name, ele_station in electrified_stations.items():
@@ -979,8 +923,6 @@ def merge_scenario(mutation_id, simulation_task_id):
 @shared_task(bind=True)
 def run_and_merge_scenarios(self, mutation_id: int, simulation_task_id):
     simulation_scenario = merge_scenario(mutation_id, simulation_task_id)
-    if "ebus_map" in settings.INSTALLED_APPS:
-        create_stations_for_map(simulation_scenario)
     run_toolchain_from_scenario(simulation_scenario, assign_vehicles=True)
 
 
@@ -1201,21 +1143,6 @@ def deepcopy_scenario(scenario: Scenario) -> tuple[Scenario, dict]:
         max_depth=1,
     )
     return copied_instance, stack
-
-
-@atomic()
-def create_stations_for_map(django_scenario: Scenario):
-    stations = ebustoolbox.models.Station.objects.filter(scenario=django_scenario)
-    warned = False
-    stations_with_geo = []
-    for station in stations:
-        if station.geom is None:
-            if not warned:
-                warnings.warn("At least one Station has no geometry and is placed randomly")
-                warned = True
-            station.geom = Point(x=13.0 + random.random(), y=52.0 + random.random(), z=0)
-            stations_with_geo.append(station)
-    Station.objects.bulk_update(stations_with_geo, ["geom"])
 
 
 def create_empty_child_scenario(parent_scenario: Scenario, task_id):

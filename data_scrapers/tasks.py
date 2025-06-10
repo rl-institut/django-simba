@@ -10,6 +10,7 @@ import shapely
 from shapely.geometry import Point, MultiPoint
 
 from django.db.models import QuerySet
+from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.postgres.search import TrigramSimilarity
 from django.db.models import Q
 
@@ -220,7 +221,7 @@ def search_exact_station(base_query, station_name) -> QuerySet:
     return base_query.filter(id__in=ids)
 
 
-def filter_for_search_area(query, search_area: shapely.geometry.base.BaseGeometry):
+def filter_for_search_area(query, search_area: GEOSGeometry):
     ids = query.filter(geom__within=search_area).values_list("id", flat=True)
     query = query.model.objects.filter(id__in=ids)
     return query
@@ -640,6 +641,7 @@ def search_stations(search_station_names: Iterable[str], use_filter: bool):
         lat_lon_distance = approximate_lat_lon_distance(avg_y)
         delta_lat_lon = BUS_SYSTEM_MAX_DISTANCE / lat_lon_distance
         area = m_point.buffer(delta_lat_lon)
+    area = GEOSGeometry(area.wkt)
     # Create filter which only returns stations within the buffer area
     f1 = partial(filter_for_search_area, search_area=area)
     # only return multiple stations if they are close to each other.
