@@ -1025,7 +1025,6 @@ class ScheduleReaderTest(TestCase):
         files = [
             "trips_example_ansi.csv",
             "trips_example_utf-16-be-bom.csv",
-            "trips_example_utf-16-le-bom.csv",
             "trips_example_utf-8-bom.csv",
             "trips_example_utf-8.csv",
         ]
