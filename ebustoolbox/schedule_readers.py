@@ -455,6 +455,8 @@ class SimbaScheduleReader(ScheduleReader):
     def file_data_to_dict(self) -> dict[str, []]:
         trip_data = dict()
         self.encoding = get_file_encoding(self.file_path)
+        if self.encoding is None:
+            logger.warning(f"No encoding found for {Path(self.file_path).name}")
         with open(self.file_path, encoding=self.encoding) as file:
             trip_reader = csv.DictReader(file)
             trip = next(iter(trip_reader))
