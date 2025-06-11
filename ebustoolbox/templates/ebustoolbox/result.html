@@ -124,6 +124,10 @@
 </header>
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.3.2/dist/echarts.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg2pdf.js@latest/dist/svg2pdf.min.js"></script>
+
 <style>
     .chart-container {
         width: 100%;
@@ -132,7 +136,7 @@
     }
 </style>
 
-<main class="flex flex-col items-center flex-grow">
+<main class="flex flex-col items-center flex-grow" id="content">
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
     <div class="flex flex-col">
       <div id="costs-section" class="flex justify-between items-center pb-2">
@@ -459,7 +463,7 @@
           </nav>
           <div id="soc-tab-contents" class="mt-4">
             <div class="soc-tab-content" data-tab="soc-tab-1">
-              <div id="soc-heatmap" style="width: 100%; height: 600px;"></div>
+              <div id="soc-heatmap" class="chart-container"></div>
             </div>
             <div class="soc-tab-content hidden" data-tab="soc-tab-2">
               Content 2
@@ -647,14 +651,376 @@
                 {% include 'ebustoolbox/minimal_mapengine.html' %}
             </div>
         </div>
-    </div>
-  </div>
+      </div>
 <div id="dataFetchedFinished" value="0"></div>
+    <button id="exportPdf" >
+        Export to PDF
+    </button>
 </main>
 {% endblock content %}
 
 {% block script %}
+
+
 <script>
+
+// ✅ Fix missing or broken setFontType in jsPDF
+if (window.jspdf && window.jspdf.jsPDF) {
+  const jsPDF = window.jspdf.jsPDF;
+
+  // Override setFontType if missing or broken
+  if (!jsPDF.API.setFontType || typeof jsPDF.API.setFontType !== 'function') {
+    jsPDF.API.setFontType = function(fontType) {
+      // Fallback: Just set the font style (normal/bold/italic)
+      this.setFont(undefined, fontType);
+    };
+  }
+}
+
+const pdfExportData = {
+    scenarioName: "{{ scenario.name | escapejs }}",  // Escape for JS safety
+    username: "{{ user.get_full_name | escapejs }}",
+
+  };
+
+async function fetchSvgText(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Failed to load SVG');
+  return await response.text();
+}
+function parseSvg(svgText) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgText, "image/svg+xml");
+  return doc.documentElement;
+}
+function prepareLogoSvg(svgElement, targetWidth = 40, targetHeight = 20) {
+  // Get original dimensions from viewBox or width/height attributes
+  let originalWidth, originalHeight;
+
+  if (svgElement.hasAttribute('viewBox')) {
+    const viewBox = svgElement.viewBox.baseVal;
+    originalWidth = viewBox.width;
+    originalHeight = viewBox.height;
+  } else {
+    originalWidth = parseFloat(svgElement.getAttribute('width')) || targetWidth;
+    originalHeight = parseFloat(svgElement.getAttribute('height')) || targetHeight;
+    svgElement.setAttribute('viewBox', `0 0 ${originalWidth} ${originalHeight}`);
+  }
+
+  // Remove any existing width/height attributes that might interfere
+  svgElement.removeAttribute('width');
+  svgElement.removeAttribute('height');
+
+  // Clone the SVG element
+  const clonedSVG = svgElement.cloneNode(true);
+
+  // Set the desired dimensions on the cloned SVG
+  clonedSVG.setAttribute('width', targetWidth);
+  clonedSVG.setAttribute('height', targetHeight);
+
+  // Create a group element for transformation
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+  // Apply both translation and scaling if needed
+  // Here's where you add your translation (adjust these values as needed)
+  g.setAttribute('transform', `translate(30, 30)`);
+
+  // Move all child elements to the group
+  while (clonedSVG.firstChild) {
+    g.appendChild(clonedSVG.firstChild);
+  }
+  clonedSVG.appendChild(g);
+
+  // Create a temporary container for rendering
+  const tempDiv = document.createElement('div');
+  tempDiv.style.position = 'absolute';
+  tempDiv.style.overflow = 'hidden';
+  tempDiv.style.width = `${targetWidth}px`;
+  tempDiv.style.height = `${targetHeight}px`;
+  tempDiv.style.left = '-9999px';
+  tempDiv.appendChild(clonedSVG);
+  document.body.appendChild(tempDiv);
+
+  return {
+    svg: clonedSVG,
+    cleanup: () => document.body.removeChild(tempDiv)
+  };
+}
+
+async function addHeaderWithSvgLogo(pdf, scenarioName, username, dateStr, svgUrl) {
+  const margin = 20;
+  const logoWidth = 70;
+  const logoHeight = 35;
+  const startY = 15;
+
+  // Load and parse logo SVG
+  const svgText = await fetchSvgText(svgUrl);
+  let svgElement = parseSvg(svgText);
+  const { svg: preparedSvg, cleanup } = prepareLogoSvg(svgElement, logoWidth, logoHeight);
+
+  try {
+    // Add the SVG logo at top-left
+    await svg2pdf(preparedSvg, pdf, {
+      x: margin,
+      y: startY,
+      width: logoWidth,
+      height: logoHeight
+    });
+
+    // Calculate right-aligned text position
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const textRightMargin = margin;
+    let textY = startY + 15;
+
+    // Scenario name - bold, bigger font (right-aligned)
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(16);
+    pdf.setTextColor(40);
+    pdf.text(`Scenario: ${scenarioName}`, pageWidth /2 , textY, { align: 'center' });
+
+    // "Generated by: ..." (right-aligned)
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+    pdf.setTextColor(120);
+    textY += 18;
+    pdf.text(`Exportiert von: ${username} am ${dateStr}`, pageWidth - textRightMargin, textY, { align: 'right' });
+
+    // Underline below header
+    pdf.setDrawColor(200);
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, startY + logoHeight +5 , pageWidth - margin, startY + logoHeight+5 );
+  } finally {
+    cleanup();
+  }
+}
+
+
+function addFooter(pdf, pageNumber, totalPages) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  pdf.setFontSize(10);
+  pdf.setTextColor(150);
+  pdf.line(20, pageHeight - 40, pageWidth - 20, pageHeight - 40); // line above footer
+  pdf.text(`Page ${pageNumber} of ${totalPages}`, pageWidth / 2, pageHeight - 25, { align: 'center' });
+}
+
+function addNumericalDataSection(pdf, yPosition) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const margin = 20;
+  const sectionWidth = pageWidth - 2 * margin;
+  const cardX = margin;
+  const cardY = yPosition + 10;
+  const cardPadding = 12;
+  const cardCornerRadius = 3;
+  const colGap = 16;
+  const colWidth = (sectionWidth - cardPadding * 2 - colGap) / 2;
+
+  // === Title ===
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(16);
+  pdf.setTextColor(30);
+  pdf.text('INFRASTRUKTUR', margin, yPosition);
+
+  // === Card ===
+  const cardHeight = 130;
+  pdf.setDrawColor(200);
+  pdf.setLineWidth(0.5);
+  pdf.roundedRect(cardX, cardY, sectionWidth, cardHeight, cardCornerRadius, cardCornerRadius, 'S');
+
+  // === Column Coordinates ===
+  const col1X = cardX + cardPadding;
+  const col2X = cardX + cardPadding + colWidth + colGap;
+  let topY = cardY + cardPadding;
+
+  // === Column 1 ===
+  addSection(pdf, col1X, topY, 'Umläufe', [
+    ['14768 : 100.2 km', 'Längster Umlauf'],
+    ['17106 : 30.2 km', 'Kürzester Umlauf'],
+    ['130 km', 'Gesamtstrecke'],
+  ]);
+
+  addSection(pdf, col1X, topY + 58, 'Energie und Leistung', [
+    ['289 kWh', 'Gesamt geladene Energie'],
+    ['1.11 kWh/km', 'Durchschnittl. Verbrauch'],
+    ['0 kW', 'Installierte Leistung'],
+  ]);
+
+  // === Column 2 ===
+  addSection(pdf, col2X, topY, 'Szenario', [
+    ['0 / 5', 'Elektrifizierte Stationen / Gesamtzahl Stationen'],
+    ['2', 'Anzahl Fahrzeuge'],
+    ['S Lichterfelde Süd, 4 mal', 'Häufigst angefahrene Station'],
+  ]);
+
+  addSection(pdf, col2X, topY + 58, 'Depots', [
+    ['2', 'Anzahl Stellplätze'],
+    ['289 kWh', 'Energie'],
+    ['90 kW', 'Spitzenleistung'],
+  ]);
+
+  return cardY + cardHeight + 10;
+}
+
+function addSection(pdf, x, y, title, data) {
+  const titleFontSize = 11;
+  const valueFontSize = 12;
+  const subtitleFontSize = 9;
+  const lineSpacing = 20;
+
+  // Section title
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(titleFontSize);
+  pdf.setTextColor(50);
+  pdf.text(title, x, y);
+  y += lineSpacing - 4;
+
+  // Values
+  data.forEach(([value, subtitle]) => {
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(valueFontSize);
+    pdf.setTextColor(20);
+    pdf.text(value, x, y);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(subtitleFontSize);
+    pdf.setTextColor(100);
+    pdf.text(subtitle, x, y + 8);
+    y += lineSpacing;
+  });
+}
+
+
+document.getElementById('exportPdf').addEventListener('click', async function() {
+    const btn = this;
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = 'Generating PDF...';
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'pt', 'a4');
+        const margin = 20;
+        const pageWidth = pdf.internal.pageSize.getWidth() - 2 * margin;
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        let yPosition = 80;//margin;
+        let pageNumber = 0;
+
+        yPosition = await addNumericalDataSection(pdf, yPosition) + 100;
+
+        // Process each chart container
+        const chartContainers = document.querySelectorAll('.chart-container');
+
+        for (const container of chartContainers) {
+            const chartInstance = echarts.getInstanceByDom(container);
+            console.log(chartInstance)
+            if (!chartInstance) continue;
+
+            try {
+                // Get SVG data
+                const svgDataURL = chartInstance.getDataURL({
+                    type: 'svg',
+                    pixelRatio: 2,
+                    excludeComponents: ['toolbox', 'dataZoom'],
+                    backgroundColor: '#FFFFFF'
+                });
+
+                // Fetch and parse SVG
+                const response = await fetch(svgDataURL);
+                const svgText = await response.text();
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svgText, "image/svg+xml");
+                const svgElement = svgDoc.documentElement;
+
+                // Get dimensions - prioritize viewBox over width/height attributes
+                const viewBox = svgElement.viewBox.baseVal;
+                let originalWidth = viewBox.width;
+                let originalHeight = viewBox.height;
+
+                // Clean up SVG attributes that might interfere
+                svgElement.removeAttribute('width');
+                svgElement.removeAttribute('height');
+
+                const fixedWidth = pageWidth * 0.8; // or something like 400
+                const fixedHeight = 350;
+
+                if (yPosition + fixedHeight > pageHeight - margin) {
+                    pdf.addPage();
+                    pageNumber++;
+                    yPosition = margin;
+                }
+
+                // Create a temporary offscreen container
+                const tempDiv = document.createElement('div');
+                tempDiv.style.position = 'center';
+                tempDiv.style.alignSelf = 'center';
+                tempDiv.style.left = margin;
+                tempDiv.style.top = '0';
+                tempDiv.style.width = '600px'; // or any fixed size you want
+                tempDiv.style.height = '250px';
+                document.body.appendChild(tempDiv);
+
+                // Clone and size the SVG
+                const clonedSVG = svgElement.cloneNode(true);
+                clonedSVG.setAttribute('width', '500px');
+                clonedSVG.setAttribute('height', '250px');
+                clonedSVG.setAttribute('viewBox', `0 0 ${originalWidth} ${originalHeight}`);
+                tempDiv.appendChild(clonedSVG);
+
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('transform', `translate(${(1700-2*20-1400)/2}, ${yPosition*1.5+margin+150})`);
+
+                while (clonedSVG.firstChild) {
+                    g.appendChild(clonedSVG.firstChild);
+                }
+                clonedSVG.appendChild(g);
+
+                // Convert cloned SVG to PDF
+                await svg2pdf(clonedSVG, pdf, {
+                    x: margin,
+                    y: yPosition,
+                    width: 400,
+                    height: 250,
+                });
+
+                // Clean up
+                document.body.removeChild(tempDiv);
+                console.log(yPosition, pageHeight, pageWidth)
+                // Advance position
+                yPosition += 400 + margin;
+
+
+
+            } catch (error) {
+                console.error(`Failed to process chart ${container.id}:`, error);
+            }
+        }
+
+        const scenarioName =  pdfExportData.scenarioName;
+        const username = pdfExportData.username;
+        const dateStr = new Date().toLocaleString();
+
+
+
+        for (let i = 1; i <= pageNumber+1; i++) {
+          pdf.setPage(i);
+          await addHeaderWithSvgLogo(pdf, scenarioName, username, dateStr, '/static/core/images/logo/webus_green.svg');
+          addFooter(pdf, i, pageNumber+1);
+        }
+
+        pdf.save('charts-export.pdf');
+
+    } catch (error) {
+        console.error('PDF generation failed:', error);
+        alert('Failed to generate PDF. Please check console for details.');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
+
+
+});
+
+
     // eCharts functionality
     const taskId = document.getElementById("task-id").value;
     //console.log("Simulation ID:", taskId);
@@ -666,7 +1032,7 @@
                 // Filter out categories with zero values
                 const chartData = (data.data || []).filter(item => item.value > 0);
 
-                const chart = echarts.init(document.getElementById(chartId));
+                const chart = echarts.init(document.getElementById(chartId), null, { renderer: 'svg' });
 
                 const options = {
                     title: {
@@ -715,7 +1081,7 @@
         .then(response => response.json())
         .then(data => {
 
-            const chart = echarts.init(document.getElementById(chartId));
+            const chart = echarts.init(document.getElementById(chartId), null, { renderer: 'svg' });
 
             // Prepare the series data for each bus (V_id)
             var seriesData = [];
@@ -791,7 +1157,7 @@
                 const occupancyCharging = rawData.map(row => row.occupancy_charging);
                 const occupancyTotal = rawData.map(row => row.occupancy_total);
 
-                const chart = echarts.init(document.getElementById(chartId));
+                const chart = echarts.init(document.getElementById(chartId), null, { renderer: 'svg' });
 
                 const options = {
                     title: {
@@ -1095,7 +1461,7 @@
                 };
 
                 // Initialize ECharts instance and set option
-                const chart = echarts.init(document.getElementById(chartId));
+                const chart = echarts.init(document.getElementById(chartId), null, { renderer: 'svg' });
                 chart.setOption(option);
             })
             .catch(error => console.error('Error loading Gantt data:', error));
@@ -1203,7 +1569,7 @@
                 };
 
                 // Set up the chart options
-                const chart = echarts.init(document.getElementById(chartId)); // Use chartId passed
+                const chart = echarts.init(document.getElementById(chartId), null, { renderer: 'svg' }); // Use chartId passed
 
                 chart.setOption({
                     tooltip: {
@@ -1379,7 +1745,7 @@
                     return;
                 }
 
-                const chart = echarts.init(document.getElementById(chartId));
+                const chart = echarts.init(document.getElementById(chartId), null, { renderer: 'svg' });
                 chart.setOption({
                     title: {
                         text: titleText,
@@ -1478,12 +1844,12 @@
                     }]
                 };
 
-                const chart = echarts.init(document.getElementById(chartId));
+                const chart = echarts.init(document.getElementById(chartId), null, { renderer: 'svg' });
                 chart.setOption(option);
             })
             .catch(error => console.error('Error fetching histogram data:', error));
     }
-    function fetchAndRenderSoCHistogram(chartName, chartID) {
+    function fetchAndRenderSoCHistogram(chartName, chartId) {
         fetch(`/simba/result/${taskId}/${chartName}/`)  // Replace with the actual URL
       .then((res) => res.json())
       .then((result) => {
@@ -1504,7 +1870,7 @@
           }
         }
 
-        const chart = echarts.init(document.getElementById(chartID));
+        const chart = echarts.init(document.getElementById(chartId), null, { renderer: 'svg' });
         const option = {
           tooltip: {
             position: 'top',
