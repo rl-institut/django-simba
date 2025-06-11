@@ -22,6 +22,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
+from ebustoolbox.schedule_readers import SimbaScheduleReader
+
 from .import_export import visit_all_scenario_queries, ScenarioJSONImporterExporter
 from . import tasks
 from .forms import UploadFileForm
@@ -1013,3 +1015,28 @@ def count_all_rows() -> int:
         current = model.objects.count()
         count += current
     return count
+
+
+class ScheduleReaderTest(TestCase):
+    @override_settings(DEBUG="True")
+    @override_settings(LOG_LEVEL="DEBUG")
+    def test_encodings(self):
+        root = "ebustoolbox/static/ebustoolbox/examples/"
+        files = [
+            "trips_example_ansi.csv",
+            "trips_example_utf-16-be-bom.csv",
+            "trips_example_utf-16-le-bom.csv",
+            "trips_example_utf-8-bom.csv",
+            "trips_example_utf-8.csv",
+        ]
+        count_trips = None
+        for path in files:
+            scenario = Scenario.objects.create(name="Test", task_id=get_unique_task_id())
+            sr = SimbaScheduleReader(file_path=root + path)
+            sr.write_to_db(scenario_id=scenario.id)
+            if count_trips is None:
+                count_trips = Trip.objects.filter(scenario=scenario).count()
+            else:
+                new_count = Trip.objects.filter(scenario=scenario).count()
+                assert count_trips == new_count, f"{count_trips}/ {new_count}"
+            scenario.delete()

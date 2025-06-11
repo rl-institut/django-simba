@@ -19,6 +19,11 @@ Template:
 
 ## [x.x.x] - Unreleased
 ### Changed
+- [(#220)](https://github.com/rl-institut/django-simba/pull/220)
+- SimbaScheduleReader determines encoding via charset_normalizer
+- Uses this encoding to read files to database
+
+### Changed
 - [(#161)](https://github.com/rl-institut/django-simba/pull/161)
 - Fixes #159
 - Introduces new app for getting BusSystem Related Data called "data_scrapers"
