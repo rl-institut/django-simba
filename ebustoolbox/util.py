@@ -9,7 +9,7 @@ import sys
 from django.db.models import Max
 
 from .models import Scenario
-from dash_app.data import get_powerdraw_as_dataframe
+from ebustoolbox.data import get_powerdraw_as_dataframe
 
 if not any(["selenium" in str(x) for x in sys.modules.values()]):
     # do not use tkagg during testing since it does not work with headless selenium
@@ -53,7 +53,7 @@ def get_charge_chart(station):
     return plot
 
 
-def get_next_id(manager: django.db.models.Manager) -> int:
-    if manager.objects.exists():
-        return manager.objects.aggregate(Max("id"))["id__max"] + 1
+def get_next_id(model: django.db.models.Model) -> int:
+    if model.objects.exists():
+        return model.objects.aggregate(Max("id"))["id__max"] + 1
     return 1

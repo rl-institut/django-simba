@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
+
 from pathlib import Path
 
 import environ
@@ -33,6 +34,7 @@ env.read_env(str(ROOT_DIR.path(".env")))
 
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DJANGO_ELEVATION_TOKEN = env.str("DJANGO_ELEVATION_TOKEN", "notoken")
+OPENELEVATION_URL = env.str("OPENELEVATION_URL", "")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
@@ -53,7 +55,9 @@ if env.bool("DJANGO_LOCAL_DEVELOPMENT", default=False):
     SECURE_PROXY_SSL_HEADER = None
     # https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
     SECURE_SSL_REDIRECT = False
-
+DATA_UPLOAD_MAX_NUMBER_FIELDS = env.int(
+    "DJANGO_DATA_UPLOAD_MAX_NUMBER_FIELDS", 3000
+)  # higher than the count of fields. StationsView can have a couple of hundred stations with 5 fields each.
 # Application definition
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -65,14 +69,16 @@ INSTALLED_APPS = [
     "django_extensions",
     # custom apps
     "core",
+    "data_scrapers",
     "ebustoolbox",
     "elevation_api",
     "django_mapengine",
     "ebus_map",
-    "dash_app",
     # Django plotly dash
     "django_plotly_dash.apps.DjangoPlotlyDashConfig",
     "bootstrap4",
+    "tailwind",
+    "tailwind_theme",
 ]
 
 
@@ -94,7 +100,7 @@ ROOT_URLCONF = "ebusdjango.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates", BASE_DIR / "ebus_map/static"],
+        "DIRS": [BASE_DIR / "ebus_map/static"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -122,7 +128,7 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 LOGIN_REDIRECT_URL = "/"  # redirect to landing page after login
-LOGOUT_REDIRECT_URL = "/login/"  # redirect to login after logout
+# LOGOUT_REDIRECT_URL = "/"  # don't set: show custom logged out view
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
@@ -130,18 +136,14 @@ LOGOUT_REDIRECT_URL = "/login/"  # redirect to login after logout
 #  data. Patrick wrote an HowTo for Linux users
 DATABASES = {"default": env.db("DATABASE_URL")}
 
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
-CELERY_USE = env("CELERY_USE", default="False").lower() == "true"
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=True)
 if CELERY_TASK_ALWAYS_EAGER:
+    # if set, eager tasks will propagate exceptions
     CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=True)
-# Make sure there is a celery broker url provided if celery should be used
-if CELERY_USE:
-    assert CELERY_BROKER_URL, (
-        "CELERY_BROKER_URL is missing from .env file. If celery should be"
-        "used, this URL has to be provided"
-    )
-
+    # if set, eager tasks will save results in backend
+    CELERY_TASK_STORE_EAGER_RESULT = env.bool("CELERY_TASK_STORE_EAGER_RESULT", default=True)
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=None)
 
 # For Database visualization
 GRAPH_MODELS = {
@@ -274,3 +276,6 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+
+TAILWIND_APP_NAME = "tailwind_theme"
+INTERNAL_IPS = ["localhost", "127.0.0.1"]

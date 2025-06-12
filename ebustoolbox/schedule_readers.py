@@ -2,14 +2,22 @@ from abc import ABC, abstractmethod
 import csv
 from datetime import datetime, timedelta, timezone as tz
 from enum import Enum
+import logging
 import inspect
 from pathlib import Path
+from random import random
+
+import requests
+
+from django.contrib.gis.geos import Point
+from django.db.models import QuerySet, Min, Max
 from tqdm.auto import tqdm
-from typing import Callable, Type
+from typing import Callable, Type, Iterable
 from uuid import UUID
 
 from django import forms
 from django.utils import timezone
+from django.contrib.gis.db import models
 
 import eflips
 from eflips.ingest import DummyIngester, AbstractIngester
@@ -19,6 +27,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from core.models import Progress
+from ebusdjango import settings
 from ebustoolbox import util
 from ebustoolbox.models import (
     Scenario,
@@ -31,6 +40,9 @@ from ebustoolbox.models import (
     EnumChargeType,
     EnumVoltageLevel,
 )
+from ebus_map.managers import X, Y
+
+logger = logging.getLogger("custom")
 
 
 def get_options_form(reader_num: int):
@@ -116,6 +128,48 @@ def get_schedule_reader_factory(reader_num: int) -> type(ScheduleReader):
     raise NotImplementedError(f"Schedule Reader with {reader_num} not found")
 
 
+def place_not_found_stations(scenario):
+    """Place all stations of the scenario which are not geolocated yet.
+
+    Stations are placed at the border of the cluster of found stations.
+    If no stations were found, the stations will be placed around Berlin in a random fashion.
+    """
+    stations_without_geo = Station.objects.filter(scenario=scenario, geom__isnull=True)
+    if Station.objects.filter(scenario=scenario, geom__isnull=False).count() < 2:
+        logger.warning(
+            "Stations are placed randomly around Berlin, since less than two stations were located."
+        )
+        for station in stations_without_geo:
+            station.geom = Point(y=52.4 + random() * 0.3, x=13.0 + random() * 0.8, z=0)
+            station.save()
+        return
+    # place station around the (at least 2) found stations
+    max_x = (
+        Station.objects.filter(scenario=scenario).aggregate(
+            max_x=Max(X("geom", output_field=models.DecimalField()))
+        )
+    )["max_x"]
+    min_x = (
+        Station.objects.filter(scenario=scenario).aggregate(
+            min_x=Min(X("geom", output_field=models.DecimalField()))
+        )
+    )["min_x"]
+    max_y = (
+        Station.objects.filter(scenario=scenario).aggregate(
+            max_y=Max(Y("geom", output_field=models.DecimalField()))
+        )
+    )["max_y"]
+
+    # Step of longitude so stations are placed horizontally next to each other
+    delta_x = float(max(0.1, max_x - min_x))
+    for i, station in enumerate(stations_without_geo):
+        x = float(float(min_x) + i * delta_x / (max(1, len(stations_without_geo) - 1)))
+        # Stations are placed with a vertical offset to the station with the highest latitude.
+        y = float(max_y) + 0.05
+        station.geom = Point(x, y, 0)
+        station.save()
+
+
 class SimbaScheduleReader(ScheduleReader):
     class SimbaScheduleReaderException(Exception):
         pass
@@ -172,6 +226,10 @@ class SimbaScheduleReader(ScheduleReader):
             scenario = Scenario.objects.get(id=scenario_id)
             stations, station_dict = self.get_stations(scenario, trip_data)
             Station.objects.bulk_create(stations)
+            add_station_locations(Station.objects.filter(scenario=scenario))
+
+            add_elevations(Station.objects.filter(scenario=scenario, geom__isnull=False))
+            place_not_found_stations(scenario)
 
             self.set_progress(2, "Finde Fahrzeugtypen")
             # Create empty vehicle_types
@@ -463,8 +521,7 @@ class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
     def __init__(self):
         """
         This method initializes the class. In the django-simba world, initial validity checks could be done here.
-        However, per Paul's EMail from  2024-03-24, eflips-ingest shims should do the initial validity checks in the
-        meth:`write_to_db` method.
+        eflips-ingest shims should do the initial validity checks in the meth:`write_to_db` method.
 
         This method needs to be overridden by the subclasses. The arguments during initialization should be the
         parameters that are needed for the meth:`validate` method of the eflips-ingest class that the shim is
@@ -690,3 +747,78 @@ class EflipsIngestScheduleReaderVDV(EflipsIngestScheduleReaderBase):
             "x10_zip_file": x10_zip_file,
             "progress_callback": None,
         }
+
+
+def find_station_locations(station_names: Iterable) -> list[tuple]:
+    """Search the database for locations of bus stations with the same name"""
+    # local import since data_scrapers might not be an installed app.
+    # in this case the function will not be called by add_station_locations
+    from data_scrapers.tasks import search_stations
+
+    foundStations = search_stations(station_names, use_filter=True)
+    result = []
+    for name in station_names:
+        stations = foundStations.get(name)
+        if stations is None:
+            result.append((None, None))
+            continue
+        # found Bus Stations can contain multiple bus stops per station, e.g. stops across the
+        # street in different directions. Use the average to get a single position.
+        x_avg = sum([station.geom.x for station in stations]) / len(stations)
+        y_avg = sum([station.geom.y for station in stations]) / len(stations)
+        result.append((x_avg, y_avg))
+    return result
+
+
+def add_station_locations(query: QuerySet):
+    """Add station locations to all bus stations which have no geom yet.
+
+    Uses the data_scrapers app and expects a previously fetched database of german bus stops
+    and admin areas.
+    """
+
+    # Keep the data_scraper optional
+    if "data_scrapers" not in settings.INSTALLED_APPS:
+        logger.error("Data scraper not available")
+        return
+    station_names = query.values_list("name", flat=True)
+    locations = find_station_locations(station_names)
+    stations_with_geom = []
+    not_found = []
+    for station, (x, y) in zip(query, locations):
+        if x is None or y is None:
+            not_found.append(station.name)
+            continue
+        station.geom = Point(x, y, z=0)
+        stations_with_geom.append(station)
+    logger.info(f"{len(not_found)}/{len(station_names)} Stations could not be located")
+    query.model.objects.bulk_update(stations_with_geom, ["geom"])
+
+
+def add_elevations(query: QuerySet):
+    """Look up elevation for a given geom of a queryset and add it to the database
+
+    Model needs a geom field with a Point(x,y,z). Search elevation data and add it to the query.
+    """
+    if not query.exists():
+        return
+    locations = query.values_list("geom", flat=True)
+    locations_lat_lon = [f"{loc.y},{loc.x}" for loc in locations]
+
+    url = settings.OPENELEVATION_URL + "/api/v1/lookup/"
+    param = {"locations": "|".join(locations_lat_lon)}
+    response = requests.get(url, params=param)
+    if response.status_code != 200:
+        logger.warning(f"Adding elevation failed with {response.status_code=}")
+        return
+    data = response.json()
+    changed_geom = []
+    for i, result in enumerate(data["results"]):
+        if result["error"]:
+            logger.warning(f"Elevation returned an error: {result}")
+        obj = query[i]
+        assert obj.geom.x == result["longitude"]
+        assert obj.geom.y == result["latitude"]
+        obj.geom = Point(obj.geom.x, obj.geom.y, result["elevation"])
+        changed_geom.append(obj)
+    query.model.objects.bulk_update(changed_geom, ["geom"])

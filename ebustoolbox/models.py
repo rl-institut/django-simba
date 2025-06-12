@@ -1,4 +1,5 @@
 from datetime import timedelta, datetime
+from enum import auto
 
 from django.core.validators import MinValueValidator, MaxValueValidator
 from fast_update.query import FastUpdateManager
@@ -15,9 +16,8 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
-from django.db.models import QuerySet, Sum, Q, Case, When, Value, IntegerField, Func, F
+from django.db.models import QuerySet, Sum, Case, When, Value, IntegerField, Func, F
 from django.db.models.functions import Now, Length
-from django.db.models.constraints import UniqueConstraint
 from django.dispatch import receiver
 from django.utils.timezone import make_aware
 
@@ -25,6 +25,12 @@ from ebus_map.managers import MVTManager, X, Y
 from simba.ids import INCLINE, LEVEL_OF_LOADING, SPEED, T_AMB, CONSUMPTION
 
 MINIMAL_TRIP_DURATION_S = 60  # seconds
+
+
+class EnumScenarioType(models.TextChoices):
+    SOURCE = auto()
+    MUTATION = auto()
+    SIMULATION = auto()
 
 
 class Scenario(models.Model):
@@ -35,6 +41,8 @@ class Scenario(models.Model):
         name (str): The name of the scenario. Required and cannot be blank.
         name_short (str, optional): A short name for the scenario. Can be blank.
         parent (Scenario, optional): A reference to the parent scenario, if applicable.
+        scenario_type (str, optional): The type of the scenario indicating what data it contains.
+        description (str, optional): A description for the scenario.
         created (datetime): The date and time when the scenario was created.
         task_id (UUID, optional): Unique identifier for the scenario's task. Can be null.
         finished (datetime, optional): The date and time when the scenario was finished, if applicable.
@@ -59,6 +67,9 @@ class Scenario(models.Model):
     name = models.TextField(blank=False)
     name_short = models.TextField(blank=True, null=True)
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
+
+    scenario_type = models.CharField(choices=EnumScenarioType.choices, null=True)
+    description = models.TextField(blank=True, null=True)
 
     created = models.DateTimeField(
         auto_now_add=True, db_default=Now()
@@ -170,7 +181,7 @@ class BatteryType(models.Model):
     # relative to gross capacity
     specific_mass = models.FloatField(null=False, blank=True)
     # defined in eFLIPS-LCA
-    chemistry = models.JSONField(null=True, default=dict)
+    chemistry = models.JSONField(null=False, default=dict)
 
 
 class AssocVehicleTypeVehicleClass(models.Model):
@@ -349,10 +360,9 @@ class Consumption(models.Model):
     """
 
     name = models.CharField(max_length=100)
-    vehicle_class = models.ForeignKey(VehicleClass, null=True, on_delete=models.CASCADE)
-    # Scenario might be null for default consumption tables
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
-    columns = models.JSONField([], null=False)
+    vehicle_class = models.ForeignKey(VehicleClass, null=False, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    columns = models.JSONField(default=list, null=False)
     data_points = ArrayField(ArrayField(models.FloatField(), size=None), size=None, null=False)
     values = ArrayField(models.FloatField(), size=None, null=False)
 
@@ -361,18 +371,20 @@ class Consumption(models.Model):
     one_dim = False
 
     class Meta:
-        constraints = [
-            UniqueConstraint(fields=["name", "scenario"], name="unique_with_scenario"),
-            UniqueConstraint(
-                fields=["name"], condition=Q(scenario=None), name="unique_without_scenario"
-            ),
-        ]
-
         db_table = "ConsumptionLut"
 
     def __str__(self):
         avg = np.array(self.values).mean()
         return f"Consumption table {self.name} with average consumption of {avg:.1f} "
+
+    def to_simba_name(self) -> str:
+        """Create a verbose unique name for simba"""
+        return self.name + "_" + str(self.id)
+
+    @classmethod
+    def get_id_from_simba_name(cls, name) -> int:
+        """Return the id of a verbose unique name from simba"""
+        return int(name.split("_")[-1])
 
     def to_df(self):
         """
@@ -404,6 +416,8 @@ class Consumption(models.Model):
         columns = [INCLINE, T_AMB, LEVEL_OF_LOADING, SPEED]
         data_points = np.array(df.loc[:, columns].values).tolist()
         values = np.array(df.loc[:, CONSUMPTION].values).tolist()
+        # Consumption is returned without scenario and vehicle_class.
+        # This needs to be patched in before the Consumption can be saved.
         return Consumption(
             name=name,
             columns=columns,
@@ -486,14 +500,6 @@ class Consumption(models.Model):
             if len(data.shape) == 1:
                 # Transform a list like [1,2,3] to [[1],[2],[3]]
                 self.data_points = np.expand_dims(self.data_points, 0).T.tolist()
-        assert (
-            len(
-                Consumption.objects.filter(scenario=self.scenario, name=self.name).exclude(
-                    id=self.id
-                )
-            )
-            == 0
-        )
         self._set_interpolators()
         super().save(*args, **kwargs)
 
@@ -599,7 +605,8 @@ class Rotation(models.Model):
     allow_opportunity_charging = models.BooleanField(default=True, null=False)
 
     def get_distance(self):
-        return Route.objects.filter(trip__rotation=self).aggregate(Sum("distance"))
+        # get distance of this rotation in meters
+        return Route.objects.filter(trip__rotation=self).aggregate(Sum("distance"))["distance__sum"]
 
 
 def annotate_distance(query: QuerySet[Rotation]):
@@ -734,6 +741,16 @@ class Temperatures(models.Model):
         self.temperature_closest_function = get_datetime_closest_function(self.datetimes, self.data)
         super().save(*args, **kwargs)
 
+    @staticmethod
+    def create_constant_temperatures(scenario, temperature: float) -> "Temperatures":
+        self = Temperatures()
+        self.scenario = scenario
+        self.use_only_time = True
+        self.datetimes = [datetime(1900, 1, 1)]
+        self.data = [temperature]
+        self.save()
+        return self
+
     def get_interpolated_temperature(self, date_time: datetime) -> float:
         """
         Retrieves the interpolated temperature for a given datetime.
@@ -772,6 +789,10 @@ def get_datetime_closest_function(datetimes: list[datetime], data: list):
     Returns:
         function: A datetime interpolation function.
     """
+    # In the case of a single temperature just return the temperature
+    if len(data) == 1:
+        return lambda _: data[0]
+
     # sort by key
     sort_index = np.argsort(np.array(datetimes), axis=0)
     sorted_data = (np.array([datetimes, data]).T)[sort_index]
@@ -890,6 +911,7 @@ class Station(models.Model):
         name_short (str, optional): A short name for the station. Can be blank.
         scenario (Scenario): The scenario to which the station is associated. Foreign key to the Scenario model.
         is_electrified (bool): Indicates whether the station is electrified. Defaults to False.
+        is_electrifiable (bool): Indicates whether the station could be electrified. Defaults to True.
         charge_type (str, optional): The type of charging available at the station.
                                      Choices defined by EnumChargeType. Defaults to None.
         voltage_level (str, optional): The voltage level of the station.
@@ -931,6 +953,7 @@ class Station(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
     is_electrified = models.BooleanField(default=False)
+    is_electrifiable = models.BooleanField(default=True)
     charge_type = models.CharField(
         max_length=4, choices=EnumChargeType.choices, null=True, default=None
     )
@@ -999,10 +1022,7 @@ class Station(models.Model):
             data["plot"] = plot
         return data
 
-    def save(self, *args, **kwargs):
-        # Override save to make certain name_short exists
-        if not self.name_short:
-            self.name_short = self.name
+    def is_valid(self):
         if self.is_electrified:
             if self.voltage_level is None or self.charge_type is None:
                 error_text = "An electrified station needs a voltage level and a charge type"
@@ -1021,6 +1041,12 @@ class Station(models.Model):
                     "values :\n" + "\n".join(EnumChargeType.values)
                 )
                 raise AttributeError(f"Station {self.name} with {self.charge_type}:" + error_text)
+
+    def save(self, *args, **kwargs):
+        # Override save to make certain name_short exists
+        if not self.name_short:
+            self.name_short = self.name
+        self.is_valid()
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -1486,6 +1512,7 @@ class Depot(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     name = models.TextField(null=False, blank=False)
     name_short = models.TextField(null=True, blank=True)
+    bounding_box = models.PolygonField(dim=2, srid=4326, null=True, default=None)
     station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE)  # Added in schema v3
 
     default_plan = models.OneToOneField("Plan", null=False, on_delete=models.CASCADE)
@@ -1545,7 +1572,9 @@ class Area(models.Model):
     vehicle_type = models.ForeignKey(VehicleType, null=True, on_delete=models.CASCADE)
     name = models.TextField(null=True)
     name_short = models.TextField(null=True)
-    area_type = models.CharField(max_length=15, choices=AreaType.choices, null=True, default=None)
+    area_type = models.CharField(max_length=14, choices=AreaType.choices, null=True, default=None)
+    bounding_box = models.PolygonField(dim=2, srid=4326, null=True, default=None)
+    row_count = models.IntegerField(null=True, default=None)
     capacity = models.IntegerField(null=False)
     processes = models.ManyToManyField(Process, through="AssocAreaProcess")
 
@@ -1581,8 +1610,14 @@ class AssocAreaProcess(models.Model):
 class SimulationRange(models.Model):
     # Mutation Scenario
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
-    start = models.DateTimeField(null=False)
-    end = models.DateTimeField(null=False)
+    start = models.DateTimeField(null=True)
+    end = models.DateTimeField(null=True)
+    temperature = models.FloatField(
+        blank=True,
+        default=-10,
+        null=True,
+        validators=[MinValueValidator(-20), MaxValueValidator(40)],
+    )
 
 
 class DepotSelection(models.Model):
@@ -1619,6 +1654,7 @@ class VehicleTypeSelection(models.Model):
 
 
 class VehicleTypeMutation(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
     original_vehicle_type = models.ForeignKey(
         VehicleType, related_name="originalvehicletype", null=True, on_delete=models.CASCADE
     )
@@ -1628,6 +1664,7 @@ class VehicleTypeMutation(models.Model):
 
 
 class DepotMutation(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
     original_depot = models.ForeignKey(
         Depot, related_name="originaldepot", null=True, on_delete=models.CASCADE
     )
@@ -1637,9 +1674,30 @@ class DepotMutation(models.Model):
 
 
 class StationMutation(models.Model):
+    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
     original_station = models.ForeignKey(
         Station, related_name="originalstation", null=True, on_delete=models.CASCADE
     )
     mutated_original_station = models.ForeignKey(
         Station, related_name="mutatedstation", null=True, on_delete=models.CASCADE
+    )
+
+
+class EnumCalculationModes(models.TextChoices):
+    AUTOMATIC = "automatic"
+    CONSTANT_POWER = "constant_power"
+    MANUAL = "manual"
+
+
+class ScenarioWizardOptions(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    station_calculation_mode = models.CharField(
+        max_length=20, choices=EnumCalculationModes.choices, null=True, default=None
+    )
+    tco_calculation_mode = models.CharField(
+        max_length=20, choices=EnumCalculationModes.choices, null=True, default=None
+    )
+
+    lca_calculation_mode = models.CharField(
+        max_length=20, choices=EnumCalculationModes.choices, null=True, default=None
     )

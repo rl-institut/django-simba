@@ -1,0 +1,1906 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}WeBus - Ergebnisse{% endblock title %}
+
+{% block content %}
+<header class="flex flex-col items-center bg-white">
+  <div class="sm:py-8 lg:pt-12 lg:pb-8 sm:px-6 lg:px-8 w-full max-w-7xl">
+    <div class="flex justify-between">
+      <h1 class="text-2xl font-semibold">{{ scenario.name }}</h1>
+      <div class="flex gap-2 relative"> <!-- Add relative to the parent container -->
+        <a
+            href="{% url 'simba:compare' %}?s={{ scenario.id }}"
+            class="px-4 py-2 bg-green-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
+          <span class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+            </svg>
+            <span>Vergleichen</span>
+          </span>
+        </a>
+        <button
+          class="px-4 py-2 bg-green-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300"
+          id="dropdownButton"
+          aria-expanded="false"
+          aria-haspopup="true"
+        >
+          <span class="flex items-center gap-2">
+            <span>Mehr</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="size-4 transition-transform duration-300"
+              id="dropdownArrow"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+            </svg>
+          </span>
+        </button>
+        <!-- Dropdown menu -->
+        <div
+          class="absolute z-10 mt-12 w-64 origin-top-right rounded-md bg-white divide-y divide-slate-100 shadow-lg ring-1 ring-black/5 focus:outline-none hidden right-0"
+          role="menu"
+          aria-orientation="vertical"
+          id="dropdownMenu"
+        >
+          <div class="py-1" role="none">
+            <a href="#" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              <span>
+                Ergebnisse exportieren
+              </span>
+            </a>
+            <a href="#" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm3.75 11.625a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+              </svg>
+              <span>
+                Zusammenfassung sehen
+              </span>
+            </a>
+            <a href="#" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              <span>
+                Als Variante verwenden
+              </span>
+            </a>
+          </div>
+          <div class="py-1" role="none">
+            <a href="#" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+              </svg>
+              <span>
+                Szenario Löschen
+              </span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="flex justify-center space-x-4 pt-12">
+      <a href="#costs-section" class="px-4 py-2 bg-slate-50 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
+        <span class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
+          </svg>
+          <span>Kosten + Umwelt</span>
+        </span>
+      </a>
+      <a href="#bus-section" class="px-4 py-2 bg-slate-50 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
+        <span class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
+          </svg>
+          <span>Fahrzeuge</span>
+        </span>
+      </a>
+      <a href="#infrastructure-section" class="px-4 py-2 bg-slate-50 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
+        <span class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
+          </svg>
+          <span>Infrastruktur</span>
+        </span>
+      </a>
+      <a href="#map-section" class="px-4 py-2 bg-slate-50 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
+        <span class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
+          </svg>
+          <span>Karte</span>
+        </span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.3.2/dist/echarts.min.js"></script>
+<style>
+    .chart-container {
+        width: 100%;
+        height: 600px;
+        margin: 20px;
+    }
+</style>
+
+<main class="flex flex-col items-center flex-grow">
+  <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+    <div class="flex flex-col">
+      <div id="costs-section" class="flex justify-between items-center pb-2">
+        <h2 class="text-xl text-slate-800 font-light uppercase">Kosten</h2>
+        <button type="button" class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50" aria-expanded="false" aria-haspopup="true" aria-label="Optionen sehen">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="bg-white rounded-lg shadow-md mb-12">
+        <!-- Toggle and Dropdown -->
+        <div class="flex justify-between items-start pt-4 px-4">
+          <div class="flex items-center w-4/12 gap-4">
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                id="dieselToggle"
+                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+                role="switch"
+                aria-checked="false"
+                aria-labelledby="dieselToggleLabel"
+              >
+                <span aria-hidden="true" class="pointer-events-none inline-block size-5 translate-x-0 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+              </button>
+              <div class="flex items-center gap-2">
+                <span class="ml-2 text-sm font-normal text-slate-500" id="dieselToggleLabel">Relativ zu Dieselszenario</span>
+                <div class="relative inline-block">
+                  <span class="cursor-pointer group">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#00856C" class="size-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
+                    </svg>
+                    <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                      Relativer Vergleich mit Diesel-Szenario.
+                    </div>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="flex justify-center w-4/12 text-base font-normal text-slate-600">Gesamtkosten</p>
+          <div class="flex flex-grow justify-end w-4/12">
+            <div class="w-[10rem]">
+              <label id="listbox-label" class="hidden">
+                Label
+              </label>
+              <div class="relative">
+                <!-- Button that toggles the dropdown -->
+                <button
+                  id="assignedToButton"
+                  type="button"
+                  class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pl-3 pr-2 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 sm:text-sm/6"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-labelledby="listbox-label"
+                >
+                  <span id="assignedToLabel" class="col-start-1 row-start-1 truncate pr-6">1 Jahr</span>
+                  <svg class="col-start-1 row-start-1 size-5 self-center justify-self-end text-slate-500 sm:size-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
+                    <path fill-rule="evenodd" d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+
+                <!-- Dropdown list -->
+                <ul
+                  id="assignedToList"
+                  class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm hidden"
+                  tabindex="-1"
+                  role="listbox"
+                  aria-labelledby="listbox-label"
+                >
+                  <li
+                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-green-400 hover:text-black"
+                    role="option"
+                    data-dropdown-item="Item 2"
+                  >
+                    <span class="block truncate font-normal">2 Jahre</span>
+                  </li>
+                  <li
+                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-green-400 hover:text-black"
+                    role="option"
+                    data-dropdown-item="Item 3"
+                  >
+                    <span class="block truncate font-normal">3 Jahre</span>
+                  </li>
+                  <li
+                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-green-400 hover:text-black"
+                    role="option"
+                    data-dropdown-item="Item 4"
+                  >
+                    <span class="block truncate font-normal">4 Jahre</span>
+                  </li>
+                  <li
+                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-green-400 hover:text-black"
+                    role="option"
+                    data-dropdown-item="Item 5"
+                  >
+                    <span class="block truncate font-normal">5 Jahre</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="text-center p-4">
+          <p class="text-4xl font-bold text-slate-800">
+            <span class="text-4xl font-bold text-slate-800">
+              4.000.000
+            </span>
+            <span class="text-lg font-normal text-slate-800">
+              €
+            </span>
+          </p>
+        </div>
+        <div class="flex flex-wrap bg-slate-50">
+          <!-- Energie -->
+          <div class="w-full md:w-1/2 xl:w-1/4 p-4 border-b xl:border-b-0 xl:border-r border-slate-300">
+            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">Energie</p>
+            <div class="flex justify-center items-center gap-2">
+              <span class="text-xl font-semibold text-slate-800">1.000.000</span>
+              <span class="text-sm font-normal text-slate-800">€</span>
+            </div>
+            <p class="text-center text-sm tracking-wide text-slate-500">Variable Kosten</p>
+          </div>
+
+          <!-- Fahrzeuge -->
+          <div class="w-full md:w-1/2 xl:w-1/4 p-4 border-b xl:border-b-0 xl:border-r border-slate-300">
+            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">Fahrzeuge</p>
+            <div class="flex justify-center gap-8 xl:gap-4">
+              <div class="flex flex-col items-center">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl font-semibold text-slate-800">1.200.000</span>
+                  <span class="text-sm font-normal text-slate-800">€</span>
+                </div>
+                <p class="text-sm tracking-wide text-slate-500">Fixkosten</p>
+              </div>
+              <div class="flex flex-col items-center">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl font-semibold text-slate-800">400.000</span>
+                  <span class="text-sm font-normal text-slate-800">€</span>
+                </div>
+                <p class="text-sm tracking-wide text-slate-500">Variable Kosten</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Infrastruktur Endhaltestellen -->
+          <div class="w-full md:w-1/2 xl:w-1/4 p-4 border-b md:border-b-0 xl:border-r border-slate-300">
+            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">Infrastruktur Endhaltestellen</p>
+            <div class="flex justify-center gap-8 xl:gap-4">
+              <div class="flex flex-col items-center">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl font-semibold text-slate-800">500.000</span>
+                  <span class="text-sm font-normal text-slate-800">€</span>
+                </div>
+                <p class="text-sm tracking-wide text-slate-500">Fixkosten</p>
+              </div>
+              <div class="flex flex-col items-center">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl font-semibold text-slate-800">100.000</span>
+                  <span class="text-sm font-normal text-slate-800">€</span>
+                </div>
+                <p class="text-sm tracking-wide text-slate-500">Variable Kosten</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Infrastruktur Depots -->
+          <div class="w-full md:w-1/2 xl:w-1/4 p-4">
+            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">Infrastruktur Depots</p>
+            <div class="flex justify-center gap-8 xl:gap-4">
+              <div class="flex flex-col items-center">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl font-semibold text-slate-800">800.000</span>
+                  <span class="text-sm font-normal text-slate-800">€</span>
+                </div>
+                <p class="text-sm tracking-wide text-slate-500">Fixkosten</p>
+              </div>
+              <div class="flex flex-col items-center">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl font-semibold text-slate-800">150.000</span>
+                  <span class="text-sm font-normal text-slate-800">€</span>
+                </div>
+                <p class="text-sm tracking-wide text-slate-500">Variable Kosten</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow-md mb-12">
+        <div class="p-8">
+          <nav class="-mb-px flex space-x-8 border-b border-slate-300" aria-label="Tabs" id="costsTabs">
+            <a href="#" class="costs-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="costs-tab-1" aria-current="page">Kostenverlauf</a>
+            <a href="#" class="costs-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="costs-tab-2">Tab 2</a>
+          </nav>
+          <div id="costs-tab-contents" class="mt-4">
+            <div class="costs-tab-content" data-tab="costs-tab-1">
+              <div class="flex justify-end">
+                <div class="w-[20rem]">
+                  <label id="kostenverlauf-label" class="block text-sm font-medium text-slate-800">
+                    Ansicht
+                  </label>
+                  <div class="relative mt-2">
+                    <!-- Button that toggles the dropdown -->
+                    <button
+                      id="assignedToButton"
+                      type="button"
+                      class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pl-3 pr-2 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 sm:text-sm/6"
+                      aria-haspopup="listbox"
+                      aria-expanded="false"
+                      aria-labelledby="kostenverlauf-label"
+                    >
+                      <span id="assignedToLabel" class="col-start-1 row-start-1 truncate pr-6">Zeitlauf</span>
+                      <svg class="col-start-1 row-start-1 size-5 self-center justify-self-end text-slate-500 sm:size-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
+                        <path fill-rule="evenodd" d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                    <!-- Add Dropdown list -->
+                  </div>
+                </div>
+              </div>
+              <div class="flex justify-between items-start gap-4 h-[400px]">
+                <div id="kostenverlaufChart" class="w-full h-[400px]"></div>
+              </div>
+            </div>
+            <div class="costs-tab-content" data-tab="costs-tab-2">
+              Content 2
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col">
+        <div class="flex justify-between items-center pb-2">
+          <h2 class="text-xl text-slate-800 font-light uppercase">Umwelt</h2>
+          <button type="button" class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50" aria-expanded="false" aria-haspopup="true" aria-label="Optionen sehen">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="bg-white rounded-lg shadow-md mb-12">
+          <div class="p-8">
+            <div class="flex justify-center">
+              <p class="text-base font-normal text-slate-600 pb-4">CO<sub>2</sub>-Bilanz</p>
+            </div>
+            <div class="flex justify-center">
+              <div class="flex items-end gap-2">
+                <span class="text-4xl font-bold text-slate-800">- 70</span>
+                <span class="text-base font-normal text-slate-600">% CO<sub>2</sub>-Emissionen</span>
+              </div>
+            </div>
+            <div class="flex justify-center">
+              <div class="w-full lg:w-3/4 flex flex-col gap-4 py-8">
+                <div class="flex items-center gap-4">
+                  <span class="text-end text-sm text-slate-600 flex-grow">Vor Elektrifizierung</span>
+                  <div class="flex items-center gap-2 w-3/4">
+                    <div class="h-2 flex-grow bg-slate-200 rounded-full"></div>
+                    <span class="text-sm font-medium text-slate-800">10.000 t</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4">
+                  <span class="text-end text-sm text-slate-600 flex-grow">Nach Elektrifizierung</span>
+                  <div class="flex items-center gap-2 w-3/4">
+                    <div class="h-2 w-[30%] bg-green-400 rounded-full"></div>
+                    <span class="text-sm font-bold text-green-600">3.000 t</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Toggle Button -->
+            <div class="flex justify-end pt-4">
+              <button
+                id="detailsButton"
+                class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-full transition-all"
+                aria-expanded="false"
+                aria-controls="detailsContent"
+              >
+                <span>Details sehen</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="size-4 transition-transform duration-300"
+                  id="detailsArrow"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+            </div>
+            <!-- Hidden Content -->
+            <div id="detailsContent" class="hidden mt-4 pt-8 text-sm text-slate-600 border-t border-slate-200">
+              <p>Details zur CO<sub>2</sub>-Bilanz: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce accumsan nisi at elit tincidunt fermentum.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col">
+        <div id="bus-section" class="flex justify-between items-center pb-2">
+          <h2 class="text-xl text-slate-800 font-light uppercase">Fahrzeuge</h2>
+          <button type="button" class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50" aria-expanded="false" aria-haspopup="true" aria-label="Optionen sehen">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md mb-12">
+        <div class="p-8">
+          <nav class="-mb-px flex space-x-8 border-b border-slate-300" aria-label="Tabs" id="socTabs">
+            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-1" aria-current="page">
+              Anzahl Fahrzeuge nach SoC
+            </a>
+            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-2">
+              Fahrzeugaktivitäten
+            </a>
+            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-3">
+              Fahrzeuganzahlen
+            </a>
+            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-4">
+              Fahrplanwirkungsgrade
+            </a>
+          </nav>
+          <div id="soc-tab-contents" class="mt-4">
+            <div class="soc-tab-content" data-tab="soc-tab-1">
+              <div id="soc-heatmap" style="width: 100%; height: 600px;"></div>
+            </div>
+            <div class="soc-tab-content hidden" data-tab="soc-tab-2">
+              Content 2
+            </div>
+            <div class="soc-tab-content hidden" data-tab="soc-tab-3">
+              Content 3
+            </div>
+            <div class="soc-tab-content hidden" data-tab="soc-tab-4">
+              Content 4
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col">
+        <div id="infrastructure-section" class="flex justify-between items-center pb-2">
+          <h2 class="text-xl text-slate-800 font-light uppercase">Infrastruktur</h2>
+          <button type="button" class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50" aria-expanded="false" aria-haspopup="true" aria-label="Optionen sehen">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="bg-white rounded-lg shadow-md mb-12">
+          <div class="p-4">
+            <div class="flex flex-wrap lg:divide-x divide-slate-300">
+
+
+                <!-- Endhaltestellen -->
+                <div class="w-full lg:w-1/2 p-4 border-b lg:border-b-0 border-slate-300">
+                    <p class="text-center text-base font-normal text-slate-500 pb-4">Umläufe</p>
+                    <div class="flex justify-between mt-4">
+                        <div class="w-1/3 text-center border-r border-slate-300">
+                            <p class="text-slate-800">
+                                <span id="longest_rotation" class="text-2xl font-semibold">--</span>
+                                <span class="text-base font-normal">km</span>
+                            </p>
+                            <p class="text-sm text-slate-500">Längster Umlauf</p>
+                        </div>
+                        <div class="w-1/3 text-center border-r border-slate-300">
+                            <p class="text-slate-800">
+                                <span id="shortest_rotation" class="text-2xl font-semibold">--</span>
+                                <span class="text-base font-normal">km</span>
+                            </p>
+                            <p class="text-sm text-slate-500">Kürzester Umlauf</p>
+                        </div>
+                        <div class="w-1/3 text-center">
+                            <p class="text-slate-800">
+                                <span id="total_dist" class="text-2xl font-semibold">--</span>
+                                <span class="text-base font-normal">km</span>
+                            </p>
+                            <p class="text-sm text-slate-500">Gesamtstrecke</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Depots -->
+                <div class="w-full lg:w-1/2 p-4">
+                    <p class="text-center text-base font-normal text-slate-500 pb-4">Szenario</p>
+                    <div class="flex justify-between mt-4">
+                        <div class="w-1/3 text-center border-r border-slate-300">
+                            <p class="text-slate-800">
+                                <span id="num_stations" class="text-2xl font-semibold">--</span>
+                            </p>
+                            <p class="text-sm text-slate-500">Elektrifizierte Stationen /<br>Gesamtzahl Stationen</p>
+                        </div>
+                        <div class="w-1/3 text-center border-r border-slate-300">
+                            <p class="text-slate-800">
+                                <span id="num_busses" class="text-2xl font-semibold">--</span>
+                            </p>
+                            <p class="text-sm text-slate-500">Anzahl Fahrzeuge</p>
+                        </div>
+                        <div class="w-1/3 text-center">
+                            <p class="text-slate-800">
+                                <span id="most_frequented" class="text-2xl font-semibold">--</span>
+                            </p>
+                            <p class="text-sm text-slate-500">Häufigst angefahrene Station</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Endhaltestellen -->
+                <div class="w-full lg:w-1/2 p-4 border-b lg:border-b-0 border-slate-300">
+                    <p class="text-center text-base font-normal text-slate-500 pb-4">Energie und Leistung</p>
+                    <div class="flex justify-between mt-4">
+                        <div class="w-1/3 text-center border-r border-slate-300">
+                            <p class="text-slate-800">
+                                <span id="total_consumption" class="text-2xl font-semibold">--</span>
+                                <span class="text-base font-normal">kWh</span>
+                            </p>
+                            <p class="text-sm text-slate-500">Gesamt geladene Energie</p>
+                        </div>
+                        <div class="w-1/3 text-center border-r border-slate-300">
+                            <p class="text-slate-800">
+                                <span id="avg_consumption" class="text-2xl font-semibold">--</span>
+                                <span class="text-base font-normal">kWh/km</span>
+                            </p>
+                            <p class="text-sm text-slate-500">Durchschnittl. Verbrauch</p>
+                        </div>
+                        <div class="w-1/3 text-center">
+                            <p class="text-slate-800">
+                                <span id="installed_power" class="text-2xl font-semibold">--</span>
+                                <span class="text-base font-normal">kW</span>
+                            </p>
+                            <p class="text-sm text-slate-500">Installierte Leistung</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Depots -->
+                <div class="w-full lg:w-1/2 p-4">
+                    <p class="text-center text-base font-normal text-slate-500 pb-4">Depots</p>
+                    <div class="flex justify-between mt-4">
+                        <div class="w-1/3 text-center border-r border-slate-300">
+                            <p class="text-slate-800">
+                                <span id="depots-anzahl-stellplaetze" class="text-2xl font-semibold">--</span>
+                            </p>
+                            <p class="text-sm text-slate-500">Anzahl Stellplätze</p>
+                        </div>
+                        <div class="w-1/3 text-center border-r border-slate-300">
+                            <p class="text-slate-800">
+                                <span id="depots-energie" class="text-2xl font-semibold">--</span>
+                                <span class="text-base font-normal">kWh</span>
+                            </p>
+                            <p class="text-sm text-slate-500">Energie</p>
+                        </div>
+                        <div class="w-1/3 text-center">
+                            <p class="text-slate-800">
+                                <span id="depots-spitzenleistung" class="text-2xl font-semibold">--</span>
+                                <span class="text-base font-normal">kW</span>
+                            </p>
+                            <p class="text-sm text-slate-500">Spitzenleistung</p>
+                        </div>
+                    </div>
+
+
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md mb-12">
+        <div class="p-8">
+          <nav class="-mb-px flex space-x-8 border-b border-slate-300" aria-label="Tabs" id="loadProfileTabs">
+            <a href="#" class="load-profile-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="load-profile-tab-1" aria-current="page">
+              Auswertung
+            </a>
+          </nav>
+          <div id="load-profile-tab-contents" class="mt-4">
+            <div class="load-profile-tab-content" data-tab="load-profile-tab-1">
+
+                <!-- Hidden input to pass task ID to javascript -->
+                <input type="hidden" id="task-id" value="{{ task_id }}">
+
+                <!-- Different containers for each chart -->
+                <div id="chartContainer" class="chart-container"></div>
+                <div id="busTypeChartContainer" class="chart-container"></div>
+                <div id="lineChart" class="chart-container"></div>
+                <div id="DepotlineChart" class="chart-container"></div>
+                <div id="ganttChart" class="chart-container"></div>
+                <div id="soc-gantt" class="chart-container"></div>
+                <div id="DistHistogramChart" class="chart-container"></div>
+                <div id="SpeedHistogramChart" class="chart-container"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col">
+        <div id="map-section" class="flex justify-between items-center pb-2">
+          <h2 class="text-xl text-slate-800 font-light uppercase">Karte</h2>
+          <button type="button" class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50" aria-expanded="false" aria-haspopup="true" aria-label="Optionen sehen">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="bg-white rounded-lg shadow-md mb-12">
+
+
+            <div class="p-4">
+                {% include 'ebustoolbox/minimal_mapengine.html' %}
+            </div>
+        </div>
+    </div>
+  </div>
+<div id="dataFetchedFinished" value="0"></div>
+</main>
+{% endblock content %}
+
+{% block script %}
+<script>
+    // eCharts functionality
+    const taskId = document.getElementById("task-id").value;
+    //console.log("Simulation ID:", taskId);
+
+  function fetchAndRenderPieChart(chartName, chartId, titleText) {
+        return fetch(`/simba/result/${taskId}/${chartName}/`)
+            .then(response => response.json())
+            .then(data => {
+                // Filter out categories with zero values
+                const chartData = (data.data || []).filter(item => item.value > 0);
+
+                const chart = echarts.init(document.getElementById(chartId));
+
+                const options = {
+                    title: {
+                        text: titleText,
+                        left: 'center',
+                        textStyle: {
+                            fontSize: 16,
+                            fontWeight: 'bold'
+                        }
+                    },
+                    tooltip: {
+                        trigger: 'item',
+                        formatter: '{b}: {c} ({d}%)'
+                    },
+                    legend: {
+                        orient: 'vertical',
+                        left: 'left'
+                    },
+                    series: [{
+                        name: titleText,
+                        type: 'pie',
+                        radius: '50%',
+                        data: chartData,  // Use the filtered data without zero values
+                        label: {
+                            show: true  // Always show labels
+                        },
+                        labelLine: {
+                            show: true  // Always show label lines
+                        },
+                        emphasis: {
+                            itemStyle: {
+                                shadowBlur: 10,
+                                shadowOffsetX: 0,
+                                shadowColor: 'rgba(0, 0, 0, 0.5)'
+                            }
+                        }
+                    }]
+                };
+
+                chart.setOption(options);
+            });
+    }
+    function fetchAndRenderLineChart(chartName, chartId, titleText, xKey, yKey) {
+
+        return fetch(`/simba/result/${taskId}/${chartName}/`)
+        .then(response => response.json())
+        .then(data => {
+
+            const chart = echarts.init(document.getElementById(chartId));
+
+            // Prepare the series data for each bus (V_id)
+            var seriesData = [];
+            for (let v_id in data.data) {
+                let busData = data.data[v_id];
+                seriesData.push({
+                    name: `Bus ${v_id}`, // Name for the legend
+                    type: 'line',
+                    data: busData, // The actual time-series data for this bus
+                    smooth: false
+                });
+            }
+
+            var options = {
+                title: {
+                    text: titleText,
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 16,
+                        fontWeight: 'bold'
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function (params) {
+                        const timestamp = params[0].value[0]; // Unix timestamp
+                        const soc = params[0].value[1] *100 ; // SOC value
+                        const date = new Date(timestamp);
+                        return `${date.toLocaleString()} : ${soc.toFixed(2)}%`; // Format the tooltip
+                    }
+                },
+                xAxis: {
+                    type: 'time',
+                    name: 'Zeit',
+                    splitNumber: 4,
+                    axisLabel: {
+                        formatter: function (value) {
+                            const date = new Date(value);
+                            return date.toLocaleString(); // Format x-axis labels
+                        },
+                        rotate: 0
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'SOC (%)',
+                    min: -0.2,
+                    max: 1.0,
+                    axisLabel: {
+                        formatter: function (value) {
+                            return value * 100; // Format x-axis labels
+                        }
+                    }
+                },
+                legend: {
+                    show: false // Disables the legend
+                },
+                series: seriesData
+            };
+
+            chart.setOption(options);
+        });
+    }
+  function fetchAndRenderDepotChart(chartName, chartId, titleText, xKey, yKey) {
+        return fetch(`/simba/result/${taskId}/${chartName}/`)
+            .then(response => response.json())
+            .then(responseData => {
+                const rawData = responseData.data;
+
+                // Extract x and y arrays
+                const times = rawData.map(row => row.time);
+                const powers = rawData.map(row => row.power);
+                const occupancyCharging = rawData.map(row => row.occupancy_charging);
+                const occupancyTotal = rawData.map(row => row.occupancy_total);
+
+                const chart = echarts.init(document.getElementById(chartId));
+
+                const options = {
+                    title: {
+                        text: titleText,
+                        left: 'center',
+                        textStyle: {
+                            fontSize: 16,
+                            fontWeight: 'bold'
+                        }
+                    },
+                    stateAnimation: {
+                        duration: 300,
+                        easing: 'cubicOut'
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        formatter: function (params) {
+                            // params is an array of series values at the hovered x-value
+                            const dateStr = params[0].axisValue;  // assuming all share the same x-axis value (time)
+                            const date = new Date(dateStr);
+                            const formattedDate = date.toLocaleString('en-GB', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false
+                            });
+
+                            let tooltipContent = `<strong>${formattedDate}</strong><br/>`;
+                            params.forEach(item => {
+                                let value = item.value;
+                                if (item.seriesName === 'Ladeleistung (kW)') {
+                                    value = parseFloat(value).toFixed(2);
+                                }
+                                tooltipContent += `${item.marker} ${item.seriesName}: ${value}<br/>`;
+                            });
+                            return tooltipContent;
+                        }
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: times
+                    },
+                    yAxis: [
+                        {
+                            type: 'value',
+                            name: 'Belegung',
+                            position: 'left'
+                        },
+                        {
+                            type: 'value',
+                            name: 'Ladeleistung (kW)',
+                            position: 'right'
+                        }
+                    ],
+                    series: [
+                        {
+                            name: 'Ladeleistung (kW)',
+                            type: 'line',
+                            data: powers,
+                            yAxisIndex: 1,
+                            lineStyle: {
+                                width: 3
+                            },
+                            emphasis: {
+                                focus: 'series',
+                            }
+                        },
+                        {
+                            name: 'Belegung ladend',
+                            type: 'line',
+                            data: occupancyCharging,
+                            yAxisIndex: 0,
+                            lineStyle: {
+                                width: 3
+                            },
+                            emphasis: {
+                                focus: 'series',
+                            }
+                        },
+                        {
+                            name: 'Belegung total',
+                            type: 'line',
+                            data: occupancyTotal,
+                            yAxisIndex: 0,
+                            lineStyle: {
+                                width: 3
+                            },
+                            emphasis: {
+                                focus: 'series',
+                            }
+                        }
+                    ]
+                };
+
+                chart.setOption(options);
+            })
+            .catch(error => {
+                console.error('Error fetching or rendering chart:', error);
+            });
+    }
+    function fetchAndRenderGanttChart(chartName, chartId, titleText) {
+
+        const EVENT_COLORS = {
+            DRIVING: "#d9534f",
+            CHARGING_OPPORTUNITY: "#32d682",
+            CHARGING_DEPOT: "#75df74",
+            SERVICE: "#e0bc78",
+            STANDBY_DEPARTURE: "#9e85e1",
+            PRECONDITIONING: "#f4a261",
+            STANDBY: "#bb33ff"
+        };
+
+  return fetch(`/simba/result/${taskId}/${chartName}/`)
+            .then(response => response.json())
+            .then(data => {
+                const categories = data.categories;  // Array of bus categories
+                const ganttData = data.data;         // Array of Gantt data
+
+
+                const totalVehicles = categories.length;
+                const visibleTracks = 10;
+                const visiblePercent = (visibleTracks / totalVehicles) * 100;
+
+                // Prepare ECharts option
+                const option = {
+                    tooltip: {
+                        formatter: function (params) {
+                            const eventType = params.value[5];  // event_type is at index 5
+                            const color = EVENT_COLORS[eventType] || '#000';
+
+                            const marker = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
+                            const startTime = new Date(params.value[1]);
+                            const endTime = new Date(params.value[2]);
+
+                            return `${marker}${params.name}: ${startTime.toISOString()} - ${endTime.toISOString()} (${params.value[3]} ms)`;
+                        }
+                    },
+                    title: {
+                        text: 'Bus-Einsatz-Zeitplan',
+                        left: 'center'
+                    },
+                    dataZoom: [
+                        {
+                            type: 'slider',
+                            filterMode: 'weakFilter',
+                            showDataShadow: false,
+                            top: 550,
+                            labelFormatter: ''
+                        },
+                        {
+                            type: 'inside',
+                            filterMode: 'weakFilter'
+                        },
+                        {
+                            type: 'slider',
+                            yAxisIndex: 0,
+                            zoomLock: false,
+                            width: 40,
+                            right: 65,
+                            top: 50,
+                            bottom: 110,
+                            start: 0,
+                            end: visiblePercent,
+                            handleSize: 30,
+                            showDetail: false
+                        },
+                        {
+                            type: 'inside',
+                            id: 'insideY',
+                            yAxisIndex: 0,
+                            start: 100 - visiblePercent,
+                            end: 100,
+                            zoomOnMouseWheel: false,
+                            moveOnMouseMove: true,
+                            moveOnMouseWheel: true
+                        }
+                    ],
+                    tooltip: {
+                        formatter: function (params) {
+                            const eventType = params.value[5];
+                            const color = EVENT_COLORS[eventType] || '#000';
+
+                            const marker = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
+                            const startTime = new Date(params.value[1]);
+                            const endTime = new Date(params.value[2]);
+                            const durationMs = params.value[3];
+
+                            const formatDate = (date) => {
+                                const pad = n => String(n).padStart(2, '0');
+                                return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+                            };
+
+                            const durationFraction = durationMs / (60 * 60);
+                            const formatFractionToHHmm = (fraction) => {
+                                const hours = Math.floor(fraction);
+                                const minutes = Math.round((fraction % 1) * 60);
+                                const pad = n => String(n).padStart(2, '0');
+                                return `${pad(hours)}:${pad(minutes)}`;
+                            };
+                            const durationFormatted = formatFractionToHHmm(durationFraction);
+
+                            return `${marker}${params.name}<br>${formatDate(startTime)} - Dauer: ${durationFormatted} h`;
+                        }
+                    },
+                    grid: {
+                        height: '70%'  // Adjust grid height for more space
+                    },
+                    xAxis: {
+                        type: 'time',
+                        splitNumber: 4,  // Try to limit to 6 ticks across the chart
+                        axisLabel: {
+                            formatter: function (val) {
+                                const date = new Date(val);
+                                const hours = String(date.getHours()).padStart(2, '0');
+                                const minutes = String(date.getMinutes()).padStart(2, '0');
+
+                                const isoDate = date.toISOString().slice(0, 10);
+                                const time = `${hours}:${minutes}`;
+
+                                const totalZoomRange = chart.getModel().getComponent('xAxis').axis.scale._extent;
+                                const zoomWindow = totalZoomRange[1] - totalZoomRange[0];
+
+                                if (zoomWindow > 3 * 24 * 3600 * 1000) {
+                                    return isoDate;
+                                } else if (zoomWindow > 6 * 3600 * 1000) {
+                                    return `${isoDate} ${time}`;
+                                } else {
+                                    return time;
+                                }
+                            },
+                            rotate: 0  // You can override this below
+                        }
+                    },
+                    yAxis: {
+                        type: 'category',
+                        inverse: true,
+                        data: categories,
+                        // Ensure enough space for each category (bus)
+                        axisLabel: {
+                            interval: 0,  // Display all bus labels
+                            formatter: function (value) {
+                                return value;  // Keep the category labels (bus names) as they are
+                            }
+                        },
+                        axisTick: {
+                            show: false  // Hide ticks to save space
+                        },
+                        splitLine: {
+                            show: false  // Hide grid lines between categories
+                        }
+                    },
+                    series: [
+                        {
+                            type: 'custom',
+                            renderItem: function (params, api) {
+                                const categoryIndex = api.value(0);
+                                const start = api.coord([api.value(1), categoryIndex]);
+                                const end = api.coord([api.value(2), categoryIndex]);
+
+                                const size = api.size([0, 1]);
+                                const dynamicHeight = size[1] * 0.8;
+
+                                const rectShape = echarts.graphic.clipRectByRect(
+                                    {
+                                        x: start[0],
+                                        y: start[1] - dynamicHeight / 2,
+                                        width: end[0] - start[0],
+                                        height: dynamicHeight
+                                    },
+                                    {
+                                        x: params.coordSys.x,
+                                        y: params.coordSys.y,
+                                        width: params.coordSys.width,
+                                        height: params.coordSys.height
+                                    }
+                                );
+
+                                const eventType = api.value(5);  // event_type is at index 5 in value array
+                                const color = EVENT_COLORS[eventType] || "#000000";
+
+                                return rectShape && {
+                                    type: 'rect',
+                                    transition: ['shape'],
+                                    shape: rectShape,
+                                    style: api.style({ fill: color })
+                                };
+                            },
+                            itemStyle: {
+                                opacity: 0.8
+                            },
+                            encode: {
+                                x: [1, 2],   // Start and end
+                                y: 0,        // Bus index
+                                itemName: 5  // This will be used in tooltip (readable name)
+                            },
+                            data: ganttData.map(d => [...d.value, d.name, d.event_type]) // Add name + event_type into the value array
+                        }
+                    ]
+                };
+
+                // Initialize ECharts instance and set option
+                const chart = echarts.init(document.getElementById(chartId));
+                chart.setOption(option);
+            })
+            .catch(error => console.error('Error loading Gantt data:', error));
+    }
+    function fetchAndRenderGanttChartSOC(chartName, chartId, titleText) {
+        return fetch(`/simba/result/${taskId}/${chartName}/`)
+            .then(response => response.json())
+            .then(data => {
+
+                const vehicles = data.vehicles;
+                const records = data.records;
+
+                const vehicleIndex = Object.fromEntries(vehicles.map((v, i) => [v, i]));
+
+                const totalVehicles = vehicles.length;
+                const visibleTracks = 10;
+                const visiblePercent = (visibleTracks / totalVehicles) * 100;
+
+                const viridisAnchors = [
+                  '#440154', // dark purple
+                  '#414487', // indigo
+                  '#2a788e', // teal
+                  '#22a884', // green
+                  '#fde725'  // yellow
+                ];
+
+                function hexToRgb(hexString) {
+                    const bigint = parseInt(hexString.slice(1), 16);
+                    return {
+                        r: (bigint >> 16) & 255,
+                        g: (bigint >> 8) & 255,
+                        b: bigint & 255
+                    };
+                }
+
+                function interpolateColor(color1, color2, factor) {
+                    const rgb1 = hexToRgb(color1);
+                    const rgb2 = hexToRgb(color2);
+                    const r = Math.round(rgb1.r + (rgb2.r - rgb1.r) * factor);
+                    const g = Math.round(rgb1.g + (rgb2.g - rgb1.g) * factor);
+                    const b = Math.round(rgb1.b + (rgb2.b - rgb1.b) * factor);
+                    return `rgb(${r}, ${g}, ${b})`;
+                }
+
+                function socToColor(soc) {
+                    if (soc < 0)
+                        return "red";
+
+                  const anchors = viridisAnchors;
+                  const n = anchors.length - 1;
+                  const scaled = soc * n;
+                  const index = Math.floor(scaled);
+                  const factor = scaled - index;
+
+                  if (index >= n) return anchors[n];
+                  return interpolateColor(anchors[index], anchors[index + 1], factor);
+                }
+
+
+                const series = {
+                    type: 'custom',
+                    renderItem: function (params, api) {
+                        const categoryIndex = api.value(0);
+                        const start = api.coord([api.value(1), categoryIndex]);
+                        const end = api.coord([api.value(2), categoryIndex]);
+                        const height = api.size([0, 1])[1] * 0.8; // Control bar height
+
+                        // Calculate gradient color based on soc_start and soc_end
+                        const colorStart = socToColor(api.value(3));  // Color at start of SoC
+                        const colorEnd = socToColor(api.value(4));    // Color at end of SoC
+
+                        return {
+                            type: 'rect',
+                            shape: {
+                                x: start[0],
+                                y: start[1] - height / 2,
+                                width: end[0] - start[0],
+                                height: height
+                            },
+                            style: {
+                                // Use a linear gradient between the two colors
+                                fill: {
+                                    type: 'linear',
+                                    x: 0, y: 0, x2: 1, y2: 0, // Horizontal gradient
+                                    colorStops: [
+                                        { offset: 0, color: colorStart },
+                                        { offset: 1, color: colorEnd }
+                                    ]
+                                }
+                            }
+                        };
+                    },
+                    encode: {
+                        x: [1, 2], // Start, End times
+                        y: 0       // Category index for vehicle
+                    },
+                    // Data for each vehicle's SoC record
+                    data: records.map(d => [
+                        vehicleIndex[d.vehicle],           // Vehicle index
+                        +new Date(d.start),                // Start time in milliseconds
+                        +new Date(d.end),                  // End time in milliseconds
+                        d.soc_start,                       // soc_start value
+                        d.soc_end                          // soc_end value
+                    ])
+                };
+
+                // Set up the chart options
+                const chart = echarts.init(document.getElementById(chartId)); // Use chartId passed
+
+                chart.setOption({
+                    tooltip: {
+                        formatter: function (params) {
+                            const socStart = (params.value[3] * 100).toFixed(2);
+                            const socEnd = (params.value[4] * 100).toFixed(2);
+
+                            const formatDate = (date) => {
+                                const d = new Date(date);
+                                const pad = n => String(n).padStart(2, '0');
+                                return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                            };
+
+                            const startFormatted = formatDate(params.value[1]);
+                            const endFormatted = formatDate(params.value[2]);
+
+                            return `${vehicles[params.value[0]]}<br/>
+                                    ${startFormatted} → ${endFormatted}<br/>
+                                    SoC: ${socStart}% → ${socEnd}%`;
+                        }
+                    },
+                    title: {
+                        text: titleText,
+                        left: 'center'
+                    },
+                    dataZoom: [
+                        {
+                            type: 'slider',
+                            filterMode: 'weakFilter',
+                            showDataShadow: false,
+                            top: 550,
+                            labelFormatter: ''
+                        },
+                        {
+                            type: 'inside',
+                            filterMode: 'weakFilter'
+                        },
+                        {
+                            type: 'slider',
+                            yAxisIndex: 0,
+                            zoomLock: false,
+                            width: 40,
+                            right: 65,
+                            top: 50,
+                            bottom: 110,
+                            start: 100 - visiblePercent,
+                            end: 100,
+                            handleSize: 30,
+                            showDetail: false
+                        },
+                        {
+                            type: 'inside',
+                            id: 'insideY',
+                            yAxisIndex: 0,
+                            start: 100 - visiblePercent,
+                            end: 100,
+                            zoomOnMouseWheel: false,
+                            moveOnMouseMove: true,
+                            moveOnMouseWheel: true
+                        }
+                    ],
+                    visualMap: {
+                        type: 'continuous',
+                        min: 0,
+                        max: 1,
+                        calculable: false,
+                        orient: 'horizontal',
+                        left: 'center',
+                        bottom: 60,
+                        inRange: {
+                            color: [
+                                '#440154',
+                                '#414487',
+                                '#2a788e',
+                                '#22a884',
+                                '#fde725'  // SoC 1
+                            ]
+                        },
+                        formatter: function (value) {
+                            return `${(value * 100).toFixed(0)}%`;
+                        },
+                        text: ['100%', '0%'],
+                        itemHeight: 500,
+                        itemWidth: 35
+                    },
+                    grid: {
+                        height: '70%',  // Adjust grid height for more space
+                        containLabel: true,
+                        left: '20px'
+                    },
+                    xAxis: {
+                        type: 'time',
+                        splitNumber: 4,  // Try to limit to 6 ticks across the chart
+                        axisLabel: {
+                            formatter: function (val) {
+                                const date = new Date(val);
+                                const hours = String(date.getHours()).padStart(2, '0');
+                                const minutes = String(date.getMinutes()).padStart(2, '0');
+
+                                const isoDate = date.toISOString().slice(0, 10);
+                                const time = `${hours}:${minutes}`;
+
+                                const totalZoomRange = chart.getModel().getComponent('xAxis').axis.scale._extent;
+                                const zoomWindow = totalZoomRange[1] - totalZoomRange[0];
+
+                                if (zoomWindow > 3 * 24 * 3600 * 1000) {
+                                    return isoDate;
+                                } else if (zoomWindow > 6 * 3600 * 1000) {
+                                    return `${isoDate} ${time}`;
+                                } else {
+                                    return time;
+                                }
+                            },
+                            rotate: 0  // You can override this below
+                        }
+                    },
+                    yAxis: {
+                        type: 'category',
+                        data: vehicles,
+                        // Ensure enough space for each category (bus)
+                        axisLabel: {
+                            interval: 0,  // Display all bus labels
+                            formatter: function (value) {
+                                return value;  // Keep the category labels (bus names) as they are
+                            }
+                        },
+                        axisTick: {
+                            show: false  // Hide ticks to save space
+                        },
+                        splitLine: {
+                            show: false  // Hide grid lines between categories
+                        }
+                    },
+                    series: [series]
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching or rendering SOC Gantt chart:', error);
+            });
+    }
+    function fetchAndRenderStats(chartName, chartId, titleText) {
+
+        fetch(`/simba/result/${taskId}/${chartName}/`)
+            .then(response => response.json())
+            .then(data => {
+
+                document.getElementById('longest_rotation').textContent = data.longest_rotation;
+                document.getElementById('shortest_rotation').textContent = data.shortest_rotation;
+                document.getElementById('total_dist').textContent = data.total_dist;
+
+                document.getElementById('num_stations').textContent = data.num_stations;
+                document.getElementById('num_busses').textContent = data.num_busses;
+                document.getElementById('most_frequented').textContent = data.most_frequented;
+
+                document.getElementById('total_consumption').textContent = data.total_consumption;
+                document.getElementById('avg_consumption').textContent = data.avg_consumption;
+                document.getElementById('installed_power').textContent = data.installed_power;
+
+                document.getElementById('depots-anzahl-stellplaetze').textContent = data.num_busses;
+                document.getElementById('depots-energie').textContent = data.depot_energy;
+                document.getElementById('depots-spitzenleistung').textContent = data.peak_depot_power;
+            })
+            .catch(error => {
+                console.error('Error fetching statistics:', error);
+            });
+    };
+    function fetchAndRenderStackedHistogram(chartName, chartId, titleText) {
+        return fetch(`/simba/result/${taskId}/${chartName}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error("Error loading histogram data:", data.error);
+                    return;
+                }
+
+                const chart = echarts.init(document.getElementById(chartId));
+                chart.setOption({
+                    title: {
+                        text: titleText,
+                        left: 'center',
+                        top: 20,
+                        textStyle: { fontSize: 18 }
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: { type: 'shadow' }
+                    },
+                    legend: {
+                        top: 50,
+                        data: ['Nicht kritisch', 'kritisch']
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '10%',
+                        containLabel: true
+                    },
+                    xAxis: {
+                        type: 'category',
+                        name: 'Distanz (km)',
+                        data: data.bins,
+                        axisLabel: { rotate: 30, interval: 0 }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: 'Abs. Häufigkeit'
+                    },
+                    series: [
+                        {
+                            name: 'Nicht kritisch',
+                            type: 'bar',
+                            stack: 'total',
+                            barWidth: '60%',
+                            itemStyle: { color: '#20E3B2' },
+                            emphasis: { focus: 'series' },
+                            data: data.data['Nicht kritisch']
+                        },
+                        {
+                            name: 'kritisch',
+                            type: 'bar',
+                            stack: 'total',
+                            barWidth: '60%',
+                            itemStyle: { color: '#555555' },
+                            emphasis: { focus: 'series' },
+                            data: data.data['kritisch']
+                        }
+                    ]
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching histogram data:', error);
+            });
+    }
+    function fetchAndRenderHistogram(chartName, chartId, titleText) {
+      return fetch(`/simba/result/${taskId}/${chartName}/`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            console.error("Error loading histogram data:", data.error);
+            return;
+          }
+
+                const option = {
+                    title: {
+                        text: titleText,
+                        left: 'center',
+                        top: 20,
+                        textStyle: { fontSize: 18 }
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: { type: 'shadow' }
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: data.bins,
+                        name: "Geschwindigkeit (km/h)",
+                        axisLabel: { rotate: 30 }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: "Abs. Häufigkeit"
+                    },
+                    series: [{
+                        name: "Durchschnittsgeschwindigkeit",
+                        type: 'bar',
+                        barWidth: '60%',
+                        itemStyle: {
+                            color: '#20E3B2'
+                        },
+                        data: data.counts
+                    }]
+                };
+
+                const chart = echarts.init(document.getElementById(chartId));
+                chart.setOption(option);
+            })
+            .catch(error => console.error('Error fetching histogram data:', error));
+    }
+    function fetchAndRenderSoCHistogram(chartName, chartID) {
+        fetch(`/simba/result/${taskId}/${chartName}/`)  // Replace with the actual URL
+      .then((res) => res.json())
+      .then((result) => {
+        const rawData = result.data;
+
+        const xHours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+        const yBins = ["<0", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"];
+
+        // Fill in all (hour, soc_bin) combinations with 0 where missing
+        const dataMap = new Map(rawData.map(item => [`${item.hour}-${item.soc_bin}`, item.count]));
+        const fullData = [];
+
+        for (let h = 0; h < 24; h++) {
+          for (let y = 0; y < yBins.length; y++) {
+            const key = `${h}-${yBins[y]}`;
+            const count = dataMap.get(key) || 0;
+            fullData.push([h, y, count]);
+          }
+        }
+
+        const chart = echarts.init(document.getElementById(chartID));
+        const option = {
+          tooltip: {
+            position: 'top',
+            formatter: params =>
+              `Stunde: ${xHours[params.data[0]]}<br>SOC: ${yBins[params.data[1]]}%<br>Fahrzeuge: ${params.data[2]}`
+          },
+          grid: {
+            height: '80%',
+            top: '1%',
+            bottom: '10%'
+          },
+          xAxis: {
+            type: 'category',
+            data: xHours,
+            name: 'Zeit',
+            nameLocation: 'middle',
+            nameGap: 25,
+            axisLine: {
+              lineStyle: {
+                color: '#000',
+                width: 2
+              }
+            }
+          },
+          yAxis: {
+            type: 'category',
+            data: yBins,
+            name: 'SoC (%)',
+            nameLocation: 'middle',
+            nameGap: 40
+          },
+          visualMap: {
+            min: 0,
+            max: Math.max(...fullData.map(item => item[2])),
+            calculable: true,
+            orient: 'horizontal',
+            left: 'center',
+            bottom: '10px',
+            itemHeight: 400,
+            itemWidth: 30,
+            textStyle: {
+              fontSize: 16
+            },
+            inRange: {
+              color: ['#EAFFF7', '#20E3B2', '#00846B']
+            }
+          },
+          series: [{
+            name: 'Anzahl Fahrzeuge',
+            type: 'heatmap',
+            data: fullData,
+            label: {
+              show: true
+            },
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            }
+          }],
+          markLine: {
+            symbol: 'none',
+            lineStyle: {
+              color: '#000',
+              width: 2
+            },
+            data: [
+              { xAxis: 0 }  // Thicker vertical line at 0:00
+            ]
+          }
+        };
+        chart.setOption(option);
+      });
+
+    }
+
+
+    // Ensure the DOM is fully loaded before running
+    document.addEventListener("DOMContentLoaded", function() {
+
+        const el = document.getElementById("dataFetchedFinished");
+      if (taskId) {
+        const chartPromises =[
+        // Render the charts
+        fetchAndRenderPieChart("critical_rotations", "chartContainer", "Kritische und nicht kritische Umläufe"),
+        fetchAndRenderPieChart("bustype", "busTypeChartContainer", "Verteilung Fahrzeugtyp"),
+        fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit", "time_end", "soc_end_prc"),
+        fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Ladeleistung und Belegung", "time_end", "soc_end_prc"),
+
+        fetchAndRenderStats("stats", "_", "_"),
+        fetchAndRenderGanttChart("gantt","ganttChart","_"),
+        fetchAndRenderStackedHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen"),
+        fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten"),
+        fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap"),
+        fetchAndRenderGanttChartSOC("soc_gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit")];
+
+        Promise.allSettled(chartPromises).then((results)=>{
+          const allSuccessful = results.every(r => r.status === "fulfilled");
+          el.setAttribute("data-status", allSuccessful ? "success" : "error");
+          el.setAttribute("data-value", "1");
+        });
+      }else {
+        console.error("Simulation ID is missing.");
+      }
+    });
+
+    // End echarts
+
+
+  // More button functionality
+  document.addEventListener("DOMContentLoaded", () => {
+    const dropdownButton = document.getElementById("dropdownButton");
+    const dropdownMenu = document.getElementById("dropdownMenu");
+    const dropdownArrow = document.getElementById("dropdownArrow");
+
+    dropdownButton.addEventListener("click", () => {
+      const isExpanded = dropdownButton.getAttribute("aria-expanded") === "true";
+
+      // Toggle dropdown visibility
+      dropdownMenu.classList.toggle("hidden");
+
+      // Rotate arrow
+      if (!isExpanded) {
+        dropdownArrow.classList.add("rotate-180");
+      } else {
+        dropdownArrow.classList.remove("rotate-180");
+      }
+
+      // Update aria-expanded
+      dropdownButton.setAttribute("aria-expanded", !isExpanded);
+    });
+
+    // Optional: Close dropdown if clicked outside
+    document.addEventListener("click", (event) => {
+      if (!dropdownButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
+        dropdownMenu.classList.add("hidden");
+        dropdownArrow.classList.remove("rotate-180");
+        dropdownButton.setAttribute("aria-expanded", "false");
+      }
+    });
+  });
+</script>
+
+<!-- Functionality for simple dropdown -->
+<script>
+  const button = document.getElementById('assignedToButton');
+  const label = document.getElementById('assignedToLabel');
+  const list = document.getElementById('assignedToList');
+  const listItems = list.querySelectorAll('[role="option"]');
+  let selectedItem = '';
+
+  // Toggle the dropdown on button click
+  button.addEventListener('click', () => {
+    const isExpanded = button.getAttribute('aria-expanded') === 'true';
+    button.setAttribute('aria-expanded', String(!isExpanded));
+    list.classList.toggle('hidden');
+
+    // Whenever it opens, ensure the selected item is highlighted
+    if (!isExpanded) {
+      highlightSelectedItem();
+    }
+  });
+
+  // Handle clicks on list items
+  listItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const value = item.getAttribute('data-dropdown-item');
+      label.textContent = value;
+      selectedItem = value;
+
+      // Highlight the newly selected item
+      highlightSelectedItem();
+
+      // Close dropdown
+      list.classList.add('hidden');
+      button.setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  // Close dropdown if user clicks outside
+  document.addEventListener('click', e => {
+    if (!button.contains(e.target) && !list.contains(e.target)) {
+      button.setAttribute('aria-expanded', 'false');
+      list.classList.add('hidden');
+    }
+  });
+
+  // Remove the highlight from all items and apply it to the selected item
+  function highlightSelectedItem() {
+    listItems.forEach(li => {
+      li.classList.remove('bg-green-100');
+      if (li.getAttribute('data-dropdown-item') === selectedItem) {
+        li.classList.add('bg-green-100');
+      }
+    });
+  }
+</script>
+
+<!-- Costs Tabs Functionality -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+const switchCostsTab = (tabId) => {
+document.querySelectorAll('.costs-tab-content').forEach((content) => {
+  content.classList.toggle('hidden', content.getAttribute('data-tab') !== tabId);
+});
+
+document.querySelectorAll('.costs-tab').forEach((tab) => {
+  const isActive = tab.getAttribute('data-tab-button') === tabId;
+  tab.classList.toggle('border-slate-800', isActive);
+  tab.classList.toggle('text-slate-800', isActive);
+  tab.classList.toggle('border-transparent', !isActive);
+  tab.classList.toggle('text-slate-500', !isActive);
+  tab.classList.toggle('hover:border-slate-300', !isActive);
+  tab.classList.toggle('hover:text-slate-700', !isActive);
+});
+};
+
+document.querySelectorAll('.costs-tab').forEach((tab) => {
+tab.addEventListener('click', (e) => {
+  e.preventDefault();
+  switchCostsTab(tab.getAttribute('data-tab-button'));
+});
+});
+
+// Initialize with the first tab active
+switchCostsTab('costs-tab-1');
+});
+
+</script>
+
+<script>
+  // ECharts example
+  document.addEventListener("DOMContentLoaded", function () {
+    const chartDom = document.getElementById("kostenverlaufChart");
+    const myChart = echarts.init(chartDom);
+
+    const option = {
+      title: {
+        text: "Kostenverlauf",
+        left: "center",
+        textStyle: {
+          fontSize: 16,
+          fontWeight: "400",
+          color: "#475569",
+        },
+      },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: {
+          type: "shadow",
+        },
+      },
+      grid: {
+        left: "3%",
+        right: "4%",
+        bottom: "10%",
+        containLabel: true,
+      },
+      xAxis: {
+        type: "category",
+        data: [
+          "2025",
+          "2026",
+          "2027",
+          "2028",
+          "2029",
+          "2030",
+          "2031",
+          "2032",
+          "2033",
+          "2034",
+          "2035",
+          "2036",
+          "2037",
+          "2038",
+          "2039",
+          "2040",
+          "2041",
+          "2042",
+          "2043",
+          "2044",
+          "2045",
+        ],
+        axisLabel: {
+          interval: 0,
+          rotate: 45,
+        },
+      },
+      yAxis: {
+        type: "value",
+        name: "Kosten (Tsd. €)",
+      },
+      series: [
+        {
+          name: "Kosten pro Jahr",
+          type: "bar",
+          data: [
+            5000, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500,
+            1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500,
+          ],
+          itemStyle: {
+            color: "#3B82F6",
+          },
+          barWidth: 16,
+        },
+      ],
+      legend: {
+        bottom: 0,
+        data: ["Kosten pro Jahr"],
+      },
+    };
+
+    myChart.setOption(option);
+
+    // Responsiveness
+    window.addEventListener("resize", function () {
+      myChart.resize();
+    });
+  });
+</script>
+
+<!-- Details Button Functionality -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const detailsButton = document.getElementById("detailsButton");
+    const detailsContent = document.getElementById("detailsContent");
+    const detailsArrow = document.getElementById("detailsArrow");
+
+    detailsButton.addEventListener("click", function () {
+      const isExpanded = detailsContent.classList.toggle("hidden");
+      detailsArrow.style.transform = isExpanded ? "rotate(0deg)" : "rotate(180deg)";
+      detailsButton.setAttribute("aria-expanded", !isExpanded);
+    });
+  });
+</script>
+
+<!-- SOC Tabs Functionality -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const switchSocTab = (tabId) => {
+      document.querySelectorAll('.soc-tab-content').forEach((content) => {
+        content.classList.toggle('hidden', content.getAttribute('data-tab') !== tabId);
+      });
+
+      document.querySelectorAll('.soc-tab').forEach((tab) => {
+        const isActive = tab.getAttribute('data-tab-button') === tabId;
+        tab.classList.toggle('border-slate-800', isActive);
+        tab.classList.toggle('text-slate-800', isActive);
+        tab.classList.toggle('border-transparent', !isActive);
+        tab.classList.toggle('text-slate-500', !isActive);
+        tab.classList.toggle('hover:border-slate-300', !isActive);
+        tab.classList.toggle('hover:text-slate-700', !isActive);
+      });
+    };
+
+    document.querySelectorAll('.soc-tab').forEach((tab) => {
+      tab.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchSocTab(tab.getAttribute('data-tab-button'));
+      });
+    });
+
+    // Initialize with the first tab active
+    switchSocTab('soc-tab-1');
+  });
+</script>
+
+<!-- Load Profile Tabs Functionality -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const switchLoadProfileTab = (tabId) => {
+      document.querySelectorAll('.load-profile-tab-content').forEach((content) => {
+        content.classList.toggle('hidden', content.getAttribute('data-tab') !== tabId);
+      });
+
+      document.querySelectorAll('.load-profile-tab').forEach((tab) => {
+        const isActive = tab.getAttribute('data-tab-button') === tabId;
+        tab.classList.toggle('border-slate-800', isActive);
+        tab.classList.toggle('text-slate-800', isActive);
+        tab.classList.toggle('border-transparent', !isActive);
+        tab.classList.toggle('text-slate-500', !isActive);
+        tab.classList.toggle('hover:border-slate-300', !isActive);
+        tab.classList.toggle('hover:text-slate-700', !isActive);
+      });
+    };
+
+    document.querySelectorAll('.load-profile-tab').forEach((tab) => {
+      tab.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchLoadProfileTab(tab.getAttribute('data-tab-button'));
+      });
+    });
+
+    // Set the first tab as active by default
+    switchLoadProfileTab('load-profile-tab-1');
+  });
+</script>
+{% endblock script %}

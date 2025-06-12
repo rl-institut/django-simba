@@ -1,0 +1,59 @@
+{% extends 'ebustoolbox/wizard.html' %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}WeBus - Umlaufplan{% endblock title %}
+
+{% block wizard_navigation %}
+  {% with wiz_idx=1 %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock wizard_navigation %}
+
+{% block wizard_content %}
+{#  Progress bar poll loading progress.html during server side analysis of file#}
+  {%  if progress_id %}
+{% include "core/progress_poll.html" with progress_id=progress_id template_name="progress_trips.html" %}
+      <div id="refresh_id"
+              {#Trigger "success" sent from server inside the header if the submitted file succeeded#}
+           hx-trigger="success from:body">
+      </div>
+      <div id="runner"
+              {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
+           hx-trigger="notRunning from:body">
+      </div>
+    <script>
+      htmx.on('#refresh_id', 'htmx:trigger', function (evt) {
+          {#Success from "refresh-id" leads to refresh. View logic takes care of redirecting#}
+          {#Redirect to the trips, so the trips view can trigger the next page.#}
+          {#Server side logic should make user flow more obvious #}
+          window.location.href = "{% url 'simba:trips' task_id %}";
+      })
+      // ToDo @Stefan? This needs to be activated again. Maybe disable all
+      // elements while running server side analysis?
+      // Activate button if the server finished handling the previous file
+      {#htmx.on('#runner', 'htmx:trigger', function (evt) {#}
+      {#    htmx.find('#upload_btn_{{task_id}}').style.display = "initial";#}
+      {#    htmx.find('#cancel_btn_{{task_id}}').style.display = "none";#}
+      {# }); #}
+      </script>
+  {% endif %}
+
+<main class="flex flex-col items-center flex-grow">
+{% include "ebustoolbox/partials/trips_form.html" %}
+</main>
+{% endblock wizard_content %}
+
+{% block wizard_buttons %}
+  {% with 'hidden_button' as buttonId %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock wizard_buttons %}
+
+{%  block script %}
+  <script>
+      htmx.on('#trips_form', 'htmx:xhr:progress', function (evt) {
+          console.log("htmx:xhr:progress fired");
+          htmx.find('#progress').setAttribute('value', evt.detail.loaded / evt.detail.total * 100)
+      });
+  </script>
+{%  endblock script %}
