@@ -14,6 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
 from django.urls import path, include
 
@@ -22,7 +23,6 @@ urlpatterns = [
     path("data_scrapers/", include("data_scrapers.urls")),
     path("elevation_api/", include("elevation_api.urls")),
     path("", include("core.urls")),
-    path("django_plotly_dash/", include("django_plotly_dash.urls")),
     path("map/", include("django_mapengine.urls")),
     # Admin and authentification urls
     path("", include("django.contrib.auth.urls")),
