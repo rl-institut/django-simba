@@ -7,6 +7,8 @@
   const enabledClasses = ['hover:bg-green-300', 'hover:shadow-lg', 'active:bg-green-500', 'bg-green-400'];
   let nextWizardButtonPrevSpan = null;
   let wizardNextButtonSpan = null;
+  // Disable the (upload) button, e,g, disable classes and click callback
+  // Add a loading spinner to the button
   function disableButton(btn, ){
     btn.disabled = true;
     btn.classList.remove(...enabledClasses);
@@ -19,6 +21,7 @@
     newSpan.innerText = " ";
     wizardNextButtonSpan.replaceChildren(newSpan);
   }
+  // Enable the (upload) button
   function enableButton(btn){
     btn.disabled = false;
     btn.classList.remove(...disabledClasses);
@@ -67,16 +70,6 @@
           let btn =document.getElementById("WizardNextButton");
           enableButton(btn);
       })
-      // ToDo @Stefan? This needs to be activated again. Maybe disable all
-      // elements while running server side analysis?
-      // Activate button if the server finished handling the previous file
-      // htmx.on('#runner', 'htmx:trigger', function (evt) {
-       // This is fired when the server sent back the response notRunning (see div #runner)
-       // If it was a succes a redirect is sent from the backend
-       // If it failed we enable the upload button again
-          // htmx.find('#upload_btn_{{task_id}}').style.display = "initial";
-          // htmx.find('#cancel_btn_{{task_id}}').style.display = "none";
-       // });
       </script>
   {% endif %}
 
