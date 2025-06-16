@@ -72,6 +72,7 @@ from .models import (
 )
 from .schedule_readers import ScheduleReader
 
+from spice_ev import report as spice_ev_report
 from spice_ev.scenario import Scenario as SimbaScenario
 from spice_ev.strategy import STRATEGIES
 
@@ -1020,6 +1021,10 @@ def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
     args = get_args(scenario)
     start_simulation = events.order_by("time_start").first().time_start
     stop_simulation = events.order_by("time_end").last().time_end
+    # simulate whole last timestep
+    n_intervals = -int((start_simulation - stop_simulation) // timedelta(minutes=args.interval))
+    # and one more timestep, since vehicle SoC are taken at begin of each timestep
+    n_intervals += 1
 
     # SpiceEV vehicle types
     vehicle_types = {
@@ -1037,10 +1042,8 @@ def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
     vehicles = dict()
     vehicle_soc = get_initial_vehicle_soc(scenario)
     for vehicle in scenario.vehicle_set.all():
-        vid = vehicle.name
-        if vid in vehicles:
-            # guarantee uniqueness
-            vid = f"{vid} ({vehicle.id})"
+        # guarantee uniqueness
+        vid = f"{vehicle.name} ({vehicle.id})"
 
         vehicles[vid] = {
             "connected_charging_station": None,
@@ -1064,6 +1067,7 @@ def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
     if len(grid_connectors) == 0:
         raise SimulationDepotsMissingException("SpiceEV scenario generation: no depots found")
 
+    # get all depot events
     spice_ev_events = get_spiceev_events_from_scenario(scenario, skip_oppb=True)
     if len(spice_ev_events) == 0:
         raise SimulationEventsMissingException("SpiceEV scenario generation: no events found")
@@ -1134,8 +1138,8 @@ def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
     return {
         "scenario": {
             "start_time": start_simulation.isoformat(),
-            "stop_time": stop_simulation.isoformat(),
             "interval": args.interval,  # minutes
+            "n_intervals": n_intervals,
         },
         "components": {
             "vehicle_types": vehicle_types,
@@ -1152,19 +1156,8 @@ def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
     }
 
 
-def simulate_depot_strategy(spice_ev_scenario_dict: dict, strategy: str) -> SimbaScenario:
-    if strategy not in STRATEGIES:
-        raise NotImplementedError(f"Strategy {strategy} not supported")
-
-    spice_ev_scenario = SimbaScenario(spice_ev_scenario_dict)
-    spice_ev_scenario.run(strategy, spice_ev_scenario_dict["args"])
-    if spice_ev_scenario.step_i != spice_ev_scenario.n_intervals:
-        raise SimulationExecutionFailException("SpiceEV simulation aborted, see above for details")
-    return spice_ev_scenario
-
-
 def get_initial_vehicle_soc(scenario):
-    # get initial SoC of all vehicles
+    # get initial SoC of all vehicles (saved in vehicle events)
     vehicles = scenario.vehicle_set.all()
     events = scenario.event_set.order_by("time_start")
     vehicle_soc = dict()
@@ -1201,12 +1194,13 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
         )
     # iterate over events in-order, creating SpiceEV event-dicts for each charging event
     for event in charging_events:
+        vid = f"{event.vehicle.name} ({event.vehicle.id})"
         # create arrival event
         event_list.append(
             {
                 "signal_time": scenario_start_time.isoformat(),
                 "start_time": event.time_start.isoformat(),
-                "vehicle_id": event.vehicle.name,
+                "vehicle_id": vid,
                 "event_type": "arrival",
                 "update": {
                     "connected_charging_station": event.station.to_simba_name(),
@@ -1222,7 +1216,7 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
             {
                 "signal_time": scenario_start_time.isoformat(),
                 "start_time": event.time_end.isoformat(),
-                "vehicle_id": event.vehicle.name,
+                "vehicle_id": vid,
                 "event_type": "departure",
                 "update": {
                     "estimated_time_of_arrival": None,
@@ -1234,6 +1228,56 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
         vehicle_soc[event.vehicle_id] = event.soc_end
 
     return event_list
+
+
+def simulate_depot_strategy(spice_ev_scenario_dict: dict, strategy: str) -> SimbaScenario:
+    # run SpiceEV simuation with given strategy
+    if strategy not in STRATEGIES:
+        raise NotImplementedError(f"Strategy {strategy} not supported")
+
+    spice_ev_scenario = SimbaScenario(spice_ev_scenario_dict)
+    spice_ev_scenario.run(strategy, spice_ev_scenario_dict["args"])
+    if spice_ev_scenario.step_i != spice_ev_scenario.n_intervals:
+        raise SimulationExecutionFailException("SpiceEV simulation aborted, see above for details")
+    return spice_ev_scenario
+
+
+def apply_depot_strategy(scenario: Scenario, strategy: str):
+    # simulate all depot charging in SpiceEV with new strategy, update timeseries
+    spice_ev_scenario_dict = create_spiceev_scenario_dict(scenario)
+    spice_ev_scenario = simulate_depot_strategy(spice_ev_scenario_dict, strategy)
+    # attach vehicle soc to SpiceEV scenario
+    spice_ev_report.generate_soc_timeseries(spice_ev_scenario)
+    # update events with new soc timeseries
+    events = scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT)
+    for event in events:
+        vid = f"{event.vehicle.name} ({event.vehicle.id})"
+        # find timeseries timestep range
+        if event.timeseries is None:
+            # not in events: compute next full timestep index
+            ts_start = -(
+                (spice_ev_scenario.start_time - event.time_start) // spice_ev_scenario.interval
+            )
+            ts_end = -(
+                (spice_ev_scenario.start_time - event.time_end) // spice_ev_scenario.interval
+            )
+            # end timestep is inclusive in range
+            time_range = range(ts_start, ts_end + 1)
+        else:
+            time_range = event.timeseries["time"]
+        new_soc_ts = [spice_ev_scenario.vehicle_socs[vid][i] for i in time_range]
+        # ### sanity checks ### #
+        # start and end soc must remain the same
+        assert abs(new_soc_ts[0] - event.soc_start) < 1e-5
+        assert abs(new_soc_ts[-1] - event.soc_end) < 1e-5
+        # event soc should always be defined / not null
+        assert all([soc is not None for soc in new_soc_ts])
+        # save to DB
+        if event.timeseries is None:
+            event.timeseries = {"time": list(time_range)}
+        event.timeseries["soc"] = new_soc_ts
+        event.save(update_fields=["timeseries"])
+    logging.info(f"{events.count()} depot charging events updated")
 
 
 def apply_station_mutation(mutation: Scenario, child: Scenario, stack: dict) -> None:
