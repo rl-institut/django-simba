@@ -1076,14 +1076,17 @@ def get_stats_as_json(task_id: str):
 
     average_consumption = total_energy_used / total_dist
 
-    engine = _create_engine_from_postgis_url()
-
     # Query the Area table using SQLAlchemy
     all_areas = scenario.area_set.all()
     all_area_ids = [area.id for area in all_areas]
-
-    with Session(engine) as session:
-        prepared_data = power_and_occupancy(all_area_ids, session)
+    engine = None
+    try:
+        engine = _create_engine_from_postgis_url()
+        with Session(engine) as session:
+            prepared_data = power_and_occupancy(all_area_ids, session)
+    finally:
+        if engine:
+            engine.dispose()
 
     # Extract the 'power' column and find the maximum value
     peak_power_kw = prepared_data["power"].max()
@@ -1186,8 +1189,14 @@ def get_power_draw_and_occ_as_json(task_id: str):
     all_areas = scenario.area_set.all()
     all_area_ids = [area.id for area in all_areas]
 
-    with Session(engine) as session:
-        prepared_data = power_and_occupancy(all_area_ids, session)
+    engine = None
+    try:
+        engine = _create_engine_from_postgis_url()
+        with Session(engine) as session:
+            prepared_data = power_and_occupancy(all_area_ids, session)
+    finally:
+        if engine:
+            engine.dispose()
 
     return prepared_data.to_dict(orient="records")
 
