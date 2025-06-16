@@ -1703,16 +1703,16 @@ class ScenarioWizardOptions(models.Model):
 
 
 class EnumNotificationLevels(models.TextChoices):
-    """Defintions for notification levels which define the criticality of the message"""
+    """Definitions for notification levels which define the criticality of the message"""
 
     DEBUG = "debug"
     INFO = "info"
-    ERROR = "error"
     WARNING = "warning"
+    ERROR = "error"
 
 
 class EnumNotificationType(models.TextChoices):
-    """Defintions for notification types which define where the message is shown"""
+    """Definitions for notification types which define where the message is shown"""
 
     MULTIPLE_DEPOT_TRIPS_IN_BLOCK = "multi_dep_trips_in_block"
 
