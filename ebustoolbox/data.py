@@ -27,6 +27,7 @@ from ebustoolbox.models import (
     Route,
     EnumChargeType,
 )
+
 import pandas as pd
 from dash.exceptions import PreventUpdate
 
@@ -39,6 +40,28 @@ MAX_SIZE = 10
 last_simulations = list()
 CRITICAL_SOC = 0.0
 logger = logging.getLogger("custom")
+
+
+class SqlAlchemyEngine:
+    engine: None | sqlalchemy.engine.Engine = None
+
+    @staticmethod
+    def get_engine() -> sqlalchemy.engine.Engine:
+        """
+        Create a sqlalchemy engine from the DATABASE_URL environment variable.
+        Replace the 'postgis' scheme with 'postgresql'
+        """
+        if not __class__.engine:
+            from ebustoolbox.tasks import create_db_url
+
+            db_url = create_db_url()
+            __class__.engine = sqlalchemy.create_engine(db_url)
+        return __class__.engine
+
+    @staticmethod
+    def dispose() -> None:
+        if __class__.engine:
+            __class__.engine.dispose()
 
 
 def vid_human_readable(vehicle: Vehicle, counter, name="", c_type=False, rotation=None) -> str:
@@ -810,18 +833,6 @@ def sim_is_finished(task_id):
     return Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
 
 
-def _create_engine_from_postgis_url() -> sqlalchemy.engine.Engine:
-    """
-    Create a sqlalchemy engine from the DATABASE_URL environment variable.
-    Replace the 'postgis' scheme with 'postgresql'
-    """
-    from ebustoolbox.tasks import create_db_url
-
-    db_url = create_db_url()
-
-    return sqlalchemy.create_engine(db_url)
-
-
 def get_soc_as_json(task_id: str):
     s = Scenario.objects.get(task_id=task_id)
 
@@ -1079,14 +1090,8 @@ def get_stats_as_json(task_id: str):
     # Query the Area table using SQLAlchemy
     all_areas = scenario.area_set.all()
     all_area_ids = [area.id for area in all_areas]
-    engine = None
-    try:
-        engine = _create_engine_from_postgis_url()
-        with Session(engine) as session:
-            prepared_data = power_and_occupancy(all_area_ids, session)
-    finally:
-        if engine:
-            engine.dispose()
+    with Session(SqlAlchemyEngine.get_engine()) as session:
+        prepared_data = power_and_occupancy(all_area_ids, session)
 
     # Extract the 'power' column and find the maximum value
     peak_power_kw = prepared_data["power"].max()
@@ -1180,8 +1185,6 @@ def get_dist_hist_as_json(task_id: str):
 
 
 def get_power_draw_and_occ_as_json(task_id: str):
-    engine = _create_engine_from_postgis_url()
-
     # Get the scenario from Django ORM
     scenario = Scenario.objects.get(task_id=task_id)
 
@@ -1189,14 +1192,8 @@ def get_power_draw_and_occ_as_json(task_id: str):
     all_areas = scenario.area_set.all()
     all_area_ids = [area.id for area in all_areas]
 
-    engine = None
-    try:
-        engine = _create_engine_from_postgis_url()
-        with Session(engine) as session:
-            prepared_data = power_and_occupancy(all_area_ids, session)
-    finally:
-        if engine:
-            engine.dispose()
+    with Session(SqlAlchemyEngine.get_engine()) as session:
+        prepared_data = power_and_occupancy(all_area_ids, session)
 
     return prepared_data.to_dict(orient="records")
 
