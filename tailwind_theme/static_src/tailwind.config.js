@@ -48,6 +48,15 @@ module.exports = {
           gradient2: '#20E3B2',
           gradient3: '#29FFC6',
         },
+        keyframes: {
+          'slide-in-top': {
+            '0%': { transform: 'translateY(-1rem)', opacity: '0' },
+            '100%': { transform: 'translateY(0)', opacity: '1' },
+          },
+        },
+        animation: {
+          'slide-in-top': 'slide-in-top 0.4s ease-out forwards',
+        },
       },
     },
     plugins: [
