@@ -127,8 +127,9 @@
 <style>
     .chart-container {
         width: 100%;
-        height: 600px;
-        margin: 20px;
+        height: 480px;
+        padding: 0 1.5rem;
+        margin-bottom: 4rem;
     }
 </style>
 
@@ -683,7 +684,8 @@
                     },
                     legend: {
                         orient: 'vertical',
-                        left: 'left'
+                        right: 0,
+                        top: 60,
                     },
                     series: [{
                         name: titleText,
@@ -737,6 +739,11 @@
                         fontSize: 16,
                         fontWeight: 'bold'
                     }
+                },
+                grid: {
+                  left: 40,
+                  right: 200,
+                  containLabel: true
                 },
                 tooltip: {
                     trigger: 'axis',
@@ -835,6 +842,18 @@
                     xAxis: {
                         type: 'category',
                         data: times
+                    },
+                    legend: {
+                      orient: 'vertical',
+                      right: 0,
+                      top: 70,
+                    },
+                    grid: {
+                      top: 80,
+                      left: 60,
+                      right: 200,
+                      bottom: 40,
+                      containLabel: true
                     },
                     yAxis: [
                         {
@@ -952,9 +971,9 @@
                             yAxisIndex: 0,
                             zoomLock: false,
                             width: 40,
-                            right: 65,
+                            right: 160,
                             top: 50,
-                            bottom: 110,
+                            bottom: 75,
                             start: 0,
                             end: visiblePercent,
                             handleSize: 30,
@@ -998,8 +1017,16 @@
                             return `${marker}${params.name}<br>${formatDate(startTime)} - Dauer: ${durationFormatted} h`;
                         }
                     },
+                    legend : {
+                      orient: 'vertical',
+                      right: 0,
+                      top: 60,
+                    },
                     grid: {
-                        height: '70%'  // Adjust grid height for more space
+                      top: 60,
+                      right: 220,
+                      left: 80,
+                      containLabel: true
                     },
                     xAxis: {
                         type: 'time',
@@ -1246,9 +1273,9 @@
                             yAxisIndex: 0,
                             zoomLock: false,
                             width: 40,
-                            right: 65,
+                            right: 160,
                             top: 50,
-                            bottom: 110,
+                            bottom: 142,
                             start: 100 - visiblePercent,
                             end: 100,
                             handleSize: 30,
@@ -1290,9 +1317,11 @@
                         itemWidth: 35
                     },
                     grid: {
-                        height: '70%',  // Adjust grid height for more space
+                        top: 50,
+                        bottom: 120,
+                        left: 60,
+                        right: 220,
                         containLabel: true,
-                        left: '20px'
                     },
                     xAxis: {
                         type: 'time',
@@ -1392,13 +1421,16 @@
                         axisPointer: { type: 'shadow' }
                     },
                     legend: {
-                        top: 50,
-                        data: ['Nicht kritisch', 'kritisch']
+                        top: 60,
+                        right: 0,
+                        data: ['Nicht kritisch', 'kritisch'],
+                        orient: 'vertical',
                     },
                     grid: {
-                        left: '3%',
-                        right: '4%',
-                        bottom: '10%',
+                        left: 40,
+                        right: 200,
+                        bottom: 40,
+                        top: 60,
                         containLabel: true
                     },
                     xAxis: {
@@ -1457,6 +1489,13 @@
                         trigger: 'axis',
                         axisPointer: { type: 'shadow' }
                     },
+                    grid: {
+                        left: 40,
+                        right: 200,
+                        bottom: 40,
+                        top: 60,
+                        containLabel: true
+                    },
                     xAxis: {
                         type: 'category',
                         data: data.bins,
@@ -1514,7 +1553,8 @@
           grid: {
             height: '80%',
             top: '1%',
-            bottom: '10%'
+            bottom: '10%',
+            containLabel: true
           },
           xAxis: {
             type: 'category',
