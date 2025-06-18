@@ -27,7 +27,8 @@ from django.utils import timezone
 from django.utils.html import escape
 from django.utils.timezone import make_aware, is_aware
 from eflips.depot import UnstableSimulationException, DelayedTripException
-from eflips.depot.api import simulate_scenario, generate_depot_layout
+from eflips.depot.api import simulate_scenario, generate_depot_optimal_size
+
 
 import core.deepcopy
 from ebusdjango.util import get_static_file_path
@@ -1410,11 +1411,35 @@ def _run_ebus_toolchain(self, task_id):
             # TODO handle it and pass information to user
             logger.error("The simulation is unstable")
             logger.error(traceback.format_exception(e))
+            for scenario in [db_scenario, db_scenario.parent]:
+                if scenario is None:
+                    continue
+                Notification.objects.create(
+                    scenario=scenario,
+                    sender="eflips-depot",
+                    level=EnumNotificationLevels.WARNING,
+                    notification_type=EnumNotificationType.UNSTABLE_DEPOT,
+                    message=(
+                        "Das Szenario ist nicht stabil. Mit den gegebenen Randbedingungen "
+                        "sinkt, der SoC bei wiederholten Iterationen. Eine Erhöhung der "
+                        "Nachladeleistung kann das Problem beheben."
+                    ),
+                )
         except DelayedTripException as e:
             # TODO handle it and pass information to user
             logger.error("There are delays in the Simulation")
             logger.error(traceback.format_exception(e))
-
+            # TODO: @TU what notification should the user receive
+            for scenario in [db_scenario, db_scenario.parent]:
+                if scenario is None:
+                    continue
+                Notification.objects.create(
+                    scenario=scenario,
+                    sender="eflips-depot",
+                    level=EnumNotificationLevels.WARNING,
+                    notification_type=EnumNotificationType.DELAYED_TRIP,
+                    message=("Manche Fahrzeuge können nur verspätet abfahren"),
+                )
         progress.current_work = 75
         progress.save()
         eflips_assignment = get_assigned_vehicles(task_id)
@@ -1666,7 +1691,7 @@ def run_eflips(task_id) -> None:
 
     # Constructing the database URL manually
     db_url = create_db_url()
-    generate_depot_layout(
+    generate_depot_optimal_size(
         db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=True
     )
 
@@ -1678,8 +1703,8 @@ def run_eflips(task_id) -> None:
         db_scenario,
         database_url=db_url,
         repetition_period=period,
-        ignore_unstable_simulation=True,
-        ignore_delayed_trips=True,
+        ignore_unstable_simulation=False,
+        ignore_delayed_trips=False,
     )
 
 

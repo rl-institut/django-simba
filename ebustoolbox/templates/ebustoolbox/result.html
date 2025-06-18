@@ -5,6 +5,23 @@
 
 {% block content %}
 <header class="flex flex-col items-center bg-white">
+    <div id="notifications">
+      <div style="display:grid;">
+        <!-- putting all notifications in the same grid cell stacks them -->
+        <!-- widthratio is a workaround to multiply the forloop.counter -->
+      {% for notification in notifications %}
+        <div style="grid-column:1; grid-row:1; margin-left:  {% widthratio forloop.counter 1 5 %}pt;" class="flex justify-between mb-6 pr-20 relative rounded-md border border-yellow-300 bg-yellow-50 p-4 text-sm text-yellow-800">
+            <div>
+            <strong class="font-semibold">Hinweis {{forloop.revcounter}}/{{notifications | length}}:</strong> {{ notification.message }}
+              <button type="button"
+                      class="text-yellow-700 hover:text-yellow-900 ml-4"
+                      onclick="this.parentElement.parentElement.remove()"
+                      aria-label="Dismiss notification">&times;</button>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
   <div class="sm:py-8 lg:pt-12 lg:pb-8 sm:px-6 lg:px-8 w-full max-w-7xl">
     <div class="flex justify-between">
       <h1 class="text-2xl font-semibold">{{ scenario.name }}</h1>

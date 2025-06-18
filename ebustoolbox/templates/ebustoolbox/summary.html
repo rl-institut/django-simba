@@ -43,6 +43,18 @@
     </div>
   </div>
 
+      {% for notification in notifications %}
+        <div style="grid-column:1; grid-row:1; margin-left:  {% widthratio forloop.counter 1 5 %}pt;" class="flex justify-between mb-6 pr-20 relative rounded-md border border-yellow-300 bg-yellow-50 p-4 text-sm text-yellow-800">
+            <div>
+            <strong class="font-semibold">Hinweis {{forloop.revcounter}}/{{notifications | length}}:</strong> {{ notification.message }}
+              <button type="button"
+                      class="text-yellow-700 hover:text-yellow-900 ml-4"
+                      onclick="this.parentElement.parentElement.remove()"
+                      aria-label="Dismiss notification">&times;</button>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
   <!-- Use alert when simulating -->
   <div class="flex justify-center pt-8">
     <button id="simulateButton" hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s

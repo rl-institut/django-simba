@@ -388,7 +388,7 @@ class TripsView(FormView):
                     "Asynch result and Progress need to be equal" "for proper fetching of progress"
                 )
         elif scenario_uuid:
-            if not Scenario.objects.get(task_id=scenario_uuid) in get_sorted_mutation_scenarios(
+            if Scenario.objects.get(task_id=scenario_uuid) not in get_sorted_mutation_scenarios(
                 self.request.user
             ):
                 raise Http404
@@ -953,6 +953,10 @@ class SummaryView(AuthorizedMixIn, TemplateView):
         scenario = get_object_or_404(Scenario, task_id=task_id)
         context["scenario"] = scenario
         context["task_id"] = task_id
+        notifications = Notification.objects.filter(scenario=scenario).exclude(
+            notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK
+        )
+        context |= {"notifications": notifications}
         progress = Progress.objects.filter(
             scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
         ).last()
@@ -1041,7 +1045,10 @@ class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
         context["task_id"] = task_id
         scenario = get_object_or_404(Scenario, task_id=task_id)
         context["scenario"] = scenario
-
+        notifications = Notification.objects.filter(scenario=scenario).exclude(
+            notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK
+        )
+        context |= {"notifications": notifications}
         return context
 
 
