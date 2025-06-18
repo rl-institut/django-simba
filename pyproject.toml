@@ -47,6 +47,7 @@ scipy = "^1.12.0"
 selenium = "^4.13.0"
 setuptools = "^68.2.2"
 tqdm = "^4.66.1"
+charset-normalizer = "^3.4.2"
 
 
 

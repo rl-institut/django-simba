@@ -659,8 +659,8 @@
     const taskId = document.getElementById("task-id").value;
     //console.log("Simulation ID:", taskId);
 
-    function fetchAndRenderPieChart(chartName, chartId, titleText) {
-        fetch(`/simba/result/${taskId}/${chartName}/`)
+  function fetchAndRenderPieChart(chartName, chartId, titleText) {
+        return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
                 // Filter out categories with zero values
@@ -711,7 +711,7 @@
     }
     function fetchAndRenderLineChart(chartName, chartId, titleText, xKey, yKey) {
 
-        fetch(`/simba/result/${taskId}/${chartName}/`)
+        return fetch(`/simba/result/${taskId}/${chartName}/`)
         .then(response => response.json())
         .then(data => {
 
@@ -779,8 +779,8 @@
             chart.setOption(options);
         });
     }
-    function fetchAndRenderDepotChart(chartName, chartId, titleText, xKey, yKey) {
-        fetch(`/simba/result/${taskId}/${chartName}/`)
+  function fetchAndRenderDepotChart(chartName, chartId, titleText, xKey, yKey) {
+        return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(responseData => {
                 const rawData = responseData.data;
@@ -906,7 +906,7 @@
             STANDBY: "#bb33ff"
         };
 
-        fetch(`/simba/result/${taskId}/${chartName}/`)
+  return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
                 const categories = data.categories;  // Array of bus categories
@@ -1101,7 +1101,7 @@
             .catch(error => console.error('Error loading Gantt data:', error));
     }
     function fetchAndRenderGanttChartSOC(chartName, chartId, titleText) {
-        fetch(`/simba/result/${taskId}/${chartName}/`)
+        return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
 
@@ -1371,7 +1371,7 @@
             });
     };
     function fetchAndRenderStackedHistogram(chartName, chartId, titleText) {
-        fetch(`/simba/result/${taskId}/${chartName}/`)
+        return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
@@ -1438,13 +1438,13 @@
             });
     }
     function fetchAndRenderHistogram(chartName, chartId, titleText) {
-        fetch(`/simba/result/${taskId}/${chartName}/`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    console.error("Error loading histogram data:", data.error);
-                    return;
-                }
+      return fetch(`/simba/result/${taskId}/${chartName}/`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            console.error("Error loading histogram data:", data.error);
+            return;
+          }
 
                 const option = {
                     title: {
@@ -1586,22 +1586,30 @@
     // Ensure the DOM is fully loaded before running
     document.addEventListener("DOMContentLoaded", function() {
 
-        if (taskId) {
-            // Render the charts
-            fetchAndRenderPieChart("critical_rotations", "chartContainer", "Kritische und nicht kritische Umläufe");
-            fetchAndRenderPieChart("bustype", "busTypeChartContainer", "Verteilung Fahrzeugtyp");
-            fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit", "time_end", "soc_end_prc");
-            fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Ladeleistung und Belegung", "time_end", "soc_end_prc");
+        const el = document.getElementById("dataFetchedFinished");
+      if (taskId) {
+        const chartPromises =[
+        // Render the charts
+        fetchAndRenderPieChart("critical_rotations", "chartContainer", "Kritische und nicht kritische Umläufe"),
+        fetchAndRenderPieChart("bustype", "busTypeChartContainer", "Verteilung Fahrzeugtyp"),
+        fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit", "time_end", "soc_end_prc"),
+        fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Ladeleistung und Belegung", "time_end", "soc_end_prc"),
 
-            fetchAndRenderStats("stats", "_", "_")
-            fetchAndRenderGanttChart("gantt","ganttChart","_")
-            fetchAndRenderStackedHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen");
-            fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten");
-            fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap");
-            fetchAndRenderGanttChartSOC("soc_gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit");
-        } else {
-            console.error("Simulation ID is missing.");
-        }
+        fetchAndRenderStats("stats", "_", "_"),
+        fetchAndRenderGanttChart("gantt","ganttChart","_"),
+        fetchAndRenderStackedHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen"),
+        fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten"),
+        fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap"),
+        fetchAndRenderGanttChartSOC("soc_gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit")];
+
+        Promise.allSettled(chartPromises).then((results)=>{
+          const allSuccessful = results.every(r => r.status === "fulfilled");
+          el.setAttribute("data-status", allSuccessful ? "success" : "error");
+          el.setAttribute("data-value", "1");
+        });
+      }else {
+        console.error("Simulation ID is missing.");
+      }
     });
 
     // End echarts
