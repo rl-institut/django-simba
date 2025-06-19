@@ -1323,7 +1323,7 @@
                             type: 'slider',
                             filterMode: 'weakFilter',
                             showDataShadow: false,
-                            top: 550,
+                            top: 420,
                             labelFormatter: ''
                         },
                         {
@@ -1506,11 +1506,13 @@
                 const visiblePercent = (visibleTracks / totalVehicles) * 100;
 
                 const viridisAnchors = [
-                  '#440154', // dark purple
-                  '#414487', // indigo
-                  '#2a788e', // teal
-                  '#22a884', // green
-                  '#fde725'  // yellow
+                  '#3B2C85', // dark violet (super low)
+                  '#845EC2', // violet (low)
+  '#F76E6C', // coral
+  '#FFD670', // soft yellow
+  '#A1DE93', // pistachio
+  '#20E3B2', // mint green
+  '#00B2CA'  // teal (super high)
                 ];
 
                 function hexToRgb(hexString) {
@@ -1625,7 +1627,7 @@
                             type: 'slider',
                             filterMode: 'weakFilter',
                             showDataShadow: false,
-                            top: 550,
+                            top: 420,
                             labelFormatter: ''
                         },
                         {
@@ -1666,11 +1668,13 @@
                         bottom: 60,
                         inRange: {
                             color: [
-                                '#440154',
-                                '#414487',
-                                '#2a788e',
-                                '#22a884',
-                                '#fde725'  // SoC 1
+                              '#3B2C85', 
+                                '#845EC2', // violet (low)
+  '#F76E6C', // coral
+  '#FFD670', // soft yellow
+  '#A1DE93', // pistachio
+  '#20E3B2', // mint green
+  '#00B2CA'  // teal (super high)  // SoC 1
                             ]
                         },
                         formatter: function (value) {
