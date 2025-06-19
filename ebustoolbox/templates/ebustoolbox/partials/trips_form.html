@@ -37,7 +37,7 @@
             </div>
           </label>
           <a href="{% static 'ebustoolbox/examples/trips_example.csv' %}">
-          <button type="button" class="text-sm font-semibold text-green-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-green-600 focus-within:ring-offset-2 hover:text-green-600 transition-all duration-300"
+          <button type="button" class="text-sm font-semibold text-emerald-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-green-600 focus-within:ring-offset-2 hover:text-emerald-600 transition-all duration-300"
                   title="Beispieldatei herunterladen">
             <span class="flex items-center gap-2" >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
@@ -61,7 +61,7 @@
 
             <p class="mt-4 pb-2 flex text-sm text-slate-800">
               <label for="{{ form.data_file.auto_id }}"
-                  class="relative w-full cursor-pointer text-sm font-semibold text-green-700">
+                  class="relative w-full cursor-pointer text-sm font-semibold text-emerald-700">
                 <span>Datei hochladen</span>
                 {# this sets the id=form.data_file.auto_id #}
                 <input {{ form.data_file|widget_attrs }} type="file" class="sr-only" accept=".csv" onchange="updateFileName(this)">
@@ -100,7 +100,7 @@
             <select
               id="{{ form.existing_scenario.auto_id }}"
               name="{{ form.existing_scenario.name }}"
-              class="flex flex-wrap items-center w-full rounded-md bg-white px-3 py-1.5 text-left text-slate-800 border border-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6 cursor-pointer"
+              class="flex flex-wrap items-center w-full rounded-md bg-white px-3 py-1.5 text-left text-slate-800 border border-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6 cursor-pointer"
             >
               <option value="">-- Szenario auswählen --</option>
               {% for scenario in scenarios %}
@@ -120,7 +120,7 @@
           class="block text-sm/6 font-medium text-slate-900">Szenario-Name</label>
         <div class="mt-2">
           <input type="text" {{ form.scenario_name|widget_attrs }}
-            class="bg-white w-full px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 sm:text-sm/6"
+            class="bg-white w-full px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-emerald-400 sm:text-sm/6"
             placeholder="Szenario-Name eingeben">
         </div>
       </div>
@@ -133,7 +133,7 @@
         </div>
         <div class="mt-2">
           <textarea type="text" {{ form.description|widget_attrs }} rows="4"
-            class="bg-white w-full px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 sm:text-sm/6"
+            class="bg-white w-full px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-emerald-400 sm:text-sm/6"
             placeholder="Beschreiben Sie Ihr Szenario..."
             aria-describedby="description-optional">{% if form.description.value %}{{ form.description.value }}{% endif %}</textarea>
         </div>

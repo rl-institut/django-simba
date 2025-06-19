@@ -11,7 +11,7 @@
       <div class="flex gap-2 relative"> <!-- Add relative to the parent container -->
         <a
             href="{% url 'simba:compare' %}?s={{ scenario.id }}"
-            class="px-4 py-2 bg-green-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
+            class="px-4 py-2 bg-emerald-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-emerald-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
           <span class="flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
               <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
@@ -20,7 +20,7 @@
           </span>
         </a>
         <button
-          class="px-4 py-2 bg-green-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300"
+          class="px-4 py-2 bg-emerald-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-emerald-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300"
           id="dropdownButton"
           aria-expanded="false"
           aria-haspopup="true"
@@ -205,28 +205,28 @@
                   aria-labelledby="listbox-label"
                 >
                   <li
-                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-green-400 hover:text-black"
+                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-emerald-400 hover:text-black"
                     role="option"
                     data-dropdown-item="Item 2"
                   >
                     <span class="block truncate font-normal">2 Jahre</span>
                   </li>
                   <li
-                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-green-400 hover:text-black"
+                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-emerald-400 hover:text-black"
                     role="option"
                     data-dropdown-item="Item 3"
                   >
                     <span class="block truncate font-normal">3 Jahre</span>
                   </li>
                   <li
-                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-green-400 hover:text-black"
+                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-emerald-400 hover:text-black"
                     role="option"
                     data-dropdown-item="Item 4"
                   >
                     <span class="block truncate font-normal">4 Jahre</span>
                   </li>
                   <li
-                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-green-400 hover:text-black"
+                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-emerald-400 hover:text-black"
                     role="option"
                     data-dropdown-item="Item 5"
                   >
@@ -396,8 +396,8 @@
                 <div class="flex items-center gap-4">
                   <span class="text-end text-sm text-slate-600 flex-grow">Nach Elektrifizierung</span>
                   <div class="flex items-center gap-2 w-3/4">
-                    <div class="h-2 w-[30%] bg-green-400 rounded-full"></div>
-                    <span class="text-sm font-bold text-green-600">3.000 t</span>
+                    <div class="h-2 w-[30%] bg-emerald-400 rounded-full"></div>
+                    <span class="text-sm font-bold text-emerald-600">3.000 t</span>
                   </div>
                 </div>
               </div>
@@ -406,7 +406,7 @@
             <div class="flex justify-end pt-4">
               <button
                 id="detailsButton"
-                class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-full transition-all"
+                class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-full transition-all"
                 aria-expanded="false"
                 aria-controls="detailsContent"
               >
@@ -2099,9 +2099,9 @@
   // Remove the highlight from all items and apply it to the selected item
   function highlightSelectedItem() {
     listItems.forEach(li => {
-      li.classList.remove('bg-green-100');
+      li.classList.remove('bg-emerald-100');
       if (li.getAttribute('data-dropdown-item') === selectedItem) {
-        li.classList.add('bg-green-100');
+        li.classList.add('bg-emerald-100');
       }
     });
   }
