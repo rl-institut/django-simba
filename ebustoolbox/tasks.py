@@ -272,6 +272,22 @@ def temperatures_to_db(
         temperatures_instance.save()
 
 
+def get_notfications_dict(
+    notifications: QuerySet[Notification],
+) -> dict[str, QuerySet[Notification]]:
+    return {
+        "error": notifications.filter(
+            level=EnumNotificationLevels.ERROR,
+        ),
+        "warning": notifications.filter(
+            level=EnumNotificationLevels.WARNING,
+        ),
+        "info": notifications.filter(
+            level=EnumNotificationLevels.INFO,
+        ),
+    }
+
+
 def get_schedule_from_db(
     django_scenario: Scenario,
 ) -> tuple[simba.schedule.Schedule, Namespace]:

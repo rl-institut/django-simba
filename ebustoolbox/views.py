@@ -53,7 +53,6 @@ from . import data
 import ebustoolbox
 import ebustoolbox.tasks
 from ebustoolbox.models import (
-    EnumNotificationType,
     Notification,
     Scenario,
     Temperatures,
@@ -388,7 +387,7 @@ class TripsView(FormView):
                     "Asynch result and Progress need to be equal" "for proper fetching of progress"
                 )
         elif scenario_uuid:
-            if not Scenario.objects.get(task_id=scenario_uuid) in get_sorted_mutation_scenarios(
+            if Scenario.objects.get(task_id=scenario_uuid) not in get_sorted_mutation_scenarios(
                 self.request.user
             ):
                 raise Http404
@@ -439,9 +438,11 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         data = {}
         if self.request.method == "POST":
             data = self.request.POST
-        context["notifications"] = Notification.objects.filter(
-            scenario=scenario, notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK
-        )
+        # TODO: show only a subset of notifications or all notifications?
+        notifications = Notification.objects.filter(scenario=scenario)
+        # create a dict with of notifications with the key of the notification level
+        # for easy template access
+        context["notifications"] = tasks.get_notfications_dict(notifications)
         context |= self.get_simulation_parameters_context(data, scenario)
         context |= self.get_vehicles_context(data, scenario)
         return context
