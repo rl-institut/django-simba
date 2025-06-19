@@ -1268,12 +1268,12 @@ select {
   max-width: 80rem;
 }
 
-.max-w-full {
-  max-width: 100%;
-}
-
 .max-w-\[120rem\] {
   max-width: 120rem;
+}
+
+.max-w-full {
+  max-width: 100%;
 }
 
 .flex-1 {
@@ -1346,10 +1346,6 @@ select {
 
 .cursor-default {
   cursor: default;
-}
-
-.cursor-not-allowed {
-  cursor: not-allowed;
 }
 
 .cursor-pointer {
@@ -1620,10 +1616,6 @@ select {
 
 .border-t {
   border-top-width: 1px;
-}
-
-.border-l-0 {
-  border-left-width: 0px;
 }
 
 .border-dashed {
@@ -2498,6 +2490,31 @@ progress::-moz-progress-bar {
   transition: width 0.3s ease;
 }
 
+/* MapLibre GL Popup */
+
+.maplibregl-popup {
+  padding: 0;
+  border-radius: 0.5rem;
+}
+
+.maplibregl-popup .maplibregl-popup-content {
+  padding: 0;
+  border-radius: 0.5rem;
+}
+
+.maplibregl-popup .popup__header {
+  /* New Tailwind classes for this section are not applied, so I write custom styles here */
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  min-height: 2rem;
+}
+
+.maplibregl-popup .maplibregl-popup-close-button {
+  right: 8px;
+  top: 5px;
+  font-size: 1rem;
+}
+
 .file\:mr-4::file-selector-button {
   margin-right: 1rem;
 }
@@ -3210,12 +3227,6 @@ progress::-moz-progress-bar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .lg\:divide-x > :not([hidden]) ~ :not([hidden]) {
-    --tw-divide-x-reverse: 0;
-    border-right-width: calc(1px * var(--tw-divide-x-reverse));
-    border-left-width: calc(1px * calc(1 - var(--tw-divide-x-reverse)));
-  }
-
   .lg\:border-b-0 {
     border-bottom-width: 0px;
   }
@@ -3270,11 +3281,6 @@ progress::-moz-progress-bar {
   .\32xl\:text-base {
     font-size: 1rem;
     line-height: 1.5rem;
-  }
-
-  .\32xl\:text-xl {
-    font-size: 1.25rem;
-    line-height: 1.75rem;
   }
 }
 
