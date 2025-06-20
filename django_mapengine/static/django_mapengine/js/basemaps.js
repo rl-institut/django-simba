@@ -1,26 +1,32 @@
 const basemaps = ["satellite"];
+const defaultIcon = "/static/django_mapengine/images/layer_ctrl_default.svg";
+const satelliteIcon = "/static/django_mapengine/images/layer_ctrl_satellite.svg";
 
-function toggleBasemap(basemap) {
-  map_store.cold.basemap = basemap;
+function toggleBasemap() {
+  const current = map_store.cold.basemap;
+  const isSatellite = current === "satellite";
 
-  if (basemap === null) {
-    map_store.cold.basemapFocusElement = "basemaps__default";
-  } else {
-    map_store.cold.basemapFocusElement = `basemaps__${basemap}`;
-  }
+  const nextBasemap = isSatellite ? null : "satellite";
+  map_store.cold.basemap = nextBasemap;
+  map_store.cold.basemapFocusElement = "basemaps__toggle";
 
   const legend = document.getElementById("legend");
   for (const bm of basemaps) {
     map.setLayoutProperty(bm, "visibility", "none");
   }
-  if (basemap !== null) {
-    map.setLayoutProperty(basemap, "visibility", "visible");
-  }
-  else {
-    legend.hidden = true;
 
+  if (nextBasemap !== null) {
+    map.setLayoutProperty(nextBasemap, "visibility", "visible");
+    legend.hidden = false;
+  } else {
+    legend.hidden = true;
   }
+
+  // Update basemap
+  document.getElementById("basemap-icon").src = isSatellite ? satelliteIcon : defaultIcon;
+  document.getElementById("basemap-label").innerText = isSatellite ? "Satellitenansicht" : "Kartenansicht";
 }
+
 
 // Toggle basemaps control
 let toggleBasemapButton = document.getElementById("basemaps-control");
