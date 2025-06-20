@@ -23,6 +23,10 @@ Template:
 - Handle blocks which arrive multiple times in a depot station by splitting the block
   - This allows depot services to take place
 
+- [(#223)](https://github.com/rl-institut/django-simba/pull/223)
+- Dash app is removed completely from website
+  - Visualization now uses [echarts.js]( https://echarts.apache.org/en/index.html)
+
 ### Changed
 - [(#220)](https://github.com/rl-institut/django-simba/pull/220)
 - SimbaScheduleReader determines encoding via charset_normalizer

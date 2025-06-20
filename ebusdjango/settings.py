@@ -74,8 +74,6 @@ INSTALLED_APPS = [
     "elevation_api",
     "django_mapengine",
     "ebus_map",
-    # Django plotly dash
-    "django_plotly_dash.apps.DjangoPlotlyDashConfig",
     "bootstrap4",
     "tailwind",
     "tailwind_theme",
@@ -91,7 +89,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # if the header and footer tags are in use this setting should be used. No problem if not in use
-    "django_plotly_dash.middleware.BaseMiddleware",
     "core.middleware.TimezoneMiddleware",
 ]
 
@@ -183,19 +180,8 @@ LOGGING = {
             "style": "{",
         },
     },
-    # Do not show logs with status 200 (OK) or 204 (no content) for dash_app
     # Do not show logs with status 200 for map_engine
     "filters": {
-        "plotly_dash_status_ok": {
-            "()": "core.filters.FilterStatusCode",
-            "status_code": 200,
-            "search_text": "_dash-update-component",
-        },
-        "plotly_dash_status_no_content": {
-            "()": "core.filters.FilterStatusCode",
-            "status_code": 204,
-            "search_text": "_dash-update-component",
-        },
         "map_status_no_content": {
             "()": "core.filters.FilterStatusCode",
             "status_code": 204,
@@ -208,8 +194,6 @@ LOGGING = {
             # These logs clutter the console and are not very helpful
             "filters": [
                 "map_status_no_content",
-                "plotly_dash_status_ok",
-                "plotly_dash_status_no_content",
             ],
             "formatter": "simple",
         },
@@ -249,8 +233,9 @@ USE_I18N = True
 
 USE_TZ = True
 
-# django_plotly_dash setting for use of frames within HTML documents
-X_FRAME_OPTIONS = "SAMEORIGIN"
+# Deny is the default value. If other values are needed give the view the appropriate decorator
+# see https://docs.djangoproject.com/en/5.2/ref/clickjacking/
+X_FRAME_OPTIONS = "DENY"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
