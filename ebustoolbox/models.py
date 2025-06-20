@@ -1714,7 +1714,10 @@ class EnumNotificationLevels(models.TextChoices):
 class EnumNotificationType(models.TextChoices):
     """Definitions for notification types which define where the message is shown"""
 
-    MULTIPLE_DEPOT_TRIPS_IN_BLOCK = "multi_dep_trips_in_block"
+    MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING = "multi_dep_trips_in_block"
+    UNSTABLE_DEPOT_WARNING = "unstable_sim_w_shifting_socs"
+    DELAYED_TRIP_WARNING = "delayed_trip"
+    UNEXPECTED_ERROR = "unexpected_error"
 
 
 class Notification(models.Model):

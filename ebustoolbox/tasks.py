@@ -25,7 +25,12 @@ from django.utils import timezone
 from django.utils.html import escape
 from django.utils.timezone import make_aware, is_aware
 from eflips.depot import UnstableSimulationException, DelayedTripException
-from eflips.depot.api import simulate_scenario, generate_depot_layout
+from eflips.depot.api import (  # noqa
+    simulate_scenario,
+    generate_depot_layout,
+    generate_depot_optimal_size,
+)
+
 
 import core.deepcopy
 from ebusdjango.util import get_static_file_path
@@ -207,7 +212,7 @@ def consumption_file_to_db(consumption_path: Path, django_scenario: Scenario) ->
     )
 
 
-# ToDo Do somewhere else?
+# TODO: Do somewhere else?
 def filter_inconsistent_trips_and_rotations(simba_schedule):
     # Some filter functions to handle messy bvg input
     counter = 0
@@ -1318,8 +1323,8 @@ def _run_ebus_toolchain(self, task_id):
         logger.info(f"Getting schedule from db {datetime.now()}")
         schedule, args = get_schedule_from_db(db_scenario)
 
-        # in the first run Depots can stay un electrified
-        # ToDo keep that?
+        # in the first run Depots can stay un electrified since simba does not do depot calculations
+        # TODO: keep that?
         for depot in Depot.objects.filter(scenario=db_scenario):
             try:
                 del schedule.stations[depot.station.to_simba_name()]
@@ -1347,16 +1352,55 @@ def _run_ebus_toolchain(self, task_id):
 
         progress.current_work = 45
         progress.save()
+        notifications = []
         try:
             run_eflips(task_id)
         except UnstableSimulationException as e:
-            # TODO handle it and pass information to user
             logger.error("The simulation is unstable")
             logger.error(traceback.format_exception(e))
+            notification = Notification(
+                sender="eflips-depot",
+                level=EnumNotificationLevels.WARNING,
+                notification_type=EnumNotificationType.UNSTABLE_DEPOT_WARNING,
+                message=(
+                    "Das Szenario ist nicht stabil. Mit den gegebenen Randbedingungen "
+                    "sinkt, der SoC bei wiederholten Iterationen. Eine Erhöhung der "
+                    "Nachladeleistung kann das Problem beheben."
+                ),
+            )
+            notifications.append(notification)
         except DelayedTripException as e:
-            # TODO handle it and pass information to user
             logger.error("There are delays in the Simulation")
             logger.error(traceback.format_exception(e))
+            # TODO: @TU what notification should the user receive
+            notification = Notification(
+                sender="eflips-depot",
+                level=EnumNotificationLevels.WARNING,
+                notification_type=EnumNotificationType.DELAYED_TRIP_WARNING,
+                message=("Manche Fahrzeuge können nur verspätet abfahren"),
+            )
+        except Exception as e:
+            logger.error("Eflips raised an unexpected Exception")
+            logger.error(traceback.format_exception(e))
+            notification = Notification(
+                sender="eflips-depot",
+                level=EnumNotificationLevels.ERROR,
+                notification_type=EnumNotificationType.UNEXPECTED_ERROR,
+                message=("Ein unerwarteter Fehler ist aufgetreten! "),
+            )
+            notifications.append(notification)
+            progress.refresh_from_db()
+            progress.errors.append(str(e))
+            progress.set_failed()
+            raise
+        finally:
+            for scenario in [db_scenario, db_scenario.parent]:
+                # parent might not exist
+                if scenario is None:
+                    continue
+                for notification in notifications:
+                    notification.scenario = scenario
+                    notification.save()
 
         progress.current_work = 75
         progress.save()
@@ -1603,13 +1647,12 @@ def depot_rotation_to_eflips_input(db_rotation, db_scenario, input_for_eflips, r
 
 
 def run_eflips(task_id) -> None:
-    # ToDo Replace with logger
     logger.info(f"Running eFLIPS {datetime.now()}")
     db_scenario = Scenario.objects.get(task_id=task_id)
 
     # Constructing the database URL manually
     db_url = create_db_url()
-    generate_depot_layout(
+    generate_depot_optimal_size(
         db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=True
     )
 
@@ -1621,8 +1664,8 @@ def run_eflips(task_id) -> None:
         db_scenario,
         database_url=db_url,
         repetition_period=period,
-        ignore_unstable_simulation=True,
-        ignore_delayed_trips=True,
+        ignore_unstable_simulation=False,
+        ignore_delayed_trips=False,
     )
 
 
@@ -2218,7 +2261,7 @@ def split_blocks_with_intermediate_depot_stops(parent: Scenario, child: Scenario
             Notification.objects.create(
                 scenario=scenario,
                 level=EnumNotificationLevels.WARNING,
-                notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK,
+                notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING,
                 message=f"Umlauf {escape(rotation_name)} wurde geteilt, da er mehrmals im Depot ankommt",
             )
         assert Trip.objects.filter(rotation_id=org_rotation_id).count() == 0

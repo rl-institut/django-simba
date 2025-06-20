@@ -53,6 +53,7 @@ from . import data
 import ebustoolbox
 import ebustoolbox.tasks
 from ebustoolbox.models import (
+    EnumNotificationType,
     Notification,
     Scenario,
     Temperatures,
@@ -954,6 +955,10 @@ class SummaryView(AuthorizedMixIn, TemplateView):
         scenario = get_object_or_404(Scenario, task_id=task_id)
         context["scenario"] = scenario
         context["task_id"] = task_id
+        notifications = Notification.objects.filter(scenario=scenario).exclude(
+            notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING
+        )
+        context |= {"notifications": tasks.get_notfications_dict(notifications)}
         progress = Progress.objects.filter(
             scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
         ).last()
@@ -1042,7 +1047,8 @@ class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
         context["task_id"] = task_id
         scenario = get_object_or_404(Scenario, task_id=task_id)
         context["scenario"] = scenario
-
+        notifications = Notification.objects.filter(scenario=scenario)
+        context["notifications"] = tasks.get_notfications_dict(notifications)
         return context
 
 
