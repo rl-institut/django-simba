@@ -1146,6 +1146,10 @@ select {
   width: 2.75rem;
 }
 
+.w-12 {
+  width: 3rem;
+}
+
 .w-2\/12 {
   width: 16.666667%;
 }
@@ -1406,6 +1410,10 @@ select {
 
 .items-center {
   align-items: center;
+}
+
+.justify-start {
+  justify-content: flex-start;
 }
 
 .justify-end {
