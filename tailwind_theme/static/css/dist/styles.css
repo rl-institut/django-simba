@@ -1272,6 +1272,10 @@ select {
   max-width: 100%;
 }
 
+.max-w-\[120rem\] {
+  max-width: 120rem;
+}
+
 .flex-1 {
   flex: 1 1 0%;
 }
@@ -3124,6 +3128,10 @@ progress::-moz-progress-bar {
     padding-top: 2rem;
   }
 
+  .sm\:pt-4 {
+    padding-top: 1rem;
+  }
+
   .sm\:text-left {
     text-align: left;
   }
@@ -3228,6 +3236,10 @@ progress::-moz-progress-bar {
 
   .lg\:pt-12 {
     padding-top: 3rem;
+  }
+
+  .lg\:pt-6 {
+    padding-top: 1.5rem;
   }
 }
 
