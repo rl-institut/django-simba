@@ -810,85 +810,208 @@ function addNumericalDataSection(pdf, yPosition) {
   const sectionWidth = pageWidth - 2 * margin;
   const cardX = margin;
   const cardY = yPosition + 10;
-  const cardPadding = 12;
-  const cardCornerRadius = 3;
-  const colGap = 16;
-  const colWidth = (sectionWidth - cardPadding * 2 - colGap) / 2;
+  const cardPadding = 16;
+  const cardCornerRadius = 8;
 
-  // === Title ===
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(16);
-  pdf.setTextColor(30);
+  // === Header Section ===
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(10); // Reduced from 14
+  pdf.setTextColor(30, 41, 59);
   pdf.text('INFRASTRUKTUR', margin, yPosition);
 
-  // === Card ===
-  const cardHeight = 130;
-  pdf.setDrawColor(200);
+  // === Main Card ===
+  const cardHeight = 140; // Reduced height
+  pdf.setDrawColor(226, 232, 240);
+  pdf.setFillColor(255, 255, 255);
   pdf.setLineWidth(0.5);
-  pdf.roundedRect(cardX, cardY, sectionWidth, cardHeight, cardCornerRadius, cardCornerRadius, 'S');
+  // Shadow effect
+  pdf.setDrawColor(0, 0, 0, 10);
+  pdf.roundedRect(cardX + 1, cardY + 1, sectionWidth, cardHeight, cardCornerRadius, cardCornerRadius, 'F');
+  // Main card
+  pdf.setDrawColor(203, 213, 225);
+  pdf.roundedRect(cardX, cardY, sectionWidth, cardHeight, cardCornerRadius, cardCornerRadius, 'FD');
 
-  // === Column Coordinates ===
-  const col1X = cardX + cardPadding;
-  const col2X = cardX + cardPadding + colWidth + colGap;
-  let topY = cardY + cardPadding;
+  // === Grid Layout ===
+  const colWidth = (sectionWidth - 2) / 2;
+  const valueBoxWidth = (colWidth - 2) / 3;
 
-  // === Column 1 ===
-  addSection(pdf, col1X, topY, 'Umläufe', [
-    ['14768 : 100.2 km', 'Längster Umlauf'],
-    ['17106 : 30.2 km', 'Kürzester Umlauf'],
-    ['130 km', 'Gesamtstrecke'],
-  ]);
+  // Data structure
+  const sections = [
+    {
+      title: "Umläufe",
+      values: [
+        { value: "14768", unit: "km", label: "Längster Umlauf" },
+        { value: "17106", unit: "km", label: "Kürzester Umlauf" },
+        { value: "130", unit: "km", label: "Gesamtstrecke" }
+      ],
+      borderBottom: true
+    },
+    {
+      title: "Szenario",
+      values: [
+        { value: "0 / 5", unit: "", label: "Elektrifizierte Stationen / Gesamtzahl Stationen" },
+        { value: "2", unit: "", label: "Anzahl Fahrzeuge" },
+        { value: "S Lichterfelde Süd, 4 mal", unit: "", label: "Häufigst angefahrene Station" }
+      ],
+      borderBottom: true
+    },
+    {
+      title: "Energie und Leistung",
+      values: [
+        { value: "289", unit: "kWh", label: "Gesamt geladene Energie" },
+        { value: "1.11", unit: "kWh/km", label: "Durchschnittl. Verbrauch" },
+        { value: "0", unit: "kW", label: "Installierte Leistung" }
+      ],
+      borderBottom: false
+    },
+    {
+      title: "Depots",
+      values: [
+        { value: "2", unit: "", label: "Anzahl Stellplätze" },
+        { value: "289", unit: "kWh", label: "Energie" },
+        { value: "90", unit: "kW", label: "Spitzenleistung" }
+      ],
+      borderBottom: false
+    }
+  ];
 
-  addSection(pdf, col1X, topY + 58, 'Energie und Leistung', [
-    ['289 kWh', 'Gesamt geladene Energie'],
-    ['1.11 kWh/km', 'Durchschnittl. Verbrauch'],
-    ['0 kW', 'Installierte Leistung'],
-  ]);
+  // Scaled-down font sizes
+  const titleFontSize = 9;  // Reduced from 12
+  const valueFontSize = 12; // Reduced from 18
+  const unitFontSize = 9;   // Reduced from 12
+  const labelFontSize = 8;  // Reduced from 10
 
-  // === Column 2 ===
-  addSection(pdf, col2X, topY, 'Szenario', [
-    ['0 / 5', 'Elektrifizierte Stationen / Gesamtzahl Stationen'],
-    ['2', 'Anzahl Fahrzeuge'],
-    ['S Lichterfelde Süd, 4 mal', 'Häufigst angefahrene Station'],
-  ]);
+  // Draw the grid
+  let currentY = cardY + cardPadding;
+  const rowHeight = 60; // Reduced from 90
 
-  addSection(pdf, col2X, topY + 58, 'Depots', [
-    ['2', 'Anzahl Stellplätze'],
-    ['289 kWh', 'Energie'],
-    ['90 kW', 'Spitzenleistung'],
-  ]);
+  // First row
+  for (let col = 0; col < 2; col++) {
+    const section = sections[col];
+    const x = cardX + cardPadding + (col * (colWidth + 1));
 
-  return cardY + cardHeight + 10;
-}
-
-function addSection(pdf, x, y, title, data) {
-  const titleFontSize = 11;
-  const valueFontSize = 12;
-  const subtitleFontSize = 9;
-  const lineSpacing = 20;
-
-  // Section title
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(titleFontSize);
-  pdf.setTextColor(50);
-  pdf.text(title, x, y);
-  y += lineSpacing - 4;
-
-  // Values
-  data.forEach(([value, subtitle]) => {
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(valueFontSize);
-    pdf.setTextColor(20);
-    pdf.text(value, x, y);
-
+    // Section title
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(subtitleFontSize);
-    pdf.setTextColor(100);
-    pdf.text(subtitle, x, y + 8);
-    y += lineSpacing;
-  });
-}
+    pdf.setFontSize(titleFontSize);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(section.title, x + (colWidth / 2), currentY, { align: 'center' });
 
+    // Value boxes
+    const valueY = currentY + 14; // Reduced spacing
+
+    for (let i = 0; i < 3; i++) {
+      const valueX = x + (i * (valueBoxWidth + 1));
+      const valueData = section.values[i];
+
+      // Draw divider if not last box
+      if (i < 2) {
+        pdf.setDrawColor(203, 213, 225);
+        pdf.line(
+          valueX + valueBoxWidth,
+          valueY - 6,
+          valueX + valueBoxWidth,
+          valueY + 22
+        );
+      } else {
+          pdf.setDrawColor(203, 213, 225);
+        pdf.line(
+          valueX + valueBoxWidth,
+          valueY - 25,
+          valueX + valueBoxWidth,
+          valueY + 70
+        );
+      }
+
+      // Value
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(valueFontSize);
+      pdf.setTextColor(30, 41, 59);
+      const textWidth = pdf.getStringUnitWidth(valueData.value) * valueFontSize;
+      pdf.text(valueData.value, valueX + (valueBoxWidth / 2) - (textWidth / 2) + 2, valueY);
+
+      // Unit
+      if (valueData.unit) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(unitFontSize);
+        pdf.text(valueData.unit, valueX + (valueBoxWidth / 2) + (textWidth / 2) + 2, valueY);
+      }
+
+      // Label
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(labelFontSize);
+      pdf.setTextColor(100, 116, 139);
+      const labelLines = valueData.label.split('/');
+      labelLines.forEach((line, idx) => {
+        pdf.text(line.trim(), valueX + (valueBoxWidth / 2), valueY + 8 + (idx * 6), { align: 'center' });
+      });
+    }
+
+    // Bottom border if needed
+    if (section.borderBottom) {
+      pdf.setDrawColor(203, 213, 225);
+      pdf.line(
+        x,
+        currentY + 50,
+        x + colWidth,
+        currentY + 50
+      );
+    }
+  }
+
+  // Second row
+  currentY += rowHeight;
+
+  for (let col = 0; col < 2; col++) {
+    const section = sections[col + 2];
+    const x = cardX + cardPadding + (col * (colWidth + 1));
+
+    // Section title
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(titleFontSize);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(section.title, x + (colWidth / 2), currentY, { align: 'center' });
+
+    // Value boxes
+    const valueY = currentY + 14;
+
+    for (let i = 0; i < 3; i++) {
+      const valueX = x + (i * (valueBoxWidth + 1));
+      const valueData = section.values[i];
+
+      if (i < 2) {
+        pdf.setDrawColor(203, 213, 225);
+        pdf.line(
+          valueX + valueBoxWidth,
+          valueY - 6,
+          valueX + valueBoxWidth,
+          valueY + 22
+        );
+      }
+
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(valueFontSize);
+      pdf.setTextColor(30, 41, 59);
+      const textWidth = pdf.getStringUnitWidth(valueData.value) * valueFontSize;
+      pdf.text(valueData.value, valueX + (valueBoxWidth / 2) - (textWidth / 2) + 2, valueY);
+
+      if (valueData.unit) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(unitFontSize);
+        pdf.text(valueData.unit, valueX + (valueBoxWidth / 2) + (textWidth / 2) + 2, valueY);
+      }
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(labelFontSize);
+      pdf.setTextColor(100, 116, 139);
+      const labelLines = valueData.label.split('/');
+      labelLines.forEach((line, idx) => {
+        pdf.text(line.trim(), valueX + (valueBoxWidth / 2), valueY + 8 + (idx * 6), { align: 'center' });
+      });
+    }
+  }
+
+  return cardY + cardHeight + 30; // Reduced margin
+}
 
 document.getElementById('exportPdf').addEventListener('click', async function() {
     const btn = this;
@@ -905,8 +1028,31 @@ document.getElementById('exportPdf').addEventListener('click', async function() 
         let yPosition = 80;//margin;
         let pageNumber = 0;
 
-        yPosition = await addNumericalDataSection(pdf, yPosition) + 100;
+        yPosition = await addNumericalDataSection(pdf, yPosition) + 50;
 
+       // 1. Wait for tiles
+  await new Promise(resolve => map.once('idle', resolve));
+
+
+  // 3. Capture
+  const canvas = await html2canvas(document.getElementById('map'), {
+    useCORS: true,
+    allowTaint: false,
+    scale: 2,
+    logging: true
+  });
+
+  // 5. Export to PDF
+  const imgData = canvas.toDataURL({
+    format: 'image/png',
+    left: 0,
+    top: 0,
+    width: 1500,
+    height: 900,
+      quality: 1.0,
+})
+  pdf.addImage(imgData, 'image/png', margin, yPosition, 560, 300);
+        yPosition+=500;
         // Process each chart container
         const chartContainers = document.querySelectorAll('.chart-container');
 
@@ -946,7 +1092,7 @@ document.getElementById('exportPdf').addEventListener('click', async function() 
                 if (yPosition + fixedHeight > pageHeight - margin) {
                     pdf.addPage();
                     pageNumber++;
-                    yPosition = margin;
+                    yPosition = margin+20;
                 }
 
                 // Create a temporary offscreen container
