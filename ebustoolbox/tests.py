@@ -496,9 +496,10 @@ class SimulationTestCase(TransactionTestCase):
         django_scenario.event_set.filter(
             event_type=EventType.STANDBY_DEPARTURE,
             # only events long enough for charging
-            time_start__lte=F('time_end')-timedelta(minutes=30),
+            time_start__lte=F("time_end") - timedelta(minutes=30),
         ).update(
-            event_type=EventType.CHARGING_DEPOT, soc_end=1.0,
+            event_type=EventType.CHARGING_DEPOT,
+            soc_end=1.0,
         )
         django_scenario.station_set.update(
             is_electrified=True, charge_type=EnumChargeType.DEPOT, voltage_level="MV"
@@ -532,16 +533,18 @@ class SimulationTestCase(TransactionTestCase):
 
     def test_replace_event_timeseries(self):
         django_scenario = self.create_depot_simulation()
-        event = django_scenario.event_set.filter(
-            event_type=EventType.CHARGING_DEPOT
-        ).order_by("id").last()
+        event = (
+            django_scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT)
+            .order_by("id")
+            .last()
+        )
         num_ts = len(event.timeseries["time"])
         # check start/end soc
         assert event.soc_start != event.soc_end
         with self.assertRaises(AssertionError):
-            tasks.replace_event_timeseries(event, [event.soc_start]*num_ts)
+            tasks.replace_event_timeseries(event, [event.soc_start] * num_ts)
         with self.assertRaises(AssertionError):
-            tasks.replace_event_timeseries(event, [event.soc_end]*num_ts)
+            tasks.replace_event_timeseries(event, [event.soc_end] * num_ts)
 
         # check length of timeseries
         assert num_ts > 2
@@ -551,10 +554,13 @@ class SimulationTestCase(TransactionTestCase):
         # check None values
         with self.assertRaises(AssertionError):
             tasks.replace_event_timeseries(
-                event, [event.soc_start, None] + [event.soc_end]*(num_ts-2))
+                event, [event.soc_start, None] + [event.soc_end] * (num_ts - 2)
+            )
 
         # success
-        tasks.replace_event_timeseries(event, [event.soc_start] + [0]*(num_ts-2) + [event.soc_end])
+        tasks.replace_event_timeseries(
+            event, [event.soc_start] + [0] * (num_ts - 2) + [event.soc_end]
+        )
         assert event.timeseries["soc"][1] == 0
 
     def test_apply_depot_strategy(self):
@@ -1039,7 +1045,6 @@ class TemperaturesTestCase(TestCase):
 
 class SerializerTest(TransactionTestCase):
     def test_serializer(self):
-
         count_before = count_all_rows()
         django_scenario, _, _ = build_scenario()
         django_scenario.task_id = get_unique_task_id()
