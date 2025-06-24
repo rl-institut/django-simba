@@ -84,6 +84,8 @@ IMPLEMENTED_MODES = {"sim", "station_optimization", "station_optimization_single
 DEFAULT_LOADED_MASS = 0
 DEFAULT_ALLOWED_LOAD = 1000
 
+EPS = 1e-5  # a small number, used to allow for difference when comparing floats
+
 
 def apply_vehicle_type(
     target_vehicle_type: VehicleType, source_vehicle_type: VehicleType
@@ -846,7 +848,7 @@ def init_db_with_trips(
 def trim_scenario(scenario, time_delta, start_time=None):
     rotations = get_rotations_by_timespan(scenario, time_delta, start_time)
     rotations_to_remove = Rotation.objects.filter(scenario=scenario).exclude(id__in=rotations)
-    logging.info(f"Deleting {rotations_to_remove.count()} rotations out of sim range")
+    logger.info(f"Deleting {rotations_to_remove.count()} rotations out of sim range")
     rotations_to_remove.delete()
     pass
 
@@ -1023,7 +1025,7 @@ def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
     stop_simulation = events.order_by("time_end").last().time_end
     # simulate whole last timestep
     n_intervals = -int((start_simulation - stop_simulation) // timedelta(minutes=args.interval))
-    # and one more timestep, since vehicle SoC are taken at begin of each timestep
+    # and one more timestep, since vehicle soc are taken at begin of each timestep
     n_intervals += 1
 
     # SpiceEV vehicle types
@@ -1042,10 +1044,7 @@ def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
     vehicles = dict()
     vehicle_soc = get_initial_vehicle_soc(scenario)
     for vehicle in scenario.vehicle_set.all():
-        # guarantee uniqueness
-        vid = f"{vehicle.name} ({vehicle.id})"
-
-        vehicles[vid] = {
+        vehicles[vehicle.to_simba_name()] = {
             "connected_charging_station": None,
             "soc": vehicle_soc[vehicle.id],
             "vehicle_type": vehicle.vehicle_type_id,
@@ -1103,7 +1102,7 @@ def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
                 max_cs = max_cs_dict[station]
                 if max_cs is not None and new_idx + 1 >= max_cs:
                     # max number of CS of station exceeded
-                    logging.warning(
+                    logger.warning(
                         f"SpiceEV scenario generation: Station {station} "
                         f"exceeds maximum number of charging stations ({max_cs})."
                     )
@@ -1156,8 +1155,9 @@ def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
     }
 
 
-def get_initial_vehicle_soc(scenario):
-    # get initial SoC of all vehicles (saved in vehicle events)
+def get_initial_vehicle_soc(scenario: Scenario) -> dict:
+    # get initial soc of all vehicles (saved in vehicle events)
+    # returns dict Vehicle ID -> float
     vehicles = scenario.vehicle_set.all()
     events = scenario.event_set.order_by("time_start")
     vehicle_soc = dict()
@@ -1194,7 +1194,7 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
         )
     # iterate over events in-order, creating SpiceEV event-dicts for each charging event
     for event in charging_events:
-        vid = f"{event.vehicle.name} ({event.vehicle.id})"
+        vid = event.vehicle.to_simba_name()
         # create arrival event
         event_list.append(
             {
@@ -1224,7 +1224,7 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
             }
         )
 
-        # update SoC
+        # update soc
         vehicle_soc[event.vehicle_id] = event.soc_end
 
     return event_list
@@ -1242,7 +1242,22 @@ def simulate_depot_strategy(spice_ev_scenario_dict: dict, strategy: str) -> Simb
     return spice_ev_scenario
 
 
-def apply_depot_strategy(scenario: Scenario, strategy: str):
+def replace_event_timeseries(event: Event, soc_ts: list) -> None:
+    # replace Event soc timeseries with arbitrary list
+    # ### sanity checks ### #
+    # start and end soc must remain the same
+    assert abs(soc_ts[0] - event.soc_start) < EPS
+    assert abs(soc_ts[-1] - event.soc_end) < EPS
+    # event soc should always be defined / not null
+    assert all([soc is not None for soc in soc_ts])
+    # soc and time lists must have same length
+    assert len(soc_ts) == len(event.timeseries["time"])
+    # save to DB
+    event.timeseries["soc"] = soc_ts
+
+
+def apply_depot_strategy(scenario: Scenario, strategy: str) -> None:
+
     # simulate all depot charging in SpiceEV with new strategy, update timeseries
     spice_ev_scenario_dict = create_spiceev_scenario_dict(scenario)
     spice_ev_scenario = simulate_depot_strategy(spice_ev_scenario_dict, strategy)
@@ -1251,33 +1266,25 @@ def apply_depot_strategy(scenario: Scenario, strategy: str):
     # update events with new soc timeseries
     events = scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT)
     for event in events:
-        vid = f"{event.vehicle.name} ({event.vehicle.id})"
-        # find timeseries timestep range
+        vid = event.vehicle.to_simba_name()
+        # find timeseries timestep range (indices of relevant timesteps)
+        ts_start = -(
+            (spice_ev_scenario.start_time - event.time_start) // spice_ev_scenario.interval
+        )
+        ts_end = -(
+            (spice_ev_scenario.start_time - event.time_end) // spice_ev_scenario.interval
+        )
+        # end timestep is inclusive in range
+        time_range = range(ts_start, ts_end + 1)
         if event.timeseries is None:
-            # not in events: compute next full timestep index
-            ts_start = -(
-                (spice_ev_scenario.start_time - event.time_start) // spice_ev_scenario.interval
-            )
-            ts_end = -(
-                (spice_ev_scenario.start_time - event.time_end) // spice_ev_scenario.interval
-            )
-            # end timestep is inclusive in range
-            time_range = range(ts_start, ts_end + 1)
-        else:
-            time_range = event.timeseries["time"]
+            event.timeseries = {"time": [
+                (spice_ev_scenario.start_time + i*spice_ev_scenario.interval).isoformat()
+                for i in time_range
+            ]}
         new_soc_ts = [spice_ev_scenario.vehicle_socs[vid][i] for i in time_range]
-        # ### sanity checks ### #
-        # start and end soc must remain the same
-        assert abs(new_soc_ts[0] - event.soc_start) < 1e-5
-        assert abs(new_soc_ts[-1] - event.soc_end) < 1e-5
-        # event soc should always be defined / not null
-        assert all([soc is not None for soc in new_soc_ts])
-        # save to DB
-        if event.timeseries is None:
-            event.timeseries = {"time": list(time_range)}
-        event.timeseries["soc"] = new_soc_ts
-        event.save(update_fields=["timeseries"])
-    logging.info(f"{events.count()} depot charging events updated")
+        replace_event_timeseries(event, new_soc_ts)
+    Event.objects.bulk_update(events, ["timeseries"])
+    logger.info(f"{events.count()} depot charging events updated")
 
 
 def apply_station_mutation(mutation: Scenario, child: Scenario, stack: dict) -> None:
