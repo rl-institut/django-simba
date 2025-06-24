@@ -47,6 +47,7 @@ from .models import (
 )
 from .tasks import run_simba_scenario
 from .util import get_unique_task_id
+import ebustoolbox
 
 
 TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
@@ -72,6 +73,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
 
     @classmethod
     def tearDownClass(cls):
+        ebustoolbox.data.SqlAlchemyEngine.dispose()
         cls.selenium.quit()
         super().tearDownClass()
         shutil.rmtree(TMP_UPLOAD)
