@@ -493,7 +493,7 @@ class SimulationTestCase(TransactionTestCase):
         run_simba_scenario(django_scenario=django_scenario)
         django_scenario.event_set.filter(
             event_type=EventType.STANDBY_DEPARTURE,
-             # only events long enough for charging
+            # only events long enough for charging
             time_start__lte=F('time_end')-timedelta(minutes=30),
         ).update(
             event_type=EventType.CHARGING_DEPOT, soc_end=1.0,
@@ -502,7 +502,6 @@ class SimulationTestCase(TransactionTestCase):
             is_electrified=True, charge_type=EnumChargeType.DEPOT, voltage_level="MV"
         )
         return django_scenario
-
 
     def test_flex_band_off(self):
         django_scenario, simba_schedule, args = build_scenario()
@@ -549,8 +548,8 @@ class SimulationTestCase(TransactionTestCase):
 
         # check None values
         with self.assertRaises(AssertionError):
-            tasks.replace_event_timeseries(event, [event.soc_start, None] +
-            [event.soc_end]*(num_ts-2))
+            tasks.replace_event_timeseries(
+                event, [event.soc_start, None] + [event.soc_end]*(num_ts-2))
 
         # success
         tasks.replace_event_timeseries(event, [event.soc_start] + [0]*(num_ts-2) + [event.soc_end])

@@ -1257,7 +1257,6 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
 
 
 def apply_depot_strategy(scenario: Scenario, strategy: str) -> None:
-
     # simulate all depot charging in SpiceEV with new strategy, update timeseries
     spice_ev_scenario_dict = create_spiceev_scenario_dict(scenario)
     spice_ev_scenario = simulate_depot_strategy(spice_ev_scenario_dict, strategy)
@@ -1271,16 +1270,16 @@ def apply_depot_strategy(scenario: Scenario, strategy: str) -> None:
         ts_start = -(
             (spice_ev_scenario.start_time - event.time_start) // spice_ev_scenario.interval
         )
-        ts_end = -(
-            (spice_ev_scenario.start_time - event.time_end) // spice_ev_scenario.interval
-        )
+        ts_end = -((spice_ev_scenario.start_time - event.time_end) // spice_ev_scenario.interval)
         # end timestep is inclusive in range
         time_range = range(ts_start, ts_end + 1)
         if event.timeseries is None:
-            event.timeseries = {"time": [
-                (spice_ev_scenario.start_time + i*spice_ev_scenario.interval).isoformat()
-                for i in time_range
-            ]}
+            event.timeseries = {
+                "time": [
+                    (spice_ev_scenario.start_time + i * spice_ev_scenario.interval).isoformat()
+                    for i in time_range
+                ]
+            }
         new_soc_ts = [spice_ev_scenario.vehicle_socs[vid][i] for i in time_range]
         replace_event_timeseries(event, new_soc_ts)
     Event.objects.bulk_update(events, ["timeseries"])
