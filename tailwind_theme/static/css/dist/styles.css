@@ -997,6 +997,10 @@ select {
   margin-top: 2rem;
 }
 
+.mb-0 {
+  margin-bottom: 0px;
+}
+
 .block {
   display: block;
 }
@@ -1116,6 +1120,18 @@ select {
 .h-max {
   height: -moz-max-content;
   height: max-content;
+}
+
+.h-\[340px\] {
+  height: 340px;
+}
+
+.h-\[380px\] {
+  height: 380px;
+}
+
+.h-\[480px\] {
+  height: 480px;
 }
 
 .max-h-40 {
@@ -1298,6 +1314,10 @@ select {
 
 .grow {
   flex-grow: 1;
+}
+
+.basis-1\/2 {
+  flex-basis: 50%;
 }
 
 .border-collapse {
