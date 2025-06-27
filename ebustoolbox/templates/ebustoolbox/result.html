@@ -136,11 +136,31 @@
     <div class="flex flex-col">
       <div id="costs-section" class="flex justify-between items-center pb-2">
         <h2 class="text-xl text-slate-800 font-light uppercase">Kosten</h2>
-        <button type="button" class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50" aria-expanded="false" aria-haspopup="true" aria-label="Optionen sehen">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
-          </svg>
-        </button>
+        <!-- Wrapper for each ellipsis and dropdown -->
+        <div class="relative inline-block text-left">
+          <button type="button"
+            class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+            aria-expanded="false"
+            aria-haspopup="true"
+            aria-label="Optionen sehen"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+              stroke-width="1.5" stroke="currentColor" class="size-6">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+            </svg>
+          </button>
+          <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+            role="menu"
+            aria-orientation="vertical"
+            tabindex="-1"
+          >
+            <div class="py-1" role="none">
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als CSV exportieren</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als JSON exportieren</a>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="bg-white rounded-lg shadow-md mb-12">
         <!-- Toggle and Dropdown -->
@@ -365,11 +385,31 @@
       <div class="flex flex-col">
         <div class="flex justify-between items-center pb-2">
           <h2 class="text-xl text-slate-800 font-light uppercase">Umwelt</h2>
-          <button type="button" class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50" aria-expanded="false" aria-haspopup="true" aria-label="Optionen sehen">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
-            </svg>
-          </button>
+          <!-- Wrapper for each ellipsis and dropdown -->
+          <div class="relative inline-block text-left">
+            <button type="button"
+              class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+              aria-expanded="false"
+              aria-haspopup="true"
+              aria-label="Optionen sehen"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                stroke-width="1.5" stroke="currentColor" class="size-6">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+              </svg>
+            </button>
+            <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+              role="menu"
+              aria-orientation="vertical"
+              tabindex="-1"
+            >
+              <div class="py-1" role="none">
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als CSV exportieren</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als JSON exportieren</a>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="bg-white rounded-lg shadow-md mb-12">
           <div class="p-8">
@@ -432,11 +472,31 @@
       <div class="flex flex-col">
         <div id="bus-section" class="flex justify-between items-center pb-2">
           <h2 class="text-xl text-slate-800 font-light uppercase">Fahrzeuge</h2>
-          <button type="button" class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50" aria-expanded="false" aria-haspopup="true" aria-label="Optionen sehen">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
-            </svg>
-          </button>
+          <!-- Wrapper for each ellipsis and dropdown -->
+          <div class="relative inline-block text-left">
+            <button type="button"
+              class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+              aria-expanded="false"
+              aria-haspopup="true"
+              aria-label="Optionen sehen"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                stroke-width="1.5" stroke="currentColor" class="size-6">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+              </svg>
+            </button>
+            <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+              role="menu"
+              aria-orientation="vertical"
+              tabindex="-1"
+            >
+              <div class="py-1" role="none">
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als CSV exportieren</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als JSON exportieren</a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -476,11 +536,31 @@
       <div class="flex flex-col">
         <div id="infrastructure-section" class="flex justify-between items-center pb-2">
           <h2 class="text-xl text-slate-800 font-light uppercase">Infrastruktur</h2>
-          <button type="button" class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50" aria-expanded="false" aria-haspopup="true" aria-label="Optionen sehen">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
-            </svg>
-          </button>
+          <!-- Wrapper for each ellipsis and dropdown -->
+          <div class="relative inline-block text-left">
+            <button type="button"
+              class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+              aria-expanded="false"
+              aria-haspopup="true"
+              aria-label="Optionen sehen"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                stroke-width="1.5" stroke="currentColor" class="size-6">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+              </svg>
+            </button>
+            <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+              role="menu"
+              aria-orientation="vertical"
+              tabindex="-1"
+            >
+              <div class="py-1" role="none">
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als CSV exportieren</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als JSON exportieren</a>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="bg-white rounded-lg shadow-md mb-12">
           <div>
@@ -634,11 +714,30 @@
         <div class="flex flex-col">
         <div id="map-section" class="flex justify-between items-center pb-2">
           <h2 class="text-xl text-slate-800 font-light uppercase">Karte</h2>
-          <button type="button" class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50" aria-expanded="false" aria-haspopup="true" aria-label="Optionen sehen">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"></path>
-            </svg>
-          </button>
+          <!-- Wrapper for each ellipsis and dropdown -->
+          <div class="relative inline-block text-left">
+            <button type="button"
+              class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+              aria-expanded="false"
+              aria-haspopup="true"
+              aria-label="Optionen sehen"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                stroke-width="1.5" stroke="currentColor" class="size-6">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+              </svg>
+            </button>
+            <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+              role="menu"
+              aria-orientation="vertical"
+              tabindex="-1"
+            >
+              <div class="py-1" role="none">
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">URL kopieren</a>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="bg-white rounded-lg shadow-md mb-12">
           <div class="p-4">
@@ -2063,6 +2162,43 @@
         dropdownArrow.classList.remove("rotate-180");
         dropdownButton.setAttribute("aria-expanded", "false");
       }
+    });
+  });
+
+  // Ellipsis button functionality
+  document.addEventListener("DOMContentLoaded", () => {
+    const toggleDropdown = (btn) => {
+      const dropdown = btn.nextElementSibling;
+      const isOpen = dropdown.classList.contains("block");
+
+      document.querySelectorAll(".menu-dropdown").forEach(menu => {
+        menu.classList.add("hidden");
+        menu.classList.remove("block");
+        menu.previousElementSibling.setAttribute("aria-expanded", "false");
+      });
+
+      if (!isOpen) {
+        dropdown.classList.remove("hidden");
+        dropdown.classList.add("block");
+        btn.setAttribute("aria-expanded", "true");
+      }
+    };
+
+    document.querySelectorAll(".menu-button").forEach(button => {
+      button.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleDropdown(button);
+      });
+    });
+
+    document.addEventListener("click", (e) => {
+      document.querySelectorAll(".menu-dropdown").forEach(menu => {
+        if (!menu.contains(e.target) && !menu.previousElementSibling.contains(e.target)) {
+          menu.classList.add("hidden");
+          menu.classList.remove("block");
+          menu.previousElementSibling.setAttribute("aria-expanded", "false");
+        }
+      });
     });
   });
 </script>

@@ -60,4 +60,9 @@ module.exports = {
         require('@tailwindcss/typography'),
         require('@tailwindcss/aspect-ratio'),
     ],
+    safelist: [
+      'scale-95', 'scale-100',
+      'opacity-0', 'opacity-100',
+      'pointer-events-none', 'pointer-events-auto'
+    ]
 }
