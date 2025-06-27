@@ -753,363 +753,12 @@
 
 {% block script %}
 <script>
-    // Register ebusPalette theme
-    echarts.registerTheme('ebusPalette', {
-        "color": [
-          '#20E3B2', '#F76E6C', '#5591F7', '#FFCA3A', '#845EC2',
-          '#00C49A', '#F9A26C', '#0081CF', '#F95794', '#3DCCC7',
-          '#FFC75F', '#A1DE93', '#7E6BC4', '#FF6F91', '#2C73D2',
-          '#FFD670', '#F58F84', '#00B2CA', '#A0CED9', '#C492B1',
-          '#F28482', '#4D96FF', '#FF7F50', '#88CCF1', '#B15EFF',
-          '#52B788', '#FFB5A7', '#6A4C93', '#A5FFD6', '#F7A072'
-        ],
-        "backgroundColor": "rgba(255,255,255,0)",
-        "textStyle": {},
-        "title": {
-            "textStyle": {
-                "color": "#2e282a"
-            },
-            "subtextStyle": {
-                "color": "#6b7280"
-            }
-        },
-        "line": {
-            "itemStyle": {
-                "borderWidth": "2"
-            },
-            "lineStyle": {
-                "width": "3"
-            },
-            "symbolSize": "8",
-            "symbol": "emptyCircle",
-            "smooth": false
-        },
-        "radar": {
-            "itemStyle": {
-                "borderWidth": "2"
-            },
-            "lineStyle": {
-                "width": "3"
-            },
-            "symbolSize": "8",
-            "symbol": "emptyCircle",
-            "smooth": false
-        },
-        "bar": {
-            "itemStyle": {
-                "barBorderWidth": 0,
-                "barBorderColor": "#ccc"
-            }
-        },
-        "pie": {
-            "itemStyle": {
-                "borderWidth": 0,
-                "borderColor": "#ccc"
-            }
-        },
-        "scatter": {
-            "itemStyle": {
-                "borderWidth": 0,
-                "borderColor": "#ccc"
-            }
-        },
-        "boxplot": {
-            "itemStyle": {
-                "borderWidth": 0,
-                "borderColor": "#ccc"
-            }
-        },
-        "parallel": {
-            "itemStyle": {
-                "borderWidth": 0,
-                "borderColor": "#ccc"
-            }
-        },
-        "sankey": {
-            "itemStyle": {
-                "borderWidth": 0,
-                "borderColor": "#ccc"
-            }
-        },
-        "funnel": {
-            "itemStyle": {
-                "borderWidth": 0,
-                "borderColor": "#ccc"
-            }
-        },
-        "gauge": {
-            "itemStyle": {
-                "borderWidth": 0,
-                "borderColor": "#ccc"
-            }
-        },
-        "candlestick": {
-            "itemStyle": {
-                "color": "#d0648a",
-                "color0": "transparent",
-                "borderColor": "#d0648a",
-                "borderColor0": "#22c3aa",
-                "borderWidth": "1"
-            }
-        },
-        "graph": {
-            "itemStyle": {
-                "borderWidth": 0,
-                "borderColor": "#ccc"
-            },
-            "lineStyle": {
-                "width": "1",
-                "color": "#cccccc"
-            },
-            "symbolSize": "8",
-            "symbol": "emptyCircle",
-            "smooth": false,
-            "color": [
-                "#20e3b2",
-                "#f76e6c",
-                "#5591f7",
-                "#845ec2",
-                "#00c49a",
-                "#f9a26c",
-                "#0081cf",
-                "#f95794",
-                "#3dccc7",
-                "#ffc75f"
-            ],
-            "label": {
-                "color": "#ffffff"
-            }
-        },
-        "categoryAxis": {
-            "axisLine": {
-                "show": true,
-                "lineStyle": {
-                    "color": "#cccccc"
-                }
-            },
-            "axisTick": {
-                "show": false,
-                "lineStyle": {
-                    "color": "#333"
-                }
-            },
-            "axisLabel": {
-                "show": true,
-                "color": "#6B7280"
-            },
-            "splitLine": {
-                "show": true,
-                "lineStyle": {
-                    "color": [
-                        "#eeeeee"
-                    ]
-                }
-            },
-            "splitArea": {
-                "show": false,
-                "areaStyle": {
-                    "color": [
-                        "rgba(250,250,250,0.05)",
-                        "rgba(200,200,200,0.02)"
-                    ]
-                }
-            }
-        },
-        "valueAxis": {
-            "axisLine": {
-                "show": true,
-                "lineStyle": {
-                    "color": "#cccccc"
-                }
-            },
-            "axisTick": {
-                "show": false,
-                "lineStyle": {
-                    "color": "#333"
-                }
-            },
-            "axisLabel": {
-                "show": true,
-                "color": "#6B7280"
-            },
-            "splitLine": {
-                "show": true,
-                "lineStyle": {
-                    "color": [
-                        "#eeeeee"
-                    ]
-                }
-            },
-            "splitArea": {
-                "show": false,
-                "areaStyle": {
-                    "color": [
-                        "rgba(250,250,250,0.05)",
-                        "rgba(200,200,200,0.02)"
-                    ]
-                }
-            }
-        },
-        "logAxis": {
-            "axisLine": {
-                "show": true,
-                "lineStyle": {
-                    "color": "#cccccc"
-                }
-            },
-            "axisTick": {
-                "show": false,
-                "lineStyle": {
-                    "color": "#333"
-                }
-            },
-            "axisLabel": {
-                "show": true,
-                "color": "#6B7280"
-            },
-            "splitLine": {
-                "show": true,
-                "lineStyle": {
-                    "color": [
-                        "#eeeeee"
-                    ]
-                }
-            },
-            "splitArea": {
-                "show": false,
-                "areaStyle": {
-                    "color": [
-                        "rgba(250,250,250,0.05)",
-                        "rgba(200,200,200,0.02)"
-                    ]
-                }
-            }
-        },
-        "timeAxis": {
-            "axisLine": {
-                "show": true,
-                "lineStyle": {
-                    "color": "#cccccc"
-                }
-            },
-            "axisTick": {
-                "show": false,
-                "lineStyle": {
-                    "color": "#333"
-                }
-            },
-            "axisLabel": {
-                "show": true,
-                "color": "#6B7280"
-            },
-            "splitLine": {
-                "show": true,
-                "lineStyle": {
-                    "color": [
-                        "#eeeeee"
-                    ]
-                }
-            },
-            "splitArea": {
-                "show": false,
-                "areaStyle": {
-                    "color": [
-                        "rgba(250,250,250,0.05)",
-                        "rgba(200,200,200,0.02)"
-                    ]
-                }
-            }
-        },
-        "toolbox": {
-            "iconStyle": {
-                "borderColor": "#6B7280"
-            },
-            "emphasis": {
-                "iconStyle": {
-                    "borderColor": "#666666"
-                }
-            }
-        },
-        "legend": {
-            "textStyle": {
-                "color": "#6B7280"
-            }
-        },
-        "tooltip": {
-            "axisPointer": {
-                "lineStyle": {
-                    "color": "#cccccc",
-                    "width": 1
-                },
-                "crossStyle": {
-                    "color": "#cccccc",
-                    "width": 1
-                }
-            }
-        },
-        "timeline": {
-            "lineStyle": {
-                "color": "#4ea397",
-                "width": 1
-            },
-            "itemStyle": {
-                "color": "#4ea397",
-                "borderWidth": 1
-            },
-            "controlStyle": {
-                "color": "#4ea397",
-                "borderColor": "#4ea397",
-                "borderWidth": 0.5
-            },
-            "checkpointStyle": {
-                "color": "#4ea397",
-                "borderColor": "#3cebd2"
-            },
-            "label": {
-                "color": "#4ea397"
-            },
-            "emphasis": {
-                "itemStyle": {
-                    "color": "#4ea397"
-                },
-                "controlStyle": {
-                    "color": "#4ea397",
-                    "borderColor": "#4ea397",
-                    "borderWidth": 0.5
-                },
-                "label": {
-                    "color": "#4ea397"
-                }
-            }
-        },
-        "visualMap": {
-            "color": [
-                "#d0648a",
-                "#22c3aa",
-                "#adfff1"
-            ]
-        },
-        "dataZoom": {
-            "backgroundColor": "rgba(255,255,255,0)",
-            "dataBackgroundColor": "rgba(222,222,222,1)",
-            "fillerColor": "rgba(114,230,212,0.25)",
-            "handleColor": "#cccccc",
-            "handleSize": "100%",
-            "textStyle": {
-                "color": "#6B7280"
-            }
-        },
-        "markPoint": {
-            "label": {
-                "color": "#ffffff"
-            },
-            "emphasis": {
-                "label": {
-                    "color": "#ffffff"
-                }
-            }
-        }
+  function makeColors(N, s = 60, l = 50) {
+    return Array.from({ length: N }, (_, i) => {
+      const h = Math.round((360 * i) / N);
+      return `hsl(${h},${s}%,${l}%)`;
     });
+  }
 </script>
 
 <script>
@@ -1175,10 +824,22 @@
         .then(response => response.json())
         .then(data => {
 
-            const chart = echarts.init(document.getElementById(chartId), 'ebusPalette');
-
             // Prepare the series data for each bus (V_id)
-            var seriesData = [];
+            const seriesData = Object.entries(data.data).map(([v_id, busData]) => ({
+              name: `Bus ${v_id}`,
+              type: 'line',
+              data: busData,
+              smooth: false
+            }));
+
+            const seriesCount = seriesData.length;
+            const palette = makeColors(seriesCount);
+
+            const chart = echarts.init(
+              document.getElementById(chartId),
+              { color: palette }
+            );
+
             for (let v_id in data.data) {
                 let busData = data.data[v_id];
                 seriesData.push({
@@ -1263,7 +924,7 @@
                 const occupancyCharging = rawData.map(row => row.occupancy_charging);
                 const occupancyTotal = rawData.map(row => row.occupancy_total);
 
-                const chart = echarts.init(document.getElementById(chartId), 'ebusPalette');
+                const chart = echarts.init(document.getElementById(chartId));
 
                 const options = {
                     title: {
@@ -1381,13 +1042,13 @@
     function fetchAndRenderGanttChart(chartName, chartId, titleText) {
 
         const EVENT_COLORS = {
-            DRIVING: "#5591f7",
-            CHARGING_OPPORTUNITY: "#00c49a",
-            CHARGING_DEPOT: "#20E3B2",
+            DRIVING: "#4E79A7",
+            CHARGING_OPPORTUNITY: "#20E3B2",
+            CHARGING_DEPOT: "#E15759",
             SERVICE: "#0081cf",
-            STANDBY_DEPARTURE: "#f76e6c",
-            PRECONDITIONING: "#f95794",
-            STANDBY: "#845ec2"
+            STANDBY_DEPARTURE: "#F28E2B",
+            PRECONDITIONING: "#B07AA1",
+            STANDBY: "#EDC948"
         };
 
         const LEGEND_LABELS = {
@@ -1620,13 +1281,11 @@
                 const visiblePercent = (visibleTracks / totalVehicles) * 100;
 
                 const viridisAnchors = [
-                  '#3B2C85', // dark violet (super low)
-                  '#845EC2', // violet (low)
-                  '#F76E6C', // coral
-                  '#FFD670', // soft yellow
-                  '#A1DE93', // pistachio
-                  '#20E3B2', // mint green
-                  '#00B2CA'  // teal (super high)
+                  '#440154', // dark purple
+                  '#414487', // indigo
+                  '#2a788e', // teal
+                  '#22a884', // green
+                  '#fde725'  // yellow
                 ];
 
                 function hexToRgb(hexString) {
@@ -1782,13 +1441,11 @@
                         bottom: 60,
                         inRange: {
                             color: [
-                              '#3B2C85', 
-                                '#845EC2', // violet (low)
-                                '#F76E6C', // coral
-                                '#FFD670', // soft yellow
-                                '#A1DE93', // pistachio
-                                '#20E3B2', // mint green
-                                '#00B2CA'  // teal (super high)  // SoC 1
+                              '#440154', // dark purple
+                              '#414487', // indigo
+                              '#2a788e', // teal
+                              '#22a884', // green
+                              '#fde725'  // yellow
                             ]
                         },
                         formatter: function (value) {
