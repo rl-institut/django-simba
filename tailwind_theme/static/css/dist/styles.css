@@ -1134,6 +1134,10 @@ select {
   height: 480px;
 }
 
+.h-\[280px\] {
+  height: 280px;
+}
+
 .max-h-40 {
   max-height: 10rem;
 }

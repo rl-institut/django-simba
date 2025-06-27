@@ -1137,7 +1137,11 @@
                     }
                 },
                 legend: {
-                    show: false // Disables the legend
+                  type: 'scroll',
+                  orient: 'vertical',
+                  right: 0,
+                  top: 70,
+                  bottom: 20
                 },
                 series: seriesData,
                 emphasis: {
@@ -1287,6 +1291,17 @@
             STANDBY: "#845ec2"
         };
 
+        const LEGEND_LABELS = {
+          DRIVING: 'Driving',
+          CHARGING_OPPORTUNITY: 'Charging Opportunity',
+          CHARGING_DEPOT: 'Charging Depot',
+          SERVICE: 'Service',
+          STANDBY_DEPARTURE: 'Standby Departure',
+          PRECONDITIONING: 'Preconditioning',
+          STANDBY: 'Standby'
+      };
+
+
   return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
@@ -1333,7 +1348,7 @@
                             yAxisIndex: 0,
                             zoomLock: false,
                             width: 40,
-                            right: 160,
+                            right: 230,
                             top: 50,
                             bottom: 75,
                             start: 0,
@@ -1383,11 +1398,12 @@
                       orient: 'vertical',
                       right: 0,
                       top: 60,
+                      data: Object.keys(EVENT_COLORS).map(e => LEGEND_LABELS[e])
                     },
                     grid: {
                       top: 60,
-                      right: 220,
-                      left: 80,
+                      right: 300,
+                      left: 60,
                       containLabel: true
                     },
                     xAxis: {
@@ -1434,53 +1450,54 @@
                             show: false  // Hide grid lines between categories
                         }
                     },
-                    series: [
-                        {
-                            type: 'custom',
-                            renderItem: function (params, api) {
-                                const categoryIndex = api.value(0);
-                                const start = api.coord([api.value(1), categoryIndex]);
-                                const end = api.coord([api.value(2), categoryIndex]);
+                    series: Object.keys(EVENT_COLORS).map(eventType => ({
+                      name: LEGEND_LABELS[eventType],
+                      type: 'custom',
+                      renderItem: function (params, api) {
+                          const categoryIndex = api.value(0);
+                          const start = api.coord([api.value(1), categoryIndex]);
+                          const end = api.coord([api.value(2), categoryIndex]);
 
-                                const size = api.size([0, 1]);
-                                const dynamicHeight = size[1] * 0.8;
+                          const size = api.size([0, 1]);
+                          const dynamicHeight = size[1] * 0.8;
 
-                                const rectShape = echarts.graphic.clipRectByRect(
-                                    {
-                                        x: start[0],
-                                        y: start[1] - dynamicHeight / 2,
-                                        width: end[0] - start[0],
-                                        height: dynamicHeight
-                                    },
-                                    {
-                                        x: params.coordSys.x,
-                                        y: params.coordSys.y,
-                                        width: params.coordSys.width,
-                                        height: params.coordSys.height
-                                    }
-                                );
+                          const rectShape = echarts.graphic.clipRectByRect(
+                              {
+                                  x: start[0],
+                                  y: start[1] - dynamicHeight / 2,
+                                  width: end[0] - start[0],
+                                  height: dynamicHeight
+                              },
+                              {
+                                  x: params.coordSys.x,
+                                  y: params.coordSys.y,
+                                  width: params.coordSys.width,
+                                  height: params.coordSys.height
+                              }
+                          );
 
-                                const eventType = api.value(5);  // event_type is at index 5 in value array
-                                const color = EVENT_COLORS[eventType] || "#000000";
+                          const color = EVENT_COLORS[eventType] || "#000000";
 
-                                return rectShape && {
-                                    type: 'rect',
-                                    transition: ['shape'],
-                                    shape: rectShape,
-                                    style: api.style({ fill: color })
-                                };
-                            },
-                            itemStyle: {
-                                opacity: 0.8
-                            },
-                            encode: {
-                                x: [1, 2],   // Start and end
-                                y: 0,        // Bus index
-                                itemName: 5  // This will be used in tooltip (readable name)
-                            },
-                            data: ganttData.map(d => [...d.value, d.name, d.event_type]) // Add name + event_type into the value array
-                        }
-                    ]
+                          return rectShape && {
+                              type: 'rect',
+                              transition: ['shape'],
+                              shape: rectShape,
+                              style: api.style({ fill: color })
+                          };
+                      },
+                      itemStyle: {
+                        color: EVENT_COLORS[eventType],
+                        opacity: 0.8
+                      },
+                      encode: {
+                          x: [1, 2],
+                          y: 0,
+                          itemName: 5
+                      },
+                      data: ganttData
+                          .filter(d => d.event_type === eventType)
+                          .map(d => [...d.value, d.name, d.event_type])
+                  }))
                 };
 
                 // Initialize ECharts instance and set option
@@ -1506,11 +1523,11 @@
                 const viridisAnchors = [
                   '#3B2C85', // dark violet (super low)
                   '#845EC2', // violet (low)
-  '#F76E6C', // coral
-  '#FFD670', // soft yellow
-  '#A1DE93', // pistachio
-  '#20E3B2', // mint green
-  '#00B2CA'  // teal (super high)
+                  '#F76E6C', // coral
+                  '#FFD670', // soft yellow
+                  '#A1DE93', // pistachio
+                  '#20E3B2', // mint green
+                  '#00B2CA'  // teal (super high)
                 ];
 
                 function hexToRgb(hexString) {
@@ -1637,7 +1654,7 @@
                             yAxisIndex: 0,
                             zoomLock: false,
                             width: 40,
-                            right: 160,
+                            right: 100,
                             top: 50,
                             bottom: 142,
                             start: 100 - visiblePercent,
@@ -1668,11 +1685,11 @@
                             color: [
                               '#3B2C85', 
                                 '#845EC2', // violet (low)
-  '#F76E6C', // coral
-  '#FFD670', // soft yellow
-  '#A1DE93', // pistachio
-  '#20E3B2', // mint green
-  '#00B2CA'  // teal (super high)  // SoC 1
+                                '#F76E6C', // coral
+                                '#FFD670', // soft yellow
+                                '#A1DE93', // pistachio
+                                '#20E3B2', // mint green
+                                '#00B2CA'  // teal (super high)  // SoC 1
                             ]
                         },
                         formatter: function (value) {
@@ -1686,7 +1703,7 @@
                         top: 50,
                         bottom: 120,
                         left: 60,
-                        right: 220,
+                        right: 160,
                         containLabel: true,
                     },
                     xAxis: {
