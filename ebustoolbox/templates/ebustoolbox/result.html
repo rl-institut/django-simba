@@ -434,8 +434,8 @@
                 <div class="flex items-center gap-4">
                   <span class="text-end text-sm text-slate-600 flex-grow">Nach Elektrifizierung</span>
                   <div class="flex items-center gap-2 w-3/4">
-                    <div class="h-2 w-[30%] bg-emerald-400 rounded-full"></div>
-                    <span class="text-sm font-bold text-emerald-600">3.000 t</span>
+                    <div class="h-2 w-[30%] bg-blue-600 rounded-full"></div>
+                    <span class="text-sm font-bold text-blue-600">3.000 t</span>
                   </div>
                 </div>
               </div>
@@ -753,15 +753,28 @@
 
 {% block script %}
 <script>
-  function makeColors(N, s = 60, l = 50) {
-    return Array.from({ length: N }, (_, i) => {
-      const h = Math.round((360 * i) / N);
-      return `hsl(${h},${s}%,${l}%)`;
-    });
-  }
-</script>
-
-<script>
+  const customColorPalette = [
+    '#4269d0',
+    '#efb118',
+    '#ff725c',
+    '#6cc5b0',
+    '#3ca951',
+    '#ff8ab7',
+    '#a463f2',
+    '#97bbf5',
+    '#9c6b4e',
+    '#9498a0',
+    '#a1b2de',
+    '#e9cd87',
+    '#f7c2ba',
+    '#c7e4dd',
+    '#7cc48a',
+    '#f7bad2',
+    '#d6bff3',
+    '#c0d3f2',
+    '#bc9e8b',
+    '#d4d6dc'
+];
     // eCharts functionality
     const taskId = document.getElementById("task-id").value;
     //console.log("Simulation ID:", taskId);
@@ -776,6 +789,7 @@
                 const chart = echarts.init(document.getElementById(chartId), 'ebusPalette');
 
                 const options = {
+                    color: customColorPalette,
                     title: {
                         text: titleText,
                         left: 'center',
@@ -824,22 +838,10 @@
         .then(response => response.json())
         .then(data => {
 
+            const chart = echarts.init(document.getElementById(chartId));
+
             // Prepare the series data for each bus (V_id)
-            const seriesData = Object.entries(data.data).map(([v_id, busData]) => ({
-              name: `Bus ${v_id}`,
-              type: 'line',
-              data: busData,
-              smooth: false
-            }));
-
-            const seriesCount = seriesData.length;
-            const palette = makeColors(seriesCount);
-
-            const chart = echarts.init(
-              document.getElementById(chartId),
-              { color: palette }
-            );
-
+            var seriesData = [];
             for (let v_id in data.data) {
                 let busData = data.data[v_id];
                 seriesData.push({
@@ -927,6 +929,7 @@
                 const chart = echarts.init(document.getElementById(chartId));
 
                 const options = {
+                    color: ['#4269d0', '#6cc5b0', '#ff725c'],
                     title: {
                         text: titleText,
                         left: 'center',
@@ -1042,13 +1045,13 @@
     function fetchAndRenderGanttChart(chartName, chartId, titleText) {
 
         const EVENT_COLORS = {
-            DRIVING: "#4E79A7",
-            CHARGING_OPPORTUNITY: "#20E3B2",
-            CHARGING_DEPOT: "#E15759",
-            SERVICE: "#0081cf",
-            STANDBY_DEPARTURE: "#F28E2B",
-            PRECONDITIONING: "#B07AA1",
-            STANDBY: "#EDC948"
+            DRIVING: "#4269d0",
+            CHARGING_OPPORTUNITY: "#efb118",
+            CHARGING_DEPOT: "#a463f2",
+            SERVICE: "#6cc5b0",
+            STANDBY_DEPARTURE: "#ff725c",
+            PRECONDITIONING: "#ff8ab7",
+            STANDBY: "#9498a0"
         };
 
         const LEGEND_LABELS = {
@@ -1282,9 +1285,9 @@
 
                 const viridisAnchors = [
                   '#440154', // dark purple
-                  '#414487', // indigo
-                  '#2a788e', // teal
-                  '#22a884', // green
+                  '#4269d0', // indigo
+                  '#6cc5b0', // teal
+                  '#6cc5b0', // green
                   '#fde725'  // yellow
                 ];
 
@@ -1442,9 +1445,9 @@
                         inRange: {
                             color: [
                               '#440154', // dark purple
-                              '#414487', // indigo
-                              '#2a788e', // teal
-                              '#22a884', // green
+                              '#4269d0', // indigo
+                              '#6cc5b0', // teal
+                              '#6cc5b0', // green
                               '#fde725'  // yellow
                             ]
                         },
@@ -1549,6 +1552,7 @@
 
                 const chart = echarts.init(document.getElementById(chartId), 'ebusPalette');
                 chart.setOption({
+                    color: ['#4269d0', '#ff725c'],
                     title: {
                         text: titleText,
                         left: 'center',
@@ -1616,6 +1620,7 @@
           }
 
                 const option = {
+                    color: ['#4269d0'],
                     title: {
                         text: titleText,
                         left: 'center',
@@ -1723,7 +1728,7 @@
               fontSize: 16
             },
             inRange: {
-              color: ['#EAFFF7', '#20E3B2', '#00846B']
+              color: ['#c0d3f2', '#91ABF0', '#4269d0']
             }
           },
           series: [{
@@ -2018,7 +2023,7 @@ switchCostsTab('costs-tab-1');
             1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500,
           ],
           itemStyle: {
-            color: "#3B82F6",
+            color: "#4269d0",
           },
           barWidth: 16,
         },
