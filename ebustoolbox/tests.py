@@ -995,7 +995,7 @@ class RotationSplitTest(TestCase):
         station1 = depot
         station2 = station
         for i, trip in enumerate(list(trips)):
-            # Make sure the rotation ends in the depot by deleting access trips
+            # Make sure the rotation ends in the depot by deleting excess trips
             if i + 1 > even_count:
                 trip.delete()
                 continue
