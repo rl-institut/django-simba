@@ -1652,7 +1652,7 @@ def run_eflips(task_id) -> None:
 
     # Constructing the database URL manually
     db_url = create_db_url()
-    generate_depot_optimal_size(
+    generate_depot_layout(
         db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=True
     )
 
