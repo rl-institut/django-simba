@@ -13,7 +13,7 @@
                 id="{{vt_id}}assignedToButton"
 
                 type="button"
-                class="grid cursor-default grid-cols-1 rounded-md bg-white py-1.5 px-3 text-left text-slate-800 outline outline-1 -outline-offset-0 outline-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
+                class="grid cursor-default grid-cols-1 rounded-md bg-white py-1.5 px-3 text-left text-slate-800 outline outline-1 -outline-offset-0 outline-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                 style="width: 20rem"
                 aria-haspopup="listbox"
                 aria-expanded="false"
@@ -40,7 +40,7 @@
       >
       {% for vt_choice in modification.vehicle_choices %}
         <li
-                class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-green-400 hover:text-black"
+                class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-emerald-400 hover:text-black"
                 role="option"
                 data-dropdown-item="{{ vt_choice.id }}"
                 data-dropdown-name="{{ vt_choice.name }}"
@@ -68,7 +68,7 @@
 {#        <div class="border-b border-slate-200">#}
 {#          <nav class="-mb-px flex space-x-8" aria-label="Tabs" id="{{ vt_id }}tabs">#}
 {#            <a href="#" class="whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="tab-1" aria-current="page">Default</a>#}
-{#            <button id="{{ vt_id }}add-tab" type="button" class="whitespace-nowrap border-b-4 border-transparent px-2 py-4 text-sm font-bold tracking-wide text-green-700 hover:text-green-600 transition-all duration-300">+ Gruppe hinzufügen</button>#}
+{#            <button id="{{ vt_id }}add-tab" type="button" class="whitespace-nowrap border-b-4 border-transparent px-2 py-4 text-sm font-bold tracking-wide text-emerald-700 hover:text-emerald-600 transition-all duration-300">+ Gruppe hinzufügen</button>#}
 {#          </nav>#}
 {#        </div>#}
 {#      </div>#}
@@ -97,7 +97,7 @@
                         class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-slate-400 focus-within:focus-visible:outline-2">
                   <input
                           {{ modification.vehicle_modification.battery_capacity|widget_attrs}}
-                          class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
+                          class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                           placeholder="500"
                           aria-labelledby="batteryCapacityLabel batteryCapacityUnit">
                   <div id="{{ vt_id }}batteryCapacityUnit" class="shrink-0 select-none text-slate-500">kWh</div>
@@ -115,7 +115,7 @@
                   aria-describedby="{{ vt_id }}-description"
                   type="checkbox"
                   {% if modification.vehicle_modification.consumption.initial is not None %}checked{% endif %}
-                  class="col-start-1 row-start-1 appearance-none rounded border border-slate-400 checked:border-green-500 checked:bg-green-500 checked:focus:bg-green-500 checked:hover:bg-green-500 focus:ring-green-500 focus-ring:outline focus-ring:outline-2 focus-ring:outline-offset-2 focus-ring:outline-green-500">
+                  class="col-start-1 row-start-1 appearance-none rounded border border-slate-400 checked:border-emerald-500 checked:bg-emerald-500 checked:focus:bg-emerald-500 checked:hover:bg-emerald-500 focus:ring-green-500 focus-ring:outline focus-ring:outline-2 focus-ring:outline-offset-2 focus-ring:outline-green-500">
                 <svg class="pointer-events-none size-3.5 self-center justify-self-center stroke-white" viewBox="0 0 14 14" fill="none">
                   <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                   <path class="opacity-0" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -153,7 +153,7 @@
 
                           {{ modification.vehicle_modification.consumption|widget_attrs}}
                     {% if modification.vehicle_modification.consumption.initial is None %}disabled{% endif %}
-                          class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
+                          class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                     placeholder={% if modification.selection.instance.default_vehicle_type is not None %}"{{modification.selection.instance.default_vehicle_type.consumption}}"{% else %}"Wählen Sie ein Fahrzeug aus" {% endif %}
                           aria-labelledby="consumptionLabel consumptionUnit">
                   <div id="{{ vt_id }}consumptionUnit" class="shrink-0 select-none text-slate-500">kWh/km</div>
@@ -274,9 +274,9 @@
           // Remove the highlight from all items and apply it to the selected item
           function highlightSelectedItem() {
               listItems.forEach(li => {
-                  li.classList.remove('bg-green-100');
+                  li.classList.remove('bg-emerald-100');
                   if (li.getAttribute('data-dropdown-item') === selectedItem) {
-                      li.classList.add('bg-green-100');
+                      li.classList.add('bg-emerald-100');
                   }
               });
           }

@@ -39,7 +39,7 @@
                 <div class="flex items-center gap-2">
                   <p class="flex gap-2 items-center">
                     <span class="text-base font-bold">{{ depot.name }}</span>
-                    <button type="button" class="inline-flex items-center text-slate-800 hover:text-green-600"
+                    <button type="button" class="inline-flex items-center text-slate-800 hover:text-emerald-600"
                             aria-label="Depotname editieren">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                            stroke="currentColor" class="size-4">
@@ -58,7 +58,7 @@
                     <button
                             type="button"
                             id="automaticToggle"
-                            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-green-500 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+                            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-emerald-500 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
                             role="switch"
                             data-depot-id="{{ depot.id }}"
                             aria-checked="true"
@@ -119,7 +119,7 @@
                             <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
                               <input
                                       {{ form.amount_charging_places|widget_attrs }}
-                                      class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
+                                      class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                                       placeholder="8"
                               >
                             </div>
@@ -148,7 +148,7 @@
                             <div class="flex items-center w-full rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
                               <input
                                       {{ form.power_per_charger|widget_attrs }}
-                                      class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
+                                      class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                                       placeholder="300"
                               >
                               <div class="shrink-0 select-none text-slate-500">kW</div>
@@ -171,7 +171,7 @@
                     </div>
                   {% endfor %}
                   <div class="mt-2">
-                    <button id="addPoint_{{ depot.id }}" class="text-green-600 text-sm font-bold">+ Ladepunkte hinzufügen</button>
+                    <button id="addPoint_{{ depot.id }}" class="text-emerald-600 text-sm font-bold">+ Ladepunkte hinzufügen</button>
                   </div>
 
 
@@ -206,7 +206,7 @@
                       <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
                         <input
                                 {{ form_dict|get_item:"depot_info_form"|get_item:"power_total"|widget_attrs }}
-                                class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-green-400 sm:text-sm/6"
+                                class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                                 placeholder="5000"
                         >
                         <div class="shrink-0 select-none text-slate-500">kVA</div>
@@ -254,7 +254,7 @@
             // Default state of the input element is "automatic" according to the toggle
             input_element.setAttribute("value", "automatic");
 
-            automaticToggle.classList.toggle("bg-green-500", isChecked);
+            automaticToggle.classList.toggle("bg-emerald-500", isChecked);
             automaticToggle.classList.toggle("bg-slate-200", !isChecked);
             automaticToggle.querySelector("span").classList.toggle("translate-x-5", isChecked);
             automaticToggle.querySelector("span").classList.toggle("translate-x-0", !isChecked);
@@ -280,7 +280,7 @@
 
 
                 // Toggle styles dynamically
-                automaticToggle.classList.toggle("bg-green-500", !isChecked);
+                automaticToggle.classList.toggle("bg-emerald-500", !isChecked);
                 automaticToggle.classList.toggle("bg-slate-200", isChecked);
                 automaticToggle.querySelector("span").classList.toggle("translate-x-5", !isChecked);
                 automaticToggle.querySelector("span").classList.toggle("translate-x-0", isChecked);

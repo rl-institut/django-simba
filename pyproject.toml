@@ -24,7 +24,6 @@ django-environ = ">=0.10.0, <1.0.0"
 django-extensions = "^3.2.3"
 django-fast-update = "^0.2.3"
 django-geojson = "^4.0.0"
-django-plotly-dash = "^2.2.1"
 django-tailwind = "^3.8.0"
 djangorestframework = ">=3.14.0, <4.0.0"
 djangorestframework-mvt = ">=0.2.5, <1.0.0"
@@ -47,6 +46,7 @@ scipy = "^1.12.0"
 selenium = "^4.13.0"
 setuptools = "^68.2.2"
 tqdm = "^4.66.1"
+charset-normalizer = "^3.4.2"
 
 
 
