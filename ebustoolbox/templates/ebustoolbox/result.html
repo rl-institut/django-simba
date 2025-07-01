@@ -706,7 +706,7 @@
             <div id="ganttChart" class="chart-container h-[480px]"></div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
-            <div id="soc-gantt" class="chart-containe h-[480px]"></div>
+            <div id="soc-gantt" class="chart-container h-[480px]"></div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
             <div id="DistHistogramChart" class="chart-container h-[480px]"></div>
@@ -2195,7 +2195,7 @@ document.getElementById('exportPdf').addEventListener('click', async function() 
           }
         }
 
-        const chart = echarts.init(document.getElementById(chartID), 'ebusPalette');
+        const chart = echarts.init(document.getElementById(chartId), 'ebusPalette');
         const option = {
           tooltip: {
             position: 'top',
