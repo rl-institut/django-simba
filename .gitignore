@@ -13,3 +13,4 @@ venv/
 .env
 info.log
 data/
+site/

@@ -1,3 +1,4 @@
+
 ## Installation
 
 1. Clone this git repository (or [download a specific release](https://github.com/rl-institut/django-simba/releases))
@@ -238,20 +239,3 @@ but only if the docker is not running
                 - admin_areas which contain found stations are fuzzily searched for a uniquely identifiable station
     - DB import and export are possible as superuser via /data_scrapers/stations/import/ and /export/
         - import is only supported for empty tables of BusStation and AdminArea
-
-
-## Documentation
-The Documentation is generated via mkdocs. To run it as local webpage simply run
-`mkdocs serve`
-to build run
-`mkdocs build`
-
-to reference docstrings from python code use
-::: path.tosome.module
-in your md files. This is based on mkdocstrings.
-
-Building the documentation depends on mkdocs and mkdocstrings which are part of the poetry developer dependencies
-
-This works only for modules, classes and so on but not for folders
-
-Further documentation can be found here [mkdocs](https://www.mkdocs.org/getting-started/)
