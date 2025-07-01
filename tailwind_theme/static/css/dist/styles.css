@@ -1378,6 +1378,10 @@ select {
   cursor: default;
 }
 
+.cursor-not-allowed {
+  cursor: not-allowed;
+}
+
 .cursor-pointer {
   cursor: pointer;
 }
@@ -2999,6 +3003,7 @@ progress::-moz-progress-bar {
   --tw-ring-opacity: 1;
   --tw-ring-color: rgb(202 138 4 / var(--tw-ring-opacity, 1));
 }
+
 
 .focus\:ring-offset-0:focus {
   --tw-ring-offset-width: 0px;

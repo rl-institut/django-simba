@@ -77,7 +77,6 @@
                 ></progress>
               </label>
             <p class="pl-1 text-sm text-slate-500">oder ziehen und ablegen</p>
-            {# This div is replaced with the list of dropped files. TODO: @Bryan needs styling #}
             <div
               id="uploaded_file_id"
               class="pt-6 text-md font-semibold text-slate-800"
@@ -146,35 +145,3 @@
   </div>
   <button hidden id="hidden_button" onclick="validateAndSubmit()"></button>
 </form>
-{#  load the file drop zone functions and apply them to the drop zone and input field#}
-  <script src="{% static 'ebustoolbox/js/file_drop_zone_handling.js' %}" onload="setDropHandler('drop_zone','{{ form.data_file.auto_id}}')">
-  </script>
-<script>
-  function validateAndSubmit() {
-    // If validation fails submit event will be prevented
-    let input1 = document.getElementById("{{ form.existing_scenario.auto_id }}")
-    let input2 = document.getElementById("{{ form.data_file.auto_id }}");
-    let val1 = input1.value.trim();
-    let val2 = input2.value.trim();
-    let errorMessage = document.getElementById("error-message");
-    // ! forces to (inverse) boolean together with != this mimics !(bool(x) XOR bool(y))
-    if (!val1 == !val2) {
-        input1.value=null;
-        input2.value=null;
-        let filesDiv = document.getElementById("uploaded_file_id")
-        filesDiv.innerHTML = ""
-        errorMessage.style.display = "block";  // Show error message
-        event.preventDefault()
-    } else {
-        errorMessage.style.display = "none";  // Hide error message if valid
-    }
-  };
-</script>
-<script>
-  function updateFileName(input){
-      console.log("updating file name")
-      let uploaded_file_id=document.getElementById("uploaded_file_id")
-      let fileName = input.files.length > 0 ? input.files[0].name : 'Keine Datei ausgewählt';
-      uploaded_file_id.textContent = fileName;
-  }
-</script>

@@ -8,6 +8,7 @@ from typing import Iterable
 import pandas as pd
 from django.conf import settings
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from django.db.models import F
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase, override_settings
 
@@ -483,7 +484,29 @@ class ScenarioTestCase(TestCase):
         self.assertIsNone(instance_1.task_id)
 
 
-class SimulationTestCase(TestCase):
+class SimulationTestCase(TransactionTestCase):
+    def create_depot_simulation(self):
+        # PROBLEM: test scenario has no CHARGING_DEPOT events, just DRIVING and STANDBY_DEPARTURE
+        # => can't test depot charging with this
+        # HACK: change long STANDBY_DEPARTURE to CHARGING_DEPOT events and all stations to depots
+        django_scenario, simba_schedule, args = build_scenario()
+        django_scenario.simba_options = {"HORIZON": 1, "perfect_foresight": False}
+        django_scenario.save(update_fields=["simba_options"])
+        # run scenario, create events
+        run_simba_scenario(django_scenario=django_scenario)
+        django_scenario.event_set.filter(
+            event_type=EventType.STANDBY_DEPARTURE,
+            # only events long enough for charging
+            time_start__lte=F("time_end") - timedelta(minutes=30),
+        ).update(
+            event_type=EventType.CHARGING_DEPOT,
+            soc_end=1.0,
+        )
+        django_scenario.station_set.update(
+            is_electrified=True, charge_type=EnumChargeType.DEPOT, voltage_level="MV"
+        )
+        return django_scenario
+
     def test_flex_band_off(self):
         django_scenario, simba_schedule, args = build_scenario()
         args.skip_flex_report = False
@@ -496,6 +519,55 @@ class SimulationTestCase(TestCase):
         simba_schedule, simba_scenario = run_simba_scenario(django_scenario)
         # no flex_band calculations are found
         assert simba_scenario.flex_bands is None, "Flex bands should be turned off"
+
+    def test_simulate_depot_strategy(self):
+        django_scenario = self.create_depot_simulation()
+        spiceev_scenario_dict = tasks.create_spiceev_scenario_dict(django_scenario)
+        # unknown strategy
+        with self.assertRaises(NotImplementedError):
+            tasks.simulate_depot_strategy(spiceev_scenario_dict, "error")
+
+        # simulate with SpiceEV strategies
+        for strategy in ("greedy", "balanced", "peak_shaving"):
+            spiceev_scenario = tasks.simulate_depot_strategy(spiceev_scenario_dict, strategy)
+            self.assertEqual(spiceev_scenario.step_i, spiceev_scenario.n_intervals)
+
+    def test_replace_event_timeseries(self):
+        django_scenario = self.create_depot_simulation()
+        event = (
+            django_scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT)
+            .order_by("id")
+            .last()
+        )
+        num_ts = len(event.timeseries["time"])
+        # check start/end soc
+        assert event.soc_start != event.soc_end
+        with self.assertRaises(AssertionError):
+            tasks.replace_event_timeseries(event, [event.soc_start] * num_ts)
+        with self.assertRaises(AssertionError):
+            tasks.replace_event_timeseries(event, [event.soc_end] * num_ts)
+
+        # check length of timeseries
+        assert num_ts > 2
+        with self.assertRaises(AssertionError):
+            tasks.replace_event_timeseries(event, [event.soc_start, event.soc_end])
+
+        # check None values
+        with self.assertRaises(AssertionError):
+            tasks.replace_event_timeseries(
+                event, [event.soc_start, None] + [event.soc_end] * (num_ts - 2)
+            )
+
+        # success
+        tasks.replace_event_timeseries(
+            event, [event.soc_start] + [0] * (num_ts - 2) + [event.soc_end]
+        )
+        assert event.timeseries["soc"][1] == 0
+
+    def test_apply_depot_strategy(self):
+        # basic test
+        django_scenario = self.create_depot_simulation()
+        tasks.apply_depot_strategy(django_scenario, "balanced")
 
 
 class ConsumptionTestCase(TransactionTestCase):
@@ -1024,7 +1096,6 @@ class RotationSplitTest(TestCase):
 
 class SerializerTest(TransactionTestCase):
     def test_serializer(self):
-
         count_before = count_all_rows()
         django_scenario, _, _ = build_scenario()
         django_scenario.task_id = get_unique_task_id()
