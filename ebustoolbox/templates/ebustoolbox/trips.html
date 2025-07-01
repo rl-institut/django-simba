@@ -62,10 +62,6 @@
           {#Server side logic should make user flow more obvious #}
           window.location.href = "{% url 'simba:trips' task_id %}";
       })
-      // htmx.on('#running', 'htmx:trigger', function (evt) {
-      //     let btn =document.getElementById("WizardNextButton");
-      //     disableButton(btn);
-      // })
       htmx.on('#notRunning', 'htmx:trigger', function (evt) {
           let btn =document.getElementById("WizardNextButton");
           enableButton(btn);
