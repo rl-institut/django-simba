@@ -46,7 +46,7 @@
   <!-- Use alert when simulating -->
   <div class="flex justify-center pt-8">
     <button id="simulateButton" hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s
-        class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300 cursor-pointer"
+        class="px-6 py-2 w-[16rem] bg-emerald-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-emerald-300 hover:shadow-lg active:bg-emerald-500 transition-all duration-300 cursor-pointer"
         {% if progress.running or progress.success %}disabled{% endif %}>
         <div class="flex align-center gap-4">
           <svg width="24" height="24" version="1.1" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -152,7 +152,7 @@
               <p>{{ sim_duration}}</p>
             </div>
             <div>
-              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -168,7 +168,7 @@
               <p>{{ temperature }}° C</p>
             </div>
             <div>
-              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -289,7 +289,7 @@
               </div>
             </div>
             <div>
-              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -425,7 +425,7 @@
               </div>
             </div>
             <div>
-              <a href="{%  url "simba:stations" scenario.task_id  %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:stations" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -467,7 +467,7 @@
               </div>
             </div>
             <div>
-              <a href="{%  url "simba:costs" scenario.task_id  %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:costs" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -509,7 +509,7 @@
               </div>
             </div>
             <div>
-              <a href="{%  url "simba:costs" scenario.task_id  %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:costs" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -555,7 +555,7 @@
               </div>
             </div>
             <div>
-              <a href="{% url 'simba:depots' scenario.task_id %}" class="flex items-center gap-2 text-green-600 text-sm font-bold hover:text-green-500 focus:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{% url 'simba:depots' scenario.task_id %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>

@@ -799,6 +799,10 @@ select {
   pointer-events: none;
 }
 
+.pointer-events-auto {
+  pointer-events: auto;
+}
+
 .visible {
   visibility: visible;
 }
@@ -907,6 +911,10 @@ select {
 
 .-mb-px {
   margin-bottom: -1px;
+}
+
+.mb-0 {
+  margin-bottom: 0px;
 }
 
 .mb-1 {
@@ -1101,8 +1109,16 @@ select {
   height: 1.5rem;
 }
 
+.h-\[340px\] {
+  height: 340px;
+}
+
 .h-\[400px\] {
   height: 400px;
+}
+
+.h-\[480px\] {
+  height: 480px;
 }
 
 .h-\[48rem\] {
@@ -1144,6 +1160,10 @@ select {
 
 .w-11 {
   width: 2.75rem;
+}
+
+.w-12 {
+  width: 3rem;
 }
 
 .w-2\/12 {
@@ -1268,6 +1288,10 @@ select {
   max-width: 80rem;
 }
 
+.max-w-\[120rem\] {
+  max-width: 120rem;
+}
+
 .max-w-full {
   max-width: 100%;
 }
@@ -1290,6 +1314,10 @@ select {
 
 .grow {
   flex-grow: 1;
+}
+
+.basis-1\/2 {
+  flex-basis: 50%;
 }
 
 .border-collapse {
@@ -1327,6 +1355,12 @@ select {
 
 .rotate-180 {
   --tw-rotate: 180deg;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.scale-100 {
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
@@ -1406,6 +1440,10 @@ select {
 
 .items-center {
   align-items: center;
+}
+
+.justify-start {
+  justify-content: flex-start;
 }
 
 .justify-end {
@@ -1622,9 +1660,9 @@ select {
   border-style: dashed;
 }
 
-.border-green-400 {
+.border-emerald-400 {
   --tw-border-opacity: 1;
-  border-color: rgb(74 222 128 / var(--tw-border-opacity, 1));
+  border-color: rgb(52 211 153 / var(--tw-border-opacity, 1));
 }
 
 .border-red-200 {
@@ -1681,9 +1719,24 @@ select {
   background-color: rgb(239 246 255 / var(--tw-bg-opacity, 1));
 }
 
+.bg-blue-600 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(37 99 235 / var(--tw-bg-opacity, 1));
+}
+
 .bg-blue-800 {
   --tw-bg-opacity: 1;
   background-color: rgb(30 64 175 / var(--tw-bg-opacity, 1));
+}
+
+.bg-emerald-100 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(209 250 229 / var(--tw-bg-opacity, 1));
+}
+
+.bg-emerald-400 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(52 211 153 / var(--tw-bg-opacity, 1));
 }
 
 .bg-emerald-50 {
@@ -1691,24 +1744,19 @@ select {
   background-color: rgb(236 253 245 / var(--tw-bg-opacity, 1));
 }
 
-.bg-green-100 {
+.bg-emerald-500 {
   --tw-bg-opacity: 1;
-  background-color: rgb(220 252 231 / var(--tw-bg-opacity, 1));
+  background-color: rgb(16 185 129 / var(--tw-bg-opacity, 1));
+}
+
+.bg-emerald-600 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(5 150 105 / var(--tw-bg-opacity, 1));
 }
 
 .bg-green-400 {
   --tw-bg-opacity: 1;
   background-color: rgb(74 222 128 / var(--tw-bg-opacity, 1));
-}
-
-.bg-green-500 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(34 197 94 / var(--tw-bg-opacity, 1));
-}
-
-.bg-green-600 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(22 163 74 / var(--tw-bg-opacity, 1));
 }
 
 .bg-red-50 {
@@ -2132,9 +2180,24 @@ select {
   color: rgb(0 0 0 / var(--tw-text-opacity, 1));
 }
 
+.text-blue-600 {
+  --tw-text-opacity: 1;
+  color: rgb(37 99 235 / var(--tw-text-opacity, 1));
+}
+
 .text-blue-800 {
   --tw-text-opacity: 1;
   color: rgb(30 64 175 / var(--tw-text-opacity, 1));
+}
+
+.text-emerald-600 {
+  --tw-text-opacity: 1;
+  color: rgb(5 150 105 / var(--tw-text-opacity, 1));
+}
+
+.text-emerald-700 {
+  --tw-text-opacity: 1;
+  color: rgb(4 120 87 / var(--tw-text-opacity, 1));
 }
 
 .text-emerald-800 {
@@ -2142,14 +2205,9 @@ select {
   color: rgb(6 95 70 / var(--tw-text-opacity, 1));
 }
 
-.text-green-600 {
+.text-gray-700 {
   --tw-text-opacity: 1;
-  color: rgb(22 163 74 / var(--tw-text-opacity, 1));
-}
-
-.text-green-700 {
-  --tw-text-opacity: 1;
-  color: rgb(21 128 61 / var(--tw-text-opacity, 1));
+  color: rgb(55 65 81 / var(--tw-text-opacity, 1));
 }
 
 .text-red-500 {
@@ -2490,6 +2548,31 @@ progress::-moz-progress-bar {
   transition: width 0.3s ease;
 }
 
+/* MapLibre GL Popup */
+
+.maplibregl-popup {
+  padding: 0;
+  border-radius: 0.5rem;
+}
+
+.maplibregl-popup .maplibregl-popup-content {
+  padding: 0;
+  border-radius: 0.5rem;
+}
+
+.maplibregl-popup .popup__header {
+  /* New Tailwind classes for this section are not applied, so I write custom styles here */
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  min-height: 2rem;
+}
+
+.maplibregl-popup .maplibregl-popup-close-button {
+  right: 8px;
+  top: 5px;
+  font-size: 1rem;
+}
+
 .file\:mr-4::file-selector-button {
   margin-right: 1rem;
 }
@@ -2553,44 +2636,44 @@ progress::-moz-progress-bar {
   background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
 }
 
-.checked\:border-green-500:checked {
+.checked\:border-emerald-500:checked {
   --tw-border-opacity: 1;
-  border-color: rgb(34 197 94 / var(--tw-border-opacity, 1));
+  border-color: rgb(16 185 129 / var(--tw-border-opacity, 1));
 }
 
-.checked\:border-green-600:checked {
+.checked\:border-emerald-600:checked {
   --tw-border-opacity: 1;
-  border-color: rgb(22 163 74 / var(--tw-border-opacity, 1));
+  border-color: rgb(5 150 105 / var(--tw-border-opacity, 1));
 }
 
-.checked\:bg-green-500:checked {
+.checked\:bg-emerald-500:checked {
   --tw-bg-opacity: 1;
-  background-color: rgb(34 197 94 / var(--tw-bg-opacity, 1));
+  background-color: rgb(16 185 129 / var(--tw-bg-opacity, 1));
 }
 
-.checked\:bg-green-600:checked {
+.checked\:bg-emerald-600:checked {
   --tw-bg-opacity: 1;
-  background-color: rgb(22 163 74 / var(--tw-bg-opacity, 1));
+  background-color: rgb(5 150 105 / var(--tw-bg-opacity, 1));
 }
 
-.indeterminate\:border-green-500:indeterminate {
+.indeterminate\:border-emerald-500:indeterminate {
   --tw-border-opacity: 1;
-  border-color: rgb(34 197 94 / var(--tw-border-opacity, 1));
+  border-color: rgb(16 185 129 / var(--tw-border-opacity, 1));
 }
 
-.indeterminate\:border-green-600:indeterminate {
+.indeterminate\:border-emerald-600:indeterminate {
   --tw-border-opacity: 1;
-  border-color: rgb(22 163 74 / var(--tw-border-opacity, 1));
+  border-color: rgb(5 150 105 / var(--tw-border-opacity, 1));
 }
 
-.indeterminate\:bg-green-500:indeterminate {
+.indeterminate\:bg-emerald-500:indeterminate {
   --tw-bg-opacity: 1;
-  background-color: rgb(34 197 94 / var(--tw-bg-opacity, 1));
+  background-color: rgb(16 185 129 / var(--tw-bg-opacity, 1));
 }
 
-.indeterminate\:bg-green-600:indeterminate {
+.indeterminate\:bg-emerald-600:indeterminate {
   --tw-bg-opacity: 1;
-  background-color: rgb(22 163 74 / var(--tw-bg-opacity, 1));
+  background-color: rgb(5 150 105 / var(--tw-bg-opacity, 1));
 }
 
 .focus-within\:outline-none:focus-within {
@@ -2635,19 +2718,24 @@ progress::-moz-progress-bar {
   background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1));
 }
 
-.hover\:bg-green-200:hover {
+.hover\:bg-emerald-200:hover {
   --tw-bg-opacity: 1;
-  background-color: rgb(187 247 208 / var(--tw-bg-opacity, 1));
+  background-color: rgb(167 243 208 / var(--tw-bg-opacity, 1));
+}
+
+.hover\:bg-emerald-300:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(110 231 183 / var(--tw-bg-opacity, 1));
+}
+
+.hover\:bg-emerald-400:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(52 211 153 / var(--tw-bg-opacity, 1));
 }
 
 .hover\:bg-green-300:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(134 239 172 / var(--tw-bg-opacity, 1));
-}
-
-.hover\:bg-green-400:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(74 222 128 / var(--tw-bg-opacity, 1));
 }
 
 .hover\:bg-red-100:hover {
@@ -2680,14 +2768,14 @@ progress::-moz-progress-bar {
   color: rgb(0 0 0 / var(--tw-text-opacity, 1));
 }
 
-.hover\:text-green-500:hover {
+.hover\:text-emerald-500:hover {
   --tw-text-opacity: 1;
-  color: rgb(34 197 94 / var(--tw-text-opacity, 1));
+  color: rgb(16 185 129 / var(--tw-text-opacity, 1));
 }
 
-.hover\:text-green-600:hover {
+.hover\:text-emerald-600:hover {
   --tw-text-opacity: 1;
-  color: rgb(22 163 74 / var(--tw-text-opacity, 1));
+  color: rgb(5 150 105 / var(--tw-text-opacity, 1));
 }
 
 .hover\:text-red-500:hover {
@@ -2739,23 +2827,23 @@ progress::-moz-progress-bar {
   background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1));
 }
 
-.checked\:hover\:bg-green-500:hover:checked {
+.checked\:hover\:bg-emerald-500:hover:checked {
   --tw-bg-opacity: 1;
-  background-color: rgb(34 197 94 / var(--tw-bg-opacity, 1));
+  background-color: rgb(16 185 129 / var(--tw-bg-opacity, 1));
 }
 
 .focus\:z-20:focus {
   z-index: 20;
 }
 
-.focus\:border-green-400:focus {
+.focus\:border-emerald-400:focus {
   --tw-border-opacity: 1;
-  border-color: rgb(74 222 128 / var(--tw-border-opacity, 1));
+  border-color: rgb(52 211 153 / var(--tw-border-opacity, 1));
 }
 
-.focus\:text-green-700:focus {
+.focus\:text-emerald-700:focus {
   --tw-text-opacity: 1;
-  color: rgb(21 128 61 / var(--tw-text-opacity, 1));
+  color: rgb(4 120 87 / var(--tw-text-opacity, 1));
 }
 
 .focus\:outline-none:focus {
@@ -2845,9 +2933,9 @@ progress::-moz-progress-bar {
   --tw-ring-offset-width: 2px;
 }
 
-.checked\:focus\:bg-green-500:focus:checked {
+.checked\:focus\:bg-emerald-500:focus:checked {
   --tw-bg-opacity: 1;
-  background-color: rgb(34 197 94 / var(--tw-bg-opacity, 1));
+  background-color: rgb(16 185 129 / var(--tw-bg-opacity, 1));
 }
 
 .focus-visible\:outline-none:focus-visible {
@@ -2904,6 +2992,11 @@ progress::-moz-progress-bar {
 
 .focus-within\:focus-visible\:outline-slate-400:focus-visible:focus-within {
   outline-color: #94a3b8;
+}
+
+.active\:bg-emerald-500:active {
+  --tw-bg-opacity: 1;
+  background-color: rgb(16 185 129 / var(--tw-bg-opacity, 1));
 }
 
 .active\:bg-green-500:active {
@@ -3202,14 +3295,12 @@ progress::-moz-progress-bar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .lg\:divide-x > :not([hidden]) ~ :not([hidden]) {
-    --tw-divide-x-reverse: 0;
-    border-right-width: calc(1px * var(--tw-divide-x-reverse));
-    border-left-width: calc(1px * calc(1 - var(--tw-divide-x-reverse)));
-  }
-
   .lg\:border-b-0 {
     border-bottom-width: 0px;
+  }
+
+  .lg\:border-r {
+    border-right-width: 1px;
   }
 
   .lg\:px-5 {
@@ -3246,6 +3337,18 @@ progress::-moz-progress-bar {
 
   .xl\:border-r {
     border-right-width: 1px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .\32xl\:text-2xl {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+
+  .\32xl\:text-base {
+    font-size: 1rem;
+    line-height: 1.5rem;
   }
 }
 

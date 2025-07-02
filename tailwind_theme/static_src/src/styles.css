@@ -86,3 +86,27 @@ progress::-moz-progress-bar {
   background-color: var(--green-400);
   transition: width 0.3s ease;
 }
+
+/* MapLibre GL Popup */
+.maplibregl-popup {
+  padding: 0;
+  border-radius: 0.5rem;
+}
+
+.maplibregl-popup .maplibregl-popup-content {
+  padding: 0;
+  border-radius: 0.5rem;
+}
+
+.maplibregl-popup .popup__header {
+  /* New Tailwind classes for this section are not applied, so I write custom styles here */
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  min-height: 2rem;
+}
+
+.maplibregl-popup .maplibregl-popup-close-button {
+  right: 8px;
+  top: 5px;
+  font-size: 1rem;;
+}

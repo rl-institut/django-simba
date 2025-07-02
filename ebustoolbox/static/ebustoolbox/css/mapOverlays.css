@@ -31,19 +31,16 @@
     font-weight: bold;  /* Make the font bold */
     background-color: transparent;  /* Ensure background is transparent */
     border: none;  /* Remove the default border */
-    color: black;  /* Set the color of the "X" */
+    color: #475569;
     cursor: pointer;  /* Change cursor to indicate it's clickable */
 }
-
-
-
 
 .map-overlay {
     position: absolute; /* Position the overlay relative to the #map */
     top: 1rem; /* Adjust as needed */
     right: 0.75rem; /* Adjust as needed */
     width: 20rem;
-    height: 35rem;
+    height: fit-content;
     z-index: 99999; /* A high value to ensure it sits atop other elements */
     display: none;
     align-items: center;
@@ -51,6 +48,8 @@
     text-align: right;
     padding-top: 0.75rem; /* Adjust the value as needed */
     padding-right: 1.25rem; /* Adjust the value as needed */
+    padding-left: 1.25rem;
+    padding-bottom: 1.5rem;
     background-color: white;
     border-radius: 1rem;
     border: none;
@@ -106,11 +105,15 @@ button.btn img {
 }
 
 #slider-num_arrival {
-    margin-top: 20px;
+    margin-top: 3rem;
 }
 
-.layer-item {
-    margin-bottom: 10px;
+#slider-num_arrival .noUi-connect {
+    background: #10b981; /* Tailwind's emerald-500 */
+}
+
+#layers .layer-item {
+    margin-bottom: 0;
 }
 
 .layer-table {
@@ -145,25 +148,32 @@ button.btn img {
 }
 
 .layer-table input[type="checkbox"]:checked {
-    background: #4caf50;
+    background: #10b981; /* Tailwind's emerald-500 */
 }
 
 .layer-table input[type="checkbox"]:before {
     content: '';
     position: absolute;
-    width: 15px;
-    height: 15px;
+    width: 11px;
+    height: 11px;
     border-radius: 50%;
     background: #fff;
     left: 0;
+    top: 1px;
     transition: 0.3s;
 }
 
 .layer-table input[type="checkbox"]:checked:before {
-    left: 15px;
+    left: 16px;
+    top: 1px;
+}
+
+.layer-table input[type="checkbox"]:focus {
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.5); /* Tailwind's emerald-500 with opacity */
 }
 
 .layer-table label {
-    font-size: 18px; /* Increase font size for labels */
+    font-size: 0.875rem;
+    color: #475569; /* Tailwind's text-gray-700 */
     margin: 0; /* Remove default margin for alignment */
 }
