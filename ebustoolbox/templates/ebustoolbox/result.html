@@ -147,6 +147,7 @@
             aria-expanded="false"
             aria-haspopup="true"
             aria-label="Optionen sehen"
+
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
               stroke-width="1.5" stroke="currentColor" class="size-6">
@@ -160,8 +161,8 @@
             tabindex="-1"
           >
             <div class="py-1" role="none">
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als CSV exportieren</a>
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als JSON exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/csv">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/json">Als JSON exportieren</a>
             </div>
           </div>
         </div>
@@ -409,8 +410,8 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als CSV exportieren</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als JSON exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/csv">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/json">Als JSON exportieren</a>
               </div>
             </div>
           </div>
@@ -496,8 +497,8 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als CSV exportieren</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als JSON exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/csv">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/json">Als JSON exportieren</a>
               </div>
             </div>
           </div>
@@ -560,8 +561,8 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als CSV exportieren</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als JSON exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/csv">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/json">Als JSON exportieren</a>
               </div>
             </div>
           </div>
@@ -696,20 +697,182 @@
               <div id="busTypeChartContainer" class="chart-container mb-0 h-[340px]"></div>
             </div>
           </div>
+            <!-- Wrapper for each ellipsis and dropdown -->
+          <div class="flex justify-end mb-4">
+            <div class="relative inline-block text-left">
+                <button type="button"
+                  class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                  aria-label="Optionen sehen"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke-width="1.5" stroke="currentColor" class="size-6">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                  </svg>
+                </button>
+                <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+                  role="menu"
+                  aria-orientation="vertical"
+                  tabindex="-1"
+                >
+                  <div class="py-1" role="none">
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/csv">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/json">Als JSON exportieren</a>
+                  </div>
+                </div>
+            </div>
+          </div>
           <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
             <div id="lineChart" class="chart-container h-[480px]"></div>
+          </div>
+              <!-- Wrapper for each ellipsis and dropdown -->
+          <div class="flex justify-end mb-4">
+            <div class="relative inline-block text-left">
+                <button type="button"
+                  class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                  aria-label="Optionen sehen"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke-width="1.5" stroke="currentColor" class="size-6">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                  </svg>
+                </button>
+                <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+                  role="menu"
+                  aria-orientation="vertical"
+                  tabindex="-1"
+                >
+                  <div class="py-1" role="none">
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/csv">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/json">Als JSON exportieren</a>
+                  </div>
+                </div>
+            </div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
             <div id="DepotlineChart" class="chart-container h-[480px]"></div>
           </div>
+              <!-- Wrapper for each ellipsis and dropdown -->
+          <div class="flex justify-end mb-4">
+            <div class="relative inline-block text-left">
+                <button type="button"
+                  class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                  aria-label="Optionen sehen"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke-width="1.5" stroke="currentColor" class="size-6">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                  </svg>
+                </button>
+                <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+                  role="menu"
+                  aria-orientation="vertical"
+                  tabindex="-1"
+                >
+                  <div class="py-1" role="none">
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/csv">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/json">Als JSON exportieren</a>
+                  </div>
+                </div>
+            </div>
+          </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
             <div id="ganttChart" class="chart-container h-[480px]"></div>
+          </div>
+              <!-- Wrapper for each ellipsis and dropdown -->
+          <div class="flex justify-end mb-4">
+            <div class="relative inline-block text-left">
+                <button type="button"
+                  class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                  aria-label="Optionen sehen"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke-width="1.5" stroke="currentColor" class="size-6">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                  </svg>
+                </button>
+                <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+                  role="menu"
+                  aria-orientation="vertical"
+                  tabindex="-1"
+                >
+                  <div class="py-1" role="none">
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/csv">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/json">Als JSON exportieren</a>
+                  </div>
+                </div>
+            </div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
             <div id="soc-gantt" class="chart-container h-[480px]"></div>
           </div>
+              <!-- Wrapper for each ellipsis and dropdown -->
+          <div class="flex justify-end mb-4">
+            <div class="relative inline-block text-left">
+                <button type="button"
+                  class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                  aria-label="Optionen sehen"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke-width="1.5" stroke="currentColor" class="size-6">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                  </svg>
+                </button>
+                <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+                  role="menu"
+                  aria-orientation="vertical"
+                  tabindex="-1"
+                >
+                  <div class="py-1" role="none">
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/${taskId}/dist_histogram/">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/dist_histogram/">Als JSON exportieren</a>
+                  </div>
+                </div>
+            </div>
+          </div>
           <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
             <div id="DistHistogramChart" class="chart-container h-[480px]"></div>
+          </div>
+              <!-- Wrapper for each ellipsis and dropdown -->
+          <div class="flex justify-end mb-4">
+            <div class="relative inline-block text-left">
+                <button type="button"
+                  class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                  aria-label="Optionen sehen"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke-width="1.5" stroke="currentColor" class="size-6">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                  </svg>
+                </button>
+                <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+                  role="menu"
+                  aria-orientation="vertical"
+                  tabindex="-1"
+                >
+                  <div class="py-1" role="none">
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/csv">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/json">Als JSON exportieren</a>
+                  </div>
+                </div>
+            </div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
             <div id="SpeedHistogramChart" class="chart-container h-[480px]"></div>
@@ -738,8 +901,7 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">URL kopieren</a>
-              </div>
+                <a href="#" class="custom-action block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als PNG exportieren</a>              </div>
             </div>
           </div>
         </div>
@@ -2363,6 +2525,7 @@ document.getElementById('exportPdf').addEventListener('click', async function() 
       button.addEventListener("click", (e) => {
         e.stopPropagation();
         toggleDropdown(button);
+        console.log("ellipses button clicked");
       });
     });
 
@@ -2372,9 +2535,61 @@ document.getElementById('exportPdf').addEventListener('click', async function() 
           menu.classList.add("hidden");
           menu.classList.remove("block");
           menu.previousElementSibling.setAttribute("aria-expanded", "false");
+
         }
       });
     });
+
+    document.querySelectorAll('.fetch-option').forEach(option => {
+        option.addEventListener('click', async (e) => {
+            e.preventDefault();
+            let endpoint = option.getAttribute('data-endpoint');
+
+            // Replace placeholder with actual task ID (you can retrieve this dynamically)
+            endpoint = endpoint.replace('{task-id}', taskId);
+
+
+
+            try {
+              const response = await fetch(endpoint);
+              if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+              const contentType = response.headers.get("Content-Type");
+              const blob = await response.blob(); // Works for text, csv, json, etc.
+
+              // Optional: derive filename
+              const fileExtension = contentType.includes('json') ? 'json'
+                                  : contentType.includes('csv') ? 'csv'
+                                  : 'txt';
+              const filename = `export-${Date.now()}.${fileExtension}`;
+
+              // Create temporary download link
+              const link = document.createElement('a');
+              link.href = URL.createObjectURL(blob);
+              link.download = filename;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(link.href);
+
+            } catch (error) {
+              console.error('Download failed:', error);
+            }
+        });
+    });
+
+        // Custom function handler
+        document.querySelectorAll('.custom-action').forEach(option => {
+        option.addEventListener('click', (e) => {
+        e.preventDefault();
+        triggerCustomFunction();
+        });
+        });
+
+        function triggerCustomFunction() {
+        console.log('Custom function triggered!');
+        // Add your logic here, e.g., open modal, print, etc.
+        }
   });
 </script>
 
