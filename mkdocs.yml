@@ -11,5 +11,6 @@ theme:
   name: "mkdocs"
 
 plugins:
+- autorefs
 - search
 - mkdocstrings
