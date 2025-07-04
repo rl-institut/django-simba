@@ -105,6 +105,10 @@
   });
 
   function validateAndSubmit() {
+    // If form is not valid, stop validation early.
+    if (!document.forms ["trips_form"].reportValidity()){
+      return false
+    }
     // disable the WizardNextButton
     const wizardNextButton = document.getElementById("WizardNextButton");
     // Disable the button
@@ -118,7 +122,8 @@
     let val2 = input2.value.trim();
     let errorMessage = document.getElementById("error-message");
     // ! forces to (inverse) boolean together with != this mimics !(bool(x) XOR bool(y))
-    if (!val1 == !val2) {
+    if (!val1 == !val2 ) {
+        // invalid case
         input1.value=null;
         input2.value=null;
         let filesDiv = document.getElementById("uploaded_file_id")
@@ -127,6 +132,7 @@
         enableButton(wizardNextButton);
         event.preventDefault()
     } else {
+        // valid case
         errorMessage.style.display = "none";  // Hide error message if valid
     }
   };
