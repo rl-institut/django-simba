@@ -1,5 +1,4 @@
 # Toolchain
-+code
 Das Web-Tool basiert auf einer Reihe von Modulen die nacheinander ausgeführt werden. Verschiedene Module sind optional und unterstützen den Nutzer durch Aufbereitung, Beschaffung und Visualisierung. Die Module werden im Folgenden beschrieben.
 
 ## Datenbank
@@ -25,13 +24,13 @@ Das Modell `Trip` / Fahrt beschreibt, die Fahrt von einer Haltestelle zu einer a
 
 [Details zur Implementierung](references.md#ebustoolbox.models.Trip)
 
-## Fahrzeug
+### Fahrzeug
 
 Das Modell `Vehicle` repräsentiert ein Fahrzeug in einem Szenario. Die technischen Eigenschaften werden über einen Fremdschlüssel in einem weiteren Modell gespeichert.
 
 [Details zur Implementierung](references.md#ebustoolbox.models.Vehicle)
 
-## Fahrzeugtyp
+### Fahrzeugtyp
 
 Das Modell `VehicleType` beschreibt den Fahrzeugtyp, der in einem Szenario verwendet wird.
 Es beinhaltet technische Eigenschaften wie die Batteriekapazität, die Ladekurve, den Verbrauch und die geometrischen Maße.
@@ -40,7 +39,7 @@ Ein Fremdschlüssel kann genutzt werden, um weitere Informationen über die Batt
 
 [Details zur Implementierung](references.md#ebustoolbox.models.VehicleType)
 
-## Fahrzeugklasse
+### Fahrzeugklasse
 
 Das Modell `VehicleClass` beschreibt eine Fahrzeugklasse, die mit einem Szenario verbunden ist.
 Das Modell erlaubt die Verknüpfung von erweiterten Eigenschaften die mehreren Fahrzeugtypen zugeordnet sein können.
@@ -55,43 +54,38 @@ Die Fahrzeugklasse wird zum Beispiel genutzt um einem Fahrzeugtyp einen detailie
 <!---->
 <!-- # 1.1 Header<a id='1.1'></a> -->
 
-# Verbrauch
+### Verbrauch
 
 Das Modell `Consumption` beschreibt Verbrauchsdaten, die mit einem Szenario und einer Fahrzeugklasse verbunden sind.
-Eine Instanz besteht aus zwei Listen.
+Eine Instanz besteht aus zwei Listen aus Datenpunkten.
 `values` enthält Verbrauchswerte in kWh/km.
-`data_points` enthält die Randbedingungen die für die eben genannten Verbräuche zu grunde liegt.
-### Attribute:
-- `name` (CharField): Der Name der Verbrauchsdaten. Muss eindeutig für das Szenario sein.
-- `vehicle_class` (ForeignKey): Die Fahrzeugklasse, mit der die Verbrauchsdaten verbunden sind.
-- `scenario` (ForeignKey): Das Szenario, dem die Verbrauchsdaten zugeordnet sind.
-- `columns` (JSONField): Eine Liste von Spaltennamen, die die Eingangsbedingungen für die Verbrauchsberechnung darstellen.
-- `data_points` (ArrayField): Eine Liste von Eingabewerten für die Verbrauchsberechnung.
-- `values` (ArrayField): Eine Liste von Verbrauchswerten, die den Datenpunkten in kWh/km entsprechen.
+`data_points` enthält die Randbedingungen die für die eben genannten Verbräuche zu Grunde liegt. Sie müssen für jeder Zeile der Liste `values` vollständig vorliegen und eine Liste folgender Werte enthalten:
+- Steigung [m/m]
+- Beladungszustandj zwischen 0 und 1 [-]
+- Geschwindigkeit [km/h]
+- Umgebungstemperatur [˚C]
 
-### Meta:
-- `db_table`: Der Name der Datenbanktabelle für dieses Modell (auf "ConsumptionLut" gesetzt).
+Die Reihenfolge der Werte wird über das Feld `columns` beschrieben. Diese Liste enthält die Einträge:
 
-### Methoden:
-- `to_simba_name()`: Erstellt einen eindeutigen Namen für SimBA.
-- `get_id_from_simba_name(name)`: Gibt die ID eines SimBA-Namens zurück.
-- `to_df()`: Konvertiert die Verbrauchsdaten in ein Pandas DataFrame.
-- `from_df(df)`: Erstellt ein `Consumption`-Objekt aus einem Pandas DataFrame.
+- incline
+- t_amb
+- level_of_loading
+- mean_speed_kmh
+- consumption_kwh_per_km
+
+Der Eintrag `vehicle_class` wird genutzt um die Gruppe an Fahrzeugtypen zu referenzieren die diese Verbrauchs-Instanz nutze wird genutzt um die Gruppe an Fahrzeugtypen zu referenzieren die diese Verbrauchs-Instanz nutzen.
+
+[Details zur Implementierung](references.md#ebustoolbox.models.Consumption)
 
 ## Station
 
-Das Modell `Station` repräsentiert eine Station, die mit einem Szenario verbunden ist.
+Das Modell `Station` repräsentiert eine Haltestelle, ein Depot oder eine andere Position an der Fahrten planmäßig starten oder Enden.
+Die `Station` umfasst vor Allem Spezifikationen zur Elektrifizierung, z.B. über das Spannungsniveau, Anzahl der Ladepunkte oder die mögliche Ladeleistung.
+Die Station muss nicht zwangsweise elektrifiziert sein.
+Wenn die Elektrifizierung nicht möglich sein, so kann das Attribut `is_electrifiable` auf `False` gesetzt werden.
+Für die Kartendarstellung kann außerdem die Position als Geokoordinate hinterlegt werden.
 
-### Attribute:
-- `geom` (PointField): Der geografische Punkt, der die Position der Station ohne Höhenangabe beschreibt. Verwendet SRID 4326 für geografische Koordinaten.
-- `name` (TextField): Der Name der Station. Kann nicht null sein.
-- `name_short` (TextField, optional): Ein kurzer Name für die Station. Kann leer sein.
-- `scenario` (ForeignKey): Das Szenario, dem die Station zugeordnet ist.
-- `is_electrified` (BooleanField): Gibt an, ob die Station elektrifiziert ist. Standardmäßig auf False gesetzt.
-- `is_electrifiable` (BooleanField): Gibt an, ob die Station elektrifiziert werden kann. Standardmäßig auf True gesetzt.
-
-### Meta:
-- `db_table`: Der Name der Datenbanktabelle für dieses Modell (auf "Station" gesetzt).
+[Details zur Implementierung](references.md#ebustoolbox.models.Station)
 
 ## Line
 
