@@ -19,6 +19,11 @@ Template:
 
 ## [x.x.x] - Unreleased
 ### Changed
+- [(#237)](https://github.com/rl-institut/django-simba/pull/223)
+- Added content as placeholder to the home page
+- Worked on design details
+
+### Changed
 - [(#223)](https://github.com/rl-institut/django-simba/pull/223)
 - Dash app is removed completely from website
   - Visualization now uses [echarts.js]( https://echarts.apache.org/en/index.html)
