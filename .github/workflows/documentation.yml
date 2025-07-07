@@ -7,7 +7,7 @@ name:  Documentation
 on:
   push:
     branches:
-      - feature/documentation
+      - dev
 
 permissions:
   contents: write
