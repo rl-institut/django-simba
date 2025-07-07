@@ -19,6 +19,24 @@ Template:
 
 ## [x.x.x] - Unreleased
 ### Changed
+- [(#223)](https://github.com/rl-institut/django-simba/pull/223)
+- Dash app is removed completely from website
+  - Visualization now uses [echarts.js]( https://echarts.apache.org/en/index.html)
+
+### Changed
+- [(#220)](https://github.com/rl-institut/django-simba/pull/220)
+- SimbaScheduleReader determines encoding via charset_normalizer
+- Uses this encoding to read files to database
+
+### Changed
+- [(#161)](https://github.com/rl-institut/django-simba/pull/161)
+- Fixes #159
+- Introduces new app for getting BusSystem Related Data called "data_scrapers"
+- Further Information can be found here
+    - [ReadMe](https://github.com/rl-institut/django-simba/tree/dev?tab=readme-ov-file#data_scrapers)
+
+
+### Changed
 - [(#152)](https://github.com/rl-institut/django-simba/pull/152)
 - Fixes issues with plotting when simulation is not finished
 
@@ -38,7 +56,7 @@ Fixes #145
 
     - During Simulation a deepcopied RawScenario will be mutated by the Mutation scenario. This is a child Scenario of the Mutation Scenario.
 
-- MutationScenarios can be copied by calling  _simba/copy/_{_task_id_}
+- MutationScenarios can be copied by calling _simba/copy/_{_task_id_}
 
 
 
@@ -59,8 +77,8 @@ Fixes #145
 - Implement VDV Ingester of eflips-ingest
 - Properly populate scenario.simba_options with values after every call of a ScheduleReader
 - Implement local elevation_api with similar spec to openelvation_api
-  - Calling the api the first time will download the necessary dgm200m files
-- Secure this api with an optional token DJANGO_ELEVATION_TOKEN in .env
+  - Calling the API the first time will download the necessary dgm200m files
+- Secure this API with an optional token DJANGO_ELEVATION_TOKEN in .env
   - In this case, a request must contain the key "token" with the given value
 - Pass prints to logger instead
 - Add default_optimizer.cfg file

@@ -1,0 +1,179 @@
+.layers-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border: none;
+    cursor: pointer;
+}
+
+.layers-btn svg {
+    display: block;
+}
+
+#basemaps-control {
+    display: none; /* This completely hides the element and removes it from the layout */
+}
+
+#basemaps {
+    display: none; /* This completely hides the element and removes it from the layout */
+}
+
+#js-map-layers-box-close {
+    visibility: visible;  /* Ensure the button is not hidden */
+    display: inline-block; /* Ensure it’s not hidden */
+    position: relative; /* Ensure it's positioned correctly */
+    z-index: 9999999; /* Ensure it's on top of other elements */
+    font-size: 16px;  /* Increase the font size */
+    top: 5px;
+    right: -2px;
+    font-weight: bold;  /* Make the font bold */
+    background-color: transparent;  /* Ensure background is transparent */
+    border: none;  /* Remove the default border */
+    color: #475569;
+    cursor: pointer;  /* Change cursor to indicate it's clickable */
+}
+
+.map-overlay {
+    position: absolute; /* Position the overlay relative to the #map */
+    top: 1rem; /* Adjust as needed */
+    right: 0.75rem; /* Adjust as needed */
+    width: 20rem;
+    height: fit-content;
+    z-index: 99999; /* A high value to ensure it sits atop other elements */
+    display: none;
+    align-items: center;
+    justify-content: center;
+    text-align: right;
+    padding-top: 0.75rem; /* Adjust the value as needed */
+    padding-right: 1.25rem; /* Adjust the value as needed */
+    padding-left: 1.25rem;
+    padding-bottom: 1.5rem;
+    background-color: white;
+    border-radius: 1rem;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.map-overlay-content {
+    padding-left: 1.5rem; /* Adjust as needed */
+    padding-top: 0.5rem; /* Adjust the value as needed */
+    padding-right: 0rem; /* Adjust the value as needed */
+    justify-content: center; /* Centers the slider within the container */
+    align-items: center;
+}
+
+.buttons-container {
+    font-size: 18px; /* Ensure labels and spans have larger text */
+    width: 100%;
+    text-align: left;
+    padding: 0;
+    margin-left: -10px; /* Adjust this value to move the container left */
+}
+
+.basemaps__btn {
+    display: inline-block; /* Ensure buttons align properly in a row or column */
+    margin: 5px 0; /* Add spacing between buttons */
+}
+
+button.btn {
+    display: inline-flex; /* Align image and text horizontally */
+    align-items: center; /* Vertically center the content */
+    justify-content: flex-start; /* Align button content to the left */
+    padding: 5px 10px; /* Adjust padding inside the button */
+    border: none; /* Optional: Remove default border */
+    background: none; /* Optional: Remove default background */
+}
+
+button.btn img {
+    margin-right: 10px; /* Space between the image and the text */
+    margin-left: 0; /* Ensure image is fully left-aligned */
+    padding: 0; /* Remove any padding from the image */
+}
+
+.slider-container {
+    width: 100%;
+    margin: 0 auto; /* Centers the container horizontally */
+    justify-content: center; /* Centers the slider within the container */
+}
+
+.label-container {
+    font-size: 18px; /* Ensure labels and spans have larger text */
+    text-align: left;
+    width: 100%;
+}
+
+#slider-num_arrival {
+    margin-top: 3rem;
+}
+
+#slider-num_arrival .noUi-connect {
+    background: #10b981; /* Tailwind's emerald-500 */
+}
+
+#layers .layer-item {
+    margin-bottom: 0;
+}
+
+.layer-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.layer-table td {
+    padding: 5px;
+    text-align: left;
+    vertical-align: middle; /* Aligns content vertically in the middle */
+}
+
+.layer-table .checkbox-cell {
+    width: 40px; /* Set a fixed width for the checkbox column */
+}
+
+.layer-table .label-cell {
+    width: calc(100% - 40px); /* Take the remaining width for the label column */
+}
+
+.layer-table input[type="checkbox"] {
+    /* Custom styling for the toggle */
+    width: 30px;
+    height: 15px;
+    border-radius: 15px;
+    cursor: pointer;
+    appearance: none;
+    background: #ddd;
+    position: relative;
+    outline: none;
+}
+
+.layer-table input[type="checkbox"]:checked {
+    background: #10b981; /* Tailwind's emerald-500 */
+}
+
+.layer-table input[type="checkbox"]:before {
+    content: '';
+    position: absolute;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #fff;
+    left: 0;
+    top: 1px;
+    transition: 0.3s;
+}
+
+.layer-table input[type="checkbox"]:checked:before {
+    left: 16px;
+    top: 1px;
+}
+
+.layer-table input[type="checkbox"]:focus {
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.5); /* Tailwind's emerald-500 with opacity */
+}
+
+.layer-table label {
+    font-size: 0.875rem;
+    color: #475569; /* Tailwind's text-gray-700 */
+    margin: 0; /* Remove default margin for alignment */
+}

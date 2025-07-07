@@ -1,0 +1,37 @@
+{% load static tailwind_tags %}
+<!-- base file for many pages -->
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="{% static 'core/images/WB.svg' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>{% block title %}WeBus{% endblock title %}</title>
+    {% tailwind_css %}
+
+    {% include 'core/imports.html'%}
+    {% block header %}{% endblock header %}
+  </head>
+  <body class="bg-slate-50 min-h-lvh flex flex-col">
+    {% include 'core/navbar.html'%}
+
+    <!--
+    {% for message in messages %}
+      {{ message }}
+    {% endfor %}
+    -->
+
+    {% block content %}
+    {# this will be replaced #}
+    {% endblock content%}
+
+<!--
+    <script type="module" src="/src/main.ts"></script>
+-->
+    {% block script %}{% endblock script %}
+
+    {% include 'core/footer.html'%}
+
+  </body>
+</html>

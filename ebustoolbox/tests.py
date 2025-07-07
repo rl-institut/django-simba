@@ -8,9 +8,12 @@ from typing import Iterable
 import pandas as pd
 from django.conf import settings
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
-from django.db import transaction
+from django.db.models import F
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase, override_settings
+
+import django.apps
+import core.deepcopy
 
 # Create your tests here.
 from django.urls import reverse
@@ -19,8 +22,10 @@ from django.utils.timezone import make_aware
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
+from ebustoolbox.schedule_readers import SimbaScheduleReader
+
+from .import_export import visit_all_scenario_queries, ScenarioJSONImporterExporter
 from . import tasks
 from .forms import UploadFileForm
 from .models import (
@@ -42,6 +47,8 @@ from .models import (
 )
 from .tasks import run_simba_scenario
 from .util import get_unique_task_id
+import ebustoolbox
+
 
 TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
 TMP_STATICFILES_DIRS = settings.STATICFILES_DIRS + [settings.BASE_DIR / TMP_UPLOAD]
@@ -52,6 +59,8 @@ TMP_STATICFILES_DIRS = settings.STATICFILES_DIRS + [settings.BASE_DIR / TMP_UPLO
 @override_settings(SECURE_PROXY_SSL_HEADER=None)
 @override_settings(SECURE_SSL_REDIRECT=False)
 class MySeleniumTests(StaticLiveServerTestCase):
+    selenium: webdriver.Chrome = None
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -64,6 +73,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
 
     @classmethod
     def tearDownClass(cls):
+        ebustoolbox.data.SqlAlchemyEngine.dispose()
         cls.selenium.quit()
         super().tearDownClass()
         shutil.rmtree(TMP_UPLOAD)
@@ -78,7 +88,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
         django_scenario.save()
         tasks.run_toolchain_from_scenario(django_scenario, assign_vehicles=True)
         url = reverse("simba:result", args=(django_scenario.task_id,))
-        response = self.client.get(url)
+        _ = self.client.get(url)
         self.selenium.get(f"{self.live_server_url}{url}")
         # Clear the browser log. We check the state of the site after refresh, to give
         # map images time to load.
@@ -86,28 +96,22 @@ class MySeleniumTests(StaticLiveServerTestCase):
         self.selenium.refresh()
         # give django some time to calculate
         # Check for 404 requests
-        # Wait up to 10 seconds for the map to be loaded
-        _ = WebDriverWait(self.selenium, 10).until(EC.presence_of_element_located((By.ID, "map")))
+        # Wait until maplibre is loaded
+        # Wait until all plots are finished with fetching
 
-        errors = self.selenium.get_log("browser")
-        # ToDO handle exception
-        # An iframe which has both allow-scripts and allow-same-origin for its sandbox
-        # attribute can escape its sandboxing.'
-        with self.assertRaises(AssertionError):
-            errors = self.assertEqual(len(errors), 0, f"404 errors detected: {errors}")
-        allowed_errors = [
-            (
-                "An iframe which has both allow-scripts and allow-same-origin for its "
-                "sandbox attribute can escape its sandboxing"
-            ),
-            "styleimagemissing",
-            "dash",
-        ]
-        errors = [
-            error for error in errors if not any([(e in error["message"]) for e in allowed_errors])
-        ]
-        self.assertEqual(len(errors), 0, f"404 errors detected: {errors}")
-        self.assertContains(response, "erfolgreich")
+        # This polls an element which is set to "1" and a status after all promises
+        # of data fetching for plots are resolved
+        def element_value_is_true(driver):
+            try:
+                elem = driver.find_element(By.ID, "dataFetchedFinished")
+                value = elem.get_attribute("data-value")
+                status = elem.get_attribute("data-status")
+                return value == "1" and status == "success"
+            except Exception:
+                return False
+
+        # If the promises dont resolve this will throw an error
+        WebDriverWait(self.selenium, 5).until(element_value_is_true)
 
 
 def castable_to_dict(objects: Iterable):
@@ -273,7 +277,11 @@ class WriteReadScenarioToDatabase(TestCase):
         mutations = [
             (vehicle_type, "battery_capacity", 1),
             (vehicle_type, "charging_efficiency", 0.1),
-            (vehicle_type, "minimum_charging_power", vehicle_type.charging_curve[0][1] * 0.99),
+            (
+                vehicle_type,
+                "minimum_charging_power",
+                vehicle_type.charging_curve[0][1] * 0.99,
+            ),
             (
                 vehicle_type,
                 "charging_curve",
@@ -287,7 +295,11 @@ class WriteReadScenarioToDatabase(TestCase):
             mutations.append((vehicle_type, "consumption", vehicle_type.consumption * 0.1))
         else:
             mutations.append(
-                (consumption_table, "values", [v * 0.1 for v in consumption_table.values])
+                (
+                    consumption_table,
+                    "values",
+                    [v * 0.1 for v in consumption_table.values],
+                )
             )
 
         scen_db = simba_schedule_db.run(args_db)
@@ -471,6 +483,92 @@ class ScenarioTestCase(TestCase):
         self.assertIsNone(instance_1.task_id)
 
 
+class SimulationTestCase(TransactionTestCase):
+    def create_depot_simulation(self):
+        # PROBLEM: test scenario has no CHARGING_DEPOT events, just DRIVING and STANDBY_DEPARTURE
+        # => can't test depot charging with this
+        # HACK: change long STANDBY_DEPARTURE to CHARGING_DEPOT events and all stations to depots
+        django_scenario, simba_schedule, args = build_scenario()
+        django_scenario.simba_options = {"HORIZON": 1, "perfect_foresight": False}
+        django_scenario.save(update_fields=["simba_options"])
+        # run scenario, create events
+        run_simba_scenario(django_scenario=django_scenario)
+        django_scenario.event_set.filter(
+            event_type=EventType.STANDBY_DEPARTURE,
+            # only events long enough for charging
+            time_start__lte=F("time_end") - timedelta(minutes=30),
+        ).update(
+            event_type=EventType.CHARGING_DEPOT,
+            soc_end=1.0,
+        )
+        django_scenario.station_set.update(
+            is_electrified=True, charge_type=EnumChargeType.DEPOT, voltage_level="MV"
+        )
+        return django_scenario
+
+    def test_flex_band_off(self):
+        django_scenario, simba_schedule, args = build_scenario()
+        args.skip_flex_report = False
+        django_scenario.options = vars(args)
+        django_scenario.save()
+        django_scenario.refresh_from_db()
+        # switching the flex_report_on does not work
+        assert django_scenario.options["skip_flex_report"] is False
+        # Even though the flag is set in the database, simba will ignore it
+        simba_schedule, simba_scenario = run_simba_scenario(django_scenario)
+        # no flex_band calculations are found
+        assert simba_scenario.flex_bands is None, "Flex bands should be turned off"
+
+    def test_simulate_depot_strategy(self):
+        django_scenario = self.create_depot_simulation()
+        spiceev_scenario_dict = tasks.create_spiceev_scenario_dict(django_scenario)
+        # unknown strategy
+        with self.assertRaises(NotImplementedError):
+            tasks.simulate_depot_strategy(spiceev_scenario_dict, "error")
+
+        # simulate with SpiceEV strategies
+        for strategy in ("greedy", "balanced", "peak_shaving"):
+            spiceev_scenario = tasks.simulate_depot_strategy(spiceev_scenario_dict, strategy)
+            self.assertEqual(spiceev_scenario.step_i, spiceev_scenario.n_intervals)
+
+    def test_replace_event_timeseries(self):
+        django_scenario = self.create_depot_simulation()
+        event = (
+            django_scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT)
+            .order_by("id")
+            .last()
+        )
+        num_ts = len(event.timeseries["time"])
+        # check start/end soc
+        assert event.soc_start != event.soc_end
+        with self.assertRaises(AssertionError):
+            tasks.replace_event_timeseries(event, [event.soc_start] * num_ts)
+        with self.assertRaises(AssertionError):
+            tasks.replace_event_timeseries(event, [event.soc_end] * num_ts)
+
+        # check length of timeseries
+        assert num_ts > 2
+        with self.assertRaises(AssertionError):
+            tasks.replace_event_timeseries(event, [event.soc_start, event.soc_end])
+
+        # check None values
+        with self.assertRaises(AssertionError):
+            tasks.replace_event_timeseries(
+                event, [event.soc_start, None] + [event.soc_end] * (num_ts - 2)
+            )
+
+        # success
+        tasks.replace_event_timeseries(
+            event, [event.soc_start] + [0] * (num_ts - 2) + [event.soc_end]
+        )
+        assert event.timeseries["soc"][1] == 0
+
+    def test_apply_depot_strategy(self):
+        # basic test
+        django_scenario = self.create_depot_simulation()
+        tasks.apply_depot_strategy(django_scenario, "balanced")
+
+
 class ConsumptionTestCase(TransactionTestCase):
     def test_missing_temperature(self):
         django_scenario, simba_schedule, args = build_scenario()
@@ -504,13 +602,25 @@ class ConsumptionTestCase(TransactionTestCase):
         django_scenario, simba_schedule, args = build_scenario()
         vehicle_types = VehicleType.objects.filter(scenario=django_scenario)
         cons = Consumption.objects.filter(scenario=django_scenario)
-        for c in cons:
-            c.scenario = None
-            c.vehicle_class = None
-            c.save()
+
+        # consumption.scenario and vehicle_classes are not nullable
+        def check_nullable_scenario(consumption):
+            consumption.scenario = None
+            consumption.save()
+
+        def check_nullable_vehicle_class(consumption):
+            consumption.vehicle_class = None
+            consumption.save()
+
+        with self.assertRaises(Exception):
+            check_nullable_scenario(cons.first())
+
+        with self.assertRaises(Exception):
+            check_nullable_vehicle_class(cons.first())
 
         for vt in vehicle_types:
             vt.consumption = None
+            vt.vehicle_classes.set([])
             vt.save()
 
         # Should fail because neither vehicle_type has consumption nor a consumption points towards
@@ -539,10 +649,8 @@ class ConsumptionTestCase(TransactionTestCase):
 
         self.assertAlmostEqual(sum_consumption * 2, sum_consumption_double)
 
-        for c in cons:
-            c.scenario = django_scenario
-            c.vehicle_class = VehicleClass.objects.first()
-            c.save()
+        for vt in vehicle_types:
+            vt.vehicle_classes.add(VehicleClass.objects.first())
 
         # Should fail because vehicle_type has consumption but also consumption objects point
         # towards the same vehicle type
@@ -625,11 +733,15 @@ class ConsumptionTestCase(TransactionTestCase):
         assert sum_consumption_new != sum_consumption
 
     def test_get_consumption(self):
+        scenario = Scenario.objects.create(name="my scenario")
+        vehicle_class = VehicleClass.objects.create(name="my vehicle class", scenario=scenario)
         consumption_instance = Consumption.objects.create(
             name="My Consumption",
             columns=["speed", "other"],
             data_points=[[10, 1], [100, 3]],
             values=[1, 2],
+            vehicle_class=vehicle_class,
+            scenario=scenario,
         )
 
         assert consumption_instance.get_consumption({"speed": 10, "other": 1}) == 1
@@ -645,6 +757,8 @@ class ConsumptionTestCase(TransactionTestCase):
             ],
             data_points=[1, 10, 50, 100],
             values=[1, 2, 3, 50],
+            vehicle_class=vehicle_class,
+            scenario=scenario,
         )
         c2 = Consumption.objects.create(
             name="My Other Consumption 2",
@@ -653,6 +767,8 @@ class ConsumptionTestCase(TransactionTestCase):
             ],
             data_points=[[1], [10], [50], [100]],
             values=[1, 2, 3, 50],
+            vehicle_class=vehicle_class,
+            scenario=scenario,
         )
         assert c1.get_consumption((1)) == 1 == c2.get_consumption((1))
         assert c1.get_consumption((5.5)) == 1.5 == c2.get_consumption((5.5))
@@ -676,6 +792,8 @@ class ConsumptionTestCase(TransactionTestCase):
                 [0, 30, 3],
             ],
             values=[1, 2, 3, 4, 5, 6, 7, 8],
+            vehicle_class=vehicle_class,
+            scenario=scenario,
         )
         self.assertAlmostEqual(c.get_consumption((10, 20, 1)), 1)
         self.assertAlmostEqual(c.get_consumption((5, 20, 1)), 3)
@@ -684,51 +802,6 @@ class ConsumptionTestCase(TransactionTestCase):
         delta = 1e-9
         self.assertAlmostEqual(c.get_consumption((0 + delta, 30 - delta, 3 - delta)), 8)
         self.assertNotEqual(c.get_consumption((0 + delta, 30 - delta, 3 - delta)), 8)
-
-    def test_model_creation(self):
-        consumption_instance = Consumption.objects.create(
-            name="My Consumption",
-            columns=["speed", "consumption"],
-            data_points=[[10, 1], [100, 3]],
-            values=[1, 2],
-        )
-
-        name = "My other Consumption"
-        builder_kwargs = dict(
-            name=name,
-            columns=["speed", "consumption"],
-            data_points=[[10, 1], [100, 3]],
-            values=[1, 2],
-        )
-        # The same consumption name cannot exist twice, except when its bound by a scenario
-        Consumption.objects.create(**builder_kwargs)
-        assert Consumption.objects.filter(name=name).count() == 1
-        with transaction.atomic():
-            self.assertRaises(Exception, lambda: Consumption.objects.create(**builder_kwargs))
-        assert Consumption.objects.filter(name=name).count() == 1
-        # The name can be shared it its associated with a scenario
-        s = Scenario.objects.create(name="foo")
-        Consumption.objects.create(**builder_kwargs, scenario=s)
-        assert Consumption.objects.filter(name=name).count() == 2
-        # but only once
-        with transaction.atomic():
-            self.assertRaises(
-                Exception, lambda: Consumption.objects.create(**builder_kwargs, scenario=s)
-            )
-        assert Consumption.objects.filter(name=name).count() == 2
-
-        # but another scenario can have the same consumption name aswell
-        s = Scenario.objects.create(name="bar")
-        Consumption.objects.create(**builder_kwargs, scenario=s)
-        assert Consumption.objects.filter(name=name).count() == 3
-
-        # Wrong number of input dims
-        self.assertRaises(Exception, lambda: consumption_instance.get_consumption((999, 3, 5)))
-        # Wrong keys in input dict
-        self.assertRaises(
-            Exception,
-            lambda: consumption_instance.get_consumption({"speesdfd": 100, "consumption": 3}),
-        )
 
 
 class TripTestCase(TestCase):
@@ -968,3 +1041,74 @@ class TemperaturesTestCase(TestCase):
         )
         # Different dates raise an attribute error
         self.assertRaises(AttributeError, t_instance.save)
+
+
+class SerializerTest(TransactionTestCase):
+    def test_serializer(self):
+        count_before = count_all_rows()
+        django_scenario, _, _ = build_scenario()
+        django_scenario.task_id = get_unique_task_id()
+        django_scenario.save()
+        tasks.run_toolchain_from_scenario(django_scenario, assign_vehicles=True)
+        count_after = count_all_rows()
+        count_delta = count_after - count_before
+        print(f"Simulation Scenario added {count_delta} objects")
+
+        # Load the scenario in the exporter
+        exporter = ScenarioJSONImporterExporter()
+        visit_all_scenario_queries(exporter, django_scenario)
+
+        # Create json_data. This can be dumped and exported
+        json_data = exporter.renderJSON()
+        django_scenario.delete()
+        # Make sure the db has the same status as before
+        # exporter can load the json_data. Passing an InMemoryUploadedFile is also possible
+        exporter.loads(json_bytes=json_data)
+
+        # Objects data is flushed when loading json data
+        assert exporter.object_data == dict()
+
+        # Object Instances get recreated
+        exporter.generate_instances()
+        exporter.adjust_foreign_keys()
+        exporter.bulk_create()
+        exporter.create_many_to_many()
+        # The exporter bulk creates objects.
+        # To reset the postgres auto increment counter this command is called.
+        core.deepcopy.reset_postgres_auto_increments([Scenario._meta.app_label])
+        # Importing the scenario creates the same number of objects/rows as the exported scenario.
+        assert count_delta == count_all_rows() - count_before
+
+
+def count_all_rows() -> int:
+    """Iterate over all ebustoolbox models and sum up the rows"""
+    ebus_models = django.apps.apps.get_app_config("ebustoolbox").get_models()
+    count = 0
+    for model in ebus_models:
+        current = model.objects.count()
+        count += current
+    return count
+
+
+class ScheduleReaderTest(TestCase):
+    @override_settings(DEBUG="True")
+    @override_settings(LOG_LEVEL="DEBUG")
+    def test_encodings(self):
+        root = "ebustoolbox/static/ebustoolbox/examples/"
+        files = [
+            "trips_example_ansi.csv",
+            "trips_example_utf-16-be-bom.csv",
+            "trips_example_utf-8-bom.csv",
+            "trips_example_utf-8.csv",
+        ]
+        count_trips = None
+        for path in files:
+            scenario = Scenario.objects.create(name="Test", task_id=get_unique_task_id())
+            sr = SimbaScheduleReader(file_path=root + path)
+            sr.write_to_db(scenario_id=scenario.id)
+            if count_trips is None:
+                count_trips = Trip.objects.filter(scenario=scenario).count()
+            else:
+                new_count = Trip.objects.filter(scenario=scenario).count()
+                assert count_trips == new_count, f"{count_trips}/ {new_count}"
+            scenario.delete()

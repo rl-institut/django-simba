@@ -1,53 +1,119 @@
 """URLs for map app, including main view and API points."""
 
 from django.urls import path
+from django.views.generic.base import TemplateView
+from ebustoolbox.views import (
+    TripsView,
+    VehiclesView,
+    progress2,
+    StationsView,
+    CostsView,
+    DepotsView,
+    SummaryView,
+    model_export_json,
+    merge_and_run,
+    run_simulation,
+    DashboardView,
+    get_dashboard,
+    compare,
+    export_scenario,
+    import_scenario,
+)
 
-from . import views
+from ebustoolbox import views
+
+# from . import views
 
 app_name = "simba"
 
-# ToDo Append "/" to all url paths
 urlpatterns = [
+    path("compare/", compare, name="compare"),
     path(
-        "long_running_task_status/",
-        views.long_running_task_status_view,
-        name="long_running_task_status_view",
+        "costs/<uuid:task_id>/",
+        CostsView.as_view(),
+        name="costs",
     ),
-    path("scenarios/", views.scenarios, name="scenarios"),
-    path("usergroups/", views.usergroups, name="usergroups"),
-    path("copy/<uuid:task_id>/", views.copy_scenario, name="copy_scenario"),
-    path("result/<uuid:task_id>/", views.result_view, name="result"),
-    path("input/schedule/<uuid:task_id>/<str:finished>", views.schedule, name="schedule"),
+    path("dashboard/", get_dashboard, name="dashboard"),
     path(
-        "input/schedule/", views.schedule, {"task_id": None, "finished": "false"}, name="schedule"
-    ),
-    path(
-        "input/simulation_parameters/<uuid:task_id>",
-        views.get_simulation_parameters,
-        name="simulation_parameters",
+        "dashboard/",
+        DashboardView.as_view(),
+        name="dashboard2",
     ),
     path(
-        "input/get_options/<uuid:task_id>/<int:reader_num>", views.get_options, name="get_options"
+        "depots/<uuid:task_id>/",
+        DepotsView.as_view(),
+        name="depots",
     ),
-    path("input/vehicle_types/<uuid:task_id>", views.get_vehicle_types, name="vehicle_types"),
-    path("input/depots/<uuid:task_id>", views.get_depots, name="depots"),
-    path("input/electrification/<uuid:task_id>", views.get_electrification, name="electrification"),
+    path("progress2/<uuid:progress_id>/<str:template_name>/", progress2, name="progress"),
     path(
-        "input/scenario_overview/<uuid:task_id>/<str:finished>",
-        views.scenario_overview_view,
-        name="scenario_overview",
+        "result/<uuid:task_id>/",
+        views.result_view,  # only way I get MapengineMixin to work
+        name="result",
     ),
     path(
-        "input/scenario_overview/<uuid:task_id>",
-        views.scenario_overview_view,
-        {"finished": "false"},
-        name="scenario_overview",
+        "stations/<uuid:task_id>/",
+        StationsView.as_view(),
+        name="stations",
     ),
-    # path("set_station_values/<uuid:task_id>", views.set_station_values, name="set_station_values"),
-    path("upload_trips/<uuid:task_id>/<int:reader_num>", views.upload_trips, name="upload_trips"),
-    path("cancel_upload/<uuid:task_id>", views.cancel_upload, name="cancel_upload"),
-    path("generate_zip/<uuid:task_id>", views.generate_zip, name="generate_zip"),
-    path("download_scenario/<uuid:task_id>/", views.download_scenario, name="download_scenario"),
-    path("progress/<uuid:progress_id>/<str:progress_type>", views.progress, name="progress"),
-    path("run_simulation/<uuid:task_id>/", views.run_simulation, name="run_simulation"),
+    path(
+        "summary/<uuid:task_id>/",
+        SummaryView.as_view(),
+        name="summary",
+    ),
+    path(
+        "trips/",
+        TripsView.as_view(),
+        name="trips",
+    ),
+    path(
+        "trips/<uuid:task_id>/",
+        TripsView.as_view(),
+        name="trips",
+    ),
+    path(
+        "trips/<uuid:task_id>/<int:first>/",
+        TripsView.as_view(),
+        name="trips",
+    ),
+    path(
+        "export/<str:model_str>/<uuid:task_id>/",
+        model_export_json,
+        name="model_export_json",
+    ),
+    path(
+        "export/<uuid:task_id>/",
+        export_scenario,
+        name="JSON_export_scenario",
+    ),
+    path(
+        "import/",
+        import_scenario,
+        name="JSON_import_scenario",
+    ),
+    path(
+        "vehicles/<uuid:task_id>/",
+        VehiclesView.as_view(),
+        name="vehicles",
+    ),
+    path("run_simulation/<uuid:task_id>/", run_simulation, name="run_simulation"),
+    # path("merge_scenario/<uuid:task_id>/", merge_scenario, name="merge_scenario"),
+    path("merge_and_run/<uuid:task_id>/", merge_and_run, name="merge_and_run"),
+    # superfluous templates, just for show
+    path("DEMO/", TemplateView.as_view(template_name="ebustoolbox/dashboard_DEMO.html")),
+    # results endpoints
+    path("result/<uuid:task_id>/soc/", views.get_soc_data, name="soc_data"),
+    path("result/<uuid:task_id>/power-draw/", views.get_power_draw, name="power_draw_data"),
+    path("result/<uuid:task_id>/gantt/", views.get_gantt_data, name="gantt_data"),
+    path("result/<uuid:task_id>/stats/", views.get_stats, name="stats"),
+    path("result/<uuid:task_id>/dist_histogram/", views.get_dist_hist, name="dist_hist_data"),
+    path("result/<uuid:task_id>/speed_histogram/", views.get_speed_hist, name="speed_hist_data"),
+    path(
+        "result/<uuid:task_id>/critical_rotations/",
+        views.render_critical_rotations,
+        name="critical_rotations",
+    ),
+    path("result/<uuid:task_id>/bustype/", views.render_bustype, name="bustype"),
+    path("result/<uuid:task_id>/soc_hist/", views.get_binned_soc_data, name="soc_hist"),
+    path("result/<uuid:task_id>/depot_power/", views.get_power_draw_and_occ, name="eflips_power"),
+    path("result/<uuid:task_id>/soc_gantt/", views.get_soc_gantt, name="soc_gantt"),
 ]

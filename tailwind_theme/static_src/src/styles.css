@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fonts */
+@font-face {
+  font-family: 'Inter';
+  src: url('/static/core/fonts/Inter_18pt-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/static/core/fonts/Inter_18pt-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/static/core/fonts/Inter_18pt-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/static/core/fonts/Inter_18pt-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/static/core/fonts/Inter_18pt-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: Inter, 'ui-sans-serif', 'system-ui';
+}
+
+/* Colors */
+:root {
+  --green-050: #f0fdf4;
+  --green-100: #dcfce7;
+  --green-200: #bbf7d0;
+  --green-300: #86efac;
+  --green-400: #4ade80;
+  --green-500: #22c55e;
+  --green-600: #16a34a;
+  --green-700: #15803d;
+  --green-800: #166534;
+  --green-900: #14532d;
+  --green-950: #052e16;
+}
+
+/* Progress Bar */
+progress {
+  appearance: none;
+  width: 100%;
+  height: 1rem;
+  border-radius: 9999px;
+  overflow: hidden;
+  background-color: #e5e7eb;
+}
+
+/* Chrome/Safari */
+progress::-webkit-progress-bar {
+  background-color: #e5e7eb;
+}
+
+progress::-webkit-progress-value {
+  background-color: var(--green-400);
+  transition: width 0.3s ease;
+}
+
+/* Firefox */
+progress::-moz-progress-bar {
+  background-color: var(--green-400);
+  transition: width 0.3s ease;
+}
+
+/* MapLibre GL Popup */
+.maplibregl-popup {
+  padding: 0;
+  border-radius: 0.5rem;
+}
+
+.maplibregl-popup .maplibregl-popup-content {
+  padding: 0;
+  border-radius: 0.5rem;
+}
+
+.maplibregl-popup .popup__header {
+  /* New Tailwind classes for this section are not applied, so I write custom styles here */
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  min-height: 2rem;
+}
+
+.maplibregl-popup .maplibregl-popup-close-button {
+  right: 8px;
+  top: 5px;
+  font-size: 1rem;;
+}

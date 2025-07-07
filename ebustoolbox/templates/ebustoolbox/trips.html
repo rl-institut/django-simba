@@ -1,0 +1,148 @@
+{% extends 'ebustoolbox/wizard.html' %}
+{% load static %}
+{% load custom_filters %}
+{% block header %}
+<script>
+  const disabledClasses = ['cursor-not-allowed', 'bg-slate-200',];
+  const enabledClasses = ['hover:bg-green-300', 'hover:shadow-lg', 'active:bg-green-500', 'bg-green-400'];
+  let nextWizardButtonPrevSpan = null;
+  let wizardNextButtonSpan = null;
+  // Disable the (upload) button, e,g, disable classes and click callback
+  // Add a loading spinner to the button
+  function disableButton(btn, ){
+    btn.disabled = true;
+    btn.classList.remove(...enabledClasses);
+    btn.classList.add(...disabledClasses);
+    // Make sure to get the current state if the span was mutated after initialization
+    nextWizardButtonPrevSpan = wizardNextButtonSpan.cloneNode(true);
+    const newSpan = document.createElement("span");
+    // loader is a css class of a spinner
+    newSpan.classList.add("loader");
+    newSpan.innerText = " ";
+    wizardNextButtonSpan.replaceChildren(newSpan);
+  }
+  // Enable the (upload) button
+  function enableButton(btn){
+    btn.disabled = false;
+    btn.classList.remove(...disabledClasses);
+    btn.classList.add(...enabledClasses);
+    // Restore old content of next Button
+    wizardNextButtonSpan.replaceWith(nextWizardButtonPrevSpan);
+  }
+</script>
+{% endblock header %}
+{% block title %}WeBus - Umlaufplan{% endblock title %}
+
+{% block wizard_navigation %}
+  {% with wiz_idx=1 %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock wizard_navigation %}
+
+{% block wizard_content %}
+{#  Progress bar poll loading progress.html during server side analysis of file#}
+  {%  if progress_id %}
+{% include "core/progress_poll.html" with progress_id=progress_id template_name="progress_trips.html" %}
+      <div id="refresh_id"
+              {#Trigger "success" sent from server inside the header if the submitted file succeeded#}
+           hx-trigger="success from:body">
+      </div>
+      <div id="running"
+              {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
+           hx-trigger="running from:body">
+      </div>
+      <div id="notRunning"
+              {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
+           hx-trigger="notRunning from:body">
+      </div>
+    <script>
+      htmx.on('#refresh_id', 'htmx:trigger', function (evt) {
+          {#Success from "refresh-id" leads to refresh. View logic takes care of redirecting#}
+          {#Redirect to the trips, so the trips view can trigger the next page.#}
+          {#Server side logic should make user flow more obvious #}
+          window.location.href = "{% url 'simba:trips' task_id %}";
+      })
+      htmx.on('#notRunning', 'htmx:trigger', function (evt) {
+          let btn =document.getElementById("WizardNextButton");
+          enableButton(btn);
+      })
+      </script>
+  {% endif %}
+
+<main class="flex flex-col items-center flex-grow">
+{% include "ebustoolbox/partials/trips_form.html" %}
+</main>
+{% endblock wizard_content %}
+
+{% block wizard_buttons %}
+  {% with 'hidden_button' as buttonId %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock wizard_buttons %}
+
+{%  block script %}
+  <script>
+      htmx.on('#trips_form', 'htmx:xhr:progress', function (evt) {
+          console.log("htmx:xhr:progress fired");
+          htmx.find('#progress').setAttribute('value', evt.detail.loaded / evt.detail.total * 100)
+      });
+  </script>
+{#  load the file drop zone functions and apply them to the drop zone and input field#}
+<script src="{% static 'ebustoolbox/js/file_drop_zone_handling.js' %}" onload="setDropHandler('drop_zone','{{ form.data_file.auto_id}}')">
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Wizard is loaded after this script. We have to wait for loading
+    wizardNextButtonSpan = document.getElementById("WizardNextButtonSpan");
+    console.assert (wizardNextButtonSpan);
+    nextWizardButtonPrevSpan = wizardNextButtonSpan.cloneNode(true);
+    // if the context has a progress_id disable the upload button.
+    // a cleaner moethod could be to have to kinds of hidden buttons and show either depending on the state
+    {%  if progress_id %}
+        let btn = document.getElementById("WizardNextButton");
+        disableButton(btn);
+    {% endif %}
+  });
+
+  function validateAndSubmit() {
+    // If form is not valid, stop validation early.
+    if (!document.forms ["trips_form"].reportValidity()){
+      return false
+    }
+    // disable the WizardNextButton
+    const wizardNextButton = document.getElementById("WizardNextButton");
+    // Disable the button
+    // Disabling does not give the button the disabled look.
+    // Classes hover and active still make the button look activated
+    disableButton(wizardNextButton);
+    // If validation fails submit event will be prevented
+    let input1 = document.getElementById("{{ form.existing_scenario.auto_id }}")
+    let input2 = document.getElementById("{{ form.data_file.auto_id }}");
+    let val1 = input1.value.trim();
+    let val2 = input2.value.trim();
+    let errorMessage = document.getElementById("error-message");
+    // ! forces to (inverse) boolean together with != this mimics !(bool(x) XOR bool(y))
+    if (!val1 == !val2 ) {
+        // invalid case
+        input1.value=null;
+        input2.value=null;
+        let filesDiv = document.getElementById("uploaded_file_id")
+        filesDiv.innerHTML = ""
+        errorMessage.style.display = "block";  // Show error message
+        enableButton(wizardNextButton);
+        event.preventDefault()
+    } else {
+        // valid case
+        errorMessage.style.display = "none";  // Hide error message if valid
+    }
+  };
+</script>
+<script>
+  function updateFileName(input){
+      console.log("updating file name")
+      let uploaded_file_id=document.getElementById("uploaded_file_id")
+      let fileName = input.files.length > 0 ? input.files[0].name : 'Keine Datei ausgewählt';
+      uploaded_file_id.textContent = fileName;
+  }
+</script>
+{%  endblock script %}
