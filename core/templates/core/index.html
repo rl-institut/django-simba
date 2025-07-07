@@ -12,35 +12,267 @@
   <body class="bg-gradient-to-br from-gradient1 via-gradient2 to-gradient3 min-h-lvh flex flex-col">
     {% include 'core/navbar.html'%}
 
-    <main class="flex-grow flex flex-col items-center justify-center text-center px-4">
-      <img class="h-32 w-auto mt-8 mb-8" src="{% static 'core/images/logo/webus_white.svg' %}" alt="WeBus">
-      <p class="mt-4 text-xl text-slate-800 max-w-3xl">
-        Entwicklung und Analyse von Strategien zur vollständigen Dekarbonisierung des Berliner Busverkehrs bis 2030
-      </p>
-      <div class="mt-8 flex space-x-4">
-        <a href="{% url 'simba:trips' %}" class="px-6 py-2 bg-slate-800 text-white text-base font-semibold tracking-wide rounded-full hover:bg-black hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-900 transition-all duration-300">
-          Starten
-        </a>
-<!--
-        <button class="px-6 py-2 border-2 border-slate-800 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-100 transition-all duration-300">
-          Mehr erfahren
-        </button>
--->
+  <main>
+    <section class="px-6 pt-16 pb-0 bg-white relative">
+      <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+        <div class="space-y-8 lg:pb-32">
+          <h1 class="text-4xl lg:text-5xl font-bold text-slate-800 leading-tight">
+            Entwicklung und Analyse von Strategien zur vollständigen Dekarbonisierung des Berliner Busverkehrs bis 2030
+          </h1>
+          <div class="flex gap-4">
+            <a href="{% url 'simba:trips' %}" class="px-6 py-2 bg-slate-800 text-white text-base font-semibold tracking-wide rounded-full hover:bg-black hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-900 transition-all duration-300">
+                Starten
+            </a>
+            <button class="px-6 py-2 border-2 border-slate-800 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-100 transition-all duration-300">
+                Mehr erfahren
+            </button>
+          </div>
+        </div>
+        <div class="relative lg:absolute lg:right-0 lg:top-0 lg:w-1/2 xl:w-[45%] lg:h-full lg:z-10">
+          <!-- Desktop/Tablet Image -->
+          <div class="hidden md:block">
+            <img src="{% static 'core/images/hero_isometric_image.svg' %}"
+              alt="Isometric illustration of electric bus infrastructure"
+              class="w-full h-auto max-w-none lg:scale-125 xl:scale-110 lg:translate-x-8 xl:translate-x-0">
+          </div>
+          <!-- Mobile Image -->
+          <div class="block md:hidden">
+            <img src="https://via.placeholder.com/400x300/20E3B2/ffffff?text=Electric+Bus" 
+              alt="Electric bus charging station"
+              class="w-full h-auto">
+          </div>
+        </div>
       </div>
-    </main>
+    </section>
 
-    <footer class="bg-slate-800 text-white">
-      <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <ul class="flex justify-center space-x-6 text-sm">
-<!--
-          <li><a href="#" class="hover:underline">Kontakt</a></li>
--->
-          <li><a href="{% url 'core:legal' %}" class="hover:underline">Impressum</a></li>
-          <li><a href="{% url 'core:privacy' %}" class="hover:underline">Datenschutz</a></li>
-        </ul>
+    <section class="bg-gradient-teal px-6 pt-32 pb-24 relative">
+      <div class="max-w-7xl mx-auto">
+        <h2 class="text-2xl font-bold text-slate-800 text-center uppercase mb-20">Features</h2>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-2 gap-12">
+          <div class="bg-white rounded-2xl p-8 shadow-lg">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-12 h-12 bg-gradient2 rounded-lg flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3l14 9-14 9V3z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-bold text-slate-800">Einfache Bedienung</h3>
+            </div>
+            <p class="text-slate-600 leading-relaxed">
+              Die Website leitet Sie Schritt-für-Schritt durch den Simulationsprozess. Eingansparameter werden ausführlich erläutert, Beispiele bereitgestellt und ein Tutorialvideo erklärt die Website in nur 10 Minuten. Experten-Wissen ist nicht notwendig.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 shadow-lg">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-12 h-12 bg-gradient2 rounded-lg flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-bold text-slate-800">Vielfältige Eingangsdaten</h3>
+            </div>
+            <p class="text-slate-600 leading-relaxed">
+              Es besteht die Möglichkeit Busfahrpläne in verschiedenen Formaten hochzuladen, z.B. als einfache .csv Tabelle, VDV-Konform als .x10 oder die Nutzung von Online-Fahrplänen, falls Ihnen keine Daten verfügbar sind.
+            </p>
+          </div>
+
+          <div class="bg-slate-100 rounded-2xl p-8 shadow-lg">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-12 h-12 bg-gradient2 rounded-lg flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-bold text-slate-800">Detaillierte Prozessmodellierung</h3>
+            </div>
+            <p class="text-slate-600 leading-relaxed">
+              Das Tool nutzt eine Vielzahl von Randbedingungen, die den Betrieb von elektrischen Fahrzeugen maßgeblich beeinflussen. Ladezeiten, Reinigung, Umparken, begrenzte Flächen, Ladekurven und vieles mehr werden berücksichtigt.
+            </p>
+          </div>
+
+          <div class="bg-slate-100 rounded-2xl p-8 shadow-lg">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-12 h-12 bg-gradient2 rounded-lg flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-bold text-slate-800">Elektrifizierungsstrategie</h3>
+            </div>
+            <p class="text-slate-600 leading-relaxed">
+              Sollte ein Bussystem im Ausgangszustand nicht elektrisch betrieben werden können, kann die Website prüfen, ob dies durch die Elektrifizierung von möglichst wenig Einzelhaltestellen möglich ist.
+            </p>
+          </div>
+
+          <div class="bg-slate-100 rounded-2xl p-8 shadow-lg">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-12 h-12 bg-gradient2 rounded-lg flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-bold text-slate-800">Kostenberechnung</h3>
+            </div>
+            <p class="text-slate-600 leading-relaxed">
+              Eine Kostenberechnung liefert Ihnen eine Abschätzung für die Total-Cost-of-Ownership und andere wichtige betriebswirtschaftliche Kennzahlen.
+            </p>
+          </div>
+
+          <div class="bg-slate-100 rounded-2xl p-8 shadow-lg">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-12 h-12 bg-gradient2 rounded-lg flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-bold text-slate-800">Visualisierung</h3>
+            </div>
+            <p class="text-slate-600 leading-relaxed">
+              Das simulierte Bussystem wird automatisch ausgewertet und visualisiert. So können in Kürze Aussagen über ein elektrifiziertes Bussystem getroffen und Entscheidungen abgeleitet werden.
+            </p>
+          </div>
+        </div>
       </div>
-    </footer>
+    </section>
 
+    <section class="relative">
+        <!-- Split background - teal top, white bottom -->
+        <div class="absolute inset-0">
+          <div class="h-1/2 bg-gradient-teal"></div>
+          <div class="h-1/2 bg-white"></div>
+        </div>
+
+        <!-- Bus image positioned in the center -->
+        <div class="relative px-6 py-16">
+          <div class="max-w-7xl mx-auto">
+            <div class="flex justify-start">
+              <img src="{% static 'core/images/bus_stop.png' %}"
+                alt=""
+                class="w-80 h-auto relative z-10">
+            </div>
+          </div>
+        </div>
+    </section>
+
+    <section class="bg-white px-6 py-16">
+      <div class="max-w-7xl mx-auto">
+        <h2 class="text-2xl font-bold text-slate-800 text-center uppercase mb-16">Das EBus2030+ Tool ist in Entwicklung</h2>
+
+        <div class="grid md:grid-cols-3 gap-8">
+          <div class="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Publications</h3>
+            <p class="text-slate-600 leading-relaxed mb-6">
+              Momentan sind noch keine Veröffentlichungen verfügbar. In Kürze werden hier wissenschaftliche Publikationen und Zwischenberichte veröffentlicht.
+            </p>
+            <a href="#" class="text-slate-600 hover:text-slate-800 flex items-center gap-2 transition-all duration-300 hover-translate hover-arrow">
+              <span class="arrow transition-transform duration-300">→</span> Zur Kategorie
+              </a>
+          </div>
+
+          <div class="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">GitHub</h3>
+            <p class="text-slate-600 leading-relaxed mb-6">
+              Unsere Software zur Modellierung von Bussystemen ist öffentlich verfügbar. Hier finden Sie den Quellcode für SimBA, Eflips sowie auch der Website.
+            </p>
+            <a href="#" class="text-slate-600 hover:text-slate-800 flex items-center gap-2 transition-all duration-300 hover-translate hover-arrow">
+              <span class="arrow transition-transform duration-300">→</span> Zu GitHub
+            </a>
+          </div>
+
+          <div class="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Read the Docs</h3>
+            <p class="text-slate-600 leading-relaxed mb-6">
+              Elektrische Bussysteme sind komplex. Dies gilt auch für die Modellierung solcher Systeme. Eine ausführliche Dokumentation unserer Simulation und Berechnung finden Sie hier.
+            </p>
+            <a href="#" class="text-slate-600 hover:text-slate-800 flex items-center gap-2 transition-all duration-300 hover-translate hover-arrow">
+              <span class="arrow transition-transform duration-300">→</span> Zur Dokumentation
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-slate-100 px-6 py-16">
+      <div class="max-w-7xl mx-auto">
+        <h2 class="text-2xl font-bold text-slate-800 text-center uppercase mb-16">Konsortium</h2>
+
+        <div class="grid md:grid-cols-3 gap-8 mb-16">
+          <div class="text-center">
+            <div class="flex items-center justify-center mx-auto mb-4">
+              <img src="{% static 'templates/img/bvg_icon.png' %}" alt="BVG Logo" class="w-auto h-16">
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-4">BVG</h3>
+            <p class="text-slate-600 leading-relaxed">
+              Amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi.
+            </p>
+          </div>
+
+          <div class="text-center">
+            <div class="flex items-center justify-center mx-auto mb-4">
+              <img src="{% static 'templates/img/tu_icon.png' %}" alt="TUB Logo" class="w-auto h-16">
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-4">TU Berlin</h3>
+            <p class="text-slate-600 leading-relaxed">
+              Amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi.
+            </p>
+          </div>
+
+          <div class="text-center">
+            <div class="flex items-center justify-center mx-auto mb-4">
+              <img src="{% static 'templates/img/RLI_Logo.png' %}" alt="RLI Logo" class="w-auto h-16">
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Reiner Lemoine Institut</h3>
+            <p class="text-slate-600 leading-relaxed">
+              Amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi.
+            </p>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <p class="text-slate-600 mb-4">Gefördert durch:</p>
+          <div class="flex justify-center items-center gap-4">
+            <img src="{% static 'templates/img/bmdv_icon.jpg' %}" alt="BMDV Logo" class="w-auto h-32">
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  <footer class="bg-white px-6 py-8 border-t border-slate-200">
+    <div class="max-w-7xl mx-auto">
+      <div class="flex justify-between items-center mb-8">
+        <div class="flex items-center gap-8">
+          <div class="flex items-center gap-2">
+            <div class="flex items-center justify-center mx-auto mb-4">
+              <img src="{% static 'templates/img/RLI_Logo.png' %}" alt="RLI Logo" class="w-auto h-16">
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="flex items-center justify-center mx-auto mb-4">
+              <img src="{% static 'templates/img/tu_icon.png' %}" alt="TUB Logo" class="w-auto h-16">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center text-sm text-slate-600">
+        <p>© 2024 RLI. All rights reserved.</p>
+        <div class="flex gap-6">
+          <a href="{% url 'core:legal' %}" class="hover:text-slate-800 transition-colors duration-300">
+            Impressum
+          </a>
+          <a href="{% url 'core:privacy' %}" class="hover:text-slate-800 transition-colors duration-300">
+            Datenschutz
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+    <!-- Still needed? -->
 <!--
     <script type="module" src="/src/main.ts"></script>
 -->
