@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Toolchain - WeBus</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../css/brands.min.css" rel="stylesheet">
+        <link href="../css/solid.min.css" rel="stylesheet">
+        <link href="../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet">
+        <link href="../css/version-select.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">WeBus</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href=".." class="nav-link">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../install/" class="nav-link">Installation</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="./" class="nav-link active" aria-current="page">Toolchain</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../about/" class="nav-link">About</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../simba/" class="nav-link">SimBA</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../references/" class="nav-link">References</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../install/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../about/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#toolchain" class="nav-link">Toolchain</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#datenbank" class="nav-link">Datenbank</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#fahrzeug" class="nav-link">Fahrzeug</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#fahrzeugtyp" class="nav-link">Fahrzeugtyp</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#fahrzeugklasse" class="nav-link">Fahrzeugklasse</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#verbrauch" class="nav-link">Verbrauch</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#station" class="nav-link">Station</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#line" class="nav-link">Line</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#route" class="nav-link">Route</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#depot" class="nav-link">Depot</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#plan" class="nav-link">Plan</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#process" class="nav-link">Process</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#area" class="nav-link">Area</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#wizard" class="nav-link">Wizard</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#verbrauchsberechnung" class="nav-link">Verbrauchsberechnung</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#stations-optimierung" class="nav-link">Stations-Optimierung</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#depotoptimierung" class="nav-link">Depotoptimierung</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#konsolidierung" class="nav-link">Konsolidierung</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="toolchain">Toolchain</h1>
+<p>+code
+Das Web-Tool basiert auf einer Reihe von Modulen die nacheinander ausgeführt werden. Verschiedene Module sind optional und unterstützen den Nutzer durch Aufbereitung, Beschaffung und Visualisierung. Die Module werden im Folgenden beschrieben.</p>
+<h2 id="datenbank">Datenbank</h2>
+<h3 id="szenario">Szenario</h3>
+<p>Das Modell <code>Scenario</code> bündelt Datenpakete und speichert verschiedene Parameter, welche für die Simulation notwendig sind. WeBus enthält 3 verschiedene Szenariotypen.
+ - Source / Quellszenario
+ - Mutation / Veränderungsszenario
+ - Simulation / Simulationsszenario</p>
+<p>Hierbei existieren die ersten beiden Typen, um dem Nutzer ein möglichst einfachen Umgang mit Szenarien zu ermöglichen ohne wiederholt die gleichen Dateien hochladen zu müssen und die Möglichkeit zu besitzen Einstellungen aus vorherigen Simulationen zu übernehmen. Weitere Daten, die benötigt werden, um ein Szenario zu beschreiben besitzen eine Referenz zu einer Szenarioinstanz.
+Für den Kern der Simulation ist nur das Simulationsszenario von Bedeutung. Dieses wird aus dem Quellszenario und dem Veränderungsszenario generiert. Im Folgenden werden nur Modelle des Simulationsszenarios beschrieben. Beschreibungen für Modelle, welche periphere Aufgaben übernehmen, wie die bereits genannte Speicherung von Simulationsfortschitt oder die Verknüpfung von Quell- und Veränderungsszenario können <a href="../references/#ebustoolbox.models">hier</a> gefunden werden.</p>
+<p><a href="../references/#ebustoolbox.models.Scenario">Details zur Implementierung</a></p>
+<h3 id="umlauf">Umlauf</h3>
+<p>Das Modell <code>Rotation</code> / Umlauf bündelt Daten, welche einen Umlauf beschreiben. Dazu gehört der Fahrzeugtyp, ein Fahrzeug diesen Typs und ein Name. Weiter Daten die diesen Umlauf beschreiben, referenzieren eine Umlaufinstanz.</p>
+<p><a href="../references/#ebustoolbox.models.Rotation">Details zur Implementierung</a></p>
+<h3 id="fahrt">Fahrt</h3>
+<p>Das Modell <code>Trip</code> / Fahrt beschreibt, die Fahrt von einer Haltestelle zu einer anderen.</p>
+<p><a href="../references/#ebustoolbox.models.Trip">Details zur Implementierung</a></p>
+<h2 id="fahrzeug">Fahrzeug</h2>
+<p>Das Modell <code>Vehicle</code> repräsentiert ein Fahrzeug in einem Szenario. Die technischen Eigenschaften werden über einen Fremdschlüssel in einem weiteren Modell gespeichert.</p>
+<p><a href="../references/#ebustoolbox.models.Vehicle">Details zur Implementierung</a></p>
+<h2 id="fahrzeugtyp">Fahrzeugtyp</h2>
+<p>Das Modell <code>VehicleType</code> beschreibt den Fahrzeugtyp, der in einem Szenario verwendet wird.
+Es beinhaltet technische Eigenschaften wie die Batteriekapazität, die Ladekurve, den Verbrauch und die geometrischen Maße.
+Ein Fremdschlüssel kann genutzt werden, um weitere Informationen über die Batterieeigenschaften zu definieren.</p>
+<p><a href="../references/#ebustoolbox.models.VehicleType">Details zur Implementierung</a></p>
+<h2 id="fahrzeugklasse">Fahrzeugklasse</h2>
+<p>Das Modell <code>VehicleClass</code> beschreibt eine Fahrzeugklasse, die mit einem Szenario verbunden ist.
+Das Modell erlaubt die Verknüpfung von erweiterten Eigenschaften die mehreren Fahrzeugtypen zugeordnet sein können.
+Die Fahrzeugklasse wird zum Beispiel genutzt um einem Fahrzeugtyp einen detailierten <a href="#verbrauch">Verbrauch</a> zuzuordnen.</p>
+<p><a href="../references/#ebustoolbox.models.VehicleClass">Details zur Implementierung</a></p>
+<!-- # 1.1 [Header](#1.1)    -->
+<!---->
+<!-- ...some text... -->
+<!---->
+<!-- # 1.1 Header<a id='1.1'></a> -->
+
+<h1 id="verbrauch">Verbrauch</h1>
+<p>Das Modell <code>Consumption</code> beschreibt Verbrauchsdaten, die mit einem Szenario und einer Fahrzeugklasse verbunden sind.
+Eine Instanz besteht aus zwei Listen.
+<code>values</code> enthält Verbrauchswerte in kWh/km.
+<code>data_points</code> enthält die Randbedingungen die für die eben genannten Verbräuche zu grunde liegt.</p>
+<h3 id="attribute">Attribute:</h3>
+<ul>
+<li><code>name</code> (CharField): Der Name der Verbrauchsdaten. Muss eindeutig für das Szenario sein.</li>
+<li><code>vehicle_class</code> (ForeignKey): Die Fahrzeugklasse, mit der die Verbrauchsdaten verbunden sind.</li>
+<li><code>scenario</code> (ForeignKey): Das Szenario, dem die Verbrauchsdaten zugeordnet sind.</li>
+<li><code>columns</code> (JSONField): Eine Liste von Spaltennamen, die die Eingangsbedingungen für die Verbrauchsberechnung darstellen.</li>
+<li><code>data_points</code> (ArrayField): Eine Liste von Eingabewerten für die Verbrauchsberechnung.</li>
+<li><code>values</code> (ArrayField): Eine Liste von Verbrauchswerten, die den Datenpunkten in kWh/km entsprechen.</li>
+</ul>
+<h3 id="meta">Meta:</h3>
+<ul>
+<li><code>db_table</code>: Der Name der Datenbanktabelle für dieses Modell (auf "ConsumptionLut" gesetzt).</li>
+</ul>
+<h3 id="methoden">Methoden:</h3>
+<ul>
+<li><code>to_simba_name()</code>: Erstellt einen eindeutigen Namen für SimBA.</li>
+<li><code>get_id_from_simba_name(name)</code>: Gibt die ID eines SimBA-Namens zurück.</li>
+<li><code>to_df()</code>: Konvertiert die Verbrauchsdaten in ein Pandas DataFrame.</li>
+<li><code>from_df(df)</code>: Erstellt ein <code>Consumption</code>-Objekt aus einem Pandas DataFrame.</li>
+</ul>
+<h2 id="station">Station</h2>
+<p>Das Modell <code>Station</code> repräsentiert eine Station, die mit einem Szenario verbunden ist.</p>
+<h3 id="attribute_1">Attribute:</h3>
+<ul>
+<li><code>geom</code> (PointField): Der geografische Punkt, der die Position der Station ohne Höhenangabe beschreibt. Verwendet SRID 4326 für geografische Koordinaten.</li>
+<li><code>name</code> (TextField): Der Name der Station. Kann nicht null sein.</li>
+<li><code>name_short</code> (TextField, optional): Ein kurzer Name für die Station. Kann leer sein.</li>
+<li><code>scenario</code> (ForeignKey): Das Szenario, dem die Station zugeordnet ist.</li>
+<li><code>is_electrified</code> (BooleanField): Gibt an, ob die Station elektrifiziert ist. Standardmäßig auf False gesetzt.</li>
+<li><code>is_electrifiable</code> (BooleanField): Gibt an, ob die Station elektrifiziert werden kann. Standardmäßig auf True gesetzt.</li>
+</ul>
+<h3 id="meta_1">Meta:</h3>
+<ul>
+<li><code>db_table</code>: Der Name der Datenbanktabelle für dieses Modell (auf "Station" gesetzt).</li>
+</ul>
+<h2 id="line">Line</h2>
+<p>Das Modell <code>Line</code> beschreibt eine Linie, die mit einem Szenario verbunden ist.</p>
+<h3 id="attribute_2">Attribute:</h3>
+<ul>
+<li><code>scenario</code> (ForeignKey): Das Szenario, dem die Linie zugeordnet ist.</li>
+<li><code>name</code> (TextField): Der Name der Linie. Kann nicht null oder leer sein.</li>
+<li><code>name_short</code> (TextField, optional): Ein kurzer Name für die Linie.</li>
+</ul>
+<h3 id="meta_2">Meta:</h3>
+<ul>
+<li><code>db_table</code>: Der Name der Datenbanktabelle für dieses Modell (auf "Line" gesetzt).</li>
+</ul>
+<h2 id="route">Route</h2>
+<p>Das Modell <code>Route</code> beschreibt eine Route, die mit einem Szenario verbunden ist.</p>
+<h3 id="attribute_3">Attribute:</h3>
+<ul>
+<li><code>geom</code> (LineStringField): Die Form der Route mit Höhenangaben. Verwendet SRID 4326 für geografische Koordinaten.</li>
+<li><code>distance</code> (FloatField): Die zurückgelegte Strecke der Route in Metern.</li>
+<li><code>name</code> (TextField, optional): Der Name der Route. Kann null sein.</li>
+<li><code>name_short</code> (TextField, optional): Ein kurzer Name für die Route. Kann leer sein.</li>
+<li><code>scenario</code> (ForeignKey): Das Szenario, dem die Route zugeordnet ist.</li>
+<li><code>line</code> (ForeignKey, optional): Die Linie, die mit der Route verbunden ist.</li>
+<li><code>departure_station</code> (ForeignKey): Die Abfahrtsstation der Route.</li>
+<li><code>arrival_station</code> (ForeignKey): Die Ankunftsstation der Route.</li>
+</ul>
+<h3 id="meta_3">Meta:</h3>
+<ul>
+<li><code>db_table</code>: Der Name der Datenbanktabelle für dieses Modell (auf "Route" gesetzt).</li>
+</ul>
+<h2 id="depot">Depot</h2>
+<p>Das Modell <code>Depot</code> repräsentiert einen Depotstandort, an dem Fahrzeuge geparkt, gewartet und dispatched werden.</p>
+<h3 id="attribute_4">Attribute:</h3>
+<ul>
+<li><code>scenario</code> (ForeignKey): Das Szenario, dem das Depot zugeordnet ist.</li>
+<li><code>name</code> (TextField): Der Name des Depots. Kann nicht null sein.</li>
+<li><code>location</code> (PointField): Die geografische Lage des Depots.</li>
+</ul>
+<h3 id="meta_4">Meta:</h3>
+<ul>
+<li><code>db_table</code>: Der Name der Datenbanktabelle für dieses Modell (auf "Depot" gesetzt).</li>
+</ul>
+<h2 id="plan">Plan</h2>
+<p>Das Modell <code>Plan</code> beschreibt den Planungsprozess von Fahrzeugumläufen.</p>
+<h3 id="attribute_5">Attribute:</h3>
+<ul>
+<li><code>scenario</code> (ForeignKey): Das Szenario, dem der Plan zugeordnet ist.</li>
+<li><code>name</code> (TextField): Der Name des Plans.</li>
+<li><code>routes</code> (ManyToManyField): Eine Liste von Routen, die im Plan enthalten sind.</li>
+</ul>
+<h3 id="meta_5">Meta:</h3>
+<ul>
+<li><code>db_table</code>: Der Name der Datenbanktabelle für dieses Modell (auf "Plan" gesetzt).</li>
+</ul>
+<h2 id="process">Process</h2>
+<p>Das Modell <code>Process</code> beschreibt einen Prozess innerhalb des Szenarios.</p>
+<h3 id="attribute_6">Attribute:</h3>
+<ul>
+<li><code>scenario</code> (ForeignKey): Das Szenario, dem der Prozess zugeordnet ist.</li>
+<li><code>name</code> (TextField): Der Name des Prozesses.</li>
+<li><code>status</code> (BooleanField): Der Status des Prozesses (z.B., ob er abgeschlossen ist).</li>
+</ul>
+<h3 id="meta_6">Meta:</h3>
+<ul>
+<li><code>db_table</code>: Der Name der Datenbanktabelle für dieses Modell (auf "Process" gesetzt).</li>
+</ul>
+<h2 id="area">Area</h2>
+<p>Das Modell <code>Area</code> beschreibt ein geografisches Gebiet innerhalb eines Szenarios.</p>
+<h3 id="attribute_7">Attribute:</h3>
+<ul>
+<li><code>name</code> (TextField): Der Name des Gebiets.</li>
+<li><code>boundary</code> (PolygonField): Die geographische Grenze des Gebiets.</li>
+<li><code>scenario</code> (ForeignKey): Das Szenario, dem das Gebiet zugeordnet ist.</li>
+</ul>
+<h3 id="meta_7">Meta:</h3>
+<ul>
+<li><code>db_table</code>: Der Name der Datenbanktabelle für dieses Modell (auf "Area" gesetzt).</li>
+</ul>
+<h2 id="wizard">Wizard</h2>
+<h2 id="verbrauchsberechnung">Verbrauchsberechnung</h2>
+<h2 id="stations-optimierung">Stations-Optimierung</h2>
+<h2 id="depotoptimierung">Depotoptimierung</h2>
+<h2 id="konsolidierung">Konsolidierung</h2></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../search/main.js"></script>
+        <script src="../js/version-select.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

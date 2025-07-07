@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Installation - WeBus</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../css/brands.min.css" rel="stylesheet">
+        <link href="../css/solid.min.css" rel="stylesheet">
+        <link href="../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <link href="../assets/_mkdocstrings.css" rel="stylesheet">
+        <link href="../css/version-select.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">WeBus</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href=".." class="nav-link">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="./" class="nav-link active" aria-current="page">Installation</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../toolchain/" class="nav-link">Toolchain</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../about/" class="nav-link">About</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../simba/" class="nav-link">SimBA</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../references/" class="nav-link">References</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href=".." class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../toolchain/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="2"><a href="#installation" class="nav-link">Installation</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="2"><a href="#running" class="nav-link">Running</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="2"><a href="#development" class="nav-link">Development</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="2"><a href="#setup-and-recreation-of-database" class="nav-link">Setup and Recreation of Database</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="2"><a href="#loading-a-sql-dump" class="nav-link">Loading a SQL dump</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="2"><a href="#docker-install" class="nav-link">Docker install</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="2"><a href="#docker-build-and-run" class="nav-link">Docker build and run</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="2"><a href="#data_scrapers" class="nav-link">data_scrapers</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h2 id="installation">Installation</h2>
+<ol>
+<li>Clone this git repository (or <a href="https://github.com/rl-institut/django-simba/releases">download a specific release</a>)
+    <code>bash
+    git clone git@github.com:rl-institut/django-simba.git</code></li>
+<li>
+<p>Install prerequisites</p>
+<ol>
+<li>The currently suggested Python version is 3.11.*, it may work with other versions, but this is not tested.</li>
+<li>This software requires GDAL, which can be installed<ul>
+<li>on Linux via the system's package manager (e.g. <code>apt install gdal-bin</code> on Ubuntu)</li>
+<li>on macOS via <a href="https://brew.sh/">Homebrew</a> (<code>brew install gdal</code>)</li>
+<li>on Windows via <a href="https://trac.osgeo.org/osgeo4w/">OSGeo4W</a> (select the <code>gdal</code> package)</li>
+</ul>
+</li>
+<li>The software requires a PostgreSQL database with the PostGIS package.<ul>
+<li>The software is found <a href="https://www.postgresql.org/download/">here</a> and <a href="https://postgis.net/documentation/getting_started/">here</a> or via your system's (or server's) package manager (e.g. <code>apt install postgis</code>)</li>
+<li>When the elevation_api is used postgis_raster is needed</li>
+<li>can be installed by connecting to your database and running
+   <code>bash
+   create extension postgis_raster;</code></li>
+<li>The credentials for the database are set in <code>ebusdjango/settings.py</code> in the <code>DATABASES</code>variable. <strong>SECURITY WARNING: Do not commit your passwords to GitHub!</strong></li>
+<li>In order to set up PostGIS, the user you created needs to have 'superuser' privileges.</li>
+</ul>
+</li>
+<li>The software can optionally use <a href="https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html">backend for Celery</a> to be available. Its address is set in the <code>CELERY_BROKER_URL</code> in the <code>.env</code> file.<ul>
+<li><a href="https://www.rabbitmq.com/">rabbitmq</a> can be installed on ubuntu using <code>apt install rabbitmq-server</code></li>
+<li>A user can be added using the following commands (or the guest user can bs used):<ol>
+<li><code>rabbitmqctl add_user $user $password</code></li>
+<li><code>rabbitmqctl set_permissions -p / $user ".*" ".*" ".*"</code></li>
+</ol>
+</li>
+</ul>
+</li>
+<li>Install <a href="https://python-poetry.org/docs/#installation">poetry</a> for environment and dependency management.</li>
+<li>The dependencies can be installed via
+    <code>bash
+    poetry install</code>
+   For developers, use
+    <code>bash
+    poetry install --with dev</code></li>
+<li>Django uses an .env file to read user specific data. This file has to be created by the user and is not shared through GitHub to make uploads of sensitive data impossible. Create a file named <code>.env</code> with the following input`
+   <code>text
+ DJANGO_SECRET_KEY=INSERT_YOUR_KEY_HERE
+ DJANGO_DEBUG=True
+ # Replace with your own database info
+ DATABASE_URL=postgis://YOUR_DB_USERNAME:YOUR_PASSWORD@localhost/YOUR_DB_NAME
+ # Should the simulation run with eflips-depot. Development setting which will be set to True in stable Versions.
+ EFLIPS_USE=TRUE
+ # Should celery be used synchronously? In this case no celery process and CELERY_BROKER_URL is needed.
+ CELERY_TASK_ALWAYS_EAGER=True
+ # CELERY_BROKER_URL=pyamqp://guest@localhost//
+ TILING_SERVICE_TOKEN=GET_YOUR_TOKEN_THROUGH_MAP_TILER
+ TILING_SERVICE_STYLE_ID=basic-v2
+ DJANGO_SETTINGS_MODULE=ebusdjango.settings
+ # If you are developing locally set this to true. It disables production security features.
+ DJANGO_LOCAL_DEVELOPMENT=True
+ # for elevation API usage
+ DJANGO_ELEVATION_TOKEN=YOUR_TOKEN_ELEVATION_TOKEN
+ OPENELEVATION_URL=http://127.0.0.1:8000/elevation_api/YOUR_TOKEN_ELEVATION_TOKEN
+ # If no admin user exists in the database, one will be autogenerated with this password
+  DJANGO_ADMIN_PASSWORD=SOME_ADMIN_PASSWORD</code></li>
+</ol>
+</li>
+<li>
+<p>Set up django (inside the virtual environment)</p>
+<ol>
+<li>Set up the database: <code>python manage.py migrate</code></li>
+<li>Create admin account: <code>python manage.py createsuperuser</code> <strong>TODO: Is this necessary?</strong></li>
+</ol>
+</li>
+</ol>
+<h2 id="running">Running</h2>
+<ol>
+<li>Only if <code>.env</code>has a celery broker listed, start a celery worker (in another terminal): <code>celery -A ebusdjango worker -l info</code><ul>
+<li>on macOS <code>OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES</code> before the command may be necessary</li>
+</ul>
+</li>
+<li>Run the server: <code>python manage.py runserver</code></li>
+<li>For the design, Tailwind is used. Therefore, styles have to be compiled with <code>python manage.py tailwind start</code>. While developing and changing designs, this should run parallel to Django. Later, it might have to be called once to generate styles.</li>
+</ol>
+<h2 id="development">Development</h2>
+<p>For development dependencies can be installed via</p>
+<pre><code class="language-bash">poetry install --with dev
+</code></pre>
+<p>To run tests your PostgreSQL user needs SUPERUSER rights to be able to create test databases and delete them. Furthermore, for testing with selenium chromedriver is needed. Resources can be found here <a href="https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json">Latest Google Chrome and Chromedriver</a>. Chromedriver has to be added to PATH.</p>
+<h2 id="setup-and-recreation-of-database">Setup and Recreation of Database</h2>
+<p>During development, it might be necessary to delete the database and recreate it. The following instructions seem to work for Linux/Ubuntu
+go into terminal and log in as postgres superuser</p>
+<pre><code class="language-bash">sudo -i -u postgres
+</code></pre>
+<p>Get into sql</p>
+<pre><code class="language-bash">psql -U postgres
+</code></pre>
+<p>Drop the old database</p>
+<pre><code class="language-bash">DROP DATABASE your_database;
+</code></pre>
+<p>Create new database</p>
+<pre><code class="language-bash">CREATE DATABASE your_database;
+</code></pre>
+<p>go into database via</p>
+<pre><code class="language-bash">\c mydb
+</code></pre>
+<p>or exit with \q and connect directly from normal terminal</p>
+<pre><code class="language-bash">psql -U postgres -d mydb
+</code></pre>
+<p>Define settings and install postgis and show installation worked</p>
+<pre><code class="language-bash">CREATE EXTENSION IF NOT EXISTS postgis;
+SELECT PostGIS_version();
+</code></pre>
+<h2 id="loading-a-sql-dump">Loading a SQL dump</h2>
+<p>A database dump can be used to fill the database.
+In your terminal navigate to the dump file ending with sql. If it is a text based dump use</p>
+<pre><code class="language-bash">psql -U YourProjectuser -h 127.0.0.1 YourDBName &lt; DumpFileName.sql;
+</code></pre>
+<p>For some reason specifying the host seems to be needed on my machine. This has something to do how authentification seems to work.</p>
+<h2 id="docker-install">Docker install</h2>
+<p>To build a docker locally install docker using
+https://docs.docker.com/engine/install/</p>
+<p>Make sure to not have other dockers installed
+https://docs.docker.com/engine/install/ubuntu/#uninstall-old-versions</p>
+<p>For me only installing from package worked
+https://docs.docker.com/engine/install/ubuntu/#install-from-a-package</p>
+<p>wsl users can try following this
+https://docs.docker.com/desktop/wsl/</p>
+<h2 id="docker-build-and-run">Docker build and run</h2>
+<p>Go into your django-simba root containing manage.py</p>
+<h3 id="with-docker-compose">With docker compose</h3>
+<p>Make sure your .env file reflects the docker-compose.yml properties
+   ````text
+DATABASE_URL=postgis://myprojectuser:1234@my-docker-postgres:5432/mydb
+CELERY_BROKER_URL=redis://my-docker-redis:6379/0</p>
+<pre><code>When running locally for development some security settings need to be applied by setting in the .env file
+   ````text
+DJANGO_LOCAL_DEVELOPMENT=True
+</code></pre>
+<p>Navigate to your cloned repo of django-simba in a terminal.
+Now running the following line, builds and starts a docker container including creating a database</p>
+<pre><code class="language-bash">sudo docker compose up
+</code></pre>
+<p>After this django-simba will be available under http://127.0.0.1:8000/</p>
+<p>To stop containers and remove containers, networks, volumes, and images created by up, run</p>
+<pre><code class="language-bash">sudo docker compose down
+</code></pre>
+<p>The build has to be repeated if dependencies change. This can be fixed by rebuilding the docker or removing containers, volumes and images and running again</p>
+<pre><code class="language-bash">sudo docker compose up
+</code></pre>
+<p>Changes in the source code or templates are reflected live, even while running the docker container.</p>
+<h3 id="using-docker-without-compose">Using Docker without compose</h3>
+<p>Create a network for your postgres and django-app to communicate</p>
+<pre><code class="language-bash"> docker network create mynetwork
+ ```
+Optional check your networks
+```bash
+ sudo docker network ls
+  ```
+run a postgis instance in this network. Set your database according to your settings
+```bash
+ sudo docker run --name my-docker-postgres -e POSTGRES_PASSWORD=1234 -e POSTGRES_USER=myprojectuser -e POSTGRES_DB=mydb -d --network=mynetwork postgis/postgis
+  ```
+
+ Go into your Django .env file and make sure the host is the same as in the above db, e.g. my-docker-postgres. This replaces &quot;localhost&quot; in the database url, e.g.
+```bash
+DATABASE_URL=postgis://myprojectuser:1234@my-docker-postgres:5432/mydb
+  ```
+The .env used while building will define which configuration the dockerimage will use
+Build your Django-simba docker
+```bash
+ sudo docker build -t django-simba .
+  ```
+run the created docker in this network and expose the port
+```bash
+ sudo docker run -p 8000:8000 --network=mynetwork django-simba
+  ```
+Optional you can use the flag -d to start the container as detached. This means closing the terminal will NOT stop the container
+to stop the container
+```bash
+ sudo docker stop CONTAINER_ID
+ ```
+
+In the above options only docker compose uses a permanent storage for the database. By creating the volume postgres_data. In other words stopping the container and starting it again, the database will not have lost its data. At the same time, migrations have to respect the existing data as well.
+### Volumes can be checked using
+```bash
+sudo docker volume ls
+</code></pre>
+<p>or removed</p>
+<pre><code class="language-bash">sudo docker volume rm VOLUME_ID
+</code></pre>
+<p>but only if the docker is not running</p>
+<h2 id="data_scrapers">data_scrapers</h2>
+<h3 id="stations">stations</h3>
+<ul>
+<li>Search function provided with local db.</li>
+<li>Admin Areas from level 4 (Bundesland) to 8 (Gemeinden) for Germany are queried in a hierarchical manner</li>
+<li>bus_stops are queried with a guaranteed relation to the highest found admin_level up to level 8. The admin area hierarchy in Germany is complicated. Not every location is part of an admin area of level 8. In these cases the highest found admin area is used</li>
+<li>Introduces an API and map to find bus stops by name.<ul>
+<li>/data_scrapers/stations/map/?search_stations=S%2BU Alexanderplatz/Memhardstraße</li>
+<li>/data_scrapers/stations/api/?search_stations=S%2BU Alexanderplatz/Memhardstraße</li>
+<li>the API returns the results as JSON</li>
+<li>if querying for multiple stations use '|' as delimiter</li>
+<li>the keyword query param '&amp;filter=true' can be added to use filters, which try to uniquely identify the searched stations. Default is filter=false</li>
+<li>/data_scrapers/stations/api/?search_stations=Alexanderplatz<ul>
+<li>finds multiple Alexanderplatz bus_stops around Germany</li>
+</ul>
+</li>
+<li>/data_scrapers/stations/api/?search_stations=Alexanderplatz&amp;filter=True<ul>
+<li>finds no bus_stop since the found stations relate to different bus_stops, since the distance between each other is above a threshold
+  -/data_scrapers/stations/api/?search_stations=S%2BU%20Alexanderplatz/Memhardstra%C3%9Fe|Alexanderplatz&amp;filter=false</li>
+<li>finds the station at Memhardstraße and several Alexanderplatz stops around Germany
+  -/data_scrapers/stations/api/?search_stations=S%2BU%20Alexanderplatz/Memhardstra%C3%9Fe|Alexanderplatz&amp;filter=true<ul>
+<li>Finds the stop at Memhardstraße. Since this station is uniquely identified Alexanderplatz is found as well, since it's assumed that stations of a bus system are located next to each other.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Search Features:<ul>
+<li>Checks for Admin area names inside of searched name up to admin_level 8<ul>
+<li>/data_scrapers/stations/api/?search_stations=Berlin+Alexanderplatz</li>
+<li>will find only the Alexanderplatz which is in Berlin</li>
+</ul>
+</li>
+<li>Fuzzy search with trigram similarity<ul>
+<li>Alekanderplatz finds bus_stop around Germany called Alexanderplatz<ul>
+<li>Only the closest matches of the fuzzy search are returned</li>
+</ul>
+</li>
+<li>If no unique stations can be found, previously found stations are used and:<ul>
+<li>a convex hull of found stations with a buffer zone is created. This area is checked for a uniquely identifiable station</li>
+<li>admin_areas which contain found stations are fuzzily searched for a uniquely identifiable station</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>DB import and export are possible as superuser via /data_scrapers/stations/import/ and /export/<ul>
+<li>import is only supported for empty tables of BusStation and AdminArea</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../search/main.js"></script>
+        <script src="../js/version-select.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
