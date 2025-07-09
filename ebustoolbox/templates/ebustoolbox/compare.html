@@ -50,6 +50,7 @@
   const rowStyle = ['border-t'];
   const rowKeyStyle = ['px-4', 'py-3', 'text-slate-600'];
   const rowValueStyle = ['px-4', 'py-3', 'text-right'];
+  const rowStringStyle = ['px-4', 'py-3', 'text-left'];
 
   // keep track which scenarios are not displayed yet
   var availableScenarios = new Set(Object.keys(scenarios));
@@ -146,7 +147,16 @@
     let values = Object.values(scenario);
     for (let i=1; i<values.length; i++) {
       td = table.rows[i].insertCell(numColumns-1);
-      td.classList.add(...rowValueStyle);
+      if (typeof values[i] == 'string' && isDate(values[i])) {
+        // date string, use left alignment
+        td.classList.add(...rowStringStyle);
+      } else if (typeof values[i] == 'number') {
+        // number, use right alignment
+        td.classList.add(...rowValueStyle);
+      } else {
+        // other value, use default right alignment
+        td.classList.add(...rowValueStyle);
+      }
       td.textContent = values[i];
     }
 
@@ -177,5 +187,14 @@
       select.remove();
   }
 
+  function isDate(str) {
+    // check if string is a valid date in format DD.MM.YYYY
+    if (!/^\d{2}\.\d{2}\.\d{4}$/.test(str)) return false;
+    const [day, mon, yr] = str.split(".").map(Number);
+    const d = new Date(yr, mon - 1, day);
+    return d.getFullYear() === yr
+      && d.getMonth()     === mon - 1
+      && d.getDate()      === day;
+  }
 </script>
 {% endblock script %}
