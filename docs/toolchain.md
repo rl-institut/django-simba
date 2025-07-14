@@ -74,8 +74,48 @@ Die Reihenfolge der Werte wird über das Feld `columns` beschrieben. Diese Liste
 - consumption_kwh_per_km
 
 Der Eintrag `vehicle_class` wird genutzt um die Gruppe an Fahrzeugtypen zu referenzieren die diese Verbrauchs-Instanz nutze wird genutzt um die Gruppe an Fahrzeugtypen zu referenzieren die diese Verbrauchs-Instanz nutzen.
+WeBus unterstützt das einlesen von tabellen über `pandas`.
+
+| incline | t_amb | level_of_loading | mean_speed_kmh | consumption_kwh_per_kmh |
+| --------------- | --------------- | --------------- | --------------- | --------------- |
+| -0,1 | -10 | 0 | -15 | 2.173913 |
+| +0,0 | -10 | 0 | -15 | 0.108696 |
+| +0,1 | -10 | 0 | -15 | 3.804348 |
+| -0,1 | +35 | 0 | -15 | 0.434783 |
+| +0,0 | +35 | 0 | -15 | 0.652174 |
+| +0,1 | +35 | 0 | -15 | 1.73913 |
+| -0,1 | -10 | 1 | -15 | 3.913043 |
+| +0,0 | -10 | 1 | -15 | 1.304348 |
+| +0,1 | -10 | 1 | -15 | 1.304348 |
+| -0,1 | +35 | 1 | -15 | 2.717391 |
+| +0,0 | +35 | 1 | -15 | 0.76087 |
+| +0,1 | +35 | 1 | -15 | 0.217391 |
+| -0,1 | -10 | 0 | +35 | 1.630435 |
+| +0,0 | -10 | 0 | +35 | 3.369565 |
+| +0,1 | -10 | 0 | +35 | 1.73913 |
+| -0,1 | +35 | 0 | +35 | 2.826087 |
+| +0,0 | +35 | 0 | +35 | 0.543478 |
+| +0,1 | +35 | 0 | +35 | 2.608696 |
+| -0,1 | -10 | 1 | +35 | 1.195652 |
+| +0,0 | -10 | 1 | +35 | 2.173913 |
+| +0,1 | -10 | 1 | +35 | 1.413043 |
+| -0,1 | +35 | 1 | +35 | 3.695652 |
+| +0,0 | +35 | 1 | +35 | 3.26087 |
+| +0,1 | +35 | 1 | +35 | 1.956522 |
+
+Minimal Beispiel für eine Verbrauchstabelle. Diese kann in die Datenbank gelesen via
+```
+import pandas as pd
+df = pd.read_csv("file.csv")
+consumption = Consumption.from_df(df, name="Meine Verbrauchstabelle")
+consumption.scenario = some_scenario
+consumption.vehicle_class = some_vehicle_class
+```
+Sämtliche `VehicleType` Objekte auf die in `some_vehicle_class` verwiesen wird, nutzen nun diese Verbrauchstabelle.
+Diese `VehicleType` Objekte müssen als Attribute `consumption` den Wert 'None' aufweisen, da sie keinen **_konstanten_** Verbrauchswert nutzen.
 
 [Details zur Implementierung](references.md#ebustoolbox.models.Consumption)
+
 
 ## Station
 
@@ -157,7 +197,17 @@ Jedes Event enthält den SoC zu Beginn und am Ende des Events. Optional können 
 
 # Erstellung eines Szenarios
 Für die Simulation eines Szenarios, muss ein Szenario in der Datenbank erstellt werden.
-Dies geschieht über die ScheduleReader und den Wizard der Website Oberfläche.
+Dies geschieht über die ScheduleReader und den **Wizard** der Website Oberfläche.
+**Wizard** beschreibt hierbei die Reihe an Eingabeseiten, die notwendig sind um das Szenario vollständig zu definieren.
+Der **Wizard** besteht aus folgenden Seiten:
+1. simba/trips/
+2. simba/vehicles/<UUID>
+3. simba/stations/<UUID>
+4. simba/costs/<UUID>
+5. simba/depots/<UUID>
+6. simba/summary/<UUID>
+
+
 Schritt für Schritt gibt der User Daten ein, welche für die Simulation notwendig sind. Der erste Schritt besteht hierbei beim einlesen einer Datei.
 Das einlesen einer Datei
 WeBus unterstützt folgende Dateiformate.
@@ -210,14 +260,52 @@ In speziellen Situationen kann auch eine Fahrt mit negativer Steigung zu einer L
 
 ## Stations-Optimierung
 
-Nach der ersten Verbrauchsberechnung kann eine Aussage über die Fahrbarkeit von Umläufen bei dem gegebenen Szenariorandbedingungen getroffen werden. Bei fahrbaren Umläufen besteht kein Handlungsbedarf.
-Sollte ein Umlauf nicht fahrbar sein, so setzt die Stations-Optimierung von SimBA ein. Haltestellen die elektrifiziert werden können und als besonders vorteilhaft zeigen, werden durch WeBus elektrifiziert.
-Dies soll dazu führen das Umläufe fahrbar werden.
-Es kann jedoch nicht immer garantiert werden, dass eine Elektrifizierung von Haltestellen zu einer Fahrbarkeit der Umläufe führt.
-Wenn eine Fahrbarkeit von Umläufen nicht erreicht werden kann, werden keine Stationen elektrifziert die zu einer Zuladung von Fahrzeugen dieser Umläufe führen.
-Grund hierfür ist die Meinung, dass ein knapp nicht fahrbarer Umlauf keine Vorteile gegenüber einem deutlich nicht fahrbaren Umlauf hat.
+Nach der ersten Verbrauchsberechnung kann eine Aussage über die Fahrbarkeit von Umläufen bei dem gegebenen Szenariorandbedingungen getroffen werden.
+Bei fahrbaren Umläufen besteht kein Handlungsbedarf bezüglich der Elektrifizierung von Endhaltestellen.
+Sollte ein Umlauf nicht fahrbar sein, so setzt die Stations-Optimierung von SimBA ein.
+Haltestellen die elektrifiziert werden können und sich als besonders vorteilhaft zeigen, werden durch WeBus elektrifiziert.
+Dies führt dazu das Umläufe fahrbar werden.
+Zusätzliche Elektrifizierung kann nicht immer zu einer Fahrbarkeit von Umläufen führen.
+Beispielsweise kann zwischen Endhaltestellen ein zu hoher Verbrauch vorliegen, so dass selbst mit voll geladener Batterie keine Fahrbarkeit gegeben ist.
+Wenn eine Fahrbarkeit von Umläufen nicht erreicht werden kann, werden keine Stationen elektrifziert, die zu einer Zuladung von Fahrzeugen dieser Umläufe führen.
+Grund hierfür ist, dass ein knapp nicht fahrbarer Umlauf gegenüber einem deutlich nicht fahrbaren Umlauf, nicht als vorteilhaft bewertet wird.
 Sollten Haltestellen aus beliebigen Gründen nicht elektrifizierbar sein, können diese über den Reiter "Stationen" während der Szenariodefinition im Wizard eingestellt werden.
+Der Optimierer legt für die Auswahl geeigneter Stationen die Annahme zu Grunde, dass die Station keinerlei Beschränkungen bezüglich Elektrifizierung aufweist.
+Eine Elektrifizierung die beispielsweise nur eine begrenzte Anzahl an Ladesäulen oder Ladeleistung erlaubt, kann momentan nicht durch den Optimierer berücksichtigt werden.
+
+> **_ Die Zielfunktion des Optimierers ist eine möglichst geringe Anzahl an zusätzlich elektrifizierten Endhaltestellen. _**
+>
+
+Eine ausführlichere Beschreibung zur SimBA Stationsoptimierung finden Sie hier.
+
+
+[Details zur Stations Optimierung](
+https://rli-simba.readthedocs.io/en/latest/modes.html#station-optimization
+)
 
 ## Depotoptimierung
 
+Die Depotoptimierung wird durch [eFLIPs Depot](github.com/mpm-tu-berlin/eflips-depot) durchgeführt.
+Während SimBA in den vorherigen Schritten jeden Umlauf mit einem separaten Fahrzeug simuliert hat, werden in diesem Schritt Umläufe miteinander kombiniert, so dass ein hoher Nutzungsgrad für die Fahrzeuge erreicht wird.
+Da die Verbräuche in den vorherigen Schritten errechnet wurden, kann für jeden Umlauf ein mindest SoC bestimmt werden, der beim Start des Umlaufs für Fahrbarkeit vorhanden sein muss.
+Gleichzeitig wird die Ladung der Batterie simuliert, so dass eine optimale Disposition der Fahrzeuge erreicht wird.
+Neben der Disposition und der Ladung im Depot werden außerdem Aspekte wie Wartung, Reinigung und das Rangieren im Depot berücksichtigt.
+<!-- TODO: @Tu Berlin extend this section to your liking -->
+
 ## Konsolidierung
+
+Die Konsolidierung ist der letzte Schritt der Simulationskette und wird benötigt, da Batterien eine nicht lineare Ladekurven vorweisen können.
+
+> **_ WeBus unterstüzt Ladekurven mit monoton sinkender Ladeleistung über dem Ladezustand. _**
+
+Um eine optimale Ausnutzung der vorhanden Fahrzeuge zu erreichen kann im Schritt der Depotoptimierung ein nicht voll geladenes Fahrzeug genutzt werden, um einen Umlauf zu bedienen.
+Diese Absenkung muss während der Fahrt berücksichtigt werden.
+Wenn das Fahrzeug während des Umlaufs keine Lademöglichkeit hat, so muss der SoC über den Gesamt Umlauf konstant um die Differenz zwischen dem SoC einer vollen Batterie und dem SoC bei Abfahrt reduziert werden.
+Sollte das Fahrzeug während des Umlaufs die Batterie laden können, so kann bei einem reduzierten SoC eine höhere Ladeleistung erreicht werden.
+Somit verändert sich der SoC in diesem Fall nicht konstant, sondern variabel über den gesamten Umlauf.
+Dies verändert wiederum den SoC den das Fahrzeug im Depot besitzt, sowie den SoC von nachfolgenden Umläufen die durchs gleiche Fahrzeug bedient werden.
+Die Konsolidierung simuliert das gegebene Szenario chronologisch und erzeugt somit ein komplettes konsistentes Szenario ohne SoC Sprünge.
+Optional ist an dieser Stelle Ladestrategien zu nutzen um das Ladeverhalten der Fahrzeuge zu optimieren.
+Ladestrategien verändern nicht die Fahrbarkeit von Umläufen.
+Stattdessen erzeugen sie den gleichen End-SoC am Ende einer Ladephase, wie in der vorherigen Simulation.
+Allerdings besteht die Möglichkeit Flexibilität innerhalb des Systems zu nutzen, um beispielsweise dynamische Strompreise zu nutzen oder den Gleichzeitigkeitsfaktor im Depot zu reduzieren und so benötigte Netzanschlüsse zu reduzieren.
