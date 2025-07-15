@@ -12,6 +12,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
 from django.db.models.functions import Cast, Coalesce
 from django.db.transaction import atomic
+from django.utils.translation import gettext as _
 from django.forms import formset_factory, widgets
 from django.http import (
     HttpResponse,
@@ -211,7 +212,7 @@ class AuthorizedMixIn:
     def dispatch(self, request, *args, **kwargs):
         self.has_permisson = self.get_permission(request.user, kwargs.get("task_id"))
         if not self.has_permisson:
-            return HttpResponseForbidden("Access Denied")  # Reject the request
+            return HttpResponseForbidden(_("Access Denied"))  # Reject the request
 
         return super().dispatch(request, *args, **kwargs)
 
@@ -240,7 +241,9 @@ class ScenarioMixIn(AuthorizedMixIn):
                 context |= {
                     "duration": 4,
                     "redirect_url": reverse("simba:summary", args=[scenario.task_id]),
-                    "content": "Ihre Simulation wird ausgeführt, daher werden sie zur Zusammenfassung zurückgeleitet.",
+                    "content": _(
+                        "Ihre Simulation wird ausgeführt, daher werden sie zur Zusammenfassung zurückgeleitet."
+                    ),
                 }
                 return render(request, "core/redirect_with_timer.html", context)
             if progress.success:
@@ -249,7 +252,9 @@ class ScenarioMixIn(AuthorizedMixIn):
                 context |= {
                     "duration": 4,
                     "redirect_url": reverse("simba:result", args=[scenario.task_id]),
-                    "content": "Ihre Simulation ist beendet, daher werden sie zu den Ergebnissen weitergeleitet..",
+                    "content": _(
+                        "Ihre Simulation ist beendet, daher werden sie zu den Ergebnissen weitergeleitet.."
+                    ),
                 }
                 return render(request, "core/redirect_with_timer.html", context)
         return super().dispatch(request, *args, **kwargs)
@@ -375,16 +380,18 @@ class TripsView(FormView):
                 progress.running = False
                 progress.errors.append(
                     (
-                        "Dieser Dateityp wird nicht unterstüzt. Bitte laden sie eine .csv"
-                        "im SimBA-Format oder eine .zip datei im x10 Format hoch."
+                        _(
+                            "Dieser Dateityp wird nicht unterstüzt. Bitte laden sie eine .csv"
+                            "im SimBA-Format oder eine .zip datei im x10 Format hoch."
+                        )
                     )
                 )
                 progress.save()
 
             if async_result is not None:
-                assert progress_id == async_result.task_id, (
-                    "Asynch result and Progress need to be equal" "for proper fetching of progress"
-                )
+                assert (
+                    progress_id == async_result.task_id
+                ), "Asynch result and Progress need to be equal for proper fetching of progress"
         elif scenario_uuid:
             if not Scenario.objects.get(task_id=scenario_uuid) in get_sorted_mutation_scenarios(
                 self.request.user
@@ -423,7 +430,7 @@ def get_scenario_and_assert_authorization(request, task_id) -> Scenario:
     if request.user.is_superuser:
         return scenario
     if scenario.manager and scenario.manager != request.user:
-        raise Http404("No access")
+        raise Http404(_("No access"))
     return scenario
 
 
@@ -957,13 +964,13 @@ class SummaryView(AuthorizedMixIn, TemplateView):
 
         sim_range = SimulationRange.objects.get(scenario=scenario)
         german_weekdays = {
-            0: "Mo",
-            1: "Di",
-            2: "Mi",
-            3: "Do",
-            4: "Fr",
-            5: "Sa",
-            6: "So",
+            0: _("Mo"),
+            1: _("Di"),
+            2: _("Mi"),
+            3: _("Do"),
+            4: _("Fr"),
+            5: _("Sa"),
+            6: _("So"),
         }
         _format = "%d:%m:%Y, %H:%M"
         start = sim_range.start
@@ -1102,12 +1109,12 @@ def merge_and_run(request: HttpRequest, task_id: str):
         progress_type=EnumProgress.RUNNING_SIMULATION,
     )
     if simulation_progess.filter(running=True).exists():
-        error_text = "Starting multiple Simulations from the same source is not allowed"
+        error_text = _("Starting multiple Simulations from the same source is not allowed")
         logger.info(error_text)
-        return HttpResponseForbidden()
+        return HttpResponseForbidden(error_text)
 
     if simulation_progess.filter(success=True).exists():
-        error_text = "Starting a Simulation which was sucessfully simulated is not allowed"
+        error_text = _("Starting a Simulation which was sucessfully simulated is not allowed")
         logger.info(error_text)
         return HttpResponseForbidden(error_text)
 
@@ -1128,7 +1135,7 @@ def merge_and_run(request: HttpRequest, task_id: str):
         assert async_result.task_id == sim_task_id, "Task ids are expected to be equal"
     except Exception:
         progress.errors.append(
-            "Ein unerwarteter Fehler ist aufgetreten." "Wenden Sie sich an ihren Administrator"
+            _("Ein unerwarteter Fehler ist aufgetreten. Wenden Sie sich an ihren Administrator")
         )
         progress.set_failed()
         logger.error(traceback.format_exc())
@@ -1193,8 +1200,8 @@ def run_simulation(request: HttpRequest, task_id: str):
     except Exception:
         return HttpResponse("An error occured")
 
-    redirection = f"<a href={reverse('simba:result', args=[task_id])}>Zu den Ergebnissen</a>"
-    return HttpResponse("Die Simulation war erfolgreich." + redirection)
+    redirection = f"<a href={reverse('simba:result', args=[task_id])}>{_('Zu den Ergebnissen')}</a>"
+    return HttpResponse(_("Die Simulation war erfolgreich.") + redirection)
 
 
 def download_scenario(request: HttpRequest, task_id: str):
@@ -1204,7 +1211,7 @@ def download_scenario(request: HttpRequest, task_id: str):
             response = HttpResponse(fh.read(), content_type="application/octet-stream")
             response["Content-Disposition"] = "attachment; filename=" + file_path.name
             return response
-    return HttpResponse("Zip not ready yet")
+    return HttpResponse(_("Zip not ready yet"))
 
 
 def generate_zip(request: HttpRequest, task_id: str):
@@ -1226,6 +1233,7 @@ def get_dashboard(request):
         # The progress is linked to the mutation sceanario.
         # The progress task_id is set to the resulting (simulation-) scenario task_id
         progress = Progress.objects.filter(task_id=scenario.task_id)
+        # TODO: use scenario state enum or class constants
         if progress.filter(success=True).exists():
             scenario.state = "success"
         elif progress.filter(running=True).exists():
@@ -1279,15 +1287,15 @@ def compare(request):
         )["sum_charged"]
 
         scenario_dict[scenario.id] = {
-            "Name": scenario.name,
-            "Erstellt": scenario.created.strftime("%d.%m.%Y"),
-            "Fahrzeuge": scenario.vehicle_set.count(),
-            "Umläufe": scenario.rotation_set.count(),
-            "Gesamtkilometer": round(sum([r.get_distance() / 1000 for r in rotations])),
-            "Anzahl elektrifizierte Endhaltestellen": num_electrified_opps,
-            "Geladene Energie an Endhaltestellen": round(energy_opps),
-            "Anzahl Ladeplätze in allen Depots": num_cs_deps,
-            "Geladene Energie an Depots [kWh]": round(energy_deps),
+            _("Name"): scenario.name,
+            _("Erstellt"): scenario.created.strftime("%d.%m.%Y"),
+            _("Fahrzeuge"): scenario.vehicle_set.count(),
+            _("Umläufe"): scenario.rotation_set.count(),
+            _("Gesamtkilometer"): round(sum([r.get_distance() / 1000 for r in rotations])),
+            _("Anzahl elektrifizierte Endhaltestellen"): num_electrified_opps,
+            _("Geladene Energie an Endhaltestellen"): round(energy_opps),
+            _("Anzahl Ladeplätze in allen Depots"): num_cs_deps,
+            _("Geladene Energie an Depots [kWh]"): round(energy_deps),
         }
 
     return render(
@@ -1314,13 +1322,13 @@ def usergroups(request):
             if settings.EMAIL_BACKEND:
                 email = request.POST["email"].lower()
                 if User.objects.filter(username=email).exists():
-                    return HttpResponse("User already exists", status=409)
+                    return HttpResponse(_("User already exists"), status=409)
                 url = f"{request.scheme}://{request.get_host()}{reverse('core:signup')}"
                 # generate and append token (embed email, sign with server key)
                 url += f"?token={signing.dumps(email)}"
-                body = f"Klicken Sie auf folgenden Link, um sich zu registrieren: {url}"
+                body = _(f"Klicken Sie auf folgenden Link, um sich zu registrieren: {url}")
                 mail.send_mail(
-                    subject="Willkommen zu eBus2030+",
+                    subject=_("Willkommen zu eBus2030+"),
                     message=body,
                     from_email=None,
                     recipient_list=[email],
@@ -1349,7 +1357,9 @@ def render_critical_rotations(request, task_id: str):
 
     # Aggregate category counts
     category_counts = (
-        df["SOC_category"].value_counts().reindex(["Nicht kritisch", "kritisch"], fill_value=0)
+        df["SOC_category"]
+        .value_counts()
+        .reindex([_("Nicht kritisch"), _("kritisch")], fill_value=0)
     )
 
     return JsonResponse(
@@ -1464,7 +1474,7 @@ def export_scenario(request, task_id: str):
 
 def import_scenario(request):
     if not request.user.is_authenticated:
-        return HttpResponseForbidden("Importing data is only allowed for logged in Users")
+        return HttpResponseForbidden(_("Importing data is only allowed for logged in Users"))
 
     if request.method == "GET":
         return render(request, "ebustoolbox/import_scenario.html")
@@ -1493,7 +1503,7 @@ def import_scenario(request):
             EnumScenarioType.SOURCE,
         ):
             return HttpResponseBadRequest(
-                f"{scenario.scenario_type} is not supported for exporting."
+                _(f"{scenario.scenario_type} is not supported for exporting.")
             )
         importer.adjust_foreign_keys()
         importer.bulk_create()
@@ -1505,12 +1515,14 @@ def import_scenario(request):
             not Event.objects.filter(scenario=scenario).exists()
             and scenario.scenario_type == EnumScenarioType.SIMULATION
         ):
-            redirect_suggestion = f"<a href={reverse('simba:run_simulation', args=[task_id])} > run the simulation</a>"
+            redirect_suggestion = _(
+                f"<a href={reverse('simba:run_simulation', args=[task_id])} > run the simulation</a>"
+            )
         else:
-            redirect_suggestion = (
+            redirect_suggestion = _(
                 f"View <a href={reverse('simba:result', args=[task_id])}>results</a>"
             )
         return HttpResponse(
-            f"Scenario succesfully imported with task_id {task_id}. " + redirect_suggestion
+            _(f"Scenario succesfully imported with task_id {task_id}. ") + redirect_suggestion
         )
-    return HttpResponseBadRequest("Use POST or GET")
+    return HttpResponseBadRequest(_("Use POST or GET"))
