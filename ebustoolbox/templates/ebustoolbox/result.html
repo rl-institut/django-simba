@@ -1,7 +1,8 @@
+{% load i18n %}
 {% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}WeBus - Ergebnisse{% endblock title %}
+  {% block title %}{% translate 'WeBus - Ergebnisse' %}{% endblock title %}
 
 {% block content %}
 <header class="flex flex-col items-center bg-white">
@@ -16,7 +17,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
               <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
             </svg>
-            <span>Vergleichen</span>
+            <span>{% translate 'Vergleichen' %}</span>
           </span>
         </a>
         <button
@@ -26,7 +27,7 @@
           aria-haspopup="true"
         >
           <span class="flex items-center gap-2">
-            <span>Mehr</span>
+            <span>{% translate 'Mehr' %}</span>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -53,7 +54,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
               <span>
-                Ergebnisse exportieren
+                {% translate 'Ergebnisse exportieren' %}
               </span>
             </a>
             <a href="#" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
@@ -61,7 +62,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm3.75 11.625a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
               </svg>
               <span>
-                Zusammenfassung sehen
+                {% translate 'Zusammenfassung sehen' %}
               </span>
             </a>
             <a href="#" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
@@ -69,7 +70,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
               <span>
-                Als Variante verwenden
+                {% translate 'Als Variante verwenden' %}
               </span>
             </a>
           </div>
@@ -79,7 +80,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
               </svg>
               <span>
-                Szenario Löschen
+                {% translate 'Szenario Löschen' %}
               </span>
             </a>
           </div>
@@ -92,7 +93,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
           </svg>
-          <span>Kosten + Umwelt</span>
+          <span>{% translate 'Kosten + Umwelt' %}</span>
         </span>
       </a>
       <a href="#bus-section" class="px-4 py-2 bg-slate-50 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
@@ -100,7 +101,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
           </svg>
-          <span>Fahrzeuge</span>
+          <span>{% translate 'Fahrzeuge' %}</span>
         </span>
       </a>
       <a href="#infrastructure-section" class="px-4 py-2 bg-slate-50 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
@@ -108,7 +109,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
           </svg>
-          <span>Infrastruktur</span>
+          <span>{% translate 'Infrastruktur' %}</span>
         </span>
       </a>
       <a href="#map-section" class="px-4 py-2 bg-slate-50 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
@@ -116,7 +117,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
           </svg>
-          <span>Karte</span>
+          <span>{% translate 'Karte' %}</span>
         </span>
       </a>
     </div>
@@ -135,7 +136,7 @@
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-[120rem]">
     <div class="flex flex-col">
       <div id="costs-section" class="flex justify-between items-center pb-2">
-        <h2 class="text-xl text-slate-800 font-light uppercase">Kosten</h2>
+        <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Kosten' %}</h2>
         <!-- Wrapper for each ellipsis and dropdown -->
         <div class="relative inline-block text-left">
           <button type="button"
@@ -156,8 +157,8 @@
             tabindex="-1"
           >
             <div class="py-1" role="none">
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als CSV exportieren</a>
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als JSON exportieren</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
             </div>
           </div>
         </div>
@@ -178,25 +179,25 @@
                 <span aria-hidden="true" class="pointer-events-none inline-block size-5 translate-x-0 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
               </button>
               <div class="flex items-center gap-2">
-                <span class="ml-2 text-sm font-normal text-slate-500" id="dieselToggleLabel">Relativ zu Dieselszenario</span>
+                <span class="ml-2 text-sm font-normal text-slate-500" id="dieselToggleLabel">{% translate 'Relativ zu Dieselszenario' %}</span>
                 <div class="relative inline-block">
                   <span class="cursor-pointer group">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#00856C" class="size-4">
                       <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
                     </svg>
                     <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      Relativer Vergleich mit Diesel-Szenario.
+                      {% translate 'Relativer Vergleich mit Diesel-Szenario.' %}
                     </div>
                   </span>
                 </div>
               </div>
             </div>
           </div>
-          <p class="flex justify-center w-4/12 text-base font-normal text-slate-600">Gesamtkosten</p>
+          <p class="flex justify-center w-4/12 text-base font-normal text-slate-600">{% translate 'Gesamtkosten' %}</p>
           <div class="flex flex-grow justify-end w-4/12">
             <div class="w-[10rem]">
               <label id="listbox-label" class="hidden">
-                Label
+                {% translate 'Label' %}
               </label>
               <div class="relative">
                 <!-- Button that toggles the dropdown -->
@@ -208,7 +209,7 @@
                   aria-expanded="false"
                   aria-labelledby="listbox-label"
                 >
-                  <span id="assignedToLabel" class="col-start-1 row-start-1 truncate pr-6">1 Jahr</span>
+                  <span id="assignedToLabel" class="col-start-1 row-start-1 truncate pr-6">{% translate '1 Jahr' %}</span>
                   <svg class="col-start-1 row-start-1 size-5 self-center justify-self-end text-slate-500 sm:size-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
                     <path fill-rule="evenodd" d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
                   </svg>
@@ -227,28 +228,28 @@
                     role="option"
                     data-dropdown-item="Item 2"
                   >
-                    <span class="block truncate font-normal">2 Jahre</span>
+                    <span class="block truncate font-normal">{% translate '2 Jahre' %}</span>
                   </li>
                   <li
                     class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-emerald-400 hover:text-black"
                     role="option"
                     data-dropdown-item="Item 3"
                   >
-                    <span class="block truncate font-normal">3 Jahre</span>
+                    <span class="block truncate font-normal">{% translate '3 Jahre' %}</span>
                   </li>
                   <li
                     class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-emerald-400 hover:text-black"
                     role="option"
                     data-dropdown-item="Item 4"
                   >
-                    <span class="block truncate font-normal">4 Jahre</span>
+                    <span class="block truncate font-normal">{% translate '4 Jahre' %}</span>
                   </li>
                   <li
                     class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-emerald-400 hover:text-black"
                     role="option"
                     data-dropdown-item="Item 5"
                   >
-                    <span class="block truncate font-normal">5 Jahre</span>
+                    <span class="block truncate font-normal">{% translate '5 Jahre' %}</span>
                   </li>
                 </ul>
               </div>
@@ -268,73 +269,73 @@
         <div class="flex flex-wrap bg-slate-50">
           <!-- Energie -->
           <div class="w-full md:w-1/2 xl:w-1/4 p-4 border-b xl:border-b-0 xl:border-r border-slate-300">
-            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">Energie</p>
+            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">{% translate 'Energie' %}</p>
             <div class="flex justify-center items-center gap-2">
               <span class="text-xl font-semibold text-slate-800">1.000.000</span>
               <span class="text-sm font-normal text-slate-800">€</span>
             </div>
-            <p class="text-center text-sm tracking-wide text-slate-500">Variable Kosten</p>
+            <p class="text-center text-sm tracking-wide text-slate-500">{% translate 'Variable Kosten' %}</p>
           </div>
 
           <!-- Fahrzeuge -->
           <div class="w-full md:w-1/2 xl:w-1/4 p-4 border-b xl:border-b-0 xl:border-r border-slate-300">
-            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">Fahrzeuge</p>
+            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">{% translate 'Fahrzeuge' %}</p>
             <div class="flex justify-center gap-8 xl:gap-4">
               <div class="flex flex-col items-center">
                 <div class="flex items-center gap-2">
                   <span class="text-xl font-semibold text-slate-800">1.200.000</span>
                   <span class="text-sm font-normal text-slate-800">€</span>
                 </div>
-                <p class="text-sm tracking-wide text-slate-500">Fixkosten</p>
+                <p class="text-sm tracking-wide text-slate-500">{% translate 'Fixkosten' %}</p>
               </div>
               <div class="flex flex-col items-center">
                 <div class="flex items-center gap-2">
                   <span class="text-xl font-semibold text-slate-800">400.000</span>
                   <span class="text-sm font-normal text-slate-800">€</span>
                 </div>
-                <p class="text-sm tracking-wide text-slate-500">Variable Kosten</p>
+                <p class="text-sm tracking-wide text-slate-500">{% translate 'Variable Kosten' %}</p>
               </div>
             </div>
           </div>
 
           <!-- Infrastruktur Endhaltestellen -->
           <div class="w-full md:w-1/2 xl:w-1/4 p-4 border-b md:border-b-0 xl:border-r border-slate-300">
-            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">Infrastruktur Endhaltestellen</p>
+            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">{% translate 'Infrastruktur Endhaltestellen' %}</p>
             <div class="flex justify-center gap-8 xl:gap-4">
               <div class="flex flex-col items-center">
                 <div class="flex items-center gap-2">
                   <span class="text-xl font-semibold text-slate-800">500.000</span>
                   <span class="text-sm font-normal text-slate-800">€</span>
                 </div>
-                <p class="text-sm tracking-wide text-slate-500">Fixkosten</p>
+                <p class="text-sm tracking-wide text-slate-500">{% translate 'Fixkosten' %}</p>
               </div>
               <div class="flex flex-col items-center">
                 <div class="flex items-center gap-2">
                   <span class="text-xl font-semibold text-slate-800">100.000</span>
                   <span class="text-sm font-normal text-slate-800">€</span>
                 </div>
-                <p class="text-sm tracking-wide text-slate-500">Variable Kosten</p>
+                <p class="text-sm tracking-wide text-slate-500">{% translate 'Variable Kosten' %}</p>
               </div>
             </div>
           </div>
 
           <!-- Infrastruktur Depots -->
           <div class="w-full md:w-1/2 xl:w-1/4 p-4">
-            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">Infrastruktur Depots</p>
+            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">{% translate 'Infrastruktur Depots' %}</p>
             <div class="flex justify-center gap-8 xl:gap-4">
               <div class="flex flex-col items-center">
                 <div class="flex items-center gap-2">
                   <span class="text-xl font-semibold text-slate-800">800.000</span>
                   <span class="text-sm font-normal text-slate-800">€</span>
                 </div>
-                <p class="text-sm tracking-wide text-slate-500">Fixkosten</p>
+                <p class="text-sm tracking-wide text-slate-500">{% translate 'Fixkosten' %}</p>
               </div>
               <div class="flex flex-col items-center">
                 <div class="flex items-center gap-2">
                   <span class="text-xl font-semibold text-slate-800">150.000</span>
                   <span class="text-sm font-normal text-slate-800">€</span>
                 </div>
-                <p class="text-sm tracking-wide text-slate-500">Variable Kosten</p>
+                <p class="text-sm tracking-wide text-slate-500">{% translate 'Variable Kosten' %}</p>
               </div>
             </div>
           </div>
@@ -343,15 +344,15 @@
       <div class="bg-white rounded-lg shadow-md mb-12">
         <div class="p-8">
           <nav class="-mb-px flex space-x-8 border-b border-slate-300" aria-label="Tabs" id="costsTabs">
-            <a href="#" class="costs-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="costs-tab-1" aria-current="page">Kostenverlauf</a>
-            <a href="#" class="costs-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="costs-tab-2">Tab 2</a>
+            <a href="#" class="costs-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="costs-tab-1" aria-current="page">{% translate 'Kostenverlauf' %}</a>
+            <a href="#" class="costs-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="costs-tab-2">{% translate 'Tab 2' %}</a>
           </nav>
           <div id="costs-tab-contents" class="mt-4">
             <div class="costs-tab-content" data-tab="costs-tab-1">
               <div class="flex justify-end">
                 <div class="w-[20rem]">
                   <label id="kostenverlauf-label" class="block text-sm font-medium text-slate-800">
-                    Ansicht
+                    {% translate 'Ansicht' %}
                   </label>
                   <div class="relative mt-2">
                     <!-- Button that toggles the dropdown -->
@@ -363,7 +364,7 @@
                       aria-expanded="false"
                       aria-labelledby="kostenverlauf-label"
                     >
-                      <span id="assignedToLabel" class="col-start-1 row-start-1 truncate pr-6">Zeitlauf</span>
+                      <span id="assignedToLabel" class="col-start-1 row-start-1 truncate pr-6">{% translate 'Zeitlauf' %}</span>
                       <svg class="col-start-1 row-start-1 size-5 self-center justify-self-end text-slate-500 sm:size-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
                         <path fill-rule="evenodd" d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
                       </svg>
@@ -377,14 +378,14 @@
               </div>
             </div>
             <div class="costs-tab-content" data-tab="costs-tab-2">
-              Content 2
+              {% translate 'Content 2' %}
             </div>
           </div>
         </div>
       </div>
       <div class="flex flex-col">
         <div class="flex justify-between items-center pb-2">
-          <h2 class="text-xl text-slate-800 font-light uppercase">Umwelt</h2>
+          <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Umwelt' %}</h2>
           <!-- Wrapper for each ellipsis and dropdown -->
           <div class="relative inline-block text-left">
             <button type="button"
@@ -405,8 +406,8 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als CSV exportieren</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als JSON exportieren</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
               </div>
             </div>
           </div>
@@ -414,25 +415,25 @@
         <div class="bg-white rounded-lg shadow-md mb-12">
           <div class="p-8">
             <div class="flex justify-center">
-              <p class="text-base font-normal text-slate-600 pb-4">CO<sub>2</sub>-Bilanz</p>
+              <p class="text-base font-normal text-slate-600 pb-4">CO<sub>2</sub>{% translate '-Bilanz' %}</p>
             </div>
             <div class="flex justify-center">
               <div class="flex items-end gap-2">
                 <span class="text-4xl font-bold text-slate-800">- 70</span>
-                <span class="text-base font-normal text-slate-600">% CO<sub>2</sub>-Emissionen</span>
+                <span class="text-base font-normal text-slate-600">% CO<sub>2</sub>{% translate '-Emissionen' %}</span>
               </div>
             </div>
             <div class="flex justify-center">
               <div class="w-full lg:w-3/4 flex flex-col gap-4 py-8">
                 <div class="flex items-center gap-4">
-                  <span class="text-end text-sm text-slate-600 flex-grow">Vor Elektrifizierung</span>
+                  <span class="text-end text-sm text-slate-600 flex-grow">{% translate 'Vor Elektrifizierung' %}</span>
                   <div class="flex items-center gap-2 w-3/4">
                     <div class="h-2 flex-grow bg-slate-200 rounded-full"></div>
                     <span class="text-sm font-medium text-slate-800">10.000 t</span>
                   </div>
                 </div>
                 <div class="flex items-center gap-4">
-                  <span class="text-end text-sm text-slate-600 flex-grow">Nach Elektrifizierung</span>
+                  <span class="text-end text-sm text-slate-600 flex-grow">{% translate 'Nach Elektrifizierung' %}</span>
                   <div class="flex items-center gap-2 w-3/4">
                     <div class="h-2 w-[30%] bg-blue-600 rounded-full"></div>
                     <span class="text-sm font-bold text-blue-600">3.000 t</span>
@@ -448,7 +449,7 @@
                 aria-expanded="false"
                 aria-controls="detailsContent"
               >
-                <span>Details sehen</span>
+                <span>{% translate 'Details sehen' %}</span>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -471,7 +472,7 @@
       </div>
       <div class="flex flex-col">
         <div id="bus-section" class="flex justify-between items-center pb-2">
-          <h2 class="text-xl text-slate-800 font-light uppercase">Fahrzeuge</h2>
+          <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Fahrzeuge' %}</h2>
           <!-- Wrapper for each ellipsis and dropdown -->
           <div class="relative inline-block text-left">
             <button type="button"
@@ -492,8 +493,8 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als CSV exportieren</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als JSON exportieren</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
               </div>
             </div>
           </div>
@@ -504,16 +505,16 @@
         <div class="p-8">
           <nav class="-mb-px flex space-x-8 border-b border-slate-300" aria-label="Tabs" id="socTabs">
             <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-1" aria-current="page">
-              Anzahl Fahrzeuge nach SoC
+              {% translate 'Anzahl Fahrzeuge nach SoC' %}
             </a>
             <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-2">
-              Fahrzeugaktivitäten
+              {% translate 'Fahrzeugaktivitäten' %}
             </a>
             <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-3">
-              Fahrzeuganzahlen
+              {% translate 'Fahrzeuganzahlen' %}
             </a>
             <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-4">
-              Fahrplanwirkungsgrade
+              {% translate 'Fahrplanwirkungsgrade' %}
             </a>
           </nav>
           <div id="soc-tab-contents" class="mt-4">
@@ -521,13 +522,13 @@
               <div id="soc-heatmap" style="width: 100%; height: 600px;"></div>
             </div>
             <div class="soc-tab-content hidden" data-tab="soc-tab-2">
-              Content 2
+              {% translate 'Content 2' %}
             </div>
             <div class="soc-tab-content hidden" data-tab="soc-tab-3">
-              Content 3
+              {% translate 'Content 3' %}
             </div>
             <div class="soc-tab-content hidden" data-tab="soc-tab-4">
-              Content 4
+              {% translate 'Content 4' %}
             </div>
           </div>
         </div>
@@ -535,7 +536,7 @@
 
       <div class="flex flex-col">
         <div id="infrastructure-section" class="flex justify-between items-center pb-2">
-          <h2 class="text-xl text-slate-800 font-light uppercase">Infrastruktur</h2>
+          <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Infrastruktur' %}</h2>
           <!-- Wrapper for each ellipsis and dropdown -->
           <div class="relative inline-block text-left">
             <button type="button"
@@ -556,8 +557,8 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als CSV exportieren</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als JSON exportieren</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
               </div>
             </div>
           </div>
@@ -569,108 +570,108 @@
 
                 <!-- Endhaltestellen -->
                 <div class="w-full lg:w-1/2 py-4 border-b lg:border-r border-slate-300">
-                    <p class="text-center text-lg font-normal text-slate-800 pb-4">Umläufe</p>
+                <p class="text-center text-lg font-normal text-slate-800 pb-4">{% translate 'Umläufe' %}</p>
                     <div class="flex justify-between mt-4">
                         <div class="w-1/3 px-2 pb-4 text-center border-r border-slate-300">
                             <p class="text-slate-800">
                                 <span id="longest_rotation" class="text-xl 2xl:text-2xl font-semibold">--</span>
                                 <span class="text-sm 2xl:text-base font-normal">km</span>
                             </p>
-                            <p class="text-sm text-slate-500">Längster Umlauf</p>
+                    <p class="text-sm text-slate-500">{% translate 'Längster Umlauf' %}</p>
                         </div>
                         <div class="w-1/3 px-2 pb-4 text-center border-r border-slate-300">
                             <p class="text-slate-800">
                                 <span id="shortest_rotation" class="text-xl 2xl:text-2xl font-semibold">--</span>
                                 <span class="text-sm 2xl:text-base font-normal">km</span>
                             </p>
-                            <p class="text-sm text-slate-500">Kürzester Umlauf</p>
+                    <p class="text-sm text-slate-500">{% translate 'Kürzester Umlauf' %}</p>
                         </div>
                         <div class="w-1/3 px-2 pb-4 text-center">
                             <p class="text-slate-800">
                                 <span id="total_dist" class="text-xl 2xl:text-2xl font-semibold">--</span>
                                 <span class="text-sm 2xl:text-base font-normal">km</span>
                             </p>
-                            <p class="text-sm text-slate-500">Gesamtstrecke</p>
+                    <p class="text-sm text-slate-500">{% translate 'Gesamtstrecke' %}</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Depots -->
                 <div class="w-full lg:w-1/2 p-4 border-b border-slate-300">
-                    <p class="text-center text-lg font-normal text-slate-800 pb-4">Szenario</p>
+                <p class="text-center text-lg font-normal text-slate-800 pb-4">{% translate 'Szenario' %}</p>
                     <div class="flex justify-between mt-4">
                         <div class="w-1/3 px-2 pb-4 text-center border-r border-slate-300">
                             <p class="text-slate-800">
                                 <span id="num_stations" class="text-xl 2xl:text-2xl font-semibold">--</span>
                             </p>
-                            <p class="text-sm text-slate-500">Elektrifizierte Stationen /<br>Gesamtzahl Stationen</p>
+                    <p class="text-sm text-slate-500">{% translate 'Elektrifizierte Stationen /' %}<br>{% translate 'Gesamtzahl Stationen' %}</p>
                         </div>
                         <div class="w-1/3 px-2 pb-4 text-center border-r border-slate-300">
                             <p class="text-slate-800">
                                 <span id="num_busses" class="text-xl 2xl:text-2xl font-semibold">--</span>
                             </p>
-                            <p class="text-sm text-slate-500">Anzahl Fahrzeuge</p>
+                    <p class="text-sm text-slate-500">{% translate 'Anzahl Fahrzeuge' %}</p>
                         </div>
                         <div class="w-1/3 px-2 pb-4 text-center">
                             <p class="text-slate-800">
                                 <span id="most_frequented" class="text-xl 2xl:text-2xl font-semibold">--</span>
                             </p>
-                            <p class="text-sm text-slate-500">Häufigst angefahrene Station</p>
+                    <p class="text-sm text-slate-500">{% translate 'Häufigst angefahrene Station' %}</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Endhaltestellen -->
                 <div class="w-full lg:w-1/2 p-4 border-b lg:border-b-0 lg:border-r border-slate-300">
-                    <p class="text-center text-lg font-normal text-slate-800 pb-4">Energie und Leistung</p>
+                <p class="text-center text-lg font-normal text-slate-800 pb-4">{% translate 'Energie und Leistung' %}</p>
                     <div class="flex justify-between mt-4">
                         <div class="w-1/3 px-2 pb-4 text-center border-r border-slate-300">
                             <p class="text-slate-800">
                                 <span id="total_consumption" class="text-xl 2xl:text-2xl font-semibold">--</span>
-                                <span class="text-sm 2xl:text-base font-normal">kWh</span>
-                            </p>
-                            <p class="text-sm text-slate-500">Gesamt geladene Energie</p>
+                      <span class="text-sm 2xl:text-base font-normal">{% translate 'kWh' %}</span>
+                    </p>
+                            <p class="text-sm text-slate-500">{% translate 'Gesamt geladene Energie' %}</p>
                         </div>
                         <div class="w-1/3 px-2 pb-4 text-center border-r border-slate-300">
                             <p class="text-slate-800">
                                 <span id="avg_consumption" class="text-xl 2xl:text-2xl font-semibold">--</span>
                                 <span class="text-sm 2xl:text-base font-normal">kWh/km</span>
                             </p>
-                            <p class="text-sm text-slate-500">Durchschnittl. Verbrauch</p>
+                            <p class="text-sm text-slate-500">{% translate 'Durchschnittl. Verbrauch' %}</p>
                         </div>
                         <div class="w-1/3 px-2 pb-4 text-center">
                             <p class="text-slate-800">
                                 <span id="installed_power" class="text-xl 2xl:text-2xl font-semibold">--</span>
                                 <span class="text-sm 2xl:text-base font-normal">kW</span>
                             </p>
-                            <p class="text-sm text-slate-500">Installierte Leistung</p>
+                            <p class="text-sm text-slate-500">{% translate 'Installierte Leistung' %}</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Depots -->
                 <div class="w-full lg:w-1/2 p-4">
-                  <p class="text-center text-lg font-normal text-slate-800 pb-4">Depots</p>
+                  <p class="text-center text-lg font-normal text-slate-800 pb-4">{% translate 'Depots' %}</p>
                   <div class="flex justify-between mt-4">
                       <div class="w-1/3 px-2 pb-4 text-center border-r border-slate-300">
                           <p class="text-slate-800">
                               <span id="depots-anzahl-stellplaetze" class="text-xl 2xl:text-2xl font-semibold">--</span>
                           </p>
-                          <p class="text-sm text-slate-500">Anzahl Stellplätze</p>
+                          <p class="text-sm text-slate-500">{% translate 'Anzahl Stellplätze' %}</p>
                       </div>
                       <div class="w-1/3 px-2 pb-4 text-center border-r border-slate-300">
                           <p class="text-slate-800">
                               <span id="depots-energie" class="text-xl 2xl:text-2xl font-semibold">--</span>
                               <span class="text-sm 2xl:text-base font-normal">kWh</span>
                           </p>
-                          <p class="text-sm text-slate-500">Energie</p>
+                          <p class="text-sm text-slate-500">{% translate 'Energie' %}</p>
                       </div>
                       <div class="w-1/3 px-2 pb-4 text-center">
                           <p class="text-slate-800">
                               <span id="depots-spitzenleistung" class="text-xl 2xl:text-2xl font-semibold">--</span>
                               <span class="text-sm 2xl:text-base font-normal">kW</span>
                           </p>
-                          <p class="text-sm text-slate-500">Spitzenleistung</p>
+                          <p class="text-sm text-slate-500">{% translate 'Spitzenleistung' %}</p>
                       </div>
                   </div>
                 </div>
@@ -713,7 +714,7 @@
         </div>
         <div class="flex flex-col">
         <div id="map-section" class="flex justify-between items-center pb-2">
-          <h2 class="text-xl text-slate-800 font-light uppercase">Karte</h2>
+          <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Karte' %}</h2>
           <!-- Wrapper for each ellipsis and dropdown -->
           <div class="relative inline-block text-left">
             <button type="button"
@@ -734,7 +735,7 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">URL kopieren</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'URL kopieren' %}</a>
               </div>
             </div>
           </div>

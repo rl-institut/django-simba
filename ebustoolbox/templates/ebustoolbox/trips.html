@@ -1,3 +1,4 @@
+{% load i18n %}
 {% extends 'ebustoolbox/wizard.html' %}
 {% load static %}
 {% load custom_filters %}
@@ -31,7 +32,7 @@
   }
 </script>
 {% endblock header %}
-{% block title %}WeBus - Umlaufplan{% endblock title %}
+{% block title %}{% translate "WeBus - Umlaufplan" %}{% endblock title %}
 
 {% block wizard_navigation %}
   {% with wiz_idx=1 %}

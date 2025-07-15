@@ -1,7 +1,7 @@
-{% extends 'ebustoolbox/wizard.html' %}
 {% load i18n %}
+{% extends 'ebustoolbox/wizard.html' %}
 
-{% block title %}WeBus - Zusammenfassung{% endblock title %}
+  {% block title %}{% translate 'WeBus - Zusammenfassung' %}{% endblock title %}
 
 {% block wizard_navigation %}
   {% with wiz_idx=6 %}
@@ -37,7 +37,7 @@
       </div>
       <div class="ml-3">
         <h3 class="text-sm font-semibold text-yellow-800" id="alert-title">
-          Bitte überprüfen Sie alle Angaben sorgfältig, da nach Start der Simulation keine Änderungen mehr möglich sind.
+          {% translate 'Bitte überprüfen Sie alle Angaben sorgfältig, da nach Start der Simulation keine Änderungen mehr möglich sind.' %}
         </h3>
       </div>
     </div>
@@ -62,7 +62,7 @@
             <path d="m39.062 46.484c-0.56641 0-1.125-0.24609-1.5117-0.71484-0.68359-0.83594-0.55859-2.0664 0.27344-2.75l18.621-15.234c0.83594-0.68359 2.0664-0.55859 2.75 0.27344 0.68359 0.83594 0.55859 2.0664-0.27344 2.75l-18.621 15.234c-0.36328 0.29688-0.80078 0.44141-1.2383 0.44141z"/>
             <path d="m40.758 56.641c-0.56641 0-1.125-0.24609-1.5117-0.71484-0.68359-0.83594-0.55859-2.0664 0.27344-2.75l18.621-15.234c0.83594-0.68359 2.0664-0.55859 2.75 0.27344 0.68359 0.83594 0.55859 2.0664-0.27344 2.75l-18.621 15.234c-0.36719 0.29688-0.80469 0.44141-1.2383 0.44141z"/>
           </svg>
-          <span class="text-slate-800 font-semibold">Simulation starten</span>
+        <span class="text-slate-800 font-semibold">{% translate 'Simulation starten' %}</span>
         </div>
     </button>
   </div>
@@ -84,7 +84,7 @@
         {#hx is triggered when "notRunning" is sent from progress poll#}
         const button=document.getElementById("simulateButton")
         button.disabled = false;
-        button.innerHTML ="Erneut Simulieren"
+        button.innerHTML ={% translate '"Erneut Simulieren"' %}
       })
   </script>
 
@@ -109,7 +109,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
             </svg>
-            <span>Zusammenfassung</span>
+              <span>{% translate 'Zusammenfassung' %}</span>
           </span>
         </button>
         <button
@@ -121,7 +121,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" />
             </svg>
-            <span>Karte</span>
+              <span>{% translate 'Karte' %}</span>
           </span>
         </button>
       </div>
@@ -129,7 +129,7 @@
     <section class="tab-content pt-12" id="content-summary">
       <div class="pt-8">
         <div class="pb-8 space-y-2">
-          <p class="text-slate-800 font-medium tracking-wide">Szenarioname</p>
+            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Szenarioname' %}</p>
           <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div>
               <p>{{ scenario.name }}</p>
@@ -137,16 +137,16 @@
           </div>
         </div>
         <div class="pb-8 space-y-2">
-          <p class="text-slate-800 font-medium tracking-wide">Beschreibung</p>
+            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Beschreibung' %}</p>
           <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div>
               {% if scenario.description %}<p>{{ scenario.description }}</p>
-              {% else %}<p class="w-[18rem] text-slate-500">Keine Beschreibung</p>{% endif %}
+                {% else %}<p class="w-[18rem] text-slate-500">{% translate 'Keine Beschreibung' %}</p>{% endif %}
             </div>
           </div>
         </div>
         <div class="pb-8 space-y-2">
-          <p class="text-slate-800 font-medium tracking-wide">Zeitspanne</p>
+            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Zeitspanne' %}</p>
           <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div>
               <p>{{ sim_duration}}</p>
@@ -156,13 +156,13 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
-                Editieren
+                  {% translate 'Editieren' %}
               </a>
             </div>
           </div>
         </div>
         <div class="pb-8 space-y-2">
-          <p class="text-slate-800 font-medium tracking-wide">Temperatur</p>
+            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Temperatur' %}</p>
           <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div>
               <p>{{ temperature }}° C</p>
@@ -172,21 +172,21 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
-                Editieren
+                  {% translate 'Editieren' %}
               </a>
             </div>
           </div>
         </div>
         <div class="flex flex-col pb-8 space-y-2">
-          <p class="text-slate-800 font-medium tracking-wide">Fahrzeugtypen</p>
+            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Fahrzeugtypen' %}</p>
           {%  for vehicle_type in vehicle_types %}
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
               <p class="text-slate-800 font-semibold uppercase">{{ vehicle_type.name }}</p>
               <div class="pt-4 pl-4">
                 <div class="inline-flex items-center gap-1 pb-2">
-                  <span class="text-slate-800 font-semibold">Default</span>
-                  <span>({{ vehicle_type.lines|length}} Linie(n)</span>
+                    <span class="text-slate-800 font-semibold">{% translate 'Default' %}</span>
+                  <span>({{ vehicle_type.lines|length}} {% translate 'Linie(n)' %}</span>
                 {% if vehicle_type.lines %}
                   <span class="relative inline-flex items-center">
                     <span class="cursor-pointer group">
@@ -224,15 +224,15 @@
                 </div>
                 <div class="flex flex-col pl-4 font-normal border-l gap-2">
                   <p class="flex">
-                    <span class="w-[16rem] text-slate-500">Anzahl Fahrzeuge:</span>
+                      <span class="w-[16rem] text-slate-500">{% translate 'Anzahl Fahrzeuge:' %}</span>
                     <span class="text-slate-800">not implemented</span>
                   </p>
                   <p class="flex">
-                    <span class="w-[16rem] text-slate-500">Gesamtkilometer:</span>
+                      <span class="w-[16rem] text-slate-500">{% translate 'Gesamtkilometer:' %}</span>
                     <span class="text-slate-800">not implemented</span>
                   </p>
                   <p class="flex">
-                    <span class="w-[16rem] text-slate-500">Nutz. Batteriekapazität:</span>
+                      <span class="w-[16rem] text-slate-500">{% translate 'Nutz. Batteriekapazität:' %}</span>
                     <span class="text-slate-800">{{ vehicle_type.battery_capacity }} kW</span>
                   </p>
                 </div>
@@ -274,15 +274,15 @@
                 </div>
                 <div class="flex flex-col pl-4 font-normal border-l gap-2">
                   <p class="flex">
-                    <span class="w-[16rem] text-slate-500">Anzahl Fahrzeuge:</span>
+                      <span class="w-[16rem] text-slate-500">{% translate 'Anzahl Fahrzeuge:' %}</span>
                     <span class="text-slate-800">30</span>
                   </p>
                   <p class="flex">
-                    <span class="w-[16rem] text-slate-500">Gesamtkilometer:</span>
+                      <span class="w-[16rem] text-slate-500">{% translate 'Gesamtkilometer:' %}</span>
                     <span class="text-slate-800">503,6 km</span>
                   </p>
                   <p class="flex">
-                    <span class="w-[16rem] text-slate-500">Nutz. Batteriekapazität:</span>
+                      <span class="w-[16rem] text-slate-500">{% translate 'Nutz. Batteriekapazität:' %}</span>
                     <span class="text-slate-800">500 kW</span>
                   </p>
                 </div>
@@ -293,7 +293,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
-                Editieren
+                  {% translate 'Editieren' %}
               </a>
             </div>
           </div>
@@ -301,14 +301,14 @@
         </div>
 
         <div class="pb-8 space-y-2">
-          <p class="text-slate-800 font-medium tracking-wide">Endhaltestellen</p>
+            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Endhaltestellen' %}</p>
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
               <div class="flex flex-col font-normal gap-2">
                 <div class="flex items-center">
-                  <span class="w-[18rem] text-slate-500">Elektrifizierung aktiviert:</span>
+                    <span class="w-[18rem] text-slate-500">{% translate 'Elektrifizierung aktiviert:' %}</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">{{ electrified_stations|length }} Stationen</span>
+                      <span class="text-slate-800">{{ electrified_stations|length }} {% translate 'Stationen' %}</span>
                   {% if electrified_stations %}
                     <div class="relative group">
                       <svg
@@ -345,9 +345,9 @@
                   </div>
                 </div>
                 <div class="flex items-center">
-                  <span class="w-[18rem] text-slate-500">Bei Simulation entschieden:</span>
+                    <span class="w-[18rem] text-slate-500">{% translate 'Bei Simulation entschieden:' %}</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">{{ automatic_stations|length }} Stationen</span>
+                      <span class="text-slate-800">{{ automatic_stations|length }} {% translate 'Stationen' %}</span>
                   {% if automatic_stations %}
                     <div class="relative group">
                       <svg
@@ -384,9 +384,9 @@
                   </div>
                 </div>
                 <div class="flex items-center">
-                  <span class="w-[18rem] text-slate-500">Elektrifizierung nicht aktiviert:</span>
+                    <span class="w-[18rem] text-slate-500">{% translate 'Elektrifizierung nicht aktiviert:' %}</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-slate-800">{{ excluded_stations|length }} Stationen</span>
+                      <span class="text-slate-800">{{ excluded_stations|length }} {% translate 'Stationen' %}</span>
                                     {% if excluded_stations %}
                     <div class="relative group">
                       <svg
@@ -429,37 +429,37 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
-                Editieren
+                  {% translate 'Editieren' %}
               </a>
             </div>
           </div>
         </div>
 
         <div class="pb-8 space-y-2">
-          <p class="text-slate-800 font-medium tracking-wide">Kostenparameter</p>
+            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Kostenparameter' %}</p>
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
               <div class="flex flex-col font-normal gap-2">
                 <div class="flex items-center">
-                  <span class="w-[18rem] text-slate-500">Anschaffungskosten:</span>
+                    <span class="w-[18rem] text-slate-500">{% translate 'Anschaffungskosten:' %}</span>
                   <div class="flex items-center gap-2">
                     <span class="text-slate-800">not implemented</span>
                   </div>
                 </div>
                 <div class="flex items-center">
-                  <span class="w-[18rem] text-slate-500">Wartungskosten:</span>
+                    <span class="w-[18rem] text-slate-500">{% translate 'Wartungskosten:' %}</span>
                   <div class="flex items-center gap-2">
                     <span class="text-slate-800">not implemented</span>
                   </div>
                 </div>
                 <div class="flex items-center">
-                  <span class="w-[18rem] text-slate-500">Energiekosten:</span>
+                    <span class="w-[18rem] text-slate-500">{% translate 'Energiekosten:' %}</span>
                   <div class="flex items-center gap-2">
                     <span class="text-slate-800">not implemented</span>
                   </div>
                 </div>
                 <div class="flex items-center">
-                  <span class="w-[18rem] text-slate-500">Laufzeit:</span>
+                    <span class="w-[18rem] text-slate-500">{% translate 'Laufzeit:' %}</span>
                   <div class="flex items-center gap-2">
                     <span class="text-slate-800">not implemented</span>
                   </div>
@@ -471,37 +471,37 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
-                Editieren
+                  {% translate 'Editieren' %}
               </a>
             </div>
           </div>
         </div>
 
         <div class="pb-8 space-y-2">
-          <p class="text-slate-800 font-medium tracking-wide">Umweltparameter</p>
+            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Umweltparameter' %}</p>
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
               <div class="flex flex-col font-normal gap-2">
                 <div class="flex items-center">
-                  <span class="w-[18rem] text-slate-500">CO₂-Emissionen:</span>
+                    <span class="w-[18rem] text-slate-500">{% translate 'CO₂-Emissionen:' %}</span>
                   <div class="flex items-center gap-2">
                     <span class="text-slate-800">not implemented</span>
                   </div>
                 </div>
                 <div class="flex items-center">
-                  <span class="w-[18rem] text-slate-500">Energieverbrauch:</span>
+                    <span class="w-[18rem] text-slate-500">{% translate 'Energieverbrauch:' %}</span>
                   <div class="flex items-center gap-2">
                     <span class="text-slate-800">not implemented</span>
                   </div>
                 </div>
                 <div class="flex items-center">
-                  <span class="w-[18rem] text-slate-500">Ressourcenverbrauch:</span>
+                    <span class="w-[18rem] text-slate-500">{% translate 'Ressourcenverbrauch:' %}</span>
                   <div class="flex items-center gap-2">
                     <span class="text-slate-800">not implemented</span>
                   </div>
                 </div>
                 <div class="flex items-center">
-                  <span class="w-[18rem] text-slate-500">Lebensdaueranalyse:</span>
+                    <span class="w-[18rem] text-slate-500">{% translate 'Lebensdaueranalyse:' %}</span>
                   <div class="flex items-center gap-2">
                     <span class="text-slate-800">not implemented</span>
                   </div>
@@ -513,14 +513,14 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
-                Editieren
+                  {% translate 'Editieren' %}
               </a>
             </div>
           </div>
         </div>
 
         <div class="flex flex-col pb-8 space-y-2">
-          <p class="text-slate-800 font-medium tracking-wide">Depots</p>
+            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Depots' %}</p>
           {% for depot in depots %}
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
@@ -528,11 +528,11 @@
               <div class="pt-4 pl-4">
                 <div class="flex flex-col pl-4 font-normal border-l gap-2">
                   <p class="flex">
-                    <span class="w-[16rem] text-slate-500">Anzahl Ladepunkte:</span>
+                      <span class="w-[16rem] text-slate-500">{% translate 'Anzahl Ladepunkte:' %}</span>
                     <span class="text-slate-800">{{ depot.amount_charging_places }}</span>
                   </p>
                   <p class="flex">
-                    <span class="w-[16rem] text-slate-500">Leistung pro Punkt:</span>
+                      <span class="w-[16rem] text-slate-500">{% translate 'Leistung pro Punkt:' %}</span>
                     <span class="text-slate-800">{{ depot.power_per_charger }} kW</span>
                   </p>
                 </div>
@@ -540,16 +540,16 @@
               <div class="pt-4 pl-4">
                 <div class="flex flex-col pl-4 font-normal border-l gap-2">
                   <p class="flex">
-                    <span class="w-[16rem] text-slate-500">Anzahl Ladepunkte:</span>
+                      <span class="w-[16rem] text-slate-500">{% translate 'Anzahl Ladepunkte:' %}</span>
                     <span class="text-slate-800">not implemented</span>
                   </p>
                   <p class="flex">
-                    <span class="w-[16rem] text-slate-500">Leistung pro Punkt [kW]:</span>
+                      <span class="w-[16rem] text-slate-500">{% translate 'Leistung pro Punkt [kW]:' %}</span>
                     <span class="text-slate-800">not implemented</span>
                   </p>
                 </div>
                 <p class="flex pt-4">
-                  <span class="w-[16rem] text-slate-500">Ladeleistung:</span>
+                    <span class="w-[16rem] text-slate-500">{% translate 'Ladeleistung:' %}</span>
                   <span class="text-slate-800 pl-4">{{ depot.power_total }} kVA</span>
                 </p>
               </div>
@@ -559,7 +559,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
-                Editieren
+                  {% translate 'Editieren' %}
               </a>
             </div>
           </div>

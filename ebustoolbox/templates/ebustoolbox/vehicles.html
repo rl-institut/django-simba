@@ -1,7 +1,8 @@
+{% load i18n %}
 {% extends 'ebustoolbox/wizard.html' %}
 
 {% load custom_filters %}
-{% block title %}WeBus - Fahrzeuge{% endblock title %}
+  {% block title %}{% translate 'WeBus - Fahrzeuge' %}{% endblock title %}
 
 {% block wizard_navigation %}
   {% with wiz_idx=2 %}
@@ -16,11 +17,11 @@
         type="submit"
         method ="POST">
         {% csrf_token %}
-    <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">Fahrzeuge</h1>
+      <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Fahrzeuge' %}</h1>
 
     <section class="pb-12">
       <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide">
-        Zeitspanne
+          {% translate 'Zeitspanne' %}
         <div class="relative inline-block">
           <!-- Info Icon -->
           <span class="cursor-pointer group">
@@ -29,18 +30,18 @@
             </svg>
             <!-- Tooltip -->
             <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-              Bottom Left-Aligned Tooltip
+                {% translate 'Bottom Left-Aligned Tooltip' %}
             </div>
           </span>
         </div>
       </h2>
-      <span class="block mb-6 text-sm text-slate-500">Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.</span>
+        <span class="block mb-6 text-sm text-slate-500">{% translate 'Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.' %}</span>
         <fieldset class="flex items-center gap-4">
-          <span class="text-slate-600">Von</span>
+          <span class="text-slate-600">{% translate 'Von' %}</span>
 
           <!-- Start Date -->
           <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-            <label for="start-date" class="sr-only">Startdatum</label>
+            <label for="start-date" class="sr-only">{% translate 'Startdatum' %}</label>
             <input
               type="date"
               id="start-date"
@@ -55,7 +56,7 @@
 
           <!-- Start Time -->
           <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-            <label for="start-time" class="sr-only">Startzeit</label>
+            <label for="start-time" class="sr-only">{% translate 'Startzeit' %}</label>
             <input
               type="time"
               id="start-time"
@@ -66,11 +67,11 @@
               required>
           </div>
 
-          <span class="text-slate-600">bis</span>
+          <span class="text-slate-600">{% translate 'bis' %}</span>
 
           <!-- End Date -->
           <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-            <label for="end-date" class="sr-only">Enddatum</label>
+            <label for="end-date" class="sr-only">{% translate 'Enddatum' %}</label>
             <input
               type="date"
               id="end-date"
@@ -85,7 +86,7 @@
 
           <!-- End Time -->
           <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-            <label for="end-time" class="sr-only">Endzeit</label>
+            <label for="end-time" class="sr-only">{% translate 'Endzeit' %}</label>
             <input
               type="time"
               id="end-time"
@@ -107,7 +108,7 @@
 
     <section class="pb-12">
       <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide" id="temperature-heading">
-        Umgebungstemperatur
+          {% translate 'Umgebungstemperatur' %}
         <div class="relative inline-block">
           <!-- Info Icon -->
           <span class="cursor-pointer group">
@@ -116,7 +117,7 @@
             </svg>
             <!-- Tooltip -->
             <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.
+                {% translate 'Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.' %}
             </div>
           </span>
         </div>
@@ -133,7 +134,7 @@
 
     <section class="pb-12">
       <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide">
-        Fahrzeugtypen
+          {% translate 'Fahrzeugtypen' %}
         <div class="relative inline-block">
           <!-- Info Icon -->
           <span class="cursor-pointer group">
@@ -142,12 +143,12 @@
             </svg>
             <!-- Tooltip -->
             <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-              Bottom Left-Aligned Tooltip
+              {% translate 'Bottom Left-Aligned Tooltip' %}
             </div>
           </span>
         </div>
       </h2>
-      <span class="block mb-6 text-sm text-slate-500">Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu.</span>
+        <span class="block mb-6 text-sm text-slate-500">{% translate 'Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu.' %}</span>
 
 
       {% include "ebustoolbox/vehicle_modification.html" with modification=modification vt_id=vt_id choice_vts=choice_vts %}

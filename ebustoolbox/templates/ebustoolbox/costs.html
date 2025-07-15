@@ -1,3 +1,4 @@
+{% load i18n %}
 {% extends 'ebustoolbox/wizard.html' %}
 {% load custom_filters %}
 {% block title %}WeBus - Kosten{% endblock title %}
@@ -17,21 +18,21 @@
       {% csrf_token %}
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
     <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">
-      Kosten
-      <span class="text-sm normal-case font-normal text-slate-600">(optional)</span>
+        {% translate "Kosten" %}
+        <span class="text-sm normal-case font-normal text-slate-600">{% translate '(optional)' %}</span>
     </h1>
     <section class="pb-12">
       <fieldset class="pb-8">
-        <legend class="text-xl font-semibold text-slate-800">Kostenparameter</legend>
+          <legend class="text-xl font-semibold text-slate-800">{% translate 'Kostenparameter' %}</legend>
         <p class="mt-1 text-sm text-slate-500 leading-6">
-          Beim Life Cycle Costing (LCC) können neben den finanziellen auch die ökologischen Kosten über den gesamten Lebenszyklus betrachtet werden. So unterstützt LCC nachhaltige Entscheidungen, indem es Umweltauswirkungen wie Emissionen und Ressourcenverbrauch einbezieht.
+            {% translate 'Beim Life Cycle Costing (LCC) können neben den finanziellen auch die ökologischen Kosten über den gesamten Lebenszyklus betrachtet werden. So unterstützt LCC nachhaltige Entscheidungen, indem es Umweltauswirkungen wie Emissionen und Ressourcenverbrauch einbezieht.' %}
         </p>
         <div class="mt-6">
           <!-- Option 1 -->
           <div class="flex items-center h-12">
             <input id="costsAutomatic" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.no_input }}" type="radio" checked class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
             <div class="flex items-center gap-2">
-              <label for="costsAutomatic" class="ml-3 block text-sm/6 font-medium text-slate-800">Keine Eingabe</label>
+                <label for="costsAutomatic" class="ml-3 block text-sm/6 font-medium text-slate-800">{% translate 'Keine Eingabe' %}</label>
               <div class="relative inline-block">
                 <!-- Info Icon -->
                 <span class="cursor-pointer group">
@@ -40,7 +41,7 @@
                   </svg>
                   <!-- Tooltip -->
                   <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                    Bottom Left-Aligned Tooltip
+                      {% translate 'Bottom Left-Aligned Tooltip' %}
                   </div>
                 </span>
               </div>
@@ -50,7 +51,7 @@
           <div class="flex items-center h-12">
             <input id="costsFile" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.file_upload }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
             <div class="flex items-center gap-2">
-              <label for="costsFile" class="ml-3 block text-sm/6 font-medium text-slate-800">Datei hochladen</label>
+                <label for="costsFile" class="ml-3 block text-sm/6 font-medium text-slate-800">{% translate 'Datei hochladen' %}</label>
               <div class="relative inline-block">
                 <!-- Info Icon -->
                 <span class="cursor-pointer group">
@@ -59,7 +60,7 @@
                   </svg>
                   <!-- Tooltip -->
                   <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                    Bottom Left-Aligned Tooltip
+                      {% translate 'Bottom Left-Aligned Tooltip' %}
                   </div>
                 </span>
               </div>
@@ -77,14 +78,14 @@
           <!-- Option 3 -->
           <div class="flex items-center h-12">
             <input id="costsScenario" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.reference_scenario }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
-            <label for="costsScenario" class="ml-3 block text-sm/6 font-medium text-slate-800">Werte aus anderem Szenario übernehmen</label>
+              <label for="costsScenario" class="ml-3 block text-sm/6 font-medium text-slate-800">{% translate 'Werte aus anderem Szenario übernehmen' %}</label>
             <div class="ml-4 flex-grow hidden" id="dropdown-select">
               <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
                 <select
                         {{ costs_scenario_selection.scenario|widget_attrs }}
                         class="block w-full rounded-md bg-white py-1.5 px-3 text-left text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                 >
-                  <option value="">Szenario auswählen</option>
+                    <option value="">{% translate 'Szenario auswählen' %}</option>
                   {% for choice in  costs_scenario_selection.scenario.field.queryset %}
                     <option value="{{ choice.id }}">{{ choice.name }}</option>
                   {% endfor %}
@@ -95,7 +96,7 @@
           <!-- Option 4 -->
           <div class="flex items-center h-12">
             <input id="costsManually" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.manual }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
-            <label for="costsManually" class="ml-3 block text-sm/6 font-medium text-slate-800">Manuelle Eingabe</label>
+              <label for="costsManually" class="ml-3 block text-sm/6 font-medium text-slate-800">{% translate 'Manuelle Eingabe' %}</label>
           </div>
         </div>
       </fieldset>
@@ -104,7 +105,7 @@
           <!-- CO2 Emission -->
           <div class="flex-grow">
             <div class="flex items-center gap-2">
-              <label for="co2Emissions" id="co2EmissionsLabel" class="block text-sm/6 font-medium text-slate-800">CO₂-Emissionen</label>
+                <label for="co2Emissions" id="co2EmissionsLabel" class="block text-sm/6 font-medium text-slate-800">{% translate 'CO₂-Emissionen' %}</label>
               <div class="relative inline-block">
                 <!-- Info Icon -->
                 <span class="cursor-pointer group">
@@ -112,7 +113,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                   </svg>
                   <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                    CO₂ Emission Tooltip
+                      {% translate 'CO₂ Emission Tooltip' %}
                   </div>
                 </span>
               </div>
@@ -125,7 +126,7 @@
                   class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                   placeholder="800"
                   aria-labelledby="co2EmissionsLabel co2EmissionsUnit">
-                <div id="co2EmissionsUnit" class="shrink-0 select-none text-sm text-slate-500">g/km</div>
+                  <div id="co2EmissionsUnit" class="shrink-0 select-none text-sm text-slate-500">{% translate 'g/km' %}</div>
               </div>
             </div>
           </div>
@@ -133,14 +134,14 @@
           <!-- Energy Consumption -->
           <div class="flex-grow">
             <div class="flex items-center gap-2">
-              <label for="energyConsumption" id="energyConsumptionLabel" class="block text-sm/6 font-medium text-slate-800">Energieverbrauch</label>
+                <label for="energyConsumption" id="energyConsumptionLabel" class="block text-sm/6 font-medium text-slate-800">{% translate 'Energieverbrauch' %}</label>
               <div class="relative inline-block">
                 <span class="cursor-pointer group">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
                     <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                   </svg>
                   <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                    Energieverbrauch Tooltip
+                      {% translate 'Energieverbrauch Tooltip' %}
                   </div>
                 </span>
               </div>
@@ -152,7 +153,7 @@
                   class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                   placeholder="1.2"
                   aria-labelledby="energyConsumptionLabel energyConsumptionUnit">
-                <div id="energyConsumptionUnit" class="shrink-0 select-none text-sm text-slate-500">kWh/km</div>
+                  <div id="energyConsumptionUnit" class="shrink-0 select-none text-sm text-slate-500">{% translate 'kWh/km' %}</div>
               </div>
             </div>
           </div>
@@ -160,14 +161,14 @@
           <!-- Resource Consumption -->
           <div class="flex-grow">
             <div class="flex items-center gap-2">
-              <label for="resourceConsumption" id="resourceConsumptionLabel" class="block text-sm/6 font-medium text-slate-800">Ressourcenverbrauch</label>
+                <label for="resourceConsumption" id="resourceConsumptionLabel" class="block text-sm/6 font-medium text-slate-800">{% translate 'Ressourcenverbrauch' %}</label>
               <div class="relative inline-block">
                 <span class="cursor-pointer group">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
                     <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                   </svg>
                   <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                    Ressourcenverbrauch Tooltip
+                      {% translate 'Ressourcenverbrauch Tooltip' %}
                   </div>
                 </span>
               </div>
@@ -179,7 +180,7 @@
                   class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                   placeholder="500"
                   aria-labelledby="resourceConsumptionLabel resourceConsumptionUnit">
-                <div id="resourceConsumptionUnit" class="shrink-0 select-none text-sm text-slate-500">kg/Jahr</div>
+                  <div id="resourceConsumptionUnit" class="shrink-0 select-none text-sm text-slate-500">{% translate 'kg/Jahr' %}</div>
               </div>
             </div>
           </div>
@@ -187,14 +188,14 @@
           <!-- Lifetime Analysis -->
           <div class="flex-grow">
             <div class="flex items-center gap-2">
-              <label for="lifetimeAnalysis" id="lifetimeAnalysisLabel" class="block text-sm/6 font-medium text-slate-800">Lebensdaueranalyse</label>
+                <label for="lifetimeAnalysis" id="lifetimeAnalysisLabel" class="block text-sm/6 font-medium text-slate-800">{% translate 'Lebensdaueranalyse' %}</label>
               <div class="relative inline-block">
                 <span class="cursor-pointer group">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
                     <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                   </svg>
                   <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                    Lebensdaueranalyse Tooltip
+                      {% translate 'Lebensdaueranalyse Tooltip' %}
                   </div>
                 </span>
               </div>
@@ -206,7 +207,7 @@
                   class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                   placeholder="15"
                   aria-labelledby="lifetimeAnalysisLabel lifetimeAnalysisUnit">
-                <div id="lifetimeAnalysisUnit" class="shrink-0 select-none text-sm text-slate-500">Jahre</div>
+                  <div id="lifetimeAnalysisUnit" class="shrink-0 select-none text-sm text-slate-500">{% translate 'Jahre' %}</div>
               </div>
             </div>
           </div>
@@ -215,9 +216,9 @@
     </section>
     <section class="pb-12">
       <fieldset class="pb-8">
-        <legend class="text-xl font-semibold text-slate-800">Umweltparameter</legend>
+          <legend class="text-xl font-semibold text-slate-800">{% translate 'Umweltparameter' %}</legend>
         <p class="mt-1 text-sm text-slate-500 leading-6">
-          Umweltparameter umfassen verschiedene Aspekte der Umweltbelastung, die durch den Lebenszyklus eines Produkts oder einer Dienstleistung verursacht werden. Dazu gehören Emissionen, Energieverbrauch und Ressourcenverbrauch.
+            {% translate 'Umweltparameter umfassen verschiedene Aspekte der Umweltbelastung, die durch den Lebenszyklus eines Produkts oder einer Dienstleistung verursacht werden. Dazu gehören Emissionen, Energieverbrauch und Ressourcenverbrauch.' %}
         </p>
         <div class="mt-6">
           <!-- Option 1 -->
@@ -353,14 +354,14 @@
           <!-- Resource Consumption -->
           <div class="flex-grow">
             <div class="flex items-center gap-2">
-              <label for="envResourceConsumption" id="envResourceConsumptionLabel" class="block text-sm/6 font-medium text-slate-800">Ressourcenverbrauch</label>
+                <label for="envResourceConsumption" id="envResourceConsumptionLabel" class="block text-sm/6 font-medium text-slate-800">{% translate 'Ressourcenverbrauch' %}</label>
               <div class="relative inline-block">
                 <span class="cursor-pointer group">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
                     <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                   </svg>
                   <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                    Ressourcenverbrauch Tooltip
+                      {% translate 'Ressourcenverbrauch Tooltip' %}
                   </div>
                 </span>
               </div>
@@ -372,7 +373,7 @@
                   class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                   placeholder="500"
                   aria-labelledby="envResourceConsumptionLabel envResourceConsumptionUnit">
-                <div id="envResourceConsumptionUnit" class="shrink-0 select-none text-sm text-slate-500">kg/Jahr</div>
+                  <div id="envResourceConsumptionUnit" class="shrink-0 select-none text-sm text-slate-500">{% translate 'kg/Jahr' %}</div>
               </div>
             </div>
           </div>
@@ -380,14 +381,14 @@
           <!-- Lifetime Analysis -->
           <div class="flex-grow">
             <div class="flex items-center gap-2">
-              <label for="envLifetimeAnalysis" id="envLifetimeAnalysisLabel" class="block text-sm/6 font-medium text-slate-800">Lebensdaueranalyse</label>
+                <label for="envLifetimeAnalysis" id="envLifetimeAnalysisLabel" class="block text-sm/6 font-medium text-slate-800">{% translate 'Lebensdaueranalyse' %}</label>
               <div class="relative inline-block">
                 <span class="cursor-pointer group">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
                     <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                   </svg>
                   <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                    Lebensdaueranalyse Tooltip
+                      {% translate 'Lebensdaueranalyse Tooltip' %}
                   </div>
                 </span>
               </div>
@@ -399,7 +400,7 @@
                   class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                   placeholder="15"
                   aria-labelledby="envLifetimeAnalysisLabel envLifetimeAnalysisUnit">
-                <div id="envLifetimeAnalysisUnit" class="shrink-0 select-none text-sm text-slate-500">Jahre</div>
+                  <div id="envLifetimeAnalysisUnit" class="shrink-0 select-none text-sm text-slate-500">{% translate 'Jahre' %}</div>
               </div>
             </div>
           </div>

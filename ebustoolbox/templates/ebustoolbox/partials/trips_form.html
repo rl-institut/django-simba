@@ -1,3 +1,4 @@
+{% load i18n %}
 {% load custom_filters %}
 {% load static %}
 
@@ -11,16 +12,16 @@
 
   {% csrf_token %}
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">Umlaufplan</h1>
-    <span class="block mb-6 text-sm text-slate-500">Laden Sie ihren Umlaufplan hoch. Alternativ können Sie den Umlaufplan aus einem existierendem Szenario auswählen.</span>
+    <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Umlaufplan' %}</h1>
+    <span class="block mb-6 text-sm text-slate-500">{% translate 'Laden Sie ihren Umlaufplan hoch. Alternativ können Sie den Umlaufplan aus einem existierendem Szenario auswählen.' %}</span>
 
 {# ToDo @Bryan add styling and position div to your liking #}
-  <div id="error-message" style="display:None">Lade eine Datei aus oder wähle ein Szenario aus.</div>
+    <div id="error-message" style="display:None">{% translate 'Lade eine Datei aus oder wähle ein Szenario aus.' %}</div>
     <div class="grid grid-cols-12 gap-4">
       <div class="col-span-full pb-4">
         <div class="flex justify-between">
           <label for="" class="flex items-center gap-2 text-sm font-medium text-slate-800">
-            Neue Datei
+            {% translate 'Neue Datei' %}
             <div class="relative inline-block">
               <!-- Info Icon with group -->
               <span class="cursor-pointer group">
@@ -31,7 +32,7 @@
                 </svg>
                 <!-- Tooltip -->
                 <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                  Bottom Left-Aligned Tooltip
+                  {% translate 'Bottom Left-Aligned Tooltip' %}
                 </div>
               </span>
             </div>
@@ -45,7 +46,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round"
                       d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>
               </svg>
-              Beispieldatei
+                {% translate 'Beispieldatei' %}
             </span>
           </button>
             </a>
@@ -62,7 +63,7 @@
             <p class="mt-4 pb-2 flex text-sm text-slate-800">
               <label for="{{ form.data_file.auto_id }}"
                   class="relative w-full cursor-pointer text-sm font-semibold text-emerald-700">
-                <span>Datei hochladen</span>
+                <span>{% translate 'Datei hochladen' %}</span>
                 {# this sets the id=form.data_file.auto_id #}
                 <input {{ form.data_file|widget_attrs }} type="file" class="sr-only" accept=".csv" onchange="updateFileName(this)">
                 {# progress bar during upload #}
@@ -73,13 +74,13 @@
                   max='100'
                 ></progress>
               </label>
-            <p class="pl-1 text-sm text-slate-500">oder ziehen und ablegen</p>
+            <p class="pl-1 text-sm text-slate-500">{% translate 'oder ziehen und ablegen' %}</p>
             <div
               id="uploaded_file_id"
               class="pt-6 text-md font-semibold text-slate-800"
             >
             </div>
-            <p class="text-sm text-slate-500 pt-8">Beispiel: VDV 454 (.zip)/BVG-IVU-XML</p>
+            <p class="text-sm text-slate-500 pt-8">{% translate 'Beispiel: VDV 454 (.zip)/BVG-IVU-XML' %}</p>
           </div>
         </div>
       </div>
@@ -87,7 +88,7 @@
     <div class="col-span-full pt-4 pb-8">
       <div class="flex items-center gap-4">
         <div class="text-sm text-slate-600">
-          oder aus bestehendem Szenario
+          {% translate 'oder aus bestehendem Szenario' %}
         </div>
         <div class="flex-grow">
           <label id="listbox-label" class="block text-sm font-medium text-slate-800">
@@ -101,7 +102,7 @@
               name="{{ form.existing_scenario.name }}"
               class="flex flex-wrap items-center w-full rounded-md bg-white px-3 py-1.5 text-left text-slate-800 border border-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6 cursor-pointer"
             >
-              <option value="">-- Szenario auswählen --</option>
+              <option value="">{% translate '-- Szenario auswählen --' %}</option>
               {% for scenario in scenarios %}
                 <option
                   value="{{ scenario.task_id }}"
@@ -116,7 +117,7 @@
     <div class="col-span-full pt-4 border-t">
       <div class="w-full pb-6">
         <label for="{{ form.scenario_name.auto_id }}"
-          class="block text-sm/6 font-medium text-slate-900">Szenario-Name</label>
+          class="block text-sm/6 font-medium text-slate-900">{% translate 'Szenario-Name' %}</label>
         <div class="mt-2">
           <input type="text" {{ form.scenario_name|widget_attrs }}
             class="bg-white w-full px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-emerald-400 sm:text-sm/6"
@@ -126,8 +127,8 @@
       <div class="w-full">
         <div class="flex justify-between">
           <label for="{{ form.description.auto_id }}" class="block text-sm/6 font-medium text-slate-800">
-            Beschreibung
-            <span class="text-slate-500 pl-2" id="description-optional">(Optional)</span>
+            {% translate 'Beschreibung' %}
+            <span class="text-slate-500 pl-2" id="description-optional">{% translate '(Optional)' %}</span>
           </label>
         </div>
         <div class="mt-2">
