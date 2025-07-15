@@ -718,8 +718,8 @@
                   tabindex="-1"
                 >
                   <div class="py-1" role="none">
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/csv">Als CSV exportieren</a>
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/json">Als JSON exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc/?format=csv>Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc/?format=json">Als JSON exportieren</a>
                   </div>
                 </div>
             </div>
@@ -748,8 +748,8 @@
                   tabindex="-1"
                 >
                   <div class="py-1" role="none">
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/csv">Als CSV exportieren</a>
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/json">Als JSON exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/depot_power/?format=csv">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/depot_power/?format=json">Als JSON exportieren</a>
                   </div>
                 </div>
             </div>
@@ -838,8 +838,8 @@
                   tabindex="-1"
                 >
                   <div class="py-1" role="none">
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/${taskId}/dist_histogram/">Als CSV exportieren</a>
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/dist_histogram/">Als JSON exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/dist_histogram/?format=csv">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/dist_histogram/?format=json">Als JSON exportieren</a>
                   </div>
                 </div>
             </div>
@@ -2587,8 +2587,34 @@ document.getElementById('exportPdf').addEventListener('click', async function() 
         });
 
         function triggerCustomFunction() {
-        console.log('Custom function triggered!');
-        // Add your logic here, e.g., open modal, print, etc.
+            console.log("Custom Fkt!")
+           // Slightly zoom the map to trigger a rerender
+            const currentZoom = map.getZoom();
+
+            // Set a one-time idle listener to export once rendering is done
+            map.once('idle', function () {
+                const canvas = map.getCanvas();
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                tempCtx.drawImage(canvas, 0, 0);
+
+                const link = document.createElement('a');
+                link.download = 'map-export.png';
+                link.href = tempCanvas.toDataURL('image/png');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                // Reset zoom if it was changed
+                if (map.getZoom() !== currentZoom) {
+                    map.setZoom(currentZoom);
+                }
+            });
+
+            // Trigger re-render by adjusting zoom slightly and then reverting
+            map.setZoom(currentZoom + 0.0001);
         }
   });
 </script>

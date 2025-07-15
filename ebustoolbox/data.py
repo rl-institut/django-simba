@@ -833,38 +833,45 @@ def sim_is_finished(task_id):
     return Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
 
 
-def get_soc_as_json(task_id: str):
+def get_soc_as_df(task_id: str) -> pd.DataFrame:
+    """
+    Return a flat DataFrame with columns:
+        V_id | timestamp | soc
+    Each rotation contributes two rows (start & end).
+    """
     s = Scenario.objects.get(task_id=task_id)
-
     vehicle_name_dict, _ = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
+
     df = get_soc_as_dataframe(s.id, buses)
 
-    selected_columns = df[["V_id", "time_end", "soc_end", "time_start", "soc_start"]].copy()
+    df = df[["V_id", "time_end", "soc_end", "time_start", "soc_start"]].copy()
 
-    # Convert both 'time_end' and 'time_start' to Unix timestamps (in milliseconds)
-    selected_columns["timestamp_end"] = (
-        pd.to_datetime(selected_columns["time_end"]).astype(int) // 10**6
-    )
-    selected_columns["timestamp_start"] = (
-        pd.to_datetime(selected_columns["time_start"]).astype(int) // 10**6
-    )
+    # convert to Unix ms
+    df["timestamp_end"]   = pd.to_datetime(df["time_end"]).astype("int64") // 10**6
+    df["timestamp_start"] = pd.to_datetime(df["time_start"]).astype("int64") // 10**6
 
-    # Combine both start and end points
-    # Each group will contain a list of [timestamp, soc] pairs for both start and end
-    soc_data = (
-        selected_columns.groupby("V_id")
-        .apply(
-            lambda group: sorted(
-                group[["timestamp_start", "soc_start"]].values.tolist()
-                + group[["timestamp_end", "soc_end"]].values.tolist(),
-                key=lambda x: x[0],  # Sort by timestamp
-            )
-        )
+    # build a long‑form dataframe: V_id | timestamp | soc
+    df_long = pd.concat([
+        df.rename(columns={"timestamp_start": "timestamp", "soc_start": "soc"})
+          [["V_id", "timestamp", "soc"]],
+        df.rename(columns={"timestamp_end": "timestamp", "soc_end": "soc"})
+          [["V_id", "timestamp", "soc"]],
+    ])
+
+    return df_long.sort_values(["V_id", "timestamp"]).reset_index(drop=True)
+
+def get_soc_as_json(task_id: str) -> dict:
+
+    df_long = get_soc_as_df(task_id)
+
+    # group → list of [timestamp, soc] pairs, already sorted
+    json_data = (
+        df_long.groupby("V_id")
+        .apply(lambda g: g[["timestamp", "soc"]].values.tolist())
         .to_dict()
     )
-
-    return {"data": soc_data}
+    return {"data": json_data}
 
 
 def get_binned_soc_as_json(task_id: str):
@@ -1139,7 +1146,7 @@ def get_speed_hist_as_json(task_id: str):
     }
 
 
-def get_dist_hist_as_json(task_id: str):
+def get_dist_hist_as_df(task_id: str):
     scenario = Scenario.objects.get(task_id=task_id)
     vehicle_name_dict, _ = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
@@ -1175,27 +1182,22 @@ def get_dist_hist_as_json(task_id: str):
         .reindex(columns=["Nicht kritisch", "kritisch"], fill_value=0)
     )
 
-    return {
-        "bins": grouped.index.tolist(),
-        "data": {
-            "Nicht kritisch": grouped["Nicht kritisch"].tolist(),
-            "kritisch": grouped["kritisch"].tolist(),
-        },
-    }
+    grouped.index.name = "distanz bin"
+
+    return grouped
 
 
-def get_power_draw_and_occ_as_json(task_id: str):
-    # Get the scenario from Django ORM
+def get_power_draw_and_occ(task_id: str) -> pd.DataFrame:
+    """
+    Returns power draw and occupancy data as a DataFrame.
+    """
     scenario = Scenario.objects.get(task_id=task_id)
-
-    # Query the Area table using SQLAlchemy
-    all_areas = scenario.area_set.all()
-    all_area_ids = [area.id for area in all_areas]
+    area_ids = [area.id for area in scenario.area_set.all()]
 
     with Session(SqlAlchemyEngine.get_engine()) as session:
-        prepared_data = power_and_occupancy(all_area_ids, session)
+        df = power_and_occupancy(area_ids, session)
 
-    return prepared_data.to_dict(orient="records")
+    return df
 
 
 def get_soc_gantt_as_json(task_id: str):

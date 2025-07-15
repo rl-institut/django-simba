@@ -1381,9 +1381,21 @@ def get_soc_data(request, task_id: str):
     """
     Returns SOC (State of Charge) data over time for selected buses in JSON format.
     """
-    response_data = data.get_soc_as_json(task_id)
+    file_format = request.GET.get("format", "json").lower()
 
-    return JsonResponse(response_data)
+    if file_format == 'json':
+        payload = data.get_soc_as_json(task_id)
+        response_data = JsonResponse(payload, safe=True)
+    elif file_format == 'csv':
+        csv_text = data.get_soc_as_df(task_id)
+        response_data = HttpResponse(
+            csv_text.to_csv(index=False),
+            content_type="text/csv"
+        )
+    else:
+        raise Http404
+
+    return response_data
 
 
 def get_binned_soc_data(request, task_id: str):
@@ -1426,16 +1438,54 @@ def get_speed_hist(request, task_id: str):
 
 
 def get_dist_hist(request, task_id: str):
-    response_data = data.get_dist_hist_as_json(task_id)
 
-    return JsonResponse(response_data)
+    file_format = request.GET.get("format", "json").lower()
+
+    hist_data = data.get_dist_hist_as_df(task_id)
+    if file_format == 'json':
+        response_data = JsonResponse(
+            {
+            "bins": hist_data.index.tolist(),
+            "data": {
+                "Nicht kritisch": hist_data["Nicht kritisch"].tolist(),
+                "kritisch": hist_data["kritisch"].tolist(),
+                },
+            }
+        )
+    elif file_format == 'csv':
+        response_data = HttpResponse(
+            hist_data.to_csv(index=True),
+            content_type="text/csv"
+        )
+    else:
+        raise Http404
+
+    return response_data
 
 
 def get_power_draw_and_occ(request, task_id: str):
-    response_data = data.get_power_draw_and_occ_as_json(task_id)
+    """
+    Returns combined power draw and occupancy data.
+    Supports format=json (default) and format=csv.
+    """
 
-    return JsonResponse({"data": response_data})
+    format_ = request.GET.get("format", "json").lower()
+    df = data.get_power_draw_and_occ(task_id)
 
+    if format_ == "json":
+        response = JsonResponse({"data": df.to_dict(orient="records")}, safe=True)
+
+    elif format_ == "csv":
+        response = HttpResponse(
+            df.to_csv(index=False),
+            content_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="power_draw_and_occ.csv"'},
+        )
+
+    else:
+        raise Http404
+
+    return response
 
 def get_soc_gantt(request, task_id: str):
     vehicles, records = data.get_soc_gantt_as_json(task_id)
