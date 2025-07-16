@@ -14,6 +14,7 @@ class DjangoSimbaWrapper:
         # Allow unsafe async operations (for Juptyer Notebook)
         # https://stackoverflow.com/questions/61926359/django-synchronousonlyoperation-you-cannot-call-this-from-an-async-context-u
 
+        os.environ["DJANGO_SECRET_KEY"] = "DJANGO_SECRET_KEY"
         os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 
         os.environ["DJANGO_SIMBA_DATABASE_URL"] = database_url
