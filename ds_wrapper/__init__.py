@@ -15,7 +15,10 @@ class DjangoSimbaWrapper:
         # https://stackoverflow.com/questions/61926359/django-synchronousonlyoperation-you-cannot-call-this-from-an-async-context-u
 
         os.environ["DJANGO_SECRET_KEY"] = "DJANGO_SECRET_KEY"
+        os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
+
         os.environ["DATABASE_URL"] = database_url
+        settings.DATABASES["default"] = environ.Env().db("DATABASE_URL")
 
         os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ds_wrapper.settings")
         import django
