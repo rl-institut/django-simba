@@ -289,7 +289,6 @@ class TripsView(FormView):
 
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get("task_id")
-
         first = kwargs.get("first", 0)
         if task_id and first != 1:
             progress_db = get_unique_progress_or_none(task_id)

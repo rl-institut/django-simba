@@ -1,5 +1,5 @@
-{% load i18n %}
 {% extends 'core/base.html' %}
+{% load i18n %}
 
   {% block title %}{% translate 'WeBus - Dashboard' %}{% endblock title %}
 
@@ -15,7 +15,7 @@
           name="scenario-search"
           id="scenario-search"
           class="block w-full bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-          placeholder="Nach Szenarien suchen"
+          placeholder={% translate "Nach Szenarien suchen" %}
           oninput="searchScenario(this);"
         >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 pointer-events-none">

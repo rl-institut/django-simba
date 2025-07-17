@@ -1,6 +1,7 @@
 {% extends 'ebustoolbox/wizard.html' %}
+{% load i18n %}
 {% load custom_filters %}
-{% block title %}WeBus - Depots{% endblock title %}
+    {% block title %}{% translate 'WeBus - Depots' %}{% endblock title %}
 
 {% block wizard_navigation %}
     {{ block.super }}
@@ -9,8 +10,8 @@
 {% block wizard_content %}
   {#ToDo Brany. Please style this. {{ content }} is raw text is explaining why a redirection will follow.#}
     {{ content }}
-    <div> Sie werden in <a id="countdown">{{ duration }}</a> s weitergeleitet.</div>
-    <div> Wenn dies nicht funktioniert klicken sie <a href={{ redirect_url }} >hier</a>
+<div> {% blocktranslate %}Sie werden in <a id="countdown">{{ duration }}</a> s weitergeleitet.{% endblocktranslate %}</div>
+    <div> {% blocktranslate %}Wenn dies nicht funktioniert klicken sie <a href={{ redirect_url }} >hier</a>  {% endblocktranslate %}
     </div>
 
     <script>

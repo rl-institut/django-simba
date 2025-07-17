@@ -1,5 +1,5 @@
-{% load i18n %}
 {% extends 'ebustoolbox/wizard.html' %}
+{% load i18n %}
 
 {% load custom_filters %}
   {% block title %}{% translate 'WeBus - Fahrzeuge' %}{% endblock title %}
@@ -125,7 +125,7 @@
       <div class="w-4/12">
         <div class="mt-2">
           <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
-              <input type="number" {{ simulation_parameters_form.temperature|widget_attrs }} class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6" placeholder="Gib eine Temperatur ein." aria-describedby="temperature-heading temperature-unit">
+              <input type="number" {{ simulation_parameters_form.temperature|widget_attrs }} class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6" placeholder={% translate "Gib eine Temperatur ein." %} aria-describedby="temperature-heading temperature-unit">
             <div id="temperature-unit" class="shrink-0 select-none text-slate-500">°C</div>
           </div>
         </div>

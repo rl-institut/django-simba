@@ -1,5 +1,5 @@
-{% load i18n %}
 {% extends 'core/base.html' %}
+{% load i18n %}
 
 {% block title %}WeBus - Dashboard{% endblock title %}
 
@@ -24,7 +24,7 @@
     <div>
       <label for="scenario-search" class="block text-sm/6 font-medium text-slate-800">Suche</label>
       <div class="mt-2 grid grid-cols-1">
-        <input type="text" name="scenario-search" id="scenario-search" class="col-start-1 row-start-1 block w-full rounded-md bg-white py-1.5 pl-3 pr-10 text-base text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-400 sm:pr-9 sm:text-sm/6" placeholder="Nach Szenarien suchen">
+        <input type="text" name="scenario-search" id="scenario-search" class="col-start-1 row-start-1 block w-full rounded-md bg-white py-1.5 pl-3 pr-10 text-base text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-400 sm:pr-9 sm:text-sm/6" placeholder={% translate "Nach Szenarien suchen" %}>
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="pointer-events-none col-start-1 row-start-1 mr-3 size-5 self-center justify-self-end text-slate-400 sm:size-4">
           <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
         </svg>

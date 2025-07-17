@@ -1,5 +1,5 @@
-{% load i18n %}
 {% extends 'ebustoolbox/wizard.html' %}
+{% load i18n %}
 {% load custom_filters %}
 
   {% block title %}{% translate 'WeBus - Endhaltestellen' %}{% endblock title %}
@@ -210,7 +210,7 @@
               name="stationSearch"
               id="stationSearch"
               class="block w-full bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-              placeholder="Nach Stationen suchen">
+              placeholder={% translate "Nach Stationen suchen" %}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"

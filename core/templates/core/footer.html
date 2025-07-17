@@ -1,3 +1,4 @@
+{% load i18n %}
 {% load static %}
 
 <footer class="bg-white text-slate-800 border-t">
@@ -7,8 +8,8 @@
 <!--
       <li><a href="#" class="hover:underline">Kontakt</a></li>
 -->
-      <li><a href="{% url 'core:legal' %}" class="hover:underline">Impressum</a></li>
-      <li><a href="{% url 'core:privacy' %}" class="hover:underline">Datenschutz</a></li>
+      <li><a href="{% url 'core:legal' %}" class="hover:underline">{% translate 'Impressum' %}</a></li>
+      <li><a href="{% url 'core:privacy' %}" class="hover:underline">{% translate 'Datenschutz' %}</a></li>
     </ul>
   </div>
 </footer>

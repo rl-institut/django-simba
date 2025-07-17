@@ -1,5 +1,5 @@
-{% load i18n %}
 {% extends 'ebustoolbox/wizard.html' %}
+{% load i18n %}
 {% load static %}
 {% load custom_filters %}
 {% block header %}
@@ -41,6 +41,7 @@
 {% endblock wizard_navigation %}
 
 {% block wizard_content %}
+
 {#  Progress bar poll loading progress.html during server side analysis of file#}
   {%  if progress_id %}
 {% include "core/progress_poll.html" with progress_id=progress_id template_name="progress_trips.html" %}
