@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.core import signing, mail
 from django.http import HttpResponse, Http404
 from django.shortcuts import render, redirect
+from django.template.loader import render_to_string
 from django.urls import reverse
 
 from .forms import SignUpForm
@@ -29,7 +30,17 @@ def signup(request):
         user.is_active = True
         user.save()
         login(request, user)
-        return redirect(reverse("core:home"))
+        user.email_user(
+            "WeBus Registrierung",
+            render_to_string(
+                'core/registration/email_signup.html',
+                {
+                    'user': user,
+                }
+            ),
+            fail_silently=True,
+        )
+        return redirect(reverse("simba:dashboard"))
     elif request.GET.get("token"):
         # GET: present registration form, fill in email from token
         try:
@@ -40,6 +51,9 @@ def signup(request):
             return redirect(reverse("login"))
         form = SignUpForm(initial={"email": email})
         return render(request, "core/registration/signup.html", {"form": form})
+    else:
+        # GET, no token: normal registration
+        return render(request, "core/registration/signup.html", {"form": SignUpForm()})
     raise Http404()
 
 
