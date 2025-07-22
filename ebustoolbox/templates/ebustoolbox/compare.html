@@ -84,50 +84,107 @@
       addBtn.style.display = availableScenarios.size?'':'none';
       th.appendChild(addBtn);
 
-      addBtn.onclick = _ => {
-        // 1) hide button
+      addBtn.onclick = () => {
+        // 0) clean up any old dropdown
+        const oldDd = th.querySelector('#cmp-dropdown');
+        if (oldDd) th.removeChild(oldDd);
+
+        // 1) hide the add button
         addBtn.style.display = 'none';
 
-        // 2) create <select> and options
-        const select = document.createElement('select');
-        select.id = 'cmp-select';
-        select.classList.add(...selectStyle);
+        // 2) build wrapper
+        const dd = document.createElement('div');
+        dd.id = 'cmp-dropdown';
+        Object.assign(dd.style, {
+          position:   'relative',
+          display:    'inline-block',  // shrink‑wraps to the label width
+          zIndex:     1000
+        });
 
-        // placeholder
-        const placeholder = document.createElement('option');
-        placeholder.value = '';
-        placeholder.textContent = '--- Szenario auswählen ---';
-        placeholder.disabled = true;
-        placeholder.selected = true;
-        select.appendChild(placeholder);
+        // 3) the “select” label
+        const label = document.createElement('div');
+        label.textContent = '--- Szenario auswählen ---';
+        label.classList.add(...selectStyle);
+        label.style.cursor = 'pointer';
+        dd.appendChild(label);
 
-        // sorted IDs → options
-        const sorted_ids = Array.from(availableScenarios).sort((a, b) =>
-          a.localeCompare(b, undefined, { numeric: true })
-        );
-        for (let id of sorted_ids) {
-          const opt = document.createElement('option');
-          opt.value = id;
-          opt.textContent = scenarios[id].Name;
-          select.appendChild(opt);
-        }
+        // 4) create custom dropdown list to make it look like a select
+        // (as select does not allow to make only one click outside to close and display back the button)
+        const list = document.createElement('ul');
+        Object.assign(list.style, {
+          listStyle:      'none',
+          margin:         0,
+          padding:        '4px 0',
+          position:       'absolute',
+          top:            '100%',
+          left:           0,
+          background:     'white',
+          boxShadow:      '0 2px 6px rgba(0,0,0,0.2)',
+          maxHeight:      '200px',
+          overflowY:      'auto',
+          display:        'none',
+          width:          '100%',
+          boxSizing:      'border-box'
+        });
+        dd.appendChild(list);
 
-        // 3) stick it into the header cell
-        th.appendChild(select);
-
-        // Modern Chrome/Edge has showPicker(); fallback to focus+click
-        if (typeof select.showPicker === 'function') {
-          select.showPicker();
-        } else {
-          select.focus();
-          select.click();
-        }
-
-        // 5) add column and clean up
-        select.onchange = _ => {
-          addColumn(select.value);
-          th.removeChild(select);
+        // 5) helper to create each scenario item
+        const makeItem = (text, data) => {
+          const li = document.createElement('li');
+          li.textContent = text;
+          li.dataset.val = data;
+          Object.assign(li.style, {
+            padding:    '6px 12px',
+            cursor:     'pointer'
+          });
+          li.addEventListener('mouseenter', () => li.style.background = '#eef');
+          li.addEventListener('mouseleave', () => li.style.background = '');
+          return li;
         };
+
+        // 6) populate with scenarios only
+        Array.from(availableScenarios)
+          .sort((a,b) => a.localeCompare(b, undefined, { numeric: true }))
+          .forEach(id => {
+            list.appendChild(makeItem(scenarios[id].Name, id));
+          });
+
+        // 7) insert into header
+        th.appendChild(dd);
+
+        // 8) open / close logic
+        const openList = () => {
+          list.style.display = 'block';
+          document.addEventListener('mousedown', onOutside, true);
+          document.addEventListener('keydown', onEsc);
+        };
+        const closeAndRestore = () => {
+          document.removeEventListener('mousedown', onOutside, true);
+          document.removeEventListener('keydown', onEsc);
+          if (dd.parentNode) dd.parentNode.removeChild(dd);
+          addBtn.style.display = '';
+        };
+        const onOutside = e => {
+          if (!dd.contains(e.target)) closeAndRestore();
+        };
+        const onEsc = e => {
+          if (e.key === 'Escape') closeAndRestore();
+        };
+
+        label.addEventListener('click', e => {
+          e.stopPropagation();
+          openList();
+        });
+
+        list.addEventListener('click', e => {
+          e.stopPropagation();
+          const val = e.target.dataset.val;
+          closeAndRestore();
+          if (val) addColumn(val);
+        });
+
+        // 9) auto‑open on click
+        openList();
       };
     }
 
