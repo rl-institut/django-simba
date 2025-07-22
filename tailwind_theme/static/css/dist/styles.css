@@ -2871,10 +2871,6 @@ progress::-moz-progress-bar {
   outline-offset: 0px;
 }
 
-.focus\:outline-offset-2:focus {
-  outline-offset: 2px;
-}
-
 .focus\:outline-green-400:focus {
   outline-color: #4ade80;
 }
@@ -2901,6 +2897,11 @@ progress::-moz-progress-bar {
 .focus\:ring-blue-800:focus {
   --tw-ring-opacity: 1;
   --tw-ring-color: rgb(30 64 175 / var(--tw-ring-opacity, 1));
+}
+
+.focus\:ring-emerald-400:focus {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(52 211 153 / var(--tw-ring-opacity, 1));
 }
 
 .focus\:ring-green-400:focus {
@@ -2931,11 +2932,6 @@ progress::-moz-progress-bar {
 .focus\:ring-slate-500:focus {
   --tw-ring-opacity: 1;
   --tw-ring-color: rgb(100 116 139 / var(--tw-ring-opacity, 1));
-}
-
-.focus\:ring-emerald-400:focus {
-  --tw-ring-opacity: 1;
-  --tw-ring-color: rgb(52 211 153 / var(--tw-ring-opacity, 1));
 }
 
 .focus\:ring-offset-0:focus {

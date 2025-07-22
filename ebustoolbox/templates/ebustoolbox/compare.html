@@ -85,32 +85,50 @@
       th.appendChild(addBtn);
 
       addBtn.onclick = _ => {
-        // add button click: create selection with remaining scenarios, hide button
+        // 1) hide button
         addBtn.style.display = 'none';
-        let select = document.createElement('SELECT');
+
+        // 2) create <select> and options
+        const select = document.createElement('select');
         select.id = 'cmp-select';
         select.classList.add(...selectStyle);
+
+        // placeholder
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = '--- Szenario auswählen ---';
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        select.appendChild(placeholder);
+
+        // sorted IDs → options
+        const sorted_ids = Array.from(availableScenarios).sort((a, b) =>
+          a.localeCompare(b, undefined, { numeric: true })
+        );
+        for (let id of sorted_ids) {
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = scenarios[id].Name;
+          select.appendChild(opt);
+        }
+
+        // 3) stick it into the header cell
         th.appendChild(select);
-        let option = document.createElement('option');
-        option.value = '0';
-        option.textContent = '--- Szenario auswählen ---';
-        select.appendChild(option);
-        // options for each available scenario
-        // sort by numeric scenario ID
-        let sorted_ids = Array(...availableScenarios).sort(
-          (a, b) => a.localeCompare(b, undefined, { numeric: true }));
-        for (let scenario_id of sorted_ids) {
-          option = document.createElement('option');
-          option.value = scenario_id;
-          option.textContent = scenarios[scenario_id].Name;
-          select.appendChild(option);
+
+        // Modern Chrome/Edge has showPicker(); fallback to focus+click
+        if (typeof select.showPicker === 'function') {
+          select.showPicker();
+        } else {
+          select.focus();
+          select.click();
         }
+
+        // 5) add column and clean up
         select.onchange = _ => {
-          // scenario selected: add new column before last
-          addColumn(select.value);  // may also make addBtn visible again, depending on availableScenarios
+          addColumn(select.value);
           th.removeChild(select);
-        }
-      }
+        };
+      };
     }
 
     if (requested && scenarios[requested]) {
