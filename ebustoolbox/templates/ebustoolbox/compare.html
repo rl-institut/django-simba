@@ -8,6 +8,7 @@
     <h1 class="text-4xl font-semibold mb-6">Szenarienvergleich</h1>
   {% if scenarios %}
     <div class="flex flex-col">
+      <div id="cmp-addContainer" class="mb-2 flex justify-end"></div>
       <div class="mt-4 shadow border border-slate-100 rounded-lg overflow-auto">
         <div class="bg-white rounded-lg shadow-md overflow-x-auto">
           <table id="table" class="table-fixed w-full text-left border-collapse">
@@ -71,23 +72,25 @@
 
     {
       // add empty column (always last column)
-      let th = table.rows[0].insertCell();  // insertCell always TD, not TH
-      th.classList.add(...buttonHeaderStyle, 'w-64', 'h-20');
-      for (let i=1; i<table.rows.length; i++)
-        (table.rows[i].insertCell()).classList.add(...rowValueStyle, 'w-64', 'h-12');
-      // add new scenario button in last column
-      var addBtn = document.createElement('BUTTON');
+      const addContainer = document.getElementById('cmp-addContainer');
+      const addBtn = document.createElement('BUTTON');
       addBtn.id = 'cmp-addBtn';
-      addBtn.classList.add(...headerBtnStyle);
-      addBtn.textContent = '+ Szenario';
-      // only show if there are more scenarios to compare
-      addBtn.style.display = availableScenarios.size?'':'none';
-      th.appendChild(addBtn);
+      addBtn.classList.add(
+        'px-2','py-1','rounded-full','border-2','font-semibold',
+        'border-emerald-400','hover:bg-emerald-400','hover:text-black',
+        'focus:outline-none','focus:ring-2','focus:ring-offset-2','focus:ring-green-400',
+        'active:bg-emerald-500','transition-all','duration-300'
+      );
+      addBtn.textContent = '+ Szenario';
+      addBtn.style.display = availableScenarios.size ? '' : 'none';
+
+      // stick it into your new container
+      addContainer.appendChild(addBtn);
 
       addBtn.onclick = () => {
         // 0) clean up any old dropdown
-        const oldDd = th.querySelector('#cmp-dropdown');
-        if (oldDd) th.removeChild(oldDd);
+        const oldDd = document.getElementById('cmp-dropdown');
+        if (oldDd) oldDd.remove();
 
         // 1) hide the add button
         addBtn.style.display = 'none';
@@ -149,8 +152,8 @@
             list.appendChild(makeItem(scenarios[id].Name, id));
           });
 
-        // 7) insert into header
-        th.appendChild(dd);
+        // 7) insert into container
+        addContainer.appendChild(dd);
 
         // 8) open / close logic
         const openList = () => {
@@ -199,44 +202,36 @@
   function addColumn(scenario_id) {
     // add new scenario column to comparison
     // add as second-to-last column
-    let scenario = scenarios[scenario_id];
-    numColumns = table.rows[0].childElementCount;
-    let th = table.rows[0].insertCell(numColumns-1);
+    const scenario = scenarios[scenario_id];
+
+    // — append a new <th> to the end of the header row
+    const headerRow = table.tHead.rows[0];
+    const th = headerRow.insertCell();           // no index ⇒ append
     th.classList.add(...columnHeaderStyle, 'w-64');
-      for (let i = 1; i < table.rows.length; i++) {
-        table.rows[i].cells[ th.cellIndex ].classList.add('w-64');
-      }
-    let headerDiv = document.createElement('DIV');
+
+    // build title + remove‑button exactly as before…
+    const headerDiv = document.createElement('div');
     headerDiv.setAttribute('scenario', scenario_id);
-    headerDiv.classList.add(...headerDivStyle)
-    let headerSpan = document.createElement('SPAN');
-    headerSpan.classList.add('inline-block','truncate','whitespace-nowrap');
-    headerSpan.textContent = scenario.Name;
-    headerDiv.appendChild(headerSpan);
-    if (scenario_id != requested) {
-      // add minus button, except for requested scenario
-      let headerBtn = document.createElement('BUTTON');
-      headerBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#64748b" class="size-4"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>';
-      headerBtn.onclick = _ => deleteColumn(scenario_id);
-      headerDiv.appendChild(headerBtn);
+    headerDiv.classList.add(...headerDivStyle);
+    headerDiv.innerHTML = `<span class="inline-block truncate whitespace-nowrap">${scenario.Name}</span>`;
+    if (scenario_id !== requested) {
+      const btn = document.createElement('button');
+      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#64748b" class="size-4"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>';
+      btn.onclick = () => deleteColumn(scenario_id);
+      headerDiv.appendChild(btn);
     }
     th.appendChild(headerDiv);
 
-    // write values in rows
-    let values = Object.values(scenario);
-    for (let i=1; i<values.length; i++) {
-      td = table.rows[i].insertCell(numColumns-1);
-      if (typeof values[i] == 'string' && isDate(values[i])) {
-        // date string, use left alignment
-        td.classList.add(...rowStringStyle);
-      } else if (typeof values[i] == 'number') {
-        // number, use right alignment
-        td.classList.add(...rowValueStyle);
-      } else {
-        // other value, use default right alignment
-        td.classList.add(...rowValueStyle);
-      }
-      td.textContent = values[i];
+    // — append one <td> per body‑row
+    for (let row of table.tBodies[0].rows) {
+      const td = row.insertCell();                // append
+      const val = row.rowIndex
+        ? Object.values(scenario)[row.rowIndex]
+        : '';
+      td.textContent = val;
+      // number, use right alignment
+      if (typeof val === 'string' && isDate(val)) td.classList.add(...rowStringStyle);
+      else td.classList.add(...rowValueStyle);
     }
 
     availableScenarios.delete(scenario_id);
@@ -261,9 +256,8 @@
     // show add button again
     document.getElementById('cmp-addBtn').style.display = '';
     // remove select if visible
-    let select = document.getElementById('cmp-select');
-    if (select)
-      select.remove();
+    let dd = document.getElementById('cmp-dropdown');
+    if (dd) dd.remove();
   }
 
   function isDate(str) {
