@@ -10,10 +10,10 @@
     <div class="flex flex-col">
       <div class="mt-4 shadow border border-slate-100 rounded-lg overflow-auto">
         <div class="bg-white rounded-lg shadow-md overflow-x-auto">
-          <table id="table" class="w-full text-left border-collapse">
+          <table id="table" class="table-fixed w-full text-left border-collapse">
             <thead class="bg-slate-100 text-slate-800 text-sm">
               <tr>
-                <th class="px-4 py-4 border-r border-slate-300"> </th>
+                <th class="px-4 py-4 border-r border-slate-300 w-64 min-w-[16rem]"> </th>
               </tr>
             </thead>
             <tbody class="text-sm text-slate-700">
@@ -48,9 +48,9 @@
   const headerBtnStyle = ['px-2', 'py-1', 'rounded-full', 'border-2', 'font-semibold', 'border-emerald-400', 'hover:bg-emerald-400', 'hover:text-black', 'focus:outline-none', 'focus:ring-2', 'focus:ring-offset-2', 'focus:ring-green-400', 'active:bg-emerald-500', 'transition-all', 'duration-300'];
   const selectStyle = ['pl-2', 'pr-8', 'py-1', 'border-slate-300', 'bg-white', 'text-slate-800', 'text-sm', 'focus:outline-none', 'focus:ring-2', 'focus:ring-offset-2', 'focus:ring-emerald-400'];
   const rowStyle = ['border-t'];
-  const rowKeyStyle = ['px-4', 'py-3', 'text-slate-600'];
-  const rowValueStyle = ['px-4', 'py-3', 'text-right'];
-  const rowStringStyle = ['px-4', 'py-3', 'text-left'];
+  const rowKeyStyle = ['px-4', 'py-3', 'text-slate-600', 'border-r', 'w-64','min-w-[16rem]'];
+  const rowValueStyle = ['px-4', 'py-3', 'text-right', 'border-r',];
+  const rowStringStyle = ['px-4', 'py-3', 'text-left', 'border-r',];
 
   // keep track which scenarios are not displayed yet
   var availableScenarios = new Set(Object.keys(scenarios));
@@ -65,16 +65,16 @@
       let tr = table.tBodies[0].insertRow();
       tr.classList.add(...rowStyle);
       let td = tr.insertCell(0);
-      td.classList.add(...rowKeyStyle);
+      td.classList.add(...rowKeyStyle, 'bg-slate-50');
       td.textContent = key;
     }
 
     {
       // add empty column (always last column)
       let th = table.rows[0].insertCell();  // insertCell always TD, not TH
-      th.classList.add(...buttonHeaderStyle);
+      th.classList.add(...buttonHeaderStyle, 'w-64', 'h-20');
       for (let i=1; i<table.rows.length; i++)
-        (table.rows[i].insertCell()).classList.add(...rowValueStyle);
+        (table.rows[i].insertCell()).classList.add(...rowValueStyle, 'w-64', 'h-12');
       // add new scenario button in last column
       var addBtn = document.createElement('BUTTON');
       addBtn.id = 'cmp-addBtn';
@@ -202,11 +202,15 @@
     let scenario = scenarios[scenario_id];
     numColumns = table.rows[0].childElementCount;
     let th = table.rows[0].insertCell(numColumns-1);
-    th.classList.add(...columnHeaderStyle);
+    th.classList.add(...columnHeaderStyle, 'w-64');
+      for (let i = 1; i < table.rows.length; i++) {
+        table.rows[i].cells[ th.cellIndex ].classList.add('w-64');
+      }
     let headerDiv = document.createElement('DIV');
     headerDiv.setAttribute('scenario', scenario_id);
     headerDiv.classList.add(...headerDivStyle)
     let headerSpan = document.createElement('SPAN');
+    headerSpan.classList.add('inline-block','truncate','whitespace-nowrap');
     headerSpan.textContent = scenario.Name;
     headerDiv.appendChild(headerSpan);
     if (scenario_id != requested) {
