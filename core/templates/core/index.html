@@ -13,7 +13,7 @@
     {% include 'core/navbar.html'%}
 
   <main>
-    <section class="px-6 pt-16 pb-8 lg:pb-0 bg-white">
+    <section class="px-6 pt-16 pb-16 lg:pb-0 bg-white">
       <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
         <div class="space-y-8 lg:pb-32">
           <h1 class="text-4xl lg:text-5xl font-bold text-slate-800 lg:leading-tight">
@@ -31,18 +31,71 @@
             </a>
           </div>
         </div>
-        <div class="lg:z-10">
+        <div class="hero-graphic relative max-w-[36rem] mx-auto lg:z-10">
           <!-- Desktop/Tablet Image -->
-          <div class="hidden md:flex md:justify-center lg:justify-end">
-            <img src="{% static 'core/images/hero_isometric_image.svg' %}"
+          <div class="flex justify-center lg:justify-end">
+            <img src="{% static 'core/images/hero_iso_img.svg' %}"
               alt="Isometric illustration of electric bus infrastructure"
-              class="relative lg:top-[6rem] w-full max-w-[36rem] h-auto z-10">
+              class="md:relative lg:top-[6rem] w-full max-w-[20rem] md:max-w-[36rem] h-auto z-10">
           </div>
-          <!-- Mobile Image -->
-          <div class="flex justify-center md:hidden">
-            <img src="{% static 'core/images/hero_isometric_mobile.svg' %}"
-              alt="Isometric illustration of electric bus infrastructure"
-              class="w-full max-w-[20rem] h-auto">
+          <!-- 1) Top‑left stat card -->
+          <div
+            class="
+              absolute bg-white rounded-xl shadow-md opacity-80 border-l-4 border-slate-400
+              top-[0] left-[0] w-[46%]
+              md:top-[24%] md:left-[0] md:w-[36%] z-20
+            "
+          >
+            <div class="flex gap-4 py-1 px-4 border-b border-slate-200">
+              <div class="hidden md:flex items-center justify-center w-full max-w-12">
+                <svg width="39" height="30" viewBox="0 0 39 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M39 4.44036C32.606 5.25837 32.1065 12.6766 26.7498 14.0916C24.1506 14.7777 21.593 14.5237 19.9862 13.2769C10.3103 22.2816 8.98156 30 8.98156 30C5.70797 24.203 0 22.0227 0 22.0227C4.78717 21.8479 8.09073 24.142 8.09073 24.142C14.5363 12.2989 29.1856 4.79329 30.9068 4.28187C29.3576 4.30628 24.0357 6.38479 18.4094 10.7074C18.3611 10.4782 18.3294 10.2357 18.3144 9.98505C18.0297 5.55853 22.3856 1.40579 26.4235 0.340395C33.2288 -1.45561 39 4.44036 39 4.44036Z" fill="#cbd5e1"/>
+                </svg>
+              </div>
+              <div class="flex flex-col justify-start w-full">
+                <p class="text-xs uppercase text-slate-500">CO₂‑Reduzierung</p>
+                <p class="text-lg md:text-xl font-bold text-slate-700">‑45 %</p>
+              </div>
+            </div>
+            <div class="flex gap-4 py-1 px-4">
+              <div class="hidden md:flex items-center justify-center w-full max-w-12">
+                <svg width="22" height="26" viewBox="0 0 22 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19.2525 19.2765C19.0099 19.0603 18.6312 19.0603 18.415 19.304C17.1462 20.5727 15.5263 21.2477 13.9063 21.2477C11.5301 21.2477 9.26257 19.7902 7.9663 17.3865H14.1226C14.4738 17.3865 14.7438 17.1165 14.7438 16.7653V14.659C14.7438 14.3078 14.4738 14.0378 14.1226 14.0378H6.8863C6.83251 13.6328 6.83251 13.2278 6.83251 12.8503C6.83251 12.4727 6.85993 12.0677 6.91372 11.6353H14.1225C14.4737 11.6353 14.7437 11.3653 14.7437 11.014V8.90782C14.7437 8.55661 14.4737 8.28661 14.1225 8.28661L7.96618 8.28766C9.2624 5.91145 11.5037 4.42639 13.9062 4.42639C15.5536 4.42639 17.1462 5.12882 18.4149 6.39761C18.6575 6.64019 19.0361 6.64019 19.2523 6.42503L21.6011 4.26503C21.7361 4.15745 21.7899 3.99503 21.8173 3.80624C21.8173 3.64382 21.7636 3.48246 21.6549 3.34746C19.5224 1.18746 16.7949 0 13.9324 0C9.20738 0 4.91492 3.32127 3.21365 8.26254H0.621216C0.27 8.26254 0 8.53254 0 8.88376V10.99C0 11.3412 0.27 11.6112 0.621216 11.6112H2.51122C2.48379 12.0436 2.45743 12.4486 2.45743 12.8262C2.45743 13.2038 2.48485 13.6088 2.51122 14.0138H0.621216C0.27 14.0138 0 14.2838 0 14.635V16.7412C0 17.0924 0.27 17.3624 0.621216 17.3624H3.21365C4.91486 22.3037 9.20738 25.6249 13.9324 25.6249C16.7949 25.6249 19.5486 24.4374 21.6549 22.2775C21.7625 22.1699 21.8437 22.0075 21.8437 21.8187C21.8437 21.6563 21.7625 21.4949 21.6275 21.3599L19.2525 19.2765Z" fill="#cbd5e1"/>
+                </svg>
+              </div>
+              <div class="flex flex-col justify-start w-full">
+                <p class="mt-2 text-xs uppercase text-slate-500">Investition</p>
+                <p class="text-lg md:text-xl font-bold text-slate-700">1,2 M. €</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2) Bus‑stop callout #1 -->
+          <div
+            class="
+              hidden absolute md:flex items-center space-x-2 bg-white opacity-80 text-slate-600 px-3 py-2 rounded-lg shadow-md
+              top-[6%] left-[60%]
+              md:top-[39%] md:left-[47%] z-20
+            "
+          >
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="#20E3B2">
+              <path d="M13 2L3 14h9l-1 8L21 10h-9l1-8z" />
+            </svg>
+            <span class="whitespace-nowrap text-sm">Haltestelle wird elektrifiziert</span>
+          </div>
+
+          <!-- 3) Bus‑stop callout #2 -->
+          <div
+            class="
+              absolute flex items-center space-x-2 bg-white opacity-80 text-slate-600 px-3 py-2 rounded-lg shadow-md
+              top-[91%] left-[25%]
+              md:top-[83%] md:left-[7%] z-20
+            "
+          >
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="#20E3B2">
+              <path d="M13 2L3 14h9l-1 8L21 10h-9l1-8z" />
+            </svg>
+            <span class="whitespace-nowrap text-sm">Haltestelle wird elektrifiziert</span>
           </div>
         </div>
       </div>
