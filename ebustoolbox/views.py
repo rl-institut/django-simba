@@ -655,7 +655,6 @@ class StationsView(ScenarioMixIn, TemplateView):
             min_standing_time = 0
 
         if min_standing_time > 0:
-
             parent_trips = Trip.objects.filter(scenario=scenario.parent)
             parent_trips_annotated = tasks.annotate_trips_with_standing_time(parent_trips)
             td_min_standing_time = datetime.timedelta(minutes=min_standing_time)
@@ -1338,43 +1337,38 @@ def usergroups(request):
     return render(request, "usergroups.html", {"usergroups": usergroups})
 
 
-def render_critical_rotations(request, task_id: str):
-    """Returns raw JSON data for critical rotations (critical vs. non-critical)"""
-    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
-    buses = list(vehicle_name_dict.keys())
+def get_critical_rotations(request, task_id: str):
+    file_format = request.GET.get("format", "json").lower()
 
-    s = Scenario.objects.get(task_id=task_id)
+    if file_format == "json":
+        data_obj = data.get_critical_rotations_as_json(task_id)
+        response = JsonResponse({"data": data_obj}, safe=True)
 
-    df = data.get_critical_rotations_as_dataframe(s.id, buses)
+    elif file_format == "csv":
+        df = data.get_critical_rotations_as_df(task_id)
+        response = HttpResponse(df.to_csv(index=False), content_type="text/csv")
 
-    # Aggregate category counts
-    category_counts = (
-        df["SOC_category"].value_counts().reindex(["Nicht kritisch", "kritisch"], fill_value=0)
-    )
+    else:
+        raise Http404
 
-    return JsonResponse(
-        {
-            "data": [
-                {"value": count, "name": category} for category, count in category_counts.items()
-            ]
-        }
-    )
+    return response
 
 
-def render_bustype(request, task_id: str):
-    """Returns raw JSON data for vehicle type distribution"""
-    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
-    buses = list(vehicle_name_dict.keys())
+def get_bustype(request, task_id: str):
+    file_format = request.GET.get("format", "json").lower()
 
-    s = Scenario.objects.get(task_id=task_id)
+    if file_format == "json":
+        data_obj = data.get_bustype_as_json(task_id)
+        response = JsonResponse({"data": data_obj}, safe=True)
 
-    df = data.get_vehicle_types(s.id, buses)
-    if len(df) == 0:
-        return JsonResponse({"data": []})
+    elif file_format == "csv":
+        df = data.get_bustype_as_df(task_id)
+        response = HttpResponse(df.to_csv(index=False), content_type="text/csv")
 
-    return JsonResponse(
-        {"data": [{"value": row["count"], "name": row["name"]} for _, row in df.iterrows()]}
-    )
+    else:
+        raise Http404
+
+    return response
 
 
 def get_soc_data(request, task_id: str):
@@ -1383,15 +1377,12 @@ def get_soc_data(request, task_id: str):
     """
     file_format = request.GET.get("format", "json").lower()
 
-    if file_format == 'json':
+    if file_format == "json":
         payload = data.get_soc_as_json(task_id)
         response_data = JsonResponse(payload, safe=True)
-    elif file_format == 'csv':
+    elif file_format == "csv":
         csv_text = data.get_soc_as_df(task_id)
-        response_data = HttpResponse(
-            csv_text.to_csv(index=False),
-            content_type="text/csv"
-        )
+        response_data = HttpResponse(csv_text.to_csv(index=False), content_type="text/csv")
     else:
         raise Http404
 
@@ -1399,14 +1390,20 @@ def get_soc_data(request, task_id: str):
 
 
 def get_binned_soc_data(request, task_id: str):
-    """
-    Returns binned SOC histogram data over time, forward-filled to hourly resolution,
-    ensuring one (the lowest) SOC entry per vehicle per hour.
-    """
+    file_format = request.GET.get("format", "json").lower()
 
-    response_data = data.get_binned_soc_as_json(task_id)
+    if file_format == "json":
+        data_obj = data.get_binned_soc_as_json(task_id)
+        response = JsonResponse({"data": data_obj}, safe=True)
 
-    return JsonResponse({"data": response_data})
+    elif file_format == "csv":
+        df = data.get_binned_soc_as_df(task_id)
+        response = HttpResponse(df.to_csv(index=False), content_type="text/csv")
+
+    else:
+        raise Http404
+
+    return response
 
 
 def get_power_draw(request, task_id: str):
@@ -1420,9 +1417,20 @@ def get_power_draw(request, task_id: str):
 
 
 def get_gantt_data(request, task_id: str):
-    categories, gantt_data = data.get_event_gantt_as_json(task_id)
+    file_format = request.GET.get("format", "json").lower()
 
-    return JsonResponse({"categories": categories, "data": gantt_data})
+    if file_format == "json":
+        categories, data_obj = data.get_event_gantt_as_json(task_id)
+        response = JsonResponse({"categories": categories, "data": data_obj}, safe=True)
+
+    elif file_format == "csv":
+        df = data.get_event_gantt_as_df(task_id)
+        response = HttpResponse(df.to_csv(index=False), content_type="text/csv")
+
+    else:
+        raise Http404
+
+    return response
 
 
 def get_stats(request, task_id: str):
@@ -1432,65 +1440,70 @@ def get_stats(request, task_id: str):
 
 
 def get_speed_hist(request, task_id: str):
-    response_data = data.get_speed_hist_as_json(task_id)
-
-    return JsonResponse(response_data)
-
-
-def get_dist_hist(request, task_id: str):
-
     file_format = request.GET.get("format", "json").lower()
 
-    hist_data = data.get_dist_hist_as_df(task_id)
-    if file_format == 'json':
-        response_data = JsonResponse(
-            {
-            "bins": hist_data.index.tolist(),
-            "data": {
-                "Nicht kritisch": hist_data["Nicht kritisch"].tolist(),
-                "kritisch": hist_data["kritisch"].tolist(),
-                },
-            }
-        )
-    elif file_format == 'csv':
-        response_data = HttpResponse(
-            hist_data.to_csv(index=True),
-            content_type="text/csv"
-        )
-    else:
-        raise Http404
+    if file_format == "json":
+        data_obj = data.get_speed_hist_as_json(task_id)
+        response = JsonResponse({"bins": data_obj["bins"], "counts": data_obj["counts"]}, safe=True)
 
-    return response_data
-
-
-def get_power_draw_and_occ(request, task_id: str):
-    """
-    Returns combined power draw and occupancy data.
-    Supports format=json (default) and format=csv.
-    """
-
-    format_ = request.GET.get("format", "json").lower()
-    df = data.get_power_draw_and_occ(task_id)
-
-    if format_ == "json":
-        response = JsonResponse({"data": df.to_dict(orient="records")}, safe=True)
-
-    elif format_ == "csv":
-        response = HttpResponse(
-            df.to_csv(index=False),
-            content_type="text/csv",
-            headers={"Content-Disposition": 'attachment; filename="power_draw_and_occ.csv"'},
-        )
+    elif file_format == "csv":
+        df = data.get_speed_hist_as_df(task_id)
+        response = HttpResponse(df.to_csv(index=False), content_type="text/csv")
 
     else:
         raise Http404
 
     return response
 
-def get_soc_gantt(request, task_id: str):
-    vehicles, records = data.get_soc_gantt_as_json(task_id)
 
-    return JsonResponse({"vehicles": vehicles, "records": records})
+def get_dist_hist(request, task_id: str):
+    file_format = request.GET.get("format", "json").lower()
+
+    if file_format == "json":
+        bins, data_dict = data.get_dist_hist_as_json(task_id)
+        response = JsonResponse({"bins": bins, "data": data_dict}, safe=True)
+
+    elif file_format == "csv":
+        df = data.get_dist_hist_as_df(task_id)
+        response = HttpResponse(df.to_csv(index=True), content_type="text/csv")
+
+    else:
+        raise Http404
+
+    return response
+
+
+def get_power_draw_and_occ(request, task_id: str):
+    file_format = request.GET.get("format", "json").lower()
+
+    if file_format == "json":
+        data_obj = data.get_power_draw_and_occ_as_json(task_id)
+        response = JsonResponse({"data": data_obj}, safe=True)
+
+    elif file_format == "csv":
+        df = data.get_power_draw_and_occ_as_df(task_id)
+        response = HttpResponse(df.to_csv(index=False), content_type="text/csv")
+    else:
+        raise Http404
+
+    return response
+
+
+def get_soc_gantt(request, task_id: str):
+    file_format = request.GET.get("format", "json").lower()
+
+    if file_format == "json":
+        vehicles, records = data.get_soc_gantt_as_json(task_id)
+        response = JsonResponse({"vehicles": vehicles, "records": records}, safe=True)
+
+    elif file_format == "csv":
+        df = data.get_soc_gantt_as_df(task_id)
+        response = HttpResponse(df.to_csv(index=False), content_type="text/csv")
+
+    else:
+        raise Http404
+
+    return response
 
 
 def export_scenario(request, task_id: str):
