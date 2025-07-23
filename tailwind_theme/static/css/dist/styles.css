@@ -1299,6 +1299,10 @@ select {
   width: 10rem;
 }
 
+.w-32 {
+  width: 8rem;
+}
+
 .min-w-0 {
   min-width: 0px;
 }
@@ -1324,6 +1328,10 @@ select {
   min-width: 16rem;
 }
 
+.min-w-32 {
+  min-width: 8rem;
+}
+
 .max-w-2xl {
   max-width: 42rem;
 }
@@ -1342,6 +1350,18 @@ select {
 
 .max-w-full {
   max-width: 100%;
+}
+
+.max-w-32 {
+  max-width: 8rem;
+}
+
+.max-w-48 {
+  max-width: 12rem;
+}
+
+.max-w-64 {
+  max-width: 16rem;
 }
 
 .flex-1 {
