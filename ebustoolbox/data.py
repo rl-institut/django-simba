@@ -1243,20 +1243,20 @@ def _get_soc_gantt_data(task_id: str):
     scenario = Scenario.objects.get(task_id=task_id)
     events = (
         scenario.event_set.exclude(vehicle=None)
-        .order_by("vehicle__name", "time_start")
+        .order_by("vehicle__id", "time_start")
         .select_related("vehicle")
     )
 
     records = []
     for event in events:
-        vehicle_name = event.vehicle.name
+        vehicle_id = event.vehicle.id
         tz_start = event.time_start
         tz_end = event.time_end
 
         if not event.timeseries or "time" not in event.timeseries or "soc" not in event.timeseries:
             records.append(
                 {
-                    "vehicle": vehicle_name,
+                    "vehicle": vehicle_id,
                     "start": tz_start.isoformat(),
                     "end": tz_end.isoformat(),
                     "soc_start": event.soc_start,
@@ -1276,7 +1276,7 @@ def _get_soc_gantt_data(task_id: str):
         for i in range(len(times) - 1):
             records.append(
                 {
-                    "vehicle": vehicle_name,
+                    "vehicle": vehicle_id,
                     "start": times[i].isoformat(),
                     "end": times[i + 1].isoformat(),
                     "soc_start": socs[i],
@@ -1284,10 +1284,10 @@ def _get_soc_gantt_data(task_id: str):
                 }
             )
 
-    vehicle_first_times = {v.name: float("inf") for v in scenario.vehicle_set.all()}
-    for event in events.order_by("-vehicle__name", "-time_start"):
+    vehicle_first_times = {v.id: float("inf") for v in scenario.vehicle_set.all()}
+    for event in events.order_by("-vehicle__id", "-time_start"):
         ts = event.time_start.timestamp()
-        vehicle_first_times[event.vehicle.name] = ts
+        vehicle_first_times[event.vehicle.id] = ts
 
     vehicles = [
         str(v) for v, _ in sorted(vehicle_first_times.items(), key=lambda x: x[1], reverse=True)
