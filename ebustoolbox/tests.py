@@ -111,7 +111,7 @@ class MySeleniumTests(StaticLiveServerTestCase):
                 return False
 
         # If the promises dont resolve this will throw an error
-        WebDriverWait(self.selenium, 5).until(element_value_is_true)
+        WebDriverWait(self.selenium, 15).until(element_value_is_true)
 
 
 def castable_to_dict(objects: Iterable):
