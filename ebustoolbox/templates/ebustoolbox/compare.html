@@ -8,13 +8,13 @@
     <h1 class="text-4xl font-semibold mb-6">Szenarienvergleich</h1>
   {% if scenarios %}
     <div class="flex flex-col">
-      <div id="cmp-addContainer" class="mb-2 flex justify-end"></div>
+      <div id="cmp-addContainer" class="flex justify-end h-12"></div>
       <div class="mt-4 shadow border border-slate-100 rounded-lg overflow-auto">
         <div class="bg-white rounded-lg shadow-md overflow-x-auto">
           <table id="table" class="table-fixed w-full text-left border-collapse">
             <thead class="bg-slate-100 text-slate-800 text-sm">
               <tr>
-                <th class="px-4 py-4 border-r border-slate-300 w-64 min-w-[16rem]"> </th>
+                <th class="px-4 py-4 border-r border-slate-300 w-64 min-w-[16rem]">&nbsp;</th>
               </tr>
             </thead>
             <tbody class="text-sm text-slate-700">
@@ -71,124 +71,47 @@
     }
 
     {
-      // add empty column (always last column)
+      // add native select element
       const addContainer = document.getElementById('cmp-addContainer');
-      const addBtn = document.createElement('BUTTON');
-      addBtn.id = 'cmp-addBtn';
-      addBtn.classList.add(
-        'px-2','py-1','rounded-full','border-2','font-semibold',
-        'border-emerald-400','hover:bg-emerald-400','hover:text-black',
-        'focus:outline-none','focus:ring-2','focus:ring-offset-2','focus:ring-green-400',
-        'active:bg-emerald-500','transition-all','duration-300'
+      
+      // Create a wrapper div to maintain consistent height
+      const selectWrapper = document.createElement('div');
+      selectWrapper.classList.add('inline-block', 'h-8'); // Fixed height to prevent layout shift
+      
+      const select = document.createElement('select');
+      select.id = 'cmp-select';
+      select.classList.add(
+        'pl-4', 'pr-6', 'py-1', 'rounded-full', 'border-2', 'font-semibold',
+        'border-emerald-100', 'bg-emerald-100', 'hover:bg-emerald-200', 'text-slate-800', 'hover:text-slate-800', 'hover:border-emerald-200',
+        'focus:outline-none', 'focus:ring-2', 'focus:ring-offset-2', 'focus:ring-emerald-300', 'active:bg-white', 'focus:bg-white', 'focus:border-emerald-300',
+        'transition-all', 'duration-300', 'cursor-pointer', 'h-10', 'pr-24',
+        'appearance-none',
       );
-      addBtn.textContent = '+ Szenario';
-      addBtn.style.display = availableScenarios.size ? '' : 'none';
-
-      // stick it into your new container
-      addContainer.appendChild(addBtn);
-
-      addBtn.onclick = () => {
-        // 0) clean up any old dropdown
-        const oldDd = document.getElementById('cmp-dropdown');
-        if (oldDd) oldDd.remove();
-
-        // 1) hide the add button
-        addBtn.style.display = 'none';
-
-        // 2) build wrapper
-        const dd = document.createElement('div');
-        dd.id = 'cmp-dropdown';
-        Object.assign(dd.style, {
-          position:   'relative',
-          display:    'inline-block',  // shrink‑wraps to the label width
-          zIndex:     1000
-        });
-
-        // 3) the “select” label
-        const label = document.createElement('div');
-        label.textContent = '--- Szenario auswählen ---';
-        label.classList.add(...selectStyle);
-        label.style.cursor = 'pointer';
-        dd.appendChild(label);
-
-        // 4) create custom dropdown list to make it look like a select
-        // (as select does not allow to make only one click outside to close and display back the button)
-        const list = document.createElement('ul');
-        Object.assign(list.style, {
-          listStyle:      'none',
-          margin:         0,
-          padding:        '4px 0',
-          position:       'absolute',
-          top:            '100%',
-          left:           0,
-          background:     'white',
-          boxShadow:      '0 2px 6px rgba(0,0,0,0.2)',
-          maxHeight:      '200px',
-          overflowY:      'auto',
-          display:        'none',
-          width:          '100%',
-          boxSizing:      'border-box'
-        });
-        dd.appendChild(list);
-
-        // 5) helper to create each scenario item
-        const makeItem = (text, data) => {
-          const li = document.createElement('li');
-          li.textContent = text;
-          li.dataset.val = data;
-          Object.assign(li.style, {
-            padding:    '6px 12px',
-            cursor:     'pointer'
-          });
-          li.addEventListener('mouseenter', () => li.style.background = '#eef');
-          li.addEventListener('mouseleave', () => li.style.background = '');
-          return li;
-        };
-
-        // 6) populate with scenarios only
-        Array.from(availableScenarios)
-          .sort((a,b) => a.localeCompare(b, undefined, { numeric: true }))
-          .forEach(id => {
-            list.appendChild(makeItem(scenarios[id].Name, id));
-          });
-
-        // 7) insert into container
-        addContainer.appendChild(dd);
-
-        // 8) open / close logic
-        const openList = () => {
-          list.style.display = 'block';
-          document.addEventListener('mousedown', onOutside, true);
-          document.addEventListener('keydown', onEsc);
-        };
-        const closeAndRestore = () => {
-          document.removeEventListener('mousedown', onOutside, true);
-          document.removeEventListener('keydown', onEsc);
-          if (dd.parentNode) dd.parentNode.removeChild(dd);
-          addBtn.style.display = '';
-        };
-        const onOutside = e => {
-          if (!dd.contains(e.target)) closeAndRestore();
-        };
-        const onEsc = e => {
-          if (e.key === 'Escape') closeAndRestore();
-        };
-
-        label.addEventListener('click', e => {
-          e.stopPropagation();
-          openList();
-        });
-
-        list.addEventListener('click', e => {
-          e.stopPropagation();
-          const val = e.target.dataset.val;
-          closeAndRestore();
-          if (val) addColumn(val);
-        });
-
-        // 9) auto‑open on click
-        openList();
-      };
+      
+      // Add default option
+      const defaultOption = document.createElement('option');
+      defaultOption.value = '';
+      defaultOption.textContent = '+ Szenario';
+      defaultOption.disabled = true;
+      defaultOption.selected = true;
+      select.appendChild(defaultOption);
+      
+      // Populate with available scenarios
+      updateSelectOptions(select);
+      
+      // Handle selection
+      select.addEventListener('change', (e) => {
+        const selectedScenarioId = e.target.value;
+        if (selectedScenarioId) {
+          addColumn(selectedScenarioId);
+          // Reset select to default state
+          e.target.value = '';
+          updateSelectOptions(select);
+        }
+      });
+      
+      selectWrapper.appendChild(select);
+      addContainer.appendChild(selectWrapper);
     }
 
     if (requested && scenarios[requested]) {
@@ -198,6 +121,26 @@
       addColumn(requested);
     }
   };
+
+  function updateSelectOptions(select) {
+    // Clear existing options except the first (default) one
+    while (select.children.length > 1) {
+      select.removeChild(select.lastChild);
+    }
+    
+    // Add available scenarios
+    Array.from(availableScenarios)
+      .sort((a,b) => a.localeCompare(b, undefined, { numeric: true }))
+      .forEach(id => {
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = scenarios[id].Name;
+        select.appendChild(option);
+      });
+    
+    // Show/hide select based on available scenarios
+    select.style.display = availableScenarios.size ? '' : 'none';
+  }
 
   function addColumn(scenario_id) {
     // add new scenario column to comparison
@@ -235,8 +178,11 @@
     }
 
     availableScenarios.delete(scenario_id);
-    // show add button (again) if there are other scenarios to compare to
-    document.getElementById('cmp-addBtn').style.display = availableScenarios.size?'':'none';
+    // Update select options
+    const select = document.getElementById('cmp-select');
+    if (select) {
+      updateSelectOptions(select);
+    }
   }
 
   function deleteColumn(scenario_id) {
@@ -253,11 +199,12 @@
     for (let row of table.rows)
       row.deleteCell(index);
     availableScenarios.add(scenario_id);
-    // show add button again
-    document.getElementById('cmp-addBtn').style.display = '';
-    // remove select if visible
-    let dd = document.getElementById('cmp-dropdown');
-    if (dd) dd.remove();
+    
+    // Update select options
+    const select = document.getElementById('cmp-select');
+    if (select) {
+      updateSelectOptions(select);
+    }
   }
 
   function isDate(str) {
