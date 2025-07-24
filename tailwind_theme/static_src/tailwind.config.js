@@ -48,6 +48,18 @@ module.exports = {
           gradient2: '#20E3B2',
           gradient3: '#29FFC6',
         },
+        keyframes: {
+          'hero-fade-in-up': {
+            '0%': { opacity: '0', transform: 'translateY(20px)' },
+            '100%': { opacity: '0.8', transform: 'translateY(0)' },
+          },
+        },
+        animation: {
+          'hero-fade-in-up': 'hero-fade-in-up 0.8s ease-out forwards',
+          'hero-fade-in-up-delay-1': 'hero-fade-in-up 0.8s ease-out 0.15s forwards',
+          'hero-fade-in-up-delay-2': 'hero-fade-in-up 0.8s ease-out 0.3s forwards',
+          'hero-fade-in-up-delay-3': 'hero-fade-in-up 0.8s ease-out 0.45s forwards',
+        },
       },
     },
     plugins: [
