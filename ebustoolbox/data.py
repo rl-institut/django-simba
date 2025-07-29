@@ -508,8 +508,6 @@ def get_critical_rotations_as_dataframe(scenario_id, buses):
         lambda x: "Nicht kritisch" if x > CRITICAL_SOC else "kritisch"
     )
 
-    print("critical_df:", df)
-
     return df
 
 
@@ -1132,6 +1130,7 @@ def _get_stats_as_json(task_id: str):
 
     return resp
 
+
 def get_stats_as_json(task_id: str):
     return _get_stats_as_json(task_id)
 
@@ -1275,11 +1274,6 @@ def _get_soc_gantt(task_id: str):
         .select_related("vehicle")
     )
 
-    df = recent_memoizer(get_all_event_info, scenario.id)(scenario.id)\
-
-    print(events)
-    print(df.columns)
-
     records = []
     for event in events:
         vehicle_id = event.vehicle.id
@@ -1339,7 +1333,7 @@ def get_soc_gantt_as_df(task_id: str) -> pd.DataFrame:
     return pd.DataFrame(records)
 
 
-def _get_critical_rotations(task_id):
+def _get_critical_rotations_all_buses(task_id):
     vehicle_name_dict, _ = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
@@ -1347,20 +1341,27 @@ def _get_critical_rotations(task_id):
 
     df = get_critical_rotations_as_dataframe(scenario.id, buses)
 
-    print(df)
-
-    return df["SOC_category"].value_counts().reindex(["Nicht kritisch", "kritisch"], fill_value=0)
+    return df
 
 
 def get_critical_rotations_as_json(task_id):
-    category_counts = _get_critical_rotations(task_id)
+    category_counts = _get_critical_rotations_all_buses(task_id)
+    category_counts = (
+        category_counts["SOC_category"]
+        .value_counts()
+        .reindex(["Nicht kritisch", "kritisch"], fill_value=0)
+    )
 
     return [{"value": count, "name": category} for category, count in category_counts.items()]
 
 
 def get_critical_rotations_as_df(task_id):
-    category_counts = _get_critical_rotations(task_id)
-
+    category_counts = _get_critical_rotations_all_buses(task_id)
+    category_counts = (
+        category_counts["SOC_category"]
+        .value_counts()
+        .reindex(["Nicht kritisch", "kritisch"], fill_value=0)
+    )
     return category_counts.reset_index().rename(
         columns={"index": "SOC_category", "SOC_category": "Count"}
     )
@@ -1388,3 +1389,14 @@ def get_bustype_as_json(task_id):
 
 def get_bustype_as_df(task_id):
     return _get_bustype_df(task_id)
+
+
+def get_combined_piecharts_as_df(task_id: str):
+    df_critical = _get_critical_rotations_all_buses(task_id)
+    df_bustype = get_bustype_as_df(task_id)
+
+    empty_cols = pd.DataFrame(np.nan, index=df_critical.index, columns=["", "", ""])
+
+    combined_df = pd.concat([df_critical, empty_cols, df_bustype], axis=1)
+
+    return combined_df

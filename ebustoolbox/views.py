@@ -1588,3 +1588,21 @@ def import_scenario(request):
             f"Scenario succesfully imported with task_id {task_id}. " + redirect_suggestion
         )
     return HttpResponseBadRequest("Use POST or GET")
+
+
+def get_piecharts(request, task_id: str):
+    file_format = request.GET.get("format", "json").lower()
+
+    if file_format == "json":
+        critical = data.get_critical_rotations_as_json(task_id)
+        bustype = data.get_bustype_as_json(task_id)
+        result = JsonResponse({"critical_rotations": critical, "bustype": bustype}, safe=True)
+
+    elif file_format == "csv":
+        df = data.get_combined_piecharts_as_df(task_id)
+        result = HttpResponse(df.to_csv(index=False), content_type="text/csv")
+
+    else:
+        raise Http404
+
+    return result
