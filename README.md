@@ -238,3 +238,21 @@ but only if the docker is not running
                 - admin_areas which contain found stations are fuzzily searched for a uniquely identifiable station
     - DB import and export are possible as superuser via /data_scrapers/stations/import/ and /export/
         - import is only supported for empty tables of BusStation and AdminArea
+
+## Translation
+
+The website supports basic translation. Text is marked with get_text. To create translation files for all languages in the settings file run.
+```terminal
+django-admin makemessages -a
+```
+
+The translation becomes available when the msgstr inside these .po files is set and running
+```terminal
+django-admin compilemessages
+```
+
+For now the language is set via a cookie when calling
+`
+/set_lang/LANGUAGE_ABBREVIATION
+`
+for now "de" and "en" are supported
