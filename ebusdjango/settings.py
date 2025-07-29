@@ -196,10 +196,6 @@ LOGGING = {
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            # These logs clutter the console and are not very helpful
-            "filters": [
-                "map_status_no_content",
-            ],
             "formatter": "simple",
         },
         "file": {
@@ -211,7 +207,7 @@ LOGGING = {
     },
     "root": {
         "handlers": ["console"],
-        "level": "WARNING",
+        "level": "DEBUG",
     },
     "loggers": {
         "django": {
