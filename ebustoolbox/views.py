@@ -1434,9 +1434,20 @@ def get_gantt_data(request, task_id: str):
 
 
 def get_stats(request, task_id: str):
-    response_data = data.get_stats_as_json(task_id)
+    file_format = request.GET.get("format", "json").lower()
 
-    return JsonResponse(response_data)
+    if file_format == "json":
+        data_obj = data.get_stats_as_json(task_id)
+        response = JsonResponse(data_obj, safe=True)
+
+    elif file_format == "csv":
+        df = data.get_stats_as_df(task_id)
+        response = HttpResponse(df.to_csv(index=False), content_type="text/csv")
+
+    else:
+        raise Http404
+
+    return response
 
 
 def get_speed_hist(request, task_id: str):
