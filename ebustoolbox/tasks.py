@@ -90,10 +90,10 @@ EPS = 1e-5  # a small number, used to allow for difference when comparing floats
 def apply_vehicle_type(
     target_vehicle_type: VehicleType, source_vehicle_type: VehicleType
 ) -> VehicleType:
-    """Use a source vehicle type and apply the attributes to a a target vehicle type.
+    """Use a source vehicle type and apply the attributes to a target vehicle type.
 
     Scenario, name and name short of the target are not copied over.
-    VehicleClasses of source are copied aswell as consumptions which are linked to vehicle classes
+    VehicleClasses of source are copied as well as consumptions which are linked to vehicle classes
     """
     vehicle_classes = source_vehicle_type.vehicle_classes.all()
     source_vehicle_type.id = target_vehicle_type.id
