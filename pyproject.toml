@@ -44,7 +44,7 @@ setuptools = "^68.2.2"
 tqdm = "^4.66.1"
 charset-normalizer = "^3.4.2"
 
-eflips-depot = "^4.10.0"
+eflips-depot = {git = "git@github.com:mpm-tu-berlin/eflips-depot.git", rev="main" }
 eflips-ingest = "^1.2.79"
 eflips-eval = "^1.7.3"
 

@@ -1549,6 +1549,17 @@ def _run_ebus_toolchain(self, task_id):
     assert progress.scenario == db_scenario.parent, "Progress needs to be linked with parent"
     progress.reset()
 
+    # Clean up of previous notifications which can be produced during the simulation
+    # without cleaning they might appear multiple times, from previous failed simulations
+    Notification.objects.filter(
+        scenario__in=[db_scenario, db_scenario.parent],
+        notification_type__in=[
+            EnumNotificationType.DELAYED_TRIP_WARNING,
+            EnumNotificationType.UNEXPECTED_ERROR,
+            EnumNotificationType.UNSTABLE_DEPOT_WARNING,
+        ],
+    ).delete()
+
     try:
         logger.info(f"Getting schedule from db {datetime.now()}")
         schedule, args = get_schedule_from_db(db_scenario)
@@ -1882,7 +1893,7 @@ def run_eflips(task_id) -> None:
 
     # Constructing the database URL manually
     db_url = create_db_url()
-    generate_depot_layout(
+    generate_depot_optimal_size(
         db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=True
     )
 
