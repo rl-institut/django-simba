@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import List
 
 import environ
+from uuid import UUID as UUIDType
 from celery import shared_task, uuid
 import django.apps
 from django.conf import settings
@@ -924,9 +925,34 @@ def merge_scenario(mutation_id, simulation_task_id):
 
 
 @shared_task(bind=True)
-def run_and_merge_scenarios(self, mutation_id: int, simulation_task_id):
-    simulation_scenario = merge_scenario(mutation_id, simulation_task_id)
-    run_toolchain_from_scenario(simulation_scenario, assign_vehicles=True)
+def run_and_merge_scenarios(
+    self,
+    mutation_id: int,
+    default_simulation_task_id: UUIDType,
+    sizing_scenario_task_id: UUIDType,
+):
+    default_simulation_scenario = merge_scenario(mutation_id, default_simulation_task_id)
+    run_toolchain_from_scenario(default_simulation_scenario, assign_vehicles=True)
+
+    sizing_scenario = merge_scenario(mutation_id, sizing_scenario_task_id)
+    apply_sizing_paramters(sizing_scenario)
+    run_toolchain_from_scenario(sizing_scenario, assign_vehicles=True)
+
+
+def apply_sizing_paramters(scenario: Scenario) -> None:
+    """Increase all consumptions in some way"""
+
+    # TODO: To be implemented
+    vts = VehicleType.objects.filter(scenario=scenario)
+    for vt in vts:
+        if vt.consumption is not None:
+            vt.consumption *= 2
+        else:
+            consumptions = Consumption.objects.filter(vehicle_class__vehicle_types=vt)
+            assert consumptions.count() == 1
+            vt.consumption = max(consumptions.first().values())
+            consumptions.first().delete()
+        vt.save()
 
 
 def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False):

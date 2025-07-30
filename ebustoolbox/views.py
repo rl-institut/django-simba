@@ -1118,11 +1118,11 @@ def merge_and_run(request: HttpRequest, task_id: str):
         task_id=sim_task_id,
     )
     logger.info("Running Toolchain.")
-
+    sizing_task_id = get_unique_task_id()
     # create scenario from mutation and parent and simulate it
     try:
         async_result = tasks.run_and_merge_scenarios.apply_async(
-            (scenario.id, sim_task_id),
+            (scenario.id, sim_task_id, sizing_task_id),
             task_id=str(sim_task_id),
         )
         assert async_result.task_id == sim_task_id, "Task ids are expected to be equal"

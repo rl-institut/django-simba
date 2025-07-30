@@ -1,5 +1,4 @@
 from datetime import timedelta, datetime
-from enum import auto
 
 from django.core.validators import MinValueValidator, MaxValueValidator
 from fast_update.query import FastUpdateManager
@@ -28,9 +27,24 @@ MINIMAL_TRIP_DURATION_S = 60  # seconds
 
 
 class EnumScenarioType(models.TextChoices):
-    SOURCE = auto()
-    MUTATION = auto()
-    SIMULATION = auto()
+    SOURCE = "SOURCE"
+    MUTATION = "MUATION"
+    SIMULATION = "SIMULATION"
+
+
+class EnumSimulationType(models.TextChoices):
+    # Default simulation type with typical consumptions
+    DEFAULT = "default"
+    # Simulation for sizing of equipment, e.g. with extreme consumptions
+    SIZING = "sizing"
+    # Other
+
+
+class SimulationType(models.Model):
+    """Defines the type of a Simulation scenario"""
+
+    scenario = models.ForeignKey("Scenario", on_delete=models.CASCADE)
+    sim_type = models.CharField(max_length=20, choices=EnumSimulationType.choices)
 
 
 class Scenario(models.Model):
