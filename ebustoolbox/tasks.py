@@ -924,6 +924,7 @@ def merge_scenario(mutation_id, simulation_task_id):
     return simulation_scenario
 
 
+# TODO: catch exceptions and pass to progress if exists
 @shared_task(bind=True)
 def run_and_merge_scenarios(
     self,
