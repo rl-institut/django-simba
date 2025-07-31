@@ -27,7 +27,6 @@ from django.utils.timezone import make_aware, is_aware
 from eflips.depot import UnstableSimulationException, DelayedTripException
 from eflips.depot.api import (  # noqa
     simulate_scenario,
-    generate_depot_layout,
     generate_depot_optimal_size,
 )
 
@@ -1894,7 +1893,11 @@ def run_eflips(task_id) -> None:
     # Constructing the database URL manually
     db_url = create_db_url()
     generate_depot_optimal_size(
-        db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=True
+        db_scenario,
+        database_url=db_url,
+        charging_power=90,
+        delete_existing_depot=True,
+        use_consumption_lut=True,
     )
 
     # calculate total scenario time for eFLIPS repetition period

@@ -77,6 +77,7 @@ class Scenario(models.Model):
     finished = models.DateTimeField(default=None, null=True, blank=True)
     simba_options = models.JSONField(default=dict, null=True)
     eflips_depot_options = models.JSONField(default=dict, null=True)
+    tco_parameters = models.JSONField(default=dict, null=True)
 
     manager = models.ForeignKey(
         User, on_delete=models.SET_NULL, default=None, null=True, blank=True, related_name="+"
@@ -181,6 +182,7 @@ class BatteryType(models.Model):
     specific_mass = models.FloatField(null=False, blank=True)
     # defined in eFLIPS-LCA
     chemistry = models.JSONField(null=False, default=dict)
+    tco_parameters = models.JSONField(default=dict, null=True)
 
 
 class AssocVehicleTypeVehicleClass(models.Model):
@@ -278,6 +280,7 @@ class VehicleType(models.Model):
     empty_mass = models.FloatField(default=None, null=True)
     allowed_mass = models.FloatField(default=None, null=True)
 
+    tco_parameters = models.JSONField(default=dict, null=True)
     vehicle_classes = models.ManyToManyField("VehicleClass", through="AssocVehicleTypeVehicleClass")
     """Vehicle classes this vehicle type belongs to."""
 
@@ -286,6 +289,17 @@ class VehicleType(models.Model):
         if not self.name_short or self.name_short == str(models.TextField(null=False, blank=False)):
             self.name_short = self.name
         super().save(*args, **kwargs)
+
+
+class ChargingPointType(models.Model):
+    """
+    This class is designed for distinguishing between charging point at area or at station.
+    """
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    name = models.TextField(null=False, blank=False)
+    name_short = models.TextField(null=True, blank=False, default=name)
+    tco_parameters = models.JSONField(default=dict, null=True)
 
 
 class VehicleClass(models.Model):
@@ -963,6 +977,9 @@ class Station(models.Model):
     power_per_charger = models.FloatField(default=None, null=True)
     power_total = models.FloatField(default=None, null=True)
 
+    tco_parameters = models.JSONField(default=dict, null=True)
+    charging_point_type = models.ForeignKey(ChargingPointType, null=True, on_delete=models.CASCADE)
+
     stations = models.ManyToManyField("Route", through="AssocRouteStation")
     """Stations along this route. Ordered by `elapsed_distance`."""
 
@@ -1576,6 +1593,7 @@ class Area(models.Model):
     row_count = models.IntegerField(null=True, default=None)
     capacity = models.IntegerField(null=False)
     processes = models.ManyToManyField(Process, through="AssocAreaProcess")
+    charging_point_type = models.ForeignKey(ChargingPointType, null=True, on_delete=models.CASCADE)
 
 
 class AssocPlanProcess(models.Model):

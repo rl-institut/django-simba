@@ -1,3 +1,4 @@
+import json
 import logging
 import traceback
 import dateutil.parser as parser
@@ -7,7 +8,7 @@ from django.conf import settings
 import pytz
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.core import signing, mail
+from django.core import signing, mail, serializers
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
 from django.db.models.functions import Cast, Coalesce
@@ -262,6 +263,18 @@ class ScenarioMixIn(AuthorizedMixIn):
         context["scenario"] = self.scenario
         context["task_id"] = self.scenario.task_id
         return context
+
+
+def get_notifications(request, task_id: str, view: str):
+    _ = get_scenario_and_assert_authorization(request, task_id)
+    view_class = globals().get(view)
+    if view_class is None or view_class.__dict__.get("get_notifications") is None:
+        raise Http404("Benachrichtigungen für diese Seite gibt es nicht")
+    notifications = view_class.get_notifications(task_id)
+    data = tasks.get_notfications_dict(notifications)
+    for ntype, values in data.items():
+        data[ntype] = json.loads(serializers.serialize("json", values))
+    return JsonResponse(data)
 
 
 class TripsView(FormView):
@@ -949,16 +962,20 @@ class DepotsView(ScenarioMixIn, TemplateView):
 class SummaryView(AuthorizedMixIn, TemplateView):
     template_name = "ebustoolbox/summary.html"
 
+    @staticmethod
+    def get_notifications(task_id):
+        scenario = get_object_or_404(Scenario, task_id=task_id)
+        notifications = Notification.objects.filter(scenario=scenario).exclude(
+            notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING
+        )
+        return notifications
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         task_id = kwargs.get("task_id")
         scenario = get_object_or_404(Scenario, task_id=task_id)
         context["scenario"] = scenario
         context["task_id"] = task_id
-        notifications = Notification.objects.filter(scenario=scenario).exclude(
-            notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING
-        )
-        context |= {"notifications": tasks.get_notfications_dict(notifications)}
         progress = Progress.objects.filter(
             scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
         ).last()
@@ -1182,7 +1199,6 @@ def model_export_json(request: HttpRequest, model_str: str, task_id: str):
         objects = model.objects.filter(scenario=scenario)
     else:
         objects = model.objects.filter(task_id=task_id)
-    from django.core import serializers
 
     jsondata = serializers.serialize("json", objects)
 

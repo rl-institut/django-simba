@@ -5,6 +5,7 @@ from django.views.generic.base import TemplateView
 from ebustoolbox.views import (
     TripsView,
     VehiclesView,
+    get_notifications,
     progress2,
     StationsView,
     CostsView,
@@ -59,6 +60,11 @@ urlpatterns = [
         "summary/<uuid:task_id>/",
         SummaryView.as_view(),
         name="summary",
+    ),
+    path(
+        "notifications/<uuid:task_id>/<str:view>",
+        get_notifications,
+        name="notifications",
     ),
     path(
         "trips/",
