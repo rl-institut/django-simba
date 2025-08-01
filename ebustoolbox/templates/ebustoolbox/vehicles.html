@@ -10,6 +10,8 @@
 {% endblock wizard_navigation %}
 
 {% block wizard_content %}
+{% url "simba:notifications" task_id 'VehiclesView' as n_url %}
+{% include "ebustoolbox/partials/notifications_multi.html"  with url=n_url %}
 <main class="flex flex-col items-center flex-grow">
 
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
@@ -169,6 +171,10 @@
 {% endblock wizard_buttons %}
 
 {% block script %}
+<script>
+// from notifications_multi.html. Fetch notifications based on view and task id
+    fetchAndRenderNotifications();
+</script>
 <!-- Tabs Functionality of Bus Type Cards -->
 
 {% endblock script %}

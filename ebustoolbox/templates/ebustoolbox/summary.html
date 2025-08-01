@@ -48,7 +48,7 @@
   <!-- Use alert when simulating -->
   <div class="flex justify-center pt-8">
     <button id="simulateButton" hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s
-        class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300 cursor-pointer"
+        class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300 "
         {% if progress.running or progress.success %}disabled{% endif %}>
         <div class="flex align-center gap-4">
           <svg width="24" height="24" version="1.1" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -79,15 +79,42 @@
   <script>
       // Clicking the simulate button disables it. It will be enabled again if htmx sends notRunning
       $("#simulateButton").click(function () {
-        $(this).attr("disabled", "disabled");
+        var button=document.getElementById("simulateButton")
+        disableButton(button);
+        var button=document.getElementById("WizardNextButton")
+        disableButton(button);
       });
       htmx.on('#runner', 'htmx:trigger', function (evt) {
         console.log("notRunning");
         {#hx is triggered when "notRunning" is sent from progress poll#}
-        const button=document.getElementById("simulateButton")
-        button.disabled = false;
+        var button=document.getElementById("simulateButton")
         button.innerHTML ="Erneut Simulieren"
+        enableButton(button);
+        var button=document.getElementById("WizardNextButton")
+        button.innerHTML ="Erneut Simulieren"
+        enableButton(button);
       })
+      const disabledClasses = ['cursor-not-allowed', 'bg-slate-200',];
+      const enabledClasses = ['hover:bg-green-300', 'hover:shadow-lg', 'active:bg-green-500', 'bg-green-400'];
+      // Disable the (upload) button, e,g, disable classes and click callback
+      // Add a loading spinner to the button
+      function disableButton(btn, ){
+        btn.disabled = true;
+        btn.classList.remove(...enabledClasses);
+        btn.classList.add(...disabledClasses);
+        // Make sure to get the current state if the span was mutated after initialization
+        const newSpan = document.createElement("span");
+        // loader is a css class of a spinner
+        newSpan.classList.add("loader");
+        newSpan.innerText = " ";
+        btn.replaceChildren(newSpan);
+      }
+      // Enable the (upload) button
+      function enableButton(btn){
+        btn.disabled = false;
+        btn.classList.remove(...disabledClasses);
+        btn.classList.add(...enabledClasses);
+      }
   </script>
 
   <div id="simulationProgressAlert">
@@ -588,6 +615,10 @@
 
 {% block script %}
 <script>
+  // from notifications_multi.html. Fetch notifications based on view and task id
+  document.addEventListener("DOMContentLoaded", () => {
+    fetchAndRenderNotifications();
+  })
   // Tabs
   document.addEventListener("DOMContentLoaded", () => {
     const buttons = document.querySelectorAll(".tab-button");

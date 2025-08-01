@@ -17,7 +17,7 @@
             <svg class="size-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
             </svg>
-            <span id="warningSummary">Platzhalter</span>A
+            <span id="warningSummary">Platzhalter</span>
           </div>
           <div id="infoCount" style="display:None" class="flex items-center gap-1 text-blue-700">
             <svg class="size-4 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
@@ -71,10 +71,10 @@
         </div>
       </div>
     </div>
-    <script type="text/javascript" src="https://livejs.com/live.js"></script>
 <script>
     var notifications;
     function fetchNotificationData(url){
+      console.log(url);
         return fetch(url)
             .then(response => response.json())
             .then(data => {
@@ -116,7 +116,7 @@
         setItems("error") ;
       }
       if (num_warnings >0){
-        warningsSummary.innerText = num_warnings+ " Warnungen";
+        warningSummary.innerText = num_warnings+ " Warnungen";
         setItems("warning") ;
       }
       if (num_infos >0){
@@ -127,9 +127,9 @@
 
     async function fetchAndRenderNotifications() {
       await fetchNotificationData('{{url}}');
+      console.log('fetched');
       renderNotification()
     }
-    fetchAndRenderNotifications();
   // Function to toggle smoothly alert details expansion state
   document.addEventListener("DOMContentLoaded", ()=> {
   const button = document.getElementById('MultiNotificationButton');

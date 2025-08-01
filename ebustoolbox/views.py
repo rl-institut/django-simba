@@ -9,7 +9,6 @@ import pytz
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail, serializers
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
 from django.db.models.functions import Cast, Coalesce
 from django.db.transaction import atomic
@@ -82,12 +81,8 @@ def progress2(request: HttpRequest, progress_id, template_name):
     context = {"progress_id": progress_id, "status": "", "current_progress": 0}
 
     context |= {"finished": False}
-    try:
-        progress = Progress.objects.get(task_id=progress_id)
-        context["progress"] = progress
-    except ObjectDoesNotExist:
-        response = render(request, "core/progress.html", context)
-        return response
+    progress = Progress.objects.get(task_id=progress_id)
+    context["progress"] = progress
 
     context["current_progress"] = max(progress.get_progress(), 1)
     context["status"] = progress.status
@@ -271,6 +266,7 @@ def get_notifications(request, task_id: str, view: str):
     if view_class is None or view_class.__dict__.get("get_notifications") is None:
         raise Http404("Benachrichtigungen für diese Seite gibt es nicht")
     notifications = view_class.get_notifications(task_id)
+    # Make a dictionary out of the different classes for easier template acccess
     data = tasks.get_notfications_dict(notifications)
     for ntype, values in data.items():
         data[ntype] = json.loads(serializers.serialize("json", values))
@@ -446,17 +442,19 @@ class VehiclesView(ScenarioMixIn, TemplateView):
     template_name = "ebustoolbox/vehicles.html"
     success_name = "simba:stations"
 
+    @staticmethod
+    def get_notifications(task_id):
+        scenario = get_object_or_404(Scenario, task_id=task_id)
+        # TODO: show only a subset of notifications or all notifications?
+        notifications = Notification.objects.filter(scenario=scenario)
+        return notifications
+
     def get_context_data(self, **kwargs):
         scenario = self.scenario
         context = super().get_context_data(**kwargs)
         data = {}
         if self.request.method == "POST":
             data = self.request.POST
-        # TODO: show only a subset of notifications or all notifications?
-        notifications = Notification.objects.filter(scenario=scenario)
-        # create a dict with of notifications with the key of the notification level
-        # for easy template access
-        context["notifications"] = tasks.get_notfications_dict(notifications)
         context |= self.get_simulation_parameters_context(data, scenario)
         context |= self.get_vehicles_context(data, scenario)
         return context
