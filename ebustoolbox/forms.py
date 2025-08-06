@@ -83,7 +83,8 @@ class DateRangeField(forms.DateField):
 
 
 class SimulationParameters(forms.ModelForm):
-    temperature = forms.IntegerField(min_value=-20, max_value=40)
+    temperature_average = forms.IntegerField(min_value=-20, max_value=40)
+    temperature_extreme = forms.IntegerField(min_value=-20, max_value=40)
 
     class Meta:
         model = SimulationRange

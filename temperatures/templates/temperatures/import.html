@@ -1,0 +1,15 @@
+{% extends 'core/base.html' %}
+
+
+{% block content %}
+<div>
+
+Upload a zip containing the current <a class="text-blue-600 underline hover:text-blue-800" href="https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/recent/TU_Stundenwerte_Beschreibung_Stationen.txt"> station file</a> and all the files that should replace previous station data.
+
+</div>
+  <form method="POST" enctype="multipart/form-data">{% csrf_token %}
+  <input type="file" name="zipfile" accept=".zip">
+  <button class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400" type="submit">Upload ZIP of dwd</button>
+</form>
+
+{% endblock %}

@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     "data_scrapers",
     "ebustoolbox",
     "elevation_api",
+    "temperatures",
     "django_mapengine",
     "ebus_map",
     "bootstrap4",
@@ -91,7 +92,12 @@ MIDDLEWARE = [
     # if the header and footer tags are in use this setting should be used. No problem if not in use
     "core.middleware.TimezoneMiddleware",
 ]
-
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379",
+    }
+}
 ROOT_URLCONF = "ebusdjango.urls"
 
 TEMPLATES = [

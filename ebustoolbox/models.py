@@ -1626,7 +1626,13 @@ class SimulationRange(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     start = models.DateTimeField(null=True)
     end = models.DateTimeField(null=True)
-    temperature = models.FloatField(
+    temperature_average = models.FloatField(
+        blank=True,
+        default=-10,
+        null=True,
+        validators=[MinValueValidator(-20), MaxValueValidator(40)],
+    )
+    temperature_extreme = models.FloatField(
         blank=True,
         default=-10,
         null=True,

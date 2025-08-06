@@ -453,16 +453,23 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         end_date = end.date().isoformat()
         end_time = end.time().isoformat()
         sim_range, _ = SimulationRange.objects.get_or_create(scenario=scenario)
-        temperature = None
+        temperature_average = None
+        temperature_extreme = None
         if data:
             start, end = VehiclesView.parse_start_end_utc_from_POST(data)
             initial_start_date = start.date().isoformat()
             initial_start_time = start.time().isoformat()
             initial_end_date = end.date().isoformat()
             initial_end_time = end.time().isoformat()
-            temperature = data["temperature"]
+            temperature_average = data["temperature_average"]
+            temperature_extreme = data["temperature_extreme"]
             simulation_parameters_form = forms.SimulationParameters(
-                data={"temperature": temperature, "start": start, "end": end},
+                data={
+                    "temperature_average": temperature_average,
+                    "start": start,
+                    "end": end,
+                    "temperature_extreme": temperature_extreme,
+                },
                 instance=SimulationRange.objects.get(scenario=scenario),
             )
         else:
@@ -475,7 +482,8 @@ class VehiclesView(ScenarioMixIn, TemplateView):
                 initial_start_time = sim_range.start.time().isoformat()
                 initial_end_date = sim_range.end.date().isoformat()
                 initial_end_time = sim_range.end.time().isoformat()
-                temperature = sim_range.temperature
+                temperature_average = sim_range.temperature_average
+                temperature_extreme = sim_range.temperature_extreme
             else:
                 initial_start_date = start_date
                 initial_start_time = start_time
@@ -483,7 +491,8 @@ class VehiclesView(ScenarioMixIn, TemplateView):
                 initial_end_time = end_time
             simulation_parameters_form = forms.SimulationParameters(
                 initial={
-                    "temperature": temperature,
+                    "temperature_average": temperature_average,
+                    "temperature_extreme": temperature_extreme,
                     "start": start,
                     "end": end,
                 },
@@ -554,7 +563,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
             sim_range: SimulationRange = simulation_parameters_form.save()
             Temperatures.objects.filter(scenario=scenario).delete()
             # Create temperature instance
-            Temperatures.create_constant_temperatures(scenario, sim_range.temperature)
+            Temperatures.create_constant_temperatures(scenario, sim_range.temperature_average)
         forms.append(simulation_parameters_form)
         vehicle_modification = context["vehicle_modification"]
 
@@ -972,7 +981,8 @@ class SummaryView(AuthorizedMixIn, TemplateView):
             f"{german_weekdays[start.weekday()]} {start.strftime(_format)} - "
             f"{german_weekdays[end.weekday()]} {end.strftime(_format)}"
         )
-        context["temperature"] = sim_range.temperature
+        context["temperature_average"] = sim_range.temperature_average
+        context["temperature_extreme"] = sim_range.temperature_extreme
         parent_vehicle_types = VehicleType.objects.filter(scenario=scenario.parent)
 
         scenario_stations = Station.objects.filter(scenario=scenario).exclude(
