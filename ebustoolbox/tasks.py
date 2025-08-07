@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import environ
 from uuid import UUID as UUIDType
@@ -17,6 +17,7 @@ from celery import shared_task, uuid
 import django.apps
 from django.conf import settings
 from django.contrib.postgres.aggregates import ArrayAgg
+from django.contrib.gis.db.models import Collect
 from django.db import connections
 from django.db.models.functions import Lead
 from django.db.models import F, Max, Count, Min, QuerySet, Window
@@ -1887,6 +1888,23 @@ def get_datetime(simba_scenario: "SimbaScenario", timestep: int) -> datetime:
     # calculate the corresponding datetime
     minutes = timestep * (60 / simba_scenario.stepsPerHour)
     return simba_scenario.start_time + timedelta(minutes=minutes)
+
+
+def get_middlepoint(scenario: Scenario) -> Tuple[float, float] | None:
+    """
+    Get the geometric middlepoint of a scenario or None if the scenario has no geo data.
+    :param scenario: Scenario
+    :return: lon, lat
+    """
+    try:
+        middlepoint = (
+            Station.objects.filter(scenario=scenario)
+            .aggregate(center=Collect("geom"))["center"]
+            .centroid
+        )
+    except AttributeError:
+        return None
+    return middlepoint
 
 
 def is_consistent_rotation(rotation: Rotation) -> bool:

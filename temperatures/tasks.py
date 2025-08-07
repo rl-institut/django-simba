@@ -1,4 +1,6 @@
 import csv
+from typing import List
+from django.db.models import QuerySet
 from django.db.transaction import atomic
 from django.contrib.gis.geos import Point
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -96,9 +98,20 @@ def handle_file(file: StringIO, stations: dict):
     return
 
 
-def get_closest_station(lon: float, lat: float) -> WeatherStation:
-    return (
-        WeatherStation.objects.annotate(distance=Distance("geom", Point(lon, lat, srid=4326)))
-        .order_by("distance")
-        .first()
+def get_weatherdata(
+    dwd_id: int, startdate: datetime.datetime, enddate: datetime.datetime
+) -> List[WeatherData]:
+    """Return weatherdata of weatherstation sorted by temperature"""
+    data = list(
+        WeatherData.objects.exclude(air_temperature__isnull=True)
+        .filter(weatherstation__dwd_id=dwd_id, time__gte=startdate)
+        .exclude(time__gt=enddate)
+        .order_by("air_temperature")
     )
+    return data
+
+
+def get_closest_station(lon: float, lat: float) -> QuerySet[WeatherStation]:
+    return WeatherStation.objects.annotate(
+        distance=Distance("geom", Point(lon, lat, srid=4326))
+    ).order_by("distance")

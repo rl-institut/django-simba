@@ -1,9 +1,7 @@
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render
-from temperatures.tasks import import_data, get_closest_station
+from temperatures.tasks import import_data, get_closest_station, get_weatherdata
 import datetime
-from .models import WeatherData, WeatherStation
-from typing import List
 from django.core.cache import cache
 
 # Create your views here.
@@ -21,35 +19,46 @@ def import_view(request):
     return HttpResponseBadRequest("Method not allowed")
 
 
-def get_weatherdata(
-    weatherstation: WeatherStation, startdate: datetime.datetime, enddate: datetime.datetime
-) -> List[WeatherData]:
-    print("not cached")
-    data = list(
-        WeatherData.objects.exclude(air_temperature__isnull=True)
-        .filter(weatherstation=weatherstation, time__gte=startdate)
-        .exclude(time__gt=enddate)
-    )
-    return data
+CACHE_TIMEOUT = 1 * 1
 
 
-def get_quantile(request, lon: str, lat: str, startdate: str, enddate: str, temperature: float):
-    CACHE_TIMEOUT = 10 * 60
+def get_quantile_from_geo(
+    request, lon: str, lat: str, startdate: str, enddate: str, temperature: float
+):
     lon = float(lon)
     lat = float(lat)
+    station = cache.get_or_set((lon, lat), lambda: get_closest_station(lon, lat), CACHE_TIMEOUT)
+    return get_quantile_from_station(request, station.dwd_id, startdate, enddate, temperature)
+
+
+def get_quantile_from_station(request, dwd_id: int, startdate: str, enddate: str, temperature: str):
     startdate = datetime.datetime.fromisoformat(startdate)
     enddate = datetime.datetime.fromisoformat(enddate)
-    station = cache.get_or_set((lon, lat), lambda: get_closest_station(lon, lat), CACHE_TIMEOUT)
+    temperature = float(temperature)
     data = cache.get_or_set(
-        (id(get_weatherdata), station.id, startdate, enddate),
-        lambda: get_weatherdata(station, startdate, enddate),
+        (id(get_weatherdata), dwd_id, startdate, enddate),
+        lambda: get_weatherdata(dwd_id, startdate, enddate),
         CACHE_TIMEOUT,
     )
+    if len(data) == 0:
+        return JsonResponse(
+            {
+                "error": "No data found",
+            }
+        )
     data = [x.air_temperature for x in data]
+
+    for i, temp in enumerate(data):
+        if temperature < temp:
+            break
+    else:
+        i += 1
+    quantile = i / len(data)
     return JsonResponse(
         {
-            "air_temperature": sum(data) / len(data),
-            "weather_station": str((station.name, station.geom.x, station.geom.y)),
+            "quantile": quantile,
+            "air_temperature_avg": sum(data) / len(data),
+            "weather_station_dwd_id": dwd_id,
             "found_data_points": len(data),
             # we expect one data point every hour, since that is the data we upload from dwd
             "missing_data_points": int(

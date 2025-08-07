@@ -33,8 +33,10 @@ from core.models import Progress, EnumProgress
 import core.deepcopy
 from celery.result import AsyncResult
 
-from django_mapengine.views import MapEngineMixin  # noqa
+from django_mapengine.views import MapEngineMixin
+from temperatures.models import WeatherStation  # noqa
 from . import tasks, forms
+import temperatures.tasks
 from .forms import (
     VehicleTypeForm,
     VehicleTypeSelectionForm,
@@ -437,8 +439,34 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         data = {}
         if self.request.method == "POST":
             data = self.request.POST
+        middlepoint = tasks.get_middlepoint(scenario)
+        lon, lat = None, None
+        startdate = datetime.datetime(year=2024, month=1, day=1)
+        enddate = datetime.datetime(year=2025, month=1, day=1)
+        # TODO: define default weatherstation in central germany
+        weatherstation = WeatherStation.objects.first()
+        # Only pick a weather station close to the system,
+        # if there are at least min_data_points
+        min_data_points = 1000
+        if middlepoint:
+            lon, lat = middlepoint
+            weatherstations = temperatures.tasks.get_closest_station(lon, lat)
+            for ws in weatherstations:
+                if (
+                    len(temperatures.tasks.get_weatherdata(ws.dwd_id, startdate, enddate))
+                    > min_data_points
+                ):
+                    weatherstation = ws
+                    break
         context |= self.get_simulation_parameters_context(data, scenario)
         context |= self.get_vehicles_context(data, scenario)
+        context |= dict(
+            weatherstation=weatherstation,
+            distance=getattr(weatherstation, "distance", None),
+            startDate=startdate.isoformat(),
+            endDate=enddate.isoformat(),
+        )
+
         return context
 
     @staticmethod
