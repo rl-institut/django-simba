@@ -1008,11 +1008,7 @@ simpy = ">=4.0.1,<5.0.0"
 
 [[package]]
 name = "eflips-depot"
-<<<<<<< Updated upstream
 version = "4.7.1"
-=======
-version = "4.12.0"
->>>>>>> Stashed changes
 description = "Depot Simulation for eFLIPS"
 optional = false
 python-versions = "<3.14,>=3.10"
@@ -1022,7 +1018,6 @@ files = [
 ]
 
 [package.dependencies]
-<<<<<<< Updated upstream
 eflips = ">=0.1.3,<0.2.0"
 eflips-model = ">=6.0.6,<7.0.0"
 pandas = ">=2.2.0,<3.0.0"
@@ -1035,46 +1030,17 @@ xlsxwriter = ">=3.1.9,<4.0.0"
 [[package]]
 name = "eflips-eval"
 version = "1.7.1"
-=======
-eflips = "^0.1.3"
-eflips-model = ">8.1.0, <10.0.0"
-eflips-opt = "^0.3.3"
-pandas = "^2.2.0"
-scipy = "^1.14.0"
-simpy = "^4.0.1"
-tqdm = "^4.67.0"
-xlrd = "<=1.2.0"
-xlsxwriter = "^3.1.9"
-
-[package.source]
-type = "git"
-url = "git@github.com:mpm-tu-berlin/eflips-depot.git"
-reference = "main"
-resolved_reference = "8defaace152c5154930100df24bd38262465e32d"
-
-[[package]]
-name = "eflips-eval"
-version = "1.7.4"
->>>>>>> Stashed changes
 description = ""
 optional = false
-python-versions = "<3.14,>=3.10"
+python-versions = "<4.0,>=3.10"
 files = [
-<<<<<<< Updated upstream
     {file = "eflips_eval-1.7.1-py3-none-any.whl", hash = "sha256:ab5b8136ca992462e18582739c31666b04fc0e07c638a1898c9ad58635310c40"},
     {file = "eflips_eval-1.7.1.tar.gz", hash = "sha256:5404aa0afb9e3704c22c5a5e84f073da419bc99fc9e12671cadb2c0882f91def"},
-=======
-    {file = "eflips_eval-1.7.4-py3-none-any.whl", hash = "sha256:2f325dc1e12c3a449ab5667480eb335cce70585fc67b33225df614351e07e6c3"},
-    {file = "eflips_eval-1.7.4.tar.gz", hash = "sha256:aeded0b9af87ce27c0c8a3492ea96d7583b956056477f61abf2b1489a69d9a5c"},
->>>>>>> Stashed changes
 ]
 
 [package.dependencies]
 dash-cytoscape = ">=1.0.1,<2.0.0"
-<<<<<<< Updated upstream
 eflips-model = ">=5.0.0,<7.0.0"
-=======
->>>>>>> Stashed changes
 folium = ">=0.17.0,<0.18.0"
 matplotlib = ">=3.9.0,<4.0.0"
 pandas = ">=2.2.0,<3.0.0"
@@ -1084,30 +1050,17 @@ shapely = ">=2.0.5,<3.0.0"
 
 [[package]]
 name = "eflips-ingest"
-<<<<<<< Updated upstream
 version = "1.2.78"
-=======
-version = "1.2.80"
->>>>>>> Stashed changes
 description = "A collection of import scripts for converting bus schedule data into the [eflips-model](https://github.com/mpm-tu-berlin/eflips-model) data format."
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-<<<<<<< Updated upstream
     {file = "eflips_ingest-1.2.78-py3-none-any.whl", hash = "sha256:e396e7d0f244b75d651cdafea51fd99333f1d4c91d95c0588f158c796ef443ba"},
     {file = "eflips_ingest-1.2.78.tar.gz", hash = "sha256:1c6d6c2c788ce0dc051b3cd7524849ce13c51c4853ba40a32fe52eb8b9915a24"},
 ]
 
 [package.dependencies]
 eflips-model = ">=3.1.1,<7.0.0"
-=======
-    {file = "eflips_ingest-1.2.80-py3-none-any.whl", hash = "sha256:e9ae5b8c59c8f159d8fc2c6281f3d5bcbd44b53f643fc6f86d22cc965e1bd5d0"},
-    {file = "eflips_ingest-1.2.80.tar.gz", hash = "sha256:29406d9219f327c3bd273eea218e2b0aefc054b8bad9d11da6164d283b6a48b4"},
-]
-
-[package.dependencies]
-eflips-model = ">=3.1.1,<10.0.0"
->>>>>>> Stashed changes
 fire = ">=0.7.0,<0.8.0"
 lxml = ">=5.1.0,<6.0.0"
 pyproj = ">=3.6.1,<4.0.0"
@@ -1117,22 +1070,13 @@ tqdm = ">=4.66.1,<5.0.0"
 
 [[package]]
 name = "eflips-model"
-<<<<<<< Updated upstream
 version = "6.0.9"
-=======
-version = "9.0.0"
->>>>>>> Stashed changes
 description = "A common data model for the eflips family of electric vehicle simulation & optimization tools."
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-<<<<<<< Updated upstream
     {file = "eflips_model-6.0.9-py3-none-any.whl", hash = "sha256:3de0c876fb3be9c751dfee4c07b24323515fa8909a754cef4746959620abcf5f"},
     {file = "eflips_model-6.0.9.tar.gz", hash = "sha256:7bc63740f3f30152445c154518b58bc5aeba886341069178410f7fb9c753415d"},
-=======
-    {file = "eflips_model-9.0.0-py3-none-any.whl", hash = "sha256:d12eaf3f6ab823340e06ce9a5516d93a86204fd50b2ffc3170386964038a1e0c"},
-    {file = "eflips_model-9.0.0.tar.gz", hash = "sha256:408fe43742796be71ffc47ba7d854324d87f4c4aacf586116b4f736aa4c0b8d3"},
->>>>>>> Stashed changes
 ]
 
 [package.dependencies]
@@ -1145,31 +1089,18 @@ sqlalchemy = ">=2.0.23,<3.0.0"
 
 [[package]]
 name = "eflips-opt"
-<<<<<<< Updated upstream
 version = "0.2.0"
-=======
-version = "0.3.3"
->>>>>>> Stashed changes
 description = "A collection of pre-simulation optimization algorithms for eFLIPS."
 optional = false
 python-versions = "<3.14,>=3.10"
 files = [
-<<<<<<< Updated upstream
     {file = "eflips_opt-0.2.0-py3-none-any.whl", hash = "sha256:6b7645aea39b750e9554fe10355c5370ffdcd5cdfdcf3c56ec66a4353a283ed7"},
     {file = "eflips_opt-0.2.0.tar.gz", hash = "sha256:3d692a079040080b4e00489084cd582ffbb5998eeaebd807ed0e96d6b0fbc544"},
-=======
-    {file = "eflips_opt-0.3.3-py3-none-any.whl", hash = "sha256:006bef4dd92550e3e574dff6161bb0cc4dfa333b19310b26e3c201e0131da5b2"},
-    {file = "eflips_opt-0.3.3.tar.gz", hash = "sha256:55a663f76103cb999acb672aaf9b4b2eb8944581b73fe434cade4e033dd920f4"},
->>>>>>> Stashed changes
 ]
 
 [package.dependencies]
 dash-cytoscape = ">=1.0.2,<2.0"
-<<<<<<< Updated upstream
 eflips-model = ">=3.0.0,<7.0.0"
-=======
-eflips-model = ">=3.0.0,<10.0.0"
->>>>>>> Stashed changes
 eflips-schedule-rust = ">=2.0.1,<3.0"
 gurobipy = ">=12.0.1,<13.0"
 kaleido = "0.2.1"

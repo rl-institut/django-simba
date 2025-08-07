@@ -104,8 +104,6 @@
                 </div>
               </div>
             </div>
-            {# TODO: @Bryan Better styling, switch instead of checkbox?#}
-            {# Kept checkbox as switch was bringing too many complications, but used used customized styling #}
             <div class="flex gap-2 items-center">
               <div class="group grid size-4 grid-cols-1">
                 <input
@@ -128,6 +126,11 @@
               </div>
             </div>
             <div class="text-sm text-slate-500 pt-1 pb-6 pl-6">(Ignoriert die globale Umgebungstemperatur für diesen Fahrzeugtyp)</div>
+
+
+
+            <div class="flex">
+            <!-- Constant Consumption input -->
             <div class="flex-grow">
               <div class="flex items-center gap-2">
                 <label for="{{modification.vehicle_modification.consumption.auto_id}}" id="{{ vt_id }}consumptionLabel" class="block text-sm/6 font-medium text-slate-800">Energieverbrauch</label>
@@ -160,6 +163,48 @@
                 </div>
               </div>
             </div>
+            <!-- End of Constant Consumption input -->
+
+            <div class="px-4">
+              <!-- placeholder -->
+            </div>
+            <!-- Constant Extreme Consumption input -->
+            <div class="flex-grow">
+              <div class="flex items-center gap-2">
+                <label for="{{modification.vehicle_modification.consumption.auto_id}}" id="{{ vt_id }}consumptionLabel" class="block text-sm/6 font-medium text-slate-800">Energieverbrauch</label>
+                <div class="relative inline-block">
+                  <!-- Info Icon -->
+                  <span class="cursor-pointer group">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                          </svg>
+                    <!-- Tooltip -->
+                          <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                          {{ modification.vehicle_modification.consumption.help_text}}
+                          </div>
+                        </span>
+                </div>
+              </div>
+              <div class="mt-2">
+                <div
+                        class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-slate-400 focus-within:focus-visible:outline-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                          <!--Pseudo Input to show Consumption from selected VehicleType -->
+                  <input
+               {% if modification.vehicle_modification.consumption.initial is None %}type="text"{% endif %}
+
+                          {{ modification.vehicle_modification.consumption|widget_attrs}}
+                    {% if modification.vehicle_modification.consumption.initial is None %}disabled{% endif %}
+                          class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                    placeholder={% if modification.selection.instance.default_vehicle_type is not None %}"{{modification.selection.instance.default_vehicle_type.consumption}}"{% else %}"Wählen Sie ein Fahrzeug aus" {% endif %}
+                          aria-labelledby="consumptionLabel consumptionUnit">
+                  <div id="{{ vt_id }}consumptionUnit" class="shrink-0 select-none text-slate-500">kWh/km</div>
+                </div>
+              </div>
+            </div>
+            <!-- End of Constant Consumption input -->
+
+            </div>
+
           </div>
         </div>
         <div class="tab-content hidden" data-tab="tab-2">This is the content for Tab 2.</div>
