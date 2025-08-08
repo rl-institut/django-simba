@@ -31,6 +31,10 @@ django-admin compilemessages
 `
 
 ### Changed
+- [(#242)](https://github.com/rl-institut/django-simba/pull/242)
+- Updated station and depot icons on map
+
+### Changed
 - [(#223)](https://github.com/rl-institut/django-simba/pull/223)
 - Dash app is removed completely from website
   - Visualization now uses [echarts.js]( https://echarts.apache.org/en/index.html)
