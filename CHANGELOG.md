@@ -19,6 +19,10 @@ Template:
 
 ## [x.x.x] - Unreleased
 ### Changed
+- [(#242)](https://github.com/rl-institut/django-simba/pull/242)
+- Updated station and depot icons on map
+
+### Changed
 - [(#239)](https://github.com/rl-institut/django-simba/pull/239)
 - Improved comparison table layout
 

@@ -117,12 +117,12 @@ button.btn img {
 }
 
 .layer-table {
+    margin-bottom: 0.25rem;
     width: 100%;
     border-collapse: collapse;
 }
 
 .layer-table td {
-    padding: 5px;
     text-align: left;
     vertical-align: middle; /* Aligns content vertically in the middle */
 }

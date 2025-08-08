@@ -1,6 +1,4 @@
 <div class="map-overlay" id="map-overlay">
-
-
     <div>
         <button type="button" class="btn-close text-slate-600" id="js-map-layers-box-close" aria-label="Close">X</button>
     </div>
@@ -39,46 +37,98 @@
 
             });
 
-            const layers = [
-                {label: 'Depots', toggleFunction: () => updateFilter()},
-                {label: 'Elektrifizierte Stationen', toggleFunction: () => updateFilter()},
-                {label: 'Stationen', toggleFunction: () => updateFilter()}
-            ];
-
             const layersContainer = document.getElementById('layers');
 
-            layers.forEach((layer, index) => {
+            const depotLayer = [
+                {
+                    label: 'Depots',
+                    icon: '/static/ebus_map/static/ebus_map/depot.png',
+                    toggleFunction: () => updateFilter()
+                }
+            ];
+
+            const stationLayers = [
+                {
+                    label: 'Elektrifiziert',
+                    icon: '/static/ebus_map/static/ebus_map/bus_station_electrified.png',
+                    toggleFunction: () => updateFilter()
+                },
+                {
+                    label: 'Nicht elektrifiziert',
+                    icon: '/static/ebus_map/static/ebus_map/bus_station_not_electrified.png',
+                    toggleFunction: () => updateFilter()
+                },
+                {
+                    label: 'Nie elektrifiziert',
+                    icon: '/static/ebus_map/static/ebus_map/bus_station_never_electrified.png',
+                    toggleFunction: () => updateFilter()
+                }
+            ];
+
+            function renderLayer(layer, indexOffset) {
                 const layerItem = document.createElement('div');
                 layerItem.classList.add('layer-item');
 
-                // Create a table for each layer item
                 const table = document.createElement('table');
-                table.classList.add('layer-table');
+                table.classList.add('layer-table', 'w-full');
 
                 const row = document.createElement('tr');
 
                 const checkboxCell = document.createElement('td');
-                checkboxCell.classList.add('checkbox-cell');
+                checkboxCell.classList.add('checkbox-cell', 'px-2', 'text-right', 'w-[1%]');
+
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
-                checkbox.id = `layer-${index}`;
-                checkbox.checked = true; // Set checkbox as checked by default
+                checkbox.id = `layer-${indexOffset}`;
+                checkbox.checked = true;
+                checkbox.classList.add('form-checkbox', 'h-4', 'w-4', 'text-emerald-500');
                 checkbox.addEventListener('change', layer.toggleFunction);
                 checkboxCell.appendChild(checkbox);
 
                 const labelCell = document.createElement('td');
-                labelCell.classList.add('label-cell');
+                labelCell.classList.add('label-cell', 'pr-2');
+
                 const label = document.createElement('label');
                 label.htmlFor = checkbox.id;
-                label.textContent = layer.label;
+                label.classList.add('flex', 'items-center', 'gap-2', 'cursor-pointer', 'text-sm', 'text-slate-700');
+
+                const icon = document.createElement('img');
+                icon.src = layer.icon;
+                icon.alt = '';
+                icon.classList.add('w-6', 'h-6', 'object-contain');
+
+                const labelText = document.createTextNode(layer.label);
+
+                label.appendChild(icon);
+                label.appendChild(labelText);
                 labelCell.appendChild(label);
 
                 row.appendChild(labelCell);
                 row.appendChild(checkboxCell);
                 table.appendChild(row);
                 layerItem.appendChild(table);
-                layersContainer.appendChild(layerItem);
+
+                return layerItem;
+            }
+
+            // Render the depot layer
+            depotLayer.forEach((layer, index) => {
+                const element = renderLayer(layer, index);
+                layersContainer.appendChild(element);
             });
+
+            // Add section title
+            const sectionTitle = document.createElement('div');
+            sectionTitle.textContent = 'Stationen';
+            sectionTitle.classList.add('text-xs', 'text-left', 'uppercase', 'text-slate-500', 'px-2', 'pt-4', 'pb-2', 'mt-4', 'border-t');
+            layersContainer.appendChild(sectionTitle);
+
+            // Render the station layers
+            stationLayers.forEach((layer, index) => {
+                const element = renderLayer(layer, index + depotLayer.length);
+                layersContainer.appendChild(element);
+            });
+
             let sliderMinDefault = 0;
             let sliderMaxDefault = 100;
 
