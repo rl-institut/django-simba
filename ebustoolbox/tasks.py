@@ -933,18 +933,27 @@ def run_and_merge_scenarios(
     default_simulation_task_id: UUIDType,
     sizing_scenario_task_id: UUIDType,
 ):
+
+    progress, created = Progress.objects.get_or_create(task_id=self.request.id)
+    progress.reset()
+    # We expect 10 steps of work, with 5 steps per simulation.
+    # each step increments current_work by 1
+    progress.total_work = 11
+    progress.save()
+    logger.info("Simulating scenario with average consumption first")
     default_simulation_scenario = merge_scenario(mutation_id, default_simulation_task_id)
     run_toolchain_from_scenario(default_simulation_scenario, assign_vehicles=True)
-
+    logger.info("Simulating scenario with high consumption")
     sizing_scenario = merge_scenario(mutation_id, sizing_scenario_task_id)
-    apply_sizing_paramters(sizing_scenario)
+    apply_sizing_paramters(mutation_id, sizing_scenario)
     run_toolchain_from_scenario(sizing_scenario, assign_vehicles=True)
+    progress.current_work = progress.total_work
+    progress.status = Progress.FINI
 
 
-def apply_sizing_paramters(scenario: Scenario) -> None:
+def apply_sizing_paramters(mutation_id, scenario: Scenario) -> None:
     """Increase all consumptions in some way"""
 
-    # TODO: To be implemented
     vts = VehicleType.objects.filter(scenario=scenario)
     for vt in vts:
         if vt.consumption is not None:
@@ -952,9 +961,12 @@ def apply_sizing_paramters(scenario: Scenario) -> None:
         else:
             consumptions = Consumption.objects.filter(vehicle_class__vehicle_types=vt)
             assert consumptions.count() == 1
-            vt.consumption = max(consumptions.first().values())
-            consumptions.first().delete()
+            vt.consumption = vt.max_consumption
         vt.save()
+    sim_range = SimulationRange.objects.get(scenario_id=mutation_id)
+    Temperatures.objects.filter(scenario=scenario).delete()
+    # Create temperature instance
+    Temperatures.create_constant_temperatures(scenario, sim_range.temperature_extreme)
 
 
 def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False):
@@ -1477,6 +1489,7 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
 
     # Copy Temperatures
     temperatures_query = Temperatures.objects.filter(scenario=mutation)
+
     if temperatures_query.exists():
         assert temperatures_query.count() == 1
         temperature = temperatures_query.first()
@@ -1549,7 +1562,6 @@ def _run_ebus_toolchain(self, task_id):
         progress.scenario = db_scenario.parent
         progress.save()
     assert progress.scenario == db_scenario.parent, "Progress needs to be linked with parent"
-    progress.reset()
 
     try:
         logger.info(f"Getting schedule from db {datetime.now()}")
@@ -1562,8 +1574,6 @@ def _run_ebus_toolchain(self, task_id):
                 del schedule.stations[depot.station.to_simba_name()]
             except KeyError:
                 pass
-        progress.total_work = 100
-        progress.current_work = 0
         progress.save()
 
         # call SimBA and eFLIPS
@@ -1576,13 +1586,13 @@ def _run_ebus_toolchain(self, task_id):
 
         schedule, simba_scenario = run_simba(schedule, args, db_scenario, mode="sim", scenario=None)
 
-        progress.current_work = 25
+        progress.current_work += 1
         progress.save()
         schedule, simba_scenario = run_simba(
             schedule, args, db_scenario, mode="station_optimization", scenario=simba_scenario
         )
 
-        progress.current_work = 45
+        progress.current_work += 1
         progress.save()
         try:
             run_eflips(task_id)
@@ -1595,7 +1605,7 @@ def _run_ebus_toolchain(self, task_id):
             logger.error("There are delays in the Simulation")
             logger.error(traceback.format_exception(e))
 
-        progress.current_work = 75
+        progress.current_work += 1
         progress.save()
         eflips_assignment = get_assigned_vehicles(task_id)
         schedule.assign_vehicles_custom(eflips_assignment)
@@ -1610,7 +1620,7 @@ def _run_ebus_toolchain(self, task_id):
         # respected. Write events for everything
         schedule, simba_scenario = run_simba(schedule, args, db_scenario, mode="sim")
 
-        progress.current_work = 95
+        progress.current_work += 1
         progress.save()
 
         check_event_soc_consistency(db_scenario)
@@ -1618,6 +1628,7 @@ def _run_ebus_toolchain(self, task_id):
         db_scenario.finished = timezone.now()
         db_scenario.save()
         progress.set_success()
+        logger.info("Simulation finished")
     except Exception as e:
         logger.error(traceback.format_exc())
         progress.refresh_from_db()
@@ -1646,7 +1657,7 @@ def electrify_depot_station_w_default(db_scenario):
         station = depot.station
         if station.is_electrified:
             continue
-        # ToDo get defaults from somewhere
+        # TODO: get defaults from somewhere
         station.is_electrified = True
         station.power_total = station.power_total or 1000_000
         station.amount_charging_places = station.amount_charging_places or 1000

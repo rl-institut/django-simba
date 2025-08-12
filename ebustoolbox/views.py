@@ -27,7 +27,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView, FormView, ListView
 from rest_framework.parsers import JSONParser  # noqa
 
-from eflips.depot.api import simulate_scenario  # noqa
+from simba.ids import INCLINE, LEVEL_OF_LOADING, SPEED, T_AMB  # noqa
 
 from core.models import Progress, EnumProgress
 import core.deepcopy
@@ -55,6 +55,7 @@ from . import data
 import ebustoolbox
 import ebustoolbox.tasks
 from ebustoolbox.models import (
+    Rotation,
     Scenario,
     Temperatures,
     UserGroup,
@@ -66,22 +67,25 @@ from ebustoolbox.models import (
     EnumChargeType,
     Event,
     EventType,
+    Consumption,
     Trip,
     SimulationRange,
     VehicleTypeSelection,
     VehicleTypeMutation,
     StationMutation,
     EnumScenarioType,
+    annotate_distance,
 )
 
 logger = logging.getLogger("custom")
 
 
-def progress2(request: HttpRequest, progress_id, template_name):
+def progress_scenario(request: HttpRequest, progress_id, template_name):
     context = {"progress_id": progress_id, "status": "", "current_progress": 0}
 
     context |= {"finished": False}
     try:
+        # scenario = Scenario.objects.get(task_id=progress_id)
         progress = Progress.objects.get(task_id=progress_id)
         context["progress"] = progress
     except ObjectDoesNotExist:
@@ -547,7 +551,35 @@ class VehiclesView(ScenarioMixIn, TemplateView):
 
         # Get all default vehicle types. Only Opportunity charging capable for now
         # Expand the query for desired vehicle types which can be selected
+        rots = annotate_distance(Rotation.objects.filter(scenario=scenario.parent))
+        result = rots.aggregate(
+            distance=Sum("distance"),
+            duration=Sum(F("trip__arrival_time") - F("trip__departure_time")),
+        )
+        average_speed_kmh = (result["distance"] / 1000) / (
+            result["duration"].total_seconds() / 3600
+        )
+
         default_vehicle_types = get_user_vehicle_types(self.request.user)
+
+        # annotate vehicle types with consumption at average speed km/h, 0 incline and 50% lol
+        for vt in default_vehicle_types:
+            # TODO: use average speed of vehicle type
+            consumption: Consumption = Consumption.objects.get(vehicle_class__vehicle_types=vt)
+
+            def get_cons(temperature):
+                return consumption.get_consumption(
+                    {
+                        SPEED: average_speed_kmh,
+                        T_AMB: temperature,
+                        INCLINE: 0,
+                        LEVEL_OF_LOADING: 0.5,
+                    }
+                )
+
+            consumption_over_temp = [[temp, get_cons(temp)[0]] for temp in range(-10, 40, 5)]
+            vt.consumption_over_temp = consumption_over_temp
+
         # if the child / mutation scenario has no vehicle types create them
         # for each parent vehicle type, with a mutated vehicle type of this scenario. PseudoCode:
         child_vehicle_types = get_or_create_child_vehicle_types(scenario)
@@ -1139,15 +1171,16 @@ def merge_and_run(request: HttpRequest, task_id: str):
         scenario=scenario,
         progress_type=EnumProgress.RUNNING_SIMULATION,
     )
-    if simulation_progess.filter(running=True).exists():
-        error_text = "Starting multiple Simulations from the same source is not allowed"
-        logger.info(error_text)
-        return HttpResponseForbidden()
+    if not request.user.is_superuser:
+        if simulation_progess.filter(running=True).exists():
+            error_text = "Starting multiple Simulations from the same source is not allowed"
+            logger.info(error_text)
+            return HttpResponseForbidden()
 
-    if simulation_progess.filter(success=True).exists():
-        error_text = "Starting a Simulation which was sucessfully simulated is not allowed"
-        logger.info(error_text)
-        return HttpResponseForbidden(error_text)
+        if simulation_progess.filter(success=True).exists():
+            error_text = "Starting a Simulation which was sucessfully simulated is not allowed"
+            logger.info(error_text)
+            return HttpResponseForbidden(error_text)
 
     sim_task_id = get_unique_task_id()
     progress = Progress.objects.create(
@@ -1227,6 +1260,8 @@ def run_simulation(request: HttpRequest, task_id: str):
         # This triggers progress polling. If the toolchain is finished,
         # the progress view will be triggered with the task_id and progress type
         logger.info("Running Toolchain.")
+        if Rotation.objects.filter(scenario=scenario).count() == 1:
+            return HttpResponse("The Scenario has no Rotations/blocks. Nothing to simulate")
         tasks.run_toolchain_from_scenario(scenario, assign_vehicles=True)
     except Exception:
         return HttpResponse("An error occured")

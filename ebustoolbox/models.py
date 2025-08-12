@@ -282,7 +282,10 @@ class VehicleType(models.Model):
     charging_curve = ArrayField(ArrayField(models.FloatField(), size=2))
     v2g_curve = ArrayField(ArrayField(models.FloatField(), size=2), null=True)
 
+    # Possible constant value for average consumption
     consumption = models.FloatField(default=None, null=True)
+    # Possible constant value for extreme/max consumption
+    max_consumption = models.FloatField(default=None, null=True)
 
     # Shape of the vehicle in the form of length, width, height.
     length = models.FloatField(default=None, null=True)

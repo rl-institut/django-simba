@@ -7,7 +7,7 @@
   {% with wiz_idx=2 %}{{ block.super }}{% endwith %}
 {% endblock wizard_navigation %}
 {% block wizard_content %}
-  <script src="https://livejs.com/live.js"></script>
+  <!-- <script src="https://livejs.com/live.js"></script> -->
   <main class="flex flex-col items-center flex-grow">
     <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
       <form type="submit" method ="POST">
@@ -116,8 +116,9 @@
               </span>
             </div>
           </h2>
-          <div class="row" style="display:flex">
-            <div>
+          <div class="row flex">
+            <!-- TODO: translate to tailwind -->
+            <div style="width:15rem">
               <h3 class="flex items-center gap-2 pb-2 text-l font-semibold tracking-wide"
                   id="temperature-heading">
                 Durchschnittstemperatur
@@ -139,7 +140,7 @@
                   </span>
                 </div>
               </h3>
-              <div class="w-4/12">
+              <div class="w-12/12">
                 <div class="mt-2">
                   <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
                     <input {% with simulation_parameters_form.temperature_average as form %}
@@ -147,11 +148,14 @@
                            id="{{ form.auto_id }}"
                            min="{{ form.field.min_value }}"
                            max="{{ form.field.max_value }}"
+                           value="{{ form.initial }}"
+                           required=""
                            {% endwith %}
+                           type="number"
                            class="flex-1 bg-white mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                            placeholder="Gib eine Temperatur ein."
                            aria-describedby="temperature-heading temperature-unit"
-                onchange ="showTemperatureHint(this.value, 'AvgTemperatureHint')"
+                onchange ="temperatureChange(this.value, 'AvgTemperatureHint','div .avg-consumption-hint', debounced_fetchAndSetTemperature2)"
                   >
                     <div id="temperature-unit" class="shrink-0 select-none text-slate-500">°C</div>
                   </div>
@@ -175,18 +179,20 @@
                         </svg>
                         <!-- Tooltip for Temperature Quantile-->
                         <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                        Bezogen auf die pro Stunde gemittelten Temperaturen des Jahres 2024 an der Messstation {{weatherstation.name}}. {% if distance %} diese liegt {{distance.km}} km entfernt vom Mittelpunkt des Szenarios.  {% endif %}
+                        Bezogen auf die pro Stunde gemittelten Temperaturen des Jahres 2024 an der Messstation {{weatherstation.name}}. {% if distance %} diese liegt {{distance.km|floatformat:1 }} km entfernt vom Mittelpunkt des Szenarios.  {% endif %}
                         </div>
                       </span>
                     </div>
                   </div>
                 </div>
             </div>
-            <div class="px-4">
-              <!-- placeholder -->
+            <div class="px-6">
+
+              <!-- Gap between inputs -->
             </div>
-            <div class="px-4">
-              <h3 class="flex items-center gap-2 pb-2 text-l font-semibold tracking-wide"
+            <!-- TODO: translate to tailwind -->
+            <div style="width:15rem">
+              <h3 class="flex mx-8 items-center gap-2 pb-2 text-l font-semibold tracking-wide"
                   id="temperature-heading">
                 Extremtemperatur
                 <div class="relative inline-block">
@@ -207,7 +213,7 @@
                   </span>
                 </div>
               </h3>
-              <div class="w-8/12">
+              <div class="w-12/12">
                 <div class="mt-2">
                   <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
                     <input {% with simulation_parameters_form.temperature_extreme as form %}
@@ -215,11 +221,14 @@
                            id="{{ form.auto_id }}"
                            min="{{ form.field.min_value }}"
                            max="{{ form.field.max_value }}"
+                           value="{{ form.initial }}"
+                           required=""
                            {% endwith %}
-                           class="flex-1 bg-white grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                           type="number"
+                           class="flex-1 bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                            placeholder="Gib eine Temperatur ein."
                            aria-describedby="temperature-heading temperature-unit"
-                onchange ="showTemperatureHint(this.value, 'ExtremeTemperatureHint')"
+                onchange ="temperatureChange(this.value, 'ExtremeTemperatureHint','div .extreme-consumption-hint', debounced_fetchAndSetTemperature1)"
                   >
                     <div id="temperature-unit" class="shrink-0 select-none text-slate-500">°C</div>
                   </div>
@@ -291,28 +300,147 @@
 {% block script %}
 
 <script>
-async function showTemperatureHint(temperature, divId){
-  var data =  await fetchQuantile(temperature);
+
+function debounce(func, timeout = 300) {
+    let timer;
+    // return a debounced function, which can be called with any args
+    return (...args) => {
+      // clear the previous timer
+      clearTimeout(timer);
+      // after the duration of timeout call the function
+      timer = setTimeout(() => {
+        func.apply(this, args);
+      }, timeout);
+    };
+  }
+
+
+async function extremeTemperatureChange(){
+  var tempHintDivId = 'ExtremeTemperatureHint';
+  var consumptionHintQuery = 'div .extreme-consumption-hint';
+  var temperature = document.getElementById("id_temperature_extreme").value;
+  fetchAndSetFunction = debounced_fetchAndSetTemperature1;
+  temperatureChange(temperature, tempHintDivId, consumptionHintQuery, fetchAndSetFunction);
+}
+
+async function averageTemperatureChange(){
+  var tempHintDivId = 'AvgTemperatureHint';
+  var consumptionHintQuery = 'div .avg-consumption-hint';
+  var temperature = document.getElementById("id_temperature_average").value;
+  fetchAndSetFunction = debounced_fetchAndSetTemperature2;
+  temperatureChange(temperature, tempHintDivId, consumptionHintQuery, fetchAndSetFunction);
+
+}
+async function temperatureChange(temperature, tempHintDivId, consumptionHintQuery, fetchAndSetFunction){
+  showTemperatureHint(temperature, tempHintDivId,fetchAndSetFunction);
+  showConsumptionEstimate(temperature, consumptionHintQuery);
+  refreshPageHints();
+}
+
+document.addEventListener('DOMContentLoaded', e => {
+  extremeTemperatureChange();
+  averageTemperatureChange();
+  refreshPageHints();
+})
+
+function refreshPageHints(){
+  containers.forEach((container)=> {
+    // Set placeholder for all inputs, eg. dynamisch bei 4ºC
+    input_avg_id = "id_temperature_average";
+    input_xtr_id = "id_temperature_extreme";
+    set_consumption_placeholder(input_avg_id, container.querySelector("[id$='-consumption']"));
+    set_consumption_placeholder(input_xtr_id, container.querySelector("[id$='-max_consumption']"));
+    // Trigger consumption calculation and show it
+    tmp = document.getElementById(input_avg_id);
+    if (tmp.value != ""){
+      showConsumptionEstimate(tmp.value, "div .avg-consumption-hint");
+    }
+    tmp = document.getElementById(input_xtr_id);
+    if (tmp.value != ""){
+      showConsumptionEstimate(tmp.value, "div .extreme-consumption-hint");
+    }
+
+  });
+
+}
+
+
+function showConsumptionEstimate(temperature, consumptionHintQuery){
+    containers.forEach((container) => {
+    hint = container.querySelector(consumptionHintQuery);
+    var textElement = hint.querySelector("div .text");
+    const vt_selection = container.querySelector("input[id*='default_vehicle_type']");
+    db_id = vt_selection.getAttribute('value');
+    if (db_id === null ) return;
+
+    hint.style.display = "";
+    let cons = getConsumptionForTemperature(parseFloat(temperature), db_id);
+    textElement.innerText = "Geschätzer Verbrauch: " + cons.toFixed(2) ;
+})
+}
+
+function getConsumptionForTemperature(temperature, db_id){
+  let div_data = document.getElementById(db_id + "_consumption_over_temp");
+  let consumption_over_temp = JSON.parse(div_data.textContent);
+  let len = consumption_over_temp.length;
+  // Edge case: temperature is smaller than data from db. return consumption for coldest temperature
+  if ( temperature<=consumption_over_temp[0][0] ) return consumption_over_temp[0][1];
+  // Edge case: temperature is bigger than data from db. return consumption for hotest temperature
+  if ( temperature>=consumption_over_temp[len-1][0] ) return consumption_over_temp[len-1][1];
+  for (let i=0; i<len; i++) {
+      temp= consumption_over_temp[i][0];
+      next_temp= consumption_over_temp[i+1][0];
+      cons= consumption_over_temp[i][1];
+      next_cons= consumption_over_temp[i+1][1];
+    if ( next_temp>=temperature ){
+      return linearInterpolate(temperature,temp,next_temp, cons, next_cons );
+    }
+}
+  console.log(vt_selection.id);
+
+}
+
+function linearInterpolate(x,x1,x2,y1,y2){
+  return y1+ (x-x1)*(y2-y1)/(x2-x1);
+}
+
+async function showTemperatureHint(temperature, divId, fetchAndSetFunction){
+  if (temperature =="") return;
   var divElement = document.getElementById(divId);
   var textElement = divElement.querySelector("div .text");
+  divElement.style.display = "";
+  textElement.classList.add("loader");
+  textElement.innerText = " ";
+  fetchAndSetFunction(divElement, textElement, temperature);
+}
+
+async function fetchAndSetTemperature(divElement, textElement, temperature){
+  var data =  await fetchQuantile(temperature);
   console.log(data)
   if ( data == null || typeof(data.error) != 'undefined'){
     divElement.style.display = "None";
     return
   }
+
+  textElement.classList.remove("loader");
   var quantile = data.quantile;
-  divElement.style.display = "";
   if ( quantile > 0.5 ) {
     textElement.innerText="Heißer als " + (quantile*100).toFixed(1) + "%";}
   else {
 
     textElement.innerText="Kälter als " + ((1-quantile)*100).toFixed(2) + "%";}
 }
+
+// Each temperature input needs its own debounced function or they will stop each other from finishing
+const debounced_fetchAndSetTemperature1 = debounce(fetchAndSetTemperature, 200);
+const debounced_fetchAndSetTemperature2 = debounce(fetchAndSetTemperature, 200);
+
 async function fetchQuantile(temperature){
   try {
-    // {{ weatherstation.dwd_id}}
-    var url = (" {% url 'temperatures:quantile_station' weatherstation.dwd_id startDate endDate 'TEMPERATURE' %}" ).replace('TEMPERATURE',temperature )
-    console.log(url);
+    // dwd_station_id {{ weatherstation.dwd_id}}
+
+    var url = (" {% url 'temperatures:quantile_station' weatherstation.dwd_id startDate endDate 'TEMPERATURE' %}" );
+    url = url.replace('TEMPERATURE',temperature );
     var response = await fetch(url );
     var data = await response.json();
     return data;
@@ -321,7 +449,6 @@ async function fetchQuantile(temperature){
     return null;
   }
 }
-// .catch(error => console.error('Error fetching temperature datat'));
 </script>
 
   <!-- Tabs Functionality of Bus Type Cards -->

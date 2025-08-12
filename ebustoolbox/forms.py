@@ -169,21 +169,24 @@ class VehicleTypeForm(forms.ModelForm):
     # Consumption must be turned on in front end -> todo discuss
     class Meta:
         model = VehicleType
-        fields = ["battery_capacity", "consumption"]
+        fields = ["battery_capacity", "consumption", "max_consumption"]
 
         help_texts = {
             "battery_capacity": "Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen.",
-            "consumption": "Welchen Verbrauch in kWh/km hat dieses Fahrzeug?",
+            "consumption": "Welchen durchschnittlichen Verbrauch in kWh/km hat dieses Fahrzeug?",
+            "max_consumption": "Welchen max. Verbrauch in kWh/km hat dieses Fahrzeug?",
         }
         labels = {
             "battery_capacity": "Batteriekapazität [kWh]",
             "consumption": "Verbrauch [kWh/km]",
+            "max_consumption": "max. Verbrauch [kWh/km]",
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["battery_capacity"].widget.attrs.update({"min": 1.0})
         self.fields["consumption"].required = False
+        self.fields["max_consumption"].required = False
 
 
 class DepotCalculationForm(forms.Form):

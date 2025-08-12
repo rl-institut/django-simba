@@ -161,8 +161,33 @@
                           aria-labelledby="consumptionLabel consumptionUnit">
                   <div id="{{ vt_id }}consumptionUnit" class="shrink-0 select-none text-slate-500">kWh/km</div>
                 </div>
-              </div>
+ <div class="flex" >
+                  <div style="display:None" class="avg-consumption-hint flex mt-1 text-sm text-slate-600 italic transition-opacity duration-200 ease-in-out">
+                    <!-- Next div is queried for class= text and filled with temperature fetch. -->
+                    <div class="flex text">
+                  </div>
+                    <div class="px-2 relative inline-block">
+                      <!-- Info Icon -->
+                      <span class="cursor-pointer group">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke-width="2"
+                          stroke="currentColor"
+                          class="size-4">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                        </svg>
+                        <!-- Tooltip for Temperature Quantile-->
+                        <div class="absolute left-0 bottom-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                        Bezogen auf die pro Stunde gemittelten Temperaturen des Jahres 2024 an der Messstation {{weatherstation.name}}. {% if distance %} diese liegt {{distance.km}} km entfernt vom Mittelpunkt des Szenarios.  {% endif %}
+                        </div>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                </div>
             </div>
+
             <!-- End of Constant Consumption input -->
 
             <div class="px-4">
@@ -171,7 +196,7 @@
             <!-- Constant Extreme Consumption input -->
             <div class="flex-grow">
               <div class="flex items-center gap-2">
-                <label for="{{modification.vehicle_modification.consumption.auto_id}}" id="{{ vt_id }}consumptionLabel" class="block text-sm/6 font-medium text-slate-800">Energieverbrauch</label>
+                <label for="{{modification.vehicle_modification.max_consumption.auto_id}}" id="{{ vt_id }}consumptionLabel" class="block text-sm/6 font-medium text-slate-800">Extremer Energieverbrauch</label>
                 <div class="relative inline-block">
                   <!-- Info Icon -->
                   <span class="cursor-pointer group">
@@ -180,7 +205,7 @@
                           </svg>
                     <!-- Tooltip -->
                           <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                          {{ modification.vehicle_modification.consumption.help_text}}
+                          {{ modification.vehicle_modification.max_consumption.help_text}}
                           </div>
                         </span>
                 </div>
@@ -190,16 +215,40 @@
                         class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-slate-400 focus-within:focus-visible:outline-2 disabled:opacity-50 disabled:cursor-not-allowed">
                           <!--Pseudo Input to show Consumption from selected VehicleType -->
                   <input
-               {% if modification.vehicle_modification.consumption.initial is None %}type="text"{% endif %}
+               {% if modification.vehicle_modification.max_consumption.initial is None %}type="text"{% endif %}
 
-                          {{ modification.vehicle_modification.consumption|widget_attrs}}
-                    {% if modification.vehicle_modification.consumption.initial is None %}disabled{% endif %}
+                          {{ modification.vehicle_modification.max_consumption|widget_attrs}}
+                    {% if modification.vehicle_modification.max_consumption.initial is None %}disabled{% endif %}
                           class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                    placeholder={% if modification.selection.instance.default_vehicle_type is not None %}"{{modification.selection.instance.default_vehicle_type.consumption}}"{% else %}"Wählen Sie ein Fahrzeug aus" {% endif %}
+                    placeholder={% if modification.selection.instance.default_vehicle_type is not None %}"{{modification.selection.instance.default_vehicle_type.max_consumption}}"{% else %}"Wählen Sie ein Fahrzeug aus" {% endif %}
                           aria-labelledby="consumptionLabel consumptionUnit">
-                  <div id="{{ vt_id }}consumptionUnit" class="shrink-0 select-none text-slate-500">kWh/km</div>
+                  <div id="{{ vt_id }}maxconsumptionUnit" class="shrink-0 select-none text-slate-500">kWh/km</div>
                 </div>
               </div>
+<div class="flex" >
+                  <div style="display:None" class="extreme-consumption-hint flex mt-1 text-sm text-slate-600 italic transition-opacity duration-200 ease-in-out">
+                    <!-- Next div is queried for class= text and filled with temperature fetch. -->
+                    <div class="flex text">
+                  </div>
+                    <div class="px-2 relative inline-block">
+                      <!-- Info Icon -->
+                      <span class="cursor-pointer group">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke-width="2"
+                          stroke="currentColor"
+                          class="size-4">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                        </svg>
+                        <!-- Tooltip for Temperature Quantile-->
+                        <div class="absolute left-0 bottom-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                        Bezogen auf die pro Stunde gemittelten Temperaturen des Jahres 2024 an der Messstation {{weatherstation.name}}. {% if distance %} diese liegt {{distance.km}} km entfernt vom Mittelpunkt des Szenarios.  {% endif %}
+                        </div>
+                      </span>
+                    </div>
+                  </div>
+                </div>
             </div>
             <!-- End of Constant Consumption input -->
 
@@ -226,8 +275,13 @@
 {% for choice_vt in choice_vts %}
 <div id="{{ choice_vt.id }}_battery_capacity" data-value="{{ choice_vt.battery_capacity }}"></div>
 <div id="{{ choice_vt.id }}_consumption" data-value="{{ choice_vt.consumption}}"></div>
+<div id="{{ choice_vt.id }}_max_consumption" data-value="{{ choice_vt.max_consumption}}"></div>
   {% with choice_vt.id|stringformat:"s"|add:"_charging_curve" as script_id %}
       {{ choice_vt.charging_curve|json_script:script_id }}
+  {% endwith %}
+
+  {% with choice_vt.id|stringformat:"s"|add:"_consumption_over_temp" as script_id %}
+      {{ choice_vt.consumption_over_temp|json_script:script_id }}
   {% endwith %}
 {% endfor %}
 
@@ -235,6 +289,17 @@
    <!-- Functionality for simple dropdown -->
 
     <script>
+
+
+function set_consumption_placeholder(temp_div_id, consumption_div){
+  temp_div = document.getElementById(temp_div_id);
+  suffix = "";
+  if (temp_div.value != ""){
+    suffix = " bei " + temp_div.value + "ºC";
+  }
+  consumption_div.placeholder = "dynamisch" + suffix;
+}
+
       const containers = document.querySelectorAll("[id*='VehicleTypeContainer']")
       containers.forEach((container) => {
           const vt_id = container.getAttribute("data-value");
@@ -245,11 +310,12 @@
           const listItems = list.querySelectorAll('[role="option"]');
           const enableCustomConsumption = container.querySelector("input[id*='enableCustomConsumption']")
 
-        {#Input values to be overwritten by choosing dropdown#}
+        // {#Input values to be overwritten by choosing dropdown#}
           const battery_capacity = container.querySelector("input[id*='battery_capacity']")
-          const consumption = container.querySelector("input[id*='consumption']")
-          {# Repeat for other vehicle type attributes#}
+          const consumptions = container.querySelectorAll("input[id*='consumption']")
+          // {# Repeat for other vehicle type attributes#}
           //  Handle Consumption overwritting via enabling it through toggle
+          consumptions.forEach((consumption) => {
           enableCustomConsumption.addEventListener("change", ()=>{
               consumption.disabled = !consumption.disabled;
               if (consumption.disabled){
@@ -259,9 +325,9 @@
             consumption.type="number";
             consumption.value= consumption.placeholder;
           }
-        });
+          })});
 
-          {#Assert all components are found. ! negates to bool -> !! cast to bool#}
+          // {#Assert all components are found. ! negates to bool -> !! cast to bool#}
           console.assert(!!vt_id&!!button&!!input_selection&!!label&!!list&!!listItems&!!enableCustomConsumption)
           let selectedItem = '';
 
@@ -291,10 +357,12 @@
                   selectedItem = value;
                   input_selection.setAttribute("value", value);
                   {# Overwrite inputs#}
-                  battery_capacity.value = document.getElementById(value + "_battery_capacity").getAttribute("data-value")
+                  battery_capacity.value = document.getElementById(value + "_battery_capacity").getAttribute("data-value");
                   // Setting the value would change the styling. Use placeholder instead
                   // This input is not in the backend currently since data from the selected vehicle type is used directly
-                  consumption.placeholder = document.getElementById(value + "_consumption").getAttribute("data-value")
+
+                  // Refresh javascript dependencies when changing the vehicletype
+                  refreshPageHints();
                   {# Repeat for other vehicle type attributes#}
 
 
