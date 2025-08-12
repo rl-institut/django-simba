@@ -1594,10 +1594,6 @@ def _run_ebus_toolchain(self, task_id):
         progress.save()
         notifications = []
 
-        import time
-
-        time.sleep(4)
-
         try:
             run_eflips(task_id)
         except UnstableSimulationException as e:
