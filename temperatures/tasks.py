@@ -1,22 +1,28 @@
 import csv
+import logging
+
 from typing import List
 from django.db.models import QuerySet
 from django.db.transaction import atomic
 from django.contrib.gis.geos import Point
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.contrib.gis.db.models.functions import Distance
+from django.utils.timezone import make_aware
 import datetime
 import zipfile
 from io import BytesIO, StringIO
 import re
-
+import traceback
 from django.http import HttpResponse
 from .models import WeatherStation, WeatherData
+
+MIN_DATE = datetime.datetime(2013, 1, 1)
+logger = logging.getLogger("custom")
 
 
 def import_data(uploaded_file: InMemoryUploadedFile):
     station_file = "TU_Stundenwerte_Beschreibung_Stationen.txt"
-    zip_pattern = r"stundenwerte_TU_[0-9]{5}_akt\.zip"
+    zip_pattern = r"stundenwerte_TU_[0-9]{5}_.*\.zip"
     file_pattern = "produkt_tu_stunde_.*_([0-9]{5}).txt"
     zip_file = zipfile.ZipFile(BytesIO(uploaded_file.read()))
     # The file with station names is formatted by fixed charnumber per column.
@@ -42,18 +48,24 @@ def import_data(uploaded_file: InMemoryUploadedFile):
         }
 
     for filename in zip_file.namelist():
-        if re.fullmatch(zip_pattern, filename):
-            inner_zip = zipfile.ZipFile(BytesIO(zip_file.read(filename)))
-            for filename in inner_zip.namelist():
-                if re.fullmatch(file_pattern, filename):
-                    # Turn byte stream into utf8 encoded string file
-                    file_stream = StringIO(inner_zip.read(filename).decode("utf-8"))
-                    print("handling", filename)
-                    handle_file(file_stream, stations)
-        elif re.fullmatch(file_pattern, filename):
-            file_stream = StringIO(zip_file.read(filename).decode("utf-8"))
-            print("handling", filename)
-            handle_file(file_stream, stations)
+        try:
+            if re.fullmatch(zip_pattern, filename):
+                inner_zip = zipfile.ZipFile(BytesIO(zip_file.read(filename)))
+                for filename in inner_zip.namelist():
+                    if re.fullmatch(file_pattern, filename):
+                        # Turn byte stream into utf8 encoded string file
+                        file_stream = StringIO(inner_zip.read(filename).decode("utf-8"))
+                        logger.info("handling", filename)
+                        handle_file(file_stream, stations)
+            elif re.fullmatch(file_pattern, filename):
+                logger.info("handling", filename)
+                file_stream = StringIO(zip_file.read(filename).decode("utf-8"))
+                handle_file(file_stream, stations)
+            else:
+                logger.info(f"{filename=} not used")
+        except Exception:
+            traceback.print_exc()
+            logger.info(f"{filename=} could not be extracted")
     return HttpResponse("Finished")
 
 
@@ -68,7 +80,7 @@ def handle_file(file: StringIO, stations: dict):
         if once:
             once = False
             if station_id not in stations:
-                print(f"{station_id} not found in station file")
+                logger.info(f"{station_id} not found in station file")
                 break
             else:
                 station = stations[station_id]
@@ -84,15 +96,18 @@ def handle_file(file: StringIO, stations: dict):
                 )
         time_str = row["MESS_DATUM"].strip()
         time = datetime.datetime.strptime(time_str, "%Y%M%d%H")
+        # Data is to old and wont be stored
+        if time < MIN_DATE:
+            continue
         air_temperature = float(row["TT_TU"].strip())
         # Measurement errors are stored as -999
         if air_temperature == -999:
             air_temperature = None
         weatherdata.append(
-            WeatherData(weatherstation=ws, time=time, air_temperature=air_temperature)
+            WeatherData(weatherstation=ws, time=make_aware(time), air_temperature=air_temperature)
         )
     else:
-        print(f"Creating {len(weatherdata)} objects")
+        logger.info(f"Creating {len(weatherdata)} objects")
         WeatherData.objects.filter(weatherstation=ws).delete()
         WeatherData.objects.bulk_create(weatherdata)
     return

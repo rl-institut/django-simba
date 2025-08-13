@@ -445,15 +445,18 @@ class VehiclesView(ScenarioMixIn, TemplateView):
             data = self.request.POST
         middlepoint = tasks.get_middlepoint(scenario)
         lon, lat = None, None
-        startdate = datetime.datetime(year=2024, month=1, day=1)
-        enddate = datetime.datetime(year=2025, month=1, day=1)
+        startdate = datetime.datetime(year=2015, month=1, day=1)
+        # Historical dwd data goes mostly till end of 2024 and does not include the current year
+        enddate = datetime.datetime(year=2024, month=12, day=31)
         # TODO: define default weatherstation in central germany
         weatherstation = WeatherStation.objects.first()
         # Only pick a weather station close to the system,
-        # if there are at least min_data_points
-        min_data_points = 1000
+        # if there are at least data for 80% of time
+        minimal_data_ratio = 0.8
+        min_data_points = (enddate - startdate).total_seconds() / 3600 * minimal_data_ratio
         if middlepoint:
             lon, lat = middlepoint
+            # Annotate the weatherstations with distance attribute and sort by distance
             weatherstations = temperatures.tasks.get_closest_station(lon, lat)
             for ws in weatherstations:
                 if (
@@ -467,6 +470,8 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         context |= dict(
             weatherstation=weatherstation,
             distance=getattr(weatherstation, "distance", None),
+            startYear=startdate.year,
+            endYear=enddate.year,
             startDate=startdate.isoformat(),
             endDate=enddate.isoformat(),
         )

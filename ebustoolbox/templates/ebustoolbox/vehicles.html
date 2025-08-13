@@ -148,7 +148,11 @@
                            id="{{ form.auto_id }}"
                            min="{{ form.field.min_value }}"
                            max="{{ form.field.max_value }}"
+                           {% if form.initial %}
                            value="{{ form.initial }}"
+                          {% else %}
+                          value="{{ form.field.initial }}"
+                           {% endif %}
                            required=""
                            {% endwith %}
                            type="number"
@@ -179,7 +183,7 @@
                         </svg>
                         <!-- Tooltip for Temperature Quantile-->
                         <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                        Bezogen auf die pro Stunde gemittelten Temperaturen des Jahres 2024 an der Messstation {{weatherstation.name}}. {% if distance %} diese liegt {{distance.km|floatformat:1 }} km entfernt vom Mittelpunkt des Szenarios.  {% endif %}
+                        Bezogen auf die pro Stunde gemittelten Temperaturen von {{startYear}} bis {{endYear}} an der Messstation {{weatherstation.name}}. {% if distance %} diese liegt {{distance.km|floatformat:1 }} km entfernt vom Mittelpunkt des Szenarios.  {% endif %}
                         </div>
                       </span>
                     </div>
@@ -221,7 +225,7 @@
                            id="{{ form.auto_id }}"
                            min="{{ form.field.min_value }}"
                            max="{{ form.field.max_value }}"
-                           value="{{ form.initial }}"
+                           value="{{ form.field.initial }}"
                            required=""
                            {% endwith %}
                            type="number"
@@ -251,7 +255,7 @@
                         </svg>
                         <!-- Tooltip -->
                         <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                        Bezogen auf die pro Stunde gemittelten Temperaturen des Jahres 2024 an der Messstation {{weatherstation.name}}. {% if distance %} diese liegt {{distance.km | floatformat:1}} km entfernt vom Mittelpunkt des Szenarios.  {% endif %}
+                        Bezogen auf die pro Stunde gemittelten Temperaturen von {{startYear}} bis {{endYear}} an der Messstation {{weatherstation.name}}. {% if distance %} diese liegt {{distance.km|floatformat:1 }} km entfernt vom Mittelpunkt des Szenarios.  {% endif %}
                         </div>
                       </span>
                     </div>
@@ -425,7 +429,7 @@ async function fetchAndSetTemperature(divElement, textElement, temperature){
   textElement.classList.remove("loader");
   var quantile = data.quantile;
   if ( quantile > 0.5 ) {
-    textElement.innerText="Heißer als " + (quantile*100).toFixed(1) + "%";}
+    textElement.innerText="Heißer als " + (quantile*100).toFixed(2) + "%";}
   else {
 
     textElement.innerText="Kälter als " + ((1-quantile)*100).toFixed(2) + "%";}
