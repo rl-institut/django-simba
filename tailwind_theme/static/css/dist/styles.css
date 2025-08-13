@@ -1285,6 +1285,10 @@ select {
   min-width: 100%;
 }
 
+.min-w-\[16rem\] {
+  min-width: 16rem;
+}
+
 .max-w-2xl {
   max-width: 42rem;
 }

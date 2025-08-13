@@ -117,8 +117,7 @@
             </div>
           </h2>
           <div class="row flex">
-            <!-- TODO: translate to tailwind -->
-            <div style="width:15rem">
+            <div class="min-w-[16rem]">
               <h3 class="flex items-center gap-2 pb-2 text-l font-semibold tracking-wide"
                   id="temperature-heading">
                 Durchschnittstemperatur
@@ -144,18 +143,8 @@
                 <div class="mt-2">
                   <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
                     <input {% with simulation_parameters_form.temperature_average as form %}
-                           name="{{ form.name }}"
-                           id="{{ form.auto_id }}"
-                           min="{{ form.field.min_value }}"
-                           max="{{ form.field.max_value }}"
-                           {% if form.initial %}
-                           value="{{ form.initial }}"
-                          {% else %}
-                          value="{{ form.field.initial }}"
-                           {% endif %}
-                           required=""
+                          {{ form|widget_attrs}}
                            {% endwith %}
-                           type="number"
                            class="flex-1 bg-white mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                            placeholder="Gib eine Temperatur ein."
                            aria-describedby="temperature-heading temperature-unit"
@@ -194,9 +183,8 @@
 
               <!-- Gap between inputs -->
             </div>
-            <!-- TODO: translate to tailwind -->
-            <div style="width:15rem">
-              <h3 class="flex mx-8 items-center gap-2 pb-2 text-l font-semibold tracking-wide"
+            <div class="min-w-[16rem]">
+              <h3 class="flex items-center gap-2 pb-2 text-l font-semibold tracking-wide"
                   id="temperature-heading">
                 Extremtemperatur
                 <div class="relative inline-block">
@@ -221,12 +209,7 @@
                 <div class="mt-2">
                   <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
                     <input {% with simulation_parameters_form.temperature_extreme as form %}
-                           name="{{ form.name }}"
-                           id="{{ form.auto_id }}"
-                           min="{{ form.field.min_value }}"
-                           max="{{ form.field.max_value }}"
-                           value="{{ form.field.initial }}"
-                           required=""
+                          {{ form|widget_attrs}}
                            {% endwith %}
                            type="number"
                            class="flex-1 bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
