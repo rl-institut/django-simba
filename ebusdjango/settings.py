@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 
+from django.utils.translation import gettext_lazy as _
+
 import environ
 
 from ebus_map.settings import *  # noqa
@@ -83,6 +85,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -90,6 +93,8 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # if the header and footer tags are in use this setting should be used. No problem if not in use
     "core.middleware.TimezoneMiddleware",
+    # activate the language based on user cookie
+    "core.middleware.LanguageMiddleware",
 ]
 
 ROOT_URLCONF = "ebusdjango.urls"
@@ -191,10 +196,6 @@ LOGGING = {
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            # These logs clutter the console and are not very helpful
-            "filters": [
-                "map_status_no_content",
-            ],
             "formatter": "simple",
         },
         "file": {
@@ -206,7 +207,7 @@ LOGGING = {
     },
     "root": {
         "handlers": ["console"],
-        "level": "WARNING",
+        "level": "INFO",
     },
     "loggers": {
         "django": {
@@ -225,8 +226,15 @@ LOGGING = {
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
-
+LANGUAGE_CODE = "de"
+LANGUAGES = [
+    ("de", _("German")),
+    ("en", _("English")),
+]
+# Set the directory where Django will look for translations
+LOCALE_PATHS = [
+    BASE_DIR / "locale",  # Adjust the path based on  your project structure
+]
 TIME_ZONE = "UTC"
 
 USE_I18N = True

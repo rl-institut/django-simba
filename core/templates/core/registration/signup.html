@@ -1,9 +1,10 @@
 {% extends 'core/base.html' %}
-{% block title %}Registrieren{% endblock %}
+{% load i18n %}
+  {% block title %}{% translate 'Registrieren' %}{% endblock %}
 {% block content %}
 <div class="grid-x grid-padding-x">
   <div class="cell medium-6 medium-offset-3">
-    <h2>Registrierung</h2>
+    <h2>{% translate 'Registrierung' %}</h2>
     <form method="post">
       {% csrf_token %}
       {% for field in form %}
@@ -18,7 +19,8 @@
       {% endfor %}
       <p>
         <label>
-          <input type="checkbox" required name="accepts_terms" id="id_accepts_terms">Ich habe die <a target="_blank" rel="noopener noreferrer" href="{% url 'privacy' %}"> Datenschutzerklärung</a> gelesen und bin mit dieser einverstanden.*
+          {% url 'privacy' as privacy_url %}
+          <input type="checkbox" required name="accepts_terms" id="id_accepts_terms">{% blocktranslate %}Ich habe die <a target="_blank" rel="noopener noreferrer" href="{{ privacy_url}}"> Datenschutzerklärung</a> gelesen und bin mit dieser einverstanden.*{% endblocktranslate %}
         </label>
       </p>
 

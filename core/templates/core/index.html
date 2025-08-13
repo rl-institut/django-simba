@@ -1,3 +1,4 @@
+{% load i18n %}
 {% load static tailwind_tags %}
 
 <!DOCTYPE html>
@@ -7,7 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="{% static 'core/images/WB.svg' %}" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     {% tailwind_css %}
-    <title>WeBus</title>
+    <title>{% translate 'WeBus' %}</title>
   </head>
   <body class="bg-gradient-to-br from-gradient1 via-gradient2 to-gradient3 min-h-lvh flex flex-col">
     {% include 'core/navbar.html'%}
@@ -15,11 +16,11 @@
     <main class="flex-grow flex flex-col items-center justify-center text-center px-4">
       <img class="h-32 w-auto mt-8 mb-8" src="{% static 'core/images/logo/webus_white.svg' %}" alt="WeBus">
       <p class="mt-4 text-xl text-slate-800 max-w-3xl">
-        Entwicklung und Analyse von Strategien zur vollständigen Dekarbonisierung des Berliner Busverkehrs bis 2030
+        {% translate 'Entwicklung und Analyse von Strategien zur vollständigen Dekarbonisierung des Berliner Busverkehrs bis 2030' %}
       </p>
       <div class="mt-8 flex space-x-4">
         <a href="{% url 'simba:trips' %}" class="px-6 py-2 bg-slate-800 text-white text-base font-semibold tracking-wide rounded-full hover:bg-black hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-900 transition-all duration-300">
-          Starten
+          {% translate 'Starten' %}
         </a>
 <!--
         <button class="px-6 py-2 border-2 border-slate-800 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-100 transition-all duration-300">
@@ -35,8 +36,8 @@
 <!--
           <li><a href="#" class="hover:underline">Kontakt</a></li>
 -->
-          <li><a href="{% url 'core:legal' %}" class="hover:underline">Impressum</a></li>
-          <li><a href="{% url 'core:privacy' %}" class="hover:underline">Datenschutz</a></li>
+          <li><a href="{% url 'core:legal' %}" class="hover:underline">{% translate 'Impressum' %}</a></li>
+          <li><a href="{% url 'core:privacy' %}" class="hover:underline">{% translate 'Datenschutz' %}</a></li>
         </ul>
       </div>
     </footer>
