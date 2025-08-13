@@ -1,8 +1,9 @@
 {% extends 'ebustoolbox/wizard.html' %}
+{% load i18n %}
+
 {% load custom_filters %}
-{% block title %}
-  WeBus - Fahrzeuge
-{% endblock title %}
+  {% block title %}{% translate 'WeBus - Fahrzeuge' %}{% endblock title %}
+
 {% block wizard_navigation %}
   {% with wiz_idx=2 %}{{ block.super }}{% endwith %}
 {% endblock wizard_navigation %}
@@ -12,10 +13,10 @@
     <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
       <form type="submit" method ="POST">
         {% csrf_token %}
-        <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">Fahrzeuge</h1>
+        <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Fahrzeuge' %}</h1>
         <section class="pb-12">
           <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide">
-            Zeitspanne
+            {% translate 'Zeitspanne' %}
             <div class="relative inline-block">
               <!-- Info Icon -->
               <span class="cursor-pointer group">
@@ -29,17 +30,18 @@
                 </svg>
                 <!-- Tooltip -->
                 <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                  Bottom Left-Aligned Tooltip
+                  {% translate 'Bottom Left-Aligned Tooltip' %}
+
                 </div>
               </span>
             </div>
           </h2>
-          <span class="block mb-6 text-sm text-slate-500">Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.</span>
+          <span class="block mb-6 text-sm text-slate-500">{% translate 'Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.' %}</span>
           <fieldset class="flex items-center gap-4">
-            <span class="text-slate-600">Von</span>
+            <span class="text-slate-600">{% translate 'Von' %}</span>
             <!-- Start Date -->
             <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-              <label for="start-date" class="sr-only">Startdatum</label>
+              <label for="start-date" class="sr-only">{% translate 'Startdatum' %}</label>
               <input type="date"
                      id="start-date"
                      name="start-date"
@@ -52,7 +54,7 @@
             </div>
             <!-- Start Time -->
             <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-              <label for="start-time" class="sr-only">Startzeit</label>
+              <label for="start-time" class="sr-only">{% translate 'Startzeit' %}</label>
               <input type="time"
                      id="start-time"
                      name="start-time"
@@ -61,7 +63,7 @@
                      value="{{ initial_start_time }}"
                      required>
             </div>
-            <span class="text-slate-600">bis</span>
+            <span class="text-slate-600">{% translate 'bis' %}</span>
             <!-- End Date -->
             <div class="flex items-center rounded-md outline outline-1 outline-transparent">
               <label for="end-date" class="sr-only">Enddatum</label>
@@ -77,7 +79,7 @@
             </div>
             <!-- End Time -->
             <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-              <label for="end-time" class="sr-only">Endzeit</label>
+              <label for="end-time" class="sr-only">{% translate 'Endzeit' %}</label>
               <input type="time"
                      id="end-time"
                      name="end-time"
@@ -97,7 +99,7 @@
         <section class="pb-12">
           <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide"
               id="temperature-heading">
-            Temperaturen
+            {% translate 'Temperaturen' %}
             <div class="relative inline-block">
               <!-- Info Icon -->
               <span class="cursor-pointer group">
@@ -111,7 +113,7 @@
                 </svg>
                 <!-- Tooltip -->
                 <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                  Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.
+                  {% translate 'Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.' %}
                 </div>
               </span>
             </div>
@@ -120,7 +122,7 @@
             <div class="min-w-[16rem]">
               <h3 class="flex items-center gap-2 pb-2 text-l font-semibold tracking-wide"
                   id="temperature-heading">
-                Durchschnittstemperatur
+                {% translate 'Durchschnittstemperatur' %}
                 <div class="relative inline-block">
                   <!-- Info Icon -->
                   <span class="cursor-pointer group">
@@ -134,7 +136,7 @@
                     </svg>
                     <!-- Tooltip -->
                     <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.
+                      {% translate 'Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.' %}
                     </div>
                   </span>
                 </div>
@@ -171,10 +173,13 @@
                           <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                         </svg>
                         <!-- Tooltip for Temperature Quantile-->
-                        <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                        Bezogen auf die pro Stunde gemittelten Temperaturen von {{startYear}} bis {{endYear}} an der Messstation {{weatherstation.name}}. {% if distance %} diese liegt {{distance.km|floatformat:1 }} km entfernt vom Mittelpunkt des Szenarios.  {% endif %}
-                        </div>
-                      </span>
+                      <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                        {% blocktranslate %}Bezogen auf die pro Stunde gemittelten Temperaturen von {{startYear}} bis {{endYear}} an der Messstation {{weatherstation.name}}. {{distance_text}} {% endblocktranslate %}
+                        {% if distance %}
+                        {% blocktranslate %}diese liegt {{distance.km|floatformat:1 }} km entfernt vom Mittelpunkt des Szenarios {% endblocktranslate %}
+                        {% endif %}
+                      </div>
+                    </span>
                     </div>
                   </div>
                 </div>
@@ -186,7 +191,7 @@
             <div class="min-w-[16rem]">
               <h3 class="flex items-center gap-2 pb-2 text-l font-semibold tracking-wide"
                   id="temperature-heading">
-                Extremtemperatur
+                {% translate 'Extremtemperatur' %}
                 <div class="relative inline-block">
                   <!-- Info Icon -->
                   <span class="cursor-pointer group">
@@ -200,7 +205,7 @@
                     </svg>
                     <!-- Tooltip -->
                     <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.
+                      {% translate 'Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.' %}
                     </div>
                   </span>
                 </div>
@@ -238,7 +243,10 @@
                         </svg>
                         <!-- Tooltip -->
                         <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                        Bezogen auf die pro Stunde gemittelten Temperaturen von {{startYear}} bis {{endYear}} an der Messstation {{weatherstation.name}}. {% if distance %} diese liegt {{distance.km|floatformat:1 }} km entfernt vom Mittelpunkt des Szenarios.  {% endif %}
+                        {% blocktranslate %}Bezogen auf die pro Stunde gemittelten Temperaturen von {{startYear}} bis {{endYear}} an der Messstation {{weatherstation.name}}. {{distance_text}} {% endblocktranslate %}
+                        {% if distance %}
+                        {% blocktranslate %}diese liegt {{distance.km|floatformat:1 }} km entfernt vom Mittelpunkt des Szenarios {% endblocktranslate %}
+                        {% endif %}
                         </div>
                       </span>
                     </div>
@@ -252,7 +260,7 @@
       </section>
       <section class="pb-12">
           <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide">
-            Fahrzeugtypen
+            {% translate 'Fahrzeugtypen' %}
             <div class="relative inline-block">
               <!-- Info Icon -->
               <span class="cursor-pointer group">
@@ -266,12 +274,12 @@
                 </svg>
                 <!-- Tooltip -->
                 <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                  Bottom Left-Aligned Tooltip
+                  {% translate 'Bottom Left-Aligned Tooltip' %}
                 </div>
               </span>
             </div>
           </h2>
-          <span class="block mb-6 text-sm text-slate-500">Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu.</span>
+          <span class="block mb-6 text-sm text-slate-500">{% translate 'Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu.' %}</span>
           {% include "ebustoolbox/vehicle_modification.html" with modification=modification vt_id=vt_id choice_vts=choice_vts %}
           {#      validate() is defined in vehicle_modification since this content is what is validated#}
           <button id="SubmitButton" hidden onclick="validate()"></button>
@@ -362,7 +370,7 @@ function showConsumptionEstimate(temperature, consumptionHintQuery){
 
     hint.style.display = "";
     let cons = getConsumptionForTemperature(parseFloat(temperature), db_id);
-    textElement.innerText = "Geschätzer Verbrauch: " + cons.toFixed(2) ;
+    textElement.innerText = gettext("Geschätzer Verbrauch: ") + cons.toFixed(2) ;
 })
 }
 

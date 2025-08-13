@@ -16,6 +16,7 @@ Including another URLconf
 """
 
 from django.contrib import admin
+from django.views.i18n import JavaScriptCatalog
 from django.urls import path, include
 
 urlpatterns = [
@@ -30,4 +31,5 @@ urlpatterns = [
     # Map urls
     path("", include("ebus_map.urls")),
     path("temperatures/", include("temperatures.urls")),
+    path("jsi18n/", JavaScriptCatalog.as_view(), name="javascript-catalog"),
 ]

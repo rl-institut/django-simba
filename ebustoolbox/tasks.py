@@ -9,8 +9,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import logging
 from pathlib import Path
-from typing import List, Tuple
-
+from typing import List
 import environ
 from uuid import UUID as UUIDType
 from celery import shared_task, uuid
@@ -25,6 +24,7 @@ from django.db.transaction import atomic
 from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.timezone import make_aware, is_aware
+from django.utils.translation import gettext as _
 from eflips.depot import UnstableSimulationException, DelayedTripException
 from eflips.depot.api import simulate_scenario, generate_depot_layout
 
@@ -92,10 +92,10 @@ EPS = 1e-5  # a small number, used to allow for difference when comparing floats
 def apply_vehicle_type(
     target_vehicle_type: VehicleType, source_vehicle_type: VehicleType
 ) -> VehicleType:
-    """Use a source vehicle type and apply the attributes to a a target vehicle type.
+    """Use a source vehicle type and apply the attributes to a target vehicle type.
 
     Scenario, name and name short of the target are not copied over.
-    VehicleClasses of source are copied aswell as consumptions which are linked to vehicle classes
+    VehicleClasses of source are copied as well as consumptions which are linked to vehicle classes
     """
     vehicle_classes = source_vehicle_type.vehicle_classes.all()
     source_vehicle_type.id = target_vehicle_type.id
@@ -218,7 +218,7 @@ def filter_inconsistent_trips_and_rotations(simba_schedule):
         arrival_times = [t.arrival_time for t in rotation.trips]
         start = 0
         while True:
-            for i, _ in enumerate(rotation.trips[start:]):
+            for i, __ in enumerate(rotation.trips[start:]):
                 i = i + start
                 if (
                     depart_times.count(rotation.trips[i].departure_time) > 1
@@ -796,7 +796,7 @@ def init_db_with_trips(
 ):
     progress = Progress.objects.get(id=progress_id)
     # files is a dict with values of (path, file_id)
-    progress.status = "Gestartet"
+    progress.status = _("Gestartet")
     progress.save()
     file_paths = {key: value[0] for key, value in files.items()}
     try:
@@ -822,16 +822,16 @@ def init_db_with_trips(
         progress.save()
     except Exception as e:
         logger.error(traceback.format_exc())
-        progress.status = "Fehlgeschlagen"
+        progress.status = _("Fehlgeschlagen")
         progress.errors.append(str(e))
     finally:
         try:
             progress.errors.extend(schedule_reader.get_errors())
         except:  # noqa
             pass
-        progress.status = "Fertig"
+        progress.status = _("Fertig")
         if not progress.success:
-            progress.status = "Fehlgeschlagen"
+            progress.status = _("Fehlgeschlagen")
         # delete all uploaded files
         try:
             for file_path, file_id in files.values():
@@ -1597,11 +1597,11 @@ def _run_ebus_toolchain(self, task_id):
         try:
             run_eflips(task_id)
         except UnstableSimulationException as e:
-            # TODO handle it and pass information to user
+            # TODO: handle it and pass information to user
             logger.error("The simulation is unstable")
             logger.error(traceback.format_exception(e))
         except DelayedTripException as e:
-            # TODO handle it and pass information to user
+            # TODO: handle it and pass information to user
             logger.error("There are delays in the Simulation")
             logger.error(traceback.format_exception(e))
 
@@ -1851,7 +1851,6 @@ def depot_rotation_to_eflips_input(db_rotation, db_scenario, input_for_eflips, r
 
 
 def run_eflips(task_id) -> None:
-    # ToDo Replace with logger
     logger.info(f"Running eFLIPS {datetime.now()}")
     db_scenario = Scenario.objects.get(task_id=task_id)
 
@@ -1901,7 +1900,7 @@ def get_datetime(simba_scenario: "SimbaScenario", timestep: int) -> datetime:
     return simba_scenario.start_time + timedelta(minutes=minutes)
 
 
-def get_middlepoint(scenario: Scenario) -> Tuple[float, float] | None:
+def get_middlepoint(scenario: Scenario) -> tuple[float, float] | None:
     """
     Get the geometric middlepoint of a scenario or None if the scenario has no geo data.
     :param scenario: Scenario

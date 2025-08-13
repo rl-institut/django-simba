@@ -1,3 +1,4 @@
+{% load i18n %}
 {% load static %}
 
 <script src="{% static 'templates/js/custom.js' %}"></script>
@@ -12,7 +13,8 @@
 <script src="{% static "nouislider.min.js" %}"></script>
 <link href="{%  static "nouislider.min.css" %}" rel="stylesheet">
 <link href="{%  static "custom_style.css" %}" rel="stylesheet">
-
+<!-- For translations in javascript -->
+<script src="{% url 'javascript-catalog' %}"></script>
 {#to do move to appropriate spot?#}
 <style>
     .drag_drop_zone {
