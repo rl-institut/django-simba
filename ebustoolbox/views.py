@@ -602,6 +602,17 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         vehicle_modification = {}
         for vt in child_vehicle_types:
             vt_select, _ = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
+            dvt = vt_select.default_vehicle_type
+            modification = VehicleTypeForm(data, instance=vt, prefix=f"mutation_{vt.id}")
+            if "zusatzheizung" in dvt.name.lower():
+                # User chose a vt with diesel heating. select version without diesel instead
+                all_dvts = get_user_vehicle_types(self.request.user)
+                search_name = dvt.name[0 : dvt.name.lower().find("_zusatzheizung")]
+                dvt = all_dvts.exclude(name__icontains="zusatzheizung").get(
+                    name__icontains=search_name
+                )
+                vt_select.default_vehicle_type = dvt
+                modification.fields["has_diesel_heating"].initial = True
             selection = VehicleTypeSelectionForm(
                 data,
                 prefix=f"selection_{vt.id}",
@@ -609,7 +620,6 @@ class VehiclesView(ScenarioMixIn, TemplateView):
                 choices_queryset=default_vehicle_types,
                 instance=vt_select,
             )
-            modification = VehicleTypeForm(data, instance=vt, prefix=f"mutation_{vt.id}")
             vehicle_modification[vt.id] = {
                 "vehicle_type": vt,
                 "vehicle_choices": default_vehicle_types,
@@ -682,12 +692,15 @@ class VehiclesView(ScenarioMixIn, TemplateView):
             # Since we dont show vehicle_types with dieselengine, but instead give a checkbox
             # the default_vehicle_type used as the source of propoerties is swapped depending
             # on the state of the checkbox
-            d_vt = VehicleTypeSelection.objects.get(vehicle_type=instance).default_vehicle_type
+            vt_selection = VehicleTypeSelection.objects.get(vehicle_type=instance)
+            d_vt = vt_selection.default_vehicle_type
             if form.cleaned_data["has_diesel_heating"]:
                 all_dvts = get_user_vehicle_types(self.request.user)
                 d_vt = all_dvts.filter(name__contains=d_vt.name).get(
                     name__icontains="zusatzheizung"
                 )
+                vt_selection.default_vehicle_type = d_vt
+                vt_selection.save()
                 logger.info(f"Used {d_vt.name} since user chose diesel heating")
             instance = tasks.apply_vehicle_type(
                 target_vehicle_type=instance, source_vehicle_type=d_vt
