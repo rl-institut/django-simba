@@ -117,11 +117,10 @@ def get_weatherdata(
     dwd_id: int, startdate: datetime.datetime, enddate: datetime.datetime
 ) -> List[WeatherData]:
     """Return weatherdata of weatherstation sorted by temperature"""
-    data = list(
+    data = (
         WeatherData.objects.exclude(air_temperature__isnull=True)
         .filter(weatherstation__dwd_id=dwd_id, time__gte=startdate)
         .exclude(time__gt=enddate)
-        .order_by("air_temperature")
     )
     return data
 

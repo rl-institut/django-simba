@@ -36,7 +36,7 @@ def get_temperature_statistics(
     dwd_id: int, startdate: datetime.datetime, enddate: datetime.datetime
 ) -> dict:
     step = 0.5
-    data = get_weatherdata(dwd_id, startdate, enddate)
+    data = list(get_weatherdata(dwd_id, startdate, enddate).order_by("air_temperature"))
     if len(data) == 0:
         return {}
     histogram = list()

@@ -370,7 +370,7 @@ function showConsumptionEstimate(temperature, consumptionHintQuery){
 
     hint.style.display = "";
     let cons = getConsumptionForTemperature(parseFloat(temperature), db_id);
-    textElement.innerText = gettext("Geschätzer Verbrauch: ") + cons.toFixed(2) ;
+    textElement.innerText = document.getElementById("translate_geschätzer_verbrauch").innerText + cons.toFixed(2) ;
 })
 }
 
@@ -420,10 +420,10 @@ async function fetchAndSetTemperature(divElement, textElement, temperature){
   textElement.classList.remove("loader");
   var quantile = data.quantile;
   if ( quantile > 0.5 ) {
-    textElement.innerText="Heißer als " + (quantile*100).toFixed(2) + "%";}
+    textElement.innerText= document.getElementById("translate_heißer_als").innerText+ (quantile*100).toFixed(2) + "%";}
   else {
 
-    textElement.innerText="Kälter als " + ((1-quantile)*100).toFixed(2) + "%";}
+    textElement.innerText=document.getElementById("translate_kälter_als").innerText+ + ((1-quantile)*100).toFixed(2) + "%";}
 }
 
 // Each temperature input needs its own debounced function or they will stop each other from finishing

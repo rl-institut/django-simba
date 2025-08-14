@@ -1631,13 +1631,13 @@ class SimulationRange(models.Model):
     end = models.DateTimeField(null=True)
     temperature_average = models.FloatField(
         blank=True,
-        default=-10,
+        default=10,
         null=True,
         validators=[MinValueValidator(-20), MaxValueValidator(40)],
     )
     temperature_extreme = models.FloatField(
         blank=True,
-        default=-10,
+        default=-5,
         null=True,
         validators=[MinValueValidator(-20), MaxValueValidator(40)],
     )

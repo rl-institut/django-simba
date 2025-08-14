@@ -15,7 +15,7 @@
     <div class="w-full bg-slate-200 rounded-md overflow-hidden h-4 mb-4" aria-labelledby="pblabel">
       <div
         class="bg-emerald-600 text-white text-xs font-medium text-center h-full transition-all duration-300"
-        style="width: {{ current_progress }}%; background-color: #60a5fa">
+        style="width: {{ current_progress|floatformat:0 }}%; background-color: #60a5fa">
         {{ current_progress|floatformat:1 }}%
       </div>
     </div>

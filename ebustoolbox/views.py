@@ -463,12 +463,11 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         if middlepoint:
             lon, lat = middlepoint
             # Annotate the weatherstations with distance attribute and sort by distance
-            weatherstations = temperatures.tasks.get_closest_station(lon, lat)
+            weatherstations = list(temperatures.tasks.get_closest_station(lon, lat))
             for ws in weatherstations:
                 if (
-                    len(temperatures.tasks.get_weatherdata(ws.dwd_id, startdate, enddate))
-                    > min_data_points
-                ):
+                    temperatures.tasks.get_weatherdata(ws.dwd_id, startdate, enddate)
+                ).count() > min_data_points:
                     weatherstation = ws
                     break
         context |= self.get_simulation_parameters_context(data, scenario)
@@ -532,10 +531,9 @@ class VehiclesView(ScenarioMixIn, TemplateView):
                 initial_start_time = start_time
                 initial_end_date = end_date
                 initial_end_time = end_time
+
             simulation_parameters_form = forms.SimulationParameters(
                 initial={
-                    "temperature_average": temperature_average,
-                    "temperature_extreme": temperature_extreme,
                     "start": start,
                     "end": end,
                 },
