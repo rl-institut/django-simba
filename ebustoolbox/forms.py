@@ -167,6 +167,16 @@ class VehicleTypeSelectionForm(forms.ModelForm):
 
 
 class VehicleTypeForm(forms.ModelForm):
+    has_diesel_heating = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="Dieselzusatzheizung",
+        help_text=(
+            "Dem Fahrzeugtyp eine Dieselzusatzheiung hinzufügen. "
+            "Dies reduziert den Verbrauch bei niedrigen Temperaturen"
+        ),
+    )
+
     # Consumption must be turned on in front end -> todo discuss
     class Meta:
         model = VehicleType

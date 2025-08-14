@@ -93,14 +93,16 @@
 
                <!--Start Checkbox for dieselzusatzheizung  -->
               <div class="flex-grow pb-6">
-              <div class="flex gap-2 items-center">
+              <div class="flex gap-2 items-center diesel-checkbox">
                 <div class="group grid size-4 grid-cols-1">
-                  <input id="{{ vt_id }}enableCustomConsumption"
-                         name="{{ vt_id }}enableCustomConsumption"
-                         data-station-id="{{ vt_id }}"
-                         aria-describedby="{{ vt_id }}-description"
+
+                    <input
                          type="checkbox"
-                         {% if modification.vehicle_modification.consumption.initial is not None %}checked{% endif %}
+                      {% with modification.vehicle_modification.has_diesel_heating as form %}
+                          {{ form|widget_attrs}}
+                        {% if form.initial %}checked{% endif %}
+                           {% endwith %}
+                         aria-describedby="{{ vt_id }}-description"
                          class="col-start-1 row-start-1 appearance-none rounded border border-slate-400 checked:border-emerald-500 checked:bg-emerald-500 checked:focus:bg-emerald-500 checked:hover:bg-emerald-500 focus:ring-green-500 focus-ring:outline focus-ring:outline-2 focus-ring:outline-offset-2 focus-ring:outline-green-500">
                   <svg class="pointer-events-none size-3.5 self-center justify-self-center stroke-white"
                        viewBox="0 0 14 14"
@@ -109,13 +111,17 @@
                     <path class="opacity-0" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                 </div>
-                <div class="text-sm text-slate-700">
-                    <!-- TODO: callback to plots and consumption estimation in js -->
-                  <label for="{{ vt_id }}enableCustomConsumption" class="font-medium">
-                    {% translate 'Fahrzeugtyp mit Dieselzusatzheizung ausstatten' %}
-                  </label>
-                </div>
-              </div>
+                  <div class="text-sm text-slate-700 space-y-1">
+                    <label for="{{ vt_id }}enableDieselHeating" data-value="enabledDieselCheckbox"
+                      class="font-medium">
+                      {% translate 'Fahrzeugtyp mit Dieselzusatzheizung ausstatten' %}
+                    </label>
+
+                    <label for="{{ vt_id }}enableDieselHeating" data-value="disabledDieselCheckbox"
+                      class="font-medium   opacity-70">
+                      {% translate 'Fahrzeugtyp besitzt keine Variante mit Dieselzusatzheizung' %}
+                    </label>
+                  </div>              </div>
               </div>
                <!--End Checkbox for dieselzusatzheizung  -->
 
@@ -160,11 +166,11 @@
                 <div class="group grid size-4 grid-cols-1">
                   <input id="{{ vt_id }}enableCustomConsumption"
                          name="{{ vt_id }}enableCustomConsumption"
-                         data-station-id="{{ vt_id }}"
                          aria-describedby="{{ vt_id }}-description"
                          type="checkbox"
                          {% if modification.vehicle_modification.consumption.initial is not None %}checked{% endif %}
-                         class="col-start-1 row-start-1 appearance-none rounded border border-slate-400 checked:border-emerald-500 checked:bg-emerald-500 checked:focus:bg-emerald-500 checked:hover:bg-emerald-500 focus:ring-green-500 focus-ring:outline focus-ring:outline-2 focus-ring:outline-offset-2 focus-ring:outline-green-500">
+                         class="col-start-1 row-start-1 appearance-none rounded border border-slate-400 checked:border-emerald-500 checked:bg-emerald-500 checked:focus:bg-emerald-500 checked:hover:bg-emerald-500 focus:ring-green-500 focus-ring:outline focus-ring:outline-2 focus-ring:outline-offset-2 focus-ring:outline-green-500"
+                  >
                   <svg class="pointer-events-none size-3.5 self-center justify-self-center stroke-white"
                        viewBox="0 0 14 14"
                        fill="none">
@@ -351,21 +357,25 @@
     </div>
   </div>
 {% endfor %}
-{# Insert all attributes which should be passed to the vehicle type inputs from the selectable choices.#}
-{% for choice_vt in choice_vts %}
-  <div id="{{ choice_vt.id }}_battery_capacity"
-       data-value="{{ choice_vt.battery_capacity }}"></div>
-  <div id="{{ choice_vt.id }}_consumption"
-       data-value="{{ choice_vt.consumption }}"></div>
-  <div id="{{ choice_vt.id }}_max_consumption"
-       data-value="{{ choice_vt.max_consumption }}"></div>
-  {% with choice_vt.id|stringformat:"s"|add:"_charging_curve" as script_id %}
+
+  {# Insert all attributes which should be passed to the vehicle type inputs from the selectable choices.#}
+  {% for choice_vt in all_default_vehicle_types %}
+  <div id=vehicle_type_data_{{choice_vt.id}} data-name={{choice_vt.name}} data-has-diesel-heating={{choice_vt.has_diesel_heating}} data-id={{choice_vt.id}}>
+    <div id="{{ choice_vt.id }}_battery_capacity"
+      data-value="{{ choice_vt.battery_capacity }}"></div>
+    <div id="{{ choice_vt.id }}_consumption"
+      data-value="{{ choice_vt.consumption }}"></div>
+    <div id="{{ choice_vt.id }}_max_consumption"
+      data-value="{{ choice_vt.max_consumption }}"></div>
+    {% with choice_vt.id|stringformat:"s"|add:"_charging_curve" as script_id %}
     {{ choice_vt.charging_curve|json_script:script_id }}
-  {% endwith %}
-  {% with choice_vt.id|stringformat:"s"|add:"_consumption_over_temp" as script_id %}
+    {% endwith %}
+    {% with choice_vt.id|stringformat:"s"|add:"_consumption_over_temp" as script_id %}
     {{ choice_vt.consumption_over_temp|json_script:script_id }}
-  {% endwith %}
-{% endfor %}
+    {% endwith %}
+  </div>
+  {% endfor %}
+
 <!-- Functionality for simple dropdown -->
 <!-- Divs with text for translation. these are used in js-->
 <div id="translate_dynamisch" style="display:None">{% translate 'dynamisch' %}</div>
@@ -374,225 +384,244 @@
 <div id="translate_heißer_als" style="display:None">{% translate 'Heißer als ' %}</div>
 <div id="translate_kälter_als" style="display:None">{% translate 'Kälter als ' %}</div>
 <script>
+
+
 function set_consumption_placeholder(temp_div_id, consumption_div){
   temp_div = document.getElementById(temp_div_id);
   suffix = "";
   if (temp_div.value != ""){
-  suffix = ` ${document.getElementById('translate_bei').innerText} ` + temp_div.value + "ºC";
+    suffix = ` ${document.getElementById('translate_bei').innerText} ` + temp_div.value + "ºC";
   }
   consumption_div.placeholder =  document.getElementById('translate_dynamisch').innerText+ suffix;
 }
 
-      const containers = document.querySelectorAll("[id*='VehicleTypeContainer']")
-      containers.forEach((container) => {
-          const vt_id = container.getAttribute("data-value");
-          const button = document.getElementById(vt_id + 'assignedToButton');
-          const input_selection = container.querySelector("input[id*='default_vehicle_type']")
-          const label = document.getElementById('label_' + input_selection.id);
-          const list = document.getElementById(vt_id + "assignedToList");
-          const listItems = list.querySelectorAll('[role="option"]');
-          const enableCustomConsumption = container.querySelector("input[id*='enableCustomConsumption']")
+const containers = document.querySelectorAll("[id*='VehicleTypeContainer']")
+containers.forEach((container) => {
+  const vt_id = container.getAttribute("data-value");
+  const button = document.getElementById(vt_id + 'assignedToButton');
+  const input_selection = container.querySelector("input[id*='default_vehicle_type']")
+  const label = document.getElementById('label_' + input_selection.id);
+  const list = document.getElementById(vt_id + "assignedToList");
+  const listItems = list.querySelectorAll('[role="option"]');
+  const enableCustomConsumption = container.querySelector("input[id*='enableCustomConsumption']")
 
-        // {#Input values to be overwritten by choosing dropdown#}
-          const battery_capacity = container.querySelector("input[id*='battery_capacity']")
-          const consumptions = container.querySelectorAll("input[id*='consumption']")
-          // {# Repeat for other vehicle type attributes#}
-          //  Handle Consumption overwritting via enabling it through toggle
-          consumptions.forEach((consumption) => {
-          enableCustomConsumption.addEventListener("change", ()=>{
-              consumption.disabled = !consumption.disabled;
-              if (consumption.disabled){
-            consumption.type="text";
-            consumption.value="";
-          } else {
-            consumption.type="number";
-            consumption.value= consumption.placeholder;
-          }
-          })});
-
-          // {#Assert all components are found. ! negates to bool -> !! cast to bool#}
-          console.assert(!!vt_id&!!button&!!input_selection&!!label&!!list&!!listItems&!!enableCustomConsumption)
-          let selectedItem = '';
+  // {#Input values to be overwritten by choosing dropdown#}
+  const battery_capacity = container.querySelector("input[id*='battery_capacity']")
 
 
-
-          // Toggle the dropdown on button click
-          button.addEventListener('click', () => {
-              const isExpanded = button.getAttribute('aria-expanded') === 'true';
-              button.setAttribute('aria-expanded', String(!isExpanded));
-              list.classList.toggle('hidden');
-
-              // Whenever it opens, ensure the selected item is highlighted
-              if (!isExpanded) {
-                  highlightSelectedItem{{ vt_id }}();
-              }
-          });
+  const diesel_heating_checkbox = container.querySelector("input[id$='-has_diesel_heating']");
+  diesel_heating_checkbox.addEventListener("change", ()=>{
+    refreshPageHints();
+  });
 
 
+  const consumption = container.querySelector("input[id$='-consumption']");
+  const max_consumption = container.querySelector("input[id$='-max_consumption']");
+  // {# Repeat for other vehicle type attributes#}
+  //  Handle Consumption overwritting via enabling it through toggle
+  function switchConsumptionInput(consumption){
+    enableCustomConsumption.addEventListener("change", ()=>{
+      consumption.disabled = !consumption.disabled;
+      if (consumption.disabled){
+        consumption.type="text";
+        consumption.value="";
+        consumption.required=false;
+      } else {
+        consumption.type="number";
+        // consumption.value= consumption.placeholder;
+        consumption.required=true;
+
+      }
+    })
+  }
+  switchConsumptionInput(consumption);
+  switchConsumptionInput(max_consumption);
+
+  // {#Assert all components are found. ! negates to bool -> !! cast to bool#}
+  console.assert(!!vt_id&!!button&!!input_selection&!!label&!!list&!!listItems&!!enableCustomConsumption)
+  let selectedItem = '';
 
 
-          // Handle clicks on list items
-          listItems.forEach(item => {
-              item.addEventListener('click', () => {
-                  const value = item.getAttribute('data-dropdown-item');
-                  label.textContent = item.getAttribute('data-dropdown-name');
-                  label.value = value;
-                  selectedItem = value;
-                  input_selection.setAttribute("value", value);
-                  {# Overwrite inputs#}
-                  battery_capacity.value = document.getElementById(value + "_battery_capacity").getAttribute("data-value");
-                  // Setting the value would change the styling. Use placeholder instead
-                  // This input is not in the backend currently since data from the selected vehicle type is used directly
 
-                  // Refresh javascript dependencies when changing the vehicletype
-                  refreshPageHints();
-                  {# Repeat for other vehicle type attributes#}
+  // Toggle the dropdown on button click
+  button.addEventListener('click', () => {
+    const isExpanded = button.getAttribute('aria-expanded') === 'true';
+    button.setAttribute('aria-expanded', String(!isExpanded));
+    list.classList.toggle('hidden');
+
+    // Whenever it opens, ensure the selected item is highlighted
+    if (!isExpanded) {
+      highlightSelectedItem{{ vt_id }}();
+    }
+  });
 
 
-                  // Highlight the newly selected item
-                  highlightSelectedItem();
-
-                  // Close dropdown
-                  list.classList.add('hidden');
-                  button.setAttribute('aria-expanded', 'false');
-              });
-          });
 
 
-          // Close dropdown if user clicks outside
-          document.addEventListener('click', e => {
-              if (!button.contains(e.target) && !list.contains(e.target)) {
-                  button.setAttribute('aria-expanded', 'false');
-                  list.classList.add('hidden');
-              }
-          });
+  // Handle clicks on list items
+  listItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const value = item.getAttribute('data-dropdown-item');
+      label.textContent = item.getAttribute('data-dropdown-name');
+      label.value = value;
+      selectedItem = value;
+      input_selection.setAttribute("value", value);
+      {# Overwrite inputs#}
+      battery_capacity.value = document.getElementById(value + "_battery_capacity").getAttribute("data-value");
+      // Setting the value would change the styling. Use placeholder instead
+      // This input is not in the backend currently since data from the selected vehicle type is used directly
 
-          // Remove the highlight from all items and apply it to the selected item
-          function highlightSelectedItem() {
-              listItems.forEach(li => {
-                  li.classList.remove('bg-emerald-100');
-                  if (li.getAttribute('data-dropdown-item') === selectedItem) {
-                      li.classList.add('bg-emerald-100');
-                  }
-              });
-          }
+      // Refresh javascript dependencies when changing the vehicletype
+      refreshPageHints();
+      {# Repeat for other vehicle type attributes#}
 
-      })
 
-</script>
-<script>
-    containers.forEach((container) => {
-        var chartDom = container.querySelector('[id*="stateOfChargeChart"]');
-        const list = container.querySelector('[id*="assignedToList"]');
-        const listItems = list.querySelectorAll('[role="option"]');
-        const input_selection = container.querySelector("input[id*='default_vehicle_type']");
-        const placeHolder = container.querySelector('[id*="ChartPlaceholder"]');
-        var myChart = echarts.init(chartDom);
-        console.assert(!!chartDom&!!input_selection&!!listItems);
+      // Highlight the newly selected item
+      highlightSelectedItem();
 
-        function plot_selected_charging_curve(selected_vehicle_type) {
-            if (selected_vehicle_type === "") {
-                return;
-            }
-            chartDom.style.height = "180px";
-            let charging_curve = JSON.parse(document.getElementById(selected_vehicle_type+"_charging_curve").textContent)
-            if (placeHolder) placeHolder.remove();
-
-            var option = {
-                grid: {
-                    left: 48,
-                    right: 32,
-                    top: 24,
-                    bottom: 32,
-                    containLabel: true
-                },
-                xAxis: {
-                    type: 'value',
-                    name: 'Ladezustand (-)',
-                    nameLocation: 'middle',
-                    nameGap: 25,
-                    min: 0,
-                    max: 1,
-                    interval: 0.2
-                },
-                yAxis: {
-                    type: 'value',
-                    name: 'Leistung (kW)',
-                    nameLocation: 'middle',
-                    nameGap: 40,
-                    min: 0,
-                    max: 500,
-                    interval: 100
-                },
-                series: [{
-                    data: charging_curve,
-                    type: 'line',
-                    showSymbol: false,
-                    lineStyle: {
-                        color: '#2E282A',
-                        width: 2
-                    }
-                }],
-                tooltip: {
-                    trigger: 'axis',
-                    formatter: function (params) {
-                        return 'Ladezustand: ' + params[0].data[0].toFixed(1) +
-                            '<br>Leistung: ' + params[0].data[1] + ' kW';
-                    }
-                }
-            };
-
-            myChart.setOption(option);
-
-        }
-
-        plot_selected_charging_curve(input_selection.value);
-        listItems.forEach((item)=>{
-            item.addEventListener("click",function () {
-                let selected_vehicle_type=item.getAttribute('data-dropdown-item');
-                plot_selected_charging_curve(selected_vehicle_type);
-                myChart.resize();
-            })
-        });
-
-        function resizeChart() {
-            if (chartDom.offsetWidth > 0) {
-                myChart.resize();
-            }
-        }
-        resizeChart();
-
-        // Improved resize handler
-        window.addEventListener('resize', function () {
-            resizeChart();
-
-        })
-
+      // Close dropdown
+      list.classList.add('hidden');
+      button.setAttribute('aria-expanded', 'false');
     });
-</script>
-<script>
+  });
+
+
+  // Close dropdown if user clicks outside
+  document.addEventListener('click', e => {
+    if (!button.contains(e.target) && !list.contains(e.target)) {
+      button.setAttribute('aria-expanded', 'false');
+      list.classList.add('hidden');
+    }
+  });
+
+  // Remove the highlight from all items and apply it to the selected item
+  function highlightSelectedItem() {
+    listItems.forEach(li => {
+      li.classList.remove('bg-emerald-100');
+      if (li.getAttribute('data-dropdown-item') === selectedItem) {
+        li.classList.add('bg-emerald-100');
+      }
+    });
+  }
+
+})
+
+  </script>
+  <script>
+  containers.forEach((container) => {
+    var chartDom = container.querySelector('[id*="stateOfChargeChart"]');
+    const list = container.querySelector('[id*="assignedToList"]');
+    const listItems = list.querySelectorAll('[role="option"]');
+    const input_selection = container.querySelector("input[id*='default_vehicle_type']");
+    const placeHolder = container.querySelector('[id*="ChartPlaceholder"]');
+    var myChart = echarts.init(chartDom);
+    console.assert(!!chartDom&!!input_selection&!!listItems);
+
+    function plot_selected_charging_curve(selected_vehicle_type) {
+      if (selected_vehicle_type === "") {
+        return;
+      }
+      chartDom.style.height = "180px";
+      let charging_curve = JSON.parse(document.getElementById(selected_vehicle_type+"_charging_curve").textContent)
+      if (placeHolder) placeHolder.remove();
+
+      var option = {
+        grid: {
+          left: 48,
+          right: 32,
+          top: 24,
+          bottom: 32,
+          containLabel: true
+        },
+        xAxis: {
+          type: 'value',
+          name: 'Ladezustand (-)',
+          nameLocation: 'middle',
+          nameGap: 25,
+          min: 0,
+          max: 1,
+          interval: 0.2
+        },
+        yAxis: {
+          type: 'value',
+          name: 'Leistung (kW)',
+          nameLocation: 'middle',
+          nameGap: 40,
+          min: 0,
+          max: 500,
+          interval: 100
+        },
+        series: [{
+          data: charging_curve,
+          type: 'line',
+          showSymbol: false,
+          lineStyle: {
+            color: '#2E282A',
+            width: 2
+          }
+        }],
+        tooltip: {
+          trigger: 'axis',
+          formatter: function (params) {
+            return 'Ladezustand: ' + params[0].data[0].toFixed(1) +
+              '<br>Leistung: ' + params[0].data[1] + ' kW';
+          }
+        }
+      };
+
+      myChart.setOption(option);
+
+    }
+
+    plot_selected_charging_curve(input_selection.value);
+    listItems.forEach((item)=>{
+      item.addEventListener("click",function () {
+        let selected_vehicle_type=item.getAttribute('data-dropdown-item');
+        plot_selected_charging_curve(selected_vehicle_type);
+        myChart.resize();
+      })
+    });
+
+    function resizeChart() {
+      if (chartDom.offsetWidth > 0) {
+        myChart.resize();
+      }
+    }
+    resizeChart();
+
+    // Improved resize handler
+    window.addEventListener('resize', function () {
+      resizeChart();
+
+    })
+
+  });
+  </script>
+  <script>
+
+
 
 function validate(){
-    console.log("validating")
-    const defaultVehicleTypeSelectionDivs = document.querySelectorAll('input[id*="default_vehicle_type"]')
-    let isValid = true;
-    defaultVehicleTypeSelectionDivs.forEach((input)=>{
-        const vt_id = input.getAttribute("data-value");
-        errorDiv = document.getElementById("SelectionError"+vt_id);
-        if (input.value === ""){
-            console.assert(vt_id);
-            errorDiv.style.display ="block";
-            isValid = false;
-        } else {
-            errorDiv.style.display ="none";
-        }
-    if (!isValid) {
-        event.preventDefault();
+  console.log("validating")
+  const defaultVehicleTypeSelectionDivs = document.querySelectorAll('input[id*="default_vehicle_type"]')
+  let isValid = true;
+  defaultVehicleTypeSelectionDivs.forEach((input)=>{
+    const vt_id = input.getAttribute("data-value");
+    errorDiv = document.getElementById("SelectionError"+vt_id);
+    if (input.value === ""){
+      console.assert(vt_id);
+      errorDiv.style.display ="block";
+      isValid = false;
+    } else {
+      errorDiv.style.display ="none";
     }
-    })
+    if (!isValid) {
+      event.preventDefault();
+    }
+  })
 
 
 
 }
 
-</script>
+  </script>

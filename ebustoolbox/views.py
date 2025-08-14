@@ -569,10 +569,17 @@ class VehiclesView(ScenarioMixIn, TemplateView):
             result["duration"].total_seconds() / 3600
         )
 
-        default_vehicle_types = get_user_vehicle_types(self.request.user)
+        all_default_vehicle_types = get_user_vehicle_types(self.request.user)
+
+        for vt in all_default_vehicle_types:
+            vt.has_diesel_heating = "zusatzheizung" in vt.name.lower()
+        context["all_default_vehicle_types"] = all_default_vehicle_types
+
+        # Filter out vehicle types with zusatzheizung
+        default_vehicle_types = all_default_vehicle_types.exclude(name__icontains="Zusatzheizung")
 
         # annotate vehicle types with consumption at average speed km/h, 0 incline and 50% lol
-        for vt in default_vehicle_types:
+        for vt in all_default_vehicle_types:
             # TODO: use average speed of vehicle type
             consumption: Consumption = Consumption.objects.get(vehicle_class__vehicle_types=vt)
 
@@ -672,7 +679,16 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         for form in vehicle_type_forms:
             # Mutate the vehicle according to the selected default vehicle
             instance = form.instance
+            # Since we dont show vehicle_types with dieselengine, but instead give a checkbox
+            # the default_vehicle_type used as the source of propoerties is swapped depending
+            # on the state of the checkbox
             d_vt = VehicleTypeSelection.objects.get(vehicle_type=instance).default_vehicle_type
+            if form.cleaned_data["has_diesel_heating"]:
+                all_dvts = get_user_vehicle_types(self.request.user)
+                d_vt = all_dvts.filter(name__contains=d_vt.name).get(
+                    name__icontains="zusatzheizung"
+                )
+                logger.info(f"Used {d_vt.name} since user chose diesel heating")
             instance = tasks.apply_vehicle_type(
                 target_vehicle_type=instance, source_vehicle_type=d_vt
             )

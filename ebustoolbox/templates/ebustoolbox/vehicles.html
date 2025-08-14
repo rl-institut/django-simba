@@ -338,9 +338,38 @@ document.addEventListener('DOMContentLoaded', e => {
   refreshPageHints();
 })
 
+const disabledClasses = ['cursor-not-allowed', 'bg-slate-200',];
+const enabledClasses = [];
+
 function refreshPageHints(){
   containers.forEach((container)=> {
     // Set placeholder for all inputs, eg. dynamisch bei 4ºC
+    const input_selection = container.querySelector("input[id*='default_vehicle_type']")
+    let selected_dvt = input_selection.value;
+    if (selected_dvt) {
+      let diesel_checkbox = container.querySelector("input[id*='has_diesel_heating']") ;
+      let outer_div =  diesel_checkbox.closest('div .diesel-checkbox');
+      enabled_label =  outer_div.querySelector('label[data-value="enabledDieselCheckbox"]');
+      disabled_label =  outer_div.querySelector('label[data-value="disabledDieselCheckbox"]');
+
+      let db_id_diesel =  getDieselVehicleType(selected_dvt);
+      // check if the vt has a diesel version
+      if (db_id_diesel==null){
+        // if not disable the checkbox and set it to false
+        diesel_checkbox.checked = false;
+        diesel_checkbox.disabled = true;
+        diesel_checkbox.classList.remove(...enabledClasses);
+        diesel_checkbox.classList.add(...disabledClasses);
+        enabled_label.style.display='None';
+        disabled_label.style.display="";
+      }else{
+        diesel_checkbox.disabled = false;
+        diesel_checkbox.classList.remove(...disabledClasses);
+        diesel_checkbox.classList.add(...enabledClasses);
+        disabled_label.style.display='None';
+        enabled_label.style.display="";
+      }
+    }
     input_avg_id = "id_temperature_average";
     input_xtr_id = "id_temperature_extreme";
     set_consumption_placeholder(input_avg_id, container.querySelector("[id$='-consumption']"));
@@ -359,15 +388,39 @@ function refreshPageHints(){
 
 }
 
+function getDieselVehicleType(db_id){
+  vehicle_type_data_div = document.getElementById(`vehicle_type_data_${db_id}`);
+  vt_name= vehicle_type_data_div.getAttribute("data-name");
+  vts_with_diesel= document.querySelectorAll('div[data-has-diesel-heating="True"]');
+  for (const vt of vts_with_diesel){
+    if ( vt.getAttribute('data-name').search(vt_name)>=0 ){
+      db_id = vt.getAttribute('data-id');
+      return db_id;
+    }
+  }
+  return null;
+}
+
+function getSelectedVehicleTypeId(container){
+    const vt_selection = container.querySelector("input[id*='default_vehicle_type']");
+    db_id = vt_selection.getAttribute('value');
+    if (db_id === null ) return null;
+    diesel_checkbox = container.querySelector("input[id*='has_diesel_heating']") ;
+    if ( diesel_checkbox.checked ) {
+       db_id = getDieselVehicleType(db_id);
+      if (db_id== null) console.error("Diesel Vehicle Type not found");
+  }
+  return db_id
+
+
+}
 
 function showConsumptionEstimate(temperature, consumptionHintQuery){
     containers.forEach((container) => {
     hint = container.querySelector(consumptionHintQuery);
     var textElement = hint.querySelector("div .text");
-    const vt_selection = container.querySelector("input[id*='default_vehicle_type']");
-    db_id = vt_selection.getAttribute('value');
-    if (db_id === null ) return;
-
+    db_id=getSelectedVehicleTypeId(container);
+    if (db_id==null) return;
     hint.style.display = "";
     let cons = getConsumptionForTemperature(parseFloat(temperature), db_id);
     textElement.innerText = document.getElementById("translate_geschätzer_verbrauch").innerText + cons.toFixed(2) ;
