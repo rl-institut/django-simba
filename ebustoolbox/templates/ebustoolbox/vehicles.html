@@ -483,10 +483,10 @@ async function fetchAndSetTemperature(divElement, textElement, temperature){
 const debounced_fetchAndSetTemperature1 = debounce(fetchAndSetTemperature, 200);
 const debounced_fetchAndSetTemperature2 = debounce(fetchAndSetTemperature, 200);
 
+{% if weatherstation %}
 async function fetchQuantile(temperature){
   try {
     // dwd_station_id {{ weatherstation.dwd_id}}
-
     var url = (" {% url 'temperatures:quantile_station' weatherstation.dwd_id startDate endDate 'TEMPERATURE' %}" );
     url = url.replace('TEMPERATURE',temperature );
     var response = await fetch(url );
@@ -497,6 +497,7 @@ async function fetchQuantile(temperature){
     return null;
   }
 }
+{% endif %}
 </script>
 
   <!-- Tabs Functionality of Bus Type Cards -->
