@@ -73,11 +73,31 @@ class Scenario(models.Model):
 
     # Set to now() on the database side
     created = models.DateTimeField(auto_now_add=True, db_default=Now())
-    task_id = models.UUIDField(default=None, null=True, unique=True)
+    task_id = models.UUIDField(default=None, null=False, unique=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
     simba_options = models.JSONField(default=dict, null=True)
     eflips_depot_options = models.JSONField(default=dict, null=True)
-    tco_parameters = models.JSONField(default=dict, null=True)
+    tco_parameters = models.JSONField(
+        default=dict,
+        null=True,
+        db_default={
+            "project_duration": 20,
+            "interest_rate": 0.04,
+            "inflation_rate": 0.02,
+            "staff_cost": 30.0,
+            "energy_cost": 0.18,
+            "fuel_cost": 1.5,
+            "maint_cost": 0.07,
+            "maint_cost_diesel": 0.14,
+            "maint_infr_cost": 1000.0,
+            "taxes": 0.0,
+            "insurance": 0.0,
+            "pef_general": 0.02,
+            "pef_wages": 0.025,
+            "pef_energy": 0.038,
+            "pef_insurance": 0.02,
+        },
+    )
 
     manager = models.ForeignKey(
         User, on_delete=models.SET_NULL, default=None, null=True, blank=True, related_name="+"
@@ -182,7 +202,11 @@ class BatteryType(models.Model):
     specific_mass = models.FloatField(null=False, blank=True)
     # defined in eFLIPS-LCA
     chemistry = models.JSONField(null=False, default=dict)
-    tco_parameters = models.JSONField(default=dict, null=True)
+    tco_parameters = models.JSONField(
+        default=dict,
+        null=True,
+        db_default={"useful_life": 7, "procurement_cost": None, "cost_escalation": 0.01},
+    )
 
 
 class AssocVehicleTypeVehicleClass(models.Model):
@@ -280,7 +304,16 @@ class VehicleType(models.Model):
     empty_mass = models.FloatField(default=None, null=True)
     allowed_mass = models.FloatField(default=None, null=True)
 
-    tco_parameters = models.JSONField(default=dict, null=True)
+    tco_parameters = models.JSONField(
+        default=dict,
+        null=True,
+        db_default={
+            "useful_life": 14,
+            "procurement_cost": None,
+            "procurement_cost_diesel": None,
+            "cost_escalation": 0.02,
+        },
+    )
     vehicle_classes = models.ManyToManyField("VehicleClass", through="AssocVehicleTypeVehicleClass")
     """Vehicle classes this vehicle type belongs to."""
 
@@ -296,10 +329,17 @@ class ChargingPointType(models.Model):
     This class is designed for distinguishing between charging point at area or at station.
     """
 
+    class Meta:
+        db_table = "ChargingPointType"
+
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     name = models.TextField(null=False, blank=False)
     name_short = models.TextField(null=True, blank=False, default=name)
-    tco_parameters = models.JSONField(default=dict, null=True)
+    tco_parameters = models.JSONField(
+        default=dict,
+        null=True,
+        db_default={"useful_life": 20, "procurement_cost": None, "cost_escalation": 0.02},
+    )
 
 
 class VehicleClass(models.Model):
@@ -977,7 +1017,12 @@ class Station(models.Model):
     power_per_charger = models.FloatField(default=None, null=True)
     power_total = models.FloatField(default=None, null=True)
 
-    tco_parameters = models.JSONField(default=dict, null=True)
+    tco_parameters = models.JSONField(
+        default=dict,
+        null=True,
+        db_default={"useful_life": 20, "procurement_cost": None, "cost_escalation": 0.02},
+    )
+
     charging_point_type = models.ForeignKey(ChargingPointType, null=True, on_delete=models.CASCADE)
 
     stations = models.ManyToManyField("Route", through="AssocRouteStation")
