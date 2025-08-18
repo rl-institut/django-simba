@@ -604,7 +604,8 @@ class VehiclesView(ScenarioMixIn, TemplateView):
             vt_select, _ = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
             dvt = vt_select.default_vehicle_type
             modification = VehicleTypeForm(data, instance=vt, prefix=f"mutation_{vt.id}")
-            if "zusatzheizung" in dvt.name.lower():
+
+            if dvt and "zusatzheizung" in dvt.name.lower():
                 # User chose a vt with diesel heating. select version without diesel instead
                 all_dvts = get_user_vehicle_types(self.request.user)
                 search_name = dvt.name[0 : dvt.name.lower().find("_zusatzheizung")]
