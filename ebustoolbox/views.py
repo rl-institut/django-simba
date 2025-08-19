@@ -1128,15 +1128,16 @@ def merge_and_run(request: HttpRequest, task_id: str):
         scenario=scenario,
         progress_type=EnumProgress.RUNNING_SIMULATION,
     )
-    if simulation_progess.filter(running=True).exists():
-        error_text = "Starting multiple Simulations from the same source is not allowed"
-        logger.info(error_text)
-        return HttpResponseForbidden()
+    if not request.user.is_superuser:
+        if simulation_progess.filter(running=True).exists():
+            error_text = "Starting multiple Simulations from the same source is not allowed"
+            logger.info(error_text)
+            return HttpResponseForbidden()
 
-    if simulation_progess.filter(success=True).exists():
-        error_text = "Starting a Simulation which was sucessfully simulated is not allowed"
-        logger.info(error_text)
-        return HttpResponseForbidden(error_text)
+        if simulation_progess.filter(success=True).exists():
+            error_text = "Starting a Simulation which was sucessfully simulated is not allowed"
+            logger.info(error_text)
+            return HttpResponseForbidden(error_text)
 
     sim_task_id = get_unique_task_id()
     progress = Progress.objects.create(

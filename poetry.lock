@@ -1009,7 +1009,7 @@ simpy = ">=4.0.1,<5.0.0"
 
 [[package]]
 name = "eflips-depot"
-version = "4.12.0"
+version = "4.13.1"
 description = "Depot Simulation for eFLIPS"
 optional = false
 python-versions = ">=3.10, <3.14"
@@ -1018,8 +1018,8 @@ develop = false
 
 [package.dependencies]
 eflips = "^0.1.3"
-eflips-model = ">8.1.0, <10.0.0"
-eflips-opt = "^0.3.3"
+eflips-model = "^10.0.0"
+eflips-opt = "^0.3.0"
 pandas = "^2.2.0"
 scipy = "^1.14.0"
 simpy = "^4.0.1"
@@ -1031,7 +1031,7 @@ xlsxwriter = "^3.1.9"
 type = "git"
 url = "git@github.com:mpm-tu-berlin/eflips-depot.git"
 reference = "main"
-resolved_reference = "8defaace152c5154930100df24bd38262465e32d"
+resolved_reference = "80ee87edcdeed1ada66560370948dbb1a99c128b"
 
 [[package]]
 name = "eflips-eval"
@@ -1055,17 +1055,17 @@ shapely = ">=2.0.5,<3.0.0"
 
 [[package]]
 name = "eflips-ingest"
-version = "1.2.80"
+version = "1.2.81"
 description = "A collection of import scripts for converting bus schedule data into the [eflips-model](https://github.com/mpm-tu-berlin/eflips-model) data format."
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "eflips_ingest-1.2.80-py3-none-any.whl", hash = "sha256:e9ae5b8c59c8f159d8fc2c6281f3d5bcbd44b53f643fc6f86d22cc965e1bd5d0"},
-    {file = "eflips_ingest-1.2.80.tar.gz", hash = "sha256:29406d9219f327c3bd273eea218e2b0aefc054b8bad9d11da6164d283b6a48b4"},
+    {file = "eflips_ingest-1.2.81-py3-none-any.whl", hash = "sha256:12d53535180670fc166e032532248c52cde31e49f36ae5215800af873ba4a794"},
+    {file = "eflips_ingest-1.2.81.tar.gz", hash = "sha256:8097a423ed6d86447df8cb50c396b4908694003a4c0f417f4c4723eb73a887f2"},
 ]
 
 [package.dependencies]
-eflips-model = ">=3.1.1,<10.0.0"
+eflips-model = ">=3.1.1,<11.0.0"
 fire = ">=0.7.0,<0.8.0"
 lxml = ">=5.1.0,<6.0.0"
 pyproj = ">=3.6.1,<4.0.0"
@@ -1075,13 +1075,13 @@ tqdm = ">=4.66.1,<5.0.0"
 
 [[package]]
 name = "eflips-model"
-version = "9.0.0"
+version = "10.0.1"
 description = "A common data model for the eflips family of electric vehicle simulation & optimization tools."
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "eflips_model-9.0.0-py3-none-any.whl", hash = "sha256:d12eaf3f6ab823340e06ce9a5516d93a86204fd50b2ffc3170386964038a1e0c"},
-    {file = "eflips_model-9.0.0.tar.gz", hash = "sha256:408fe43742796be71ffc47ba7d854324d87f4c4aacf586116b4f736aa4c0b8d3"},
+    {file = "eflips_model-10.0.1-py3-none-any.whl", hash = "sha256:d51f776e5eacf3bc47d6fdf713b65279b7fe05910d0779d10e0a794ccf2b2066"},
+    {file = "eflips_model-10.0.1.tar.gz", hash = "sha256:871a61e83d0f1fffaf6a8a97b7b8f679d0319851af55f4ba1ac806b40d36fd16"},
 ]
 
 [package.dependencies]
@@ -1096,18 +1096,18 @@ sqlalchemy = ">=2.0.23,<3.0.0"
 
 [[package]]
 name = "eflips-opt"
-version = "0.3.3"
+version = "0.3.4"
 description = "A collection of pre-simulation optimization algorithms for eFLIPS."
 optional = false
 python-versions = "<3.14,>=3.10"
 files = [
-    {file = "eflips_opt-0.3.3-py3-none-any.whl", hash = "sha256:006bef4dd92550e3e574dff6161bb0cc4dfa333b19310b26e3c201e0131da5b2"},
-    {file = "eflips_opt-0.3.3.tar.gz", hash = "sha256:55a663f76103cb999acb672aaf9b4b2eb8944581b73fe434cade4e033dd920f4"},
+    {file = "eflips_opt-0.3.4-py3-none-any.whl", hash = "sha256:138982889e86fb1dfa65a9fa6a65e911623803d1728cac46c93e3084f6b8c715"},
+    {file = "eflips_opt-0.3.4.tar.gz", hash = "sha256:b9151ddf3ee83428e80a9499854ddd3ce578b0bdce8c496964b12e99aef5ed0d"},
 ]
 
 [package.dependencies]
 dash-cytoscape = ">=1.0.2,<2.0"
-eflips-model = ">=3.0.0,<10.0.0"
+eflips-model = ">=3.0.0,<11.0.0"
 eflips-schedule-rust = ">=2.0.1,<3.0"
 gurobipy = ">=12.0.1,<13.0"
 kaleido = "0.2.1"

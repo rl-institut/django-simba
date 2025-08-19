@@ -951,6 +951,7 @@ def merge_scenario(mutation_id, simulation_task_id):
 @shared_task(bind=True)
 def run_and_merge_scenarios(self, mutation_id: int, simulation_task_id):
     simulation_scenario = merge_scenario(mutation_id, simulation_task_id)
+    logger.info(f"Merged scenario with {simulation_scenario.task_id=}")
     run_toolchain_from_scenario(simulation_scenario, assign_vehicles=True)
 
 
@@ -1597,6 +1598,7 @@ def _run_ebus_toolchain(self, task_id):
         try:
             run_eflips(task_id)
         except UnstableSimulationException as e:
+            # TODO: handle unstable simulation
             logger.error("The simulation is unstable")
             logger.error(traceback.format_exception(e))
             notification = Notification(
@@ -1891,6 +1893,11 @@ def run_eflips(task_id) -> None:
     logger.info(f"Running eFLIPS {datetime.now()}")
     db_scenario = Scenario.objects.get(task_id=task_id)
 
+    # calculate total scenario time for eFLIPS repetition period
+    last_trip_time = Trip.objects.filter(scenario=db_scenario).aggregate(Max("arrival_time"))
+    first_trip_time = Trip.objects.filter(scenario=db_scenario).aggregate(Min("departure_time"))
+    period = last_trip_time["arrival_time__max"] - first_trip_time["departure_time__min"]
+
     # Constructing the database URL manually
     db_url = create_db_url()
     generate_depot_optimal_size(
@@ -1899,12 +1906,9 @@ def run_eflips(task_id) -> None:
         charging_power=90,
         delete_existing_depot=True,
         use_consumption_lut=True,
+        repetition_period=period,
     )
 
-    # calculate total scenario time for eFLIPS repetition period
-    last_trip_time = Trip.objects.filter(scenario=db_scenario).aggregate(Max("arrival_time"))
-    first_trip_time = Trip.objects.filter(scenario=db_scenario).aggregate(Min("departure_time"))
-    period = last_trip_time["arrival_time__max"] - first_trip_time["departure_time__min"]
     simulate_scenario(
         db_scenario,
         database_url=db_url,
