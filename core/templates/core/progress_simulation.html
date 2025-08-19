@@ -13,7 +13,9 @@
                   id="progress-alert-title"
                   class="text-lg font-semibold text-blue-800"
           >
-            {% translate 'Szenario "{{ progress.scenario.name }}" wird erstellt' %}
+            {% with progress.scenario.name as scenario_name %}
+            {% blocktranslate %}Szenario "{{scenario_name}}" wird erstellt{% endblocktranslate %}
+            {% endwith  %}
           </h3>
         </div>
         {{ progress.status }}

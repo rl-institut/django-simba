@@ -65,8 +65,21 @@ def get_quantile_from_station(request, dwd_id: int, startdate: str, enddate: str
     enddate = datetime.datetime.fromisoformat(enddate)
     temperature = float(temperature)
     # // Caching speeds up data fetching but for 100_000 datapoints its still taking half a second
+    # Using a hash is more flexible with possibly varying backends
+    # memcache does not like special characters
     stats = cache.get_or_set(
-        (id(get_temperature_statistics), dwd_id, startdate, enddate),
+        (
+            hash(
+                str(
+                    (
+                        id(get_temperature_statistics),
+                        dwd_id,
+                        startdate.isoformat(),
+                        enddate.isoformat(),
+                    )
+                )
+            )
+        ),
         lambda: get_temperature_statistics(dwd_id, startdate, enddate),
         CACHE_TIMEOUT,
     )

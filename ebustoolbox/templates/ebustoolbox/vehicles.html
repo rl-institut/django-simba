@@ -174,7 +174,9 @@
                         </svg>
                         <!-- Tooltip for Temperature Quantile-->
                       <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                        {% blocktranslate %}Bezogen auf die pro Stunde gemittelten Temperaturen von {{startYear}} bis {{endYear}} an der Messstation {{weatherstation.name}}. {{distance_text}} {% endblocktranslate %}
+                        {% with weatherstation.name as w_name %}
+                        {% blocktranslate %}Bezogen auf die pro Stunde gemittelten Temperaturen von {{startYear}} bis {{endYear}} an der Messstation {{w_name}}. {% endblocktranslate %}
+                        {% endwith %}
                         {% if distance %}
                         {% blocktranslate %}diese liegt {{distance.km|floatformat:1 }} km entfernt vom Mittelpunkt des Szenarios {% endblocktranslate %}
                         {% endif %}
@@ -243,7 +245,10 @@
                         </svg>
                         <!-- Tooltip -->
                         <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                        {% blocktranslate %}Bezogen auf die pro Stunde gemittelten Temperaturen von {{startYear}} bis {{endYear}} an der Messstation {{weatherstation.name}}. {{distance_text}} {% endblocktranslate %}
+
+                        {% with weatherstation.name as w_name %}
+                        {% blocktranslate %}Bezogen auf die pro Stunde gemittelten Temperaturen von {{startYear}} bis {{endYear}} an der Messstation {{w_name}}. {{distance_text}} {% endblocktranslate %}
+                        {% endwith %}
                         {% if distance %}
                         {% blocktranslate %}diese liegt {{distance.km|floatformat:1 }} km entfernt vom Mittelpunkt des Szenarios {% endblocktranslate %}
                         {% endif %}

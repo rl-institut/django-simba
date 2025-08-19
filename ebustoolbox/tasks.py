@@ -947,8 +947,7 @@ def run_and_merge_scenarios(
     sizing_scenario = merge_scenario(mutation_id, sizing_scenario_task_id)
     apply_sizing_paramters(mutation_id, sizing_scenario)
     run_toolchain_from_scenario(sizing_scenario, assign_vehicles=True)
-    progress.current_work = progress.total_work
-    progress.status = Progress.FINI
+    progress.set_success()
 
 
 def apply_sizing_paramters(mutation_id, scenario: Scenario) -> None:
