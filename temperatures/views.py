@@ -71,22 +71,25 @@ def get_quantile_from_station(request, dwd_id: int, startdate: str, enddate: str
     # // Caching speeds up data fetching but for 100_000 datapoints its still taking half a second
     # Using a hash is more flexible with possibly varying backends
     # memcache does not like special characters
-    stats = cache.get_or_set(
-        (
-            hash(
-                str(
-                    (
-                        id(get_temperature_statistics),
-                        dwd_id,
-                        startdate.isoformat(),
-                        enddate.isoformat(),
+    if settings.REDIS_URL:
+        stats = cache.get_or_set(
+            (
+                hash(
+                    str(
+                        (
+                            id(get_temperature_statistics),
+                            dwd_id,
+                            startdate.isoformat(),
+                            enddate.isoformat(),
+                        )
                     )
                 )
-            )
-        ),
-        lambda: get_temperature_statistics(dwd_id, startdate, enddate),
-        CACHE_TIMEOUT,
-    )
+            ),
+            lambda: get_temperature_statistics(dwd_id, startdate, enddate),
+            CACHE_TIMEOUT,
+        )
+    else:
+        stats = get_temperature_statistics(dwd_id, startdate, enddate)
     if len(stats) == 0:
         return JsonResponse(
             {
