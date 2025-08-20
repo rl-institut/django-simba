@@ -31,8 +31,13 @@ Template:
   - This means default vehicle types of the default scenario must be **uniquely** named.
 - Temperatures data can be [imported](https://github.com/rl-institut/django-simba?tab=readme-ov-file#temperatures)
 
+### Changed
+- [(#237)](https://github.com/rl-institut/django-simba/pull/223)
+- Added content as placeholder to the home page
+- Worked on design details
 
-
+## [x.x.x] - Unreleased
+### Changed
 - [(#243)](https://github.com/rl-institut/django-simba/pull/243)
 - The website supports basic translation.
 ```terminal
