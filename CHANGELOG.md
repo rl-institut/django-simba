@@ -17,8 +17,12 @@ Template:
 - [(#)]()
 ```
 
+
 ## [x.x.x] - Unreleased
 ### Changed
+- [(#246)](https://github.com/rl-institut/django-simba/pull/246)
+- Update the database structure to match the one of eflips-model v10.0.0
+
 - [(#211)](https://github.com/rl-institut/django-simba/pull/211)
 - Split blocks which arrive at the depot in intermediate stops
 - Add notification model
