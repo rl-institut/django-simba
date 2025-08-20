@@ -23,6 +23,23 @@ Template:
 - Added content as placeholder to the home page
 - Worked on design details
 
+## [x.x.x] - Unreleased
+### Changed
+- [(#243)](https://github.com/rl-institut/django-simba/pull/243)
+- The website supports basic translation.
+```terminal
+django-admin makemessages -a
+django-admin compilemessages
+```
+- For now the language is set via a cookie when calling "de" or "en" as LANGUAGE_ABBREVIATION
+`
+/set_lang/LANGUAGE_ABBREVIATION
+`
+
+### Changed
+- [(#242)](https://github.com/rl-institut/django-simba/pull/242)
+- Updated station and depot icons on map
+
 ### Changed
 - [(#223)](https://github.com/rl-institut/django-simba/pull/223)
 - Dash app is removed completely from website

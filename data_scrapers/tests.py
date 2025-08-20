@@ -19,7 +19,6 @@ from django.test import SimpleTestCase, TransactionTestCase, override_settings
 from django.contrib.gis.geos import Point
 
 logger = logging.getLogger("custom")
-logger.setLevel(logging.DEBUG)
 
 
 # SimpleTestCase since no DB access is needed
