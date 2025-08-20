@@ -681,7 +681,7 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
     :return: None
     """
 
-    # ToDo: Get real data
+    # TODO: Get real data
     DEFAULT_WIDTH = 2.54
     DEFAULT_HEIGHT = 3.375
 
@@ -694,7 +694,7 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
             try:
                 consumption = float(mileage_text)
             except ValueError:
-                # The milage can be a link/ str to a consumption_table.In this case link
+                # The mileage can be a link/ str to a consumption_table.In this case link
                 # the VehicleClass with this name to this vehicle
                 add_to_vehicle_class = True
                 pass
@@ -723,7 +723,7 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
 def update_electrified_stations_db(electrified_stations, scenario):
     """Update stations which are electrified with info from electrified_stations dictionary"""
     for name, ele_station in electrified_stations.items():
-        # Todo loop over stations
+        # TODO: loop over stations
         station = Station.objects.get(id=Station.get_id_from_simba_name(name), scenario=scenario)
         station.is_electrified = True
 
@@ -945,12 +945,12 @@ def run_and_merge_scenarios(
     run_toolchain_from_scenario(default_simulation_scenario, assign_vehicles=True)
     logger.info("Simulating scenario with high consumption")
     sizing_scenario = merge_scenario(mutation_id, sizing_scenario_task_id)
-    apply_sizing_paramters(mutation_id, sizing_scenario)
+    apply_sizing_parameters(mutation_id, sizing_scenario)
     run_toolchain_from_scenario(sizing_scenario, assign_vehicles=True)
     progress.set_success()
 
 
-def apply_sizing_paramters(mutation_id, scenario: Scenario) -> None:
+def apply_sizing_parameters(mutation_id, scenario: Scenario) -> None:
     """Increase all consumptions in some way"""
 
     vts = VehicleType.objects.filter(scenario=scenario)
