@@ -13,6 +13,7 @@ class SignUpForm(UserCreationForm):
     password2 = forms.CharField(
         label='Passwort wiederholen*', required=True, widget=forms.PasswordInput)
     accepts_terms = forms.BooleanField(required=True)
+    invited = forms.BooleanField(required=False, disabled=True, widget=forms.HiddenInput)
 
     class Meta:
         model = User

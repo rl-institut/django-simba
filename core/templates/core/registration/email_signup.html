@@ -1,3 +1,5 @@
 Hallo {{ user.get_full_name }},
 
-willkommen bei WeBus!
+willkommen bei WeBus! Klicken Sie auf folgenden Link, um die Registrierung abzuschließen:
+
+{% url 'core:signup' %}?token={{ token }}

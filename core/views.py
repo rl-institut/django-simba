@@ -27,30 +27,42 @@ def signup(request):
         user = form.save()  # read necessary info from form
         user.refresh_from_db()
         user.username = user.email.lower()  # force lowercase for username
-        user.is_active = True
+        # user came here from invite: no further email needed
+        user.is_active = form.cleaned_data["invited"]
         user.save()
-        login(request, user)
-        user.email_user(
-            "WeBus Registrierung",
-            render_to_string(
-                'core/registration/email_signup.html',
-                {
-                    'user': user,
-                }
-            ),
-            fail_silently=True,
-        )
-        return redirect(reverse("simba:dashboard"))
+        if user.is_active:
+            login(request, user)
+            return redirect(reverse("simba:dashboard"))
+        else:
+            user.email_user(
+                "WeBus Registrierung",
+                render_to_string(
+                    'core/registration/email_signup.html',
+                    {
+                        'user': user,
+                        'token': signing.dumps(user.username),
+                    }
+                ),
+                fail_silently=True,
+            )
+            return render(request, "core/registration/signup_success.html", {"email": user.email})
+
     elif request.GET.get("token"):
-        # GET: present registration form, fill in email from token
+        # token may be from signup process or invite
         try:
             email = signing.loads(request.GET["token"])
         except signing.BadSignature:
             return HttpResponse("Wrong signature", status=400)
-        if User.objects.filter(username=email).exists():
+        try:
+            user = User.objects.get(username=email.lower())
+            # token from signup: activate user
+            user.is_active = True
+            user.save(update_fields=["is_active"])
             return redirect(reverse("login"))
-        form = SignUpForm(initial={"email": email})
-        return render(request, "core/registration/signup.html", {"form": form})
+        except User.objects.DoesNotExist:
+            # token from ivite: present registration form, fill in email from token
+            form = SignUpForm(initial={"email": email, "invited": True})
+            return render(request, "core/registration/signup.html", {"form": form})
     else:
         # GET, no token: normal registration
         return render(request, "core/registration/signup.html", {"form": SignUpForm()})
