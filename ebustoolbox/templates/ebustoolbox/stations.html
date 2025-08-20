@@ -182,7 +182,6 @@
               <input {{charging_power_form.default_charge_power|widget_attrs}} class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
               placeholder="0,00"
               aria-describedby="price-currency"
-              onchange="updateDefaultChargePower(this)"
               >
           <div id="" class="shrink-0 select-none text-slate-500">kW</div>
         </div>
@@ -492,7 +491,7 @@
                   class="mr-4"
                   data-input="charging-power"
                 >
-                  <div class="flex items-center rrounded-md outline outline-1 outline-transparent">
+                  <div class="flex items-center rounded-md outline outline-1 outline-transparent">
                     <input {{ form.power_per_charger|widget_attrs }} class="block w-full bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency">
                     <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kW</div>
                   </div>
@@ -514,11 +513,6 @@
           clearStationSearch();
           clearFilter();
           setAllRowsVisible();
-          let is_valid = true;
-          if (!is_valid) {
-              event.preventDefault();
-          }
-
       }
       function clearStationSearch(){
           stationSearch.value = "";
@@ -900,16 +894,6 @@ document.addEventListener("DOMContentLoaded", _ => {
     });
   }
 });
-
-function updateDefaultChargePower(e) {
-  // default charge power changed: updated unset row fields
-  for (let row of document.getElementsByClassName("station-row")) {
-    let stationId = row.getAttribute("data-station-id");
-    let input = document.getElementById("id_station_" + stationId + "-power_per_charger");
-    if (input && !input.value)
-      input.value = e.value;
-  }
-}
 
 // Electrify state button functionality
 document.addEventListener("DOMContentLoaded", () => {
