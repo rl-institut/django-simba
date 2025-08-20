@@ -28,7 +28,7 @@ MINIMAL_TRIP_DURATION_S = 60  # seconds
 
 class EnumScenarioType(models.TextChoices):
     SOURCE = "SOURCE"
-    MUTATION = "MUATION"
+    MUTATION = "MUTATION"
     SIMULATION = "SIMULATION"
 
 

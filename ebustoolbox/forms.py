@@ -170,8 +170,8 @@ class VehicleTypeForm(forms.ModelForm):
     has_diesel_heating = forms.BooleanField(
         required=False,
         initial=False,
-        label="Dieselzusatzheizung",
-        help_text=(
+        label=_("Dieselzusatzheizung"),
+        help_text=_(
             "Dem Fahrzeugtyp eine Dieselzusatzheiung hinzufügen. "
             "Dies reduziert den Verbrauch bei niedrigen Temperaturen"
         ),
@@ -183,14 +183,16 @@ class VehicleTypeForm(forms.ModelForm):
         fields = ["battery_capacity", "consumption", "max_consumption"]
 
         help_texts = {
-            "battery_capacity": "Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen.",
-            "consumption": "Welchen durchschnittlichen Verbrauch in kWh/km hat dieses Fahrzeug?",
-            "max_consumption": "Welchen max. Verbrauch in kWh/km hat dieses Fahrzeug?",
+            "battery_capacity": _(
+                "Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen."
+            ),
+            "consumption": _("Welchen durchschnittlichen Verbrauch in kWh/km hat dieses Fahrzeug?"),
+            "max_consumption": _("Welchen max. Verbrauch in kWh/km hat dieses Fahrzeug?"),
         }
         labels = {
-            "battery_capacity": "Batteriekapazität [kWh]",
-            "consumption": "Verbrauch [kWh/km]",
-            "max_consumption": "max. Verbrauch [kWh/km]",
+            "battery_capacity": _("Batteriekapazität [kWh]"),
+            "consumption": _("Verbrauch [kWh/km]"),
+            "max_consumption": _("max. Verbrauch [kWh/km]"),
         }
 
     def __init__(self, *args, **kwargs):
