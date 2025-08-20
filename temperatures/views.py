@@ -2,6 +2,7 @@ from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbid
 from django.shortcuts import render
 from temperatures.tasks import import_data, get_closest_station, get_weatherdata
 import datetime
+from django.conf import settings
 from django.core.cache import cache
 
 # Create your views here.
@@ -28,7 +29,10 @@ def get_quantile_from_geo(
 ):
     lon = float(lon)
     lat = float(lat)
-    station = cache.get_or_set((lon, lat), lambda: get_closest_station(lon, lat), CACHE_TIMEOUT)
+    if settings.REDIS_URL:
+        station = cache.get_or_set((lon, lat), lambda: get_closest_station(lon, lat), CACHE_TIMEOUT)
+    else:
+        station = get_closest_station(lon, lat)
     return get_quantile_from_station(request, station.dwd_id, startdate, enddate, temperature)
 
 
