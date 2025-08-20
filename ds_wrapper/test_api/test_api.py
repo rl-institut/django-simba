@@ -163,10 +163,6 @@ def test_simba_consumption_simulation():
 
 
 if __name__ == "__main__":
-    # DISABLE TEST UNTIL UPDATED SQL FILES ARE PROVIDED
-    if True:
-        warnings.warn("Django SimBA API Test skipped")
-        return
     # This script must be run with the project root directory as the working directory.
     # Specifically, the "django_mapengine" folder must be in the working directory.
     # TODO: Make this more robust. Like this, it is impossible to use the consumption simulation
@@ -186,6 +182,8 @@ if __name__ == "__main__":
             "This script must be run with the project root directory as the working directory."
         )
 
-    clear_and_import()
-
-    test_simba_consumption_simulation()
+    # DISABLE TEST UNTIL UPDATED SQL FILES ARE PROVIDED
+    warnings.warn("Django SimBA API Test skipped")
+    if False:
+        clear_and_import()
+        test_simba_consumption_simulation()
