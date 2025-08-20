@@ -1,4 +1,4 @@
-{% extends 'ebustoolbox/wizard.html' %}
+{% extends 'ebustoolbox/wizard.html' %}summary htm
 {% load i18n %}
 
   {% block title %}{% translate 'WeBus - Zusammenfassung' %}{% endblock title %}
@@ -165,7 +165,10 @@
             <p class="text-slate-800 font-medium tracking-wide">{% translate 'Temperatur' %}</p>
           <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div>
-              <p>{{ temperature }}° C</p>
+              {% blocktranslate %}
+              <p>Durchschnittstemperatur:{{ temperature_average }}° C</p>
+              <p>Extremtemperatur:{{ temperature_extreme }}° C</p>
+              {% endblocktranslate %}
             </div>
             <div>
               <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">

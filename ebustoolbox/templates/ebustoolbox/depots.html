@@ -20,7 +20,7 @@
     method="POST"
     >
     {% csrf_token %}
-      {#    Mange all the different formsets#}
+      {#    Manage all the different formsets#}
       {% for form_dict in forms.values %}
       {% with formset=form_dict|get_item:"depot_area_forms" %}
 

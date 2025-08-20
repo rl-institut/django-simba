@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "data_scrapers",
     "ebustoolbox",
     "elevation_api",
+    "temperatures",
     "django_mapengine",
     "ebus_map",
     "bootstrap4",
@@ -96,7 +97,12 @@ MIDDLEWARE = [
     # activate the language based on user cookie
     "core.middleware.LanguageMiddleware",
 ]
-
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379",
+    }
+}
 ROOT_URLCONF = "ebusdjango.urls"
 
 TEMPLATES = [
