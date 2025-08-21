@@ -355,7 +355,6 @@
                 <div class="flex items-center space-x-2">
                   <button type="button"
                     class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full all-station-btn"
-                    data-color="emerald"
                     data-value="elektrifizieren"
                   >
                     <span class="pr-2">
@@ -368,7 +367,6 @@
                   </button>
                   <button type="button"
                     class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full all-station-btn"
-                    data-color="amber"
                     data-value="automatisch"
                   >
                     <span class="pr-2">
@@ -380,8 +378,7 @@
                     Automatisch
                   </button>
                   <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-gray-100 font-semibold text-sm text-gray-700 shadow rounded-full all-station-btn selected"
-                    data-color="gray"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full all-station-btn"
                     data-value="nicht-elektrifizieren"
                   >
                     <span class="pr-2">
@@ -455,9 +452,9 @@
                     </span>
                     Automatisch
                   </button>
-                  {# Not electrified does not got an input since its the default. The state is implied through the other two inputs. #}
+                  {# Not electrified does not got an input since it is the default. The state is implied through the other two inputs. #}
                   <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-gray-100 font-semibold text-sm text-gray-700 shadow rounded-full station-btn-nicht-elektrifizieren selected"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-nicht-elektrifizieren"
                     data-color="gray"
                     data-value="nicht-elektrifizieren"
                     data-station-id="{{ station_id }}"
@@ -645,7 +642,7 @@
               var button;
               if (isElectrifiedDiv.value === 'true') {
                   button = row.querySelector('[data-value="elektrifizieren"]');
-              } else if (isElectrifiableDiv.value === 'false') {
+              } else if (isElectrifiableDiv.value === 'true') {
                   button = row.querySelector('[data-value="automatisch"]');
               } else {
                   button = row.querySelector('[data-value="nicht-elektrifizieren"]');
@@ -865,9 +862,6 @@ document.addEventListener("DOMContentLoaded", _ => {
   const buttons = document.getElementsByClassName("all-station-btn");
   for (let button of buttons) {
     button.addEventListener("click", _ => {
-      // top row button clicked: change style of all top row buttons
-      styleRowButtonsToState(button, buttons);
-
       const value = button.getAttribute("data-value");
       const affectedButtons = document.getElementsByClassName("station-btn-" + value);
 
