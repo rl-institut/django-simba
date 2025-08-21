@@ -979,6 +979,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("DOMContentLoaded", () => {
     const checkboxes = document.querySelectorAll('input[type="checkbox"]');
     const bulkEditingButton = document.getElementById("bulkEditingButton");
+    const selectAll = document.getElementById("selectAll");
 
     checkboxes.forEach((checkbox) => {
       checkbox.addEventListener("change", () => {
@@ -989,6 +990,11 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           bulkEditingButton.classList.add("hidden");
         }
+
+        // change state of "select all" checkbox based on other checkboxes
+        // all selected: check "select all", otherwise uncheck it
+        // off-by-one if "select all" itself is checked
+        selectAll.checked = (checkedCheckboxes.length - selectAll.checked) == (checkboxes.length - 1);
       });
     });
   });
