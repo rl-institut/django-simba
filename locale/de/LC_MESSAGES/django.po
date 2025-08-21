@@ -1,0 +1,1937 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-08-13 16:42+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: core/templates/core/base.html:11 core/templates/core/index.html:11
+msgid "WeBus"
+msgstr ""
+
+#: core/templates/core/footer.html:11 core/templates/core/index.html:39
+#: core/templates/core/legal.html:8 templates/footer.html:8
+msgid "Impressum"
+msgstr ""
+
+#: core/templates/core/footer.html:12 core/templates/core/index.html:40
+#: templates/footer.html:9
+msgid "Datenschutz"
+msgstr ""
+
+#: core/templates/core/help.html:4
+msgid "WeBus - Hilfe"
+msgstr ""
+
+#: core/templates/core/help.html:10 core/templates/core/navbar.html:21
+#: core/templates/core/navbar.html:63 core/templates/core/navbar.html:85
+msgid "Hilfe"
+msgstr ""
+
+#: core/templates/core/help.html:12
+#: ebustoolbox/templates/ebustoolbox/partials/trips_form.html:15
+#: ebustoolbox/templates/ebustoolbox/wizard.html:7
+msgid "Umlaufplan"
+msgstr ""
+
+#: core/templates/core/help.html:13 core/templates/core/help.html:15
+#: core/templates/core/help.html:24 core/templates/core/help.html:26
+#: core/templates/core/help.html:28
+msgid ""
+"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod "
+"tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, "
+"quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo "
+"consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse "
+"cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat "
+"non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+msgstr ""
+
+#: core/templates/core/help.html:14
+#: ebustoolbox/templates/ebustoolbox/result.html:104
+#: ebustoolbox/templates/ebustoolbox/result.html:282
+#: ebustoolbox/templates/ebustoolbox/result.html:475
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:16
+#: ebustoolbox/templates/ebustoolbox/wizard.html:7 ebustoolbox/views.py:1370
+msgid "Fahrzeuge"
+msgstr ""
+
+#: core/templates/core/help.html:23
+#: ebustoolbox/templates/ebustoolbox/stations.html:163
+#: ebustoolbox/templates/ebustoolbox/summary.html:305
+#: ebustoolbox/templates/ebustoolbox/wizard.html:7
+msgid "Endhaltestellen"
+msgstr ""
+
+#: core/templates/core/help.html:25
+#: ebustoolbox/templates/ebustoolbox/costs.html:21
+#: ebustoolbox/templates/ebustoolbox/result.html:139
+#: ebustoolbox/templates/ebustoolbox/wizard.html:7
+msgid "Kosten"
+msgstr ""
+
+#: core/templates/core/help.html:27
+#: ebustoolbox/templates/ebustoolbox/depots.html:16
+#: ebustoolbox/templates/ebustoolbox/result.html:654
+#: ebustoolbox/templates/ebustoolbox/summary.html:524
+#: ebustoolbox/templates/ebustoolbox/wizard.html:7
+msgid "Depots"
+msgstr ""
+
+#: core/templates/core/index.html:19
+#: core/templates/core/landing_page_old.html:15
+msgid ""
+"Entwicklung und Analyse von Strategien zur vollständigen Dekarbonisierung "
+"des Berliner Busverkehrs bis 2030"
+msgstr ""
+
+#: core/templates/core/index.html:23
+msgid "Starten"
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:14
+msgid "E-Bus 2030+"
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:22
+msgid "Tool"
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:26
+msgid "Lerne mehr"
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:30
+msgid "Meine Projekte"
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:42
+msgid "Konsortium"
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:52
+#: core/templates/core/landing_page_old.html:56
+#: core/templates/core/landing_page_old.html:66
+msgid ""
+"Amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut "
+"labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud "
+"exercitation ullamco laboris nisi."
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:72
+msgid "Gefördert durch BMDV"
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:81
+msgid "Das EBus2030+ Tool ist in Entwicklung"
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:88
+msgid "Publications"
+msgstr "Publikationen"
+
+#: core/templates/core/landing_page_old.html:91
+#: core/templates/core/landing_page_old.html:103
+#: core/templates/core/landing_page_old.html:114
+msgid "Zur Kategorie"
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:99
+msgid "GitHub"
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:111
+msgid "Read the Docs"
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:124
+msgid "Features"
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:132
+msgid "Einfache Bedienung"
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:133
+msgid ""
+"Die Website leitet Sie Schritt-für-Schritt durch den Simulationsprozess. "
+"Eingangsparameter werden ausführlich erläutert, Beispiele bereitgestellt und "
+"ein Tutorialvideo erklärt die Website in nur 10 Minuten. Experten-Wissen ist "
+"nicht notwendig."
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:142
+msgid "Vielfältige Eingangsdaten"
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:153
+msgid "Detaillierte Prozessmodellierung"
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:164
+msgid "Elektrifizierungsstrategie"
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:175
+msgid "Kostenberechnung"
+msgstr ""
+
+#: core/templates/core/landing_page_old.html:186
+msgid "Visualisierung"
+msgstr ""
+
+#: core/templates/core/legal.html:10
+msgid ""
+"Diese Internetseite wird betrieben von der Reiner Lemoine Institut gGmbH."
+msgstr ""
+
+#: core/templates/core/legal.html:14
+msgid "Geschäftsführung:"
+msgstr ""
+
+#: core/templates/core/legal.html:15
+msgid "Dr. Kathrin Goldammer und Dr. Christine Kühnel"
+msgstr ""
+
+#: core/templates/core/legal.html:19
+msgid "Postanschrift:"
+msgstr ""
+
+#: core/templates/core/legal.html:20
+msgid "Reiner Lemoine Institut gGmbH"
+msgstr ""
+
+#: core/templates/core/legal.html:21
+msgid "Rudower Chaussee 12"
+msgstr ""
+
+#: core/templates/core/legal.html:22
+msgid "12489 Berlin"
+msgstr ""
+
+#: core/templates/core/legal.html:26
+msgid "Telefon +49 (0)30 1208 434 0"
+msgstr ""
+
+#: core/templates/core/legal.html:27
+msgid "Fax +49 (0)30 1208 434 99"
+msgstr ""
+
+#: core/templates/core/legal.html:31
+msgid "Handelsregister Berlin – HRB 124659 B"
+msgstr ""
+
+#: core/templates/core/legal.html:35
+msgid "Steuernummer: 27/640/02615"
+msgstr ""
+
+#: core/templates/core/legal.html:39
+msgid "USt-IdNr.: DE274491408"
+msgstr ""
+
+#: core/templates/core/legal.html:43
+msgid "Disclaimer:"
+msgstr ""
+
+#: core/templates/core/legal.html:47
+msgid "1. Haftungshinweis"
+msgstr ""
+
+#: core/templates/core/legal.html:49
+msgid ""
+"Die Inhalte sind mit größter Sorgfalt recherchiert. Dennoch übernehmen die "
+"Autor*innen keinerlei Gewähr für die Aktualität, Korrektheit, "
+"Vollständigkeit oder Qualität der bereitgestellten Informationen. "
+"Haftungsansprüche gegen die Autor*innen, welche sich auf Schäden materieller "
+"oder ideeller Art beziehen die durch die Nutzung oder Nichtnutzung der "
+"dargebotenen Informationen bzw. durch die Nutzung fehlerhafter und "
+"unvollständiger Informationen verursacht wurden, sind grundsätzlich "
+"ausgeschlossen, sofern seitens der Autor*innen kein nachweislich "
+"vorsätzliches oder grob fahrlässiges Verschulden vorliegt. Alle Angebote "
+"sind freibleibend und unverbindlich. Die Autor*innen behalten es sich "
+"ausdrücklich vor, Teile der Seiten oder das gesamte Angebot ohne gesonderte "
+"Ankündigung zu verändern, zu ergänzen, zu löschen oder die Veröffentlichung "
+"zeitweise oder endgültig einzustellen."
+msgstr ""
+
+#: core/templates/core/legal.html:51
+msgid "2. Verweise und Links"
+msgstr ""
+
+#: core/templates/core/legal.html:53
+msgid ""
+"Bei direkten oder indirekten Verweisen auf fremde Internetseiten („Links”), "
+"die außerhalb des Verantwortungsbereiches der Autor*innen liegen, würde eine "
+"Haftungsverpflichtung ausschließlich in dem Fall in Kraft treten, in dem die "
+"Autor*innen von den Inhalten Kenntnis hat und es ihm technisch möglich und "
+"zumutbar wäre, die Nutzung im Falle rechtswidriger Inhalte zu verhindern. "
+"Die Autor*innen erklären daher ausdrücklich, dass zum Zeitpunkt der "
+"Linksetzung die entsprechenden verlinkten Seiten frei von illegalen Inhalten "
+"waren. Die Autor*innen haben keinerlei Einfluss auf die aktuelle und "
+"zukünftige Gestaltung und auf die Inhalte der gelinkten/verknüpften Seiten. "
+"Deshalb distanzieren sie sich hiermit ausdrücklich von allen Inhalten aller "
+"gelinkten /verknüpften Seiten, die nach der Linksetzung verändert wurden. "
+"Diese Feststellung gilt für alle innerhalb des eigenen Internetangebotes "
+"gesetzten Links und Verweise sowie für Fremdeinträge in von Autor*innen "
+"eingerichteten Gästebüchern, Diskussionsforen und Mailinglisten. Für "
+"illegale, fehlerhafte oder unvollständige Inhalte und insbesondere für "
+"Schäden, die aus der Nutzung oder Nichtnutzung solcherart dargebotener "
+"Informationen entstehen, haften allein die Anbieter*innen der Seite, auf "
+"welche verwiesen wurde, nicht der- oder diejenige, der/die über Links auf "
+"die jeweilige Veröffentlichung lediglich verweist."
+msgstr ""
+
+#: core/templates/core/legal.html:55
+msgid "3. Urheber- und Kennzeichenrecht"
+msgstr ""
+
+#: core/templates/core/legal.html:57
+msgid ""
+"Die Autor*innen sind bestrebt, in allen Publikationen die Urheberrechte der "
+"verwendeten Grafiken, Tondokumente, Videosequenzen und Texte zu beachten, "
+"von ihnen selbst erstellte Grafiken, Tondokumente, Videosequenzen und Texte "
+"zu nutzen oder auf lizenzfreie Grafiken, Tondokumente, Videosequenzen und "
+"Texte zurückzugreifen. Alle innerhalb des Internetangebotes genannten und "
+"ggf. durch Dritte geschützten Marken- und Warenzeichen unterliegen "
+"uneingeschränkt den Bestimmungen des jeweils gültigen Kennzeichenrechts und "
+"den Besitzrechten der jeweiligen eingetragenen Eigentümer*innen. Allein "
+"aufgrund der bloßen Nennung ist nicht der Schluss zu ziehen, dass "
+"Markenzeichen nicht durch Rechte Dritter geschützt sind! Das Copyright für "
+"veröffentlichte, von Autor*innen selbst erstellte Objekte bleibt allein bei "
+"den Autor*innen der Seiten. Eine Vervielfältigung oder Verwendung solcher "
+"Grafiken, Tondokumente, Videosequenzen und Texte in anderen elektronischen "
+"oder gedruckten Publikationen ist ohne ausdrückliche Zustimmung der "
+"Autor*innen nicht gestattet."
+msgstr ""
+
+#: core/templates/core/legal.html:59
+msgid "4. Rechtswirksamkeit dieses Haftungsausschlusses"
+msgstr ""
+
+#: core/templates/core/legal.html:61
+msgid ""
+"Dieser Haftungsausschluss ist als Teil des Internetangebotes zu betrachten, "
+"von dem aus auf diese Seite verwiesen wurde. Sofern Teile oder einzelne "
+"Formulierungen dieses Textes der geltenden Rechtslage nicht, nicht mehr oder "
+"nicht vollständig entsprechen sollten, bleiben die übrigen Teile des "
+"Dokumentes in ihrem Inhalt und ihrer Gültigkeit davon unberührt."
+msgstr ""
+
+#: core/templates/core/navbar.html:14 core/templates/core/navbar.html:59
+#: ebustoolbox/templates/ebustoolbox/compare.html:31
+msgid "+ Szenario erstellen"
+msgstr ""
+
+#: core/templates/core/navbar.html:17 core/templates/core/navbar.html:61
+msgid "Szenarien"
+msgstr ""
+
+#: core/templates/core/navbar.html:18 core/templates/core/navbar.html:62
+#: core/templates/core/navbar.html:84
+#: ebustoolbox/templates/ebustoolbox/compare.html:9
+msgid "Szenarienvergleich"
+msgstr ""
+
+#: core/templates/core/navbar.html:19 core/templates/core/navbar.html:68
+#: core/templates/core/profile.html:11
+msgid "Profil"
+msgstr ""
+
+#: core/templates/core/navbar.html:29
+msgid "Logout"
+msgstr ""
+
+#: core/templates/core/navbar.html:37
+msgid "Login"
+msgstr ""
+
+#: core/templates/core/navbar.html:46
+msgid "Menü öffnen"
+msgstr ""
+
+#: core/templates/core/navbar.html:71 core/templates/core/navbar.html:87
+msgid "Menü schließen"
+msgstr ""
+
+#: core/templates/core/navbar.html:83
+#: core/templates/core/registration/login.html:11
+msgid "Einloggen"
+msgstr ""
+
+#: core/templates/core/profile.html:5
+msgid "WeBus - Profil"
+msgstr ""
+
+#: core/templates/core/profile.html:14
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:35
+#: ebustoolbox/views.py:1368
+msgid "Name"
+msgstr ""
+
+#: core/templates/core/profile.html:22 core/templates/core/profile.html:36
+#: ebustoolbox/templates/ebustoolbox/summary.html:159
+#: ebustoolbox/templates/ebustoolbox/summary.html:176
+#: ebustoolbox/templates/ebustoolbox/summary.html:297
+#: ebustoolbox/templates/ebustoolbox/summary.html:433
+#: ebustoolbox/templates/ebustoolbox/summary.html:475
+#: ebustoolbox/templates/ebustoolbox/summary.html:517
+#: ebustoolbox/templates/ebustoolbox/summary.html:563
+msgid "Editieren"
+msgstr ""
+
+#: core/templates/core/profile.html:28
+#: core/templates/core/registration/login.html:19
+#: ebustoolbox/templates/ebustoolbox/signup.html:17
+msgid "E-Mail-Adresse"
+msgstr ""
+
+#: core/templates/core/profile.html:50
+#: core/templates/core/registration/password_change.html:3
+msgid "Passwort ändern"
+msgstr ""
+
+#: core/templates/core/progress_simulation.html:16
+msgid "Szenario \"{{ progress.scenario.name }}\" wird erstellt"
+msgstr ""
+
+#: core/templates/core/progress_simulation.html:31
+msgid "Zu den Ergebnissen"
+msgstr ""
+
+#: core/templates/core/progress_simulation.html:39
+msgid "Minuten verbleibend"
+msgstr ""
+
+#: core/templates/core/progress_simulation.html:47
+msgid "E-Mail erhalten"
+msgstr ""
+
+#: core/templates/core/progress_simulation.html:49
+msgid ", wenn die Simulation beendet ist"
+msgstr ""
+
+#: core/templates/core/redirect_with_timer.html:4
+#: ebustoolbox/templates/ebustoolbox/depots.html:4
+msgid "WeBus - Depots"
+msgstr ""
+
+#: core/templates/core/redirect_with_timer.html:13
+#, python-format
+msgid "Sie werden in <a id=\"countdown\">%(duration)s</a> s weitergeleitet."
+msgstr ""
+
+#: core/templates/core/redirect_with_timer.html:14
+#, python-format
+msgid ""
+"Wenn dies nicht funktioniert klicken sie <a href=%(redirect_url)s >hier</a>  "
+msgstr ""
+
+#: core/templates/core/registration/logged_out.html:3
+msgid "Abgemeldet"
+msgstr ""
+
+#: core/templates/core/registration/logged_out.html:9
+msgid "Abgemeldet!"
+msgstr ""
+
+#: core/templates/core/registration/logged_out.html:10
+msgid "Hier klicken um sich wieder anzumelden."
+msgstr ""
+
+#: core/templates/core/registration/login.html:4
+msgid "WeBus - Login"
+msgstr ""
+
+#: core/templates/core/registration/login.html:26
+#: ebustoolbox/templates/ebustoolbox/signup.html:24
+msgid "Passwort"
+msgstr ""
+
+#: core/templates/core/registration/login.html:49
+#: ebustoolbox/templates/ebustoolbox/signup.html:45
+msgid "Passwort vergessen?"
+msgstr ""
+
+#: core/templates/core/registration/login.html:68
+msgid "Sie haben keinen Zugang zu dieser Seite."
+msgstr ""
+
+#: core/templates/core/registration/login.html:70
+msgid "Sie sind bereits angemeldet."
+msgstr ""
+
+#: core/templates/core/registration/login.html:72
+msgid "Eine Weiterleitung erfolgt in 3 Sekunden."
+msgstr ""
+
+#: core/templates/core/registration/login.html:73
+msgid "Startseite"
+msgstr ""
+
+#: core/templates/core/registration/password_change.html:11
+msgid "Altes Passwort"
+msgstr ""
+
+#: core/templates/core/registration/password_change.html:16
+#: core/templates/core/registration/password_reset_confirm.html:13
+msgid "Neues Passwort"
+msgstr ""
+
+#: core/templates/core/registration/password_change.html:21
+msgid "Neues Passwort wiederholen"
+msgstr ""
+
+#: core/templates/core/registration/password_reset_complete.html:3
+#: core/templates/core/registration/password_reset_confirm.html:3
+#: core/templates/core/registration/password_reset_form.html:8
+msgid "Passwort zurücksetzen"
+msgstr ""
+
+#: core/templates/core/registration/password_reset_complete.html:8
+msgid "Ihr Passwort wurde erfolgreich geändert."
+msgstr ""
+
+#: core/templates/core/registration/password_reset_complete.html:9
+msgid "Wieder einloggen"
+msgstr ""
+
+#: core/templates/core/registration/password_reset_confirm.html:18
+msgid "Passwort wiederholen"
+msgstr ""
+
+#: core/templates/core/registration/password_reset_confirm.html:24
+msgid "Fehler beim Zurücksetzen des Passworts"
+msgstr ""
+
+#: core/templates/core/registration/password_reset_confirm.html:25
+msgid ""
+"Der Rücksetzungslink war fehlerhaft, vermutlich wurde er bereits benutzt."
+msgstr ""
+
+#: core/templates/core/registration/password_reset_confirm.html:25
+msgid " Bitte fordern Sie ein neues Passwort an."
+msgstr ""
+
+#: core/templates/core/registration/password_reset_done.html:3
+msgid "Passwort zurückgesetzt"
+msgstr ""
+
+#: core/templates/core/registration/password_reset_done.html:8
+msgid "Eine E-Mail wurde an Ihre Adresse versendet."
+msgstr ""
+
+#: core/templates/core/registration/password_reset_done.html:9
+msgid "Diese sollte spätestens in ein paar Minuten ankommen."
+msgstr ""
+
+#: core/templates/core/registration/password_reset_done.html:10
+msgid "Wenn nicht, überprüfen Sie bitte Ihren Spam-Ordner."
+msgstr ""
+
+#: core/templates/core/registration/password_reset_email.html:2
+msgid "Folgen Sie diesem Link, um Ihr Passwort zurückzusetzen:"
+msgstr ""
+
+#: core/templates/core/registration/password_reset_form.html:14
+msgid "Ihre E-Mail-Adresse:"
+msgstr ""
+
+#: core/templates/core/registration/signup.html:3
+msgid "Registrieren"
+msgstr ""
+
+#: core/templates/core/registration/signup.html:7
+msgid "Registrierung"
+msgstr ""
+
+#: core/templates/core/registration/signup.html:23
+#, python-format
+msgid ""
+"Ich habe die <a target=\"_blank\" rel=\"noopener noreferrer\" "
+"href=\"%(privacy_url)s\"> Datenschutzerklärung</a> gelesen und bin mit "
+"dieser einverstanden.*"
+msgstr ""
+
+#: django_mapengine/templates/django_mapengine/map_basemaps.html:7
+msgid "maps"
+msgstr ""
+
+#: django_mapengine/templates/django_mapengine/map_basemaps.html:14
+msgid "default"
+msgstr "Standard"
+
+#: django_mapengine/templates/django_mapengine/map_basemaps.html:20
+msgid "satellite"
+msgstr "Satellit"
+
+#: ebusdjango/settings.py:237
+msgid "German"
+msgstr "Deutsch"
+
+#: ebusdjango/settings.py:238
+msgid "English"
+msgstr "Englisch"
+
+#: ebustoolbox/data.py:81
+msgid " in Rotation "
+msgstr " in Umlauf"
+
+#: ebustoolbox/data.py:219
+#, python-brace-format
+msgid "{station.name},  {frequency} mal"
+msgstr ""
+
+#: ebustoolbox/data.py:266 ebustoolbox/data.py:295
+msgid "Keine Rotation gefunden!"
+msgstr ""
+
+#: ebustoolbox/data.py:1181 ebustoolbox/views.py:1440
+msgid "Nicht kritisch"
+msgstr ""
+
+#: ebustoolbox/data.py:1182 ebustoolbox/views.py:1440
+msgid "kritisch"
+msgstr ""
+
+#: ebustoolbox/forms.py:53
+msgid "Verknüpft SimBA-Trips mit Temperaturen"
+msgstr ""
+
+#: ebustoolbox/forms.py:56
+msgid "Zur Interpolation von Verbräuchen verwendet"
+msgstr ""
+
+#: ebustoolbox/forms.py:100
+msgid "Gib ein Start- und Endzeitpunkt an."
+msgstr ""
+
+#: ebustoolbox/forms.py:107
+msgid "In dieser Zeitspanne starten keine Umläufe."
+msgstr ""
+
+#: ebustoolbox/forms.py:116
+msgid "Grid connector power in kVA"
+msgstr ""
+
+#: ebustoolbox/forms.py:117
+msgid "Charging point power in kW"
+msgstr ""
+
+#: ebustoolbox/forms.py:118
+msgid "Number of charging points per electrified station"
+msgstr ""
+
+#: ebustoolbox/schedule_readers.py:223
+msgid "Lese Datei"
+msgstr ""
+
+#: ebustoolbox/schedule_readers.py:226
+msgid "Finde Stationen"
+msgstr ""
+
+#: ebustoolbox/schedule_readers.py:236
+msgid "Finde Fahrzeugtypen"
+msgstr ""
+
+#: ebustoolbox/schedule_readers.py:241
+msgid "Finde Umläufe"
+msgstr ""
+
+#: ebustoolbox/schedule_readers.py:246
+msgid "Finde Fahrten"
+msgstr ""
+
+#: ebustoolbox/schedule_readers.py:257
+msgid "Fahrten erstellt"
+msgstr ""
+
+#: ebustoolbox/schedule_readers.py:362
+msgid ""
+"Fahrt(en) in Zeile {', '.join(map(str, duration_errors))} haben keine oder "
+"eine negative Fahrtdauer. Bitte ergänzen Sie Fahrzeiten oder entfernen Sie "
+"die Fahrten."
+msgstr ""
+
+#: ebustoolbox/schedule_readers.py:370
+msgid ""
+"Fahrt in Zeile {', '.join(map(str, trip_overlap_errors))} überschneidet sich "
+msgstr ""
+
+#: ebustoolbox/schedule_readers.py:377
+msgid "Fahrt in Zeile {', '.join(map(str, trip_lines))} "
+msgstr ""
+
+#: ebustoolbox/schedule_readers.py:392
+#, python-brace-format
+msgid "Umlauf {rotation_id} enthält mehrere Fahrzeugtypen"
+msgstr ""
+
+#: ebustoolbox/schedule_readers.py:482
+#, python-brace-format
+msgid "Spalte {column} fehlt"
+msgstr ""
+
+#: ebustoolbox/schedule_readers.py:515
+msgid "Fahrplan Datei (.csv)"
+msgstr ""
+
+#: ebustoolbox/schedule_readers.py:518
+msgid ""
+".csv Datei mit den Spalten: rotation_id, departure_station, departure_time, "
+"arrival_station, arrival_time, distance, vehicle_type"
+msgstr ""
+
+#: ebustoolbox/tasks.py:799
+msgid "Gestartet"
+msgstr ""
+
+#: ebustoolbox/tasks.py:825 ebustoolbox/tasks.py:834
+msgid "Fehlgeschlagen"
+msgstr ""
+
+#: ebustoolbox/tasks.py:832
+msgid "Fertig"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare.html:4
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:3
+msgid "WeBus - Szenarienvergleich"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare.html:29
+msgid "Keine Szenarien vorhanden zum Vergleichen."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:18
+msgid "Bus SOC über Zeit"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:25
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:187
+#: ebustoolbox/views.py:1375
+msgid "Anzahl Ladeplätze in allen Depots"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:32
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:201
+msgid "Elektrische Spitzenleistung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:47
+msgid "Diesel-Szenario"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:54
+#: ebustoolbox/templates/ebustoolbox/result.html:189
+msgid "Relativer Vergleich mit Diesel-Szenario."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:71
+msgid "BVG Test 1"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:76
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:87
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:98
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:109
+msgid "Details"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:82
+msgid "BVG Test 2<"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:93
+msgid "BVG Test 3"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:104
+msgid "BVG Test 4"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:117
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:57
+#: ebustoolbox/templates/ebustoolbox/result.html:196
+msgid "Gesamtkosten"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:124
+msgid "Vergleich zu Dieselszenario"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:131
+#: ebustoolbox/views.py:1372
+msgid "Gesamtkilometer"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:138
+msgid "Fahrleistung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:145
+msgid "Personal"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:152
+msgid "Betriebsstunden"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:159
+#: ebustoolbox/templates/ebustoolbox/result.html:613
+msgid "Anzahl Fahrzeuge"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:166
+msgid "Gesamt-CO<sub>2</sub>-Einsparung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:173
+msgid "Anzahl Elektrifizierte Endhaltestellen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:180
+#: ebustoolbox/views.py:1374
+msgid "Geladene Energie an Endhaltestellen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:194
+msgid "Geladene Energie an Depots"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:208
+msgid "Anzahl Umläufe"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:215
+msgid "Fahrplanwirkungsgrad"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:227
+msgid "Content for \"Anzahl Ladeplätze in allen Depots\""
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/compare_DEMO.html:230
+msgid "Content for "
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/components/layer_box.html:19
+msgid "Satellitenansicht"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/components/layer_box.html:27
+msgid "Anzahl Anfahrten:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/components/layer_box.html:28
+msgid "Min:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/components/layer_box.html:29
+msgid "Max:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:22
+#: ebustoolbox/templates/ebustoolbox/stations.html:164
+msgid "(optional)"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:26
+#: ebustoolbox/templates/ebustoolbox/summary.html:440
+msgid "Kostenparameter"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:28
+msgid ""
+"Beim Life Cycle Costing (LCC) können neben den finanziellen auch die "
+"ökologischen Kosten über den gesamten Lebenszyklus betrachtet werden. So "
+"unterstützt LCC nachhaltige Entscheidungen, indem es Umweltauswirkungen wie "
+"Emissionen und Ressourcenverbrauch einbezieht."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:35
+#: ebustoolbox/templates/ebustoolbox/costs.html:228
+msgid "Keine Eingabe"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:44
+#: ebustoolbox/templates/ebustoolbox/costs.html:63
+#: ebustoolbox/templates/ebustoolbox/costs.html:256
+#: ebustoolbox/templates/ebustoolbox/depots.html:86
+#: ebustoolbox/templates/ebustoolbox/depots.html:201
+#: ebustoolbox/templates/ebustoolbox/partials/trips_form.html:35
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:33
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:277
+msgid "Bottom Left-Aligned Tooltip"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:54
+#: ebustoolbox/templates/ebustoolbox/costs.html:247
+#: ebustoolbox/templates/ebustoolbox/partials/trips_form.html:66
+msgid "Datei hochladen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:81
+#: ebustoolbox/templates/ebustoolbox/costs.html:274
+msgid "Werte aus anderem Szenario übernehmen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:88
+msgid "Szenario auswählen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:99
+#: ebustoolbox/templates/ebustoolbox/costs.html:292
+msgid "Manuelle Eingabe"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:108
+#: ebustoolbox/templates/ebustoolbox/costs.html:301
+msgid "CO₂-Emissionen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:116
+#: ebustoolbox/templates/ebustoolbox/costs.html:309
+msgid "CO₂ Emission Tooltip"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:129
+msgid "g/km"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:137
+#: ebustoolbox/templates/ebustoolbox/costs.html:330
+#: ebustoolbox/templates/ebustoolbox/vehicle_modification.html:134
+msgid "Energieverbrauch"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:144
+#: ebustoolbox/templates/ebustoolbox/costs.html:337
+msgid "Energieverbrauch Tooltip"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:156
+#: ebustoolbox/templates/ebustoolbox/vehicle_modification.html:160
+msgid "kWh/km"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:164
+#: ebustoolbox/templates/ebustoolbox/costs.html:357
+msgid "Ressourcenverbrauch"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:171
+#: ebustoolbox/templates/ebustoolbox/costs.html:364
+msgid "Ressourcenverbrauch Tooltip"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:183
+#: ebustoolbox/templates/ebustoolbox/costs.html:376
+msgid "kg/Jahr"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:191
+#: ebustoolbox/templates/ebustoolbox/costs.html:384
+msgid "Lebensdaueranalyse"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:198
+#: ebustoolbox/templates/ebustoolbox/costs.html:391
+msgid "Lebensdaueranalyse Tooltip"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:210
+#: ebustoolbox/templates/ebustoolbox/costs.html:403
+msgid "Jahre"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:219
+#: ebustoolbox/templates/ebustoolbox/summary.html:482
+msgid "Umweltparameter"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/costs.html:221
+msgid ""
+"Umweltparameter umfassen verschiedene Aspekte der Umweltbelastung, die durch "
+"den Lebenszyklus eines Produkts oder einer Dienstleistung verursacht werden. "
+"Dazu gehören Emissionen, Energieverbrauch und Ressourcenverbrauch."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/dashboard-empty-state.html:4
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:4
+msgid "WeBus - Dashboard"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/dashboard-empty-state.html:9
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:9
+msgid "Szenarienübersicht"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/dashboard-empty-state.html:14
+msgid "Kein Szenario"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/dashboard-empty-state.html:15
+msgid "Starten Sie, indem Sie Ihr erstes Szenario erstellen."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:11
+#: ebustoolbox/templates/ebustoolbox/stations.html:205
+msgid "Suche"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:18
+#: ebustoolbox/templates/ebustoolbox/dashboard_DEMO.html:27
+msgid "Nach Szenarien suchen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:46
+msgid "Status"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:68
+msgid "-Reduzierung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:79
+msgid "Erstellung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:89
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:161
+msgid "Variante erstellen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:92
+msgid "Optionen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:117
+msgid "Abgeschlossen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:127
+msgid "Simulation läuft"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:137
+msgid "Nicht erfolgreich"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:147
+msgid "In Bearbeitung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:192
+#: ebustoolbox/templates/ebustoolbox/result.html:57
+msgid "Ergebnisse exportieren"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/dashboard.html:200
+msgid "Szenario löschen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/depots.html:75
+msgid "Automatische Berechnung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/depots.html:95
+msgid "Ladepunkte"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/depots.html:104
+msgid "Anzahl"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/depots.html:114
+msgid "Anzahl Tooltip"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/depots.html:143
+msgid "Leistung Tooltip"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/depots.html:155
+msgid "kW"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/depots.html:175
+msgid "+ Ladepunkte hinzufügen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/depots.html:181
+msgid "Gesamtleistung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/depots.html:189
+msgid "Netzanschlüsse"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/depots.html:191
+#: ebustoolbox/templates/ebustoolbox/stations.html:181
+msgid "Ladeleistung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/depots.html:213
+msgid "kVA"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/import_scenario.html:5
+msgid "Szenario Import"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/import_scenario.html:7
+msgid ""
+"Wähle eine Datei aus, um sie in die Datenbank zu importieren. Die Datei "
+"sollte aus einem vorherigen Szenario-Export stammen."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/import_scenario.html:14
+msgid "Szenario Datei (.json)"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/import_scenario.html:16
+msgid "Submit"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/partials/trips_form.html:16
+msgid ""
+"Laden Sie ihren Umlaufplan hoch. Alternativ können Sie den Umlaufplan aus "
+"einem existierendem Szenario auswählen."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/partials/trips_form.html:19
+msgid "Lade eine Datei aus oder wähle ein Szenario aus."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/partials/trips_form.html:24
+msgid "Neue Datei"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/partials/trips_form.html:49
+msgid "Beispieldatei"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/partials/trips_form.html:77
+msgid "oder ziehen und ablegen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/partials/trips_form.html:83
+msgid "Beispiel: VDV 454 (.zip)/BVG-IVU-XML"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/partials/trips_form.html:91
+msgid "oder aus bestehendem Szenario"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/partials/trips_form.html:105
+msgid "-- Szenario auswählen --"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/partials/trips_form.html:120
+msgid "Szenario-Name"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/partials/trips_form.html:124
+msgid "Szenario-Name eingeben"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/partials/trips_form.html:130
+#: ebustoolbox/templates/ebustoolbox/summary.html:140
+msgid "Beschreibung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/partials/trips_form.html:131
+msgid "(Optional)"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/partials/trips_form.html:137
+msgid "Beschreiben Sie Ihr Szenario..."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:5
+msgid "WeBus - Ergebnisse"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:20
+msgid "Vergleichen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:30
+msgid "Mehr"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:65
+msgid "Zusammenfassung sehen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:73
+msgid "Als Variante verwenden"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:83
+msgid "Szenario Löschen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:96
+msgid "Kosten + Umwelt"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:112
+#: ebustoolbox/templates/ebustoolbox/result.html:539
+msgid "Infrastruktur"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:120
+#: ebustoolbox/templates/ebustoolbox/result.html:717
+#: ebustoolbox/templates/ebustoolbox/summary.html:124
+msgid "Karte"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:160
+#: ebustoolbox/templates/ebustoolbox/result.html:409
+#: ebustoolbox/templates/ebustoolbox/result.html:496
+#: ebustoolbox/templates/ebustoolbox/result.html:560
+msgid "Als CSV exportieren"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:161
+#: ebustoolbox/templates/ebustoolbox/result.html:410
+#: ebustoolbox/templates/ebustoolbox/result.html:497
+#: ebustoolbox/templates/ebustoolbox/result.html:561
+msgid "Als JSON exportieren"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:182
+msgid "Relativ zu Dieselszenario"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:200
+msgid "Label"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:212
+msgid "1 Jahr"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:231
+msgid "2 Jahre"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:238
+msgid "3 Jahre"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:245
+msgid "4 Jahre"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:252
+msgid "5 Jahre"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:272
+#: ebustoolbox/templates/ebustoolbox/result.html:667
+msgid "Energie"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:277
+#: ebustoolbox/templates/ebustoolbox/result.html:296
+#: ebustoolbox/templates/ebustoolbox/result.html:317
+#: ebustoolbox/templates/ebustoolbox/result.html:338
+msgid "Variable Kosten"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:289
+#: ebustoolbox/templates/ebustoolbox/result.html:310
+#: ebustoolbox/templates/ebustoolbox/result.html:331
+msgid "Fixkosten"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:303
+msgid "Infrastruktur Endhaltestellen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:324
+msgid "Infrastruktur Depots"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:347
+msgid "Kostenverlauf"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:348
+msgid "Tab 2"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:355
+msgid "Ansicht"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:367
+msgid "Zeitlauf"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:381
+#: ebustoolbox/templates/ebustoolbox/result.html:525
+msgid "Content 2"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:388
+msgid "Umwelt"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:418
+msgid "-Bilanz"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:423
+msgid "-Emissionen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:429
+msgid "Vor Elektrifizierung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:436
+msgid "Nach Elektrifizierung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:452
+msgid "Details sehen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:508
+msgid "Anzahl Fahrzeuge nach SoC"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:511
+msgid "Fahrzeugaktivitäten"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:514
+msgid "Fahrzeuganzahlen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:517
+msgid "Fahrplanwirkungsgrade"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:528
+msgid "Content 3"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:531
+msgid "Content 4"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:573 ebustoolbox/views.py:1371
+msgid "Umläufe"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:580
+msgid "Längster Umlauf"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:587
+msgid "Kürzester Umlauf"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:594
+msgid "Gesamtstrecke"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:601
+msgid "Szenario"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:607
+msgid "Elektrifizierte Stationen /"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:607
+msgid "Gesamtzahl Stationen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:619
+msgid "Häufigst angefahrene Station"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:626
+msgid "Energie und Leistung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:631
+#: ebustoolbox/templates/ebustoolbox/vehicle_modification.html:104
+msgid "kWh"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:633
+msgid "Gesamt geladene Energie"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:640
+msgid "Durchschnittl. Verbrauch"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:647
+msgid "Installierte Leistung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:660
+msgid "Anzahl Stellplätze"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:674
+msgid "Spitzenleistung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/result.html:738
+msgid "URL kopieren"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/signup.html:41
+msgid "Remember me"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/signup.html:58
+msgid "Kein Konto?"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/signup.html:59
+msgid "Registrieren Sie sich"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:5
+msgid "WeBus - Endhaltestellen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:43
+msgid "Close"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:51
+msgid "Ausgewählte Stationen editieren"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:53
+msgid "Sie können die Werte aller ausgewählten Stationen anpassen."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:71
+#: ebustoolbox/templates/ebustoolbox/stations.html:427
+msgid "Elektrifizieren"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:84
+#: ebustoolbox/templates/ebustoolbox/stations.html:442
+msgid "Automatisch"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:98
+#: ebustoolbox/templates/ebustoolbox/stations.html:458
+msgid "Nicht elektr."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:105
+#: ebustoolbox/templates/ebustoolbox/stations.html:335
+msgid "Maximale Anzahl Ladepunkte"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:118
+#: ebustoolbox/templates/ebustoolbox/stations.html:349
+msgid "Ladeleistung pro Punkt"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:134
+msgid "Abbrechen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:137
+msgid "Bestätigen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:174
+msgid ""
+"Standardmäßig berechnet die Simulation, ob die Endstationen elektrifiziert "
+"werden müssen, und bestimmt dabei automatisch die Anzahl der Ladepunkte. Sie "
+"haben jedoch die Möglichkeit, die Endstationen manuell zu elektrifizieren "
+"und die Anzahl der Ladepunkte sowie die Ladeleistung festzulegen – oder "
+"alternativ die Elektrifizierung vollständig auszuschließen."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:213
+msgid "Nach Stationen suchen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:230
+msgid "Ausgewählte bearbeiten"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:248
+msgid "Filter"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:259
+msgid "linie"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:275
+msgid "Select an item..."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:308
+#: ebustoolbox/templates/ebustoolbox/summary.html:312
+#: ebustoolbox/templates/ebustoolbox/summary.html:351
+#: ebustoolbox/templates/ebustoolbox/summary.html:390
+msgid "Stationen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:321
+msgid "Elektrifizierung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/stations.html:381
+msgid "Alle"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:4
+msgid "WeBus - Zusammenfassung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:40
+msgid ""
+"Bitte überprüfen Sie alle Angaben sorgfältig, da nach Start der Simulation "
+"keine Änderungen mehr möglich sind."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:65
+#: ebustoolbox/templates/ebustoolbox/summary.html:582
+msgid "Simulation starten"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:87
+msgid "\"Erneut Simulieren\""
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:112
+#: ebustoolbox/templates/ebustoolbox/wizard.html:7
+msgid "Zusammenfassung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:132
+msgid "Szenarioname"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:144
+msgid "Keine Beschreibung"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:149
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:19
+msgid "Zeitspanne"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:165
+msgid "Temperatur"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:182
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:263
+msgid "Fahrzeugtypen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:189
+msgid "Default"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:190
+msgid "Linie(n)"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:228
+#: ebustoolbox/templates/ebustoolbox/summary.html:278
+msgid "Anzahl Fahrzeuge:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:232
+#: ebustoolbox/templates/ebustoolbox/summary.html:282
+msgid "Gesamtkilometer:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:236
+#: ebustoolbox/templates/ebustoolbox/summary.html:286
+msgid "Nutz. Batteriekapazität:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:310
+msgid "Elektrifizierung aktiviert:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:349
+msgid "Bei Simulation entschieden:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:388
+msgid "Elektrifizierung nicht aktiviert:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:445
+msgid "Anschaffungskosten:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:451
+msgid "Wartungskosten:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:457
+msgid "Energiekosten:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:463
+msgid "Laufzeit:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:487
+msgid "CO₂-Emissionen:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:493
+msgid "Energieverbrauch:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:499
+msgid "Ressourcenverbrauch:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:505
+msgid "Lebensdaueranalyse:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:532
+#: ebustoolbox/templates/ebustoolbox/summary.html:544
+msgid "Anzahl Ladepunkte:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:536
+msgid "Leistung pro Punkt:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:548
+msgid "Leistung pro Punkt [kW]:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/summary.html:553
+msgid "Ladeleistung:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/trips.html:35
+msgid "WeBus - Umlaufplan"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicle_modification.html:10
+msgid "Fahrzeugtyp:"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicle_modification.html:25
+msgid "-- Fahrzeugtyp auswählen --"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicle_modification.html:31
+msgid "Wähle eine Fahrzeug aus"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicle_modification.html:82
+msgid "Nutzbare Batteriekapazität"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicle_modification.html:125
+msgid "Energieverbrauch des gewählten Fahrzeugs überschreiben."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicle_modification.html:131
+msgid "(Ignoriert die globale Umgebungstemperatur für diesen Fahrzeugtyp)"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicle_modification.html:158
+msgid "Wählen Sie ein Fahrzeug aus"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicle_modification.html:180
+msgid ""
+"Für den gewählten Fahrzeugtyp bei durchschnittlicher Fahrgeschwindigkeit des "
+"Szenarios und der gewählten Durchschnittstemperatur."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicle_modification.html:197
+msgid "Extremer Energieverbrauch"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicle_modification.html:244
+msgid ""
+"Für den gewählten Fahrzeugtyp bei durchschnittlicher Fahrgeschwindigkeit des "
+"Szenarios und der gewählten Extremtemperatur."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicle_modification.html:262
+msgid "Wählen Sie einen Bus aus."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicle_modification.html:263
+msgid "Hier wird Ihnen die Ladekurve des Fahrzeugs angezeigt."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicle_modification.html:290
+msgid "dynamisch"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicle_modification.html:291
+msgid "bei"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:5
+msgid "WeBus - Fahrzeuge"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:39
+msgid "Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:41
+msgid "Von"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:44
+msgid "Startdatum"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:57
+msgid "Startzeit"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:66
+msgid "bis"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:82
+msgid "Endzeit"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:102
+msgid "Temperaturen"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:116
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:139
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:208
+msgid ""
+"Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. "
+"Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:125
+msgid "Durchschnittstemperatur"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:177
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:246
+#, python-format
+msgid ""
+"Bezogen auf die pro Stunde gemittelten Temperaturen von %(startYear)s bis "
+"%(endYear)s an der Messstation %(weatherstation.name)s. %(distance_text)s "
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:179
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:248
+#, python-format
+msgid ""
+"diese liegt %(distance.km|floatformat:1)s km entfernt vom Mittelpunkt des "
+"Szenarios "
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:194
+msgid "Extremtemperatur"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/vehicles.html:282
+msgid ""
+"Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug "
+"zu."
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/wizard.html:7
+#, fuzzy
+#| msgid "Publications"
+msgid "Simulation"
+msgstr "Publikationen"
+
+#: ebustoolbox/templates/ebustoolbox/wizard.html:84
+msgid "Zurück"
+msgstr ""
+
+#: ebustoolbox/templates/ebustoolbox/wizard.html:91
+msgid "Weiter"
+msgstr ""
+
+#: ebustoolbox/util.py:45
+msgid "time_start"
+msgstr "Startzeit"
+
+#: ebustoolbox/util.py:45
+msgid "Power"
+msgstr "Leistung"
+
+#: ebustoolbox/util.py:45
+msgid "Zeit"
+msgstr ""
+
+#: ebustoolbox/util.py:45
+msgid "Leistung [kW]"
+msgstr ""
+
+#: ebustoolbox/views.py:221
+msgid "Access Denied"
+msgstr "Kein Zugriff"
+
+#: ebustoolbox/views.py:251
+msgid ""
+"Ihre Simulation wird ausgeführt, daher werden sie zur Zusammenfassung "
+"zurückgeleitet."
+msgstr ""
+
+#: ebustoolbox/views.py:262
+msgid ""
+"Ihre Simulation ist beendet, daher werden sie zu den Ergebnissen "
+"weitergeleitet.."
+msgstr ""
+
+#: ebustoolbox/views.py:389
+msgid ""
+"Dieser Dateityp wird nicht unterstüzt. Bitte laden sie eine .csvim SimBA-"
+"Format oder eine .zip datei im x10 Format hoch."
+msgstr ""
+
+#: ebustoolbox/views.py:438
+msgid "No access"
+msgstr "Kein Zugriff"
+
+#: ebustoolbox/views.py:1040
+msgid "Mo"
+msgstr ""
+
+#: ebustoolbox/views.py:1041
+msgid "Di"
+msgstr ""
+
+#: ebustoolbox/views.py:1042
+msgid "Mi"
+msgstr ""
+
+#: ebustoolbox/views.py:1043
+msgid "Do"
+msgstr ""
+
+#: ebustoolbox/views.py:1044
+msgid "Fr"
+msgstr ""
+
+#: ebustoolbox/views.py:1045
+msgid "Sa"
+msgstr ""
+
+#: ebustoolbox/views.py:1046
+msgid "So"
+msgstr ""
+
+#: ebustoolbox/views.py:1188
+msgid "Starting multiple Simulations from the same source is not allowed"
+msgstr ""
+"Das mehrfache starten von Simulationen des gleichen Szenarios ist nicht "
+"erlaubt."
+
+#: ebustoolbox/views.py:1193
+msgid "Starting a Simulation which was sucessfully simulated is not allowed"
+msgstr ""
+"Das starten einer Simulation, die bereits erfolgreich simuliert wurde, ist "
+"nicht erlaubt."
+
+#: ebustoolbox/views.py:1214
+msgid ""
+"Ein unerwarteter Fehler ist aufgetreten. Wenden Sie sich an ihren "
+"Administrator"
+msgstr ""
+
+#: ebustoolbox/views.py:1282
+msgid "Die Simulation war erfolgreich."
+msgstr ""
+
+#: ebustoolbox/views.py:1292
+msgid "Zip not ready yet"
+msgstr "Die Zip Datei ist noch nicht bereit."
+
+#: ebustoolbox/views.py:1369
+msgid "Erstellt"
+msgstr ""
+
+#: ebustoolbox/views.py:1373
+msgid "Anzahl elektrifizierte Endhaltestellen"
+msgstr ""
+
+#: ebustoolbox/views.py:1376
+msgid "Geladene Energie an Depots [kWh]"
+msgstr ""
+
+#: ebustoolbox/views.py:1403
+msgid "User already exists"
+msgstr "Der User existiert bereits."
+
+#: ebustoolbox/views.py:1407
+#, python-brace-format
+msgid "Klicken Sie auf folgenden Link, um sich zu registrieren: {url}"
+msgstr ""
+
+#: ebustoolbox/views.py:1409
+msgid "Willkommen zu eBus2030+"
+msgstr ""
+
+#: ebustoolbox/views.py:1555
+msgid "Importing data is only allowed for logged in Users"
+msgstr "Das importieren von Daten ist nur eingeloggten Usern gestattet."
+
+#: ebustoolbox/views.py:1584
+#, python-brace-format
+msgid "{scenario.scenario_type} is not supported for exporting."
+msgstr "{scenario.scenario_type} wird nicht für den Export unterstüzt."
+
+#: ebustoolbox/views.py:1597
+msgid ""
+"<a href={reverse('simba:run_simulation', args=[task_id])} > run the "
+"simulation</a>"
+msgstr ""
+"<a href={reverse('simba:run_simulation', args=[task_id])} > Starte die "
+"Simulation</a>"
+
+#: ebustoolbox/views.py:1601
+msgid "View <a href={reverse('simba:result', args=[task_id])}>results</a>"
+msgstr ""
+"<a href={reverse('simba:result', args=[task_id])}>Ergebnisse</a> ansehen"
+
+#: ebustoolbox/views.py:1604
+#, python-brace-format
+msgid "Scenario succesfully imported with task_id {task_id}. "
+msgstr "Das Szenario wurde erfolgreich importiert mit der id {task_id}"
+
+#: ebustoolbox/views.py:1606
+msgid "Use POST or GET"
+msgstr "Nutze POST oder GET"

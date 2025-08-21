@@ -5,7 +5,7 @@ from django.views.generic.base import TemplateView
 from ebustoolbox.views import (
     TripsView,
     VehiclesView,
-    progress2,
+    progress_scenario,
     StationsView,
     CostsView,
     DepotsView,
@@ -44,7 +44,7 @@ urlpatterns = [
         DepotsView.as_view(),
         name="depots",
     ),
-    path("progress2/<uuid:progress_id>/<str:template_name>/", progress2, name="progress"),
+    path("progress2/<uuid:progress_id>/<str:template_name>/", progress_scenario, name="progress"),
     path(
         "result/<uuid:task_id>/",
         views.result_view,  # only way I get MapengineMixin to work

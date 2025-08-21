@@ -1,5 +1,15 @@
 import zoneinfo
 from django.utils import timezone
+from django.utils.translation import activate
+
+
+class LanguageMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        activate(request.LANGUAGE_CODE)
+        return self.get_response(request)
 
 
 class TimezoneMiddleware:
