@@ -565,9 +565,10 @@
 
       function setRowsHidden() {
           console.log("fired")
-          let selectedDivs = select_container.querySelectorAll("[data-value]")
-          let searchLines = Array.from(selectedDivs).map((x) => x.getAttribute("data-value"))
-          let searchString = stationSearch.value.toString().toLowerCase()
+          const selectedDivs = select_container.querySelectorAll("[data-value]");
+          const searchLines = Array.from(selectedDivs).map((x) => x.getAttribute("data-value"));
+          const searchString = stationSearch.value.toString().toLowerCase();
+          const selectAll = document.getElementById("selectAll");
           rows.forEach((row) => {
               if (filterElement(row, searchString, searchLines)) {
                   row.classList.remove("hidden");
@@ -576,8 +577,10 @@
                   // deselect hidden row
                   let stationId = row.getAttribute("data-station-id");
                   let select = document.getElementById("selected_" + stationId);
-                  if (select && select.checked)
+                  if (select && select.checked) {
                     select.checked = false;
+                    selectAll.checked = false;
+                  }
               }
         })
 
