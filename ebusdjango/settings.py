@@ -44,6 +44,11 @@ CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://127.0.0
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
 SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
+# under which URL can server be reached? Used in email verification
+DJANGO_HOST_URL = env("DJANGO_HOST_URL", default="").rstrip('/')
+if not DJANGO_HOST_URL:
+    print("No DJANGO_HOST_URL set, emails might contain only partial links")
+
 
 # Source to xyzascii zip of elevations
 ELEVATION_SOURCE_URL = env.str(

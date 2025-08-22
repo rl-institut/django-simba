@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash, login
 from django.contrib.auth.decorators import login_required
@@ -9,7 +10,7 @@ from django.shortcuts import render, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse
 
-from .forms import SignUpForm
+from .forms import AuthForm, SignUpForm
 
 
 # ******** User management ******** #
@@ -39,7 +40,7 @@ def signup(request):
                 render_to_string(
                     'core/registration/email_signup.html',
                     {
-                        'user': user,
+                        'host_url': settings.DJANGO_HOST_URL,
                         'token': signing.dumps(user.username),
                     }
                 ),
@@ -58,9 +59,10 @@ def signup(request):
             # token from signup: activate user
             user.is_active = True
             user.save(update_fields=["is_active"])
-            return redirect(reverse("login"))
-        except User.objects.DoesNotExist:
-            # token from ivite: present registration form, fill in email from token
+            form = AuthForm(initial={'username': user.email})
+            return render(request, "core/registration/login.html", {"form": form})
+        except User.DoesNotExist:
+            # token from invite: present registration form, fill in email from token
             form = SignUpForm(initial={"email": email, "invited": True})
             return render(request, "core/registration/signup.html", {"form": form})
     else:

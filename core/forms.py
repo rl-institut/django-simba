@@ -4,8 +4,8 @@ from django.contrib.auth.models import User
 
 
 class SignUpForm(UserCreationForm):
-    first_name = forms.CharField(label='Vorname*', max_length=30, required=True)
-    last_name = forms.CharField(label='Nachname*', max_length=30, required=True)
+    first_name = forms.CharField(label='Vorname (optional)', max_length=64, required=False)
+    last_name = forms.CharField(label='Nachname (optional)', max_length=64, required=False)
     email = forms.EmailField(
         widget=forms.EmailInput(attrs={'autocomplete': "username", 'autofocus': True}),
         label='E-Mail*', max_length=254, required=True)
