@@ -1,5 +1,10 @@
-<h4>Willkommen bei WeBus!</h4>
+{% load i18n %}
+<h4>{% translate 'Willkommen bei WeBus!' %}</h4>
 <div>
-  <span>Klicken Sie auf folgenden Link, um die Registrierung abzuschließen:</span>
-  <a href="{{ host_url }}{% url 'core:signup' %}?token={{ token }}">Registrierung abschließen</a>
+  <span>
+    {% translate 'Klicken Sie auf folgenden Link, um die Registrierung abzuschließen:' %}
+  </span>
+  <a href="{{ host_url }}{% url 'core:signup' %}?token={{ token }}">
+    {% translate 'Registrierung abschließen' %}
+  </a>
 </div>

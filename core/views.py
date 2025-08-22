@@ -9,6 +9,7 @@ from django.http import HttpResponse, Http404
 from django.shortcuts import render, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.translation import gettext as _
 
 from .forms import AuthForm, SignUpForm
 
@@ -36,20 +37,20 @@ def signup(request):
             return redirect(reverse("simba:dashboard"))
         else:
             user.email_user(
-                subject = "WeBus Registrierung",
-                message = render_to_string(
-                    'core/registration/email_signup.txt',
+                subject=_("WeBus Registrierung"),
+                message=render_to_string(
+                    "core/registration/email_signup.txt",
                     {
-                        'host_url': settings.DJANGO_HOST_URL,
-                        'token': signing.dumps(user.username),
-                    }
+                        "host_url": settings.DJANGO_HOST_URL,
+                        "token": signing.dumps(user.username),
+                    },
                 ),
-                html_message = render_to_string(
-                    'core/registration/email_signup.html',
+                html_message=render_to_string(
+                    "core/registration/email_signup.html",
                     {
-                        'host_url': settings.DJANGO_HOST_URL,
-                        'token': signing.dumps(user.username),
-                    }
+                        "host_url": settings.DJANGO_HOST_URL,
+                        "token": signing.dumps(user.username),
+                    },
                 ),
                 fail_silently=True,
             )
@@ -66,7 +67,7 @@ def signup(request):
             # token from signup: activate user
             user.is_active = True
             user.save(update_fields=["is_active"])
-            form = AuthForm(initial={'username': user.email})
+            form = AuthForm(initial={"username": user.email})
             return render(request, "core/registration/login.html", {"form": form})
         except User.DoesNotExist:
             # token from invite: present registration form, fill in email from token

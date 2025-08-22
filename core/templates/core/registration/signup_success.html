@@ -1,7 +1,10 @@
 {% extends 'core/base.html' %}
-{% block title %}Fast geschafft{% endblock %}
+{% load i18n %}
+{% block title %}{% translate 'Fast geschafft' %}{% endblock %}
 {% block content %}
 <div>
+{% blocktranslate %}
 Wir haben eine E-Mail mit dem Bestätigungscode an {{ email }} versendet. Klicken Sie auf den Link in der E-Mail, um die Registrierung abzuschließen.
+{% endblocktranslate %}
 </div>
 {% endblock %}
