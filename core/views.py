@@ -36,8 +36,15 @@ def signup(request):
             return redirect(reverse("simba:dashboard"))
         else:
             user.email_user(
-                "WeBus Registrierung",
-                render_to_string(
+                subject = "WeBus Registrierung",
+                message = render_to_string(
+                    'core/registration/email_signup.txt',
+                    {
+                        'host_url': settings.DJANGO_HOST_URL,
+                        'token': signing.dumps(user.username),
+                    }
+                ),
+                html_message = render_to_string(
                     'core/registration/email_signup.html',
                     {
                         'host_url': settings.DJANGO_HOST_URL,
