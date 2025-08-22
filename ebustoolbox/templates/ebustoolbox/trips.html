@@ -1,4 +1,5 @@
 {% extends 'ebustoolbox/wizard.html' %}
+{% load i18n %}
 {% load static %}
 {% load custom_filters %}
 {% block header %}
@@ -31,7 +32,7 @@
   }
 </script>
 {% endblock header %}
-{% block title %}WeBus - Umlaufplan{% endblock title %}
+{% block title %}{% translate "WeBus - Umlaufplan" %}{% endblock title %}
 
 {% block wizard_navigation %}
   {% with wiz_idx=1 %}
@@ -40,6 +41,7 @@
 {% endblock wizard_navigation %}
 
 {% block wizard_content %}
+
 {#  Progress bar poll loading progress.html during server side analysis of file#}
   {%  if progress_id %}
 {% include "core/progress_poll.html" with progress_id=progress_id template_name="progress_trips.html" %}

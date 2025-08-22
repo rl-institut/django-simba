@@ -1,6 +1,7 @@
 {% extends 'ebustoolbox/wizard.html' %}
+{% load i18n %}
 {% load custom_filters %}
-{% block title %}WeBus - Depots{% endblock title %}
+  {% block title %}{% translate "WeBus - Depots" %}{% endblock title %}
 
 {% block wizard_navigation %}
   {% with wiz_idx=5 %}
@@ -12,14 +13,14 @@
 <main class="flex flex-col items-center flex-grow">
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
     <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">
-      Depots
+      {% translate 'Depots' %}
     </h1>
     <form
     type="sumbit"
     method="POST"
     >
     {% csrf_token %}
-      {#    Mange all the different formsets#}
+      {#    Manage all the different formsets#}
       {% for form_dict in forms.values %}
       {% with formset=form_dict|get_item:"depot_area_forms" %}
 
@@ -71,7 +72,7 @@
                     </button>
                     <div class="flex items-center gap-2">
                 <span class="ml-3 text-sm" id="automaticToggleLabel">
-                  <span class="font-medium text-slate-900">Automatische Berechnung</span>
+                      <span class="font-medium text-slate-900">{% translate "Automatische Berechnung" %}</span>
                 </span>
                       <div class="relative inline-block">
                         <!-- Info Icon -->
@@ -82,7 +83,7 @@
                             d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
                     </svg>
                     <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      Bottom Left-Aligned Tooltip
+                          {% translate 'Bottom Left-Aligned Tooltip' %}
                     </div>
                   </span>
                       </div>
@@ -91,7 +92,7 @@
                 </div>
                 <div id="depotChargingContent_{{ depot.id }}" class="hidden pt-6 pb-4 border-b border-slate-200">
                   <div class="mb-4">
-                    <h2 class="block text-base font-semibold text-slate-800">Ladepunkte</h2>
+                  <h2 class="block text-base font-semibold text-slate-800">{% translate "Ladepunkte" %}</h2>
                   </div>
                   {#          Iterate over all rows of ladepunkte and leistung#}
                   {% for form in form_dict|get_item:"depot_area_forms"|get_attr:"initial_forms" %}
@@ -100,7 +101,7 @@
                         <!-- First Column: Anzahl -->
                         <div class="flex-grow">
                           <div class="flex items-center gap-2">
-                            <label for="anzahl" class="block text-sm font-medium text-slate-800">Anzahl</label>
+                        <label for="anzahl" class="block text-sm font-medium text-slate-800">{% translate "Anzahl" %}</label>
                             <div class="relative inline-block">
                               <!-- Info Icon -->
                               <span class="cursor-pointer group">
@@ -110,7 +111,7 @@
                                 d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
                         </svg>
                         <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                          Anzahl Tooltip
+                              {% translate 'Anzahl Tooltip' %}
                         </div>
                       </span>
                             </div>
@@ -128,8 +129,8 @@
                         <!-- Second Column: Leistung -->
                         <div class="flex-grow relative">
                           <div class="flex items-center gap-2">
-                            <label for="leistung" class="block text-sm font-medium text-slate-800">Leistung pro
-                              Punkt</label>
+                        <label for="leistung" class="block text-sm font-medium text-slate-800">{% translate 'Leistung pro
+                              Punkt' %}</label>
                             <div class="relative inline-block">
                               <!-- Info Icon -->
                               <span class="cursor-pointer group">
@@ -139,7 +140,7 @@
                                 d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
                         </svg>
                         <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                          Leistung Tooltip
+                              {% translate 'Leistung Tooltip' %}
                         </div>
                       </span>
                             </div>
@@ -151,7 +152,7 @@
                                       class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                                       placeholder="300"
                               >
-                              <div class="shrink-0 select-none text-slate-500">kW</div>
+                          <div class="shrink-0 select-none text-slate-500">{% translate "kW" %}</div>
                             </div>
                             <!-- Delete Button -->
                             <button
@@ -171,13 +172,13 @@
                     </div>
                   {% endfor %}
                   <div class="mt-2">
-                    <button id="addPoint_{{ depot.id }}" class="text-emerald-600 text-sm font-bold">+ Ladepunkte hinzufügen</button>
+                  <button id="addPoint_{{ depot.id }}" class="text-emerald-600 text-sm font-bold">{% translate "+ Ladepunkte hinzufügen" %}</button>
                   </div>
 
 
                   <div class="flex justify-end">
                     <div class="flex items-center gap-4">
-                      <span class="text-sm font-normal">Gesamtleistung</span>
+                    <span class="text-sm font-normal">{% translate "Gesamtleistung" %}</span>
                       <span class="px-2 py-1 bg-sky-50 font-semibold text-sky-800"><div id="{{ depot_id }}summedTotalPower"></div></span>
                     </div>
                   </div>
@@ -185,9 +186,9 @@
 
                 <div id="gridConnectionContent_{{ depot_id }}" class="hidden pb-4">
                   <div class="mt-6">
-                    <h2 class="block text-base font-semibold text-slate-800">Netzanschlüsse</h2>
+                  <h2 class="block text-base font-semibold text-slate-800">{% translate "Netzanschlüsse" %}</h2>
                     <div class="flex items-center gap-2 pt-4">
-                      <label for="ladeleistung" class="block text-sm font-medium text-slate-800">Ladeleistung</label>
+                    <label for="ladeleistung" class="block text-sm font-medium text-slate-800">{% translate "Ladeleistung" %}</label>
                       <div class="relative inline-block">
                         <!-- Info Icon -->
                         <span class="cursor-pointer group">
@@ -197,7 +198,7 @@
                             d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
                     </svg>
                     <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      Bottom Left-Aligned Tooltip
+                          {% translate 'Bottom Left-Aligned Tooltip' %}
                     </div>
                   </span>
                       </div>
@@ -209,7 +210,7 @@
                                 class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                                 placeholder="5000"
                         >
-                        <div class="shrink-0 select-none text-slate-500">kVA</div>
+                      <div class="shrink-0 select-none text-slate-500">{% translate "kVA" %}</div>
                       </div>
                     </div>
                   </div>
