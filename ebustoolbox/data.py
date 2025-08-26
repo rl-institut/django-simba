@@ -866,10 +866,6 @@ def get_soc_as_df(task_id: str) -> pd.DataFrame:
     return df_long.sort_values(["V_id", "timestamp"]).reset_index(drop=True)
 
 
-def get_soc_as_df(task_id: str) -> pd.DataFrame:
-    return get_soc_as_df(task_id)
-
-
 def get_soc_as_json(task_id: str) -> dict:
     df_long = get_soc_as_df(task_id)
 
@@ -1371,10 +1367,6 @@ def get_bustype_as_json(task_id):
         return []
 
     return [{"value": row["count"], "name": row["name"]} for _, row in df.iterrows()]
-
-
-def get_bustype_as_df(task_id):
-    return get_bustype_as_df(task_id)
 
 
 def get_combined_piecharts_as_df(task_id: str):
