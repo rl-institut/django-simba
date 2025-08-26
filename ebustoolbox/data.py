@@ -1142,7 +1142,7 @@ def get_translated_stats_as_df(task_id: str):
     return pd.DataFrame(renamed_items, columns=["Statistik", "Wert"])
 
 
-def _get_speed_hist(task_id: str):
+def get_speed_hist_as_df(task_id: str) -> pd.DataFrame:
     scenario = Scenario.objects.get(task_id=task_id)
     vehicle_name_dict, _ = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
@@ -1150,10 +1150,10 @@ def _get_speed_hist(task_id: str):
     dur_df = get_duration_as_dataframe(scenario.id, buses)
     dist_df = get_distances_as_dataframe(scenario.id, buses)
 
-    # Calculate average speed in km/h
+    # Durchschnittsgeschwindigkeit in km/h berechnen
     dur_df["avg_speed_kmh"] = (dist_df["total_distance"] / 1000) / (dur_df["duration"] / 3600)
 
-    # Bin speeds
+    # Geschwindigkeiten in Bins einteilen
     bin_width_kmh = 10
     max_speed_kmh = dur_df["avg_speed_kmh"].max()
     bins = np.arange(0, max_speed_kmh + bin_width_kmh, bin_width_kmh)
@@ -1161,20 +1161,22 @@ def _get_speed_hist(task_id: str):
     hist, bin_edges = np.histogram(dur_df["avg_speed_kmh"], bins=bins)
 
     bin_labels = [
-        f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km/h" for i in range(len(bin_edges) - 1)
+        f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km/h"
+        for i in range(len(bin_edges) - 1)
     ]
 
-    return bin_labels, hist.tolist()
+    return pd.DataFrame({
+        "Geschwindigkeitsspanne (km/h)": bin_labels,
+        "Anzahl": hist
+    })
 
 
-def get_speed_hist_as_json(task_id: str):
-    bin_labels, counts = _get_speed_hist(task_id)
-    return {"bins": bin_labels, "counts": counts}
-
-
-def get_speed_hist_as_df(task_id: str):
-    bin_labels, counts = _get_speed_hist(task_id)
-    return pd.DataFrame({"Geschwindigkeitsspanne (km/h)": bin_labels, "Anzahl": counts})
+def get_speed_hist_as_json(task_id: str) -> dict:
+    df = get_speed_hist_as_df(task_id)
+    return {
+        "bins": df["Geschwindigkeitsspanne (km/h)"].tolist(),
+        "counts": df["Anzahl"].tolist()
+    }
 
 
 def get_dist_hist_as_df(task_id: str) -> pd.DataFrame:
