@@ -1379,14 +1379,14 @@ def get_soc_data(request, task_id: str):
 
     if file_format == "json":
         payload = data.get_soc_as_json(task_id)
-        response_data = JsonResponse(payload, safe=True)
+        response = JsonResponse(payload, safe=True)
     elif file_format == "csv":
         csv_text = data.get_soc_as_df(task_id)
-        response_data = HttpResponse(csv_text.to_csv(index=False), content_type="text/csv")
+        response = HttpResponse(csv_text.to_csv(index=False), content_type="text/csv")
     else:
         raise Http404
 
-    return response_data
+    return response
 
 
 def get_binned_soc_data(request, task_id: str):
