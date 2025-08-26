@@ -833,7 +833,7 @@ def sim_is_finished(task_id):
     return Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
 
 
-def _get_soc(task_id: str) -> pd.DataFrame:
+def get_soc_as_df(task_id: str) -> pd.DataFrame:
     """
     Build and return a long-form DataFrame with columns:
         V_id | timestamp | soc
@@ -867,11 +867,11 @@ def _get_soc(task_id: str) -> pd.DataFrame:
 
 
 def get_soc_as_df(task_id: str) -> pd.DataFrame:
-    return _get_soc(task_id)
+    return get_soc_as_df(task_id)
 
 
 def get_soc_as_json(task_id: str) -> dict:
-    df_long = _get_soc(task_id)
+    df_long = get_soc_as_df(task_id)
 
     grouped = (
         df_long.groupby("V_id").apply(lambda g: g[["timestamp", "soc"]].values.tolist()).to_dict()
@@ -880,7 +880,7 @@ def get_soc_as_json(task_id: str) -> dict:
     return {"data": grouped}
 
 
-def _get_binned_soc(task_id: str) -> pd.DataFrame:
+def get_binned_soc_as_df(task_id: str) -> pd.DataFrame:
     scenario = Scenario.objects.get(task_id=task_id)
     vehicle_name_dict, _ = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
@@ -922,12 +922,8 @@ def _get_binned_soc(task_id: str) -> pd.DataFrame:
     return df_filled
 
 
-def get_binned_soc_as_df(task_id: str) -> pd.DataFrame:
-    return _get_binned_soc(task_id)
-
-
 def get_binned_soc_as_json(task_id: str) -> list[dict]:
-    df = _get_binned_soc(task_id)
+    df = get_binned_soc_as_df(task_id)
 
     grouped = (
         df.groupby(["hour", "soc_bin"]).size().reset_index(name="count").to_dict(orient="records")
@@ -959,7 +955,7 @@ def get_power_draw_as_json(request, task_id: str):
     return charging_status
 
 
-def _get_event_gantt(task_id: str) -> pd.DataFrame:
+def get_event_gantt_as_df(task_id: str) -> pd.DataFrame:
     scenario = Scenario.objects.get(task_id=task_id)
     vehicle_name_dict, _ = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
@@ -973,7 +969,7 @@ def _get_event_gantt(task_id: str) -> pd.DataFrame:
 
 
 def get_event_gantt_as_json(task_id: str) -> tuple[list[str], list[dict]]:
-    df = _get_event_gantt(task_id)
+    df = get_event_gantt_as_df(task_id)
 
     buses = df["V_id"].unique()
     categories = [f"Bus {bus}" for bus in buses]
@@ -998,11 +994,7 @@ def get_event_gantt_as_json(task_id: str) -> tuple[list[str], list[dict]]:
     return categories, gantt_data
 
 
-def get_event_gantt_as_df(task_id: str) -> pd.DataFrame:
-    return _get_event_gantt(task_id)
-
-
-def _get_stats_as_json(task_id: str):
+def get_stats_as_json(task_id: str):
     scenario = Scenario.objects.get(task_id=task_id)
 
     filter_dict = dict(task_id=task_id)
@@ -1131,12 +1123,8 @@ def _get_stats_as_json(task_id: str):
     return resp
 
 
-def get_stats_as_json(task_id: str):
-    return _get_stats_as_json(task_id)
-
-
-def get_stats_as_df(task_id: str):
-    stats_dict = _get_stats_as_json(task_id)
+def get_translated_stats_as_df(task_id: str):
+    stats_dict = get_stats_as_json(task_id)
 
     stat_rename = {
         "longest_rotation": "Längster Umlauf, Name: Länge (km)",
@@ -1193,7 +1181,7 @@ def get_speed_hist_as_df(task_id: str):
     return pd.DataFrame({"Geschwindigkeitsspanne (km/h)": bin_labels, "Anzahl": counts})
 
 
-def _get_dist_hist(task_id: str) -> pd.DataFrame:
+def get_dist_hist_as_df(task_id: str) -> pd.DataFrame:
     scenario = Scenario.objects.get(task_id=task_id)
     vehicle_name_dict, _ = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
@@ -1226,17 +1214,13 @@ def _get_dist_hist(task_id: str) -> pd.DataFrame:
         .reindex(columns=["Nicht kritisch", "kritisch"], fill_value=0)
     )
 
-    grouped.index.name = "distanz bin"
+    grouped.index.name = "distance bin"
 
     return grouped
 
 
-def get_dist_hist_as_df(task_id: str) -> pd.DataFrame:
-    return _get_dist_hist(task_id)
-
-
 def get_dist_hist_as_json(task_id: str) -> tuple[list[str], dict[str, list[int]]]:
-    df = _get_dist_hist(task_id)
+    df = get_dist_hist_as_df(task_id)
 
     bins = df.index.tolist()
     data_dict = {
@@ -1247,7 +1231,7 @@ def get_dist_hist_as_json(task_id: str) -> tuple[list[str], dict[str, list[int]]
     return bins, data_dict
 
 
-def _get_power_draw_and_occ(task_id: str) -> pd.DataFrame:
+def get_power_draw_and_occ_as_df(task_id: str) -> pd.DataFrame:
     scenario = Scenario.objects.get(task_id=task_id)
     area_ids = [area.id for area in scenario.area_set.all()]
 
@@ -1257,16 +1241,12 @@ def _get_power_draw_and_occ(task_id: str) -> pd.DataFrame:
     return df
 
 
-def get_power_draw_and_occ_as_df(task_id: str) -> pd.DataFrame:
-    return _get_power_draw_and_occ(task_id)
-
-
 def get_power_draw_and_occ_as_json(task_id: str) -> list[dict]:
-    df = _get_power_draw_and_occ(task_id)
+    df = get_power_draw_and_occ_as_df(task_id)
     return df.to_dict(orient="records")
 
 
-def _get_soc_gantt(task_id: str):
+def get_soc_as_df_gantt(task_id: str):
     scenario = Scenario.objects.get(task_id=task_id)
     events = (
         scenario.event_set.exclude(vehicle=None)
@@ -1311,10 +1291,16 @@ def _get_soc_gantt(task_id: str):
                 }
             )
 
-    vehicle_first_times = {v.id: float("inf") for v in scenario.vehicle_set.all()}
-    for event in events.order_by("-vehicle__id", "-time_start"):
-        ts = event.time_start.timestamp()
-        vehicle_first_times[event.vehicle.id] = ts
+    # find first event start time for each vehicle
+    # dict vehicle ID -> first event timestamp
+    vehicle_first_times = dict()
+    for vehicle in scenario.vehicle_set.all():
+        first_vehicle_event = events.filter(vehicle=vehicle).order_by("time_start").first()
+        if first_vehicle_event is not None:
+            vehicle_first_times[vehicle.id] = first_vehicle_event.time_start.timestamp()
+        else:
+            # vehicle has no events
+            vehicle_first_times[vehicle.id] = float("inf")  # or error or whatever
 
     vehicles = [
         str(v) for v, _ in sorted(vehicle_first_times.items(), key=lambda x: x[1], reverse=True)
@@ -1324,12 +1310,12 @@ def _get_soc_gantt(task_id: str):
 
 
 def get_soc_gantt_as_json(task_id: str):
-    vehicles, records = _get_soc_gantt(task_id)
+    vehicles, records = get_soc_as_df_gantt(task_id)
     return vehicles, records
 
 
 def get_soc_gantt_as_df(task_id: str) -> pd.DataFrame:
-    _, records = _get_soc_gantt(task_id)
+    _, records = get_soc_as_df_gantt(task_id)
     return pd.DataFrame(records)
 
 
@@ -1367,7 +1353,7 @@ def get_critical_rotations_as_df(task_id):
     )
 
 
-def _get_bustype_df(task_id):
+def get_bustype_as_df(task_id):
     vehicle_name_dict, _ = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
@@ -1379,7 +1365,7 @@ def _get_bustype_df(task_id):
 
 
 def get_bustype_as_json(task_id):
-    df = _get_bustype_df(task_id)
+    df = get_bustype_as_df(task_id)
 
     if df.empty:
         return []
@@ -1388,7 +1374,7 @@ def get_bustype_as_json(task_id):
 
 
 def get_bustype_as_df(task_id):
-    return _get_bustype_df(task_id)
+    return get_bustype_as_df(task_id)
 
 
 def get_combined_piecharts_as_df(task_id: str):
