@@ -484,7 +484,7 @@
                 <tr class="hover:bg-slate-50">
                   <td class="border-b border-slate-200 px-4 py-2">voltage_level</td>
                   <td class="border-b border-slate-200 px-4 py-2">[HV, HV_MV, MV, MV_LV, LV]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Erforderlich wenn Haltestelle elektrifiziert ist. An welchem Spannungsniveau ist der Netzanschlusspunkt. HV: Hochspannung, MV: Mittelspannung und LV: Niederspannung</td>
+                  <td class="border-b border-slate-200 px-4 py-2">Erforderlich, wenn Haltestelle elektrifiziert ist. An welchem Spannungsniveau ist der Netzanschlusspunkt. HV: Hochspannung, MV: Mittelspannung und LV: Niederspannung</td>
                   <td class="border-b border-slate-200 px-4 py-2">Keine Empfehlung</td>
                   <td class="border-b border-slate-200 px-4 py-2">Optional</td>
                 </tr>
@@ -492,7 +492,7 @@
                 <tr class="hover:bg-slate-50">
                   <td class="border-b border-slate-200 px-4 py-2">charge_level</td>
                   <td class="border-b border-slate-200 px-4 py-2">[depb, oppb]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Erforderlich wenn Haltestelle elektrifiziert ist.
+                  <td class="border-b border-slate-200 px-4 py-2">Erforderlich, wenn Haltestelle elektrifiziert ist.
                   Handelt es sich um ein Depot (depb) oder um eine normale Haltestelle (oppb)?</td>
                   <td class="border-b border-slate-200 px-4 py-2">Keine Empfehlung</td>
                   <td class="border-b border-slate-200 px-4 py-2">Optional</td>
@@ -501,7 +501,7 @@
                 <tr class="hover:bg-slate-50">
                   <td class="border-b border-slate-200 px-4 py-2">amount_charging_places</td>
                   <td class="border-b border-slate-200 px-4 py-2">[int]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Wieviele Ladepunkte besitzt die Haltestelle. Wenn die Station elektrifiziert ist und dieser Wert "null" ist, so wird eine unbegrenzte Anzahl an Ladepunkten angenommen.</td>
+                  <td class="border-b border-slate-200 px-4 py-2">Wie viele Ladepunkte besitzt die Haltestelle. Wenn die Station elektrifiziert ist und dieser Wert "null" ist, so wird eine unbegrenzte Anzahl an Ladepunkten angenommen.</td>
                   <td class="border-b border-slate-200 px-4 py-2">Keine Empfehlung</td>
                   <td class="border-b border-slate-200 px-4 py-2">Optional</td>
                 </tr>
@@ -517,7 +517,7 @@
                 <tr class="hover:bg-slate-50">
                   <td class="border-b border-slate-200 px-4 py-2">power_total</td>
                   <td class="border-b border-slate-200 px-4 py-2">[float]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Wieviele Ladeleistung steht für die gesamte Haltestelle zur Verfügung? Übersteigt die angefragte Leistung aller Ladesäulen diesen Wert, so werden die Ladesäulen gedrosselt betrieben.</td>
+                  <td class="border-b border-slate-200 px-4 py-2">Wie viel Ladeleistung steht für die gesamte Haltestelle zur Verfügung? Übersteigt die angefragte Leistung aller Ladesäulen diesen Wert, so werden die Ladesäulen gedrosselt betrieben.</td>
                   <td class="border-b border-slate-200 px-4 py-2">Keine Empfehlung</td>
                   <td class="border-b border-slate-200 px-4 py-2">Optional</td>
                 </tr>
@@ -536,10 +536,17 @@
           <p class="text-base pb-4 leading-relaxed text-slate-600">
             {% translate 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.' %}
           </p>
+          <a href="#results" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Ergebnisse' %}</a>
+          <p class="text-base pb-4 leading-relaxed text-slate-600">
+            {% blocktrans %}
+          Im folgenden finden Sie erläuterungen zu den Kennzahlen und Grafiken die sie auf der Ergebniss-Seite finden.
+          <!-- TODO: plots erklären. Import/Export/Downloads -->
+          {% endblocktrans %}
+          </p>
           <a href="#expert_mode" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Expertenmodus' %}</a>
           <p class="text-base pb-4 leading-relaxed text-slate-600">
             {% blocktrans %}
-          WeBus bietet einen vereinfachten Zugang für die Simulation zu elektrifizierenden Bussystemen. Hierzu wurde der Funktionsumfang der Weboberfläche auf die wichtigsten Aspekte reduziert. Sollten Sie spezielle Anforderungen an beispielsweise technische Eigenschaften der Fahrzeuge haben, so lassen sich diese in einem Expertenmodus bearbeiten.
+          WeBus bietet einen vereinfachten Zugang für die Simulation von zu elektrifizierenden Bussystemen. Hierzu wurde der Funktionsumfang der Weboberfläche auf die wichtigsten Aspekte reduziert. Sollten Sie spezielle Anforderungen an beispielsweise technische Eigenschaften der Fahrzeuge haben, so lassen sich diese in einem Expertenmodus bearbeiten.
           Hierzu sind folgende drei Schritte notwendig:
           <ol class="list-decimal">
           <li class="list-inside list-disc py-1 text-slate-700">Exportieren Sie ihr Szenario, welches Sie anpassen möchten</li>
