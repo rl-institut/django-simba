@@ -79,7 +79,7 @@
         </p>
       <h3 class="pb-2 pt-4 text-xl font-semibold"><a href="#simba_schedule">SimBA Format</a></h3>
       <p class="text-base pb-4 leading-relaxed text-slate-600">
-        WeBus erlaubt das .csv Dateiformat nach SimBA Spezifikation. Dies ist ein spezifisches Format für <a href="https://github.com/rl-institut/SimBA">SimBA</a>. Die Formatspezifikation finden Sie <a href='https://rli-simba.readthedocs.io/en/latest/simulation_parameters.html#schedule'>hier</a>. Für WeBus kann ein weiter reduziertes Format genutzt werden.
+        WeBus erlaubt das .csv Dateiformat nach SimBA Spezifikation. Dies ist ein spezifisches Format für <a class="text-blue-600 hover:underline" href="https://github.com/rl-institut/SimBA">SimBA</a>. Die Formatspezifikation finden Sie <a class="text-blue-600 hover:underline" href='https://rli-simba.readthedocs.io/en/latest/simulation_parameters.html#schedule'>hier</a>. Für WeBus kann ein weiter reduziertes Format genutzt werden.
         WeBus erwartet eine .csv Datei mit Komma / ',' als Trennzeichen. Folgende Spaltennamen MÜSSEN enthalten sein.
         <li class="list-inside list-disc py-1 text-slate-700"><i>departure_name</i></li>
         <li class="list-inside list-disc py-1 text-slate-700"><i>departure_time</i></li>
@@ -428,6 +428,7 @@
           Der Wert kann z.B. den Vorgang des An- und Abkoppelns des Pantographen oder das Ein- und Ausstecken eines Steckers abbilden. <br><br>
 
           Haltestellen werden in WeBus auch als Station bezeichnet und haben folgende Attribute, die auch über den Expertenmodus verändert werden können.
+        </p>
           <div class="overflow-x-auto rounded-lg shadow">
             <table class="min-w-full border border-slate-200 text-left text-sm">
               <thead class="bg-slate-100">
@@ -521,20 +522,35 @@
                   <td class="border-b border-slate-200 px-4 py-2">Keine Empfehlung</td>
                   <td class="border-b border-slate-200 px-4 py-2">Optional</td>
                 </tr>
-
-
               </tbody>
             </table>
           </div>
           {% endblocktrans %}
-          </p>
-          <h2 class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Kosten' %}</h2>
+          <a href="#depots" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Kosten' %}</a>
           <p class="text-base pb-4 leading-relaxed text-slate-600">
             {% translate 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.' %}
           </p>
-          <h2 class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Depots' %}</h2>
+          <a href="#depots" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Depots' %}</a>
           <p class="text-base pb-4 leading-relaxed text-slate-600">
             {% translate 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.' %}
+          </p>
+
+          <a href="#optimization" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Optimierung' %}</a>
+          <p class="text-base pb-4 leading-relaxed text-slate-600">
+            {% blocktrans %}
+          WeBus kann ihr Bussystem optimieren. Zwei Optimierungsmethoden werden standardmäßig angewandt
+          </p>
+          <a href="#station_optimization" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Stationsoptimierung' %}</a>
+          Sollte Ihr Bussystem mit den ausgewählten Fahrzeugtypen nicht fahrbar sein, so besteht die Möglichkeit das mittels Stationsoptimierung ein fahrbarer Zustand erreicht wird.
+          Nicht fahrbar bedeutet in diesem Kontext: Ein voll geladener Bus kann einen Umlauf nicht bedienen, ohne dass der SoC des Fahrzeugs unter 0% fällt.
+         Wenn das Fahrzeug diesen Umlauf bedienen könnte, wenn es an Stationen die momentan nicht eletrifziert sind, zwischenladen würde. So wird die Stationsoptmierung ausgeführt.
+          Hierbei werden nur Stationen untersucht die als Elektrifizerbar markiert wurden. Dies geschieht indem man auf der Seite "Stationen" die Station mit "automatisch" markiert.
+        Die Stationsoptimierung fügt sukessive Stationen eine Elektrifizierung bei bis ein voll elektrifzierter Zustand erreicht ist. Wenn ein Umlauf selbst bei vollständiger Elektrifizierung nicht fahrbar wird, so werden für diesen Umlauf keine Stationen elektrifziert. Die Elektrifizierung von Stationen passiert in einer Reihenfolge basierend auf einer Opimierungsheuristik. Stationen die als besonders effektiv erkannt werden, werden zuerst elektrifziert, weniger effektive Stationen werden danach elektrifziert. Sobald Fahrbarkeit erreicht ist wird die Optimierung abgebrochen.
+        Detaillierte Informationen zur Stationsoptimierung finden sie <a class="text-blue-600 hover:underline" href="https://github.com/rl-institut/SimBA">hier</a>.
+          <p class="text-base pb-4 leading-relaxed text-slate-600">
+          <!-- TODO: plots erklären. Import/Export/Downloads -->
+          {% endblocktrans %}
+
           </p>
           <a href="#results" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Ergebnisse' %}</a>
           <p class="text-base pb-4 leading-relaxed text-slate-600">
