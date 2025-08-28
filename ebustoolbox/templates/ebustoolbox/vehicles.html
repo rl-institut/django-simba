@@ -1,6 +1,7 @@
 {% extends 'ebustoolbox/wizard.html' %}
 {% load i18n %}
 
+
 {% load custom_filters %}
   {% block title %}{% translate 'WeBus - Fahrzeuge' %}{% endblock title %}
 
@@ -157,7 +158,7 @@
                 </div>
               </div>
                 <div class="flex" >
-                  <div id="AvgTemperatureHint" style="display:None" class="flex mt-1 text-sm text-slate-600 italic transition-opacity duration-200 ease-in-out">
+                  <div id="AvgTemperatureHint"  class="hidden flex mt-1 text-sm text-slate-600 italic transition-opacity duration-200 ease-in-out">
                     <!-- Next div is queried for class= text and filled with temperature fetch. -->
                     <div class="flex text">
                   </div>
@@ -218,7 +219,6 @@
                     <input {% with simulation_parameters_form.temperature_extreme as form %}
                           {{ form|widget_attrs}}
                            {% endwith %}
-                           type="number"
                            class="flex-1 bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                            placeholder="Gib eine Temperatur ein."
                            aria-describedby="temperature-heading temperature-unit"
@@ -228,7 +228,7 @@
                   </div>
 
                 <div class="flex" >
-                  <div id="ExtremeTemperatureHint" style="display:None" class="flex mt-1 text-sm text-slate-600 italic transition-opacity duration-200 ease-in-out">
+                  <div id="ExtremeTemperatureHint"  class="hidden flex mt-1 text-sm text-slate-600 italic transition-opacity duration-200 ease-in-out">
                     <!-- Next div is queried for class= text and filled with temperature fetch. -->
                     <div class="flex text">
                   </div>
@@ -365,14 +365,14 @@ function refreshPageHints(){
         diesel_checkbox.disabled = true;
         diesel_checkbox.classList.remove(...enabledClasses);
         diesel_checkbox.classList.add(...disabledClasses);
-        enabled_label.style.display='None';
-        disabled_label.style.display="";
+        enabled_label.classList.add('hidden');
+        disabled_label.classList.remove("hidden");
       }else{
         diesel_checkbox.disabled = false;
         diesel_checkbox.classList.remove(...disabledClasses);
         diesel_checkbox.classList.add(...enabledClasses);
-        disabled_label.style.display='None';
-        enabled_label.style.display="";
+        enabled_label.classList.remove('hidden');
+        disabled_label.classList.add("hidden");
       }
     }
     input_avg_id = "id_temperature_average";
@@ -408,16 +408,18 @@ function getDieselVehicleType(db_id){
 
 function getSelectedVehicleTypeId(container){
     const vt_selection = container.querySelector("input[id*='default_vehicle_type']");
-    db_id = vt_selection.getAttribute('value');
+    var db_id = vt_selection.getAttribute('value');
     if (db_id === null ) return null;
     diesel_checkbox = container.querySelector("input[id*='has_diesel_heating']") ;
     if ( diesel_checkbox.checked ) {
-       db_id = getDieselVehicleType(db_id);
-      if (db_id== null) console.error("Diesel Vehicle Type not found");
-  }
+      var db_id_diesel = getDieselVehicleType(db_id);
+      if (db_id_diesel== null){
+        console.log("Diesel Vehicle Type not found. Returning type without Diesel Heating");
+      }else{
+        db_id = db_id_diesel;
+       }
+    }
   return db_id
-
-
 }
 
 function showConsumptionEstimate(temperature, consumptionHintQuery){
@@ -426,7 +428,7 @@ function showConsumptionEstimate(temperature, consumptionHintQuery){
     var textElement = hint.querySelector("div .text");
     db_id=getSelectedVehicleTypeId(container);
     if (db_id==null) return;
-    hint.style.display = "";
+    hint.classList.remove("hidden");
     let cons = getConsumptionForTemperature(parseFloat(temperature), db_id);
     textElement.innerText = document.getElementById("translate_geschätzer_verbrauch").innerText + cons.toFixed(2) ;
 })
@@ -461,7 +463,7 @@ async function showTemperatureHint(temperature, divId, fetchAndSetFunction){
   if (temperature =="") return;
   var divElement = document.getElementById(divId);
   var textElement = divElement.querySelector("div .text");
-  divElement.style.display = "";
+  divElement.classList.remove( "hidden" );
   textElement.classList.add("loader");
   textElement.innerText = " ";
   fetchAndSetFunction(divElement, textElement, temperature);
@@ -471,7 +473,7 @@ async function fetchAndSetTemperature(divElement, textElement, temperature){
   var data =  await fetchQuantile(temperature);
   console.log(data)
   if ( data == null || typeof(data.error) != 'undefined'){
-    divElement.style.display = "None";
+    divElement.classList.add("hidden");
     return
   }
 
