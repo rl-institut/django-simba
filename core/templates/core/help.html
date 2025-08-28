@@ -286,7 +286,7 @@
                   <td class="border-b border-slate-200 px-4 py-2">charging_curve</td>
                   <td class="border-b border-slate-200 px-4 py-2">[-,kW]</td>
                   <td class="border-b border-slate-200 px-4 py-2">Liste aus Wertepaaren bestehend aus SoC [0 bis 1] und Ladeleistungen [kW]. Werte unterhalb und oberhalb des minimalen bzw. maximalen SoCs werden als konstant betrachtet. Werte innerhalb werden linear interpoliert. </td>
-                  <td class="border-b border-slate-200 px-4 py-2">Abnehmende Leistung im oberen SoC-Bereich. Ladekurven die nicht monoton fallend sind, werden nicht unterstützt.</td>
+                  <td class="border-b border-slate-200 px-4 py-2">Abnehmende Leistung im oberen SoC-Bereich. Ladekurven, die nicht monoton fallend sind, werden nicht unterstützt.</td>
                   <td class="border-b border-slate-200 px-4 py-2">Erforderlich</td>
                 </tr>
 
@@ -377,38 +377,38 @@
           {% blocktrans %}
           WeBus erlaubt Ihnen die Untersuchung ihres Bussystems mit verschiedenen Elektrifizierungszuständen.
           In der Simulation werden Fahrzeuge mit Zwischenladefähigkeit an elektrifizierten Haltestellen geladen, wenn freie Ladesäulen verfügbar sind.
-          Die Ladeleistungs ist abhängig von der definierten Ladeleistung pro Ladesäule und der Ladekurve des Fahrzeugs, wobei der jeweils niedrigere Wert ausschlaggebend ist.
+          Die Ladeleistung ist abhängig von der definierten Ladeleistung pro Ladesäule und der Ladekurve des Fahrzeugs, wobei der jeweils niedrigere Wert ausschlaggebend ist.
           Hierzu kann jeder Haltestelle eine Anzahl an Ladesäulen und eine Ladeleistung pro Ladesäule zugewiesen werden.
           Die Ladesäulen werden "greedy" besetzt. Ein eintreffendes Fahrzeug nutzt also stets die Möglichkeit zu laden.
-          Bei diesen Zwischenladung wird kein komplexer Mechanismus genutzt um Fahrzeugen das Laden zu untersagen, oder die Ladung vorzeitig abzubrechen.
+          Bei diesen Zwischenladungen wird kein komplexer Mechanismus genutzt, um Fahrzeugen das Laden zu untersagen, oder die Ladung vorzeitig abzubrechen.
           Dies erscheint für den realen Betrieb als unpraktikabel. In der Benutzeroberfläche werden vorerst nur Haltestellen mit mindestens 2 Minuten Standzeit angezeigt.
           Stationen bei denen kein einziger Bus, mindestens einmal für mindestens 2 Minuten steht werden ausgeblendet.
-          Dies erlaubt die gezielt Elektrifzierung von Stationen die tatsächlich eine relevante Menge an Ladeleistung ins Fahrzeug einbringen können.
+          Dies erlaubt die gezielt Elektrifizierung von Stationen die tatsächlich eine relevante Menge an Ladeleistung ins Fahrzeug einbringen können.
 
 
           <h4 class="text-m pb-1 pt-4 font-semibold" >Elektrifizierung</h4>
           <p class="text-m pb-2 leading-relaxed text-slate-600">
-          Haltestellen können manuell ausgewählt werden und im Berechnungsmodell spezifisch elektrifziert werden. Ihnen kann eine spezifische Ladeleistungs pro Ladepunkt und eine Anzahl an Ladepunkten zugeordnet werden. Bei fehlender Eingabe einer Anzahl an Ladepunkten, wird die Anzahl als unbegrenzt angenommen.
+          Haltestellen können manuell ausgewählt werden und im Berechnungsmodell spezifisch elektrifiziert werden. Ihnen kann eine spezifische Ladeleistung pro Ladepunkt und eine Anzahl an Ladepunkten zugeordnet werden. Bei fehlender Eingabe einer Anzahl an Ladepunkten wird die Anzahl als unbegrenzt angenommen.
           </p>
 
           <h4 class="text-m pb-1 pt-4 font-semibold" >Nicht-Elektrifzierung</h4>
           <p class="text-m pb-2 leading-relaxed text-slate-600">
-          Die Haltestelle wird als nicht elektrizfizert angenommen. Während der Simulation werde Fahrzeuge an diesen Haltestellen nicht laden. Dies ist der Standardwert für alle Haltestellen.
+          Die Haltestelle wird als nicht elektrifiziert angenommen. Während der Simulation werde Fahrzeuge an diesen Haltestellen nicht laden. Dies ist der Standardwert für alle Haltestellen.
           </p>
 
           <h4 class="text-m pb-1 pt-4 font-semibold" >Automatisch</h4>
           <p class="text-m pb-2 leading-relaxed text-slate-600">
           Diese Einstellung prüft, ob das zu untersuchende Bussystem fahrbar ist ohne Elektrifizierung von Haltestellen. Sollte ein Bussystem fahrbar werden, wenn Haltestellen elektrifiziert werden,
-          nutzt die Simulation einen Optimierungsalgorithmus, um eine geringe Anzahl an Haltestellen zu elektrifzieren und so Fahrbarkeit zu erreichen.
+          nutzt die Simulation einen Optimierungsalgorithmus, um eine geringe Anzahl an Haltestellen zu elektrifizieren und so Fahrbarkeit zu erreichen.
           </p>
 
           <h4 class="text-m pb-1 pt-4 font-semibold" >Empfehlung</h4>
           <p class="text-m pb-2 leading-relaxed text-slate-600">
-          Die Auswahl der richtigen Haltestellen die elektrifiziert werden müssen, um ein Fahrbares Szenario zu erstellen kann sehr komplex sein. Daher wird empfohlen folgendermaßen vorzugehen:
+          Die Auswahl der richtigen Haltestellen die elektrifiziert werden müssen, um ein fahrbares Szenario zu erstellen, kann sehr komplex sein. Daher wird empfohlen folgendermaßen vorzugehen:
           </p>
           <ul class="list-disc">
           <li class="list-inside py-1 text-slate-700">Schalten Sie Stationen, die nicht elektrifiziert werden dürfen oder können, z.B. wegen Platzgründen, auf "nicht-elektrifizieren".</li>
-          <li class="list-inside py-1 text-slate-700">Schalten Sie Stationen, die definitiv elektrifiziert werden sollen auf "elektrifiziert" und stellen die Parameter entsprechend ein.</li>
+          <li class="list-inside py-1 text-slate-700">Schalten Sie Stationen, die definitiv elektrifiziert werden sollen, auf "elektrifiziert" und stellen die Parameter entsprechend ein.</li>
           <li class="list-inside py-1 text-slate-700">Schalten Sie alle anderen Stationen auf "automatisch".</li>
           </ul>
 
@@ -421,7 +421,7 @@
           <p class="text-base pb-4 leading-relaxed text-slate-600">
           Im <a href="#expert_mode" class="text-blue-600 hover:underline">Expertenmodus</a> lässt sich über die Einstellung simba_options in der Tabelle Scenario das Ladeverhalten bei Zwischenladung beeinflussen.
           <b>simba_options["min_charging_time"]</b>: Minimale Standzeit um eine Zwischenladung durchzuführen.
-          Wert in Minuten. Bei Standzeiten kleiner als dieser, wird das Fahrzeug nicht geladen.
+          Wert in Minuten. Bei Standzeiten kleiner als dieser wird das Fahrzeug nicht geladen.
           Der Standardwert ist 0. <br>
           <b>simba_options["buffer_time_opps"]</b>: Die Dauer in Minuten, bis nach einer Ankunft eine Zwischenladung beginnen kann.
           Bei Standzeiten, die größer sind als die "min_charging_time" wird die verfügbare Ladezeit um diesen Wert reduziert.
@@ -469,7 +469,7 @@
                 <tr class="hover:bg-slate-50">
                   <td class="border-b border-slate-200 px-4 py-2">is_electrifiable</td>
                   <td class="border-b border-slate-200 px-4 py-2">[bool]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Ist es möglich die Haltestelle zu elektrifizieren? Diese Wert wird für den Elektrifizierungsoptimierer benötigt.</td>
+                  <td class="border-b border-slate-200 px-4 py-2">Ist es möglich die Haltestelle zu elektrifizieren? Dieser Wert wird für den Elektrifizierungsoptimierer benötigt.</td>
                   <td class="border-b border-slate-200 px-4 py-2">Keine Empfehlung</td>
                   <td class="border-b border-slate-200 px-4 py-2">Erforderlich</td>
                 </tr>
@@ -510,7 +510,7 @@
                 <tr class="hover:bg-slate-50">
                   <td class="border-b border-slate-200 px-4 py-2">power_per_charger</td>
                   <td class="border-b border-slate-200 px-4 py-2">[float]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Wieviele Ladeleistung steht pro Ladepunkt maximal zur Verfügung. Erforderlich wenn Haltestelle elektrifziert ist.</td>
+                  <td class="border-b border-slate-200 px-4 py-2">Wie viel Ladeleistung steht pro Ladepunkt maximal zur Verfügung. Erforderlich, wenn Haltestelle elektrifiziert ist.</td>
                   <td class="border-b border-slate-200 px-4 py-2">Keine Empfehlung</td>
                   <td class="border-b border-slate-200 px-4 py-2">Optional</td>
                 </tr>
@@ -542,10 +542,10 @@
           </p>
           <a href="#station_optimization" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Stationsoptimierung' %}</a>
           Sollte Ihr Bussystem mit den ausgewählten Fahrzeugtypen nicht fahrbar sein, so besteht die Möglichkeit das mittels Stationsoptimierung ein fahrbarer Zustand erreicht wird.
-          Nicht fahrbar bedeutet in diesem Kontext: Ein voll geladener Bus kann einen Umlauf nicht bedienen, ohne dass der SoC des Fahrzeugs unter 0% fällt.
-         Wenn das Fahrzeug diesen Umlauf bedienen könnte, wenn es an Stationen die momentan nicht eletrifziert sind, zwischenladen würde. So wird die Stationsoptmierung ausgeführt.
-          Hierbei werden nur Stationen untersucht die als Elektrifizerbar markiert wurden. Dies geschieht indem man auf der Seite "Stationen" die Station mit "automatisch" markiert.
-        Die Stationsoptimierung fügt sukessive Stationen eine Elektrifizierung bei bis ein voll elektrifzierter Zustand erreicht ist. Wenn ein Umlauf selbst bei vollständiger Elektrifizierung nicht fahrbar wird, so werden für diesen Umlauf keine Stationen elektrifziert. Die Elektrifizierung von Stationen passiert in einer Reihenfolge basierend auf einer Opimierungsheuristik. Stationen die als besonders effektiv erkannt werden, werden zuerst elektrifziert, weniger effektive Stationen werden danach elektrifziert. Sobald Fahrbarkeit erreicht ist wird die Optimierung abgebrochen.
+          Nicht fahrbar bedeutet in diesem Kontext: Ein voll geladener Bus kann einen Umlauf nicht bedienen, ohne dass der SoC des Fahrzeugs unter 0&nbsp;% fällt.
+         Wenn das Fahrzeug diesen Umlauf bedienen könnte, wenn es an Stationen die momentan nicht elektrifiziert sind, zwischenladen würde. So wird die Stationsoptimierung ausgeführt.
+          Hierbei werden nur Stationen untersucht die als elektrifizerbar markiert wurden. Dies geschieht, indem man auf der Seite "Stationen" die Station mit "automatisch" markiert.
+        Die Stationsoptimierung fügt sukzessive Stationen eine Elektrifizierung bei bis ein voll elektrifizierter Zustand erreicht ist. Wenn ein Umlauf selbst bei vollständiger Elektrifizierung nicht fahrbar wird, so werden für diesen Umlauf keine Stationen elektrifiziert. Die Elektrifizierung von Stationen passiert in einer Reihenfolge basierend auf einer Optimierungsheuristik. Stationen, die als besonders effektiv erkannt werden, werden zuerst elektrifiziert, weniger effektive Stationen werden danach elektrifiziert. Sobald Fahrbarkeit erreicht ist, wird die Optimierung abgebrochen.
         Detaillierte Informationen zur Stationsoptimierung finden sie <a class="text-blue-600 hover:underline" href="https://github.com/rl-institut/SimBA">hier</a>.
           <p class="text-base pb-4 leading-relaxed text-slate-600">
           <!-- TODO: plots erklären. Import/Export/Downloads -->
@@ -555,7 +555,7 @@
           <a href="#results" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Ergebnisse' %}</a>
           <p class="text-base pb-4 leading-relaxed text-slate-600">
             {% blocktrans %}
-          Im folgenden finden Sie erläuterungen zu den Kennzahlen und Grafiken die sie auf der Ergebniss-Seite finden.
+          Im Folgenden finden Sie Erläuterungen zu den Kennzahlen und Grafiken die sie auf der Ergebnis-Seite finden.
           <!-- TODO: plots erklären. Import/Export/Downloads -->
           {% endblocktrans %}
           </p>
