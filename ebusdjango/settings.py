@@ -97,12 +97,7 @@ MIDDLEWARE = [
     # activate the language based on user cookie
     "core.middleware.LanguageMiddleware",
 ]
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379",
-    }
-}
+
 ROOT_URLCONF = "ebusdjango.urls"
 
 TEMPLATES = [
@@ -152,7 +147,14 @@ if CELERY_TASK_ALWAYS_EAGER:
     CELERY_TASK_STORE_EAGER_RESULT = env.bool("CELERY_TASK_STORE_EAGER_RESULT", default=True)
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=None)
+REDIS_URL = env("REDIS_URL", default=None)
 
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+    }
+}
 # For Database visualization
 GRAPH_MODELS = {
     "all_applications": False,
