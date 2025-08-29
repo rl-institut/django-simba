@@ -2,8 +2,8 @@
 {% load static tailwind_tags %}
 <!-- base file for many pages -->
 <!DOCTYPE html>
-<!-- TODO: Set according to language cookie -->
-<html lang="en">
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/svg+xml" href="{% static 'core/images/WB.svg' %}">
