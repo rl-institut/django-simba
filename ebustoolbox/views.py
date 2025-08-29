@@ -8,7 +8,6 @@ import pytz
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
 from django.db.models.functions import Cast, Coalesce
 from django.db.transaction import atomic
@@ -83,18 +82,13 @@ logger = logging.getLogger("custom")
 
 def progress_scenario(request: HttpRequest, progress_id, template_name):
     context = {"progress_id": progress_id, "status": "", "current_progress": 0}
-
     context |= {"finished": False}
-    try:
-        # scenario = Scenario.objects.get(task_id=progress_id)
-        progress = Progress.objects.get(task_id=progress_id)
-        context["progress"] = progress
-    except ObjectDoesNotExist:
-        response = render(request, "core/progress.html", context)
-        return response
+    progress = Progress.objects.get(task_id=progress_id)
+    context["progress"] = progress
 
     context["current_progress"] = max(progress.get_progress(), 1)
     context["status"] = progress.status
+
     status_code = 200
     hx_trigger = "running"
     if progress.success or not progress.running or len(progress.errors) != 0:
@@ -103,6 +97,25 @@ def progress_scenario(request: HttpRequest, progress_id, template_name):
         status_code = 286
         context["finished"] = True
         hx_trigger = "notRunning"
+    else:
+        # Progress is running. Is there an async progress? Is it pending
+        task_running = True
+        try:
+            res = AsyncResult(str(progress_id).encode())
+            task_running = res.state not in [
+                "FAILURE",
+                "REVOKED",
+            ]
+        except:  # noqa
+            task_running = False
+        if not task_running:
+            print(res.state)
+            # next cycle polling will stop
+            progress: Progress
+            progress.running = False
+            progress.success = False
+            progress.status = res.state
+            progress.save(update_fields=["running"])
     if progress.success:
         hx_trigger = "success"
     response = render(request, f"core/{template_name}", context)
