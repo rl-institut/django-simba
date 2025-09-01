@@ -91,31 +91,22 @@ def progress_scenario(request: HttpRequest, progress_id, template_name):
 
     status_code = 200
     hx_trigger = "running"
+    print(AsyncResult(str(progress_id).encode()).state)
+    result = AsyncResult(str(progress_id).encode())
+    if result.state in ["PENDING", "REVOKED", "FAILURE"]:
+        # the celery task is not running. The progress will not be updated. This has to be fixed.
+        if progress.running:
+            progress.running = False
+            progress.status = "Abgebrochen"
+            progress.errors.append(f"Task is {result.state}")
+            progress.save()
+
     if progress.success or not progress.running or len(progress.errors) != 0:
         context["errors"] = progress.errors
         # End polling
         status_code = 286
         context["finished"] = True
         hx_trigger = "notRunning"
-    else:
-        # Progress is running. Is there an async progress? Is it pending
-        task_running = True
-        try:
-            res = AsyncResult(str(progress_id).encode())
-            task_running = res.state not in [
-                "FAILURE",
-                "REVOKED",
-            ]
-        except:  # noqa
-            task_running = False
-        if not task_running:
-            print(res.state)
-            # next cycle polling will stop
-            progress: Progress
-            progress.running = False
-            progress.success = False
-            progress.status = res.state
-            progress.save(update_fields=["running"])
     if progress.success:
         hx_trigger = "success"
     response = render(request, f"core/{template_name}", context)
