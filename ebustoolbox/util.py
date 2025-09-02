@@ -7,6 +7,7 @@ import matplotlib
 import sys
 
 from django.db.models import Max
+from django.utils.translation import gettext as _
 
 from .models import Scenario
 from ebustoolbox.data import get_powerdraw_as_dataframe
@@ -42,7 +43,7 @@ def get_charge_chart(station):
         return None
 
     ax = power_df.plot(
-        x="time_start", y="Power", xlabel="Zeit", ylabel="Leistung [kW]", legend=False
+        x=_("time_start"), y=_("Power"), xlabel=_("Zeit"), ylabel=_("Leistung [kW]"), legend=False
     )
     buffer = BytesIO()
     ax.figure.savefig(buffer, format="png")

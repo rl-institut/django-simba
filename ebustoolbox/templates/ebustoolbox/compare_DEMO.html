@@ -1,6 +1,6 @@
 {% extends 'core/base.html' %}
-
-{% block title %}WeBus - Szenarienvergleich{% endblock title %}
+{% load i18n %}
+  {% block title %}{% translate "WeBus - Szenarienvergleich" %}{% endblock title %}
 
 {% block content %}
 <main class="flex flex-col items-center">
@@ -15,21 +15,21 @@
               data-tab-button="comparison-tab-1"
               aria-current="page"
             >
-              Bus SOC über Zeit
+              {% translate "Bus SOC über Zeit" %}
             </a>
             <a
               href="#"
               class="comparison-tab whitespace-nowrap border-b-4 border-transparent px-4 py-4 text-sm font-medium tracking-wide text-slate-500 hover:border-slate-300 hover:text-slate-700"
               data-tab-button="comparison-tab-2"
             >
-              Anzahl Ladeplätze in allen Depots
+              {% translate "Anzahl Ladeplätze in allen Depots" %}
             </a>
             <a
               href="#"
               class="comparison-tab whitespace-nowrap border-b-4 border-transparent px-4 py-4 text-sm font-medium tracking-wide text-slate-500 hover:border-slate-300 hover:text-slate-700"
               data-tab-button="comparison-tab-3"
             >
-              Elektrische Spitzenleistung
+              {% translate "Elektrische Spitzenleistung" %}
             </a>
           </nav>
 
@@ -44,14 +44,14 @@
                         <th class="px-4 py-4 font-medium text-center">
                           <div class="flex flex-col items-center gap-2">
                             <div class="flex items-center gap-2">
-                              <span class="ml-2 text-sm font-normal text-slate-500">Diesel-Szenario</span>
+                              <span class="ml-2 text-sm font-normal text-slate-500">{% translate "Diesel-Szenario" %}</span>
                               <div class="relative inline-block">
                                 <span class="cursor-pointer group">
                                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#00856C" class="size-4">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
                                   </svg>
                                   <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                                    Relativer Vergleich mit Diesel-Szenario.
+                                    {% translate "Relativer Vergleich mit Diesel-Szenario." %}
                                   </div>
                                 </span>
                               </div>
@@ -68,45 +68,45 @@
                             </button>
                           </div>
                           <div class="flex flex-col pt-4">
-                            <span>BVG Test 1</span>
-                            <a href="#" class="flex items-center justify-center gap-2 text-green-600">
+                            <span>{% translate "BVG Test 1" %}</span>
+                            <a href="#" class="flex items-center justify-center gap-2 text-emerald-600">
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                               </svg>
-                              <span class="font-medium cursor-pointer hover:underline pt-1">Details</span>
+                              <span class="font-medium cursor-pointer hover:underline pt-1">{% translate "Details" %}</span>
                             </a>
                           </div>
                         </th>
                         <th class="px-4 py-4 font-medium text-center align-bottom">
                           <div class="flex flex-col h-full justify-end">
-                            <span>BVG Test 2</span>
-                            <a href="#" class="flex items-center justify-center gap-2 text-green-600">
+                            <span>{% translate "BVG Test 2<" %}/span>
+                            <a href="#" class="flex items-center justify-center gap-2 text-emerald-600">
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                               </svg>
-                              <span class="font-medium cursor-pointer hover:underline pt-1">Details</span>
+                              <span class="font-medium cursor-pointer hover:underline pt-1">{% translate "Details" %}</span>
                             </a>
                           </div>
                         </th>
                         <th class="px-4 py-4 font-medium text-center align-bottom">
                           <div class="flex flex-col h-full justify-end">
-                            <span>BVG Test 3</span>
-                            <a href="#" class="flex items-center justify-center gap-2 text-green-600">
+                            <span>{% translate "BVG Test 3" %}</span>
+                            <a href="#" class="flex items-center justify-center gap-2 text-emerald-600">
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                               </svg>
-                              <span class="font-medium cursor-pointer hover:underline pt-1">Details</span>
+                              <span class="font-medium cursor-pointer hover:underline pt-1">{% translate "Details" %}</span>
                             </a>
                           </div>
                         </th>
                         <th class="px-4 py-4 font-medium text-center align-bottom">
                           <div class="flex flex-col h-full justify-end">
-                            <span>BVG Test 4</span>
-                            <a href="#" class="flex items-center justify-center gap-2 text-green-600">
+                            <span>{% translate "BVG Test 4" %}</span>
+                            <a href="#" class="flex items-center justify-center gap-2 text-emerald-600">
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                               </svg>
-                              <span class="font-medium cursor-pointer hover:underline pt-1">Details</span>
+                              <span class="font-medium cursor-pointer hover:underline pt-1">{% translate "Details" %}</span>
                             </a>
                           </div>
                         </th>
@@ -114,105 +114,105 @@
                     </thead>
                     <tbody class="text-sm text-slate-700">
                       <tr class="border-t">
-                        <td class="px-4 py-3 text-slate-500">Gesamtkosten</td>
+                        <td class="px-4 py-3 text-slate-500">{% translate "Gesamtkosten" %}</td>
                         <td class="px-4 py-3 text-center">5.780.000 €</td>
                         <td class="px-4 py-3 text-center">5.780.000 €</td>
                         <td class="px-4 py-3 text-center">5.780.000 €</td>
                         <td class="px-4 py-3 text-center">5.780.000 €</td>
                       </tr>
                       <tr class="border-t">
-                        <td class="px-4 py-3 text-slate-500">Vergleich zu Dieselszenario</td>
+                        <td class="px-4 py-3 text-slate-500">{% translate "Vergleich zu Dieselszenario" %}</td>
                         <td class="px-4 py-3 text-center">+23,54 %</td>
                         <td class="px-4 py-3 text-center">+23,54 %</td>
                         <td class="px-4 py-3 text-center">+23,54 %</td>
                         <td class="px-4 py-3 text-center">+23,54 %</td>
                       </tr>
                       <tr class="border-t">
-                        <td class="px-4 py-3 text-slate-500">Gesamtkilometer</td>
+                        <td class="px-4 py-3 text-slate-500">{% translate "Gesamtkilometer" %}</td>
                         <td class="px-4 py-3 text-center">564,8 km</td>
                         <td class="px-4 py-3 text-center">564,8 km</td>
                         <td class="px-4 py-3 text-center">564,8 km</td>
                         <td class="px-4 py-3 text-center">564,8 km</td>
                       </tr>
                       <tr class="border-t">
-                        <td class="px-4 py-3 text-slate-500">Fahrleistung</td>
+                        <td class="px-4 py-3 text-slate-500">{% translate "Fahrleistung" %}</td>
                         <td class="px-4 py-3 text-center">160.000 km</td>
                         <td class="px-4 py-3 text-center">160.000 km</td>
                         <td class="px-4 py-3 text-center">160.000 km</td>
                         <td class="px-4 py-3 text-center">160.000 km</td>
                       </tr>
                       <tr class="border-t">
-                        <td class="px-4 py-3 text-slate-500">Personal</td>
+                        <td class="px-4 py-3 text-slate-500">{% translate "Personal" %}</td>
                         <td class="px-4 py-3 text-center">12</td>
                         <td class="px-4 py-3 text-center">12</td>
                         <td class="px-4 py-3 text-center">12</td>
                         <td class="px-4 py-3 text-center">12</td>
                       </tr>
                       <tr class="border-t">
-                        <td class="px-4 py-3 text-slate-500">Betriebsstunden</td>
+                        <td class="px-4 py-3 text-slate-500">{% translate "Betriebsstunden" %}</td>
                         <td class="px-4 py-3 text-center">100 h</td>
                         <td class="px-4 py-3 text-center">100 h</td>
                         <td class="px-4 py-3 text-center">100 h</td>
                         <td class="px-4 py-3 text-center">100 h</td>
                       </tr>
                       <tr class="border-t">
-                        <td class="px-4 py-3 text-slate-500">Anzahl Fahrzeuge</td>
+                        <td class="px-4 py-3 text-slate-500">{% translate "Anzahl Fahrzeuge" %}</td>
                         <td class="px-4 py-3 text-center">20</td>
                         <td class="px-4 py-3 text-center">20</td>
                         <td class="px-4 py-3 text-center">20</td>
                         <td class="px-4 py-3 text-center">20</td>
                       </tr>
                       <tr class="border-t">
-                        <td class="px-4 py-3 text-slate-500">Gesamt-CO<sub>2</sub>-Einsparung</td>
+                      <td class="px-4 py-3 text-slate-500">{% translate "Gesamt-CO<sub>2</sub>-Einsparung" %}</td>
                         <td class="px-4 py-3 text-center">-70,2 %</td>
                         <td class="px-4 py-3 text-center">-70,2 %</td>
                         <td class="px-4 py-3 text-center">-70,2 %</td>
                         <td class="px-4 py-3 text-center">-70,2 %</td>
                       </tr>
                       <tr class="border-t">
-                        <td class="px-4 py-3 text-slate-500">Anzahl Elektrifizierte Endhaltestellen</td>
+                        <td class="px-4 py-3 text-slate-500">{% translate "Anzahl Elektrifizierte Endhaltestellen" %}</td>
                         <td class="px-4 py-3 text-center">12</td>
                         <td class="px-4 py-3 text-center">12</td>
                         <td class="px-4 py-3 text-center">12</td>
                         <td class="px-4 py-3 text-center">12</td>
                       </tr>
                       <tr class="border-t">
-                        <td class="px-4 py-3 text-slate-500">Geladene Energie an Endhaltestellen</td>
+                        <td class="px-4 py-3 text-slate-500">{% translate "Geladene Energie an Endhaltestellen" %}</td>
                         <td class="px-4 py-3 text-center">63 MWh</td>
                         <td class="px-4 py-3 text-center">63 MWh</td>
                         <td class="px-4 py-3 text-center">63 MWh</td>
                         <td class="px-4 py-3 text-center">63 MWh</td>
                       </tr>
                       <tr class="border-t">
-                        <td class="px-4 py-3 text-slate-500">Anzahl Ladeplätze in allen Depots</td>
+                        <td class="px-4 py-3 text-slate-500">{% translate "Anzahl Ladeplätze in allen Depots" %}</td>
                         <td class="px-4 py-3 text-center">50</td>
                         <td class="px-4 py-3 text-center">50</td>
                         <td class="px-4 py-3 text-center">50</td>
                         <td class="px-4 py-3 text-center">50</td>
                       </tr>
                       <tr class="border-t">
-                        <td class="px-4 py-3 text-slate-500">Geladene Energie an Depots</td>
+                        <td class="px-4 py-3 text-slate-500">{% translate "Geladene Energie an Depots" %}</td>
                         <td class="px-4 py-3 text-center">400 MWh</td>
                         <td class="px-4 py-3 text-center">400 MWh</td>
                         <td class="px-4 py-3 text-center">400 MWh</td>
                         <td class="px-4 py-3 text-center">400 MWh</td>
                       </tr>
                       <tr class="border-t">
-                        <td class="px-4 py-3 text-slate-500">Elektrische Spitzenleistung</td>
+                        <td class="px-4 py-3 text-slate-500">{% translate "Elektrische Spitzenleistung" %}</td>
                         <td class="px-4 py-3 text-center">1.200 kW</td>
                         <td class="px-4 py-3 text-center">1.200 kW</td>
                         <td class="px-4 py-3 text-center">1.200 kW</td>
                         <td class="px-4 py-3 text-center">1.200 kW</td>
                       </tr>
                       <tr class="border-t">
-                        <td class="px-4 py-3 text-slate-500">Anzahl Umläufe</td>
+                        <td class="px-4 py-3 text-slate-500">{% translate "Anzahl Umläufe" %}</td>
                         <td class="px-4 py-3 text-center">112</td>
                         <td class="px-4 py-3 text-center">112</td>
                         <td class="px-4 py-3 text-center">112</td>
                         <td class="px-4 py-3 text-center">112</td>
                       </tr>
                       <tr class="border-t">
-                        <td class="px-4 py-3 text-slate-500">Fahrplanwirkungsgrad</td>
+                        <td class="px-4 py-3 text-slate-500">{% translate "Fahrplanwirkungsgrad" %}</td>
                         <td class="px-4 py-3 text-center">50 %</td>
                         <td class="px-4 py-3 text-center">50 %</td>
                         <td class="px-4 py-3 text-center">50 %</td>
@@ -224,10 +224,10 @@
               </div>
             </div>
             <div class="comparison-tab-content hidden" data-tab="comparison-tab-2">
-              Content for "Anzahl Ladeplätze in allen Depots"
+              {% translate 'Content for "Anzahl Ladeplätze in allen Depots"' %}
             </div>
             <div class="comparison-tab-content hidden" data-tab="comparison-tab-3">
-              Content for "Elektrische Spitzenleistung"
+              {% translate "Content for "Elektrische Spitzenleistung"" %}
             </div>
           </div>
 

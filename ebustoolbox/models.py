@@ -1,5 +1,4 @@
 from datetime import timedelta, datetime
-from enum import auto
 
 from django.core.validators import MinValueValidator, MaxValueValidator
 from fast_update.query import FastUpdateManager
@@ -28,9 +27,24 @@ MINIMAL_TRIP_DURATION_S = 60  # seconds
 
 
 class EnumScenarioType(models.TextChoices):
-    SOURCE = auto()
-    MUTATION = auto()
-    SIMULATION = auto()
+    SOURCE = "SOURCE"
+    MUTATION = "MUTATION"
+    SIMULATION = "SIMULATION"
+
+
+class EnumSimulationType(models.TextChoices):
+    # Default simulation type with typical consumptions
+    DEFAULT = "default"
+    # Simulation for sizing of equipment, e.g. with extreme consumptions
+    SIZING = "sizing"
+    # Other
+
+
+class SimulationType(models.Model):
+    """Defines the type of a Simulation scenario"""
+
+    scenario = models.ForeignKey("Scenario", on_delete=models.CASCADE)
+    sim_type = models.CharField(max_length=20, choices=EnumSimulationType.choices)
 
 
 class Scenario(models.Model):
@@ -293,7 +307,10 @@ class VehicleType(models.Model):
     charging_curve = ArrayField(ArrayField(models.FloatField(), size=2))
     v2g_curve = ArrayField(ArrayField(models.FloatField(), size=2), null=True)
 
+    # Possible constant value for average consumption
     consumption = models.FloatField(default=None, null=True)
+    # Possible constant value for extreme/max consumption
+    max_consumption = models.FloatField(default=None, null=True)
 
     # Shape of the vehicle in the form of length, width, height.
     length = models.FloatField(default=None, null=True)
@@ -1674,9 +1691,15 @@ class SimulationRange(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     start = models.DateTimeField(null=True)
     end = models.DateTimeField(null=True)
-    temperature = models.FloatField(
+    temperature_average = models.FloatField(
         blank=True,
-        default=-10,
+        default=10,
+        null=True,
+        validators=[MinValueValidator(-20), MaxValueValidator(40)],
+    )
+    temperature_extreme = models.FloatField(
+        blank=True,
+        default=-5,
         null=True,
         validators=[MinValueValidator(-20), MaxValueValidator(40)],
     )

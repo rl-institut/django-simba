@@ -10,12 +10,13 @@ from decimal import Decimal
 import logging
 from pathlib import Path
 from typing import List
-
 import environ
+from uuid import UUID as UUIDType
 from celery import shared_task, uuid
 import django.apps
 from django.conf import settings
 from django.contrib.postgres.aggregates import ArrayAgg
+from django.contrib.gis.db.models import Collect
 from django.db import connections
 from django.db.models.functions import Lead
 from django.db.models import F, Max, Count, Min, QuerySet, Window, OuterRef, Subquery
@@ -24,6 +25,7 @@ from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.html import escape
 from django.utils.timezone import make_aware, is_aware
+from django.utils.translation import gettext as _
 from eflips.depot import UnstableSimulationException, DelayedTripException
 from eflips.depot.api import (  # noqa
     simulate_scenario,
@@ -39,7 +41,7 @@ import simba.station_optimization
 import simba.simulate
 import simba.util
 from core.deepcopy import reset_postgres_auto_increments
-from core.models import Progress
+from core.models import EnumProgress, Progress
 from simba.data_container import DataContainer
 from simba.schedule import Schedule as SimbaSchedule
 from . import schedule_readers, forms
@@ -98,10 +100,10 @@ EPS = 1e-5  # a small number, used to allow for difference when comparing floats
 def apply_vehicle_type(
     target_vehicle_type: VehicleType, source_vehicle_type: VehicleType
 ) -> VehicleType:
-    """Use a source vehicle type and apply the attributes to a a target vehicle type.
+    """Use a source vehicle type and apply the attributes to a target vehicle type.
 
     Scenario, name and name short of the target are not copied over.
-    VehicleClasses of source are copied aswell as consumptions which are linked to vehicle classes
+    VehicleClasses of source are copied as well as consumptions which are linked to vehicle classes
     """
     vehicle_classes = source_vehicle_type.vehicle_classes.all()
     source_vehicle_type.id = target_vehicle_type.id
@@ -224,7 +226,7 @@ def filter_inconsistent_trips_and_rotations(simba_schedule):
         arrival_times = [t.arrival_time for t in rotation.trips]
         start = 0
         while True:
-            for i, _ in enumerate(rotation.trips[start:]):
+            for i, __ in enumerate(rotation.trips[start:]):
                 i = i + start
                 if (
                     depart_times.count(rotation.trips[i].departure_time) > 1
@@ -703,7 +705,7 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
     :return: None
     """
 
-    # ToDo: Get real data
+    # TODO: Get real data
     DEFAULT_WIDTH = 2.54
     DEFAULT_HEIGHT = 3.375
 
@@ -716,7 +718,7 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
             try:
                 consumption = float(mileage_text)
             except ValueError:
-                # The milage can be a link/ str to a consumption_table.In this case link
+                # The mileage can be a link/ str to a consumption_table.In this case link
                 # the VehicleClass with this name to this vehicle
                 add_to_vehicle_class = True
                 pass
@@ -745,7 +747,7 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
 def update_electrified_stations_db(electrified_stations, scenario):
     """Update stations which are electrified with info from electrified_stations dictionary"""
     for name, ele_station in electrified_stations.items():
-        # Todo loop over stations
+        # TODO: loop over stations
         station = Station.objects.get(id=Station.get_id_from_simba_name(name), scenario=scenario)
         station.is_electrified = True
 
@@ -818,7 +820,7 @@ def init_db_with_trips(
 ):
     progress = Progress.objects.get(id=progress_id)
     # files is a dict with values of (path, file_id)
-    progress.status = "Gestartet"
+    progress.status = _("Gestartet")
     progress.save()
     file_paths = {key: value[0] for key, value in files.items()}
     schedule_reader_factory = schedule_readers.get_schedule_reader_factory(reader_num)
@@ -845,16 +847,16 @@ def init_db_with_trips(
         progress.save()
     except Exception as e:
         logger.error(traceback.format_exc())
-        progress.status = "Fehlgeschlagen"
+        progress.status = _("Fehlgeschlagen")
         progress.errors.append(str(e))
     finally:
         try:
             progress.errors.extend(schedule_reader.get_errors())
         except:  # noqa
             pass
-        progress.status = "Fertig"
+        progress.status = _("Fertig")
         if not progress.success:
-            progress.status = "Fehlgeschlagen"
+            progress.status = _("Fehlgeschlagen")
         # delete all uploaded files
         try:
             for file_path, file_id in files.values():
@@ -948,11 +950,47 @@ def merge_scenario(mutation_id, simulation_task_id):
     return simulation_scenario
 
 
+# TODO: catch exceptions and pass to progress if exists
 @shared_task(bind=True)
-def run_and_merge_scenarios(self, mutation_id: int, simulation_task_id):
-    simulation_scenario = merge_scenario(mutation_id, simulation_task_id)
-    logger.info(f"Merged scenario with {simulation_scenario.task_id=}")
-    run_toolchain_from_scenario(simulation_scenario, assign_vehicles=True)
+def run_and_merge_scenarios(
+    self,
+    mutation_id: int,
+    default_simulation_task_id: UUIDType,
+    sizing_scenario_task_id: UUIDType,
+):
+
+    progress, created = Progress.objects.get_or_create(task_id=self.request.id)
+    progress.reset()
+    # We expect 10 steps of work, with 5 steps per simulation.
+    # each step increments current_work by 1
+    progress.total_work = 11
+    progress.save()
+    logger.info("Simulating scenario with average consumption first")
+    default_simulation_scenario = merge_scenario(mutation_id, default_simulation_task_id)
+    run_toolchain_from_scenario(default_simulation_scenario, assign_vehicles=True)
+    logger.info("Simulating scenario with high consumption")
+    sizing_scenario = merge_scenario(mutation_id, sizing_scenario_task_id)
+    apply_sizing_parameters(mutation_id, sizing_scenario)
+    run_toolchain_from_scenario(sizing_scenario, assign_vehicles=True)
+    progress.set_success()
+
+
+def apply_sizing_parameters(mutation_id, scenario: Scenario) -> None:
+    """Increase all consumptions in some way"""
+
+    vts = VehicleType.objects.filter(scenario=scenario)
+    for vt in vts:
+        if vt.consumption is not None:
+            vt.consumption *= 2
+        else:
+            consumptions = Consumption.objects.filter(vehicle_class__vehicle_types=vt)
+            assert consumptions.count() == 1
+            vt.consumption = vt.max_consumption
+        vt.save()
+    sim_range = SimulationRange.objects.get(scenario_id=mutation_id)
+    Temperatures.objects.filter(scenario=scenario).delete()
+    # Create temperature instance
+    Temperatures.create_constant_temperatures(scenario, sim_range.temperature_extreme)
 
 
 def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False):
@@ -1475,6 +1513,7 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
 
     # Copy Temperatures
     temperatures_query = Temperatures.objects.filter(scenario=mutation)
+
     if temperatures_query.exists():
         assert temperatures_query.count() == 1
         temperature = temperatures_query.first()
@@ -1542,12 +1581,10 @@ def create_station_mutations(scenario):
 def _run_ebus_toolchain(self, task_id):
     """Run the tool chain"""
     db_scenario = Scenario.objects.get(task_id=task_id)
-    progress, created = Progress.objects.get_or_create(task_id=self.request.id)
-    if created:
-        progress.scenario = db_scenario.parent
-        progress.save()
-    assert progress.scenario == db_scenario.parent, "Progress needs to be linked with parent"
-    progress.reset()
+    # With multiple simulations the progress is linked through the parent to its child scenarios
+    progress, created = Progress.objects.get_or_create(
+        scenario=db_scenario.parent, progress_type=EnumProgress.RUNNING_SIMULATION
+    )
 
     # Clean up of previous notifications which can be produced during the simulation
     # without cleaning they might appear multiple times, from previous failed simulations
@@ -1571,8 +1608,6 @@ def _run_ebus_toolchain(self, task_id):
                 del schedule.stations[depot.station.to_simba_name()]
             except KeyError:
                 pass
-        progress.total_work = 100
-        progress.current_work = 0
         progress.save()
 
         # call SimBA and eFLIPS
@@ -1585,20 +1620,20 @@ def _run_ebus_toolchain(self, task_id):
 
         schedule, simba_scenario = run_simba(schedule, args, db_scenario, mode="sim", scenario=None)
 
-        progress.current_work = 25
+        progress.current_work += 1
         progress.save()
         schedule, simba_scenario = run_simba(
             schedule, args, db_scenario, mode="station_optimization", scenario=simba_scenario
         )
 
-        progress.current_work = 45
+        progress.current_work += 1
         progress.save()
         notifications = []
 
         try:
             run_eflips(task_id)
         except UnstableSimulationException as e:
-            # TODO: handle unstable simulation
+            # TODO: handle it and pass information to user
             logger.error("The simulation is unstable")
             logger.error(traceback.format_exception(e))
             notification = Notification(
@@ -1613,6 +1648,7 @@ def _run_ebus_toolchain(self, task_id):
             )
             notifications.append(notification)
         except DelayedTripException as e:
+            # TODO: handle it and pass information to user
             logger.error("There are delays in the Simulation")
             logger.error(traceback.format_exception(e))
             # TODO: @TU what notification should the user receive
@@ -1645,7 +1681,7 @@ def _run_ebus_toolchain(self, task_id):
                     notification.scenario = scenario
                     notification.save()
 
-        progress.current_work = 75
+        progress.current_work += 1
         progress.save()
         eflips_assignment = get_assigned_vehicles(task_id)
         schedule.assign_vehicles_custom(eflips_assignment)
@@ -1660,14 +1696,13 @@ def _run_ebus_toolchain(self, task_id):
         # respected. Write events for everything
         schedule, simba_scenario = run_simba(schedule, args, db_scenario, mode="sim")
 
-        progress.current_work = 95
+        progress.current_work += 1
         progress.save()
 
         check_event_soc_consistency(db_scenario)
         db_scenario.refresh_from_db()
         db_scenario.finished = timezone.now()
         db_scenario.save()
-        progress.set_success()
     except Exception as e:
         logger.error(traceback.format_exc())
         progress.refresh_from_db()
@@ -1696,7 +1731,7 @@ def electrify_depot_station_w_default(db_scenario):
         station = depot.station
         if station.is_electrified:
             continue
-        # ToDo get defaults from somewhere
+        # TODO: get defaults from somewhere
         station.is_electrified = True
         station.power_total = station.power_total or 1000_000
         station.amount_charging_places = station.amount_charging_places or 1000
@@ -1943,6 +1978,23 @@ def get_datetime(simba_scenario: "SimbaScenario", timestep: int) -> datetime:
     # calculate the corresponding datetime
     minutes = timestep * (60 / simba_scenario.stepsPerHour)
     return simba_scenario.start_time + timedelta(minutes=minutes)
+
+
+def get_middlepoint(scenario: Scenario) -> tuple[float, float] | None:
+    """
+    Get the geometric middlepoint of a scenario or None if the scenario has no geo data.
+    :param scenario: Scenario
+    :return: lon, lat
+    """
+    try:
+        middlepoint = (
+            Station.objects.filter(scenario=scenario)
+            .aggregate(center=Collect("geom"))["center"]
+            .centroid
+        )
+    except AttributeError:
+        return None
+    return middlepoint
 
 
 def is_consistent_rotation(rotation: Rotation) -> bool:

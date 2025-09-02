@@ -1,21 +1,22 @@
 {% extends 'core/base.html' %}
+{% load i18n %}
 
-{% block title %}WeBus - Dashboard{% endblock title %}
+  {% block title %}{% translate "WeBus - Dashboard" %}{% endblock title %}
 
 {% block content %}
 <main class="flex-grow flex flex-col items-center justify-center text-center px-4">
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <h1 class="text-2xl font-semibold mb-6">Szenarienübersicht</h1>
+    <h1 class="text-2xl font-semibold mb-6">{% translate "Szenarienübersicht" %}</h1>
     <div class="text-center">
       <svg class="mx-auto size-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
         <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
       </svg>
-      <h3 class="mt-2 text-sm font-semibold text-slate-800">Kein Szenario</h3>
-      <p class="mt-1 text-sm text-slate-500">Starten Sie, indem Sie Ihr erstes Szenario erstellen.</p>
+      <h3 class="mt-2 text-sm font-semibold text-slate-800">{% translate "Kein Szenario" %}</h3>
+      <p class="mt-1 text-sm text-slate-500">{% translate "Starten Sie, indem Sie Ihr erstes Szenario erstellen." %}</p>
       <div class="mt-6">
-        <a href="{% url 'simba:trips' %}" class="px-6 py-2 bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-400 active:bg-green-500 transition-all duration-300">
+        <a href="{% url 'simba:trips' %}" class="px-6 py-2 bg-emerald-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-emerald-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-400 active:bg-emerald-500 transition-all duration-300">{% translate "
           Szenario erstellen
-        </a>
+        " %}</a>
       </div>
     </div>
   </div>

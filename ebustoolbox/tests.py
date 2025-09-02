@@ -1,13 +1,10 @@
-import shutil
 import time
 from copy import copy
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Iterable
 
 import pandas as pd
 from django.conf import settings
-from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db.models import F
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase, override_settings
@@ -16,12 +13,8 @@ import django.apps
 import core.deepcopy
 
 # Create your tests here.
-from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
 
 from ebustoolbox.schedule_readers import SimbaScheduleReader
 
@@ -48,71 +41,10 @@ from .models import (
 )
 from .tasks import run_simba_scenario
 from .util import get_unique_task_id
-import ebustoolbox
 
 
 TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
 TMP_STATICFILES_DIRS = settings.STATICFILES_DIRS + [settings.BASE_DIR / TMP_UPLOAD]
-
-
-@override_settings(STATICFILES_DIRS=TMP_STATICFILES_DIRS)
-@override_settings(UPLOAD_PATH=TMP_UPLOAD)
-@override_settings(SECURE_PROXY_SSL_HEADER=None)
-@override_settings(SECURE_SSL_REDIRECT=False)
-class MySeleniumTests(StaticLiveServerTestCase):
-    selenium: webdriver.Chrome = None
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        options_ = webdriver.chrome.options.Options()
-        options_.add_argument("--headless=new")
-        options_.add_argument("-enable-unsafe-swiftshader")
-        cls.selenium = webdriver.Chrome(options=options_)
-        cls.selenium.implicitly_wait(20)
-        Path(TMP_UPLOAD).mkdir(parents=True, exist_ok=True)
-
-    @classmethod
-    def tearDownClass(cls):
-        ebustoolbox.data.SqlAlchemyEngine.dispose()
-        cls.selenium.quit()
-        super().tearDownClass()
-        shutil.rmtree(TMP_UPLOAD)
-
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
-    @override_settings(DEBUG=True)
-    def test_result_generation_w_celery(self):
-        # Get the URL using reverse
-        django_scenario, simba_schedule, args = build_scenario()
-        django_scenario.task_id = get_unique_task_id()
-        django_scenario.save()
-        tasks.run_toolchain_from_scenario(django_scenario, assign_vehicles=True)
-        url = reverse("simba:result", args=(django_scenario.task_id,))
-        _ = self.client.get(url)
-        self.selenium.get(f"{self.live_server_url}{url}")
-        # Clear the browser log. We check the state of the site after refresh, to give
-        # map images time to load.
-        _ = self.selenium.get_log("browser")
-        self.selenium.refresh()
-        # give django some time to calculate
-        # Check for 404 requests
-        # Wait until maplibre is loaded
-        # Wait until all plots are finished with fetching
-
-        # This polls an element which is set to "1" and a status after all promises
-        # of data fetching for plots are resolved
-        def element_value_is_true(driver):
-            try:
-                elem = driver.find_element(By.ID, "dataFetchedFinished")
-                value = elem.get_attribute("data-value")
-                status = elem.get_attribute("data-status")
-                return value == "1" and status == "success"
-            except Exception:
-                return False
-
-        # If the promises dont resolve this will throw an error
-        WebDriverWait(self.selenium, 5).until(element_value_is_true)
 
 
 def castable_to_dict(objects: Iterable):

@@ -1,3 +1,4 @@
+{% load i18n %}
 {% load static tailwind_tags %}
 
 <!DOCTYPE html>
@@ -7,42 +8,314 @@
     <link rel="icon" type="image/svg+xml" href="{% static 'core/images/WB.svg' %}" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     {% tailwind_css %}
-    <title>WeBus</title>
+    <title>{% translate 'WeBus' %}</title>
   </head>
-  <body class="bg-gradient-to-br from-gradient1 via-gradient2 to-gradient3 min-h-lvh flex flex-col">
+  <body class="flex flex-col overflow-x-hidden">
     {% include 'core/navbar.html'%}
 
-    <main class="flex-grow flex flex-col items-center justify-center text-center px-4">
-      <img class="h-32 w-auto mt-8 mb-8" src="{% static 'core/images/logo/webus_white.svg' %}" alt="WeBus">
-      <p class="mt-4 text-xl text-slate-800 max-w-3xl">
-        Entwicklung und Analyse von Strategien zur vollständigen Dekarbonisierung des Berliner Busverkehrs bis 2030
-      </p>
-      <div class="mt-8 flex space-x-4">
-        <a href="{% url 'simba:trips' %}" class="px-6 py-2 bg-slate-800 text-white text-base font-semibold tracking-wide rounded-full hover:bg-black hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-900 transition-all duration-300">
-          Starten
-        </a>
-<!--
-        <button class="px-6 py-2 border-2 border-slate-800 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-100 transition-all duration-300">
-          Mehr erfahren
-        </button>
--->
-      </div>
-    </main>
+  <main>
+    <section class="px-6 pt-16 pb-16 lg:pb-0 bg-white">
+      <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+        <div class="space-y-8 lg:pb-32">
+          <h1 class="text-4xl lg:text-5xl font-bold text-slate-800 lg:leading-tight">
+            {% translate 'Dekarbonisierung des Berliner Busverkehrs' %}
+          </h1>
+          <p class="text-lg text-slate-600 leading-relaxed">
+            {% translate 'Entwicklung und Analyse von Strategien zur vollständigen Dekarbonisierung des Berliner Busverkehrs bis 2030' %}
+          </p>
+          <div class="flex flex-col md:flex-row gap-4">
+            <a href="{% url 'simba:trips' %}" class="px-6 py-2 bg-emerald-300 lg:w-[14rem] xl:w-[22rem] text-center text-black text-base font-semibold tracking-wide rounded-full shadow-md hover:bg-teal-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 active:bg-teal-400 transition-all duration-300">
+                {% translate 'Starten' %}
+            </a>
+            <a href="#" class="px-6 py-2 border-2 border-slate-200 text-slate-800 text-base text-center font-semibold tracking-wide rounded-full hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-100 transition-all duration-300">
+                {% translate 'Mehr erfahren' %}
+            </a>
+          </div>
+        </div>
+        <div class="hero-graphic relative max-w-[36rem] mx-auto lg:z-10">
+          <div class="flex justify-center lg:justify-end opacity-0 animate-hero-fade-in-up">
+            <img src="{% static 'core/images/hero_iso_img.svg' %}"
+              alt="Isometric illustration of electric bus infrastructure"
+              class="md:relative lg:top-[6rem] w-full max-w-[20rem] md:max-w-[36rem] h-auto z-10">
+          </div>
+          <!-- 1) Top‑left stat card -->
+          <div
+            class="
+              absolute bg-white rounded-xl shadow-md border-l-4 border-slate-400
+              top-[0] left-[0] w-[46%]
+              md:top-[24%] md:left-[0] md:w-[36%] z-20
+              opacity-0 animate-hero-fade-in-up-delay-1
+            "
+          >
+            <div class="flex gap-4 py-1 px-4 border-b border-slate-200">
+              <div class="hidden md:flex items-center justify-center w-full max-w-12">
+                <svg width="39" height="30" viewBox="0 0 39 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M39 4.44036C32.606 5.25837 32.1065 12.6766 26.7498 14.0916C24.1506 14.7777 21.593 14.5237 19.9862 13.2769C10.3103 22.2816 8.98156 30 8.98156 30C5.70797 24.203 0 22.0227 0 22.0227C4.78717 21.8479 8.09073 24.142 8.09073 24.142C14.5363 12.2989 29.1856 4.79329 30.9068 4.28187C29.3576 4.30628 24.0357 6.38479 18.4094 10.7074C18.3611 10.4782 18.3294 10.2357 18.3144 9.98505C18.0297 5.55853 22.3856 1.40579 26.4235 0.340395C33.2288 -1.45561 39 4.44036 39 4.44036Z" fill="#cbd5e1"/>
+                </svg>
+              </div>
+              <div class="flex flex-col justify-start w-full">
+                <p class="text-xs uppercase text-slate-500">{% translate 'CO₂‑Reduzierung' %}</p>
+                <p class="text-lg md:text-xl font-bold text-slate-700">‑45 %</p>
+              </div>
+            </div>
+            <div class="flex gap-4 py-1 px-4">
+              <div class="hidden md:flex items-center justify-center w-full max-w-12">
+                <svg width="22" height="26" viewBox="0 0 22 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19.2525 19.2765C19.0099 19.0603 18.6312 19.0603 18.415 19.304C17.1462 20.5727 15.5263 21.2477 13.9063 21.2477C11.5301 21.2477 9.26257 19.7902 7.9663 17.3865H14.1226C14.4738 17.3865 14.7438 17.1165 14.7438 16.7653V14.659C14.7438 14.3078 14.4738 14.0378 14.1226 14.0378H6.8863C6.83251 13.6328 6.83251 13.2278 6.83251 12.8503C6.83251 12.4727 6.85993 12.0677 6.91372 11.6353H14.1225C14.4737 11.6353 14.7437 11.3653 14.7437 11.014V8.90782C14.7437 8.55661 14.4737 8.28661 14.1225 8.28661L7.96618 8.28766C9.2624 5.91145 11.5037 4.42639 13.9062 4.42639C15.5536 4.42639 17.1462 5.12882 18.4149 6.39761C18.6575 6.64019 19.0361 6.64019 19.2523 6.42503L21.6011 4.26503C21.7361 4.15745 21.7899 3.99503 21.8173 3.80624C21.8173 3.64382 21.7636 3.48246 21.6549 3.34746C19.5224 1.18746 16.7949 0 13.9324 0C9.20738 0 4.91492 3.32127 3.21365 8.26254H0.621216C0.27 8.26254 0 8.53254 0 8.88376V10.99C0 11.3412 0.27 11.6112 0.621216 11.6112H2.51122C2.48379 12.0436 2.45743 12.4486 2.45743 12.8262C2.45743 13.2038 2.48485 13.6088 2.51122 14.0138H0.621216C0.27 14.0138 0 14.2838 0 14.635V16.7412C0 17.0924 0.27 17.3624 0.621216 17.3624H3.21365C4.91486 22.3037 9.20738 25.6249 13.9324 25.6249C16.7949 25.6249 19.5486 24.4374 21.6549 22.2775C21.7625 22.1699 21.8437 22.0075 21.8437 21.8187C21.8437 21.6563 21.7625 21.4949 21.6275 21.3599L19.2525 19.2765Z" fill="#cbd5e1"/>
+                </svg>
+              </div>
+              <div class="flex flex-col justify-start w-full">
+                <p class="mt-2 text-xs uppercase text-slate-500">{% translate 'Investition' %}</p>
+                <p class="text-lg md:text-xl font-bold text-slate-700">1,2 M. €</p>
+              </div>
+            </div>
+          </div>
 
-    <footer class="bg-slate-800 text-white">
-      <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <ul class="flex justify-center space-x-6 text-sm">
-<!--
-          <li><a href="#" class="hover:underline">Kontakt</a></li>
--->
-          <li><a href="{% url 'core:legal' %}" class="hover:underline">Impressum</a></li>
-          <li><a href="{% url 'core:privacy' %}" class="hover:underline">Datenschutz</a></li>
-        </ul>
-      </div>
-    </footer>
+          <!-- 2) Bus‑stop callout #1 -->
+          <div
+            class="
+              hidden absolute md:flex items-center space-x-2 bg-white text-slate-600 px-3 py-2 rounded-lg shadow-md
+              top-[6%] left-[60%]
+              md:top-[39%] md:left-[47%] z-20
+              opacity-0 animate-hero-fade-in-up-delay-2
+            "
+          >
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="#20E3B2">
+              <path d="M13 2L3 14h9l-1 8L21 10h-9l1-8z" />
+            </svg>
+            <span class="whitespace-nowrap text-sm">{% translate 'Haltestelle wird elektrifiziert' %}</span>
+          </div>
 
-<!--
-    <script type="module" src="/src/main.ts"></script>
--->
+          <!-- 3) Bus‑stop callout #2 -->
+          <div
+            class="
+              absolute flex items-center space-x-2 bg-white text-slate-600 px-3 py-2 rounded-lg shadow-md
+              top-[91%] left-[25%]
+              md:top-[83%] md:left-[7%] z-20
+              opacity-0 animate-hero-fade-in-up-delay-3
+            "
+          >
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="#20E3B2">
+              <path d="M13 2L3 14h9l-1 8L21 10h-9l1-8z" />
+            </svg>
+            <span class="whitespace-nowrap text-sm">{% translate 'Haltestelle wird elektrifiziert' %}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-gradient-to-b from-slate-50 to-slate-200 px-6 py-16 lg:pt-24 pb-16 lg:pb-24 relative">
+      <div class="max-w-7xl mx-auto">
+        <h2 class="text-xl md:text-2xl font-bold text-slate-800 text-center uppercase mb-8 lg:mb-16">{% translate 'Features' %}</h2>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-2 gap-8 lg:gap-12">
+          <div class="bg-white rounded-2xl p-8 shadow-lg">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-8 h-8 md:w-12 md:h-12 bg-gradient2 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3l14 9-14 9V3z"></path>
+                </svg>
+              </div>
+              <h3 class="text-base md:text-xl font-bold text-slate-800">{% translate 'Einfache Bedienung' %}</h3>
+            </div>
+            <p class="text-sm md:text-base text-slate-600 leading-relaxed">
+              {% translate 'Die Website leitet Sie Schritt-für-Schritt durch den Simulationsprozess. Eingansparameter werden ausführlich erläutert, Beispiele bereitgestellt und ein Tutorialvideo erklärt die Website in nur 10 Minuten. Experten-Wissen ist nicht notwendig.' %}
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 shadow-lg">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-8 h-8 md:w-12 md:h-12 bg-gradient2 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+                </svg>
+              </div>
+              <h3 class="text-base md:text-xl font-bold text-slate-800">{% translate 'Vielfältige Eingangsdaten' %}</h3>
+            </div>
+            <p class="text-sm md:text-base text-slate-600 leading-relaxed">
+              {% translate 'Es besteht die Möglichkeit Busfahrpläne in verschiedenen Formaten hochzuladen, z.B. als einfache .csv Tabelle, VDV-Konform als .x10 oder die Nutzung von Online-Fahrplänen, falls Ihnen keine Daten verfügbar sind.' %}
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 shadow-lg">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-8 h-8 md:w-12 md:h-12 bg-gradient2 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+              </div>
+              <h3 class="text-base md:text-xl font-bold text-slate-800">{% translate 'Detaillierte Prozessmodellierung' %}</h3>
+            </div>
+            <p class="text-sm md:text-base text-slate-600 leading-relaxed">
+              {% translate 'Das Tool nutzt eine Vielzahl von Randbedingungen, die den Betrieb von elektrischen Fahrzeugen maßgeblich beeinflussen. Ladezeiten, Reinigung, Umparken, begrenzte Flächen, Ladekurven und vieles mehr werden berücksichtigt.' %}
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 shadow-lg">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-8 h-8 md:w-12 md:h-12 bg-gradient2 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+              </div>
+              <h3 class="text-base md:text-xl font-bold text-slate-800">{% translate 'Elektrifizierungsstrategie' %}</h3>
+            </div>
+            <p class="text-sm md:text-base text-slate-600 leading-relaxed">
+              {% translate 'Sollte ein Bussystem im Ausgangszustand nicht elektrisch betrieben werden können, kann die Website prüfen, ob dies durch die Elektrifizierung von möglichst wenig Einzelhaltestellen möglich ist.' %}
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 shadow-lg">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-8 h-8 md:w-12 md:h-12 bg-gradient2 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+              <h3 class="text-base md:text-xl font-bold text-slate-800">{% translate 'Kostenberechnung' %}</h3>
+            </div>
+            <p class="text-sm md:text-base text-slate-600 leading-relaxed">
+              {% translate 'Eine Kostenberechnung liefert Ihnen eine Abschätzung für die Total-Cost-of-Ownership und andere wichtige betriebswirtschaftliche Kennzahlen.' %}
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 shadow-lg">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-8 h-8 md:w-12 md:h-12 bg-gradient2 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+              </div>
+              <h3 class="text-base md:text-xl font-bold text-slate-800">{% translate 'Visualisierung' %}</h3>
+            </div>
+            <p class="text-sm md:text-base text-slate-600 leading-relaxed">
+              {% translate 'Das simulierte Bussystem wird automatisch ausgewertet und visualisiert. So können in Kürze Aussagen über ein elektrifiziertes Bussystem getroffen und Entscheidungen abgeleitet werden.' %}
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="relative">
+        <!-- Split background - teal top, white bottom -->
+        <div class="absolute inset-0">
+          <div class="h-1/2 bg-slate-200"></div>
+          <div class="h-1/2 bg-white"></div>
+        </div>
+
+        <!-- Bus image positioned in the center -->
+        <div class="relative px-6 py-0">
+          <div class="max-w-7xl mx-auto">
+            <div class="flex justify-center lg:justify-start">
+              <img src="{% static 'core/images/bus_stop.png' %}"
+                alt=""
+                class="w-40 lg:w-80 h-auto relative z-10">
+            </div>
+          </div>
+        </div>
+    </section>
+
+    <section class="bg-white px-6 pt-8 lg:pt-16 pb-16 lg:pb-24">
+      <div class="max-w-7xl mx-auto">
+        <h2 class="text-xl md:text-2xl font-bold text-slate-800 text-center uppercase mb-8 lg:mb-16">{% translate 'Das EBus2030+ Tool ist in Entwicklung' %}</h2>
+
+        <div class="grid md:grid-cols-3 gap-8">
+          <div class="flex flex-col justify-between bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
+            <div>
+              <h3 class="text-lg md:text-xl font-bold text-slate-800 mb-4">{% translate 'Publications' %}</h3>
+              <p class="text-sm md:text-base text-slate-600 leading-relaxed mb-6">
+                {% translate 'Momentan sind noch keine Veröffentlichungen verfügbar. In Kürze werden hier wissenschaftliche Publikationen und Zwischenberichte veröffentlicht.' %}
+            </p>
+            </div>
+            <a href="#" class="text-sm md:text-base text-slate-600 hover:text-slate-800 flex items-center gap-2 transition-all duration-300 hover:translate-x-1 group">
+              <span class="transition-transform duration-300 group-hover:translate-x-1">→</span>{% translate 'Zur Kategorie' %}
+              </a>
+          </div>
+
+          <div class="flex flex-col justify-between bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
+            <div>
+              <h3 class="text-lg md:text-xl font-bold text-slate-800 mb-4">GitHub</h3>
+              <p class="text-sm md:text-base text-slate-600 leading-relaxed mb-6">
+                {% translate 'Unsere Software zur Modellierung von Bussystemen ist öffentlich verfügbar. Hier finden Sie den Quellcode für SimBA, Eflips sowie auch der Website.' %}
+              </p>
+            </div>
+            <a href="#" class="text-sm md:text-base text-slate-600 hover:text-slate-800 flex items-center gap-2 transition-all duration-300 hover:translate-x-1 group">
+              <span class="transition-transform duration-300 group-hover:translate-x-1">→</span>{% translate 'Zu GitHub' %}
+            </a>
+          </div>
+
+          <div class="flex flex-col justify-between bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
+            <div>
+              <h3 class="text-lg md:text-xl font-bold text-slate-800 mb-4">Read the Docs</h3>
+              <p class="text-sm md:text-base text-slate-600 leading-relaxed mb-6">
+                {% translate 'Elektrische Bussysteme sind komplex. Dies gilt auch für die Modellierung solcher Systeme. Eine ausführliche Dokumentation unserer Simulation und Berechnung finden Sie hier.' %}
+              </p>
+            </div>
+            <a href="#" class="text-sm md:text-base text-slate-600 hover:text-slate-800 flex items-center gap-2 transition-all duration-300 hover:translate-x-1 group">
+              <span class="transition-transform duration-300 group-hover:translate-x-1">→</span>{% translate 'Zur Dokumentation' %}
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-slate-100 px-6 py-16 lg:py-24">
+      <div class="max-w-7xl mx-auto">
+        <h2 class="text-xl md:text-2xl font-bold text-slate-800 text-center uppercase mb-8 lg:mb-16">{% translate 'Konsortium' %}</h2>
+
+        <div class="grid md:grid-cols-3 gap-12 mb-16">
+          <div class="text-center">
+            <div class="flex items-center justify-center mx-auto mb-4">
+              <img src="{% static 'templates/img/bvg_icon.png' %}" alt="BVG Logo" class="w-auto h-16">
+            </div>
+            <h3 class="text-lg lg:text-xl font-bold text-slate-800 mb-4">BVG</h3>
+            <p class="text-sm md:text-base text-slate-600 leading-relaxed">
+              Amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi.
+            </p>
+          </div>
+
+          <div class="text-center">
+            <div class="flex items-center justify-center mx-auto mb-4">
+              <img src="{% static 'templates/img/tu_icon.png' %}" alt="TUB Logo" class="w-auto h-16">
+            </div>
+            <h3 class="text-lg lg:text-xl font-bold text-slate-800 mb-4">TU Berlin</h3>
+            <p class="text-sm md:text-base text-slate-600 leading-relaxed">
+              Amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi.
+            </p>
+          </div>
+
+          <div class="text-center">
+            <div class="flex items-center justify-center mx-auto mb-4">
+              <img src="{% static 'templates/img/RLI_Logo.png' %}" alt="RLI Logo" class="w-auto h-16">
+            </div>
+            <h3 class="text-lg lg:text-xl font-bold text-slate-800 mb-4">Reiner Lemoine Institut</h3>
+            <p class="text-sm md:text-base text-slate-600 leading-relaxed">
+              Amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex justify-center items-center gap-4">
+          <img src="{% static 'templates/img/bmdv_icon.jpg' %}" alt="BMDV Logo" class="w-auto h-[12rem] mix-blend-multiply">
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bg-white px-6 py-12 lg:py-16 border-t border-slate-200">
+    <div class="max-w-7xl mx-auto">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-600">
+        <div class="flex gap-6">
+          <a href="{% url 'core:legal' %}" class="hover:text-slate-800 transition-colors duration-300">
+            {% translate 'Impressum' %}
+          </a>
+          <a href="{% url 'core:privacy' %}" class="hover:text-slate-800 transition-colors duration-300">
+            {% translate 'Datenschutz' %}
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
   </body>
 </html>

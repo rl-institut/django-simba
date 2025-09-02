@@ -32,6 +32,41 @@ Template:
  - eFlips needs changes before this can be properly integrated
  - eFlips is updated to the current version
 
+- [(#244)](https://github.com/rl-institut/django-simba/pull/244)
+- Add a second Temperature input to the vehicles page
+- Add a second Consumption to the each vehicle type
+- Simulate two scenarios with each consumption using each temperature or a user defined constant consumption
+  - This should be used to differentiate between the sizing of depot, vehicles and infrastructure and the usual energy consumption on average days
+- Dieselheating is moved to an extra checkbox on the vehicle page
+  - The dropdown is cleaned from vehicletype names including 'Zusatzheizung'
+  - The checkbox can be activated if two vehicle types exist with the same name only differing in the suffix "_Zusatzheizung" from the default
+  - Depending on the state of the checkbox the used vehicle type switches between these two vehicle types.
+  - This means default vehicle types of the default scenario must be **uniquely** named.
+- Temperatures data can be [imported](https://github.com/rl-institut/django-simba?tab=readme-ov-file#temperatures)
+
+### Changed
+- [(#237)](https://github.com/rl-institut/django-simba/pull/223)
+- Added content as placeholder to the home page
+- Worked on design details
+
+## [x.x.x] - Unreleased
+### Changed
+- [(#243)](https://github.com/rl-institut/django-simba/pull/243)
+- The website supports basic translation.
+```terminal
+django-admin makemessages -a
+django-admin compilemessages
+```
+- For now the language is set via a cookie when calling "de" or "en" as LANGUAGE_ABBREVIATION
+`
+/set_lang/LANGUAGE_ABBREVIATION
+`
+
+### Changed
+- [(#242)](https://github.com/rl-institut/django-simba/pull/242)
+- Updated station and depot icons on map
+
+### Changed
 - [(#223)](https://github.com/rl-institut/django-simba/pull/223)
 - Dash app is removed completely from website
   - Visualization now uses [echarts.js]( https://echarts.apache.org/en/index.html)

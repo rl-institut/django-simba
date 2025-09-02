@@ -11,6 +11,7 @@ import numpy as np
 import sqlalchemy
 from django.db.models import Prefetch, Sum, F, FloatField, ExpressionWrapper
 from django.db.models.functions import Coalesce, Extract
+from django.utils.translation import gettext as _
 from sqlalchemy.orm import Session
 
 from ebustoolbox.models import (
@@ -77,7 +78,7 @@ def vid_human_readable(vehicle: Vehicle, counter, name="", c_type=False, rotatio
     identifier = str(name) + "_" + c_type_str + "_" + str(running_id) + "_" + str(vehicle.id)
 
     if rotation:
-        return identifier + " in Rotation " + str(rotation.id)
+        return identifier + _(" in Rotation ") + str(rotation.id)
     else:
         return identifier
 
@@ -215,8 +216,7 @@ def get_frequently_served_station(task_id: str) -> list[str]:
     frequency = df["arrival_station_id"].value_counts()[most_common_station]
 
     station = Station.objects.get(scenario_id=s.id, id=most_common_station)
-
-    return f"{station.name},  {frequency} mal"
+    return _(f"{station.name},  {frequency} mal")
 
 
 def get_scenario_duration(task_id: str) -> dict:
@@ -263,7 +263,7 @@ def get_number_longest_rot(filter_dict: dict):
     if longest_rotation and longest_rotation.distance:
         return [f"{longest_rotation.name}: {longest_rotation.distance / 1000:.1f}"]
     else:
-        return ["Keine Rotation gefunden!"]
+        return [_("Keine Rotation gefunden!")]
 
 
 def get_number_shortest_rot(filter_dict: dict):
@@ -292,7 +292,7 @@ def get_number_shortest_rot(filter_dict: dict):
     if shortest_rotation and shortest_rotation.distance:
         return f"{shortest_rotation.name}: \n{shortest_rotation.distance / 1000:.1f}"
     else:
-        return ["Keine Rotation gefunden!"]
+        return [_("Keine Rotation gefunden!")]
 
 
 def recent_memoizer(function, scenario_id, _dcache1=dict(), _result_cache2=dict()):  # noqa
@@ -1178,8 +1178,8 @@ def get_dist_hist_as_json(task_id: str):
     return {
         "bins": grouped.index.tolist(),
         "data": {
-            "Nicht kritisch": grouped["Nicht kritisch"].tolist(),
-            "kritisch": grouped["kritisch"].tolist(),
+            _("Nicht kritisch"): grouped["Nicht kritisch"].tolist(),
+            _("kritisch"): grouped["kritisch"].tolist(),
         },
     }
 

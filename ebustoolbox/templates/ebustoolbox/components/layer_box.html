@@ -1,38 +1,34 @@
+{% load i18n %}
 <div class="map-overlay" id="map-overlay">
-
-
     <div>
-        <button type="button" class="btn-close" id="js-map-layers-box-close"
-                aria-label="Close">X</button>
+        <button type="button" class="btn-close text-slate-600" id="js-map-layers-box-close" aria-label="Close">X</button>
     </div>
-    <div class="map-overlay-content">
-        <div class="buttons-container">
-            <div class="basemaps__btn">
-                <button id="basemaps__default" class="btn" onclick="toggleBasemap(null);">
-                    <img src="/static/django_mapengine/images/layer_ctrl_default.svg" alt="Default basemap view">
-                    <span>Kartenansicht</span>
-                </button>
-            </div>
-            <div class="basemaps__btn">
-                <button id="basemaps__satellite" class="btn" onclick="toggleBasemap('satellite');">
-                    <img src="/static/django_mapengine/images/layer_ctrl_satellite.svg" alt="Satellite basemap view">
-                    <span>Satellitenansicht</span>
-                </button>
-            </div>
+    <div class="flex flex-col pt-4">
+        <div class="flex justify-start pb-4 border-b">
+            <button
+                id="basemaps__toggle"
+                onclick="toggleBasemap();"
+                class="flex flex-grow items-center gap-2 p-2 bg-slate-50 border rounded-md transition transform hover:shadow-lg duration-300 ease-in-out"
+            >
+                <img
+                id="basemap-icon"
+                src="/static/django_mapengine/images/layer_ctrl_satellite.svg"
+                alt="Satellitenansicht"
+                class="rounded-md w-12 h-12"
+                >
+                <span id="basemap-label" class="tracking-wide text-sm">{% translate "Satellitenansicht" %}</span>
+            </button>
         </div>
-        <br><br>
-        <div id="layers">
+        <div id="layers" class="py-4 border-b">
             <!-- Layer items will be inserted here -->
         </div>
-        <br><br>
-        <div class="slider-container">
+        <div class="slider-container pt-4">
             <div class="label-container">
-                <label> <span> Anzahl Anfahrten:</span></label>
-                <label>Min: <span id="minValueDisplay">0</span></label> -
-                <label>Max: <span id="maxValueDisplay">100</span></label>
+                <label> <span class="text-sm text-slate-600"> {% translate "Anzahl Anfahrten:" %}</span></label>
+                <label><span class="text-sm text-slate-600">{% translate "Min:" %}</span> <span class="font-semibold" id="minValueDisplay">0</span></label> -
+                <label><span class="text-sm text-slate-600">{% translate "Max:" %}</span> <span class="font-semibold" id="maxValueDisplay">100</span></label>
             </div>
-            <br><br>
-            <div id="slider-num_arrival"></div>
+            <div class="px-4" id="slider-num_arrival"></div>
         </div>
         <script>
             $(document).ready(function() {
@@ -42,46 +38,98 @@
 
             });
 
-            const layers = [
-                {label: 'Depots', toggleFunction: () => updateFilter()},
-                {label: 'Elektrifizierte Stationen', toggleFunction: () => updateFilter()},
-                {label: 'Stationen', toggleFunction: () => updateFilter()}
-            ];
-
             const layersContainer = document.getElementById('layers');
 
-            layers.forEach((layer, index) => {
+            const depotLayer = [
+                {
+                    label: 'Depots',
+                    icon: '/static/ebus_map/static/ebus_map/depot.png',
+                    toggleFunction: () => updateFilter()
+                }
+            ];
+
+            const stationLayers = [
+                {
+                    label: 'Elektrifiziert',
+                    icon: '/static/ebus_map/static/ebus_map/bus_station_electrified.png',
+                    toggleFunction: () => updateFilter()
+                },
+                {
+                    label: 'Nicht elektrifiziert',
+                    icon: '/static/ebus_map/static/ebus_map/bus_station_not_electrified.png',
+                    toggleFunction: () => updateFilter()
+                },
+                {
+                    label: 'Nie elektrifiziert',
+                    icon: '/static/ebus_map/static/ebus_map/bus_station_never_electrified.png',
+                    toggleFunction: () => updateFilter()
+                }
+            ];
+
+            function renderLayer(layer, indexOffset) {
                 const layerItem = document.createElement('div');
                 layerItem.classList.add('layer-item');
 
-                // Create a table for each layer item
                 const table = document.createElement('table');
-                table.classList.add('layer-table');
+                table.classList.add('layer-table', 'w-full');
 
                 const row = document.createElement('tr');
 
                 const checkboxCell = document.createElement('td');
-                checkboxCell.classList.add('checkbox-cell');
+                checkboxCell.classList.add('checkbox-cell', 'px-2', 'text-right', 'w-[1%]');
+
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
-                checkbox.id = `layer-${index}`;
-                checkbox.checked = true; // Set checkbox as checked by default
+                checkbox.id = `layer-${indexOffset}`;
+                checkbox.checked = true;
+                checkbox.classList.add('form-checkbox', 'h-4', 'w-4', 'text-emerald-500');
                 checkbox.addEventListener('change', layer.toggleFunction);
                 checkboxCell.appendChild(checkbox);
 
                 const labelCell = document.createElement('td');
-                labelCell.classList.add('label-cell');
+                labelCell.classList.add('label-cell', 'pr-2');
+
                 const label = document.createElement('label');
                 label.htmlFor = checkbox.id;
-                label.textContent = layer.label;
+                label.classList.add('flex', 'items-center', 'gap-2', 'cursor-pointer', 'text-sm', 'text-slate-700');
+
+                const icon = document.createElement('img');
+                icon.src = layer.icon;
+                icon.alt = '';
+                icon.classList.add('w-6', 'h-6', 'object-contain');
+
+                const labelText = document.createTextNode(layer.label);
+
+                label.appendChild(icon);
+                label.appendChild(labelText);
                 labelCell.appendChild(label);
 
                 row.appendChild(labelCell);
                 row.appendChild(checkboxCell);
                 table.appendChild(row);
                 layerItem.appendChild(table);
-                layersContainer.appendChild(layerItem);
+
+                return layerItem;
+            }
+
+            // Render the depot layer
+            depotLayer.forEach((layer, index) => {
+                const element = renderLayer(layer, index);
+                layersContainer.appendChild(element);
             });
+
+            // Add section title
+            const sectionTitle = document.createElement('div');
+            sectionTitle.textContent = 'Stationen';
+            sectionTitle.classList.add('text-xs', 'text-left', 'uppercase', 'text-slate-500', 'px-2', 'pt-4', 'pb-2', 'mt-4', 'border-t');
+            layersContainer.appendChild(sectionTitle);
+
+            // Render the station layers
+            stationLayers.forEach((layer, index) => {
+                const element = renderLayer(layer, index + depotLayer.length);
+                layersContainer.appendChild(element);
+            });
+
             let sliderMinDefault = 0;
             let sliderMaxDefault = 100;
 
