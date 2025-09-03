@@ -47,62 +47,23 @@
   </div>
   <!-- Use alert when simulating -->
   <div class="flex justify-center pt-8">
-  {% include "ebustoolbox/partials/simulate_scenario_button.html" with buttonId="simulateButton" %}
+<div id='simulateButton'
+        hx-select="#simulateButton"
+        hx-get='.'
+        hx-trigger='startSim from:body, success from:body, notRunning from:body'
+        hx-swap='innerHTML'
+        >
+  {% include "ebustoolbox/partials/simulate_scenario_button.html" %}
       </div>
-
-  <div>
-    <div id="runner"
-        {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
-        hx-trigger="notRunning from:body">
-    </div>
   </div>
-
-  <script>
-      const disabledClasses = ['cursor-not-allowed', 'bg-slate-200',];
-      const enabledClasses = ['hover:bg-emerald-300', 'hover:shadow-lg', 'active:bg-green-500', 'bg-green-400', 'cursor-pointer'];
-      // Clicking the simulate button disables it. It will be enabled again if htmx sends notRunning
-      function disableButtons() {
-        var button=document.getElementById("simulateButton")
-        disableButton(button);
-        var button=document.getElementById("WizardNextButton")
-        disableButton(button);
-      }
-      {% if progress.running %}
-      $("#simulateButton").click(disableButtons);
-      {% endif %}
-      htmx.on('#runner', 'htmx:trigger', function (evt) {
-        console.log("notRunning");
-        {#hx is triggered when "notRunning" is sent from progress poll#}
-        var button=document.getElementById("simulateButton")
-        enableButton(button);
-        var button=document.getElementById("WizardNextButton")
-        enableButton(button);
-      })
-      // Disable the (simulate) button, e,g, disable classes and click callback
-      // Add a loading spinner to the button
-      function disableButton(btn, ){
-        btn.disabled = true;
-        btn.classList.remove(...enabledClasses);
-        btn.classList.add(...disabledClasses);
-        // Make sure to get the current state if the span was mutated after initialization
-        const newSpan = document.createElement("span");
-        // loader is a css class of a spinner
-        newSpan.classList.add("loader");
-        newSpan.innerText = " ";
-        btn.replaceChildren(newSpan);
-      }
-      // Enable the (simulate) button
-      function enableButton(btn){
-        console.log("enabled");
-        btn.disabled = false;
-        btn.innerHTML ={% translate '"Erneut Simulieren"' %}
-        btn.classList.remove(...disabledClasses);
-        btn.classList.add(...enabledClasses);
-      }
-
-
-  </script>
-
+<script>
+  document.body.addEventListener("htmx:afterSwap", function (evt) {
+    // Trigger button refresh when the button was clicked
+        if (evt.detail.target.id == "simulationProgressAlert") {
+      htmx.trigger(document.body, "startSim");
+    }
+  });
+</script>
   <div id="simulationProgressAlert">
   {% if progress %}
     {% include "core/progress_poll.html" with progress_id=progress.task_id template_name="progress_simulation.html" %}
@@ -600,7 +561,7 @@
   <div class="mx-auto max-w-7xl px-2 pt-4 pb-8 sm:px-6 lg:px-8">
     <div class="flex justify-end gap-4">
         <a href="{% url 'simba:depots' task_id %}
-" class="px-6 py-2 bg-slate-200 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
+" class="flex px-6 py-2 bg-slate-200 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
           <span class="flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
               <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -609,7 +570,18 @@
           </span>
         </a>
 
-    {% include "ebustoolbox/partials/simulate_scenario_button.html" with buttonId="WizardNextButton" %}
+
+  <div class="flex justify-center">
+<div id='wizardNextButton'
+        hx-select="#wizardNextButton"
+        hx-get='.'
+        hx-trigger='startSim from:body, success from:body, notRunning from:body'
+        hx-swap='innerHTML'
+        >
+  {% include "ebustoolbox/partials/simulate_scenario_button.html" %}
+      </div>
+  </div>
+
     </div>
   </div>
 </nav>

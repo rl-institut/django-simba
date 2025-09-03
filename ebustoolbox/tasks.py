@@ -967,11 +967,18 @@ def run_and_merge_scenarios(
     progress.save()
     logger.info("Simulating scenario with average consumption first")
     default_simulation_scenario = merge_scenario(mutation_id, default_simulation_task_id)
-    run_toolchain_from_scenario(default_simulation_scenario, assign_vehicles=True)
+    assign_new_vehicles_to_db(default_simulation_scenario)
+    _ = _run_ebus_toolchain.apply(
+        (str(default_simulation_task_id),),
+        task_id=str(default_simulation_task_id),
+    )
     logger.info("Simulating scenario with high consumption")
     sizing_scenario = merge_scenario(mutation_id, sizing_scenario_task_id)
     apply_sizing_parameters(mutation_id, sizing_scenario)
-    run_toolchain_from_scenario(sizing_scenario, assign_vehicles=True)
+    assign_new_vehicles_to_db(sizing_scenario)
+    _ = _run_ebus_toolchain.apply(
+        (str(sizing_scenario_task_id),), task_id=str(sizing_scenario_task_id)
+    )
     progress.set_success()
 
 
