@@ -147,7 +147,6 @@
             aria-expanded="false"
             aria-haspopup="true"
             aria-label="Optionen sehen"
-
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
               stroke-width="1.5" stroke="currentColor" class="size-6">
@@ -930,7 +929,7 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="custom-action block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als PNG exportieren</a>              </div>
+                <a href="#" class="map-export block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als PNG exportieren</a>              </div>
             </div>
           </div>
         </div>
@@ -2070,8 +2069,6 @@
             // Replace placeholder with actual task ID (you can retrieve this dynamically)
             endpoint = endpoint.replace('{task-id}', taskId);
 
-
-
             try {
               const response = await fetch(endpoint);
               if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -2100,8 +2097,8 @@
         });
     });
 
-        // Custom function handler
-        document.querySelectorAll('.custom-action').forEach(option => {
+        // Map-as-png export
+        document.querySelectorAll('.map-export').forEach(option => {
             option.addEventListener('click', (e) => {
                 e.preventDefault();
                 mapScreenshot();
