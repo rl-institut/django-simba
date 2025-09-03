@@ -1002,7 +1002,7 @@ simpy = ">=4.0.1,<5.0.0"
 
 [[package]]
 name = "eflips-depot"
-version = "4.13.3"
+version = "4.13.4"
 description = "Depot Simulation for eFLIPS"
 optional = false
 python-versions = ">=3.11, <3.14"
@@ -1024,7 +1024,7 @@ xlsxwriter = "^3.1.9"
 type = "git"
 url = "git@github.com:mpm-tu-berlin/eflips-depot.git"
 reference = "main"
-resolved_reference = "2474b6ebe91459597bfdb561b78155553f271cf9"
+resolved_reference = "176fdbdcfdbee584eb0ca5b0df821fc5479f42ef"
 
 [[package]]
 name = "eflips-eval"
