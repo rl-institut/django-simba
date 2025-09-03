@@ -1,8 +1,13 @@
 import base64
+import logging
+from pathlib import Path
+import traceback
+import zipfile as zf
 
 import django
 from celery import uuid
 from io import BytesIO
+from django import conf
 import matplotlib
 import sys
 
@@ -11,6 +16,8 @@ from django.utils.translation import gettext as _
 
 from .models import Scenario
 from ebustoolbox.data import get_powerdraw_as_dataframe
+
+logger = logging.getLogger("custom")
 
 if not any(["selenium" in str(x) for x in sys.modules.values()]):
     # do not use tkagg during testing since it does not work with headless selenium
@@ -58,3 +65,78 @@ def get_next_id(model: django.db.models.Model) -> int:
     if model.objects.exists():
         return model.objects.aggregate(Max("id"))["id__max"] + 1
     return 1
+
+
+class ZipFileException(Exception):
+    pass
+
+
+def validate_zip(
+    zip_file: zf.ZipFile,
+    max_files: int,
+    max_total_size: int,
+    max_depth: int,
+    current_file_nr: int = 0,
+    current_total_size: int = 0,
+    current_depth: int = 0,
+) -> tuple[int, int]:
+    """
+    Get the uncompressed size and file number of a Zip file path.
+
+    Throws a ZipFileException if number of files exceeds the max_files, or max_total_size attributes.
+
+    :param zip_file: ZipFile to be validated
+    :param max_files: max allowed number of files
+    :param max_total_size: max allowed size in bytes for the uncompressed file
+    :param max_depth: max allowed nesting, e.g. zip files inside zipfiles
+    :param current_file_nr: initialization for counting files
+    :param current_total_size: initialization for total_size
+    :param current_depth: initialization for depth
+    :return: total number of files, total size of uncompressed zip
+    :raises ZipFileException: If the ZipFile is to nested, has to many files or the size is to large
+    """
+
+    if current_depth > max_depth:
+        raise ZipFileException("Zipfile is to deeply nested")
+    try:
+        if True:
+            pass
+            total_files = 0
+            total_size = 0
+        for file in zip_file.infolist():
+            if Path(file.filename).suffix == ".zip":
+                inner_zip = zf.ZipFile(BytesIO(zip_file.read(file)))
+                files, size = validate_zip(
+                    inner_zip,
+                    max_files,
+                    max_total_size,
+                    max_depth,
+                    current_file_nr=total_files,
+                    current_total_size=total_size,
+                    current_depth=current_depth + 1,
+                )
+                total_files += files
+                total_size += size
+            else:
+                total_files += 1
+                if total_files > max_files:
+                    raise ZipFileException(
+                        f"To many files inside the Zipfile ({total_files}>{max_files}"
+                    )
+                total_size += file.file_size
+                if total_size > max_total_size:
+                    raise ZipFileException(
+                        f"Zipfile is too large in the uncompressed state ({total_size}>{max_total_size}"
+                    )
+                # Validate file path to prevent path traversal
+                extraction_dir = conf.settings.MEDIA_ROOT
+                # Validate file path to prevent path traversal
+                extracted_path = Path(extraction_dir, file.filename)
+                if not extracted_path.resolve().is_relative_to(Path(extraction_dir).resolve()):
+                    raise ZipFileException(f"Zipfile name is not allowed ({file.filename})")
+    except ZipFileException:
+        raise
+    except Exception as e:
+        logger.warning(traceback.format_exception(e))
+        raise ZipFileException("Validating zipfile failed due to an unexpected Exception (see log)")
+    return total_files, total_size
