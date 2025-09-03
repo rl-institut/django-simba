@@ -200,7 +200,7 @@ LOGGING = {
         "file": {
             "level": "INFO",
             "class": "logging.FileHandler",
-            "filename": "./info.log",
+            'filename': '/var/log/app/info.log',
             "formatter": "simple",
         },
     },

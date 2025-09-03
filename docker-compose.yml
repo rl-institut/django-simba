@@ -5,10 +5,9 @@ services:
     build:
       context: .
     image: django-web:latest
+    user: "django"
     command:
       /start
-    volumes:
-      - .:/app
     ports:
       - "8000:8000"
     depends_on:
@@ -18,15 +17,13 @@ services:
     # Celery and Web can use the same image.
     # Reference the image from above.
     image: django-web:latest
+    user: "django"
     command:
       /start_celery
-    volumes:
-      - .:/app
     depends_on:
       - my-docker-postgres
       - my-docker-redis
       - web
-
 
   my-docker-redis:
     # in .env_file
