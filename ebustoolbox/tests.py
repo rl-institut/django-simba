@@ -178,6 +178,7 @@ def build_scenario():
         if station.power_total is None:
             station.power_total = django_scenario.simba_options["gc_power_opps"]
         station.save()
+    django_scenario.task_id = get_unique_task_id()
     return django_scenario, simba_schedule, args
 
 
@@ -298,16 +299,16 @@ class WriteReadScenarioToDatabase(TestCase):
 
 class ModelTests(TestCase):
     def test_scenario_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         self.assertEqual(str(scenario.name), "Test Scenario")
 
     def test_uploaded_file_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         uploaded_file = UploadedFile.objects.create(scenario=scenario, file="test.txt")
         self.assertEqual(str(uploaded_file.file), "test.txt")
 
     def test_vehicle_type_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
@@ -319,7 +320,7 @@ class ModelTests(TestCase):
         self.assertEqual(str(vehicle_type.name), "Test Type")
 
     def test_vehicle_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
@@ -334,7 +335,7 @@ class ModelTests(TestCase):
         self.assertEqual(str(vehicle), "Test Vehicle")
 
     def test_rotation_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
@@ -352,14 +353,14 @@ class ModelTests(TestCase):
         self.assertEqual(str(rotation.name), "Test Rotation")
 
     def test_station_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         station = Station.objects.create(
             geom="POINT(0 0 0)", name="Test Station", scenario=scenario
         )
         self.assertEqual(str(station.name), "Test Station")
 
     def test_trip_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
@@ -403,9 +404,9 @@ class ModelTests(TestCase):
 class ScenarioTestCase(TestCase):
     def setUp(self):
         # Create test instances of your model
-        Scenario.objects.create(name="Instance 1")
+        Scenario.objects.create(name="Instance 1", task_id=get_unique_task_id())
         time.sleep(0.01)
-        Scenario.objects.create(name="Instance 2")
+        Scenario.objects.create(name="Instance 2", task_id=get_unique_task_id())
 
     def test_model_creation(self):
         instance_1 = Scenario.objects.get(name="Instance 1")
@@ -666,7 +667,7 @@ class ConsumptionTestCase(TransactionTestCase):
         assert sum_consumption_new != sum_consumption
 
     def test_get_consumption(self):
-        scenario = Scenario.objects.create(name="my scenario")
+        scenario = Scenario.objects.create(name="my scenario", task_id=get_unique_task_id())
         vehicle_class = VehicleClass.objects.create(name="my vehicle class", scenario=scenario)
         consumption_instance = Consumption.objects.create(
             name="My Consumption",

@@ -662,7 +662,9 @@ def get_args(django_scenario) -> Namespace:
 
 
 def scenario_to_db(cleaned_data, request) -> Scenario:
-    scenario = Scenario.objects.create(name=cleaned_data["title"])
+    scenario = Scenario.objects.create(
+        name=cleaned_data["title"], task_id=ebustoolbox.util.get_unique_task_id()
+    )
     args = dict(cleaned_data)
     args["mode"] = list(map(lambda s: s.strip(), args["modes"].split(",")))
     # decimal -> float
