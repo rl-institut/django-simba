@@ -119,10 +119,8 @@ class Scenario(models.Model):
 
     @classmethod
     def get_default_pk(cls):
-        scenario, created = cls.objects.get_or_create(
-            name="default_scenario",
-        )
-        return scenario.pk
+        default_scenario = DefaultScenario.objects.first().scenario
+        return default_scenario.pk
 
 
 @receiver(models.signals.pre_delete, sender=Scenario)

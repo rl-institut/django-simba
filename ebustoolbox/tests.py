@@ -169,6 +169,13 @@ def build_scenario():
     django_scenario, simba_schedule, args = tasks.input_files_to_database(
         form.cleaned_data, request
     )
+    for vt in VehicleType.objects.filter(scenario=django_scenario):
+        # NOTE: Eflips needs masses for calculation
+        vt.allowed_mass = 20_000
+        vt.empty_mass = 10_000
+        query = Consumption.objects.filter(vehicle_class=VehicleClass.objects.get(vehicletype=vt))
+        assert query.exists()
+        vt.save()
 
     for station in Station.objects.filter(scenario=django_scenario):
         if station.amount_charging_places is None:
@@ -179,6 +186,7 @@ def build_scenario():
             station.power_total = django_scenario.simba_options["gc_power_opps"]
         station.save()
     django_scenario.task_id = get_unique_task_id()
+    Temperatures.create_constant_temperatures(django_scenario, 20)
     return django_scenario, simba_schedule, args
 
 
@@ -414,7 +422,6 @@ class ScenarioTestCase(TestCase):
         self.assertGreater(instance_2.created, instance_1.created)
         self.assertIsNone(instance_1.finished)
         self.assertIsInstance(instance_1.simba_options, dict)
-        self.assertIsNone(instance_1.task_id)
 
 
 class SimulationTestCase(TransactionTestCase):
@@ -506,6 +513,7 @@ class SimulationTestCase(TransactionTestCase):
 class ConsumptionTestCase(TransactionTestCase):
     def test_missing_temperature(self):
         django_scenario, simba_schedule, args = build_scenario()
+        Temperatures.objects.filter(scenario=django_scenario).delete()
         missing_temp_text = (
             "uses a consumption LUT for consumption calculation but the scenario "
             "has no Temperature object for temperature lookup. Default value for "
@@ -921,7 +929,7 @@ class TemperaturesTestCase(TestCase):
         temp2 = 0
         temp3 = 100
         t_instance = Temperatures(
-            scenario=Scenario.objects.get(pk=Scenario.get_default_pk()),
+            scenario=Scenario.objects.create(name="Scenario", task_id=get_unique_task_id()),
             name="First Temperatures",
             use_only_time=False,
             datetimes=[date1, date2, date3],

@@ -1591,9 +1591,17 @@ def _run_ebus_toolchain(self, task_id):
     """Run the tool chain"""
     db_scenario = Scenario.objects.get(task_id=task_id)
     # With multiple simulations the progress is linked through the parent to its child scenarios
-    progress, created = Progress.objects.get_or_create(
+    progress = Progress.objects.filter(
         scenario=db_scenario.parent, progress_type=EnumProgress.RUNNING_SIMULATION
-    )
+    ).first()
+    if not progress:
+        logger.warning(
+            "The toolchain did not find a progress belonging to the parent of the scenario. "
+            "Creating a Progress bound to the simulation scenario instead"
+        )
+        progress = Progress.objects.create(
+            scenario=db_scenario, progress_type=EnumProgress.RUNNING_SIMULATION, task_id=task_id
+        )
 
     # Clean up of previous notifications which can be produced during the simulation
     # without cleaning they might appear multiple times, from previous failed simulations
@@ -1851,7 +1859,7 @@ def run_mode(
         conf.early_return = True
 
     # For now the optimizer needs a directory, and also expects an
-    # arg which is only set in this function  args.results_directory
+    # arg which is only set in this function args.results_directory
     simba.simulate.create_results_directory(args, 0)
     return simba.station_optimization.run_optimization(
         conf, sched=schedule, scen=scenario, args=args
