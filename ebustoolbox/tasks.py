@@ -953,7 +953,8 @@ def run_and_merge_scenarios(
 
     logger.info("Simulating scenario with high consumption")
     # Run the sizing scenario with these applied changes
-    run_toolchain_from_scenario(sizing_scenario, assign_vehicles=True)
+    assign_new_vehicles_to_db(sizing_scenario)
+    _ = _run_ebus_toolchain.apply((sizing_scenario_task_id,), task_id=sizing_scenario_task_id)
 
     logger.info("Copying result of first Simulation as basis for the second.")
     # The sizing scenario is supposed to be the basis of the average scenario
@@ -976,8 +977,9 @@ def run_and_merge_scenarios(
     # In these cases we do not want to extend electrification but only simulate the users wishes.
     average_scenario.simba_options["modes"] = "sim"
     average_scenario.save(update_fields=["simba_options"])
-    run_toolchain_from_scenario(average_scenario, assign_vehicles=True)
 
+    assign_new_vehicles_to_db(average_scenario)
+    _ = _run_ebus_toolchain.apply((default_simulation_task_id,), task_id=default_simulation_task_id)
     # default_simulation_scenario = merge_scenario(mutation_id, default_simulation_task_id)
     # run_toolchain_from_scenario(default_simulation_scenario, assign_vehicles=True)
     progress.set_success()
