@@ -1622,12 +1622,14 @@ def _run_ebus_toolchain(self, task_id):
         progress.current_work += 1
         progress.save()
 
-        if len(modes) > 1 and "station_optimiziation" in modes[1]:
+        if len(modes) > 1 and "station_optimization" in modes[1]:
             progress.status = "Elektrifziere notwendige Stationen"
             progress.save()
             schedule, simba_scenario = run_simba(
                 schedule, args, db_scenario, mode=modes[1], scenario=simba_scenario
             )
+        else:
+            logger.info("Station optimization was skipped")
         progress.current_work += 1
         progress.save()
 
@@ -1801,6 +1803,7 @@ def run_mode(
         new_scenario: "SimbaScenario" = schedule.run(args, mode="greedy")
         return schedule, new_scenario
     conf = create_optimizer_config(db_scenario)
+    conf.remove_impossible_rotations = True
     if mode == "station_optimization_single_step":
         conf.early_return = True
 
@@ -1826,8 +1829,18 @@ def run_simba(
     args.output_directory = Path(settings.UPLOAD_PATH) / str(db_scenario.task_id)
     args.attach_vehicle_soc = True
 
-    schedule, scenario = run_mode(mode, schedule, scenario, args, db_scenario)
-
+    try:
+        schedule, scenario = run_mode(mode, schedule, scenario, args, db_scenario)
+    except AssertionError as e:
+        logger.info(traceback.format_exception(e))
+        # TODO: Let SimBA throw custom exceptions to be caught
+        if any(
+            ("Schedule cannot be optimized, since rotations cannot be electrified.") in x
+            for x in e.args
+        ):
+            return schedule, scenario
+        logger.info("Assertion not found")
+        raise
     # Apply changes to database depending on mode
     match mode:
         case "sim":
