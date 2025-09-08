@@ -41,6 +41,8 @@ from simba.data_container import DataContainer
 from simba.schedule import Schedule as SimbaSchedule
 from . import schedule_readers, forms
 from .models import (
+    AreaInformation,
+    DepotConfigurationWish,
     DepotMutation,
     User,
     Route,
@@ -1325,6 +1327,43 @@ def apply_depot_strategy(scenario: Scenario, strategy: str) -> None:
     logger.info(f"{events.count()} depot charging events updated")
 
 
+def apply_depot_and_area_wishes(mutation: Scenario, child: Scenario, stack: dict) -> None:
+    depot_configs = DepotConfigurationWish.objects.filter(scenario=mutation)
+    # Assert uniqueness of the mutations
+    new_depot_configs = []
+    new_area_infos = []
+    i = ebustoolbox.util.get_next_id(DepotConfigurationWish)
+    for depot_config in depot_configs:
+        depot_config: DepotConfigurationWish
+        area_infos = AreaInformation.objects.filter(
+            scenario=mutation, depot_configuration_wish=depot_config
+        )
+        search_station = StationMutation.objects.get(
+            mutated_original_station=depot_config.station
+        ).original_station
+        depot_config.station_id = stack[Station][search_station.id]
+        depot_config.scenario = child
+        depot_config.id = i
+        i += 1
+        new_depot_configs.append(depot_config)
+
+        ii = ebustoolbox.util.get_next_id(AreaInformation)
+        for area_info in area_infos:
+            area_info: AreaInformation
+            area_info.scenario = child
+            search_vt = VehicleTypeMutation.objects.get(
+                mutated_vehicle_type=area_info.vehicle_type
+            ).original_vehicle_type
+            area_info.vehicle_type_id = stack[VehicleType][search_vt.id]
+            area_info.depot_configuration_wish = depot_config
+            area_info.id = ii
+            ii += 1
+            new_area_infos.append(area_info)
+
+    DepotConfigurationWish.objects.bulk_create(new_depot_configs)
+    AreaInformation.objects.bulk_create(new_area_infos)
+
+
 def apply_station_mutation(mutation: Scenario, child: Scenario, stack: dict) -> None:
     station_mutations = StationMutation.objects.filter(scenario=mutation)
 
@@ -1517,6 +1556,7 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
 
     apply_vehicle_mutation(mutation, child, stack)
     apply_station_mutation(mutation, child, stack)
+    apply_depot_and_area_wishes(mutation, child, stack)
 
     child.save()
     return child

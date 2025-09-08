@@ -1724,3 +1724,26 @@ class ScenarioWizardOptions(models.Model):
     lca_calculation_mode = models.CharField(
         max_length=20, choices=EnumCalculationModes.choices, null=True, default=None
     )
+
+
+class DepotConfigurationWish(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE, blank=True)
+    station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE, blank=True)
+    auto_generate = models.BooleanField(null=False, default=True)
+    power = models.FloatField(null=True, blank=True)
+    cleaning_slots = models.IntegerField(null=True, blank=True)
+    cleaning_duration = models.IntegerField(null=True, blank=True)
+
+    shunting_slots = models.IntegerField(null=True, blank=True)
+    shunting_duration = models.IntegerField(null=True, blank=True)
+
+
+class AreaInformation(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE, blank=True)
+    depot_configuration_wish = models.ForeignKey(
+        DepotConfigurationWish, null=False, on_delete=models.CASCADE, blank=True
+    )
+    vehicle_type = models.ForeignKey(VehicleType, null=False, on_delete=models.CASCADE, blank=True)
+    area_type = models.CharField(max_length=14, choices=AreaType.choices, null=True, default=None)
+    capacity = models.IntegerField(null=True)
+    power = models.FloatField(null=True)
