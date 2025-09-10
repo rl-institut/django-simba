@@ -2,16 +2,8 @@
 {% load custom_filters %}
 {% load widget_tweaks %}
 {% load static %}
-<style>
-.fade-me-out.htmx-swapping {
-  opacity: 0;
-  transition: opacity 1s ease-out;
-}
-#fade-me-in {
-  opacity: 1;
-  transition: opacity 1s ease-out;
-}
-</style>
+
+
 <div id="depot_form_{{depot.id}}" class="px-4 sm:p-6"
   hx-on:htmx:after-settle="openAccordion({{depot.id}}); validateDepotContainers()")
 >
@@ -96,7 +88,7 @@
 function addHTMX() {
 button = document.getElementById("button_{{depot_form.auto_generate.auto_id}}");
 button.setAttribute("hx-post", ".");
-button.setAttribute("hx-swap", "outerHTML");
+button.setAttribute("hx-swap", "outerHTML ");
 button.setAttribute("hx-target", "#depot_form_{{depot.id}}");
 button.setAttribute("hx-select", "#depot_form_{{depot.id}}");
 }
