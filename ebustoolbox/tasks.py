@@ -10,9 +10,13 @@ from decimal import Decimal
 import logging
 from pathlib import Path
 from typing import List
+from django import conf
 import environ
 from uuid import UUID as UUIDType
 from celery import shared_task, uuid
+import zipfile as zf
+
+
 import django.apps
 from django.conf import settings
 from django.contrib.postgres.aggregates import ArrayAgg
@@ -800,6 +804,13 @@ def init_db_with_trips(
     progress.save()
     file_paths = {key: value[0] for key, value in files.items()}
     try:
+        # Allow for compression of 0.5
+        max_uncompressed_size = conf.settings.MAX_FILE_SIZE_B * 2
+        [
+            ebustoolbox.util.validate_zip(zf.ZipFile(f), 100, max_uncompressed_size, 5)
+            for f in file_paths.values()
+            if Path(f).suffix == ".zip"
+        ]
         schedule_reader_factory = schedule_readers.get_schedule_reader_factory(reader_num)
         schedule_reader: ScheduleReader = schedule_reader_factory(**file_paths, **cleaned_data)
         # The progress is linked to the child scenario.

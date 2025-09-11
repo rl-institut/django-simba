@@ -377,7 +377,7 @@ class TripsView(FormView):
                 )
             elif file_suffix == "zip":
                 async_result = tasks.init_db_with_trips.apply_async(
-                    (scenario.id, 3, files, cleaned_data, progress.id),
+                    (scenario.id, 3, {"x10_zip_file": files["data_file"]}, {}, progress.id),
                     task_id=progress_id,
                 )
             else:
