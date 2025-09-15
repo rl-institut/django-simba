@@ -95,7 +95,8 @@ IMPLEMENTED_MODES = {"sim", "station_optimization", "station_optimization_single
 DEFAULT_LOADED_MASS = 0
 DEFAULT_ALLOWED_LOAD = 1000
 
-EPS = 1e-5  # a small number, used to allow for difference when comparing floats
+# NOTE: 1% is not a very small number, but the balanced strategy can have deltas of at least 0.6%
+EPS = 1e-2  # a small number, used to allow for difference when comparing floats
 
 
 def apply_vehicle_type(
@@ -1325,12 +1326,18 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
     # replace Event soc timeseries with arbitrary list
     # ### sanity checks ### #
     # start and end soc must remain the same
-    assert (
-        abs(soc_ts[0] - event.soc_start) < EPS
-    ), f"Delta of {abs(soc_ts[0] - event.soc_start)} at {event}.{event.soc_start} Start Soc\n Timeseries:\n{soc_ts}"
-    assert (
-        abs(soc_ts[-1] - event.soc_end) < EPS
-    ), f"Delta of {abs(soc_ts[-1] - event.soc_end)} at {event}.{event.soc_end} END SOC\n Timeseries:\n{soc_ts}"
+    if not (abs(soc_ts[0] - event.soc_start) < EPS):
+        logger.info(
+            f"Delta of {abs(soc_ts[0] - event.soc_start)} at {event}."
+            f"{event.soc_start} Start Soc\n Timeseries:\n{soc_ts}"
+        )
+        raise AssertionError("Depot Charging Simulation diverged")
+    if not (abs(soc_ts[-1] - event.soc_end) < EPS):
+        logger.info(
+            f"Delta of {abs(soc_ts[-1] - event.soc_end)} at {event}."
+            f"{event.soc_end} END SOC\n Timeseries:\n{soc_ts}"
+        )
+        raise AssertionError("Depot Charging Simulation diverged")
     # event soc should always be defined / not null
     assert all([soc is not None for soc in soc_ts])
     # soc and time lists must have same length
@@ -1713,6 +1720,10 @@ def _run_ebus_toolchain(self, task_id):
         progress.save()
         eflips_assignment = get_assigned_vehicles(task_id)
         schedule.assign_vehicles_custom(eflips_assignment)
+
+        # Simba Run to add back the deleted events of eflips.
+        # TODO: Does eflips need to delete the events? then we could skip this step
+        simba_scenario = run_simba(schedule, args, db_scenario, mode="sim", scenario=None)
         # TODO: Keep that? / Set Depot values for final SimBA simulation?
         electrify_depot_station_w_default(db_scenario)
         #
@@ -1721,8 +1732,9 @@ def _run_ebus_toolchain(self, task_id):
         stations_dict = get_electrified_stations_from_db(db_scenario)
         schedule.stations = stations_dict.copy()
 
-        # NOTE: Consolidate results with a given strategy.
+        # NOTE: Consolidate results with a given strategy. EPS of 1% needed.
         # Balanced strategy or expose from simba_options? TODO: Discuss
+        # TODO: Consolidate with depot electrification above
         apply_depot_strategy(db_scenario, "balanced")
 
         progress.current_work += 1
@@ -1757,14 +1769,13 @@ def check_event_soc_consistency(db_scenario: Scenario):
 
 def electrify_depot_station_w_default(db_scenario):
     for depot in Depot.objects.filter(scenario=db_scenario):
+        logger.warning("Overwriting Depot Station data. This data should be provided by eflips")
         station = depot.station
-        if station.is_electrified:
-            continue
         # TODO: get defaults from somewhere
         station.is_electrified = True
-        station.power_total = 1000_000
-        station.amount_charging_places = 1000
-        station.power_per_charger = 400
+        station.power_total = station.power_total or 1000_000
+        station.amount_charging_places = station.amount_charging_places or 1000
+        station.power_per_charger = station.power_per_charger or 300
         station.charge_type = EnumChargeType.DEPOT.value
         station.voltage_level = station.voltage_level or EnumVoltageLevel.VOLTAGE_MV.value
         station.save()
