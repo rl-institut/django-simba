@@ -1575,6 +1575,14 @@ class Event(models.Model):
                 )
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        return (
+            f"{self.event_type} Event "
+            + f"for block {self.trip.rotation.name}:{self.trip.rotation.id}"
+            if self.trip
+            else "" + f"at start time {self.time_start.isoformat()}"
+        )
+
 
 class Depot(models.Model):
     """
@@ -1799,6 +1807,7 @@ class EnumNotificationType(models.TextChoices):
     """Definitions for notification types which define where the message is shown"""
 
     MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING = "multi_dep_trips_in_block"
+    INTERMEDIATE_DEPOT_STOPS_TRANSFORMED = "transformed_depot_stop_to_opp_station"
     UNSTABLE_DEPOT_WARNING = "unstable_sim_w_shifting_socs"
     DELAYED_TRIP_WARNING = "delayed_trip"
     UNEXPECTED_ERROR = "unexpected_error"

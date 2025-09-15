@@ -507,7 +507,7 @@ class SimulationTestCase(TransactionTestCase):
     def test_apply_depot_strategy(self):
         # basic test
         django_scenario = self.create_depot_simulation()
-        tasks.apply_depot_strategy(django_scenario, "balanced")
+        tasks.apply_depot_strategy(django_scenario, "greedy")
 
 
 class ConsumptionTestCase(TransactionTestCase):
@@ -851,7 +851,7 @@ class AllowOppChargingTestCase(TestCase):
             vt.opportunity_charging_capable = True
             vt.save()
 
-        tasks.is_consistent(django_scenario)
+        assert tasks.is_consistent(django_scenario)
         sched, scen = run_simba_scenario(django_scenario)
         assert (
             Event.objects.filter(

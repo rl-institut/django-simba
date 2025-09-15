@@ -30,6 +30,7 @@ from eflips.depot import UnstableSimulationException, DelayedTripException
 from eflips.depot.api import (  # noqa
     simulate_scenario,
     generate_depot_optimal_size,
+    generate_depot_layout,
 )
 
 
@@ -844,12 +845,17 @@ def init_db_with_trips(
         scenario.scenario_type = EnumScenarioType.MUTATION
         parent.scenario_type = EnumScenarioType.SOURCE
         scenario.save()
-        split_blocks_with_intermediate_depot_stops(parent, scenario)
+        transform_depot_stations(parent, scenario)
+        # Parent contains the trip data so check the consistency of the parent and not the mutation.
+        if not (is_consistent(parent)):
+            logger.error("Scenario does not seem to be consistent with assumptions")
+            raise Exception("Scenario does not seem to be consistent with assumptions")
         parent.save()
         progress.save()
     except Exception as e:
         logger.error(traceback.format_exc())
         progress.status = _("Fehlgeschlagen")
+        progress.success = False
         progress.errors.append(str(e))
     finally:
         try:
@@ -1319,8 +1325,12 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
     # replace Event soc timeseries with arbitrary list
     # ### sanity checks ### #
     # start and end soc must remain the same
-    assert abs(soc_ts[0] - event.soc_start) < EPS
-    assert abs(soc_ts[-1] - event.soc_end) < EPS
+    assert (
+        abs(soc_ts[0] - event.soc_start) < EPS
+    ), f"Delta of {abs(soc_ts[0] - event.soc_start)} at {event}.{event.soc_start} Start Soc\n Timeseries:\n{soc_ts}"
+    assert (
+        abs(soc_ts[-1] - event.soc_end) < EPS
+    ), f"Delta of {abs(soc_ts[-1] - event.soc_end)} at {event}.{event.soc_end} END SOC\n Timeseries:\n{soc_ts}"
     # event soc should always be defined / not null
     assert all([soc is not None for soc in soc_ts])
     # soc and time lists must have same length
@@ -1590,6 +1600,7 @@ def create_station_mutations(scenario):
 def _run_ebus_toolchain(self, task_id):
     """Run the tool chain"""
     db_scenario = Scenario.objects.get(task_id=task_id)
+    assert is_consistent(db_scenario)
     # With multiple simulations the progress is linked through the parent to its child scenarios
     progress = Progress.objects.filter(
         scenario=db_scenario.parent, progress_type=EnumProgress.RUNNING_SIMULATION
@@ -1657,7 +1668,7 @@ def _run_ebus_toolchain(self, task_id):
                 sender="eflips-depot",
                 level=EnumNotificationLevels.WARNING,
                 notification_type=EnumNotificationType.UNSTABLE_DEPOT_WARNING,
-                message=(
+                message=_(
                     "Das Szenario ist nicht stabil. Mit den gegebenen Randbedingungen "
                     "sinkt, der SoC bei wiederholten Iterationen. Eine Erhöhung der "
                     "Nachladeleistung kann das Problem beheben."
@@ -1709,9 +1720,10 @@ def _run_ebus_toolchain(self, task_id):
         # power
         stations_dict = get_electrified_stations_from_db(db_scenario)
         schedule.stations = stations_dict.copy()
-        # TODO: This is not a proper consolidation yet. Set SimBA so depots events are properly
-        # respected. Write events for everything
-        schedule, simba_scenario = run_simba(schedule, args, db_scenario, mode="sim")
+
+        # NOTE: Consolidate results with a given strategy.
+        # Balanced strategy or expose from simba_options? TODO: Discuss
+        apply_depot_strategy(db_scenario, "balanced")
 
         progress.current_work += 1
         progress.save()
@@ -1750,12 +1762,13 @@ def electrify_depot_station_w_default(db_scenario):
             continue
         # TODO: get defaults from somewhere
         station.is_electrified = True
-        station.power_total = station.power_total or 1000_000
-        station.amount_charging_places = station.amount_charging_places or 1000
-        station.power_per_charger = station.power_per_charger or 150
+        station.power_total = 1000_000
+        station.amount_charging_places = 1000
+        station.power_per_charger = 400
         station.charge_type = EnumChargeType.DEPOT.value
         station.voltage_level = station.voltage_level or EnumVoltageLevel.VOLTAGE_MV.value
         station.save()
+        logger.info(station)
 
 
 def get_assigned_vehicles(task_id: str) -> List[dict]:
@@ -1952,15 +1965,19 @@ def run_eflips(task_id) -> None:
 
     # Constructing the database URL manually
     db_url = create_db_url()
-    generate_depot_optimal_size(
-        db_scenario,
-        database_url=db_url,
-        charging_power=90,
-        delete_existing_depot=True,
-        use_consumption_lut=True,
-        repetition_period=period,
-    )
 
+    generate_depot_layout(
+        db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=True
+    )
+    # generate_depot(
+    #     db_scenario,
+    #     database_url=db_url,
+    #     charging_power=90,
+    #     delete_existing_depot=True,
+    #     use_consumption_lut=True,
+    #     repetition_period=period,
+    # )
+    #
     simulate_scenario(
         db_scenario,
         database_url=db_url,
@@ -2018,34 +2035,45 @@ def is_consistent_rotation(rotation: Rotation) -> bool:
     trips = list(Trip.objects.filter(rotation=rotation).order_by("departure_time"))
     for trip in trips:
         if trip.arrival_time <= trip.departure_time:
-            logger.error("A trip must have a duration.")
+            logger.error(f"A trip must have a duration. {trip=}")
             return False
+
+    if trips[-1].route.arrival_station.charge_type != EnumChargeType.DEPOT:
+        logger.error(f"A rotation ends at station which is not a depot. {rotation=}, {trips[-1]=}")
+        return False
+
+    if trips[0].route.departure_station != trips[-1].route.arrival_station:
+        logger.error(
+            f"A rotation does not end at its starting location. {rotation=}. {trips[0]=}, {trips[-1]=}"
+        )
+        return False
 
     if len(trips) < 2:
         return True
     trip = trips[0]
     for next_trip in trips[1:]:
         if trip.arrival_time > next_trip.departure_time:
-            logger.error("A trip arrives after the departure of the next trip.")
+            logger.error(
+                f"A trip arrives after the departure of the next trip. {rotation=}, {trip=}, {next_trip=}"
+            )
             return False
         trip = next_trip
-
-    assert trips[0].route.departure_station.charge_type == EnumChargeType.DEPOT
-    assert trips[-1].route.arrival_station.charge_type == EnumChargeType.DEPOT
-
     return True
 
 
 def is_consistent(scenario: Scenario) -> bool:
     for rotation in Rotation.objects.filter(scenario=scenario):
-        is_consistent_rotation(rotation)
+        if not is_consistent_rotation(rotation):
+            return False
 
     if Vehicle.objects.filter(scenario=scenario).exists():
         for rotation in Rotation.objects.filter(scenario=scenario).select_related(
             "vehicle_type", "vehicle__vehicle_type"
         ):
             if rotation.vehicle is not None:
-                assert rotation.vehicle.vehicle_type == rotation.vehicle_type
+                if not rotation.vehicle.vehicle_type == rotation.vehicle_type:
+                    logger.error(f"Rotation has a vehicle of the wrong vehicle type. {rotation=}")
+                    return False
 
     if VehicleType.objects.filter(scenario=scenario, consumption=None).count() > 0:
         if Trip.objects.filter(scenario=scenario, loaded_mass=None).count() > 0:
@@ -2512,77 +2540,129 @@ def trim_depots(scenario, depot_ids: list[int]):
 
 
 @atomic()
-def split_blocks_with_intermediate_depot_stops(parent: Scenario, child: Scenario) -> None:
+def transform_depot_stations(parent: Scenario, child: Scenario) -> None:
     """
-    Search rotations which arrive multiple times at a depot.
+    Duplicate depot stations and transform them into opportunity stations where necessary;
 
-    These rotations are split into multiple rotations.
-    Parent and child scenario get a notification with information about split rotations.
-
+    WeBus only supports Blocks which start and end at depot station without intermediate stops
+    at depots.
+    This function determines if there are intermediate stops at depot stations,
+    creates an opportunity station and switches this station into the appropriate routes.
     :param parent: Source scenario
-    :param child: Child scenario which is notified about split rotation
+    :param child: Child scenario which is notified about changes
     """
 
     depots = Station.objects.filter(scenario=parent, charge_type=EnumChargeType.DEPOT)
-    all_trips = Trip.objects.filter(scenario=parent)
-    depot_trips = all_trips.filter(route__arrival_station__in=depots)
-    print(1)
-    # Only the last trip of a block should arrive in a depot station. The other ones should be split
+    all_routes = Route.objects.filter(scenario=parent)
+    depot_arrival_routes = all_routes.filter(arrival_station__in=depots)
+    depot_departure_routes = all_routes.filter(departure_station__in=depots)
+    # Only the first and last trip of a block should departe/arrive in a depot station.
+    # The other trips should refrence routes which go to a newly generated opportunity station,
+    # instead of the depot station.
     # This query expects a outer ref to a rotation and returns the ordered trips by arrival time
     # with the last arrival first
     last_trip_subquery = Trip.objects.filter(rotation=OuterRef("pk")).order_by("-arrival_time")
 
-    # Get the ids of the each rotations last trip
-    last_trip_ids = (
+    # Get the ids of each rotations last trip
+    last_trip_ids = list(
         Rotation.objects.filter(scenario=parent)
         .annotate(last_trip_id=Subquery(last_trip_subquery.values("id")[:1]))
         .values_list("last_trip_id", flat=True)
     )
 
-    rotations_to_split: set[Rotation] = set()
-    for trip in depot_trips:
-        if trip.id not in last_trip_ids:
-            # the trip ends in the depot but is not the last trip
-            # this rotation needs to be split
-            rotations_to_split.add(trip.rotation)
+    first_trip_subquery = Trip.objects.filter(rotation=OuterRef("pk")).order_by("arrival_time")
+    # Get the ids of each rotations first trip
+    first_trip_ids = list(
+        Rotation.objects.filter(scenario=parent)
+        .annotate(first_trip_id=Subquery(first_trip_subquery.values("id")[:1]))
+        .values_list("first_trip_id", flat=True)
+    )
+    relevant_trips = Trip.objects.filter(scenario=parent)
+    trip_dict = {t.id: t for t in relevant_trips}
+    new_stations = dict()
+    changed_rotations = dict()
 
-    next_id = ebustoolbox.util.get_next_id(Rotation)
-    for rotation in rotations_to_split:
-        rotation_depot_trips_q = depot_trips.filter(rotation=rotation).order_by("arrival_time")
-        rotation_depot_trips = list(rotation_depot_trips_q)
-        all_trips = Trip.objects.filter(rotation=rotation)
-        first_depot_trip = rotation_depot_trips_q.first()
-        if not isinstance(first_depot_trip, Trip):
-            assert False, "Rotation without trips should not exist"
-        # Generate a time before the first trip
-        last_rotation_arrival_time = first_depot_trip.departure_time - timedelta(days=1)
-        org_rotation_id = rotation.id
-        rotation_name = rotation.name
-        i = 0
-        while rotation_depot_trips:
-            # while there are depot trips, generate slices of the trips to create new rotations
-            first_depot_trip = rotation_depot_trips.pop(0)
-            new_rotation_trips = all_trips.filter(
-                arrival_time__lte=first_depot_trip.arrival_time,
-                departure_time__gte=last_rotation_arrival_time,
+    route_id = ebustoolbox.util.get_next_id(Route)
+    station_id = ebustoolbox.util.get_next_id(Station)
+    # NOTE: We make use of the lazy nature of queries. depot_departure_routes is evaluated after
+    # the arrival_routes were created
+
+    for depot_routes, allowed_depot_trips, station_type in zip(
+        [depot_arrival_routes, depot_departure_routes],
+        [last_trip_ids, first_trip_ids],
+        ["arrival_station", "departure_station"],
+    ):
+        new_routes = []
+        changed_routes = []
+        changed_trips = []
+
+        for route in depot_routes:
+            trips_of_route = set(route.trip_set.values_list("id", flat=True))
+            intermediate_trips = trips_of_route.difference(set(allowed_depot_trips))
+            if not intermediate_trips:
+                # No intermediate trips were found with this route.
+                continue
+            logger.debug(f"{intermediate_trips} were found which end in depots")
+            # at least 1 trip was found which is not the last trip, which ends in a depot station
+
+            # All trips of this route are intermediate trip.
+            # This means no new route has to be created but instead the route can be changed
+            if len(trips_of_route) == len(intermediate_trips):
+                new_route = route
+                changed_routes.append(new_route)
+            else:
+                # Some trips need to keep a reference to the route ending in a depot.
+                # The intermediate trips need a new route
+                # Copy the route
+                route.id = route_id
+                route_id += 1
+                new_route = route
+                new_routes.append(new_route)
+            new_station = new_stations.get(getattr(route, station_type))
+            if not new_station:
+                old_station = getattr(route, station_type)
+                # Create a new station which has electrification defaults
+                new_station = Station.objects.create(
+                    id=station_id,
+                    name=old_station.name,
+                    name_short=old_station.name_short,
+                    geom=old_station.geom,
+                    scenario=old_station.scenario,
+                )
+                station_id += 1
+                new_stations[old_station] = new_station
+            setattr(new_route, station_type, new_station)
+            for t_id in intermediate_trips:
+                t = trip_dict[t_id]
+                t: Trip
+                if changed_rotations.get(t.rotation) is None:
+                    changed_rotations[t.rotation] = set()
+                changed_rotations[t.rotation].add(new_station)
+                t.route = new_route
+                changed_trips.append(t)
+        if changed_trips or changed_routes or new_routes:
+            logger.info(
+                "Schedule was transformed to remove intermediate depot trips.\n"
+                f"{changed_trips=}\n{changed_routes=}\n{new_routes=}"
             )
-            last_rotation_arrival_time = first_depot_trip.arrival_time
-            # Create a new rotation with a name indicating its been sliced
-            rotation.name = f"{rotation_name}_{i}"
-            rotation.id = next_id
-            next_id += 1
-            i += 1
-            rotation.save()
-            new_rotation_trips.update(rotation=rotation)
-        # Give both scenarios a notification about splitting the rotations
-        for scenario in [parent, child]:
+
+        Trip.objects.bulk_update(changed_trips, fields=["route"])
+        Route.objects.bulk_update(changed_routes, fields=["arrival_station", "departure_station"])
+        Route.objects.bulk_create(new_routes)
+
+    for scenario in [parent, child]:
+        for rotation, stations in changed_rotations.items():
             Notification.objects.create(
                 scenario=scenario,
                 level=EnumNotificationLevels.WARNING,
-                notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING,
-                message=f"Umlauf {escape(rotation_name)} wurde geteilt, da er mehrmals im Depot ankommt",
+                notification_type=EnumNotificationType.INTERMEDIATE_DEPOT_STOPS_TRANSFORMED,
+                message=(
+                    f"Für den Umlauf {escape(rotation.name)} wurden Zwischenhaltestellen "
+                    f"an den Depots {[escape(s.name) for s in stations]} erzeugt. "
+                    "Mehr Informationen finden Sie in der Hilfe."
+                ),
             )
-        assert Trip.objects.filter(rotation_id=org_rotation_id).count() == 0
-        Rotation.objects.get(id=org_rotation_id).delete()
-
-        logger.warning(f"{rotation.name} with id:{rotation.id} was split into {i} new rotations")
+    if len(changed_rotations) > 0:
+        logger.warning(
+            f"{changed_rotations.keys()} were transformed so they dont have intermediate stops at depot stations"
+        )
