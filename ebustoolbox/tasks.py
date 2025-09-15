@@ -1758,7 +1758,7 @@ def check_event_soc_consistency(db_scenario: Scenario):
     Consistency in this case is that soc_end values are identical to the next events soc_start of the same vehicle.
     """
     for vehicle in Vehicle.objects.filter(scenario=db_scenario):
-        events = list(Event.objects.filter(vehicle=vehicle).order_by("id"))
+        events = list(Event.objects.filter(vehicle=vehicle).order_by("time_start"))
         for i in range(len(events) - 2):
             if not events[i].soc_end == events[i + 1].soc_start:
                 logger.warning(

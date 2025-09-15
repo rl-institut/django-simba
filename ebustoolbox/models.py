@@ -1576,12 +1576,11 @@ class Event(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return (
-            f"Id={self.id} {self.event_type} Event "
-            + f"for block {self.trip.rotation.name}:{self.trip.rotation.id}"
-            if self.trip
-            else "" + f"at start time {self.time_start.isoformat()}"
-        )
+        out = f"Id={self.id} {self.event_type} Event "
+        if self.trip:
+            out += f"for block {self.trip.rotation.name}:{self.trip.rotation.id}"
+        out += f"at start time {self.time_start.isoformat()}"
+        return out
 
 
 class Depot(models.Model):
