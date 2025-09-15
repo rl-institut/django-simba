@@ -1764,6 +1764,12 @@ def check_event_soc_consistency(db_scenario: Scenario):
                 logger.warning(
                     f"SOC does not align between events for {vehicle=} for "
                     f"events {events[i]} and {events[i+1]}"
+                    f"\n DELTA = {events[i].soc_end - events[i + 1].soc_start}"
+                )
+
+            if not events[i].time_end == events[i + 1].time_start:
+                logger.warning(
+                    f"Times do not align for Events {events[i].id} and {events[i+1].id} "
                 )
 
 

@@ -1577,7 +1577,7 @@ class Event(models.Model):
 
     def __str__(self):
         return (
-            f"{self.event_type} Event "
+            f"Id={self.id} {self.event_type} Event "
             + f"for block {self.trip.rotation.name}:{self.trip.rotation.id}"
             if self.trip
             else "" + f"at start time {self.time_start.isoformat()}"
