@@ -24,13 +24,18 @@ Template:
 - Update the database structure to match the one of eflips-model v10.0.0
 
 - [(#211)](https://github.com/rl-institut/django-simba/pull/211)
-- Split blocks which arrive at the depot in intermediate stops
+- Do not allow intermediate stops at depot stations
+- Scenarios which have intermediate stops at depot stations are transformed during schedule creation.
+  - Intermediate trips to or from depots are transformed by arriving or departing from a depot station duplicate, which is of type opportunity station. The station is set to not electrified but electrifiable by default and can be adjusted via the station input page.
+  - A depot station is only duplicated once, so multiple routes will use the same opportunity station
+  - If a route is used by multiple trips, and at least one trip is the first or last trip of a block the route is duplicated. In this case intermediate trips will reference the route which starts or ends at the opportunity station of a depot. The first and last trip can still reference routes which start or end at the depot.
 - Add notification model
 - Notify the user by adding a notification bar to the wizard which shows notifications if they exists
   - Notifications are categorized into error, warning and info
   - Notifications can be used to show problems during simulations like unstable simulations or delayed trips
- - eFlips needs changes before this can be properly integrated
  - eFlips is updated to the current version
+ - A consolidation run can apply charging strategy to the eflips charging events.
+  - For now only scenarios are supported with a depot wide setting for the maximum charging power per charging point or the charging strategy is ambivalent to the maximum charging power.
 
 - [(#244)](https://github.com/rl-institut/django-simba/pull/244)
 - Add a second Temperature input to the vehicles page
