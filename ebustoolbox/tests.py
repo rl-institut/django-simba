@@ -986,53 +986,54 @@ class TemperaturesTestCase(TestCase):
 
 
 class RotationSplitTest(TestCase):
-    def test_rotation_split(self):
+    def test_intermediate_depot_trip(self):
+        """Insert some intermediate stops at depots and check if they are transformed"""
         django_scenario, simba_schedule, args = build_scenario()
-        from django.db.models import Count
+        rotations = list(Rotation.objects.filter(scenario=django_scenario))
 
-        rotations = Rotation.objects.filter(scenario=django_scenario)
-        # Reduce the scenario to a single rotation
-        rotation = rotations.annotate(num_trips=Count("trip")).order_by("num_trips").last()
+        # Mutate some trips so they have intermediate stops in depots
+        rotation = rotations[1]
+        trips = list(Trip.objects.filter(rotation=rotation).order_by("arrival_time"))
+        assert (
+            len(trips) > 2
+        ), "The test needs a rotation with at least 3 trips, to properly test handling of intermediate depots stops"
+        station = trips[0].route.arrival_station
+        # First trip route ends up in depot
+        station.charge_type = EnumChargeType.DEPOT
+        station.save()
 
-        rotations.exclude(id=rotation.id).delete()
-        depot = Station.objects.filter(
-            scenario=django_scenario, charge_type=EnumChargeType.DEPOT
-        ).first()
-        station = (
-            Station.objects.filter(scenario=django_scenario)
-            .exclude(charge_type=EnumChargeType.DEPOT)
-            .first()
-        )
-        trips = Trip.objects.filter(rotation=rotation).order_by("arrival_time")
-        even_count = (trips.count() // 2) * 2
-        station1 = depot
-        station2 = station
-        for i, trip in enumerate(list(trips)):
-            # Make sure the rotation ends in the depot by deleting excess trips
-            if i + 1 > even_count:
-                trip.delete()
-                continue
-            route: Route = trip.route
-            route.departure_station = station1
-            route.arrival_station = station2
-            route.save()
-            # Swap stations
-            temp = station1
-            station1 = station2
-            station2 = temp
-        assert Trip.objects.filter(scenario=django_scenario).count() == even_count
+        station = trips[-1].route.departure_station
+        # Last trip route starts up in depot
+        station.charge_type = EnumChargeType.DEPOT
+        station.save()
+
+        # Intermediate trip route ends in depot, next one starts in depot
+        station = trips[1].route.arrival_station
+        # Last trip route starts up in depot
+        station.charge_type = EnumChargeType.DEPOT
+        station.save()
         # Split the rotations of the source but also notifiy the child
         # for testing passing the same scenario works
         assert Notification.objects.filter(scenario=django_scenario).count() == 0
-        tasks.split_blocks_with_intermediate_depot_stops(django_scenario, django_scenario)
+        tasks.transform_depot_stations(django_scenario, django_scenario)
+
+        # Refetch trips which should be updated
+        trips = list(Trip.objects.filter(rotation=rotation).order_by("arrival_time"))
 
         assert Notification.objects.filter(scenario=django_scenario).count() > 0
 
-        # Number of trips stays the same
-        assert Trip.objects.filter(scenario=django_scenario).count() == even_count
-        # The rotation arrives at the depot every 2 trips
-        # the new number of trips should be trips/2
-        assert Rotation.objects.filter(scenario=django_scenario).count() == even_count / 2
+        # Routes end in stations which are not of type depot anymore
+        route = trips[0].route
+        assert route.arrival_station.charge_type != EnumChargeType.DEPOT
+
+        route = trips[-1].route
+        assert route.departure_station.charge_type != EnumChargeType.DEPOT
+
+        route = trips[1].route
+        assert route.arrival_station.charge_type != EnumChargeType.DEPOT
+
+        route = trips[2].route
+        assert route.departure_station.charge_type != EnumChargeType.DEPOT
 
 
 class SerializerTest(TransactionTestCase):
