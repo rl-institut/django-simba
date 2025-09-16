@@ -1,3 +1,4 @@
+import json
 import logging
 import traceback
 import dateutil.parser as parser
@@ -7,8 +8,7 @@ from django.conf import settings
 import pytz
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.core import signing, mail
-from django.core.exceptions import ObjectDoesNotExist
+from django.core import signing, mail, serializers
 from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
 from django.db.models.functions import Cast, Coalesce
 from django.db.transaction import atomic
@@ -58,6 +58,8 @@ import ebustoolbox.tasks
 from ebustoolbox.models import (
     AreaInformation,
     DepotConfigurationWish,
+    EnumNotificationType,
+    Notification,
     Rotation,
     Scenario,
     Temperatures,
@@ -87,13 +89,8 @@ def progress_scenario(request: HttpRequest, progress_id, template_name):
     context = {"progress_id": progress_id, "status": "", "current_progress": 0}
 
     context |= {"finished": False}
-    try:
-        # scenario = Scenario.objects.get(task_id=progress_id)
-        progress = Progress.objects.get(task_id=progress_id)
-        context["progress"] = progress
-    except ObjectDoesNotExist:
-        response = render(request, "core/progress.html", context)
-        return response
+    progress = Progress.objects.get(task_id=progress_id)
+    context["progress"] = progress
 
     context["current_progress"] = max(progress.get_progress(), 1)
     context["status"] = progress.status
@@ -275,6 +272,19 @@ class ScenarioMixIn(AuthorizedMixIn):
         return context
 
 
+def get_notifications(request, task_id: str, view: str):
+    _ = get_scenario_and_assert_authorization(request, task_id)
+    view_class = globals().get(view)
+    if view_class is None or view_class.__dict__.get("get_notifications") is None:
+        raise Http404("Benachrichtigungen für diese Seite gibt es nicht")
+    notifications = view_class.get_notifications(task_id)
+    # Make a dictionary out of the different classes for easier template acccess
+    data = tasks.get_notfications_dict(notifications)
+    for ntype, values in data.items():
+        data[ntype] = json.loads(serializers.serialize("json", values))
+    return JsonResponse(data)
+
+
 class TripsView(FormView):
     template_name = "ebustoolbox/trips.html"
     form_class = forms.TripsForm
@@ -379,7 +389,7 @@ class TripsView(FormView):
                 )
             elif file_suffix == "zip":
                 async_result = tasks.init_db_with_trips.apply_async(
-                    (scenario.id, 3, files, cleaned_data, progress.id),
+                    (scenario.id, 3, {"x10_zip_file": files["data_file"]}, {}, progress.id),
                     task_id=progress_id,
                 )
             else:
@@ -400,7 +410,7 @@ class TripsView(FormView):
                     progress_id == async_result.task_id
                 ), "Asynch result and Progress need to be equal for proper fetching of progress"
         elif scenario_uuid:
-            if not Scenario.objects.get(task_id=scenario_uuid) in get_sorted_mutation_scenarios(
+            if Scenario.objects.get(task_id=scenario_uuid) not in get_sorted_mutation_scenarios(
                 self.request.user
             ):
                 raise Http404
@@ -444,6 +454,13 @@ def get_scenario_and_assert_authorization(request, task_id) -> Scenario:
 class VehiclesView(ScenarioMixIn, TemplateView):
     template_name = "ebustoolbox/vehicles.html"
     success_name = "simba:stations"
+
+    @staticmethod
+    def get_notifications(task_id):
+        scenario = get_object_or_404(Scenario, task_id=task_id)
+        # TODO: show only a subset of notifications or all notifications?
+        notifications = Notification.objects.filter(scenario=scenario)
+        return notifications
 
     def get_context_data(self, **kwargs):
         scenario = self.scenario
@@ -1072,6 +1089,14 @@ class DepotsView(ScenarioMixIn, TemplateView):
 class SummaryView(AuthorizedMixIn, TemplateView):
     template_name = "ebustoolbox/summary.html"
 
+    @staticmethod
+    def get_notifications(task_id):
+        scenario = get_object_or_404(Scenario, task_id=task_id)
+        notifications = Notification.objects.filter(scenario=scenario).exclude(
+            notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING
+        )
+        return notifications
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         task_id = kwargs.get("task_id")
@@ -1083,7 +1108,7 @@ class SummaryView(AuthorizedMixIn, TemplateView):
         ).last()
         if progress:
             context["progress"] = progress
-            # context["show_rerun"]= (not progress.running and not progress.success) or progress.errors
+            logger.info(f"Returning {progress=} in context")
 
         sim_range = SimulationRange.objects.get(scenario=scenario)
         german_weekdays = {
@@ -1167,7 +1192,8 @@ class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
         context["task_id"] = task_id
         scenario = get_object_or_404(Scenario, task_id=task_id)
         context["scenario"] = scenario
-
+        notifications = Notification.objects.filter(scenario=scenario)
+        context["notifications"] = tasks.get_notfications_dict(notifications)
         return context
 
 
@@ -1228,12 +1254,20 @@ def cancel_upload(request: HttpRequest, task_id: str):
 
 def merge_and_run(request: HttpRequest, task_id: str):
     scenario = get_scenario_and_assert_authorization(request, task_id)
+
     simulation_progess = Progress.objects.filter(
         scenario=scenario,
         progress_type=EnumProgress.RUNNING_SIMULATION,
     )
 
+    # Users should not keep failed scenarios
+    # This way the children of a scenario can be uniquely linked to their parent
+    # (TODO: Discuss)
+    logger.info("Deleting failed previous child-scenarios")
+    logger.info(str(Scenario.objects.filter(parent=scenario).delete()))
+
     if not request.user.is_superuser:
+        # Delete failed scenarios
         if simulation_progess.filter(running=True).exists():
             error_text = _("Starting multiple Simulations from the same source is not allowed")
             logger.info(error_text)
@@ -1245,11 +1279,17 @@ def merge_and_run(request: HttpRequest, task_id: str):
             return HttpResponseForbidden(error_text)
 
     sim_task_id = get_unique_task_id()
-    progress = Progress.objects.create(
-        scenario=scenario,
-        progress_type=EnumProgress.RUNNING_SIMULATION,
-        task_id=sim_task_id,
-    )
+    prev_progress = simulation_progess.first()
+    if prev_progress:
+        prev_progress.task_id = sim_task_id
+        prev_progress.save()
+        progress = prev_progress
+    else:
+        progress = Progress.objects.create(
+            scenario=scenario,
+            progress_type=EnumProgress.RUNNING_SIMULATION,
+            task_id=sim_task_id,
+        )
     logger.info("Running Toolchain.")
     sizing_task_id = get_unique_task_id()
     # create scenario from mutation and parent and simulate it
@@ -1303,7 +1343,6 @@ def model_export_json(request: HttpRequest, model_str: str, task_id: str):
         objects = model.objects.filter(scenario=scenario)
     else:
         objects = model.objects.filter(task_id=task_id)
-    from django.core import serializers
 
     jsondata = serializers.serialize("json", objects)
 
