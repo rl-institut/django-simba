@@ -1239,7 +1239,7 @@ def merge_and_run(request: HttpRequest, task_id: str):
     )
 
     # Users should not keep failed scenarios
-    # This way the children of a scenario can be uniquely linked to their parten
+    # This way the children of a scenario can be uniquely linked to their parent
     # (TODO: Discuss)
     logger.info("Deleting failed previous child-scenarios")
     logger.info(str(Scenario.objects.filter(parent=scenario).delete()))

@@ -1706,7 +1706,7 @@ def _run_ebus_toolchain(self, task_id):
                 sender="eflips-depot",
                 level=EnumNotificationLevels.WARNING,
                 notification_type=EnumNotificationType.DELAYED_TRIP_WARNING,
-                message=("Manche Fahrzeuge können nur verspätet abfahren"),
+                message=_("Manche Fahrzeuge können nur verspätet abfahren"),
             )
         except Exception as e:
             logger.error("Eflips raised an unexpected Exception")
@@ -1715,7 +1715,7 @@ def _run_ebus_toolchain(self, task_id):
                 sender="eflips-depot",
                 level=EnumNotificationLevels.ERROR,
                 notification_type=EnumNotificationType.UNEXPECTED_ERROR,
-                message=("Ein unerwarteter Fehler ist aufgetreten! "),
+                message=_("Ein unerwarteter Fehler ist aufgetreten! "),
             )
             notifications.append(notification)
             progress.refresh_from_db()
