@@ -2,12 +2,14 @@ import time
 from copy import copy
 from datetime import datetime, timedelta
 from typing import Iterable
+import io
+import zipfile
 
 import pandas as pd
 from django.conf import settings
 from django.db.models import F
 from django.http import HttpRequest
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 
 import django.apps
 import core.deepcopy
@@ -40,7 +42,7 @@ from .models import (
     EnumChargeType,
 )
 from .tasks import run_simba_scenario
-from .util import get_unique_task_id
+from .util import get_unique_task_id, validate_zip, ZipFileException
 
 
 TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
@@ -1105,3 +1107,70 @@ class ScheduleReaderTest(TestCase):
                 new_count = Trip.objects.filter(scenario=scenario).count()
                 assert count_trips == new_count, f"{count_trips}/ {new_count}"
             scenario.delete()
+
+
+class ZipValidationTest(SimpleTestCase):
+    @override_settings(DEBUG="True")
+    @override_settings(LOG_LEVEL="DEBUG")
+    def test_zip_validation(self):
+        # Test Exception raising for malformed zips
+        # small dummy payload (~200 KB)
+        # to large uncompressed
+        payload_size = 100
+        allowed_size = payload_size - 1
+        payload = b"A" * payload_size
+        prev = io.BytesIO()
+        with zipfile.ZipFile(prev, "w", compression=zipfile.ZIP_DEFLATED) as z:
+            z.writestr("payload.txt", payload)
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, 99, allowed_size, 99)
+
+        # To many files
+        payload = b"A"
+        prev = io.BytesIO()
+        allowed_file_nr = 1
+        with zipfile.ZipFile(prev, "w", compression=zipfile.ZIP_DEFLATED) as z:
+            for i in range(allowed_file_nr + 1):
+                z.writestr(f"payload{i}.txt", payload)
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, allowed_file_nr, 100, 99)
+
+        # To deeply nested files
+        payload = b"A"
+        allowed_nesting = 2
+        # recursively wrap previous zip
+        for i in range(allowed_nesting + 1):
+            new_buf = io.BytesIO()
+            with zipfile.ZipFile(new_buf, "w", compression=zipfile.ZIP_DEFLATED) as z:
+                z.writestr(f"layer_{i-1}.zip", prev.getvalue())
+            prev = new_buf
+
+        with zipfile.ZipFile(prev, "r", compression=zipfile.ZIP_DEFLATED) as z:
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, 99, 100, allowed_nesting)
+
+        # test positive validation
+        payload_size = 20
+        payload = b"A" * payload_size
+        allowed_file_nr = 3
+        allowed_size = allowed_file_nr * payload_size
+        allowed_nesting = 2
+        prev = io.BytesIO()
+
+        with zipfile.ZipFile(prev, "w", compression=zipfile.ZIP_DEFLATED) as z:
+            for i in range(allowed_file_nr):
+                z.writestr(f"payload{i}.txt", payload)
+        for i in range(allowed_nesting):
+            new_buf = io.BytesIO()
+            with zipfile.ZipFile(new_buf, "w", compression=zipfile.ZIP_DEFLATED) as z:
+                z.writestr(f"layer_{i-1}.zip", prev.getvalue())
+            prev = new_buf
+
+        with zipfile.ZipFile(prev, "r", compression=zipfile.ZIP_DEFLATED) as z:
+            validate_zip(z, allowed_file_nr, allowed_size, allowed_nesting)
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, allowed_file_nr - 1, allowed_size, allowed_nesting)
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, allowed_file_nr, allowed_size - 1, allowed_nesting)
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, allowed_file_nr, allowed_size, allowed_nesting - 1)
