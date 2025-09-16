@@ -1,5 +1,4 @@
 from datetime import timedelta, datetime
-from enum import auto
 
 from django.core.validators import MinValueValidator, MaxValueValidator
 from fast_update.query import FastUpdateManager
@@ -28,9 +27,24 @@ MINIMAL_TRIP_DURATION_S = 60  # seconds
 
 
 class EnumScenarioType(models.TextChoices):
-    SOURCE = auto()
-    MUTATION = auto()
-    SIMULATION = auto()
+    SOURCE = "SOURCE"
+    MUTATION = "MUTATION"
+    SIMULATION = "SIMULATION"
+
+
+class EnumSimulationType(models.TextChoices):
+    # Default simulation type with typical consumptions
+    DEFAULT = "default"
+    # Simulation for sizing of equipment, e.g. with extreme consumptions
+    SIZING = "sizing"
+    # Other
+
+
+class SimulationType(models.Model):
+    """Defines the type of a Simulation scenario"""
+
+    scenario = models.ForeignKey("Scenario", on_delete=models.CASCADE)
+    sim_type = models.CharField(max_length=20, choices=EnumSimulationType.choices)
 
 
 class Scenario(models.Model):
@@ -71,13 +85,33 @@ class Scenario(models.Model):
     scenario_type = models.CharField(choices=EnumScenarioType.choices, null=True)
     description = models.TextField(blank=True, null=True)
 
-    created = models.DateTimeField(
-        auto_now_add=True, db_default=Now()
-    )  # Set to now() on the database side
-    task_id = models.UUIDField(default=None, null=True, unique=True)
+    # Set to now() on the database side
+    created = models.DateTimeField(auto_now_add=True, db_default=Now())
+    task_id = models.UUIDField(default=None, null=False, unique=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
     simba_options = models.JSONField(default=dict, null=True)
     eflips_depot_options = models.JSONField(default=dict, null=True)
+    tco_parameters = models.JSONField(
+        default=dict,
+        null=True,
+        db_default={
+            "project_duration": 20,
+            "interest_rate": 0.04,
+            "inflation_rate": 0.02,
+            "staff_cost": 30.0,
+            "energy_cost": 0.18,
+            "fuel_cost": 1.5,
+            "maint_cost": 0.07,
+            "maint_cost_diesel": 0.14,
+            "maint_infr_cost": 1000.0,
+            "taxes": 0.0,
+            "insurance": 0.0,
+            "pef_general": 0.02,
+            "pef_wages": 0.025,
+            "pef_energy": 0.038,
+            "pef_insurance": 0.02,
+        },
+    )
 
     manager = models.ForeignKey(
         User, on_delete=models.SET_NULL, default=None, null=True, blank=True, related_name="+"
@@ -85,10 +119,8 @@ class Scenario(models.Model):
 
     @classmethod
     def get_default_pk(cls):
-        scenario, created = cls.objects.get_or_create(
-            name="default_scenario",
-        )
-        return scenario.pk
+        default_scenario = DefaultScenario.objects.first().scenario
+        return default_scenario.pk
 
 
 @receiver(models.signals.pre_delete, sender=Scenario)
@@ -182,6 +214,11 @@ class BatteryType(models.Model):
     specific_mass = models.FloatField(null=False, blank=True)
     # defined in eFLIPS-LCA
     chemistry = models.JSONField(null=False, default=dict)
+    tco_parameters = models.JSONField(
+        default=dict,
+        null=True,
+        db_default={"useful_life": 7, "procurement_cost": None, "cost_escalation": 0.01},
+    )
 
 
 class AssocVehicleTypeVehicleClass(models.Model):
@@ -268,7 +305,10 @@ class VehicleType(models.Model):
     charging_curve = ArrayField(ArrayField(models.FloatField(), size=2))
     v2g_curve = ArrayField(ArrayField(models.FloatField(), size=2), null=True)
 
+    # Possible constant value for average consumption
     consumption = models.FloatField(default=None, null=True)
+    # Possible constant value for extreme/max consumption
+    max_consumption = models.FloatField(default=None, null=True)
 
     # Shape of the vehicle in the form of length, width, height.
     length = models.FloatField(default=None, null=True)
@@ -279,6 +319,16 @@ class VehicleType(models.Model):
     empty_mass = models.FloatField(default=None, null=True)
     allowed_mass = models.FloatField(default=None, null=True)
 
+    tco_parameters = models.JSONField(
+        default=dict,
+        null=True,
+        db_default={
+            "useful_life": 14,
+            "procurement_cost": None,
+            "procurement_cost_diesel": None,
+            "cost_escalation": 0.02,
+        },
+    )
     vehicle_classes = models.ManyToManyField("VehicleClass", through="AssocVehicleTypeVehicleClass")
     """Vehicle classes this vehicle type belongs to."""
 
@@ -287,6 +337,24 @@ class VehicleType(models.Model):
         if not self.name_short or self.name_short == str(models.TextField(null=False, blank=False)):
             self.name_short = self.name
         super().save(*args, **kwargs)
+
+
+class ChargingPointType(models.Model):
+    """
+    This class is designed for distinguishing between charging point at area or at station.
+    """
+
+    class Meta:
+        db_table = "ChargingPointType"
+
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    name = models.TextField(null=False, blank=False)
+    name_short = models.TextField(null=True, blank=False, default=name)
+    tco_parameters = models.JSONField(
+        default=dict,
+        null=True,
+        db_default={"useful_life": 20, "procurement_cost": None, "cost_escalation": 0.02},
+    )
 
 
 class VehicleClass(models.Model):
@@ -964,6 +1032,14 @@ class Station(models.Model):
     power_per_charger = models.FloatField(default=None, null=True)
     power_total = models.FloatField(default=None, null=True)
 
+    tco_parameters = models.JSONField(
+        default=dict,
+        null=True,
+        db_default={"useful_life": 20, "procurement_cost": None, "cost_escalation": 0.02},
+    )
+
+    charging_point_type = models.ForeignKey(ChargingPointType, null=True, on_delete=models.CASCADE)
+
     stations = models.ManyToManyField("Route", through="AssocRouteStation")
     """Stations along this route. Ordered by `elapsed_distance`."""
 
@@ -1499,6 +1575,13 @@ class Event(models.Model):
                 )
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        out = f"Id={self.id} {self.event_type} Event "
+        if self.trip:
+            out += f"for block {self.trip.rotation.name}:{self.trip.rotation.id}"
+        out += f"at start time {self.time_start.isoformat()}"
+        return out
+
 
 class Depot(models.Model):
     """
@@ -1577,6 +1660,7 @@ class Area(models.Model):
     row_count = models.IntegerField(null=True, default=None)
     capacity = models.IntegerField(null=False)
     processes = models.ManyToManyField(Process, through="AssocAreaProcess")
+    charging_point_type = models.ForeignKey(ChargingPointType, null=True, on_delete=models.CASCADE)
 
 
 class AssocPlanProcess(models.Model):
@@ -1612,9 +1696,15 @@ class SimulationRange(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     start = models.DateTimeField(null=True)
     end = models.DateTimeField(null=True)
-    temperature = models.FloatField(
+    temperature_average = models.FloatField(
         blank=True,
-        default=-10,
+        default=10,
+        null=True,
+        validators=[MinValueValidator(-20), MaxValueValidator(40)],
+    )
+    temperature_extreme = models.FloatField(
+        blank=True,
+        default=-5,
         null=True,
         validators=[MinValueValidator(-20), MaxValueValidator(40)],
     )
@@ -1701,3 +1791,34 @@ class ScenarioWizardOptions(models.Model):
     lca_calculation_mode = models.CharField(
         max_length=20, choices=EnumCalculationModes.choices, null=True, default=None
     )
+
+
+class EnumNotificationLevels(models.TextChoices):
+    """Definitions for notification levels which define the criticality of the message"""
+
+    DEBUG = "debug"
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+
+
+class EnumNotificationType(models.TextChoices):
+    """Definitions for notification types which define where the message is shown"""
+
+    MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING = "multi_dep_trips_in_block"
+    INTERMEDIATE_DEPOT_STOPS_TRANSFORMED = "transformed_depot_stop_to_opp_station"
+    UNSTABLE_DEPOT_WARNING = "unstable_sim_w_shifting_socs"
+    DELAYED_TRIP_WARNING = "delayed_trip"
+    UNEXPECTED_ERROR = "unexpected_error"
+
+
+class Notification(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True, db_default=Now())
+    sender = models.CharField(max_length=255)
+    level = models.CharField(max_length=20, choices=EnumNotificationLevels.choices)
+    message = models.CharField(max_length=1000)
+    notification_type = models.CharField(max_length=40, choices=EnumNotificationType.choices)
+
+    def __str__(self):
+        return f"[{self.level}] {self.sender}: {self.message[:50]}"

@@ -372,6 +372,17 @@
             </table>
           </div>
             {% endblocktrans %}
+
+
+
+          <h2 class="text-2xl font-semibold pt-4 pb-2"><a href="#temperaturen">{% translate 'Temperaturen' %}</a></h2>
+          <p class="text-base pb-4 leading-relaxed text-slate-600">
+          {% blocktrans %}
+          Die Einstellungen in Temperaturen unterstüzt Sie bei der Auswahl geeigneter Verbräuche wenn Sie diese manuell auswählen möchten. Wenn aus dem hochgeladenen Umlaufplan geographische Informationen ausgelesen werden konnte,
+          wird eine Wetterstation des <a href="https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/">DWD</a> in der Nähe der Systemmitte gesucht und die Temperaturdaten des Jahres 2024 werden analysiert. Für die gewählten Temperaturen wird ein Verbrauchswert aus Basis des gewählten Fahrzeugtyps und der mittleren Geschwindigkeit der Fahrten abgeschätzt. Dieser Wert kann Ihnen als Indikator dienen, welchen Verbrauch die Simulation nutzen wird. Dieser Wert ist ein Schätzwert und kann sich in der nachfolgenden Simulation verändern. Wahlweise kann der Verbrauch des Fahrzeugs durch einen konstanten Wert überschrieben werden. Auf Fahrzeugtypen mit einem konstanten Verbrauch hat die Wahl der Temperaturen keinen Einfluss.
+          ' %}</p>
+          {% endblocktrans %}
+
           <h2 class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Endhaltestellen' %}</h2>
           <p class="text-base pb-4 leading-relaxed text-slate-600">
           {% blocktrans %}

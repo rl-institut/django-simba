@@ -14,11 +14,12 @@
           {% translate '+ Szenario erstellen' %}
         </a>
         {% if user.is_authenticated %}
-        <a href="{% url 'simba:dashboard' %}" class="text-sm text-slate-600 hover:text-emerald-500 transition-colors">{% translate 'Szenarien' %}</a>
-        <a href="{% url 'simba:compare' %}" class="text-sm text-slate-600 hover:text-emerald-500 transition-colors">{% translate 'Szenarienvergleich' %}</a>
-        <a href="{% url 'core:profile' %}" class="text-sm text-slate-600 hover:text-emerald-500 transition-colors">{% translate 'Profil' %}</a>
+          <a href="{% url 'simba:dashboard' %}" class="text-sm text-slate-600 hover:text-emerald-500 transition-colors">{% translate 'Szenarien' %}</a>
+          <a href="{% url 'simba:compare' %}" class="text-sm text-slate-600 hover:text-emerald-500 transition-colors">{% translate 'Szenarienvergleich' %}</a>
+          <a href="{% url 'core:profile' %}" class="text-sm text-slate-600 hover:text-emerald-500 transition-colors">{% translate 'Profil' %}</a>
         {% endif %}
         <a href="{% url 'core:help' %}" class="text-sm text-slate-600 hover:text-emerald-500 transition-colors">{% translate 'Hilfe' %}</a>
+        <a href="#" class="text-sm text-slate-600 hover:text-emerald-500 transition-colors">Über das Projekt</a>
         {% if user.is_authenticated %}
           <form action="{% url 'core:logout' %}" method="post">
             {% csrf_token %}
@@ -30,6 +31,9 @@
             </button>
           </form>
         {% else %}
+          <a class="border-2 border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white px-4 py-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black cursor-pointer">
+            Registrieren
+          </a>
           <a href="{% url 'core:login' %}" class="text-sm flex items-center text-slate-600 hover:text-emerald-500 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
@@ -55,6 +59,7 @@
   <!-- Mobile Menu -->
   <div id="mobile-menu" class="fixed inset-0 hidden z-20 bg-white">
     <div class="flex flex-col items-center justify-center h-full space-y-8">
+      {% if user.is_authenticated %}
       <button class="px-6 py-2 border-2 border-emerald-400 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-emerald-400 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-400 active:bg-emerald-500 transition-all duration-300">
         {% translate '+ Szenario erstellen' %}
       </button>
@@ -67,12 +72,22 @@
         </svg>
         <span class="ml-2">{% translate 'Profil' %}</span>
       </a>
+      {% endif %}
       <button id="close-menu" class="absolute top-4 right-4 p-2 text-slate-800 focus:outline-none">
         <span class="sr-only">{% translate 'Menü schließen' %}</span>
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
+      <a class="border-2 border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white px-4 py-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black cursor-pointer">
+        Registrieren
+      </a>
+      <a href="{% url 'core:login' %}" class="text-sm flex items-center text-slate-600 hover:text-emerald-500 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
+        </svg>
+        <span class="ml-2">Login</span>
+      </a>
     </div>
   </div>
 </nav>
@@ -94,10 +109,13 @@
 
 <script>
   // Top Navigation
+  // Due to htmx, there might be multiple declartions of these consts.
+  // This condtional handles it, and assumes if menuButton is declared,
+  // the other const are declared as well
+  function setupMenu(){
   const menuButton = document.getElementById('menu-button');
   const closeButton = document.getElementById('close-menu');
   const mobileMenu = document.getElementById('mobile-menu');
-
   // Toggle top menu
   menuButton.addEventListener('click', () => {
     const isExpanded = menuButton.getAttribute('aria-expanded') === 'true';
@@ -133,4 +151,6 @@
       }
     }
   });
+}
+  setupMenu();
 </script>
