@@ -35,7 +35,7 @@ class TestDeepCopy(TransactionTestCase):
             timeseries={"time": [0, 1, 2], "soc": [0.2, 0.5, 0.8]},
         )
         event.save()
-        s1.task_id = None
+        s1.task_id = get_unique_task_id()
         s2, _ = deepcopy_db(
             s1,
             exclude_models={Scenario, User, Event, Progress},

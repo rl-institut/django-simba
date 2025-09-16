@@ -109,10 +109,13 @@
 
 <script>
   // Top Navigation
+  // Due to htmx, there might be multiple declartions of these consts.
+  // This condtional handles it, and assumes if menuButton is declared,
+  // the other const are declared as well
+  function setupMenu(){
   const menuButton = document.getElementById('menu-button');
   const closeButton = document.getElementById('close-menu');
   const mobileMenu = document.getElementById('mobile-menu');
-
   // Toggle top menu
   menuButton.addEventListener('click', () => {
     const isExpanded = menuButton.getAttribute('aria-expanded') === 'true';
@@ -148,4 +151,6 @@
       }
     }
   });
+}
+  setupMenu();
 </script>

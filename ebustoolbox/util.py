@@ -25,6 +25,7 @@ if not any(["selenium" in str(x) for x in sys.modules.values()]):
     matplotlib.use("Agg")
 
 
+# TODO: remove since checking uuid is not common since duplicates are too rare
 def get_unique_task_id() -> str:
     task_id_not_unique = True
     task_id = None

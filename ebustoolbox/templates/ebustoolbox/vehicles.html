@@ -8,10 +8,14 @@
   {% with wiz_idx=2 %}{{ block.super }}{% endwith %}
 {% endblock wizard_navigation %}
 {% block wizard_content %}
-  <!-- <script src="https://livejs.com/live.js"></script> -->
-  <main class="flex flex-col items-center flex-grow">
-    <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-      <form type="submit" method ="POST">
+{% url "simba:notifications" task_id 'VehiclesView' as n_url %}
+{% include "ebustoolbox/partials/notifications_multi.html"  with url=n_url %}
+<main class="flex flex-col items-center flex-grow">
+
+  <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+          <form
+        type="submit"
+        method ="POST">
         {% csrf_token %}
         <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Fahrzeuge' %}</h1>
         <section class="pb-12">
@@ -298,6 +302,11 @@
   {% with "SubmitButton" as buttonId %}{{ block.super }}{% endwith %}
 {% endblock wizard_buttons %}
 {% block script %}
+<script>
+// from notifications_multi.html. Fetch notifications based on view and task id
+    fetchAndRenderNotifications();
+</script>
+<!-- Tabs Functionality of Bus Type Cards -->
 
 <script>
 

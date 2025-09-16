@@ -14,7 +14,7 @@ packages = [{include = "ebustoolbox"},
            ]
 
 [tool.poetry.dependencies]
-python = ">=3.10, <3.14"
+python = ">=3.11, <3.14"
 spice_ev = { git = "https://github.com/rl-institut/spice_ev", rev = "d593930f25ebdcdb0a915c45aa347c60be39e534"}
 simba = { git = "https://github.com/rl-institut/SimBA", rev = "dev"}
 
@@ -30,10 +30,6 @@ django-tailwind = "^3.8.0"
 djangorestframework = ">=3.14.0, <4.0.0"
 djangorestframework-mvt = ">=0.2.5, <1.0.0"
 
-eflips-eval = "^1.5.5"
-eflips-ingest = "^1.2.77"
-eflips-opt = "^0.2.0"
-eflips-depot = "^4.7.1"
 
 celery = "^5.3.1"
 colorbrewer = { git = "https://github.com/henhuy/colorbrewer-python.git" }
@@ -50,7 +46,9 @@ setuptools = "^68.2.2"
 tqdm = "^4.66.1"
 charset-normalizer = "^3.4.2"
 
-
+eflips-depot = "^4.13.0"
+eflips-ingest = "^1.2.79"
+eflips-eval = "^1.7.3"
 
 [tool.poetry.group.dev]
 optional = true
