@@ -6,7 +6,6 @@
   {% translate 'WeBus - Hilfe' %}
 {% endblock title %}
 {% block content %}
-  <script type="text/javascript" src="https://livejs.com/live.js"></script>
   <main class="flex flex-grow flex-col items-center">
     <div class="w-full max-w-7xl sm:px-6 sm:pb-4 sm:pt-8 lg:px-8 lg:pt-12">
       <h1 class="pb-8 text-4xl font-semibold">{% translate 'Hilfe' %}</h1>
@@ -551,7 +550,8 @@
             {% blocktrans %}
           WeBus kann ihr Bussystem optimieren. Zwei Optimierungsmethoden werden standardmäßig angewandt
           </p>
-          <a href="#station_optimization" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Stationsoptimierung' %}</a>
+          <a href="#station_optimization" class="pb-2 pt-4 text-2xl font-semibold">Stationsoptimierung</a>
+          <p class="text-base pb-4 leading-relaxed text-slate-600">
           Sollte Ihr Bussystem mit den ausgewählten Fahrzeugtypen nicht fahrbar sein, so besteht die Möglichkeit das mittels Stationsoptimierung ein fahrbarer Zustand erreicht wird.
           Nicht fahrbar bedeutet in diesem Kontext: Ein voll geladener Bus kann einen Umlauf nicht bedienen, ohne dass der SoC des Fahrzeugs unter 0&nbsp;% fällt.
          Wenn das Fahrzeug diesen Umlauf bedienen könnte, wenn es an Stationen die momentan nicht elektrifiziert sind, zwischenladen würde. So wird die Stationsoptimierung ausgeführt.
