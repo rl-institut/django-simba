@@ -1019,8 +1019,8 @@ def run_and_merge_scenarios(
     # Apply the average temperature
     Temperatures.objects.filter(scenario=average_scenario).delete()
     # Create temperature instance
-    Temperatures.create_constant_temperatures(average_scenario, sim_range.temperature_extreme)
-    # Run the avereage scenario with these applied changes.
+    Temperatures.create_constant_temperatures(average_scenario, sim_range.temperature_average)
+    # Run the average scenario with these applied changes.
     # Do not optimize Stations this run. In most cases the optimization should not do anything.
     # In some circumstances the average scenario might be badly setup and have higher consumptions.
     # In these cases we do not want to extend electrification but only simulate the users wishes.
