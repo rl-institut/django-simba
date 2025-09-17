@@ -1512,9 +1512,7 @@ def render_critical_rotations(request, task_id: str):
 
     # Aggregate category counts
     category_counts = (
-        df["SOC_category"]
-        .value_counts()
-        .reindex([_("Nicht kritisch"), _("kritisch")], fill_value=0)
+        df["SOC_category"].value_counts().reindex(["Nicht kritisch", "kritisch"], fill_value=0)
     )
 
     return JsonResponse(
