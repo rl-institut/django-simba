@@ -18,27 +18,22 @@
         method ="POST">
         {% csrf_token %}
         <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Fahrzeuge' %}</h1>
-        <section class="pb-12">
-          <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide">
-            {% translate 'Zeitspanne' %}
-            <div class="relative inline-block">
-              <!-- Info Icon -->
-              <span class="cursor-pointer group">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     stroke-width="2"
-                     stroke="currentColor"
-                     class="size-4">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                </svg>
-                <!-- Tooltip -->
-                <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                  {% translate 'Bottom Left-Aligned Tooltip' %}
 
-                </div>
-              </span>
+    <section class="pb-12">
+      <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide">
+          {% translate 'Zeitspanne' %}
+        <div class="relative inline-block">
+          <!-- Info Icon -->
+          <span class="cursor-pointer group">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+            </svg>
+            <!-- Tooltip -->
+            <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                {% translate 'Die zeitliche Beschneidung ihrer Eingangsdaten führt zu einer schnelleren Simulation des reduzierten Systems.' %}
             </div>
+            </span>
+          </div>
           </h2>
           <span class="block mb-6 text-sm text-slate-500">{% translate 'Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.' %}</span>
           <fieldset class="flex items-center gap-4">
@@ -282,8 +277,9 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                 </svg>
                 <!-- Tooltip -->
-                <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                  {% translate 'Bottom Left-Aligned Tooltip' %}
+            <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+              {% translate 'Folgende Fahrzeugtypen wurden in Ihrem Umlaufplan identifiziert. Für die Simulation sind technische Parameter notwendig die Sie hier zuordnen müssen.
+                Sie können Fahrzeugtypen aus einer Bibliothek übernehmen und verschiedene Werte manuell überschreiben.' %}
                 </div>
               </span>
             </div>
