@@ -20,6 +20,13 @@ Template:
 
 ## [x.x.x] - Unreleased
 ### Changed
+
+- [(#256)](https://github.com/rl-institut/django-simba/pull/256)
+- Change the depot input with two possible forms per depot
+  - Enable automatic depot configuration with a default charge power
+  - Enable custom depot configuration with cleaning duration, cleaning slots, shunting duration and shunting slots and a VehicleType dependent areas specifying charging point numbers and charging power.
+
+
 - [(#246)](https://github.com/rl-institut/django-simba/pull/246)
 - Update the database structure to match the one of eflips-model v10.0.0
 
