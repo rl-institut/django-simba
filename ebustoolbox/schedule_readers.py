@@ -283,7 +283,7 @@ class SimbaScheduleReader(ScheduleReader):
                 prev_arrival_time = trip["arrival_time"]
                 prev_arrival_name = trip["arrival_name"]
 
-                if not trip[self.DEPARTURE_TIME] < trip[self.ARRIVAL_TIME]:
+                if not trip[self.DEPARTURE_TIME] <= trip[self.ARRIVAL_TIME]:
                     # trip arrives before it departs
                     duration_errors.append(trip["row"])
                 if trip["departure_time"] < saved_arrival_time:

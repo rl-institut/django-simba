@@ -987,7 +987,59 @@ class TemperaturesTestCase(TestCase):
         self.assertRaises(AttributeError, t_instance.save)
 
 
-class RotationSplitTest(TestCase):
+class ZeroDurationTripTest(TestCase):
+    def test_merging_stations(self):
+        """Insert some zero duration trips and zero distance trips and check they are merged"""
+        django_scenario, simba_schedule, args = build_scenario()
+        rotations = list(Rotation.objects.filter(scenario=django_scenario))
+
+        # Mutate some trips so they have intermediate stops in depots
+        rotation = rotations[1]
+        trips = list(
+            Trip.objects.filter(rotation=rotation)
+            .order_by("arrival_time")
+            .select_related("route", "route__arrival_station", "route__departure_station")
+        )
+        assert (
+            len(trips) > 4
+        ), "The test needs a rotation with at least 3 trips, to properly test handling of intermediate depots stops"
+        trips[1].arrival_time = trips[1].departure_time
+        print(trips[1].route.arrival_station)
+        print(trips[1].route.departure_station)
+        trips[1].save()
+        trips[2].route.distance = 0
+        trips[2].route.save()
+        print(trips[2].route.arrival_station)
+        print(trips[2].route.departure_station)
+
+        # Split the rotations of the source but also notify the child
+        # for testing passing the same scenario works
+        assert Notification.objects.filter(scenario=django_scenario).count() == 0
+        tasks.ScheduleStationMerger.transform_zero_duration_trips(django_scenario, django_scenario)
+        cleaned_trips = list(Trip.objects.filter(rotation=rotation).order_by("arrival_time"))
+        cleaned_ids = [t.id for t in cleaned_trips]
+        assert trips[1].id not in cleaned_ids
+        assert trips[2].id not in cleaned_ids
+        assert trips[3].id in cleaned_ids
+        assert trips[0].id in cleaned_ids
+
+        cleaned_stations_ids = Station.objects.filter(scenario=django_scenario).values_list(
+            "id", flat=True
+        )
+        # Check that old stations dont exist anymore
+        assert trips[1].route.arrival_station.id not in cleaned_stations_ids
+        assert trips[1].route.departure_station.id not in cleaned_stations_ids
+        assert trips[2].route.arrival_station.id not in cleaned_stations_ids
+        assert trips[3].route.departure_station.id not in cleaned_stations_ids
+
+        # Make sure other stations still exist
+        assert trips[3].route.arrival_station.id in cleaned_stations_ids
+        assert trips[0].route.departure_station.id in cleaned_stations_ids
+
+        assert Notification.objects.filter(scenario=django_scenario).count() > 0
+
+
+class IntermediateDepotTest(TestCase):
     def test_intermediate_depot_trip(self):
         """Insert some intermediate stops at depots and check if they are transformed"""
         django_scenario, simba_schedule, args = build_scenario()
