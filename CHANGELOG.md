@@ -72,6 +72,10 @@ django-admin compilemessages
 - Updated station and depot icons on map
 
 ### Changed
+- [(#239)](https://github.com/rl-institut/django-simba/pull/239)
+- Improved comparison table layout
+
+### Changed
 - [(#223)](https://github.com/rl-institut/django-simba/pull/223)
 - Dash app is removed completely from website
   - Visualization now uses [echarts.js]( https://echarts.apache.org/en/index.html)
