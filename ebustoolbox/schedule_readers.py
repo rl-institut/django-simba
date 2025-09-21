@@ -11,6 +11,7 @@ import requests
 
 from django.contrib.gis.geos import Point
 from django.db.models import QuerySet, Min, Max
+from django.utils.translation import gettext as _
 from tqdm.auto import tqdm
 from typing import Callable, Type, Iterable
 from uuid import UUID
@@ -219,30 +220,31 @@ class SimbaScheduleReader(ScheduleReader):
         """
         try:
             self.set_total_work(5)
-            self.set_progress(0, "Lese Datei")
+            self.set_progress(0, _("Lese Datei"))
             trip_data = self.file_data_to_dict()
 
-            self.set_progress(1, "Finde Stationen")
+            self.set_progress(1, _("Finde Stationen"))
             # Create Stations
             scenario = Scenario.objects.get(id=scenario_id)
             stations, station_dict = self.get_stations(scenario, trip_data)
             Station.objects.bulk_create(stations)
-            add_station_locations(Station.objects.filter(scenario=scenario))
+            if settings.SEARCH_STATION_LOCATIONS:
+                add_station_locations(Station.objects.filter(scenario=scenario))
 
             add_elevations(Station.objects.filter(scenario=scenario, geom__isnull=False))
             place_not_found_stations(scenario)
 
-            self.set_progress(2, "Finde Fahrzeugtypen")
+            self.set_progress(2, _("Finde Fahrzeugtypen"))
             # Create empty vehicle_types
             vt_dict, vts = self.get_vehicles(scenario, trip_data)
             VehicleType.objects.bulk_create(vts)
 
-            self.set_progress(3, "Finde Umläufe")
+            self.set_progress(3, _("Finde Umläufe"))
             # Create Rotations
             rotations, rotations_dict = self.get_rotations(scenario, trip_data, vt_dict)
             Rotation.objects.bulk_create(rotations)
 
-            self.set_progress(4, "Finde Fahrten")
+            self.set_progress(4, _("Finde Fahrten"))
 
             # Create Trips and Routes
             lines, routes, trips = self.get_lines_routes_trips(
@@ -253,7 +255,7 @@ class SimbaScheduleReader(ScheduleReader):
                 Line.objects.bulk_create(lines)
                 Route.objects.bulk_create(routes)
                 Trip.objects.bulk_create(trips)
-            self.set_progress(5, "Fahrten erstellt")
+            self.set_progress(5, _("Fahrten erstellt"))
         except self.SimbaScheduleReaderException:
             return False
         return len(self.errors) == 0
@@ -357,19 +359,25 @@ class SimbaScheduleReader(ScheduleReader):
         # handle collected errors
         if duration_errors:
             self.errors.append(
-                f"Fahrt(en) in Zeile {', '.join(map(str, duration_errors))} haben keine oder eine "
-                "negative Fahrtdauer. Bitte ergänzen Sie Fahrzeiten oder entfernen Sie die Fahrten."
+                _(
+                    f"Fahrt(en) in Zeile {', '.join(map(str, duration_errors))} haben keine oder eine "
+                    "negative Fahrtdauer. Bitte ergänzen Sie Fahrzeiten oder entfernen Sie die Fahrten."
+                )
             )
 
         if trip_overlap_errors:
             self.errors.append(
-                f"Fahrt in Zeile {', '.join(map(str, trip_overlap_errors))} überschneidet sich "
-                f"(startet vor der vorherigen Ankunft)"
+                _(
+                    f"Fahrt in Zeile {', '.join(map(str, trip_overlap_errors))} überschneidet sich "
+                    f"(startet vor der vorherigen Ankunft)"
+                )
             )
         for station, trip_lines in trip_previous_station_errors.items():
             self.errors.append(
-                f"Fahrt in Zeile {', '.join(map(str, trip_lines))} "
-                f"startet nicht an der vorherigen Station {station}"
+                _(
+                    f"Fahrt in Zeile {', '.join(map(str, trip_lines))} "
+                    f"startet nicht an der vorherigen Station {station}"
+                )
             )
         return lines, routes, trips
 
@@ -382,7 +390,7 @@ class SimbaScheduleReader(ScheduleReader):
         for rotation_id, trips in trip_data.items():
             i += 1
             if not (len({t[self.VEHICLE_TYPE] for t in trip_data[rotation_id]}) == 1):
-                self.errors.append(f"Umlauf {rotation_id} enthält mehrere Fahrzeugtypen")
+                self.errors.append(_(f"Umlauf {rotation_id} enthält mehrere Fahrzeugtypen"))
             first_trip = trips[0]
             vt = vt_dict[first_trip[self.VEHICLE_TYPE]]
             rot = Rotation(
@@ -472,7 +480,7 @@ class SimbaScheduleReader(ScheduleReader):
             ]:
                 if column not in trip.keys():
                     missing_column = True
-                    self.errors.append(f"Spalte {column} fehlt")
+                    self.errors.append(_(f"Spalte {column} fehlt"))
 
             if missing_column:
                 raise self.SimbaScheduleReaderException
@@ -505,10 +513,12 @@ class SimbaScheduleReader(ScheduleReader):
         class ScheduleReaderForm(forms.Form):
             # basics
             file_path = forms.FileField(
-                label="Fahrplan Datei (.csv)",
+                label=_("Fahrplan Datei (.csv)"),
                 required=True,
-                help_text=".csv Datei mit den Spalten: rotation_id, departure_station, departure_time, "
-                "arrival_station, arrival_time, distance, vehicle_type",
+                help_text=_(
+                    ".csv Datei mit den Spalten: rotation_id, departure_station, departure_time, "
+                    "arrival_station, arrival_time, distance, vehicle_type"
+                ),
             )
 
         return ScheduleReaderForm
@@ -785,6 +795,7 @@ def add_station_locations(query: QuerySet):
         logger.error("Data scraper not available")
         return
     station_names = query.values_list("name", flat=True)
+    logger.info(f"Searching {len(station_names)} Station Locations")
     locations = find_station_locations(station_names)
     stations_with_geom = []
     not_found = []

@@ -1,3 +1,4 @@
+{% load i18n %}
 <div class="map-overlay" id="map-overlay">
     <div>
         <button type="button" class="btn-close text-slate-600" id="js-map-layers-box-close" aria-label="Close">X</button>
@@ -15,7 +16,7 @@
                 alt="Satellitenansicht"
                 class="rounded-md w-12 h-12"
                 >
-                <span id="basemap-label" class="tracking-wide text-sm">Satellitenansicht</span>
+                <span id="basemap-label" class="tracking-wide text-sm">{% translate "Satellitenansicht" %}</span>
             </button>
         </div>
         <div id="layers" class="py-4 border-b">
@@ -23,9 +24,9 @@
         </div>
         <div class="slider-container pt-4">
             <div class="label-container">
-                <label> <span class="text-sm text-slate-600"> Anzahl Anfahrten:</span></label>
-                <label><span class="text-sm text-slate-600">Min:</span> <span class="font-semibold" id="minValueDisplay">0</span></label> -
-                <label><span class="text-sm text-slate-600">Max:</span> <span class="font-semibold" id="maxValueDisplay">100</span></label>
+                <label> <span class="text-sm text-slate-600"> {% translate "Anzahl Anfahrten:" %}</span></label>
+                <label><span class="text-sm text-slate-600">{% translate "Min:" %}</span> <span class="font-semibold" id="minValueDisplay">0</span></label> -
+                <label><span class="text-sm text-slate-600">{% translate "Max:" %}</span> <span class="font-semibold" id="maxValueDisplay">100</span></label>
             </div>
             <div class="px-4" id="slider-num_arrival"></div>
         </div>

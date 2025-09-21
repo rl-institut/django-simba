@@ -27,7 +27,7 @@ class Progress(models.Model):
     success = models.BooleanField(default=False)
     running = models.BooleanField(default=True)
 
-    errors = models.JSONField([], default=list, null=True)
+    errors = models.JSONField(default=list, null=True)
 
     def estimate_duration(self):
         """Return the number of minutes estimated to finish based on

@@ -1,3 +1,4 @@
+{% load i18n %}
 <aside class="flex flex-col items-center">
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
     <div
@@ -12,7 +13,9 @@
                   id="progress-alert-title"
                   class="text-lg font-semibold text-blue-800"
           >
-            Szenario "{{ progress.scenario.name }}" wird erstellt
+            {% with progress.scenario.name as scenario_name %}
+            {% blocktranslate %}Szenario "{{scenario_name}}" wird erstellt{% endblocktranslate %}
+            {% endwith  %}
           </h3>
         </div>
         {{ progress.status }}
@@ -20,22 +23,24 @@
           <div class="relative w-full h-2 bg-blue-200 rounded-full">
             <div
                     class="absolute left-0 h-2 bg-blue-800 rounded-full"
-                    style="width: {{ progress.get_progress }}%;"
-            >        {{ progress.get_progress }}%
+                    style="width: {{ progress.get_progress|floatformat:0 }}%;"
+            >        {{ progress.get_progress|floatformat:1 }}%
             </div>
           </div>
         </div>
+              <div class='mt-2'>
         {% if progress.success %}
 {#          a new scenario was created which has a new task_id identical to the progress task_id#}
-        <a href="{%  url 'simba:result' progress.task_id %}" >Zu den Ergebnissen</a>
+        <a href="{%  url 'simba:result' progress.task_id %}" >{% translate 'Zu den Ergebnissen' %}</a>
         {% else %}
+        </div>
         <div class="flex gap-1 mt-2 text-sm text-blue-800">
 
 
 
           {%   if progress.estimate_duration is not None %}
           <span class="font-bold">{{ progress.estimate_duration|floatformat:1 }}</span>
-          <span class="font-normal">Minuten verbleibend</span>
+          <span class="font-normal">{% translate 'Minuten verbleibend' %}</span>
           {% endif %}
         </div>
         <div class="mt-4">
@@ -43,9 +48,9 @@
                   href="#"
                   class="text-blue-800 text-sm font-bold underline focus:outline-none focus:ring-2 focus:ring-blue-800 focus:ring-offset-2"
           >
-            E-Mail erhalten
+            {% translate 'E-Mail erhalten' %}
           </a>
-          <span class="text-sm text-blue-800">, wenn die Simulation beendet ist</span>
+          <span class="text-sm text-blue-800">{% translate ', wenn die Simulation beendet ist' %}</span>
         </div>
         {% endif %}
       </div>

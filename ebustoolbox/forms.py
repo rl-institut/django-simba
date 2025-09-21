@@ -1,6 +1,7 @@
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.utils.translation import gettext as _
 
 from . import models, tasks
 from .models import (
@@ -49,10 +50,10 @@ class UploadFileForm(forms.Form):
     station_data_path = forms.FileField(required=False)
     outside_temperature_over_day_path = forms.FileField(required=False)
     temperature_time_series_path = forms.FileField(
-        required=False, help_text="Verknüpft SimBA-Trips mit Temperaturen"
+        required=False, help_text=_("Verknüpft SimBA-Trips mit Temperaturen")
     )
     consumption_path = forms.FileField(
-        required=False, help_text="Zur Interpolation von Verbräuchen verwendet"
+        required=False, help_text=_("Zur Interpolation von Verbräuchen verwendet")
     )
 
     level_of_loading_over_day_path = forms.FileField(required=False)
@@ -83,7 +84,8 @@ class DateRangeField(forms.DateField):
 
 
 class SimulationParameters(forms.ModelForm):
-    temperature = forms.IntegerField(min_value=-20, max_value=40)
+    temperature_average = forms.IntegerField(min_value=-20, max_value=40)
+    temperature_extreme = forms.IntegerField(min_value=-20, max_value=40)
 
     class Meta:
         model = SimulationRange
@@ -95,14 +97,14 @@ class SimulationParameters(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         if not (cleaned_data.get("start") and cleaned_data.get("end")):
-            raise ValidationError("Gib ein Start- und Endzeitpunkt an.")
+            raise ValidationError(_("Gib ein Start- und Endzeitpunkt an."))
         if (
             tasks.get_rotations_by_start_end(
                 self.instance.scenario.parent, cleaned_data["start"], cleaned_data["end"]
             ).count()
             == 0
         ):
-            raise ValidationError("In dieser Zeitspanne starten keine Umläufe.")
+            raise ValidationError(_("In dieser Zeitspanne starten keine Umläufe."))
         return cleaned_data
 
 
@@ -111,9 +113,9 @@ class ElectrificationOptionsForm(forms.ModelForm):
         model = ElectrificationOptions
         exclude = ("scenario", "electrified_stations")
         help_texts = {
-            "gc_power_opps": "Grid connector power in kVA",
-            "cs_power_opps": "Charging point power in kW",
-            "amount_charging_places": "Number of charging points per electrified station",
+            "gc_power_opps": _("Grid connector power in kVA"),
+            "cs_power_opps": _("Charging point power in kW"),
+            "amount_charging_places": _("Number of charging points per electrified station"),
         }
 
 
@@ -165,24 +167,39 @@ class VehicleTypeSelectionForm(forms.ModelForm):
 
 
 class VehicleTypeForm(forms.ModelForm):
+    has_diesel_heating = forms.BooleanField(
+        required=False,
+        initial=False,
+        label=_("Dieselzusatzheizung"),
+        help_text=_(
+            "Dem Fahrzeugtyp eine Dieselzusatzheiung hinzufügen. "
+            "Dies reduziert den Verbrauch bei niedrigen Temperaturen"
+        ),
+    )
+
     # Consumption must be turned on in front end -> todo discuss
     class Meta:
         model = VehicleType
-        fields = ["battery_capacity", "consumption"]
+        fields = ["battery_capacity", "consumption", "max_consumption"]
 
         help_texts = {
-            "battery_capacity": "Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen.",
-            "consumption": "Welchen Verbrauch in kWh/km hat dieses Fahrzeug?",
+            "battery_capacity": _(
+                "Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen."
+            ),
+            "consumption": _("Welchen durchschnittlichen Verbrauch in kWh/km hat dieses Fahrzeug?"),
+            "max_consumption": _("Welchen max. Verbrauch in kWh/km hat dieses Fahrzeug?"),
         }
         labels = {
-            "battery_capacity": "Batteriekapazität [kWh]",
-            "consumption": "Verbrauch [kWh/km]",
+            "battery_capacity": _("Batteriekapazität [kWh]"),
+            "consumption": _("Verbrauch [kWh/km]"),
+            "max_consumption": _("max. Verbrauch [kWh/km]"),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["battery_capacity"].widget.attrs.update({"min": 1.0})
         self.fields["consumption"].required = False
+        self.fields["max_consumption"].required = False
 
 
 class DepotCalculationForm(forms.Form):

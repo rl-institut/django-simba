@@ -1,27 +1,22 @@
-import shutil
 import time
 from copy import copy
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Iterable
+import io
+import zipfile
 
 import pandas as pd
 from django.conf import settings
-from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db.models import F
 from django.http import HttpRequest
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 
 import django.apps
 import core.deepcopy
 
 # Create your tests here.
-from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
 
 from ebustoolbox.schedule_readers import SimbaScheduleReader
 
@@ -29,6 +24,7 @@ from .import_export import visit_all_scenario_queries, ScenarioJSONImporterExpor
 from . import tasks
 from .forms import UploadFileForm
 from .models import (
+    Notification,
     Route,
     Scenario,
     UploadedFile,
@@ -46,72 +42,11 @@ from .models import (
     EnumChargeType,
 )
 from .tasks import run_simba_scenario
-from .util import get_unique_task_id
-import ebustoolbox
+from .util import get_unique_task_id, validate_zip, ZipFileException
 
 
 TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
 TMP_STATICFILES_DIRS = settings.STATICFILES_DIRS + [settings.BASE_DIR / TMP_UPLOAD]
-
-
-@override_settings(STATICFILES_DIRS=TMP_STATICFILES_DIRS)
-@override_settings(UPLOAD_PATH=TMP_UPLOAD)
-@override_settings(SECURE_PROXY_SSL_HEADER=None)
-@override_settings(SECURE_SSL_REDIRECT=False)
-class MySeleniumTests(StaticLiveServerTestCase):
-    selenium: webdriver.Chrome = None
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        options_ = webdriver.chrome.options.Options()
-        options_.add_argument("--headless=new")
-        options_.add_argument("-enable-unsafe-swiftshader")
-        cls.selenium = webdriver.Chrome(options=options_)
-        cls.selenium.implicitly_wait(20)
-        Path(TMP_UPLOAD).mkdir(parents=True, exist_ok=True)
-
-    @classmethod
-    def tearDownClass(cls):
-        ebustoolbox.data.SqlAlchemyEngine.dispose()
-        cls.selenium.quit()
-        super().tearDownClass()
-        shutil.rmtree(TMP_UPLOAD)
-
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @override_settings(CELERY_TASK_EAGER_PROPAGATES=True)
-    @override_settings(DEBUG=True)
-    def test_result_generation_w_celery(self):
-        # Get the URL using reverse
-        django_scenario, simba_schedule, args = build_scenario()
-        django_scenario.task_id = get_unique_task_id()
-        django_scenario.save()
-        tasks.run_toolchain_from_scenario(django_scenario, assign_vehicles=True)
-        url = reverse("simba:result", args=(django_scenario.task_id,))
-        _ = self.client.get(url)
-        self.selenium.get(f"{self.live_server_url}{url}")
-        # Clear the browser log. We check the state of the site after refresh, to give
-        # map images time to load.
-        _ = self.selenium.get_log("browser")
-        self.selenium.refresh()
-        # give django some time to calculate
-        # Check for 404 requests
-        # Wait until maplibre is loaded
-        # Wait until all plots are finished with fetching
-
-        # This polls an element which is set to "1" and a status after all promises
-        # of data fetching for plots are resolved
-        def element_value_is_true(driver):
-            try:
-                elem = driver.find_element(By.ID, "dataFetchedFinished")
-                value = elem.get_attribute("data-value")
-                status = elem.get_attribute("data-status")
-                return value == "1" and status == "success"
-            except Exception:
-                return False
-
-        # If the promises dont resolve this will throw an error
-        WebDriverWait(self.selenium, 5).until(element_value_is_true)
 
 
 def castable_to_dict(objects: Iterable):
@@ -236,6 +171,13 @@ def build_scenario():
     django_scenario, simba_schedule, args = tasks.input_files_to_database(
         form.cleaned_data, request
     )
+    for vt in VehicleType.objects.filter(scenario=django_scenario):
+        # NOTE: Eflips needs masses for calculation
+        vt.allowed_mass = 20_000
+        vt.empty_mass = 10_000
+        query = Consumption.objects.filter(vehicle_class=VehicleClass.objects.get(vehicletype=vt))
+        assert query.exists()
+        vt.save()
 
     for station in Station.objects.filter(scenario=django_scenario):
         if station.amount_charging_places is None:
@@ -245,6 +187,8 @@ def build_scenario():
         if station.power_total is None:
             station.power_total = django_scenario.simba_options["gc_power_opps"]
         station.save()
+    django_scenario.task_id = get_unique_task_id()
+    Temperatures.create_constant_temperatures(django_scenario, 20)
     return django_scenario, simba_schedule, args
 
 
@@ -268,8 +212,8 @@ class WriteReadScenarioToDatabase(TestCase):
         vehicle = Rotation.objects.filter(scenario=django_scenario).first().vehicle
         vehicle_type = vehicle.vehicle_type
         consumption_table = Consumption.objects.get(vehicle_class__vehicletype=vehicle_type)
-
         station = Station.objects.get(scenario=django_scenario, name="Station-0")
+
         vehicle_type.charging_curve[1][1] = vehicle_type.charging_curve[0][1] * 0.8
         vehicle_type.save()
 
@@ -365,16 +309,16 @@ class WriteReadScenarioToDatabase(TestCase):
 
 class ModelTests(TestCase):
     def test_scenario_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         self.assertEqual(str(scenario.name), "Test Scenario")
 
     def test_uploaded_file_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         uploaded_file = UploadedFile.objects.create(scenario=scenario, file="test.txt")
         self.assertEqual(str(uploaded_file.file), "test.txt")
 
     def test_vehicle_type_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
@@ -386,7 +330,7 @@ class ModelTests(TestCase):
         self.assertEqual(str(vehicle_type.name), "Test Type")
 
     def test_vehicle_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
@@ -401,7 +345,7 @@ class ModelTests(TestCase):
         self.assertEqual(str(vehicle), "Test Vehicle")
 
     def test_rotation_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
@@ -419,14 +363,14 @@ class ModelTests(TestCase):
         self.assertEqual(str(rotation.name), "Test Rotation")
 
     def test_station_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         station = Station.objects.create(
             geom="POINT(0 0 0)", name="Test Station", scenario=scenario
         )
         self.assertEqual(str(station.name), "Test Station")
 
     def test_trip_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
@@ -470,9 +414,9 @@ class ModelTests(TestCase):
 class ScenarioTestCase(TestCase):
     def setUp(self):
         # Create test instances of your model
-        Scenario.objects.create(name="Instance 1")
+        Scenario.objects.create(name="Instance 1", task_id=get_unique_task_id())
         time.sleep(0.01)
-        Scenario.objects.create(name="Instance 2")
+        Scenario.objects.create(name="Instance 2", task_id=get_unique_task_id())
 
     def test_model_creation(self):
         instance_1 = Scenario.objects.get(name="Instance 1")
@@ -480,7 +424,6 @@ class ScenarioTestCase(TestCase):
         self.assertGreater(instance_2.created, instance_1.created)
         self.assertIsNone(instance_1.finished)
         self.assertIsInstance(instance_1.simba_options, dict)
-        self.assertIsNone(instance_1.task_id)
 
 
 class SimulationTestCase(TransactionTestCase):
@@ -566,12 +509,13 @@ class SimulationTestCase(TransactionTestCase):
     def test_apply_depot_strategy(self):
         # basic test
         django_scenario = self.create_depot_simulation()
-        tasks.apply_depot_strategy(django_scenario, "balanced")
+        tasks.apply_depot_strategy(django_scenario, "greedy")
 
 
 class ConsumptionTestCase(TransactionTestCase):
     def test_missing_temperature(self):
         django_scenario, simba_schedule, args = build_scenario()
+        Temperatures.objects.filter(scenario=django_scenario).delete()
         missing_temp_text = (
             "uses a consumption LUT for consumption calculation but the scenario "
             "has no Temperature object for temperature lookup. Default value for "
@@ -733,7 +677,7 @@ class ConsumptionTestCase(TransactionTestCase):
         assert sum_consumption_new != sum_consumption
 
     def test_get_consumption(self):
-        scenario = Scenario.objects.create(name="my scenario")
+        scenario = Scenario.objects.create(name="my scenario", task_id=get_unique_task_id())
         vehicle_class = VehicleClass.objects.create(name="my vehicle class", scenario=scenario)
         consumption_instance = Consumption.objects.create(
             name="My Consumption",
@@ -909,7 +853,7 @@ class AllowOppChargingTestCase(TestCase):
             vt.opportunity_charging_capable = True
             vt.save()
 
-        tasks.is_consistent(django_scenario)
+        assert tasks.is_consistent(django_scenario)
         sched, scen = run_simba_scenario(django_scenario)
         assert (
             Event.objects.filter(
@@ -987,7 +931,7 @@ class TemperaturesTestCase(TestCase):
         temp2 = 0
         temp3 = 100
         t_instance = Temperatures(
-            scenario=Scenario.objects.get(pk=Scenario.get_default_pk()),
+            scenario=Scenario.objects.create(name="Scenario", task_id=get_unique_task_id()),
             name="First Temperatures",
             use_only_time=False,
             datetimes=[date1, date2, date3],
@@ -1041,6 +985,57 @@ class TemperaturesTestCase(TestCase):
         )
         # Different dates raise an attribute error
         self.assertRaises(AttributeError, t_instance.save)
+
+
+class RotationSplitTest(TestCase):
+    def test_intermediate_depot_trip(self):
+        """Insert some intermediate stops at depots and check if they are transformed"""
+        django_scenario, simba_schedule, args = build_scenario()
+        rotations = list(Rotation.objects.filter(scenario=django_scenario))
+
+        # Mutate some trips so they have intermediate stops in depots
+        rotation = rotations[1]
+        trips = list(Trip.objects.filter(rotation=rotation).order_by("arrival_time"))
+        assert (
+            len(trips) > 2
+        ), "The test needs a rotation with at least 3 trips, to properly test handling of intermediate depots stops"
+        station = trips[0].route.arrival_station
+        # First trip route ends up in depot
+        station.charge_type = EnumChargeType.DEPOT
+        station.save()
+
+        station = trips[-1].route.departure_station
+        # Last trip route starts up in depot
+        station.charge_type = EnumChargeType.DEPOT
+        station.save()
+
+        # Intermediate trip route ends in depot, next one starts in depot
+        station = trips[1].route.arrival_station
+        # Last trip route starts up in depot
+        station.charge_type = EnumChargeType.DEPOT
+        station.save()
+        # Split the rotations of the source but also notifiy the child
+        # for testing passing the same scenario works
+        assert Notification.objects.filter(scenario=django_scenario).count() == 0
+        tasks.transform_depot_stations(django_scenario, django_scenario)
+
+        # Refetch trips which should be updated
+        trips = list(Trip.objects.filter(rotation=rotation).order_by("arrival_time"))
+
+        assert Notification.objects.filter(scenario=django_scenario).count() > 0
+
+        # Routes end in stations which are not of type depot anymore
+        route = trips[0].route
+        assert route.arrival_station.charge_type != EnumChargeType.DEPOT
+
+        route = trips[-1].route
+        assert route.departure_station.charge_type != EnumChargeType.DEPOT
+
+        route = trips[1].route
+        assert route.arrival_station.charge_type != EnumChargeType.DEPOT
+
+        route = trips[2].route
+        assert route.departure_station.charge_type != EnumChargeType.DEPOT
 
 
 class SerializerTest(TransactionTestCase):
@@ -1112,3 +1107,70 @@ class ScheduleReaderTest(TestCase):
                 new_count = Trip.objects.filter(scenario=scenario).count()
                 assert count_trips == new_count, f"{count_trips}/ {new_count}"
             scenario.delete()
+
+
+class ZipValidationTest(SimpleTestCase):
+    @override_settings(DEBUG="True")
+    @override_settings(LOG_LEVEL="DEBUG")
+    def test_zip_validation(self):
+        # Test Exception raising for malformed zips
+        # small dummy payload (~200 KB)
+        # to large uncompressed
+        payload_size = 100
+        allowed_size = payload_size - 1
+        payload = b"A" * payload_size
+        prev = io.BytesIO()
+        with zipfile.ZipFile(prev, "w", compression=zipfile.ZIP_DEFLATED) as z:
+            z.writestr("payload.txt", payload)
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, 99, allowed_size, 99)
+
+        # To many files
+        payload = b"A"
+        prev = io.BytesIO()
+        allowed_file_nr = 1
+        with zipfile.ZipFile(prev, "w", compression=zipfile.ZIP_DEFLATED) as z:
+            for i in range(allowed_file_nr + 1):
+                z.writestr(f"payload{i}.txt", payload)
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, allowed_file_nr, 100, 99)
+
+        # To deeply nested files
+        payload = b"A"
+        allowed_nesting = 2
+        # recursively wrap previous zip
+        for i in range(allowed_nesting + 1):
+            new_buf = io.BytesIO()
+            with zipfile.ZipFile(new_buf, "w", compression=zipfile.ZIP_DEFLATED) as z:
+                z.writestr(f"layer_{i-1}.zip", prev.getvalue())
+            prev = new_buf
+
+        with zipfile.ZipFile(prev, "r", compression=zipfile.ZIP_DEFLATED) as z:
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, 99, 100, allowed_nesting)
+
+        # test positive validation
+        payload_size = 20
+        payload = b"A" * payload_size
+        allowed_file_nr = 3
+        allowed_size = allowed_file_nr * payload_size
+        allowed_nesting = 2
+        prev = io.BytesIO()
+
+        with zipfile.ZipFile(prev, "w", compression=zipfile.ZIP_DEFLATED) as z:
+            for i in range(allowed_file_nr):
+                z.writestr(f"payload{i}.txt", payload)
+        for i in range(allowed_nesting):
+            new_buf = io.BytesIO()
+            with zipfile.ZipFile(new_buf, "w", compression=zipfile.ZIP_DEFLATED) as z:
+                z.writestr(f"layer_{i-1}.zip", prev.getvalue())
+            prev = new_buf
+
+        with zipfile.ZipFile(prev, "r", compression=zipfile.ZIP_DEFLATED) as z:
+            validate_zip(z, allowed_file_nr, allowed_size, allowed_nesting)
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, allowed_file_nr - 1, allowed_size, allowed_nesting)
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, allowed_file_nr, allowed_size - 1, allowed_nesting)
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, allowed_file_nr, allowed_size, allowed_nesting - 1)

@@ -1,11 +1,12 @@
 {% extends 'core/base.html' %}
+{% load i18n %}
 
-{% block title %}WeBus - Szenarienvergleich{% endblock title %}
+  {% block title %}{% translate "WeBus - Szenarienvergleich" %}{% endblock title %}
 
 {% block content %}
 <main class="flex flex-col items-center flex-grow">
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-[120rem]">
-    <h1 class="text-4xl font-semibold mb-6">Szenarienvergleich</h1>
+    <h1 class="text-4xl font-semibold mb-6">{% translate "Szenarienvergleich" %}</h1>
   {% if scenarios %}
     <div class="flex flex-col">
       <div id="cmp-addContainer" class="flex justify-end h-12"></div>
@@ -24,9 +25,9 @@
       </div>
     </div>
   {% else %}
-    Keine Szenarien vorhanden zum Vergleichen.
+    {% translate "Keine Szenarien vorhanden zum Vergleichen." %}
     <a href="{% url 'simba:trips' %}" class="px-4 py-1 border-2 border-emerald-400 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-emerald-400 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-400 active:bg-emerald-500 transition-all duration-300">
-      + Szenario erstellen
+      {% translate "+ Szenario erstellen" %}
     </a>
   {% endif %}
   </div>
@@ -73,11 +74,11 @@
     {
       // add native select element
       const addContainer = document.getElementById('cmp-addContainer');
-      
+
       // Create a wrapper div to maintain consistent height
       const selectWrapper = document.createElement('div');
       selectWrapper.classList.add('inline-block', 'h-8'); // Fixed height to prevent layout shift
-      
+
       const select = document.createElement('select');
       select.id = 'cmp-select';
       select.classList.add(
@@ -87,7 +88,7 @@
         'transition-all', 'duration-300', 'cursor-pointer', 'h-10', 'pr-24',
         'appearance-none',
       );
-      
+
       // Add default option
       const defaultOption = document.createElement('option');
       defaultOption.value = '';
@@ -95,10 +96,10 @@
       defaultOption.disabled = true;
       defaultOption.selected = true;
       select.appendChild(defaultOption);
-      
+
       // Populate with available scenarios
       updateSelectOptions(select);
-      
+
       // Handle selection
       select.addEventListener('change', (e) => {
         const selectedScenarioId = e.target.value;
@@ -109,7 +110,7 @@
           updateSelectOptions(select);
         }
       });
-      
+
       selectWrapper.appendChild(select);
       addContainer.appendChild(selectWrapper);
     }
@@ -127,7 +128,7 @@
     while (select.children.length > 1) {
       select.removeChild(select.lastChild);
     }
-    
+
     // Add available scenarios
     Array.from(availableScenarios)
       .sort((a,b) => a.localeCompare(b, undefined, { numeric: true }))
@@ -137,7 +138,7 @@
         option.textContent = scenarios[id].Name;
         select.appendChild(option);
       });
-    
+
     // Show/hide select based on available scenarios
     select.style.display = availableScenarios.size ? '' : 'none';
   }
@@ -197,7 +198,7 @@
     for (let row of table.rows)
       row.deleteCell(index);
     availableScenarios.add(scenario_id);
-    
+
     // Update select options
     const select = document.getElementById('cmp-select');
     if (select) {

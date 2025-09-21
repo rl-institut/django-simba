@@ -1,26 +1,27 @@
 {% extends 'ebustoolbox/wizard.html' %}
+{% load i18n %}
 
 {% load custom_filters %}
-{% block title %}WeBus - Fahrzeuge{% endblock title %}
+  {% block title %}{% translate 'WeBus - Fahrzeuge' %}{% endblock title %}
 
 {% block wizard_navigation %}
-  {% with wiz_idx=2 %}
-    {{ block.super }}
-  {% endwith %}
+  {% with wiz_idx=2 %}{{ block.super }}{% endwith %}
 {% endblock wizard_navigation %}
-
 {% block wizard_content %}
+{% url "simba:notifications" task_id 'VehiclesView' as n_url %}
+{% include "ebustoolbox/partials/notifications_multi.html"  with url=n_url %}
 <main class="flex flex-col items-center flex-grow">
+
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
           <form
         type="submit"
         method ="POST">
         {% csrf_token %}
-    <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">Fahrzeuge</h1>
+        <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Fahrzeuge' %}</h1>
 
     <section class="pb-12">
       <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide">
-        Zeitspanne
+          {% translate 'Zeitspanne' %}
         <div class="relative inline-block">
           <!-- Info Icon -->
           <span class="cursor-pointer group">
@@ -29,145 +30,485 @@
             </svg>
             <!-- Tooltip -->
             <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-              Bottom Left-Aligned Tooltip
+                {% translate 'Die zeitliche Beschneidung ihrer Eingangsdaten führt zu einer schnelleren Simulation des reduzierten Systems.' %}
             </div>
-          </span>
+            </span>
+          </div>
+          </h2>
+          <span class="block mb-6 text-sm text-slate-500">{% translate 'Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.' %}</span>
+          <fieldset class="flex items-center gap-4">
+            <span class="text-slate-600">{% translate 'Von' %}</span>
+            <!-- Start Date -->
+            <div class="flex items-center rounded-md outline outline-1 outline-transparent">
+              <label for="start-date" class="sr-only">{% translate 'Startdatum' %}</label>
+              <input type="date"
+                     id="start-date"
+                     name="start-date"
+                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                     aria-label="Startdatum"
+                     min="{{ min_date }}"
+                     max="{{ max_date }}"
+                     value="{{ start_date }}"
+                     required>
+            </div>
+            <!-- Start Time -->
+            <div class="flex items-center rounded-md outline outline-1 outline-transparent">
+              <label for="start-time" class="sr-only">{% translate 'Startzeit' %}</label>
+              <input type="time"
+                     id="start-time"
+                     name="start-time"
+                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                     aria-label="Startzeit"
+                     value="{{ initial_start_time }}"
+                     required>
+            </div>
+            <span class="text-slate-600">{% translate 'bis' %}</span>
+            <!-- End Date -->
+            <div class="flex items-center rounded-md outline outline-1 outline-transparent">
+              <label for="end-date" class="sr-only">Enddatum</label>
+              <input type="date"
+                     id="end-date"
+                     name="end-date"
+                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                     aria-label="Enddatum"
+                     min="{{ min_date }}"
+                     max="{{ max_date }}"
+                     value="{{ end_date }}"
+                     required>
+            </div>
+            <!-- End Time -->
+            <div class="flex items-center rounded-md outline outline-1 outline-transparent">
+              <label for="end-time" class="sr-only">{% translate 'Endzeit' %}</label>
+              <input type="time"
+                     id="end-time"
+                     name="end-time"
+                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                     aria-label="Endzeit"
+                     value="{{ initial_end_time }}"
+                     required>
+            </div>
+          </fieldset>
+          <!-- ToDo Bryan: Styling and positioning of errors -->
+          <div id="sim_range_errors">
+            <ul class="text-red-500 text-sm mt-2">
+              {% for error in simulation_parameters_form.errors.values %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          </div>
+        </section>
+        <section class="pb-12">
+          <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide"
+              id="temperature-heading">
+            {% translate 'Temperaturen' %}
+            <div class="relative inline-block">
+              <!-- Info Icon -->
+              <span class="cursor-pointer group">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke-width="2"
+                     stroke="currentColor"
+                     class="size-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                </svg>
+                <!-- Tooltip -->
+                <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                  {% translate 'Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.' %}
+                </div>
+              </span>
+            </div>
+          </h2>
+          <div class="row flex">
+            <div class="min-w-[16rem]">
+              <h3 class="flex items-center gap-2 pb-2 text-l font-semibold tracking-wide"
+                  id="temperature-heading">
+                {% translate 'Durchschnittstemperatur' %}
+                <div class="relative inline-block">
+                  <!-- Info Icon -->
+                  <span class="cursor-pointer group">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke-width="2"
+                         stroke="currentColor"
+                         class="size-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                    </svg>
+                    <!-- Tooltip -->
+                    <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                      {% translate 'Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.' %}
+                    </div>
+                  </span>
+                </div>
+              </h3>
+              <div class="w-12/12">
+                <div class="mt-2">
+                  <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
+                    <input {% with simulation_parameters_form.temperature_average as form %}
+                          {{ form|widget_attrs}}
+                           {% endwith %}
+                           class="flex-1 bg-white mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                           placeholder="Gib eine Temperatur ein."
+                           aria-describedby="temperature-heading temperature-unit"
+                onchange ="temperatureChange(this.value, 'AvgTemperatureHint','div .avg-consumption-hint', debounced_fetchAndSetTemperature2)"
+                  >
+                    <div id="temperature-unit" class="shrink-0 select-none text-slate-500">°C</div>
+                  </div>
+                </div>
+              </div>
+                <div class="flex" >
+                  <div id="AvgTemperatureHint" style="display:None" class="flex mt-1 text-sm text-slate-600 italic transition-opacity duration-200 ease-in-out">
+                    <!-- Next div is queried for class= text and filled with temperature fetch. -->
+                    <div class="flex text">
+                  </div>
+                    <div class="px-2 relative inline-block">
+                      <!-- Info Icon -->
+                      <span class="cursor-pointer group">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke-width="2"
+                          stroke="currentColor"
+                          class="size-4">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                        </svg>
+                        <!-- Tooltip for Temperature Quantile-->
+                      <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                        {% with weatherstation.name as w_name %}
+                        {% blocktranslate %}Bezogen auf die pro Stunde gemittelten Temperaturen von {{startYear}} bis {{endYear}} an der Messstation {{w_name}}. {% endblocktranslate %}
+                        {% endwith %}
+                        {% if distance %}
+                        {% blocktranslate %}diese liegt {{distance.km|floatformat:1 }} km entfernt vom Mittelpunkt des Szenarios {% endblocktranslate %}
+                        {% endif %}
+                      </div>
+                    </span>
+                    </div>
+                  </div>
+                </div>
+            </div>
+            <div class="px-6">
+
+              <!-- Gap between inputs -->
+            </div>
+            <div class="min-w-[16rem]">
+              <h3 class="flex items-center gap-2 pb-2 text-l font-semibold tracking-wide"
+                  id="temperature-heading">
+                {% translate 'Extremtemperatur' %}
+                <div class="relative inline-block">
+                  <!-- Info Icon -->
+                  <span class="cursor-pointer group">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke-width="2"
+                         stroke="currentColor"
+                         class="size-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                    </svg>
+                    <!-- Tooltip -->
+                    <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                      {% translate 'Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.' %}
+                    </div>
+                  </span>
+                </div>
+              </h3>
+              <div class="w-12/12">
+                <div class="mt-2">
+                  <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
+                    <input {% with simulation_parameters_form.temperature_extreme as form %}
+                          {{ form|widget_attrs}}
+                           {% endwith %}
+                           type="number"
+                           class="flex-1 bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                           placeholder="Gib eine Temperatur ein."
+                           aria-describedby="temperature-heading temperature-unit"
+                onchange ="temperatureChange(this.value, 'ExtremeTemperatureHint','div .extreme-consumption-hint', debounced_fetchAndSetTemperature1)"
+                  >
+                    <div id="temperature-unit" class="shrink-0 select-none text-slate-500">°C</div>
+                  </div>
+
+                <div class="flex" >
+                  <div id="ExtremeTemperatureHint" style="display:None" class="flex mt-1 text-sm text-slate-600 italic transition-opacity duration-200 ease-in-out">
+                    <!-- Next div is queried for class= text and filled with temperature fetch. -->
+                    <div class="flex text">
+                  </div>
+                    <div class="px-2 relative inline-block">
+                      <!-- Info Icon -->
+                      <span class="cursor-pointer group">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke-width="2"
+                          stroke="currentColor"
+                          class="size-4">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                        </svg>
+                        <!-- Tooltip -->
+                        <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+
+                        {% with weatherstation.name as w_name %}
+                        {% blocktranslate %}Bezogen auf die pro Stunde gemittelten Temperaturen von {{startYear}} bis {{endYear}} an der Messstation {{w_name}}. {{distance_text}} {% endblocktranslate %}
+                        {% endwith %}
+                        {% if distance %}
+                        {% blocktranslate %}diese liegt {{distance.km|floatformat:1 }} km entfernt vom Mittelpunkt des Szenarios {% endblocktranslate %}
+                        {% endif %}
+                        </div>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
         </div>
-      </h2>
-      <span class="block mb-6 text-sm text-slate-500">Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.</span>
-        <fieldset class="flex items-center gap-4">
-          <span class="text-slate-600">Von</span>
-
-          <!-- Start Date -->
-          <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-            <label for="start-date" class="sr-only">Startdatum</label>
-            <input
-              type="date"
-              id="start-date"
-              name="start-date"
-              class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-              aria-label="Startdatum"
-              min = "{{ min_date }}"
-              max = "{{ max_date }}"
-              value = "{{ start_date }}"
-              required>
-          </div>
-
-          <!-- Start Time -->
-          <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-            <label for="start-time" class="sr-only">Startzeit</label>
-            <input
-              type="time"
-              id="start-time"
-              name="start-time"
-              class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-              aria-label="Startzeit"
-              value = "{{ initial_start_time }}"
-              required>
-          </div>
-
-          <span class="text-slate-600">bis</span>
-
-          <!-- End Date -->
-          <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-            <label for="end-date" class="sr-only">Enddatum</label>
-            <input
-              type="date"
-              id="end-date"
-              name="end-date"
-              class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-              aria-label="Enddatum"
-              min = "{{ min_date }}"
-              max = "{{ max_date }}"
-              value = "{{ end_date }}"
-              required>
-          </div>
-
-          <!-- End Time -->
-          <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-            <label for="end-time" class="sr-only">Endzeit</label>
-            <input
-              type="time"
-              id="end-time"
-              name="end-time"
-              class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-              aria-label="Endzeit"
-              value = "{{ initial_end_time }}"
-              required>
-          </div>
-        </fieldset>
-        <!-- ToDo Bryan: Styling and positioning of errors -->
-        <div id="sim_range_errors">
-          <ul class="text-red-500 text-sm mt-2">
-            {% for error in simulation_parameters_form.errors.values %}
-            <li>{{ error }}</li>{% endfor %}
-          </ul>
-        </div>
-    </section>
-
-    <section class="pb-12">
-      <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide" id="temperature-heading">
-        Umgebungstemperatur
-        <div class="relative inline-block">
-          <!-- Info Icon -->
-          <span class="cursor-pointer group">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-            </svg>
-            <!-- Tooltip -->
+      </section>
+      <section class="pb-12">
+          <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide">
+            {% translate 'Fahrzeugtypen' %}
+            <div class="relative inline-block">
+              <!-- Info Icon -->
+              <span class="cursor-pointer group">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke-width="2"
+                     stroke="currentColor"
+                     class="size-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                </svg>
+                <!-- Tooltip -->
             <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.
+              {% translate 'Folgende Fahrzeugtypen wurden in Ihrem Umlaufplan identifiziert. Für die Simulation sind technische Parameter notwendig die Sie hier zuordnen müssen.
+                Sie können Fahrzeugtypen aus einer Bibliothek übernehmen und verschiedene Werte manuell überschreiben.' %}
+                </div>
+              </span>
             </div>
-          </span>
-        </div>
-      </h2>
-      <div class="w-4/12">
-        <div class="mt-2">
-          <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
-              <input type="number" {{ simulation_parameters_form.temperature|widget_attrs }} class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6" placeholder="Gib eine Temperatur ein." aria-describedby="temperature-heading temperature-unit">
-            <div id="temperature-unit" class="shrink-0 select-none text-slate-500">°C</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="pb-12">
-      <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide">
-        Fahrzeugtypen
-        <div class="relative inline-block">
-          <!-- Info Icon -->
-          <span class="cursor-pointer group">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-            </svg>
-            <!-- Tooltip -->
-            <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-              Bottom Left-Aligned Tooltip
-            </div>
-          </span>
-        </div>
-      </h2>
-      <span class="block mb-6 text-sm text-slate-500">Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu.</span>
-
-
-      {% include "ebustoolbox/vehicle_modification.html" with modification=modification vt_id=vt_id choice_vts=choice_vts %}
-{#      validate() is defined in vehicle_modification since this content is what is validated#}
-      <button id="SubmitButton" hidden onclick="validate()"></button>
-
-    </section>
-    </form>
-  </div>
-</main>
+          </h2>
+          <span class="block mb-6 text-sm text-slate-500">{% translate 'Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu.' %}</span>
+          {% include "ebustoolbox/vehicle_modification.html" with modification=modification vt_id=vt_id choice_vts=choice_vts %}
+          {#      validate() is defined in vehicle_modification since this content is what is validated#}
+          <button id="SubmitButton" hidden onclick="validate()"></button>
+        </section>
+      </form>
+    </div>
+  </main>
 {% endblock wizard_content %}
-
 {% block wizard_buttons %}
   {% url 'simba:trips' scenario.task_id as prev_url %}
-  {% with "SubmitButton" as buttonId %}
-  {{ block.super }}
-{% endwith %}
+  {% with "SubmitButton" as buttonId %}{{ block.super }}{% endwith %}
 {% endblock wizard_buttons %}
-
 {% block script %}
+<script>
+// from notifications_multi.html. Fetch notifications based on view and task id
+    fetchAndRenderNotifications();
+</script>
 <!-- Tabs Functionality of Bus Type Cards -->
 
+<script>
+
+function debounce(func, timeout = 300) {
+    let timer;
+    // return a debounced function, which can be called with any args
+    return (...args) => {
+      // clear the previous timer
+      clearTimeout(timer);
+      // after the duration of timeout call the function
+      timer = setTimeout(() => {
+        func.apply(this, args);
+      }, timeout);
+    };
+  }
+
+
+async function extremeTemperatureChange(){
+  var tempHintDivId = 'ExtremeTemperatureHint';
+  var consumptionHintQuery = 'div .extreme-consumption-hint';
+  var temperature = document.getElementById("id_temperature_extreme").value;
+  fetchAndSetFunction = debounced_fetchAndSetTemperature1;
+  temperatureChange(temperature, tempHintDivId, consumptionHintQuery, fetchAndSetFunction);
+}
+
+async function averageTemperatureChange(){
+  var tempHintDivId = 'AvgTemperatureHint';
+  var consumptionHintQuery = 'div .avg-consumption-hint';
+  var temperature = document.getElementById("id_temperature_average").value;
+  fetchAndSetFunction = debounced_fetchAndSetTemperature2;
+  temperatureChange(temperature, tempHintDivId, consumptionHintQuery, fetchAndSetFunction);
+
+}
+async function temperatureChange(temperature, tempHintDivId, consumptionHintQuery, fetchAndSetFunction){
+  showTemperatureHint(temperature, tempHintDivId,fetchAndSetFunction);
+  showConsumptionEstimate(temperature, consumptionHintQuery);
+  refreshPageHints();
+}
+
+document.addEventListener('DOMContentLoaded', e => {
+  extremeTemperatureChange();
+  averageTemperatureChange();
+  refreshPageHints();
+})
+
+const disabledClasses = ['cursor-not-allowed', 'bg-slate-200',];
+const enabledClasses = [];
+
+function refreshPageHints(){
+  containers.forEach((container)=> {
+    // Set placeholder for all inputs, eg. dynamisch bei 4ºC
+    const input_selection = container.querySelector("input[id*='default_vehicle_type']")
+    let selected_dvt = input_selection.value;
+    if (selected_dvt) {
+      let diesel_checkbox = container.querySelector("input[id*='has_diesel_heating']") ;
+      let outer_div =  diesel_checkbox.closest('div .diesel-checkbox');
+      enabled_label =  outer_div.querySelector('label[data-value="enabledDieselCheckbox"]');
+      disabled_label =  outer_div.querySelector('label[data-value="disabledDieselCheckbox"]');
+
+      let db_id_diesel =  getDieselVehicleType(selected_dvt);
+      // check if the vt has a diesel version
+      if (db_id_diesel==null){
+        // if not disable the checkbox and set it to false
+        diesel_checkbox.checked = false;
+        diesel_checkbox.disabled = true;
+        diesel_checkbox.classList.remove(...enabledClasses);
+        diesel_checkbox.classList.add(...disabledClasses);
+        enabled_label.style.display='None';
+        disabled_label.style.display="";
+      }else{
+        diesel_checkbox.disabled = false;
+        diesel_checkbox.classList.remove(...disabledClasses);
+        diesel_checkbox.classList.add(...enabledClasses);
+        disabled_label.style.display='None';
+        enabled_label.style.display="";
+      }
+    }
+    input_avg_id = "id_temperature_average";
+    input_xtr_id = "id_temperature_extreme";
+    set_consumption_placeholder(input_avg_id, container.querySelector("[id$='-consumption']"));
+    set_consumption_placeholder(input_xtr_id, container.querySelector("[id$='-max_consumption']"));
+    // Trigger consumption calculation and show it
+    tmp = document.getElementById(input_avg_id);
+    if (tmp.value != ""){
+      showConsumptionEstimate(tmp.value, "div .avg-consumption-hint");
+    }
+    tmp = document.getElementById(input_xtr_id);
+    if (tmp.value != ""){
+      showConsumptionEstimate(tmp.value, "div .extreme-consumption-hint");
+    }
+
+  });
+
+}
+
+function getDieselVehicleType(db_id){
+  vehicle_type_data_div = document.getElementById(`vehicle_type_data_${db_id}`);
+  vt_name= vehicle_type_data_div.getAttribute("data-name");
+  vts_with_diesel= document.querySelectorAll('div[data-has-diesel-heating="True"]');
+  for (const vt of vts_with_diesel){
+    if ( vt.getAttribute('data-name').search(vt_name)>=0 ){
+      db_id = vt.getAttribute('data-id');
+      return db_id;
+    }
+  }
+  return null;
+}
+
+function getSelectedVehicleTypeId(container){
+    const vt_selection = container.querySelector("input[id*='default_vehicle_type']");
+    db_id = vt_selection.getAttribute('value');
+    if (db_id === null ) return null;
+    diesel_checkbox = container.querySelector("input[id*='has_diesel_heating']") ;
+    if ( diesel_checkbox.checked ) {
+       db_id = getDieselVehicleType(db_id);
+      if (db_id== null) console.error("Diesel Vehicle Type not found");
+  }
+  return db_id
+
+
+}
+
+function showConsumptionEstimate(temperature, consumptionHintQuery){
+    containers.forEach((container) => {
+    hint = container.querySelector(consumptionHintQuery);
+    var textElement = hint.querySelector("div .text");
+    db_id=getSelectedVehicleTypeId(container);
+    if (db_id==null) return;
+    hint.style.display = "";
+    let cons = getConsumptionForTemperature(parseFloat(temperature), db_id);
+    textElement.innerText = document.getElementById("translate_geschätzer_verbrauch").innerText + cons.toFixed(2) ;
+})
+}
+
+function getConsumptionForTemperature(temperature, db_id){
+  let div_data = document.getElementById(db_id + "_consumption_over_temp");
+  let consumption_over_temp = JSON.parse(div_data.textContent);
+  let len = consumption_over_temp.length;
+  // Edge case: temperature is smaller than data from db. return consumption for coldest temperature
+  if ( temperature<=consumption_over_temp[0][0] ) return consumption_over_temp[0][1];
+  // Edge case: temperature is bigger than data from db. return consumption for hotest temperature
+  if ( temperature>=consumption_over_temp[len-1][0] ) return consumption_over_temp[len-1][1];
+  for (let i=0; i<len; i++) {
+      temp= consumption_over_temp[i][0];
+      next_temp= consumption_over_temp[i+1][0];
+      cons= consumption_over_temp[i][1];
+      next_cons= consumption_over_temp[i+1][1];
+    if ( next_temp>=temperature ){
+      return linearInterpolate(temperature,temp,next_temp, cons, next_cons );
+    }
+}
+  console.log(vt_selection.id);
+
+}
+
+function linearInterpolate(x,x1,x2,y1,y2){
+  return y1+ (x-x1)*(y2-y1)/(x2-x1);
+}
+
+async function showTemperatureHint(temperature, divId, fetchAndSetFunction){
+  if (temperature =="") return;
+  var divElement = document.getElementById(divId);
+  var textElement = divElement.querySelector("div .text");
+  divElement.style.display = "";
+  textElement.classList.add("loader");
+  textElement.innerText = " ";
+  fetchAndSetFunction(divElement, textElement, temperature);
+}
+
+async function fetchAndSetTemperature(divElement, textElement, temperature){
+  var data =  await fetchQuantile(temperature);
+  console.log(data)
+  if ( data == null || typeof(data.error) != 'undefined'){
+    divElement.style.display = "None";
+    return
+  }
+
+  textElement.classList.remove("loader");
+  var quantile = data.quantile;
+  if ( quantile > 0.5 ) {
+    textElement.innerText= document.getElementById("translate_heißer_als").innerText+ (quantile*100).toFixed(2) + "%";}
+  else {
+
+    textElement.innerText=document.getElementById("translate_kälter_als").innerText+ + ((1-quantile)*100).toFixed(2) + "%";}
+}
+
+// Each temperature input needs its own debounced function or they will stop each other from finishing
+const debounced_fetchAndSetTemperature1 = debounce(fetchAndSetTemperature, 200);
+const debounced_fetchAndSetTemperature2 = debounce(fetchAndSetTemperature, 200);
+
+{% if weatherstation %}
+async function fetchQuantile(temperature){
+  try {
+    // dwd_station_id {{ weatherstation.dwd_id}}
+    var url = (" {% url 'temperatures:quantile_station' weatherstation.dwd_id startDate endDate 'TEMPERATURE' %}" );
+    url = url.replace('TEMPERATURE',temperature );
+    var response = await fetch(url );
+    var data = await response.json();
+    return data;
+  } catch (e) {
+    console.error('Fetch error:', e);
+    return null;
+  }
+}
+{% endif %}
+</script>
+
+  <!-- Tabs Functionality of Bus Type Cards -->
 {% endblock script %}

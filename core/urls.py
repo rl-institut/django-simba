@@ -16,7 +16,9 @@ urlpatterns = [
     ),
     path(
         "logout/",
-        LogoutView.as_view(template_name="core/registration/logged_out.html",),
+        LogoutView.as_view(
+            template_name="core/registration/logged_out.html",
+        ),
         name="logout",
     ),
     path(
@@ -26,16 +28,9 @@ urlpatterns = [
     ),
     path("password_change/", views.changePassword, name="password_change"),
     path("register/", views.signup, name="signup"),
-    path(
-        "profile/",
-        TemplateView.as_view(template_name="core/profile.html"),
-        name="profile"
-    ),
-    path(
-        "help/",
-        TemplateView.as_view(template_name="core/help.html"),
-        name="help"
-    ),
+    path("set_lang/<str:lang>", views.set_lang, name="set_language"),
+    path("profile/", TemplateView.as_view(template_name="core/profile.html"), name="profile"),
+    path("help/", views.HelpView.as_view(), name="help"),
     path("test_email/", views.test_email, name="test_email"),
     path("impressum/", TemplateView.as_view(template_name="core/legal.html"), name="legal"),
     path("datenschutz/", TemplateView.as_view(template_name="core/privacy.html"), name="privacy"),

@@ -1,9 +1,11 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
 from django.core import signing, mail
+from django.views.generic import TemplateView
 from django.http import HttpResponse, Http404
 from django.shortcuts import render, redirect
 from django.urls import reverse
@@ -43,6 +45,21 @@ def signup(request):
     raise Http404()
 
 
+def set_lang(request, lang: str):
+    """Set a cookie for the prefered language of the user
+
+    Middleware will activate the language on a per response basis
+    """
+    # TODO: placeholder for proper implementation
+    from django.utils.translation import activate
+    from django.conf import settings
+
+    activate(lang)
+    response = HttpResponse(f"Switched to {lang}")
+    response.set_cookie(settings.LANGUAGE_COOKIE_NAME, lang)
+    return response
+
+
 @login_required(login_url="/login/")
 def changePassword(request):
     if request.method == "POST":
@@ -71,3 +88,12 @@ def test_email(request):
             fail_silently=False,
         )
     return redirect(request.GET.get("path", "/"))
+
+
+class HelpView(TemplateView):
+    template_name = "core/help.html"
+
+    def get_context_data(self, **kwargs) -> dict:
+        context = super().get_context_data(**kwargs)
+        context["max_file_size_mb"] = settings.MAX_FILE_SIZE_B >> 20
+        return context
