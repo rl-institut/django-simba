@@ -37,6 +37,7 @@ env.read_env(str(ROOT_DIR.path(".env")))
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DJANGO_ELEVATION_TOKEN = env.str("DJANGO_ELEVATION_TOKEN", "notoken")
 OPENELEVATION_URL = env.str("OPENELEVATION_URL", "")
+SEARCH_STATION_LOCATIONS = env.bool("DJANGO_SEARCH_STATIONS", default=True)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
@@ -80,6 +81,7 @@ INSTALLED_APPS = [
     "bootstrap4",
     "tailwind",
     "tailwind_theme",
+    "widget_tweaks",
 ]
 
 

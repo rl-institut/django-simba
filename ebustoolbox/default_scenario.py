@@ -9,7 +9,9 @@ def get_default_scenario(DefaultScenario, Scenario) -> models.Model:
     if count == 1:
         default_scenario = default_scenarios.first()
     elif count == 0:
-        scenario = Scenario.objects.create(name="DefaultScenario")
+        scenario = Scenario.objects.create(
+            name="DefaultScenario", task_id="00000000-0000-4000-a000-000000000000"
+        )
         default_scenario = DefaultScenario.objects.create(scenario=scenario)
     else:
         raise Exception
