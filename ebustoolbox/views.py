@@ -5,6 +5,7 @@ import dateutil.parser as parser
 import datetime
 
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 import pytz
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -192,7 +193,7 @@ class AuthorizedMixIn:
     has_permisson = None
 
     @staticmethod
-    def get_permission(user, task_id):
+    def get_permission(user, task_id) -> bool:
         """Make sure User is authorized and add scenario to class"""
         scenario = get_object_or_404(Scenario, task_id=task_id)
 
@@ -447,7 +448,7 @@ def get_scenario_and_assert_authorization(request, task_id) -> Scenario:
     if request.user.is_superuser:
         return scenario
     if scenario.manager and scenario.manager != request.user:
-        raise Http404(_("No access"))
+        raise PermissionDenied(_("Sie haben keinen Zugriff auf diese Seite"))
     return scenario
 
 
@@ -1623,7 +1624,9 @@ def get_soc_gantt(request, task_id: str):
 def export_scenario(request, task_id: str):
     """Allow admins and authorized users to download a json export of their scenario"""
     # Raise an exception if user is not authorized for this task_id
-    AuthorizedMixIn.get_permission(request.user, task_id)
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     scenario = Scenario.objects.get(task_id=task_id)
     child = None
     if scenario.scenario_type == EnumScenarioType.MUTATION:
