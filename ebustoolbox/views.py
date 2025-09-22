@@ -465,7 +465,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
     def get_context_data(self, **kwargs):
         scenario = self.scenario
         context = super().get_context_data(**kwargs)
-        data = {}
+        data = None
         if self.request.method == "POST":
             data = self.request.POST
         middlepoint = tasks.get_middlepoint(scenario)
@@ -634,7 +634,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
                 vt_select.default_vehicle_type = dvt
                 modification.fields["has_diesel_heating"].initial = True
             selection = VehicleTypeSelectionForm(
-                data,
+                data=data,
                 prefix=f"selection_{vt.id}",
                 vehicle_type=vt,
                 choices_queryset=default_vehicle_types,

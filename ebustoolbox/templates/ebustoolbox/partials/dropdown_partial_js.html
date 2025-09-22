@@ -2,7 +2,6 @@
 // < !--Functionality for simple dropdown-- >
 var dropdown_containers = document.querySelectorAll(".dropdown-container");
 dropdown_containers.forEach((container) => {
-  console.log('foo');
   const button = container.querySelector('.dropdown-button');
   const label = container.querySelector('.dropdown-placeholder');
   const list = container.querySelector('.dropdown-choices');
@@ -21,7 +20,14 @@ dropdown_containers.forEach((container) => {
       highlightSelectedItem();
     }
   });
-
+  var initial = null;
+  for (const option of input.options) {
+    if (option.selected){
+      initial=option.value;
+  }
+  }
+  // After refreshing the select might have an input. this value is prioritized in comparison to db initial value
+  if (input.value !="") initial=input.value;
   // Handle clicks on list items
   listItems.forEach(item => {
     const value = item.getAttribute('data-dropdown-item');
@@ -40,7 +46,7 @@ dropdown_containers.forEach((container) => {
       button.setAttribute('aria-expanded', 'false');
     });
     // If the input is selected already, e.g. when refreshing the page, preselect the item
-    if (input.value==value){
+    if (value==initial){
       item.click();
     }
   });
