@@ -115,6 +115,8 @@ class ScenarioJSONImporterExporter:
             "Depot",
             "Area",
             "Event",
+            "DepotConfigurationWish",
+            "AreaInformation",
         ]
         creation_order = priority + [*ebus_models.difference(priority)]
         for model_name in creation_order.copy():

@@ -284,17 +284,65 @@ class ManualLcaForm(forms.Form):
     years = forms.IntegerField(required=True)
 
 
-class DepotInfoForm(forms.ModelForm):
+class DepotConfigurationWishForm(forms.ModelForm):
     """All inputs which are given once per depot"""
 
     class Meta:
-        model = models.Station
-        fields = ["power_total"]
+        model = models.DepotConfigurationWish
+        exclude = ["scenario", "station"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        auto_generate = True
+        if self.instance:
+            auto_generate = self.instance.auto_generate
+
+        if auto_generate:
+            self.fields["power"].widget.attrs.update({"min": 1.0, "required": True})
+        else:
+            self.fields["cleaning_slots"].widget.attrs.update({"min": 1.0, "required": True})
+            self.fields["shunting_slots"].widget.attrs.update({"min": 1.0, "required": True})
+            self.fields["cleaning_duration"].widget.attrs.update({"min": 1.0, "required": True})
+            self.fields["shunting_duration"].widget.attrs.update({"min": 1.0, "required": True})
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get("auto_generate"):
+            if not cleaned_data.get("power"):
+                raise ValidationError(
+                    "If auto generate is true, the DepotConfigurationWish needs a power"
+                )
+            if (
+                cleaned_data.get("cleaning_slots")
+                or cleaned_data.get("shunting_slots")
+                or cleaned_data.get("cleaning_duration")
+                or cleaned_data.get("shunting_duration")
+            ):
+                raise ValidationError("More data then expected")
+        else:
+
+            if cleaned_data.get("power"):
+                raise ValidationError(
+                    "If auto generate is false, the DepotConfigurationWish must not have power"
+                )
+            if (
+                not cleaned_data.get("cleaning_slots")
+                or not cleaned_data.get("shunting_slots")
+                or not cleaned_data.get("cleaning_duration")
+                or not cleaned_data.get("shunting_duration")
+            ):
+                raise ValidationError("Missing Data")
 
 
-class DepotChargingAreaForm(forms.Form):
-    """All inputs which can be given multiple times per depot, eg, multiple
+class AreaInformationForm(forms.ModelForm):
+    """All inputs which can be given multiple times per depot, e.g, multiple
     charging areas with various numbers of chargers and charging powers"""
 
-    amount_charging_places = forms.IntegerField(required=True, initial=20)
-    power_per_charger = forms.IntegerField(required=True, initial=150)
+    class Meta:
+        model = models.AreaInformation
+        exclude = ["scenario", "depot_configuration_wish", "vehicle_type"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["capacity"].widget.attrs.update({"min": 1.0, "required": True})
+        self.fields["power"].widget.attrs.update({"min": 1.0, "required": True})
