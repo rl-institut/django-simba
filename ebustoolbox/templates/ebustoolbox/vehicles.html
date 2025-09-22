@@ -291,13 +291,14 @@
         </section>
       </form>
     </div>
-  </main>
+</main>
 {% endblock wizard_content %}
 {% block wizard_buttons %}
   {% url 'simba:trips' scenario.task_id as prev_url %}
   {% with "SubmitButton" as buttonId %}{{ block.super }}{% endwith %}
 {% endblock wizard_buttons %}
 {% block script %}
+{% include "ebustoolbox/partials/dropdown_partial_js.html" %}
 <script>
 // from notifications_multi.html. Fetch notifications based on view and task id
     fetchAndRenderNotifications();
@@ -354,17 +355,28 @@ const enabledClasses = [];
 function refreshPageHints(){
   containers.forEach((container)=> {
     // Set placeholder for all inputs, eg. dynamisch bei 4ºC
-    const input_selection = container.querySelector("input[id*='default_vehicle_type']")
+    const input_selection = container.querySelector("select[id*='default_vehicle_type']");
+    const inputs = container.querySelectorAll("select:not([id*='default_vehicle_type'])");
     let selected_dvt = input_selection.value;
+    let diesel_checkbox = container.querySelector("input[id*='has_diesel_heating']") ;
+    let outer_div =  diesel_checkbox.closest('div .diesel-checkbox');
+    enabled_label =  outer_div.querySelector('label[data-value="enabledDieselCheckbox"]');
+    disabled_label =  outer_div.querySelector('label[data-value="disabledDieselCheckbox"]');
     if (selected_dvt) {
-      let diesel_checkbox = container.querySelector("input[id*='has_diesel_heating']") ;
-      let outer_div =  diesel_checkbox.closest('div .diesel-checkbox');
-      enabled_label =  outer_div.querySelector('label[data-value="enabledDieselCheckbox"]');
-      disabled_label =  outer_div.querySelector('label[data-value="disabledDieselCheckbox"]');
+
+        inputs.forEach((input)=>{
+        input.disabled=false;
+        input.setAttribute("aria-disabled", false);
+
+        input.classList.add(...enabledClasses);
+        input.classList.remove(...disabledClasses);
+
+        });
 
       let db_id_diesel =  getDieselVehicleType(selected_dvt);
       // check if the vt has a diesel version
       if (db_id_diesel==null){
+
         // if not disable the checkbox and set it to false
         diesel_checkbox.checked = false;
         diesel_checkbox.disabled = true;
@@ -379,7 +391,17 @@ function refreshPageHints(){
         enabled_label.classList.remove('hidden');
         disabled_label.classList.add("hidden");
       }
+    } else {
+        enabled_label.classList.remove('hidden');
+        disabled_label.classList.add("hidden");
+        inputs.forEach((input)=>{
+        input.disabled=true;
+
+        input.classList.remove(...enabledClasses);
+        input.classList.add(...disabledClasses);
+        });
     }
+
     input_avg_id = "id_temperature_average";
     input_xtr_id = "id_temperature_extreme";
     set_consumption_placeholder(input_avg_id, container.querySelector("[id$='-consumption']"));
@@ -412,8 +434,8 @@ function getDieselVehicleType(db_id){
 }
 
 function getSelectedVehicleTypeId(container){
-    const vt_selection = container.querySelector("input[id*='default_vehicle_type']");
-    var db_id = vt_selection.getAttribute('value');
+    const vt_selection = container.querySelector("select[id*='default_vehicle_type']");
+    var db_id = vt_selection.value;
     if (db_id === null ) return null;
     diesel_checkbox = container.querySelector("input[id*='has_diesel_heating']") ;
     if ( diesel_checkbox.checked ) {
@@ -512,5 +534,257 @@ async function fetchQuantile(temperature){
 {% endif %}
 </script>
 
+<script>
+function set_consumption_placeholder(temp_div_id, consumption_div){
+  temp_div = document.getElementById(temp_div_id);
+  suffix = "";
+  if (temp_div.value != ""){
+    suffix = ` ${document.getElementById('translate_bei').innerText} ` + temp_div.value + "ºC";
+  }
+  consumption_div.placeholder =  document.getElementById('translate_dynamisch').innerText+ suffix;
+}
+
+const containers = document.querySelectorAll("[id*='VehicleTypeContainer']")
+containers.forEach((container) => {
+  const vt_id = container.getAttribute("data-value");
+  const enableCustomConsumption = container.querySelector("input[id*='enableCustomConsumption']")
+  // {#Input values to be overwritten by choosing dropdown#}
+  const battery_capacity = container.querySelector("input[id*='battery_capacity']")
+  const diesel_heating_checkbox = container.querySelector("input[id$='-has_diesel_heating']");
+    // Hook for selection changes
+  const select=  container.querySelector('select');
+      select.addEventListener('input', e => {
+        const vt_id = select.value;
+        battery_capacity.value = document.getElementById("battery_capacity_"+vt_id).getAttribute("data-value");
+        refreshPageHints();
+      });
+  diesel_heating_checkbox.addEventListener("change", ()=>{
+    refreshPageHints();
+  });
+
+
+  const consumption = container.querySelector("input[id$='-consumption']");
+  const max_consumption = container.querySelector("input[id$='-max_consumption']");
+  // {# Repeat for other vehicle type attributes#}
+  //  Handle Consumption overwritting via enabling it through toggle
+  function switchConsumptionInput(consumption){
+    enableCustomConsumption.addEventListener("change", ()=>{
+      consumption.disabled = !consumption.disabled;
+      if (consumption.disabled){
+        consumption.type="text";
+        consumption.value="";
+        consumption.required=false;
+      } else {
+        consumption.type="number";
+        // consumption.value= consumption.placeholder;
+        consumption.required=true;
+
+      }
+    })
+  }
+  switchConsumptionInput(consumption);
+  switchConsumptionInput(max_consumption);
+
+  let selectedItem = '';
+
+});
+
+</script>
+<script>
+  containers.forEach((container) => {
+    var chartDom = container.querySelector('[id*="stateOfChargeChart"]');
+    const list = container.querySelector('[id*="assignedToList"]');
+    const listItems = list.querySelectorAll('[role="option"]');
+    const input_selection = container.querySelector("select[id*='default_vehicle_type']");
+    const placeHolder = container.querySelector('[id*="ChartPlaceholder"]');
+    var myChart = echarts.init(chartDom);
+
+    function plot_selected_charging_curve(selected_vehicle_type) {
+      if (selected_vehicle_type === "") {
+        return;
+      }
+      chartDom.style.height = "180px";
+      let charging_curve = JSON.parse(document.getElementById(selected_vehicle_type+"_charging_curve").textContent)
+      if (placeHolder) placeHolder.remove();
+
+      var option = {
+        grid: {
+          left: 48,
+          right: 32,
+          top: 24,
+          bottom: 32,
+          containLabel: true
+        },
+        xAxis: {
+          type: 'value',
+          name: 'Ladezustand (-)',
+          nameLocation: 'middle',
+          nameGap: 25,
+          min: 0,
+          max: 1,
+          interval: 0.2
+        },
+        yAxis: {
+          type: 'value',
+          name: 'Leistung (kW)',
+          nameLocation: 'middle',
+          nameGap: 40,
+          min: 0,
+          max: 500,
+          interval: 100
+        },
+        series: [{
+          data: charging_curve,
+          type: 'line',
+          showSymbol: false,
+          lineStyle: {
+            color: '#2E282A',
+            width: 2
+          }
+        }],
+        tooltip: {
+          trigger: 'axis',
+          formatter: function (params) {
+            return 'Ladezustand: ' + params[0].data[0].toFixed(1) +
+              '<br>Leistung: ' + params[0].data[1] + ' kW';
+          }
+        }
+      };
+
+      myChart.setOption(option);
+
+    }
+
+    plot_selected_charging_curve(input_selection.value);
+    listItems.forEach((item)=>{
+      item.addEventListener("click",function () {
+        let selected_vehicle_type=item.getAttribute('data-dropdown-item');
+        plot_selected_charging_curve(selected_vehicle_type);
+        myChart.resize();
+      })
+    });
+
+    function resizeChart() {
+      if (chartDom.offsetWidth > 0) {
+        myChart.resize();
+      }
+    }
+    resizeChart();
+
+    // Improved resize handler
+    window.addEventListener('resize', function () {
+      resizeChart();
+
+    })
+
+  });
+</script>
+<script>
+function validate(){
+  console.log("validating")
+  const defaultVehicleTypeSelectionDivs = document.querySelectorAll('select[id*="default_vehicle_type"]')
+  let isValid = true;
+  defaultVehicleTypeSelectionDivs.forEach((input)=>{
+    const container = input.closest("[id*='VehicleTypeContainer']");
+    const vt_id = container.getAttribute('data-value');
+    const errorDiv = document.getElementById("SelectionError"+vt_id);
+    if (input.value === ""){
+      console.assert(vt_id);
+      errorDiv.classList.remove ("hidden");
+      isValid = false;
+    } else {
+      errorDiv.classList.add ("hidden");
+    }
+    if (!isValid) {
+      event.preventDefault();
+    }
+  });
+}
+
+function validateVehicleContainers(){
+  containers.forEach((container) => {
+    const header = container.querySelector('button.accordion-header');
+    const dropdown_select = document.querySelector('select[id*="default_vehicle_type"]');
+    if (dropdown_select.value ==="") return;
+    const inputs = container.querySelectorAll('input');
+    var isValid=true;
+    for (let i=0; i<inputs.length; i++){
+      if (!inputs[i].checkValidity()) {
+          isValid=false;
+      }
+    }
+    const selects = container.querySelectorAll('select');
+    for (let i=0; i<selects.length; i++){
+      if (!selects[i].checkValidity()) {
+          isValid=false;
+      }
+    }
+    if (isValid){
+      header.classList.remove("transition-colors", "duration-100", "bg-transparent");
+      header.classList.add("transition-colors", "duration-100", "bg-green-200");
+    } else {
+      header.classList.remove("transition-colors", "duration-100", "bg-green-200");
+      header.classList.add("transition-colors", "duration-100", "bg-transparent");
+    }
+  });
+}
+
+function debounce(func, timeout = 300) {
+  let timer;
+  // return a debounced function, which can be called with any args
+  return (...args) => {
+    // clear the previous timer
+    clearTimeout(timer);
+    // after the duration of timeout call the function
+    timer = setTimeout(() => {
+      func.apply(this, args);
+    }, timeout);
+  };
+}
+
+document.querySelectorAll('select, input').forEach(el => {
+  el.addEventListener('input', e => {
+      //NOTE: debounce the function. this allows other callbacks to finish and toggle 'required'
+      debounce(validateVehicleContainers,20)();
+  });
+});
+
+// inital check if everything is valid
+debounce(validateVehicleContainers,100)();
+
+</script>
+<script>
+  function toggleAccordion(index) {
+    const content = document.getElementById(`content-${index}`);
+    const icon = document.getElementById(`icon-${index}`);
+
+    // SVG for Down icon
+    const downSVG = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
+        <path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+      </svg>
+    `;
+
+    // SVG for Up icon
+    const upSVG = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
+        <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+      </svg>
+    `;
+
+    // Toggle the content's max-height for smooth opening and closing
+    if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+      content.style.maxHeight = '0';
+      icon.innerHTML = upSVG;
+    } else {
+      content.style.maxHeight = content.scrollHeight + 'px';
+      icon.innerHTML = downSVG;
+    }
+    }
+{% for vt_id in vehicle_modification.keys|slice:":1" %}
+    {% if forloop.first %}
+  toggleAccordion({{vt_id}});
+ {% endif %}  {% endfor %}
+</script>
   <!-- Tabs Functionality of Bus Type Cards -->
 {% endblock script %}
