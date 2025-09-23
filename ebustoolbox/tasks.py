@@ -2758,14 +2758,15 @@ def transform_depot_stations(parent: Scenario, child: Scenario) -> None:
 
 @atomic()
 def consolidate_socs(scenario: Scenario) -> None:
-    """Align socs of consecutive events
+    """Align socs of consecutive events for drive and depot events
 
-    Iterate over events and remove gaps in between consecutive events.
+    Iterate over depot events and remove gaps in between driving/simba and depot events
+    Depot charge events keep their end soc, since this is used for simba vehicle initialization.
     Log warnings for unexpected gaps.
-    Socs are clipped above 1.0.
-    Bad Event input can lead to negative socs after this consolidation. This is only possible
-    if previous assumptions are not met,
-    e.g. eflips dispositions vehicles to meet block consumption criteria
+    Bad Event input can lead to negative socs after this consolidation.
+    This is only possible if previous assumptions are not met.
+    Assumptions:
+    eflips dispositions vehicles to meet block consumption criteria
     and applies this consumption to depot events after this block.
     In this case the consolidation should only shift the soc by the added charge during opportunity
     charging due to higher charging powers at lower socs.
@@ -2773,66 +2774,78 @@ def consolidate_socs(scenario: Scenario) -> None:
     This shift would be positive and would not create negative socs.
     """
     logger.info(50 * "#" + "\n Consolidation")
-    max_soc = 1.0
     events = list(Event.objects.filter(scenario=scenario).order_by("vehicle", "time_start"))
+
+    # the first event type from eflips could be one of many
+    depot_event_types = [
+        EventType.CHARGING_DEPOT,
+        EventType.STANDBY_DEPARTURE,
+        EventType.PRECONDITIONING,
+        EventType.SERVICE,
+    ]
+    # The last event type of simba is always a driving event
+    driving_event_types = [EventType.DRIVING]
     if not events:
         logger.warning(
             f"Scenario {scenario.task_id} could not be consolidated, since it has no events"
         )
         return
     vehicle = None
-    last_soc = None
-
+    prev_event = None
     for i, event in enumerate(events):
         event: Event
+        assert event.vehicle is not None, "Events must have a vehicle"
         # New vehicle detected. First event is used to initialize values
         if event.vehicle != vehicle:
             vehicle = event.vehicle
-            last_soc = event.soc_end
+            prev_event = event
             continue
-        delta_soc = event.soc_start - last_soc
+        assert isinstance(prev_event, Event)
+        delta_soc = event.soc_start - prev_event.soc_end
+
+        next_event = (
+            events[i + 1]
+            if (i + 1 > len(events) and events[i + 1].vehicle == vehicle)
+            else "No next Event"
+        )
+        if delta_soc == 0:
+            continue
         if delta_soc != 0:
             logger.info(f"{delta_soc=}")
+
         if delta_soc < 0:
-            prev_event = (
-                events[i - 1]
-                if (i > 0 and events[i - 1].vehicle == vehicle)
-                else "No previous Event"
-            )
-            next_event = (
-                events[i + 1]
-                if (i + 1 > len(events) and events[i + 1].vehicle == vehicle)
-                else "No next Event"
-            )
             logger.warning(
                 f"Unexpected soc drop {round(delta_soc, 3)} during consolidation.\n"
                 f"{event=}\n{prev_event=}\n{next_event}."
             )
-
         if abs(delta_soc) > 0.1:
-            prev_event = (
-                events[i - 1]
-                if (i > 0 and events[i - 1].vehicle == vehicle)
-                else "No previous Event"
-            )
-            next_event = (
-                events[i + 1]
-                if (i + 1 > len(events) and events[i + 1].vehicle == vehicle)
-                else "No next Event"
-            )
             logger.warning(
                 f"Unexpected high soc delta {round(delta_soc, 3)} during consolidation.\n"
                 f"{event=}\n{prev_event=}\n{next_event}."
             )
-        event.soc_start = last_soc
+        assert prev_event.event_type in driving_event_types
+        assert event.event_type in depot_event_types
+        # NOTE: Charging depot events are only aligned at their start value.
+        # This makes the timeseries not usable, therefor they are deleted
+        # The timeseries can be recreated by SimBAs depot strategy
+        if event.event_type == EventType.CHARGING_DEPOT:
+            event.soc_start -= delta_soc
+            if event.timeseries and event.timeseries.get("soc"):
+                event.timeseries["soc"] = None
+                continue
+
+        event.soc_start -= delta_soc
         event.soc_end -= delta_soc
-        last_soc = event.soc_end
         if event.timeseries and event.timeseries["soc"]:
             ts = event.timeseries["soc"]
-            shifted_ts = [min(v + delta_soc, max_soc) for v in ts]
+            shifted_ts = [v - delta_soc for v in ts]
             if min(shifted_ts) < 0 and min(ts) >= 0:
                 logger.warning(
                     f"Consolidation lead to negative SOCs which did not exist before. {event=}"
+                )
+            if max(shifted_ts) > 1:
+                logger.warning(
+                    f"Consolidation lead to SOCs above 1. This should never happen. {event=}"
                 )
             event.timeseries["soc"] = shifted_ts
     Event.objects.bulk_update(events, fields=["soc_end", "soc_start", "timeseries"])
