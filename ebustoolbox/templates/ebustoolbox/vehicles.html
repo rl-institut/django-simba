@@ -703,6 +703,8 @@ function validate(){
 
 function validateVehicleContainers(){
   containers.forEach((container) => {
+    const vt_id = container.getAttribute('data-value');
+    const errorDiv = document.getElementById("SelectionError"+vt_id);
     const header = container.querySelector('button.accordion-header');
     const dropdown_select = document.querySelector('select[id*="default_vehicle_type"]');
     if (dropdown_select.value ==="") return;
@@ -722,6 +724,7 @@ function validateVehicleContainers(){
     if (isValid){
       header.classList.remove("transition-colors", "duration-100", "bg-transparent");
       header.classList.add("transition-colors", "duration-100", "bg-green-200");
+      errorDiv.classList.add("hidden");
     } else {
       header.classList.remove("transition-colors", "duration-100", "bg-green-200");
       header.classList.add("transition-colors", "duration-100", "bg-transparent");
