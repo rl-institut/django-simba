@@ -1782,11 +1782,6 @@ def _run_ebus_toolchain(self, task_id):
         # higher charging rates at lower socs
         simba_scenario = run_simba(schedule, args, db_scenario, mode="sim", scenario=None)
 
-        # Consolidate SOCs
-        # The SOCs can be inconsistent between the last driving and first depot event.
-        # This can be fixed by applying all delta SOCs chronologically to the events of a single
-        # vehicle.
-        # NOTE: Clipping of SOCs for values above 1 has to be guranteed
         consolidate_socs(db_scenario)
 
         # TODO: Keep that? / Set Depot values for final SimBA simulation?
@@ -1830,7 +1825,7 @@ def check_event_soc_consistency(db_scenario: Scenario):
             if not events[i].soc_end == events[i + 1].soc_start:
                 logger.warning(
                     f"SOC does not align between events for {vehicle=} for "
-                    f"events {events[i]} and {events[i+1]}"
+                    # f"events {events[i]} and {events[i+1]}"
                     f"\n DELTA = {events[i].soc_end - events[i + 1].soc_start}"
                 )
                 consistent = False
@@ -2774,6 +2769,7 @@ def consolidate_socs(scenario: Scenario) -> None:
     This shift would be positive and would not create negative socs.
     """
     logger.info(50 * "#" + "\n Consolidation")
+    EPS = 0.001
     events = list(Event.objects.filter(scenario=scenario).order_by("vehicle", "time_start"))
 
     # the first event type from eflips could be one of many
@@ -2800,22 +2796,25 @@ def consolidate_socs(scenario: Scenario) -> None:
             vehicle = event.vehicle
             prev_event = event
             continue
+        prev_event = events[i - 1]
         assert isinstance(prev_event, Event)
+        assert prev_event.time_end == event.time_start
         delta_soc = event.soc_start - prev_event.soc_end
+
+        if delta_soc == 0:
+            continue
 
         next_event = (
             events[i + 1]
             if (i + 1 > len(events) and events[i + 1].vehicle == vehicle)
             else "No next Event"
         )
-        if delta_soc == 0:
-            continue
         if delta_soc != 0:
             logger.info(f"{delta_soc=}")
 
-        if delta_soc < 0:
+        if delta_soc > 0:
             logger.warning(
-                f"Unexpected soc drop {round(delta_soc, 3)} during consolidation.\n"
+                f"Unexpected soc drop {round(delta_soc, 3)} due to consolidation.\n"
                 f"{event=}\n{prev_event=}\n{next_event}."
             )
         if abs(delta_soc) > 0.1:
@@ -2823,8 +2822,12 @@ def consolidate_socs(scenario: Scenario) -> None:
                 f"Unexpected high soc delta {round(delta_soc, 3)} during consolidation.\n"
                 f"{event=}\n{prev_event=}\n{next_event}."
             )
-        assert prev_event.event_type in driving_event_types
-        assert event.event_type in depot_event_types
+        # NOTE: Small deltas of SOC might occur anywhere
+        # Bigger delta_socs 'should' only happen at the interface DRIVING - DEPOT
+        if abs(delta_soc) > EPS:
+            assert prev_event.event_type in driving_event_types
+            assert event.event_type in depot_event_types
+
         # NOTE: Charging depot events are only aligned at their start value.
         # This makes the timeseries not usable, therefor they are deleted
         # The timeseries can be recreated by SimBAs depot strategy
