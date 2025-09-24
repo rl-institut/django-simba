@@ -53,7 +53,11 @@ class ScenarioJSONImporterExporter:
         model_class: models.Model = elements.model
         serializer_class = generate_serializer(model_class)
         serializer = serializer_class(elements, many=True)
-        self.object_data[elements.model.__qualname__] = serializer.data
+        if self.object_data.get(elements.model.__qualname__) is None:
+            self.object_data[elements.model.__qualname__] = serializer.data
+        else:
+            # When multiple scenarios exported, we do not want the previous data to be overwritten
+            self.object_data[elements.model.__qualname__].extend(serializer.data)
 
     def renderJSON(self):
         return JSONRenderer().render(self.object_data)
@@ -135,14 +139,14 @@ class ScenarioJSONImporterExporter:
             # Instances has at least a single element since its create_creation_order does not contain
             # empty lists
             next_id = get_next_id(model_class)
-            lookup = dict()
+            self.instance_lookup[model_class] = {}
             foreign_fields = [
                 field
                 for field in model_class._meta.fields
                 if isinstance(field, ForeignKey) or isinstance(field, OneToOneField)
             ]
             for instance, instance_data in zip(instances, data):
-                lookup[instance.id] = next_id
+                self.instance_lookup[model_class][instance.id] = next_id
                 instance.id = next_id
                 next_id += 1
                 for field in foreign_fields:
@@ -158,7 +162,6 @@ class ScenarioJSONImporterExporter:
                             " with an imported Instance. Trying to set it to None"
                         )
                         setattr(instance, field.name, None)
-            self.instance_lookup[model_class] = lookup
 
     def bulk_create(self):
         # Bulk create instances
