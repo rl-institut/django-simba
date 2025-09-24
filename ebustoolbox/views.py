@@ -44,7 +44,6 @@ from .forms import (
     FileUploadForm,
     ScenarioSelection,
     ManualTcoForm,
-    ManualLcaForm,
     DepotChargingAreaForm,
 )
 from .tasks import merge_scenario
@@ -780,7 +779,6 @@ class StationsView(ScenarioMixIn, TemplateView):
             min_standing_time = 0
 
         if min_standing_time > 0:
-
             parent_trips = Trip.objects.filter(scenario=scenario.parent)
             parent_trips_annotated = tasks.annotate_trips_with_standing_time(parent_trips)
             td_min_standing_time = datetime.timedelta(minutes=min_standing_time)
@@ -887,22 +885,18 @@ class CostsView(ScenarioMixIn, TemplateView):
         selectable_scenarios = Scenario.objects.filter(id__gte=590)
         costs_form = forms.CostInputModeForm(data=data, prefix="costsRadio")
         context["cost_mode_form"] = costs_form
-        lca_form = forms.CostInputModeForm(data=data, prefix="envRadio")
-        context["env_mode_form"] = lca_form
         # Radio Button Values
         context["radio_values"] = dict()
         for choice in forms.CostInputModeForm.CHOICES:
             val = choice[0]
             context["radio_values"][val] = choice[0]
-
-        for prefix in ["costs", "env"]:
-            context[prefix + "_fileUpload"] = FileUploadForm(data=data, prefix=prefix)
-            form = ScenarioSelection(data=data, queryset=selectable_scenarios, prefix=prefix)
-            form.is_valid()
-            context[prefix + "_scenario_selection"] = form
-
+        context["costs_fileUpload"] = FileUploadForm(data=data)
+        form = ScenarioSelection(data=data, queryset=selectable_scenarios)
+        context["costs_scenario_selection"] = form
         context["costs_manual"] = ManualTcoForm(data=data, prefix="costs")
-        context["env_manual"] = ManualLcaForm(data=data, prefix="env")
+        # get all vehicle types in scenario to show cost params for each type
+        scenario = Scenario.objects.get(task_id=kwargs["task_id"])
+        context["vehicle_types"] = scenario.vehicletype_set.all()
 
         return context
 
@@ -911,48 +905,34 @@ class CostsView(ScenarioMixIn, TemplateView):
 
     def post(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        all_valid = True
-
-        for form, prefix in zip(
-            [context["cost_mode_form"], context["env_mode_form"]],
-            ["costs", "env"],
-        ):
-            valid = form.is_valid()
-            all_valid = all_valid & valid
-            if not valid:
-                logger.debug("Invalid Costs Form provided")
-
-                break
-            match form.cleaned_data["input_mode"]:
-                case "no_input":
-                    pass
-                case "file_upload":
-                    file_form = context[prefix + "_fileUpload"]
-                    if not file_form.is_valid():
-                        logger.debug("Invalid Costs File Form provided")
-                        all_valid = False
-                        break
-                    raise NotImplementedError("file upload is not yet implemented")
-                    pass
-                case "reference_scenario":
-                    scenario_selection = context[prefix + "_scenario_selection"]
-                    if not scenario_selection.is_valid():
-                        logger.debug("Invalid Costs Scenario Selection provided")
-                        all_valid = False
-                        break
-                    raise NotImplementedError("scenario_selection is not yet implemented")
-                case "manual":
-                    manual_form = context[prefix + "_manual"]
-                    if not manual_form.is_valid():
-                        logger.debug("Invalid Cost Manual Form provided")
-                        all_valid = False
-                        break
-                    raise NotImplementedError("manual_form is not yet implemented")
-                case _:
-                    raise NotImplementedError(f"Mode {form.cleaned_data['input_mode']}")
-        if not all_valid:
+        form = context["cost_mode_form"]
+        if not form.is_valid():
+            logger.debug("Invalid Costs Form provided")
             return self.render_to_response(context)
-
+        match form.cleaned_data["input_mode"]:
+            case "no_input":
+                pass
+            case "file_upload":
+                file_form = context["costs_fileUpload"]
+                if not file_form.is_valid():
+                    logger.debug("Invalid Costs File Form provided")
+                    return self.render_to_response(context)
+                raise NotImplementedError("file upload is not yet implemented")
+            case "reference_scenario":
+                scenario_selection = context["costs_scenario_selection"]
+                if not scenario_selection.is_valid():
+                    logger.debug("Invalid Costs Scenario Selection provided")
+                    return self.render_to_response(context)
+                raise NotImplementedError("scenario_selection is not yet implemented")
+            case "manual":
+                manual_form = context["costs_manual"]
+                if not manual_form.is_valid():
+                    logger.debug("Invalid Cost Manual Form provided")
+                    return self.render_to_response(context)
+                # TODO: actually do something with manual inputs, like saving them in DB
+                pass
+            case _:
+                raise NotImplementedError(f"Mode {form.cleaned_data['input_mode']}")
         return redirect(reverse(self.success_name, args=[kwargs["task_id"]]))
 
 
