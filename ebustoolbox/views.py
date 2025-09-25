@@ -59,7 +59,6 @@ import ebustoolbox.tasks
 from ebustoolbox.models import (
     AreaInformation,
     DepotConfigurationWish,
-    EnumNotificationType,
     Notification,
     Rotation,
     Scenario,
@@ -1093,9 +1092,7 @@ class SummaryView(AuthorizedMixIn, TemplateView):
     @staticmethod
     def get_notifications(task_id):
         scenario = get_object_or_404(Scenario, task_id=task_id)
-        notifications = Notification.objects.filter(scenario=scenario).exclude(
-            notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING
-        )
+        notifications = Notification.objects.filter(scenario=scenario)
         return notifications
 
     def get_context_data(self, **kwargs):
