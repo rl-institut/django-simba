@@ -439,7 +439,7 @@ def get_activities_as_dataframe(scenario_id, buses):
     :rtype: pandas.DataFrame
     """
     result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
-    vehicle_labels, _ = recent_memoizer(get_vehicle_dictionaries, scenario_id)(scenario_id)
+    vehicle_labels, unused_variable = recent_memoizer(get_vehicle_dictionaries, scenario_id)(scenario_id)
 
     filtered_df = result_df.query(f"V_id in {buses}")
     return filtered_df
@@ -532,8 +532,8 @@ def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
     # If events with no rotation should be returned dropna needs to be False
     df = df.groupby(["R_id", "V_id"], dropna=True)["soc_end"].min().reset_index()
     df = pd.DataFrame(df)
-    v_dict, _ = recent_memoizer(get_vehicle_dictionaries, scenario_id)(scenario_id)
-    r_dict, _ = recent_memoizer(get_rotation_dictionaries, scenario_id)(scenario_id)
+    v_dict, unused_variable = recent_memoizer(get_vehicle_dictionaries, scenario_id)(scenario_id)
+    r_dict, unused_variable = recent_memoizer(get_rotation_dictionaries, scenario_id)(scenario_id)
 
     df["V_id"] = df["V_id"].apply(lambda x: v_dict[x])
     df["R_id"] = df["R_id"].apply(lambda x: r_dict[x])
@@ -582,7 +582,7 @@ def get_all_event_info(scenario_id):
         events_by_vehicle[vehicle_id].append(event)
 
     # Get the translations from v.id to readable vehicle_name
-    vehicle_name_dict, _ = recent_memoizer(get_vehicle_dictionaries, scenario_id)(scenario_id)
+    vehicle_name_dict, unused_variable = recent_memoizer(get_vehicle_dictionaries, scenario_id)(scenario_id)
 
     # Initialize lists to store data
     dfs = []
@@ -836,7 +836,7 @@ def sim_is_finished(task_id):
 def get_soc_as_json(task_id: str):
     s = Scenario.objects.get(task_id=task_id)
 
-    vehicle_name_dict, _ = get_all_buses_labeled(task_id)
+    vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
     df = get_soc_as_dataframe(s.id, buses)
 
@@ -870,7 +870,7 @@ def get_soc_as_json(task_id: str):
 def get_binned_soc_as_json(task_id: str):
     # load raw SOC events
     scenario = Scenario.objects.get(task_id=task_id)
-    vehicle_name_dict, _ = get_all_buses_labeled(task_id)
+    vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
     df = get_soc_as_dataframe(scenario.id, buses)
 
@@ -957,7 +957,7 @@ def get_power_draw_as_json(request, task_id: str):
 def get_event_gantt_as_json(task_id: str):
     scenario = Scenario.objects.get(task_id=task_id)
 
-    vehicle_name_dict, _ = get_all_buses_labeled(task_id)
+    vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
     df = get_activities_as_dataframe(scenario.id, buses)
 
@@ -989,7 +989,7 @@ def get_stats_as_json(task_id: str):
 
     filter_dict = dict(task_id=task_id)
 
-    vehicle_name_dict, _ = get_all_buses_labeled(task_id)
+    vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
     if buses:  # In Presim buses will be None, if later no buses are selected, it will be empty
@@ -1115,7 +1115,7 @@ def get_stats_as_json(task_id: str):
 
 def get_speed_hist_as_json(task_id: str):
     scenario = Scenario.objects.get(task_id=task_id)
-    vehicle_name_dict, _ = get_all_buses_labeled(task_id)
+    vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
     dur_df = get_duration_as_dataframe(scenario.id, buses)
@@ -1141,7 +1141,7 @@ def get_speed_hist_as_json(task_id: str):
 
 def get_dist_hist_as_json(task_id: str):
     scenario = Scenario.objects.get(task_id=task_id)
-    vehicle_name_dict, _ = get_all_buses_labeled(task_id)
+    vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
     filter_dict = dict(task_id=task_id)
@@ -1257,7 +1257,7 @@ def get_soc_gantt_as_json(task_id: str):
 
     # Sort vehicles by their earliest event start time
     vehicles = [
-        str(v) for v, _ in sorted(vehicle_first_times.items(), key=lambda x: x[1], reverse=True)
+        str(v) for v, unused_variable in sorted(vehicle_first_times.items(), key=lambda x: x[1], reverse=True)
     ]
 
     return vehicles, records
