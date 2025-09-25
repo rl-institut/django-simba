@@ -1041,7 +1041,7 @@ class RotationSplitTest(TestCase):
 class SerializerTest(TransactionTestCase):
     def test_serializer(self):
         count_before = count_all_rows()
-        django_scenario, _, _ = build_scenario()
+        django_scenario, unused_variable, unused_variable_2 = build_scenario()
         django_scenario.task_id = get_unique_task_id()
         django_scenario.save()
         tasks.run_toolchain_from_scenario(django_scenario, assign_vehicles=True)

@@ -1551,7 +1551,7 @@ def render_bustype(request, task_id: str):
         return JsonResponse({"data": []})
 
     return JsonResponse(
-        {"data": [{"value": row["count"], "name": row["name"]} for _, row in df.iterrows()]}
+        {"data": [{"value": row["count"], "name": row["name"]} for unused_variable, row in df.iterrows()]}
     )
 
 

@@ -968,7 +968,7 @@ def get_event_gantt_as_json(task_id: str):
     categories = [f"Bus {bus}" for bus in buses]
 
     gantt_data = []
-    for _, row in df.iterrows():
+    for unused_variable, row in df.iterrows():
         start_time = int(row["time_start"].timestamp() * 1000)
         end_time = int(row["time_end"].timestamp() * 1000)
         duration = row["duration"]
@@ -1064,7 +1064,7 @@ def get_stats_as_json(task_id: str):
         timeline.sort()
         concurrent = 0
         peak = 0
-        for _, delta in timeline:
+        for unused_variable, delta in timeline:
             concurrent += delta
             peak = max(peak, concurrent)
 
