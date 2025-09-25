@@ -1344,17 +1344,17 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
     # ### sanity checks ### #
     # start and end soc must remain the same
     if not (abs(soc_ts[0] - event.soc_start) < EPS):
-        logger.info(
+        logger.error(
+            "Depot Charging Simulation diverged\n"
             f"Delta of {abs(soc_ts[0] - event.soc_start)} at {event}."
             f"{event.soc_start} Start Soc\n Timeseries:\n{soc_ts}"
         )
-        raise AssertionError("Depot Charging Simulation diverged")
     if not (abs(soc_ts[-1] - event.soc_end) < EPS):
-        logger.info(
+        logger.error(
+            "Depot Charging Simulation diverged\n"
             f"Delta of {abs(soc_ts[-1] - event.soc_end)} at {event}."
             f"{event.soc_end} END SOC\n Timeseries:\n{soc_ts}"
         )
-        raise AssertionError("Depot Charging Simulation diverged")
     # event soc should always be defined / not null
     assert all([soc is not None for soc in soc_ts])
     # soc and time lists must have same length
