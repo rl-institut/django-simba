@@ -67,7 +67,7 @@
                   class="relative w-full cursor-pointer text-sm font-semibold text-emerald-700">
                 <span>{% translate 'Datei hochladen' %}</span>
                 {# this sets the id=form.data_file.auto_id #}
-                <input {{ form.data_file|widget_attrs }} type="file" class="sr-only" accept=".csv" onchange="updateFileName(this)">
+                <input {{ form.data_file|widget_attrs }} type="file" class="sr-only" accept=".csv,.zip" onchange="updateFileName(this)">
                 {# progress bar during upload #}
                 <progress
                   id='progress'
