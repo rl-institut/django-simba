@@ -1795,7 +1795,7 @@ def _run_ebus_toolchain(self, task_id):
         # NOTE: Consolidate results with a given strategy. EPS of 1% needed.
         # Balanced strategy or expose from simba_options? TODO: Discuss
         # TODO: Consolidate with depot electrification above
-        apply_depot_strategy(db_scenario, "balanced")
+        apply_depot_strategy(db_scenario, "greedy")
 
         progress.current_work += 1
         progress.save()
@@ -1823,10 +1823,12 @@ def check_event_soc_consistency(db_scenario: Scenario):
         events = list(Event.objects.filter(vehicle=vehicle).order_by("time_start"))
         for i in range(len(events) - 2):
             if not events[i].soc_end == events[i + 1].soc_start:
+                delta = events[i].soc_end - events[i + 1].soc_start
                 logger.warning(
                     f"SOC does not align between events for {vehicle=} for "
                     # f"events {events[i]} and {events[i+1]}"
-                    f"\n DELTA = {events[i].soc_end - events[i + 1].soc_start}"
+                    f"\n DELTA = {delta}\n"
+                    f"\n{events[i].id} and {events[i+1].id}"
                 )
                 consistent = False
 
@@ -2778,6 +2780,7 @@ def consolidate_socs(scenario: Scenario) -> None:
         EventType.STANDBY_DEPARTURE,
         EventType.PRECONDITIONING,
         EventType.SERVICE,
+        EventType.STANDBY,
     ]
     # The last event type of simba is always a driving event
     driving_event_types = [EventType.DRIVING]
@@ -2788,6 +2791,8 @@ def consolidate_socs(scenario: Scenario) -> None:
         return
     vehicle = None
     prev_event = None
+
+    running_delta_soc = 0
     for i, event in enumerate(events):
         event: Event
         assert event.vehicle is not None, "Events must have a vehicle"
@@ -2795,13 +2800,25 @@ def consolidate_socs(scenario: Scenario) -> None:
         if event.vehicle != vehicle:
             vehicle = event.vehicle
             prev_event = event
+            pre_fix_end_soc = event.soc_end
             continue
         prev_event = events[i - 1]
         assert isinstance(prev_event, Event)
         assert prev_event.time_end == event.time_start
-        delta_soc = event.soc_start - prev_event.soc_end
 
-        if delta_soc == 0:
+        # This is the delta which exists between the current and the previous event
+        pre_fix_delta = event.soc_start - pre_fix_end_soc
+        # This is the delta which has to be applied to the current event
+        # The deltas differs since, the prev_event.soc might have been changed during consolidation
+        running_delta_soc = event.soc_start - prev_event.soc_end
+
+        pre_fix_end_soc = event.soc_end
+
+        # The delta soc which has to be applied to the current event
+        # This does not reflect the delta_soc between both events before consolidation
+        running_delta_soc = event.soc_start - prev_event.soc_end
+
+        if running_delta_soc == 0:
             continue
 
         next_event = (
@@ -2809,39 +2826,46 @@ def consolidate_socs(scenario: Scenario) -> None:
             if (i + 1 > len(events) and events[i + 1].vehicle == vehicle)
             else "No next Event"
         )
-        if delta_soc != 0:
-            logger.info(f"{delta_soc=}")
-
-        if delta_soc > 0:
-            logger.warning(
-                f"Unexpected soc drop {round(delta_soc, 3)} due to consolidation.\n"
-                f"{event=}\n{prev_event=}\n{next_event}."
+        if pre_fix_delta != 0:
+            logger.info(
+                f"Socs differed by:{pre_fix_delta=:.2e}. {running_delta_soc=:.2e} is applied"
+                f"\n{prev_event.id} and {event.id}"
             )
-        if abs(delta_soc) > 0.1:
+
+        if pre_fix_delta > 0:
             logger.warning(
-                f"Unexpected high soc delta {round(delta_soc, 3)} during consolidation.\n"
+                f"Unexpected soc drop {round(running_delta_soc, 3)} due to consolidation.\n"
+                f"{prev_event=}\n{event=}\n{next_event}."
+            )
+        if abs(pre_fix_delta) > 0.1:
+            logger.warning(
+                f"Unexpected high soc delta {round(pre_fix_delta, 3)} during consolidation.\n"
                 f"{event=}\n{prev_event=}\n{next_event}."
             )
         # NOTE: Small deltas of SOC might occur anywhere
         # Bigger delta_socs 'should' only happen at the interface DRIVING - DEPOT
-        if abs(delta_soc) > EPS:
-            assert prev_event.event_type in driving_event_types
-            assert event.event_type in depot_event_types
+        if abs(pre_fix_delta) > EPS:
+            if (
+                prev_event.event_type not in driving_event_types
+                or event.event_type not in depot_event_types
+            ):
+                raise AssertionError("Big SoC Jump not at interface of SimBA/eFlips")
 
         # NOTE: Charging depot events are only aligned at their start value.
         # This makes the timeseries not usable, therefor they are deleted
         # The timeseries can be recreated by SimBAs depot strategy
         if event.event_type == EventType.CHARGING_DEPOT:
-            event.soc_start -= delta_soc
+            event.soc_start -= running_delta_soc
             if event.timeseries and event.timeseries.get("soc"):
                 event.timeseries["soc"] = None
-                continue
+            assert event.soc_start == prev_event.soc_end
+            continue
 
-        event.soc_start -= delta_soc
-        event.soc_end -= delta_soc
+        event.soc_start -= running_delta_soc
+        event.soc_end -= running_delta_soc
         if event.timeseries and event.timeseries["soc"]:
             ts = event.timeseries["soc"]
-            shifted_ts = [v - delta_soc for v in ts]
+            shifted_ts = [v - running_delta_soc for v in ts]
             if min(shifted_ts) < 0 and min(ts) >= 0:
                 logger.warning(
                     f"Consolidation lead to negative SOCs which did not exist before. {event=}"
@@ -2851,4 +2875,7 @@ def consolidate_socs(scenario: Scenario) -> None:
                     f"Consolidation lead to SOCs above 1. This should never happen. {event=}"
                 )
             event.timeseries["soc"] = shifted_ts
+
+        assert event.soc_start == prev_event.soc_end
+
     Event.objects.bulk_update(events, fields=["soc_end", "soc_start", "timeseries"])
