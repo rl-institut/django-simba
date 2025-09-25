@@ -439,7 +439,9 @@ def get_activities_as_dataframe(scenario_id, buses):
     :rtype: pandas.DataFrame
     """
     result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
-    vehicle_labels, unused_variable = recent_memoizer(get_vehicle_dictionaries, scenario_id)(scenario_id)
+    vehicle_labels, unused_variable = recent_memoizer(get_vehicle_dictionaries, scenario_id)(
+        scenario_id
+    )
 
     filtered_df = result_df.query(f"V_id in {buses}")
     return filtered_df
@@ -582,7 +584,9 @@ def get_all_event_info(scenario_id):
         events_by_vehicle[vehicle_id].append(event)
 
     # Get the translations from v.id to readable vehicle_name
-    vehicle_name_dict, unused_variable = recent_memoizer(get_vehicle_dictionaries, scenario_id)(scenario_id)
+    vehicle_name_dict, unused_variable = recent_memoizer(get_vehicle_dictionaries, scenario_id)(
+        scenario_id
+    )
 
     # Initialize lists to store data
     dfs = []
@@ -1257,7 +1261,10 @@ def get_soc_gantt_as_json(task_id: str):
 
     # Sort vehicles by their earliest event start time
     vehicles = [
-        str(v) for v, unused_variable in sorted(vehicle_first_times.items(), key=lambda x: x[1], reverse=True)
+        str(v)
+        for v, unused_variable in sorted(
+            vehicle_first_times.items(), key=lambda x: x[1], reverse=True
+        )
     ]
 
     return vehicles, records

@@ -783,7 +783,6 @@ class StationsView(ScenarioMixIn, TemplateView):
             min_standing_time = 0
 
         if min_standing_time > 0:
-
             parent_trips = Trip.objects.filter(scenario=scenario.parent)
             parent_trips_annotated = tasks.annotate_trips_with_standing_time(parent_trips)
             td_min_standing_time = datetime.timedelta(minutes=min_standing_time)
@@ -1551,7 +1550,12 @@ def render_bustype(request, task_id: str):
         return JsonResponse({"data": []})
 
     return JsonResponse(
-        {"data": [{"value": row["count"], "name": row["name"]} for unused_variable, row in df.iterrows()]}
+        {
+            "data": [
+                {"value": row["count"], "name": row["name"]}
+                for unused_variable, row in df.iterrows()
+            ]
+        }
     )
 
 
