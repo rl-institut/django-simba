@@ -1349,12 +1349,16 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
             f"Delta of {abs(soc_ts[0] - event.soc_start)} at {event}."
             f"{event.soc_start} Start Soc\n Timeseries:\n{soc_ts}"
         )
+        event.soc_start = soc_ts[0]
+        Event.objects.bulk_update([event], fields=["soc_start"])
     if not (abs(soc_ts[-1] - event.soc_end) < EPS):
         logger.error(
             "Depot Charging Simulation diverged\n"
             f"Delta of {abs(soc_ts[-1] - event.soc_end)} at {event}."
             f"{event.soc_end} END SOC\n Timeseries:\n{soc_ts}"
         )
+        event.soc_end = soc_ts[-1]
+        Event.objects.bulk_update([event], fields=["soc_end"])
     # event soc should always be defined / not null
     assert all([soc is not None for soc in soc_ts])
     # soc and time lists must have same length
@@ -1795,7 +1799,7 @@ def _run_ebus_toolchain(self, task_id):
         # NOTE: Consolidate results with a given strategy. EPS of 1% needed.
         # Balanced strategy or expose from simba_options? TODO: Discuss
         # TODO: Consolidate with depot electrification above
-        apply_depot_strategy(db_scenario, "greedy")
+        apply_depot_strategy(db_scenario, "balanced")
 
         progress.current_work += 1
         progress.save()
