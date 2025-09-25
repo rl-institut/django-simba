@@ -338,7 +338,7 @@ class TripsView(FormView):
         if self.request.user.is_authenticated:
             manager = self.request.user
         # If schedule reading failed before a scenario already exists
-        scenario, _ = Scenario.objects.get_or_create(task_id=task_id, manager=manager)
+        scenario, unused_variable = Scenario.objects.get_or_create(task_id=task_id, manager=manager)
         scenario.name = cleaned_data["scenario_name"]
         scenario.description = cleaned_data["description"]
         # If schedule reading failed before there is a parent already. Delete it if
@@ -514,7 +514,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         start_time = start.time().isoformat()
         end_date = end.date().isoformat()
         end_time = end.time().isoformat()
-        sim_range, _ = SimulationRange.objects.get_or_create(scenario=scenario)
+        sim_range, unused_variable = SimulationRange.objects.get_or_create(scenario=scenario)
         temperature_average = None
         temperature_extreme = None
         if data:
@@ -621,7 +621,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         child_vehicle_types = get_or_create_child_vehicle_types(scenario)
         vehicle_modification = {}
         for vt in child_vehicle_types:
-            vt_select, _ = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
+            vt_select, unused_variable = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
             dvt = vt_select.default_vehicle_type
             modification = VehicleTypeForm(data, instance=vt, prefix=f"mutation_{vt.id}")
 
@@ -783,7 +783,6 @@ class StationsView(ScenarioMixIn, TemplateView):
             min_standing_time = 0
 
         if min_standing_time > 0:
-
             parent_trips = Trip.objects.filter(scenario=scenario.parent)
             parent_trips_annotated = tasks.annotate_trips_with_standing_time(parent_trips)
             td_min_standing_time = datetime.timedelta(minutes=min_standing_time)
@@ -1516,7 +1515,7 @@ def usergroups(request):
 
 def render_critical_rotations(request, task_id: str):
     """Returns raw JSON data for critical rotations (critical vs. non-critical)"""
-    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    vehicle_name_dict, unused_variable = data.get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
     s = Scenario.objects.get(task_id=task_id)
@@ -1541,7 +1540,7 @@ def render_critical_rotations(request, task_id: str):
 
 def render_bustype(request, task_id: str):
     """Returns raw JSON data for vehicle type distribution"""
-    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    vehicle_name_dict, unused_variable = data.get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
     s = Scenario.objects.get(task_id=task_id)
@@ -1551,7 +1550,12 @@ def render_bustype(request, task_id: str):
         return JsonResponse({"data": []})
 
     return JsonResponse(
-        {"data": [{"value": row["count"], "name": row["name"]} for _, row in df.iterrows()]}
+        {
+            "data": [
+                {"value": row["count"], "name": row["name"]}
+                for unused_variable, row in df.iterrows()
+            ]
+        }
     )
 
 
