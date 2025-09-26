@@ -1339,6 +1339,20 @@ def simulate_depot_strategy(spice_ev_scenario_dict: dict, strategy: str) -> Simb
     return spice_ev_scenario
 
 
+def abbreviate_list(long_list: list, tail_elements: int = 2, delimiter: str = ",", fmt="") -> str:
+    delimiter += " "
+    if not len(long_list) > tail_elements * 2:
+        return "[ " + delimiter.join(long_list) + " ]"
+    return (
+        "[ "
+        + delimiter.join(format(x, fmt) for x in long_list[:tail_elements])
+        + " ... "
+        + delimiter.join(format(x, fmt) for x in long_list[-tail_elements:])
+        + " ] "
+        + f"{len(long_list)} elements"
+    )
+
+
 def replace_event_timeseries(event: Event, soc_ts: list) -> None:
     # replace Event soc timeseries with arbitrary list
     # ### sanity checks ### #
@@ -1347,7 +1361,7 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
         logger.error(
             "Depot Charging Simulation diverged\n"
             f"Delta of {abs(soc_ts[0] - event.soc_start)} at {event}.\n"
-            f"{event.soc_start} Start Soc\n Timeseries:\n{soc_ts}"
+            f"{event.soc_start} Start Soc\n Timeseries:\n{abbreviate_list(soc_ts, fmt='.2e')}"
         )
         event.soc_start = soc_ts[0]
         Event.objects.bulk_update([event], fields=["soc_start"])
@@ -1355,7 +1369,7 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
         logger.error(
             "Depot Charging Simulation diverged\n"
             f"Delta of {abs(soc_ts[-1] - event.soc_end)} at {event}.\n"
-            f"{event.soc_end} END SOC\n Timeseries:\n{soc_ts}"
+            f"{event.soc_end} END SOC\n Timeseries:\n{abbreviate_list(soc_ts, fmt='.2e')}"
         )
         event.soc_end = soc_ts[-1]
         Event.objects.bulk_update([event], fields=["soc_end"])
@@ -2830,22 +2844,7 @@ def consolidate_socs(scenario: Scenario) -> None:
             if (i + 1 > len(events) and events[i + 1].vehicle == vehicle)
             else "No next Event"
         )
-        if pre_fix_delta != 0:
-            logger.info(
-                f"Socs differed by:{pre_fix_delta=:.2e}. {running_delta_soc=:.2e} is applied"
-                f"\n{prev_event.id} and {event.id}"
-            )
-
-        if pre_fix_delta > 0:
-            logger.warning(
-                f"Unexpected soc drop {round(running_delta_soc, 3)} due to consolidation.\n"
-                f"{prev_event=}\n{event=}\n{next_event}."
-            )
-        if abs(pre_fix_delta) > 0.1:
-            logger.warning(
-                f"Unexpected high soc delta {round(pre_fix_delta, 3)} during consolidation.\n"
-                f"{event=}\n{prev_event=}\n{next_event}."
-            )
+        create_consolidate_log(event, next_event, prev_event, running_delta_soc, pre_fix_delta)
         # NOTE: Small deltas of SOC might occur anywhere
         # Bigger delta_socs 'should' only happen at the interface DRIVING - DEPOT
         if abs(pre_fix_delta) > EPS:
@@ -2883,3 +2882,34 @@ def consolidate_socs(scenario: Scenario) -> None:
         assert event.soc_start == prev_event.soc_end
 
     Event.objects.bulk_update(events, fields=["soc_end", "soc_start", "timeseries"])
+
+
+def create_consolidate_log(
+    event: Event,
+    next_event: Event | str,
+    prev_event: Event,
+    running_delta_soc: float,
+    pre_fix_delta: float,
+) -> None:
+    """Create a log depending on severity of delta soc"""
+    if pre_fix_delta != 0 and abs(pre_fix_delta) < 0.01:
+        logger.debug(
+            f"Socs differed by: {pre_fix_delta=:.2e}. {running_delta_soc=:.2e} is applied"
+            f"\n{prev_event.id} and {event.id}"
+        )
+    elif 0.1 > abs(pre_fix_delta) >= 0.01:
+        logger.info(
+            f"Socs differed by: {pre_fix_delta=:.2e}. {running_delta_soc=:.2e} is applied"
+            f"\n{prev_event.id} and {event.id}"
+        )
+    elif abs(pre_fix_delta) >= 0.1:
+        logger.warning(
+            f"Unexpected high soc delta {round(pre_fix_delta, 3)} during consolidation.\n"
+            f"{event=}\n{prev_event=}\n{next_event}."
+        )
+
+    if pre_fix_delta > 0:
+        logger.warning(
+            f"Unexpected soc drop {round(running_delta_soc, 3)} due to consolidation.\n"
+            f"{prev_event=}\n{event=}\n{next_event}."
+        )
