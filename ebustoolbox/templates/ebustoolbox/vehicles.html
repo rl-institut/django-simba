@@ -307,51 +307,7 @@
 
 <script>
 
-function debounce(func, timeout = 300) {
-    let timer;
-    // return a debounced function, which can be called with any args
-    return (...args) => {
-      // clear the previous timer
-      clearTimeout(timer);
-      // after the duration of timeout call the function
-      timer = setTimeout(() => {
-        func.apply(this, args);
-      }, timeout);
-    };
-  }
-
-
-async function extremeTemperatureChange(){
-  var tempHintDivId = 'ExtremeTemperatureHint';
-  var consumptionHintQuery = 'div .extreme-consumption-hint';
-  var temperature = document.getElementById("id_temperature_extreme").value;
-  fetchAndSetFunction = debounced_fetchAndSetTemperature1;
-  temperatureChange(temperature, tempHintDivId, consumptionHintQuery, fetchAndSetFunction);
-}
-
-async function averageTemperatureChange(){
-  var tempHintDivId = 'AvgTemperatureHint';
-  var consumptionHintQuery = 'div .avg-consumption-hint';
-  var temperature = document.getElementById("id_temperature_average").value;
-  fetchAndSetFunction = debounced_fetchAndSetTemperature2;
-  temperatureChange(temperature, tempHintDivId, consumptionHintQuery, fetchAndSetFunction);
-
-}
-async function temperatureChange(temperature, tempHintDivId, consumptionHintQuery, fetchAndSetFunction){
-  showTemperatureHint(temperature, tempHintDivId,fetchAndSetFunction);
-  showConsumptionEstimate(temperature, consumptionHintQuery);
-  refreshPageHints();
-}
-
-document.addEventListener('DOMContentLoaded', e => {
-  extremeTemperatureChange();
-  averageTemperatureChange();
-  refreshPageHints();
-})
-
-const disabledClasses = ['cursor-not-allowed', 'bg-slate-200',];
-const enabledClasses = [];
-
+const containers = document.querySelectorAll("[id*='VehicleTypeContainer']")
 function refreshPageHints(){
   containers.forEach((container)=> {
     // Set placeholder for all inputs, eg. dynamisch bei 4ºC
@@ -419,6 +375,51 @@ function refreshPageHints(){
   });
 
 }
+function debounce(func, timeout = 300) {
+    let timer;
+    // return a debounced function, which can be called with any args
+    return (...args) => {
+      // clear the previous timer
+      clearTimeout(timer);
+      // after the duration of timeout call the function
+      timer = setTimeout(() => {
+        func.apply(this, args);
+      }, timeout);
+    };
+  }
+
+
+async function extremeTemperatureChange(){
+  var tempHintDivId = 'ExtremeTemperatureHint';
+  var consumptionHintQuery = 'div .extreme-consumption-hint';
+  var temperature = document.getElementById("id_temperature_extreme").value;
+  fetchAndSetFunction = debounced_fetchAndSetTemperature1;
+  temperatureChange(temperature, tempHintDivId, consumptionHintQuery, fetchAndSetFunction);
+}
+
+async function averageTemperatureChange(){
+  var tempHintDivId = 'AvgTemperatureHint';
+  var consumptionHintQuery = 'div .avg-consumption-hint';
+  var temperature = document.getElementById("id_temperature_average").value;
+  fetchAndSetFunction = debounced_fetchAndSetTemperature2;
+  temperatureChange(temperature, tempHintDivId, consumptionHintQuery, fetchAndSetFunction);
+
+}
+async function temperatureChange(temperature, tempHintDivId, consumptionHintQuery, fetchAndSetFunction){
+  showTemperatureHint(temperature, tempHintDivId,fetchAndSetFunction);
+  showConsumptionEstimate(temperature, consumptionHintQuery);
+  refreshPageHints();
+}
+
+document.addEventListener('DOMContentLoaded', e => {
+  extremeTemperatureChange();
+  averageTemperatureChange();
+  refreshPageHints();
+})
+
+const disabledClasses = ['cursor-not-allowed', 'bg-slate-200',];
+const enabledClasses = [];
+
 
 function getDieselVehicleType(db_id){
   vehicle_type_data_div = document.getElementById(`vehicle_type_data_${db_id}`);
@@ -436,7 +437,7 @@ function getDieselVehicleType(db_id){
 function getSelectedVehicleTypeId(container){
     const vt_selection = container.querySelector("select[id*='default_vehicle_type']");
     var db_id = vt_selection.value;
-    if (db_id === null ) return null;
+    if (db_id === null || db_id == "" ) return null;
     diesel_checkbox = container.querySelector("input[id*='has_diesel_heating']") ;
     if ( diesel_checkbox.checked ) {
       var db_id_diesel = getDieselVehicleType(db_id);
@@ -532,9 +533,7 @@ async function fetchQuantile(temperature){
   }
 }
 {% endif %}
-</script>
 
-<script>
 function set_consumption_placeholder(temp_div_id, consumption_div){
   temp_div = document.getElementById(temp_div_id);
   suffix = "";
@@ -544,7 +543,6 @@ function set_consumption_placeholder(temp_div_id, consumption_div){
   consumption_div.placeholder =  document.getElementById('translate_dynamisch').innerText+ suffix;
 }
 
-const containers = document.querySelectorAll("[id*='VehicleTypeContainer']")
 containers.forEach((container) => {
   const vt_id = container.getAttribute("data-value");
   const enableCustomConsumption = container.querySelector("input[id*='enableCustomConsumption']")
@@ -589,8 +587,6 @@ containers.forEach((container) => {
 
 });
 
-</script>
-<script>
   containers.forEach((container) => {
     var chartDom = container.querySelector('[id*="stateOfChargeChart"]');
     const list = container.querySelector('[id*="assignedToList"]');
@@ -678,8 +674,6 @@ containers.forEach((container) => {
     })
 
   });
-</script>
-<script>
 function validate(){
   console.log("validating")
   const defaultVehicleTypeSelectionDivs = document.querySelectorAll('select[id*="default_vehicle_type"]')
@@ -702,12 +696,12 @@ function validate(){
 }
 
 function validateVehicleContainers(){
-  containers.forEach((container) => {
-    const vt_id = container.getAttribute('data-value');
+    for (const container of containers){
+    const vt_id = container.dataset.value;
     const errorDiv = document.getElementById("SelectionError"+vt_id);
     const header = container.querySelector('button.accordion-header');
-    const dropdown_select = document.querySelector('select[id*="default_vehicle_type"]');
-    if (dropdown_select.value ==="") return;
+    const dropdown_select = container.querySelector('select[id*="default_vehicle_type"]');
+    if (dropdown_select.value ==="") continue;
     const inputs = container.querySelectorAll('input');
     var isValid=true;
     for (let i=0; i<inputs.length; i++){
@@ -729,7 +723,7 @@ function validateVehicleContainers(){
       header.classList.remove("transition-colors", "duration-100", "bg-green-200");
       header.classList.add("transition-colors", "duration-100", "bg-transparent");
     }
-  });
+  };
 }
 
 function debounce(func, timeout = 300) {
