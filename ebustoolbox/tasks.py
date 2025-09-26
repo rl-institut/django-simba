@@ -1346,7 +1346,7 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
     if not (abs(soc_ts[0] - event.soc_start) < EPS):
         logger.error(
             "Depot Charging Simulation diverged\n"
-            f"Delta of {abs(soc_ts[0] - event.soc_start)} at {event}."
+            f"Delta of {abs(soc_ts[0] - event.soc_start)} at {event}.\n"
             f"{event.soc_start} Start Soc\n Timeseries:\n{soc_ts}"
         )
         event.soc_start = soc_ts[0]
