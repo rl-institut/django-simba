@@ -484,10 +484,21 @@ class SimulationTestCase(TransactionTestCase):
         num_ts = len(event.timeseries["time"])
         # check start/end soc
         assert event.soc_start != event.soc_end
-        with self.assertRaises(AssertionError):
+        soc_end = event.soc_end
+        with self.assertLogs(logger="custom") as cm:
             tasks.replace_event_timeseries(event, [event.soc_start] * num_ts)
-        with self.assertRaises(AssertionError):
+            # Check if any log entry contains the substring
+            self.assertTrue(
+                any("Depot Charging Simulation diverged" in message for message in cm.output),
+                "Error log not found",
+            )
+        event.soc_end = soc_end
+        with self.assertLogs(logger="custom") as cm:
             tasks.replace_event_timeseries(event, [event.soc_end] * num_ts)
+            self.assertTrue(
+                any("Depot Charging Simulation diverged" in message for message in cm.output),
+                "Error log not found",
+            )
 
         # check length of timeseries
         assert num_ts > 2
