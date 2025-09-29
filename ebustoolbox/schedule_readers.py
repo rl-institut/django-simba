@@ -182,7 +182,7 @@ class SimbaScheduleReader(ScheduleReader):
     ):
         self.errors = []
         self.file_path: Path = Path(file_path)
-        self.default_capacity = 99.99
+        self.default_capacity = 500
         self.encoding = None
         self.progress: Progress = None
         self.vehicles_opportunity_charging_capable = True

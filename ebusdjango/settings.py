@@ -81,6 +81,7 @@ INSTALLED_APPS = [
     "bootstrap4",
     "tailwind",
     "tailwind_theme",
+    "widget_tweaks",
 ]
 
 

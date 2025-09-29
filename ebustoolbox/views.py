@@ -5,6 +5,7 @@ import dateutil.parser as parser
 import datetime
 
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 import pytz
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -13,7 +14,6 @@ from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
 from django.db.models.functions import Cast, Coalesce
 from django.db.transaction import atomic
 from django.utils.translation import gettext as _
-from django.forms import formset_factory, widgets
 from django.http import (
     HttpResponse,
     HttpRequest,
@@ -39,13 +39,14 @@ from temperatures.models import WeatherStation  # noqa
 from . import tasks, forms
 import temperatures.tasks
 from .forms import (
+    AreaInformationForm,
+    DepotConfigurationWishForm,
     VehicleTypeForm,
     VehicleTypeSelectionForm,
     FileUploadForm,
     ScenarioSelection,
     ManualTcoForm,
     ManualLcaForm,
-    DepotChargingAreaForm,
 )
 from .tasks import merge_scenario
 from .import_export import ScenarioJSONImporterExporter, visit_all_scenario_queries
@@ -56,6 +57,8 @@ from . import data
 import ebustoolbox
 import ebustoolbox.tasks
 from ebustoolbox.models import (
+    AreaInformation,
+    DepotConfigurationWish,
     EnumNotificationType,
     Notification,
     Rotation,
@@ -190,7 +193,7 @@ class AuthorizedMixIn:
     has_permisson = None
 
     @staticmethod
-    def get_permission(user, task_id):
+    def get_permission(user, task_id) -> bool:
         """Make sure User is authorized and add scenario to class"""
         scenario = get_object_or_404(Scenario, task_id=task_id)
 
@@ -335,7 +338,7 @@ class TripsView(FormView):
         if self.request.user.is_authenticated:
             manager = self.request.user
         # If schedule reading failed before a scenario already exists
-        scenario, _ = Scenario.objects.get_or_create(task_id=task_id, manager=manager)
+        scenario, unused_variable = Scenario.objects.get_or_create(task_id=task_id, manager=manager)
         scenario.name = cleaned_data["scenario_name"]
         scenario.description = cleaned_data["description"]
         # If schedule reading failed before there is a parent already. Delete it if
@@ -445,7 +448,7 @@ def get_scenario_and_assert_authorization(request, task_id) -> Scenario:
     if request.user.is_superuser:
         return scenario
     if scenario.manager and scenario.manager != request.user:
-        raise Http404(_("No access"))
+        raise PermissionDenied(_("Sie haben keinen Zugriff auf diese Seite"))
     return scenario
 
 
@@ -463,7 +466,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
     def get_context_data(self, **kwargs):
         scenario = self.scenario
         context = super().get_context_data(**kwargs)
-        data = {}
+        data = None
         if self.request.method == "POST":
             data = self.request.POST
         middlepoint = tasks.get_middlepoint(scenario)
@@ -511,7 +514,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         start_time = start.time().isoformat()
         end_date = end.date().isoformat()
         end_time = end.time().isoformat()
-        sim_range, _ = SimulationRange.objects.get_or_create(scenario=scenario)
+        sim_range, unused_variable = SimulationRange.objects.get_or_create(scenario=scenario)
         temperature_average = None
         temperature_extreme = None
         if data:
@@ -618,7 +621,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         child_vehicle_types = get_or_create_child_vehicle_types(scenario)
         vehicle_modification = {}
         for vt in child_vehicle_types:
-            vt_select, _ = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
+            vt_select, unused_variable = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
             dvt = vt_select.default_vehicle_type
             modification = VehicleTypeForm(data, instance=vt, prefix=f"mutation_{vt.id}")
 
@@ -632,7 +635,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
                 vt_select.default_vehicle_type = dvt
                 modification.fields["has_diesel_heating"].initial = True
             selection = VehicleTypeSelectionForm(
-                data,
+                data=data,
                 prefix=f"selection_{vt.id}",
                 vehicle_type=vt,
                 choices_queryset=default_vehicle_types,
@@ -780,7 +783,6 @@ class StationsView(ScenarioMixIn, TemplateView):
             min_standing_time = 0
 
         if min_standing_time > 0:
-
             parent_trips = Trip.objects.filter(scenario=scenario.parent)
             parent_trips_annotated = tasks.annotate_trips_with_standing_time(parent_trips)
             td_min_standing_time = datetime.timedelta(minutes=min_standing_time)
@@ -963,101 +965,130 @@ class DepotsView(ScenarioMixIn, TemplateView):
     def get_context_data(self, **kwargs):
         scenario = self.scenario
         context = super().get_context_data(**kwargs)
-        data = {}
+        data = None
         if self.request.method == "POST":
             data = self.request.POST
-        # ToDo: Depots could get queried for the sim_range. below method returns the stations
+        # TODO: Depots could get queried for the sim_range. below method returns the stations
         # from the parent, this needs fixing if this functionality is desired.
         # Instead the stations from the scenario should be returned. this can be done
         # through the StationMutation
         # depots_query = get_depots(scenario)
         depots_query = Station.objects.filter(scenario=scenario, charge_type=EnumChargeType.DEPOT)
-        context["depots"] = {depot.id: depot for depot in depots_query}
+        context["depots"] = {station.id: station for station in depots_query}
+
+        if DepotConfigurationWish.objects.filter(scenario=scenario).count() != depots_query.count():
+            # each depot needs one configuration. if this is not the case recreate them
+            DepotConfigurationWish.objects.filter(scenario=scenario).delete()
+            depot_configs = []
+            depot_id = ebustoolbox.util.get_next_id(DepotConfigurationWish)
+            for station in depots_query:
+                depot_configs.append(
+                    DepotConfigurationWish(id=depot_id, scenario=scenario, station=station)
+                )
+                depot_id += 1
+            DepotConfigurationWish.objects.bulk_create(depot_configs)
+
+        if AreaInformation.objects.filter(scenario=scenario).count() < depots_query.count():
+            AreaInformation.objects.filter(scenario=scenario).delete()
+            depot_vehicle_type = {depot: set() for depot in depots_query}
+            for rotation in Rotation.objects.filter(scenario=scenario.parent).prefetch_related(
+                "trip_set"
+            ):
+                trips = rotation.trip_set.order_by("departure_time")
+                depot = trips.first().route.departure_station
+                assert depot == trips.last().route.arrival_station
+                org_vehicle_type = rotation.vehicle_type
+                vt_mut = VehicleTypeMutation.objects.get(
+                    scenario=scenario, original_vehicle_type=org_vehicle_type
+                )
+                stat_mut = StationMutation.objects.get(scenario=scenario, original_station=depot)
+                depot_vehicle_type[stat_mut.mutated_original_station].add(
+                    vt_mut.mutated_vehicle_type
+                )
+
+            area_informations = []
+            area_id = ebustoolbox.util.get_next_id(AreaInformation)
+            for station, vehicle_types in depot_vehicle_type.items():
+                wish = DepotConfigurationWish.objects.get(station=station)
+                for vt in vehicle_types:
+                    area_informations.append(
+                        AreaInformation(
+                            id=area_id,
+                            scenario=scenario,
+                            depot_configuration_wish=wish,
+                            vehicle_type=vt,
+                        )
+                    )
+                    area_id += 1
+            AreaInformation.objects.bulk_create(area_informations)
+
+        depot_configs = DepotConfigurationWish.objects.filter(scenario=scenario)
         context["forms"] = dict()
-        for depot in depots_query:
-            formset_prefix = f"depot_area_{depot.id}"
-            if self.request.method == "GET":
-                formset_data = {
-                    f"{formset_prefix}-TOTAL_FORMS": "1",
-                    f"{formset_prefix}-INITIAL_FORMS": "1",
-                }
-                data.update(formset_data)
-            context["forms"][depot.id] = dict()
-
-            stations_mode_form = forms.DepotCalculationForm(
-                data, prefix=f"depot_calc_mode_{depot.id}"
+        for depot_config in depot_configs:
+            depot_forms = dict()
+            depot_forms["depot_config"] = DepotConfigurationWishForm(
+                data=data,
+                instance=depot_config,
+                prefix=f"depot_configuration_wish_{depot_config.station.id}",
             )
-            # change the type of station mode form since in this case its not a radio
-            # but just hidden value toggle
-            # Use a text input in this case
-            stations_mode_form.base_fields["calculation_mode"].widget = widgets.TextInput()
-
-            context["forms"][depot.id]["calculation_mode_form"] = stations_mode_form
-            context["forms"][depot.id]["depot_info_form"] = forms.DepotInfoForm(
-                data, instance=depot, prefix=f"depot_info_{depot.id}"
-            )
-            context["forms"][depot.id]["depot_area_forms"] = formset_factory(
-                DepotChargingAreaForm,
-            )(
-                data,
-                prefix=formset_prefix,
-            )
+            depot_forms["area_information"] = [
+                AreaInformationForm(data=data, instance=x, prefix=f"area_info_{x.id}")
+                for x in AreaInformation.objects.filter(depot_configuration_wish=depot_config)
+            ]
+            context["forms"][depot_config.station] = depot_forms
         return context
 
     def get(self, request, *args, **kwargs):
-        return self.render_to_response(self.get_context_data(**kwargs))
+        context = self.get_context_data(**kwargs)
+        return self.render_to_response(context)
 
     def post(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
+        if "hx-request" in request.headers:
+            for depot_id, form_dict in context["forms"].items():
+                form_dict["depot_config"].is_valid()
+                instance = form_dict["depot_config"].instance
+                instance.save(update_fields=["auto_generate"])
+            self.request.method = "get"
+            return self.get(request, *args, **kwargs)
+
         all_valid = True
         all_forms = dict()
         for depot_id, form_dict in context["forms"].items():
-            form = form_dict["calculation_mode_form"]
+            form = form_dict["depot_config"]
             all_forms[depot_id] = list()
             all_forms[depot_id].append(form)
             if not form.is_valid():
-                logger.info("Invalid Depots Calculation Mode Form Provided")
-                continue
-            mode = form.cleaned_data["calculation_mode"]
-            if mode == "automatic":
-                continue
-            elif mode == "manual":
-                all_forms[depot_id].append(form_dict["depot_info_form"])
-                depot_area_forms = [form for form in form_dict["depot_area_forms"].forms]
-                assert len(depot_area_forms) > 0
-                all_forms[depot_id].extend(depot_area_forms)
-            else:
-                raise NotImplementedError(f"Mode {mode} not supported")
+                logger.info("Invalid Depot Form")
+                all_valid = False
 
-        for depot_id, d_forms in all_forms.items():
-            for form in d_forms:
+            # NOTE:The depot is generated automatically.
+            # In this case no AreaInformation is needed.
+            # Validation is skipped:
+            if form.instance.auto_generate:
+                continue
+
+            forms = form_dict["area_information"]
+            for form in forms:
+                all_forms[depot_id].append(form)
                 if not form.is_valid():
-                    logger.info(f"Invalid Depots {form} provided")
+                    logger.info("Invalid Area Form")
                     all_valid = False
 
         if all_valid:
             for depot_id, d_forms in all_forms.items():
-                forms_ = list(filter(lambda x: isinstance(x, forms.DepotInfoForm), d_forms))
+                forms_ = list(filter(lambda x: isinstance(x, DepotConfigurationWishForm), d_forms))
                 if len(forms_) == 1:
                     instance = forms_[0].save()
                 elif len(forms_) > 1:
                     raise Exception("There should only be a single DepotInfoForm per depot")
 
-                forms_ = list(filter(lambda x: isinstance(x, DepotChargingAreaForm), d_forms))
+                forms_ = list(filter(lambda x: isinstance(x, AreaInformationForm), d_forms))
                 for form in forms_:
-                    instance = Station.objects.get(id=depot_id)
-                    for key, value in form.cleaned_data.items():
-                        setattr(instance, key, value)
-                    instance.save()
-                    # ToDo only the first form is handled since a station only has a single
-                    # area right now
-                    break
+                    form.save()
 
-            # Todo: Implement Database stuff of multiple areas and calcuation mode
-            logger.warning(
-                "Depot forms are valid, but are not implemented yet. Unclear how Manual and "
-                "automatic calculation and area definition should be stored"
-            )
+            # TODO: Implement Database stuff of multiple areas and calculation mode
+            logger.warning("Depot forms are valid, but are yet used in the simulation.")
             response = redirect(reverse(self.success_name, args=[self.scenario.task_id]))
             return response
 
@@ -1493,7 +1524,7 @@ def usergroups(request):
 
 def render_critical_rotations(request, task_id: str):
     """Returns raw JSON data for critical rotations (critical vs. non-critical)"""
-    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    vehicle_name_dict, unused_variable = data.get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
     s = Scenario.objects.get(task_id=task_id)
@@ -1518,7 +1549,7 @@ def render_critical_rotations(request, task_id: str):
 
 def render_bustype(request, task_id: str):
     """Returns raw JSON data for vehicle type distribution"""
-    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    vehicle_name_dict, unused_variable = data.get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
     s = Scenario.objects.get(task_id=task_id)
@@ -1528,7 +1559,12 @@ def render_bustype(request, task_id: str):
         return JsonResponse({"data": []})
 
     return JsonResponse(
-        {"data": [{"value": row["count"], "name": row["name"]} for _, row in df.iterrows()]}
+        {
+            "data": [
+                {"value": row["count"], "name": row["name"]}
+                for unused_variable, row in df.iterrows()
+            ]
+        }
     )
 
 
@@ -1601,7 +1637,9 @@ def get_soc_gantt(request, task_id: str):
 def export_scenario(request, task_id: str):
     """Allow admins and authorized users to download a json export of their scenario"""
     # Raise an exception if user is not authorized for this task_id
-    AuthorizedMixIn.get_permission(request.user, task_id)
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     scenario = Scenario.objects.get(task_id=task_id)
     child = None
     if scenario.scenario_type == EnumScenarioType.MUTATION:
