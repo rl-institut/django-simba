@@ -1399,6 +1399,7 @@ def apply_depot_and_area_wishes(mutation: Scenario, child: Scenario, stack: dict
     new_depot_configs = []
     new_area_infos = []
     i = ebustoolbox.util.get_next_id(DepotConfigurationWish)
+    ii = ebustoolbox.util.get_next_id(AreaInformation)
     for depot_config in depot_configs:
         depot_config: DepotConfigurationWish
         area_infos = AreaInformation.objects.filter(
@@ -1413,7 +1414,6 @@ def apply_depot_and_area_wishes(mutation: Scenario, child: Scenario, stack: dict
         i += 1
         new_depot_configs.append(depot_config)
 
-        ii = ebustoolbox.util.get_next_id(AreaInformation)
         for area_info in area_infos:
             area_info: AreaInformation
             area_info.scenario = child
