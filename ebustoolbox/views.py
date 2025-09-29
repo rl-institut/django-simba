@@ -980,8 +980,12 @@ class DepotsView(ScenarioMixIn, TemplateView):
             # each depot needs one configuration. if this is not the case recreate them
             DepotConfigurationWish.objects.filter(scenario=scenario).delete()
             depot_configs = []
+            depot_id = ebustoolbox.util.get_next_id(DepotConfigurationWish)
             for station in depots_query:
-                depot_configs.append(DepotConfigurationWish(scenario=scenario, station=station))
+                depot_configs.append(
+                    DepotConfigurationWish(id=depot_id, scenario=scenario, station=station)
+                )
+                depot_id += 1
             DepotConfigurationWish.objects.bulk_create(depot_configs)
 
         if AreaInformation.objects.filter(scenario=scenario).count() < depots_query.count():
@@ -1003,15 +1007,20 @@ class DepotsView(ScenarioMixIn, TemplateView):
                 )
 
             area_informations = []
+            area_id = ebustoolbox.util.get_next_id(AreaInformation)
             for station, vehicle_types in depot_vehicle_type.items():
                 wish = DepotConfigurationWish.objects.get(station=station)
                 for vt in vehicle_types:
                     area_informations.append(
                         AreaInformation(
-                            scenario=scenario, depot_configuration_wish=wish, vehicle_type=vt
+                            id=area_id,
+                            scenario=scenario,
+                            depot_configuration_wish=wish,
+                            vehicle_type=vt,
                         )
                     )
-                AreaInformation.objects.bulk_create(area_informations)
+                    area_id += 1
+            AreaInformation.objects.bulk_create(area_informations)
 
         depot_configs = DepotConfigurationWish.objects.filter(scenario=scenario)
         context["forms"] = dict()
