@@ -17,9 +17,9 @@
         {% for depot, form_dict in forms.items %}
           {% with depot_form=form_dict.depot_config %}
             <!-- Accordion Item {{depot.id}} -->
-            <section class="pb-12">
+            <section class="">
               <div id=DepotContent{{ depot_id }}>
-                <div class="overflow-hidden rounded-lg bg-white shadow mb-4">
+                <div class="overflow-hidden rounded-lg bg-white shadow mb-0">
                   <button type='button'
                           onclick="toggleAccordion({{ depot.id }})"
                           class="w-full flex items-center justify-between py-4 px-4 gap-4 bg-gradient-to-r from-slate-100 to-slate-200 accordion-header">

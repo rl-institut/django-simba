@@ -14,6 +14,7 @@ from django import conf
 import environ
 from uuid import UUID as UUIDType
 from celery import shared_task, uuid
+import math
 import zipfile as zf
 
 
@@ -30,14 +31,13 @@ from django.utils import timezone
 from django.utils.html import escape
 from django.utils.timezone import make_aware, is_aware
 from django.utils.translation import gettext as _
-from eflips.depot import UnstableSimulationException, DelayedTripException
+
 from eflips.depot.api import (  # noqa
+    DelayedTripException,
+    UnstableSimulationException,
     simulate_scenario,
-    generate_depot_optimal_size,
-    generate_depot_layout,
+    generate_optimal_depot_layout,
 )
-
-
 import core.deepcopy
 from ebusdjango.util import get_static_file_path
 import ebustoolbox.util
@@ -1734,12 +1734,16 @@ def _run_ebus_toolchain(self, task_id):
             schedule, args, db_scenario, mode="station_optimization", scenario=simba_scenario
         )
 
+        rotation_delta_socs = dict()
+        for r in Rotation.objects.filter(scenario=db_scenario):
+            events = list(Event.objects.filter(vehicle_id=r.vehicle.id).order_by("time_start"))
+            rotation_delta_socs[r.id] = events[-1].soc_end - events[0].soc_start
+
         progress.current_work += 1
         progress.save()
         notifications = []
-
         try:
-            run_eflips(task_id)
+            run_eflips(db_scenario, delete_existing_depot=True)
         except UnstableSimulationException as e:
             # TODO: handle it and pass information to user
             logger.error("The simulation is unstable")
@@ -2057,34 +2061,27 @@ def depot_rotation_to_eflips_input(db_rotation, db_scenario, input_for_eflips, r
     return input_for_eflips
 
 
-def run_eflips(task_id) -> None:
+def run_eflips(scenario, delete_existing_depot) -> None:
     logger.info(f"Running eFLIPS {datetime.now()}")
-    db_scenario = Scenario.objects.get(task_id=task_id)
-
-    # calculate total scenario time for eFLIPS repetition period
-    last_trip_time = Trip.objects.filter(scenario=db_scenario).aggregate(Max("arrival_time"))
-    first_trip_time = Trip.objects.filter(scenario=db_scenario).aggregate(Min("departure_time"))
-    period = last_trip_time["arrival_time__max"] - first_trip_time["departure_time__min"]
-
     # Constructing the database URL manually
     db_url = create_db_url()
-
-    generate_depot_layout(
-        db_scenario, database_url=db_url, charging_power=90, delete_existing_depot=True
+    depot_configs = DepotConfigurationWish.objects.filter(scenario=scenario).prefetch_related(
+        "areainformation_set"
     )
-    # generate_depot(
-    #     db_scenario,
-    #     database_url=db_url,
-    #     charging_power=90,
-    #     delete_existing_depot=True,
-    #     use_consumption_lut=True,
-    #     repetition_period=period,
-    # )
+    eflips_configs = []
+    for config in depot_configs:
+        eflips_configs.append(config.to_dataclass())
+
+    generate_optimal_depot_layout(
+        depot_config_wishes=eflips_configs,
+        scenario=scenario,
+        database_url=db_url,
+        delete_existing_depot=delete_existing_depot,
+    )
     #
     simulate_scenario(
-        db_scenario,
+        scenario,
         database_url=db_url,
-        repetition_period=period,
         ignore_unstable_simulation=False,
         ignore_delayed_trips=False,
     )
@@ -2857,14 +2854,13 @@ def consolidate_socs(scenario: Scenario) -> None:
         # NOTE: Charging depot events are only aligned at their start value.
         # This makes the timeseries not usable, therefor they are deleted
         # The timeseries can be recreated by SimBAs depot strategy
+        event.soc_start -= running_delta_soc
         if event.event_type == EventType.CHARGING_DEPOT:
-            event.soc_start -= running_delta_soc
             if event.timeseries and event.timeseries.get("soc"):
                 event.timeseries["soc"] = None
             assert event.soc_start == prev_event.soc_end
             continue
 
-        event.soc_start -= running_delta_soc
         event.soc_end -= running_delta_soc
         if event.timeseries and event.timeseries["soc"]:
             ts = event.timeseries["soc"]
@@ -2879,7 +2875,8 @@ def consolidate_socs(scenario: Scenario) -> None:
                 )
             event.timeseries["soc"] = shifted_ts
 
-        assert event.soc_start == prev_event.soc_end
+        if not math.isclose(event.soc_start, prev_event.soc_end):
+            raise AssertionError(f"Events dont align after consolidation {event=} , {prev_event=}")
 
     Event.objects.bulk_update(events, fields=["soc_end", "soc_start", "timeseries"])
 

@@ -1031,10 +1031,15 @@ class DepotsView(ScenarioMixIn, TemplateView):
                 instance=depot_config,
                 prefix=f"depot_configuration_wish_{depot_config.station.id}",
             )
-            depot_forms["area_information"] = [
+            areas = [
                 AreaInformationForm(data=data, instance=x, prefix=f"area_info_{x.id}")
-                for x in AreaInformation.objects.filter(depot_configuration_wish=depot_config)
+                for x in AreaInformation.objects.filter(
+                    depot_configuration_wish=depot_config
+                ).select_related("vehicle_type")
             ]
+            depot_forms["area_information"] = sorted(
+                areas, key=lambda x: x.instance.vehicle_type.name
+            )
             context["forms"][depot_config.station] = depot_forms
         return context
 
@@ -1087,8 +1092,6 @@ class DepotsView(ScenarioMixIn, TemplateView):
                 for form in forms_:
                     form.save()
 
-            # TODO: Implement Database stuff of multiple areas and calculation mode
-            logger.warning("Depot forms are valid, but are yet used in the simulation.")
             response = redirect(reverse(self.success_name, args=[self.scenario.task_id]))
             return response
 

@@ -5,6 +5,7 @@ from django.utils.translation import gettext as _
 
 from . import models, tasks
 from .models import (
+    AreaType,
     EnumChargeType,
     EnumVoltageLevel,
     ElectrificationOptions,
@@ -125,7 +126,7 @@ class TripsForm(forms.Form):
     scenario_name = forms.CharField(max_length=100)
     description = forms.CharField(max_length=100, required=False)
 
-    # TODO use clean method instead
+    # TODO: use clean method instead
     def is_valid(self):
         if not super().is_valid():
             return False
@@ -298,7 +299,8 @@ class DepotConfigurationWishForm(forms.ModelForm):
             auto_generate = self.instance.auto_generate
 
         if auto_generate:
-            self.fields["power"].widget.attrs.update({"min": 1.0, "required": True})
+            self.fields["default_power"].widget.attrs.update({"min": 1.0, "required": True})
+            self.fields["standard_block_length"].widget.attrs.update({"min": 1.0, "required": True})
         else:
             self.fields["cleaning_slots"].widget.attrs.update({"min": 1.0, "required": True})
             self.fields["shunting_slots"].widget.attrs.update({"min": 1.0, "required": True})
@@ -308,7 +310,7 @@ class DepotConfigurationWishForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         if cleaned_data.get("auto_generate"):
-            if not cleaned_data.get("power"):
+            if not cleaned_data.get("default_power"):
                 raise ValidationError(
                     "If auto generate is true, the DepotConfigurationWish needs a power"
                 )
@@ -321,7 +323,7 @@ class DepotConfigurationWishForm(forms.ModelForm):
                 raise ValidationError("More data then expected")
         else:
 
-            if cleaned_data.get("power"):
+            if cleaned_data.get("default_power"):
                 raise ValidationError(
                     "If auto generate is false, the DepotConfigurationWish must not have power"
                 )
@@ -346,3 +348,13 @@ class AreaInformationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["capacity"].widget.attrs.update({"min": 1.0, "required": True})
         self.fields["power"].widget.attrs.update({"min": 1.0, "required": True})
+        self.fields["block_length"].widget.attrs.update({"min": 1.0, "required": True})
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get("area_type") == AreaType.LINEAR:
+            if cleaned_data.get("capacity") % cleaned_data.get("block_length") != 0:
+                self.errors["block_length"] = _(
+                    "Die Anzahl muss ein ganzahliger Teiler der Ladeplätze Anzahl sein."
+                )
+                raise ValidationError("Block length must be an integer divider of Capacity")

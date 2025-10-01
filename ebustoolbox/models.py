@@ -1,6 +1,6 @@
 from datetime import timedelta, datetime
 
-from django.core.validators import MinValueValidator, MaxValueValidator
+from dataclasses import fields
 from fast_update.query import FastUpdateManager
 from functools import partial
 import numpy as np
@@ -11,10 +11,15 @@ from scipy.spatial._qhull import QhullError
 import shutil
 import warnings
 
+from eflips.depot.api import DepotConfigurationWish as EflipsDepotConfig
+from eflips.depot.api import AreaInformation as EflipsAreaInfo
+from eflips.depot.api import AreaType as EflipsAreaType
+
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import QuerySet, Sum, Case, When, Value, IntegerField, Func, F
 from django.db.models.functions import Now, Length
 from django.dispatch import receiver
@@ -689,6 +694,9 @@ class Rotation(models.Model):
     def get_distance(self):
         # get distance of this rotation in meters
         return Route.objects.filter(trip__rotation=self).aggregate(Sum("distance"))["distance__sum"]
+
+    # def get_energy_delta(self):
+    #     events = Event.objects.filter(trip__rotation=self).order_by("time_start")
 
 
 def annotate_distance(query: QuerySet[Rotation]):
@@ -1847,12 +1855,31 @@ class DepotConfigurationWish(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE, blank=True)
     station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE, blank=True)
     auto_generate = models.BooleanField(null=False, default=True)
-    power = models.FloatField(null=True, blank=True)
+    default_power = models.FloatField(null=True, blank=True)
+    standard_block_length = models.IntegerField(null=True, blank=True)
     cleaning_slots = models.IntegerField(null=True, blank=True)
     cleaning_duration = models.IntegerField(null=True, blank=True)
 
     shunting_slots = models.IntegerField(null=True, blank=True)
     shunting_duration = models.IntegerField(null=True, blank=True)
+
+    def to_dataclass(self) -> EflipsDepotConfig:
+        depot_config_data = {x.name: getattr(self, x.name, None) for x in fields(EflipsDepotConfig)}
+
+        for key, value in depot_config_data.items():
+            if "duration" in key and value is not None:
+                depot_config_data[key] = timedelta(minutes=value)
+        area_informations = []
+        if not self.auto_generate:
+            for area_info in self.areainformation_set.all():
+                data = {x.name: getattr(area_info, x.name, None) for x in fields(EflipsAreaInfo)}
+                data["area_type"] = EflipsAreaType._member_map_[data["area_type"]]
+                eflips_area_info = EflipsAreaInfo(**data)
+                area_informations.append(eflips_area_info)
+
+        depot_config_data["areas"] = area_informations
+        eflips_config = EflipsDepotConfig(**depot_config_data)
+        return eflips_config
 
 
 class AreaInformation(models.Model):
@@ -1860,6 +1887,7 @@ class AreaInformation(models.Model):
     depot_configuration_wish = models.ForeignKey(
         DepotConfigurationWish, null=False, on_delete=models.CASCADE, blank=True
     )
+    block_length = models.IntegerField(null=True, blank=True)
     vehicle_type = models.ForeignKey(VehicleType, null=False, on_delete=models.CASCADE, blank=True)
     area_type = models.CharField(max_length=14, choices=AreaType.choices, null=True, default=None)
     capacity = models.IntegerField(null=True)
