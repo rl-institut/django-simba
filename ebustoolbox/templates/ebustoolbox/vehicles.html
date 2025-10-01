@@ -675,8 +675,9 @@ containers.forEach((container) => {
 
   });
 function validate(){
-  console.log("validating")
-  const defaultVehicleTypeSelectionDivs = document.querySelectorAll('select[id*="default_vehicle_type"]')
+  console.log("validating");
+  validateAccordions();
+  const defaultVehicleTypeSelectionDivs = document.querySelectorAll('select[id*="default_vehicle_type"]');
   let isValid = true;
   defaultVehicleTypeSelectionDivs.forEach((input)=>{
     const container = input.closest("[id*='VehicleTypeContainer']");
@@ -789,11 +790,29 @@ debounce(validateVehicleContainers,100)();
       toggleAccordion.open = button;
     }
     }
-{% for vt_id in vehicle_modification.keys|slice:":1" %}
-    {% if forloop.first %}
   var button = document.querySelector("#VehicleTypeContainer{{vt_id}} .accordion-header");
   toggleAccordion(button);
- {% endif %}  {% endfor %}
+
+  function validateAccordions(){
+    const containers = document.querySelectorAll('div.accordion-container');
+    error = false;
+    containers.forEach((container) => {
+      if (error) return;
+      inputs = container.querySelectorAll('input');
+      inputs.forEach((input) => {
+      if (!input.checkValidity()){
+        error = true;
+        button = container.querySelector('button');
+         if (toggleAccordion.open !== button) toggleAccordion(button)
+
+      }
+      });
+
+    });
+
+  }
+
+
 </script>
   <!-- Tabs Functionality of Bus Type Cards -->
 {% endblock script %}
