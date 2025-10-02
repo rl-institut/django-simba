@@ -1013,13 +1013,13 @@ simpy = ">=4.0.1,<5.0.0"
 
 [[package]]
 name = "eflips-depot"
-version = "4.14.0"
+version = "4.14.1"
 description = "Depot Simulation for eFLIPS"
 optional = false
 python-versions = "<3.14,>=3.11"
 files = [
-    {file = "eflips_depot-4.14.0-py3-none-any.whl", hash = "sha256:f9ec6983d96a923c0aa5ff7503e60055f12d974e855331923bfa91ba301241d2"},
-    {file = "eflips_depot-4.14.0.tar.gz", hash = "sha256:e1ae6ee53c3b7dda794a7f5d3f21740091df7dcb4008f9fae2b0079376fdde7f"},
+    {file = "eflips_depot-4.14.1-py3-none-any.whl", hash = "sha256:f58741d47b98f43d8bdf4d092a11efb1347bf9d84f1a212df2aea3425d3897ae"},
+    {file = "eflips_depot-4.14.1.tar.gz", hash = "sha256:041d1877ae034c242774e3f230926c445388d15a07cb420d320e52fb1fb4c68b"},
 ]
 
 [package.dependencies]

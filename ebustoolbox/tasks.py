@@ -597,6 +597,7 @@ def get_electrified_stations_from_db(django_scenario) -> dict:
             "cs_power_opps": station.power_per_charger,
             "gc_power": station.power_total,
             "voltage_level": station.voltage_level,
+            "min_charging_power": 0,
         }
         stat_dict_cleaned = {
             k: v for k, v in stat_dict.items() if v is not None or k == "n_charging_stations"
@@ -1321,6 +1322,7 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
             }
         )
 
+        # TODO: Thos logic brakes if a single event can not deliver the needed charge
         # update soc
         vehicle_soc[event.vehicle_id] = event.soc_end
 
@@ -1342,7 +1344,7 @@ def simulate_depot_strategy(spice_ev_scenario_dict: dict, strategy: str) -> Simb
 def abbreviate_list(long_list: list, tail_elements: int = 2, delimiter: str = ",", fmt="") -> str:
     delimiter += " "
     if not len(long_list) > tail_elements * 2:
-        return "[ " + delimiter.join(long_list) + " ]"
+        return "[ " + delimiter.join((str(x) for x in long_list)) + " ]"
     return (
         "[ "
         + delimiter.join(format(x, fmt) for x in long_list[:tail_elements])
@@ -1387,8 +1389,10 @@ def apply_depot_strategy(scenario: Scenario, strategy: str) -> None:
     spice_ev_scenario = simulate_depot_strategy(spice_ev_scenario_dict, strategy)
     # attach vehicle soc to SpiceEV scenario
     spice_ev_report.generate_soc_timeseries(spice_ev_scenario)
-    # update events with new soc timeseries
-    events = scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT)
+    # update events with new soc timeseries. Order for easier search for soc differences.
+    events = scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT).order_by(
+        "vehicle__id", "time_start"
+    )
     for event in events:
         vid = event.vehicle.to_simba_name()
         # find timeseries timestep range (indices of relevant timesteps)
@@ -1407,7 +1411,10 @@ def apply_depot_strategy(scenario: Scenario, strategy: str) -> None:
             }
         new_soc_ts = [spice_ev_scenario.vehicle_socs[vid][i] for i in time_range]
         replace_event_timeseries(event, new_soc_ts)
-    Event.objects.bulk_update(events, ["timeseries"])
+        event.description += (
+            f" from SimBA depot Strategy with prev {event.soc_start=} and {event.soc_end=}"
+        )
+    Event.objects.bulk_update(events, ["timeseries", "description"])
     logger.info(f"{events.count()} depot charging events updated")
 
 
@@ -1798,14 +1805,6 @@ def _run_ebus_toolchain(self, task_id):
         eflips_assignment = get_assigned_vehicles(task_id)
         schedule.assign_vehicles_custom(eflips_assignment)
 
-        # Simba Run to add back the deleted events of eflips.
-        # Since some blocks might start at lowered socs SimBA recalculation is appropriate.
-        # This will shift the driving SOCs towards 0, but posssibly increase charge due to
-        # higher charging rates at lower socs
-        simba_scenario = run_simba(schedule, args, db_scenario, mode="sim", scenario=None)
-
-        consolidate_socs(db_scenario)
-
         # TODO: Keep that? / Set Depot values for final SimBA simulation?
         electrify_depot_station_w_default(db_scenario)
         #
@@ -1814,10 +1813,18 @@ def _run_ebus_toolchain(self, task_id):
         stations_dict = get_electrified_stations_from_db(db_scenario)
         schedule.stations = stations_dict.copy()
 
+        # Simba Run to add back the deleted events of eflips.
+        # Since some blocks might start at lowered socs SimBA recalculation is appropriate.
+        # This will shift the driving SOCs towards 0, but posssibly increase charge due to
+        # higher charging rates at lower socs
+        simba_scenario = run_simba(schedule, args, db_scenario, mode="sim", scenario=None)
+
+        consolidate_socs(db_scenario)
+
         # NOTE: Consolidate results with a given strategy. EPS of 1% needed.
         # Balanced strategy or expose from simba_options? TODO: Discuss
-        # TODO: Consolidate with depot electrification above
-        apply_depot_strategy(db_scenario, "balanced")
+        # Greedy strategy for easier search of differences between eflips/simba
+        apply_depot_strategy(db_scenario, "greedy")
 
         progress.current_work += 1
         progress.save()
@@ -1844,13 +1851,15 @@ def check_event_soc_consistency(db_scenario: Scenario):
     for vehicle in Vehicle.objects.filter(scenario=db_scenario):
         events = list(Event.objects.filter(vehicle=vehicle).order_by("time_start"))
         for i in range(len(events) - 2):
-            if not events[i].soc_end == events[i + 1].soc_start:
-                delta = events[i].soc_end - events[i + 1].soc_start
+            event = events[i]
+            next_event = events[i + 1]
+            if not event.soc_end == next_event.soc_start:
+                delta = event.soc_end - next_event.soc_start
                 logger.warning(
                     f"SOC does not align between events for {vehicle=} for "
                     # f"events {events[i]} and {events[i+1]}"
                     f"\n DELTA = {delta}\n"
-                    f"\n{events[i].id} and {events[i+1].id}"
+                    f"\n{event.id} {event.event_type} and {next_event.id} {next_event.event_type}"
                 )
                 consistent = False
 
@@ -1864,14 +1873,25 @@ def check_event_soc_consistency(db_scenario: Scenario):
 
 
 def electrify_depot_station_w_default(db_scenario):
+    configs = {
+        x.station.id: x for x in list(DepotConfigurationWish.objects.filter(scenario=db_scenario))
+    }
+    max_vehicles = Rotation.objects.filter(scenario=db_scenario).count()
     for depot in Depot.objects.filter(scenario=db_scenario):
         logger.warning("Overwriting Depot Station data. This data should be provided by eflips")
         station = depot.station
+        config: DepotConfigurationWish = configs[station.id]
+        if config.auto_generate:
+            charging_power = config.default_power
+        else:
+            charging_power = AreaInformation.objects.filter(
+                depot_configuration_wish=config
+            ).aggregate(Max("power"))["power__max"]
         # TODO: get defaults from somewhere
         station.is_electrified = True
-        station.power_total = station.power_total or 1000_000
-        station.amount_charging_places = station.amount_charging_places or 1000
-        station.power_per_charger = station.power_per_charger or 300
+        station.power_total = station.power_total or (max_vehicles + 1) * charging_power
+        station.amount_charging_places = station.amount_charging_places or (max_vehicles + 1)
+        station.power_per_charger = station.power_per_charger or (charging_power)
         station.charge_type = EnumChargeType.DEPOT.value
         station.voltage_level = station.voltage_level or EnumVoltageLevel.VOLTAGE_MV.value
         station.save()
@@ -2786,7 +2806,7 @@ def consolidate_socs(scenario: Scenario) -> None:
     This shift would be positive and would not create negative socs.
     """
     logger.info(50 * "#" + "\n Consolidation")
-    EPS = 0.001
+    EPS = 0.005
     events = list(Event.objects.filter(scenario=scenario).order_by("vehicle", "time_start"))
 
     # the first event type from eflips could be one of many
@@ -2808,6 +2828,7 @@ def consolidate_socs(scenario: Scenario) -> None:
     prev_event = None
 
     running_delta_soc = 0
+    summed_difference = {}
     for i, event in enumerate(events):
         event: Event
         assert event.vehicle is not None, "Events must have a vehicle"
@@ -2816,6 +2837,7 @@ def consolidate_socs(scenario: Scenario) -> None:
             vehicle = event.vehicle
             prev_event = event
             pre_fix_end_soc = event.soc_end
+            summed_difference[vehicle] = 0
             continue
         prev_event = events[i - 1]
         assert isinstance(prev_event, Event)
@@ -2823,6 +2845,7 @@ def consolidate_socs(scenario: Scenario) -> None:
 
         # This is the delta which exists between the current and the previous event
         pre_fix_delta = event.soc_start - pre_fix_end_soc
+        summed_difference[vehicle] += abs(pre_fix_delta)
         # This is the delta which has to be applied to the current event
         # The deltas differs since, the prev_event.soc might have been changed during consolidation
         running_delta_soc = event.soc_start - prev_event.soc_end
@@ -2849,7 +2872,9 @@ def consolidate_socs(scenario: Scenario) -> None:
                 prev_event.event_type not in driving_event_types
                 or event.event_type not in depot_event_types
             ):
-                raise AssertionError("Big SoC Jump not at interface of SimBA/eFlips")
+                raise AssertionError(
+                    f"Big SoC Jump not at interface of SimBA/eFlips {prev_event=}, {event=}"
+                )
 
         # NOTE: Charging depot events are only aligned at their start value.
         # This makes the timeseries not usable, therefor they are deleted
@@ -2878,6 +2903,7 @@ def consolidate_socs(scenario: Scenario) -> None:
         if not math.isclose(event.soc_start, prev_event.soc_end):
             raise AssertionError(f"Events dont align after consolidation {event=} , {prev_event=}")
 
+    logger.debug(summed_difference)
     Event.objects.bulk_update(events, fields=["soc_end", "soc_start", "timeseries"])
 
 

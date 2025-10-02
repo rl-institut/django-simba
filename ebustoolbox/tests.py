@@ -24,6 +24,7 @@ from .import_export import visit_all_scenario_queries, ScenarioJSONImporterExpor
 from . import tasks
 from .forms import UploadFileForm
 from .models import (
+    DepotConfigurationWish,
     Notification,
     Route,
     Scenario,
@@ -187,8 +188,17 @@ def build_scenario():
         if station.power_total is None:
             station.power_total = django_scenario.simba_options["gc_power_opps"]
         station.save()
+        if station.charge_type == EnumChargeType.DEPOT:
+            DepotConfigurationWish.objects.create(
+                scenario=django_scenario,
+                station=station,
+                auto_generate=True,
+                default_power=150,
+                standard_block_length=3,
+            )
     django_scenario.task_id = get_unique_task_id()
     Temperatures.create_constant_temperatures(django_scenario, 20)
+
     return django_scenario, simba_schedule, args
 
 
