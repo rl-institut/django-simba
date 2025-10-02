@@ -1411,8 +1411,9 @@ def apply_depot_strategy(scenario: Scenario, strategy: str) -> None:
             }
         new_soc_ts = [spice_ev_scenario.vehicle_socs[vid][i] for i in time_range]
         replace_event_timeseries(event, new_soc_ts)
-        event.description += (
-            f" from SimBA depot Strategy with prev {event.soc_start=} and {event.soc_end=}"
+        event.description = (
+            f"{(event.description) or ''} from SimBA depot Strategy with "
+            f"prev {event.soc_start=} and {event.soc_end=}"
         )
     Event.objects.bulk_update(events, ["timeseries", "description"])
     logger.info(f"{events.count()} depot charging events updated")
