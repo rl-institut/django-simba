@@ -341,6 +341,33 @@
           </div>
         </div>
       </div>
+
+               <!-- Wrapper for each ellipsis and dropdown -->
+        <div class="relative inline-block text-right">
+          <button type="button"
+            class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+            aria-expanded="false"
+            aria-haspopup="true"
+            aria-label="Optionen sehen"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+              stroke-width="1.5" stroke="currentColor" class="size-6">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+            </svg>
+          </button>
+          <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+            role="menu"
+            aria-orientation="vertical"
+            tabindex="-1"
+          >
+            <div class="py-1" role="none">
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100 text-left" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100 text-left" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
+            </div>
+          </div>
+        </div>
+
       <div class="bg-white rounded-lg shadow-md mb-12">
         <div class="p-8">
           <nav class="-mb-px flex space-x-8 border-b border-slate-300" aria-label="Tabs" id="costsTabs">
@@ -373,9 +400,9 @@
                   </div>
                 </div>
               </div>
-              <div class="flex justify-between items-start gap-4 h-[400px]">
-                <div id="kostenverlaufChart" class="w-full h-[400px]"></div>
-              </div>
+                <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
+                  <div id="toc-bar" class="chart-container h-[480px]"></div>
+                </div>
             </div>
             <div class="costs-tab-content" data-tab="costs-tab-2">
               {% translate 'Content 2' %}
@@ -780,7 +807,7 @@
     const taskId = document.getElementById("task-id").value;
     //console.log("Simulation ID:", taskId);
 
-  function fetchAndRenderPieChart(chartName, chartId, titleText) {
+    function fetchAndRenderPieChart(chartName, chartId, titleText) {
         return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
@@ -832,7 +859,6 @@
                 chart.setOption(options);
             });
     }
-
     function fetchAndRenderLineChart(chartName, chartId, titleText, xKey, yKey) {
 
         return fetch(`/simba/result/${taskId}/${chartName}/`)
@@ -915,7 +941,7 @@
             chart.setOption(options);
         });
     }
-  function fetchAndRenderDepotChart(chartName, chartId, titleText, xKey, yKey) {
+    function fetchAndRenderDepotChart(chartName, chartId, titleText, xKey, yKey) {
         return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(responseData => {
@@ -1663,7 +1689,7 @@
             .catch(error => console.error('Error fetching histogram data:', error));
     }
     function fetchAndRenderSoCHistogram(chartName, chartID) {
-        fetch(`/simba/result/${taskId}/${chartName}/`)  // Replace with the actual URL
+        fetch(`/simba/result/${taskId}/${chartName}/`)
       .then((res) => res.json())
       .then((result) => {
         const rawData = result.data;
@@ -1761,7 +1787,53 @@
       });
 
     }
+    async function fetchAndRenderTOCBars(chartName, chartID) {
+        const res = await fetch(`/simba/result/${taskId}/${chartName}/`);
+        const result = await res.json();
 
+        // Example response:
+        // {
+        //   "INFRASTRUCTURE": 1,
+        //   "STAFF": 1,
+        //   "BATTERY": 1,
+        //   "MAINTENANCE": 1,
+        //   "VEHICLE": 1,
+        //   "OTHER": 1,
+        //   "ENERGY": 1
+        // }
+
+        const categories = Object.keys(result);
+        const values = Object.values(result);
+
+        const option = {
+          title: { text: '"Total Cost of Ownership"', left: 'center' },
+          tooltip: {
+            trigger: 'item',
+            formatter: '{a}<br/>{b}: {c}'
+          },
+          legend: { top: '5%', data: categories },
+          grid: { left: '5%', right: '5%', bottom: '10%', containLabel: true },
+          xAxis: {
+            type: 'category',
+            data: ['Szenario'], // only one bar on the x-axis, add Diesel?
+            name: 'Szenario'
+          },
+          yAxis: {
+            type: 'value',
+            name: 'Kosten in €/km'
+          },
+          series: categories.map((key, idx) => ({
+            name: key,
+            type: 'bar',
+            stack: 'total',
+            emphasis: { focus: 'series' },
+            data: [values[idx]]
+          }))
+        };
+
+        const chart = echarts.init(document.getElementById(chartID), 'ebusPalette');
+        chart.setOption(option);
+      }
 
     // Ensure the DOM is fully loaded before running
     document.addEventListener("DOMContentLoaded", function() {
@@ -1781,6 +1853,7 @@
         fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten"),
         fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap"),
         fetchAndRenderGanttChartSOC("soc_gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit")];
+        fetchAndRenderTOCBars('toc_bar', 'toc-bar');
 
         Promise.allSettled(chartPromises).then((results)=>{
           const allSuccessful = results.every(r => r.status === "fulfilled");

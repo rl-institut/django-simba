@@ -34,6 +34,8 @@ from dash.exceptions import PreventUpdate
 
 from eflips.depot.api import simulate_scenario  # noqa
 from eflips.eval.output.prepare import power_and_occupancy
+from eflips.tco import calculate_tco
+import os # TODO: should be removed once eflips tco works as expected
 
 # Maximum number of cached results per function
 MAX_SIZE = 10
@@ -110,7 +112,7 @@ def get_total_consumption(s: Scenario):
     for index, event in driving_events.iterrows():
         # Calculate the difference between soc_end and soc_start
         total_energy_difference += (
-            abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
+                abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
         )
     return total_energy_difference
 
@@ -253,7 +255,7 @@ def get_number_longest_rot(filter_dict: dict):
     filter_dict["scenario"] = s
 
     if (
-        "vehicle__id__in" in filter_dict and len(filter_dict["vehicle__id__in"]) == 0
+            "vehicle__id__in" in filter_dict and len(filter_dict["vehicle__id__in"]) == 0
     ) and sim_is_finished(task_id):
         raise PreventUpdate
 
@@ -281,7 +283,7 @@ def get_number_shortest_rot(filter_dict: dict):
     filter_dict["scenario"] = s
 
     if (
-        "vehicle__id__in" in filter_dict and len(filter_dict["vehicle__id__in"]) == 0
+            "vehicle__id__in" in filter_dict and len(filter_dict["vehicle__id__in"]) == 0
     ) and sim_is_finished(task_id):
         raise PreventUpdate
 
@@ -848,10 +850,10 @@ def get_soc_as_json(task_id: str):
 
     # Convert both 'time_end' and 'time_start' to Unix timestamps (in milliseconds)
     selected_columns["timestamp_end"] = (
-        pd.to_datetime(selected_columns["time_end"]).astype(int) // 10**6
+            pd.to_datetime(selected_columns["time_end"]).astype(int) // 10 ** 6
     )
     selected_columns["timestamp_start"] = (
-        pd.to_datetime(selected_columns["time_start"]).astype(int) // 10**6
+            pd.to_datetime(selected_columns["time_start"]).astype(int) // 10 ** 6
     )
 
     # Combine both start and end points
@@ -951,7 +953,7 @@ def get_power_draw_as_json(request, task_id: str):
     for time_point in all_times:
         charging_vehicles = df[
             (df["time_start"] <= time_point) & (df["time_end"] > time_point) & (df["Power"] > 0)
-        ]
+            ]
         total_power = charging_vehicles["Power"].sum()
         charging_status.append({"time": time_point.isoformat(), "total_power": total_power})
 
@@ -1164,7 +1166,7 @@ def get_dist_hist_as_json(task_id: str):
     max_distance_km = merged_df["total_distance_km"].max()
     bins = np.arange(0, max_distance_km + bin_width_km, bin_width_km)
 
-    bin_labels = [f"{bins[i]:.1f}-{bins[i+1]:.1f} km" for i in range(len(bins) - 1)]
+    bin_labels = [f"{bins[i]:.1f}-{bins[i + 1]:.1f} km" for i in range(len(bins) - 1)]
     merged_df["distance_bin"] = pd.cut(
         merged_df["total_distance_km"],
         bins=bins,
@@ -1268,3 +1270,11 @@ def get_soc_gantt_as_json(task_id: str):
     ]
 
     return vehicles, records
+
+def get_tco_data(task_id: str):
+    s = Scenario.objects.get(task_id=task_id)
+
+    # https://stackoverflow.com/questions/62688256/sqlalchemy-exc-nosuchmoduleerror-cant-load-plugin-sqlalchemy-dialectspostgre
+    db_url = os.environ.get("DATABASE_URL", "").replace("postgis://", "postgresql://")
+    result = calculate_tco(scenario=int(s.id), database_url=db_url)  # replace with actual arguments
+    return result

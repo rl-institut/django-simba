@@ -1709,3 +1709,8 @@ def import_scenario(request):
             _(f"Scenario succesfully imported with task_id {task_id}. ") + redirect_suggestion
         )
     return HttpResponseBadRequest(_("Use POST or GET"))
+
+def get_toc(request, task_id: str):
+    response_data = data.get_tco_data(task_id)
+
+    return JsonResponse(response_data)
