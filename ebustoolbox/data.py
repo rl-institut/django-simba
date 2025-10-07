@@ -481,6 +481,12 @@ def get_vehicle_types(scenario_id, buses):
     """
     filter_dict = dict(scenario_id=scenario_id)
     vehicle_type_counts = []
+
+    if buses is None:
+        s = Scenario.objects.get(id=scenario_id)
+        task_id = s.task_id
+        buses = get_all_buses(task_id)
+
     for vt in VehicleType.objects.filter(**filter_dict):
         count = Vehicle.objects.filter(pk__in=buses, vehicle_type=vt).count()
         if count == 0:
@@ -500,6 +506,11 @@ def get_critical_rotations_as_dataframe(scenario_id, buses):
     :return: DataFrame with R_id, V_id, soc_end, and SOC_category columns.
     """
     result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
+
+    if buses is None:
+        s = Scenario.objects.get(id=scenario_id)
+        task_id = s.task_id
+        buses = get_all_buses(task_id)
 
     df = result_df[result_df["V_id"].isin(buses)]
 
@@ -844,6 +855,7 @@ def get_soc_as_json(task_id: str):
 
     vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
+
     df = get_soc_as_dataframe(s.id, buses)
 
     selected_columns = df[["V_id", "time_end", "soc_end", "time_start", "soc_start"]].copy()

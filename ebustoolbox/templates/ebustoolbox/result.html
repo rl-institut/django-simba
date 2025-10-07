@@ -712,6 +712,35 @@
           <input type="hidden" id="task-id" value="{{ task_id }}">
 
           <!-- Different containers for each chart -->
+          <!-- Wrapper for each ellipsis and dropdown -->
+          <div class="flex justify-end mb-4">
+            <div class="relative inline-block text-left">
+              <button type="button"
+                class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                aria-expanded="false"
+                aria-haspopup="true"
+                aria-label="Optionen sehen"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                  stroke-width="1.5" stroke="currentColor" class="size-6">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                </svg>
+              </button>
+              <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+                role="menu"
+                aria-orientation="vertical"
+                tabindex="-1"
+              >
+                <div class="py-1" role="none">
+                  <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/piecharts/?format=csv">Als CSV exportieren</a>
+                  <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/piecharts/?format=json">Als JSON exportieren</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chart containers -->
           <div class="flex gap-8 mb-12">
             <div class="basis-1/2 bg-white rounded-lg shadow-md pt-8">
               <div id="chartContainer" class="chart-container mb-0 h-[340px]"></div>
@@ -720,20 +749,182 @@
               <div id="busTypeChartContainer" class="chart-container mb-0 h-[340px]"></div>
             </div>
           </div>
+            <!-- Wrapper for each ellipsis and dropdown -->
+          <div class="flex justify-end mb-4">
+            <div class="relative inline-block text-left">
+                <button type="button"
+                  class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                  aria-label="Optionen sehen"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke-width="1.5" stroke="currentColor" class="size-6">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                  </svg>
+                </button>
+                <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+                  role="menu"
+                  aria-orientation="vertical"
+                  tabindex="-1"
+                >
+                  <div class="py-1" role="none">
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc/?format=csv">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc/?format=json">Als JSON exportieren</a>
+                  </div>
+                </div>
+            </div>
+          </div>
           <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
             <div id="lineChart" class="chart-container h-[480px]"></div>
+          </div>
+              <!-- Wrapper for each ellipsis and dropdown -->
+          <div class="flex justify-end mb-4">
+            <div class="relative inline-block text-left">
+                <button type="button"
+                  class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                  aria-label="Optionen sehen"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke-width="1.5" stroke="currentColor" class="size-6">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                  </svg>
+                </button>
+                <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+                  role="menu"
+                  aria-orientation="vertical"
+                  tabindex="-1"
+                >
+                  <div class="py-1" role="none">
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/depot_power/?format=csv">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/depot_power/?format=json">Als JSON exportieren</a>
+                  </div>
+                </div>
+            </div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
             <div id="DepotlineChart" class="chart-container h-[480px]"></div>
           </div>
+              <!-- Wrapper for each ellipsis and dropdown -->
+          <div class="flex justify-end mb-4">
+            <div class="relative inline-block text-left">
+                <button type="button"
+                  class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                  aria-label="Optionen sehen"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke-width="1.5" stroke="currentColor" class="size-6">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                  </svg>
+                </button>
+                <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+                  role="menu"
+                  aria-orientation="vertical"
+                  tabindex="-1"
+                >
+                  <div class="py-1" role="none">
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/gantt/?format=csv">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/gantt/?format=json">Als JSON exportieren</a>
+                  </div>
+                </div>
+            </div>
+          </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
             <div id="ganttChart" class="chart-container h-[480px]"></div>
           </div>
+              <!-- Wrapper for each ellipsis and dropdown -->
+          <div class="flex justify-end mb-4">
+            <div class="relative inline-block text-left">
+                <button type="button"
+                  class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                  aria-label="Optionen sehen"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke-width="1.5" stroke="currentColor" class="size-6">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                  </svg>
+                </button>
+                <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+                  role="menu"
+                  aria-orientation="vertical"
+                  tabindex="-1"
+                >
+                  <div class="py-1" role="none">
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_gantt/?format=csv">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_gantt/?format=json">Als JSON exportieren</a>
+                  </div>
+                </div>
+            </div>
+          </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
-            <div id="soc-gantt" class="chart-containe h-[480px]"></div>
+            <div id="soc-gantt" class="chart-container h-[480px]"></div>
+          </div>
+              <!-- Wrapper for each ellipsis and dropdown -->
+          <div class="flex justify-end mb-4">
+            <div class="relative inline-block text-left">
+                <button type="button"
+                  class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                  aria-label="Optionen sehen"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke-width="1.5" stroke="currentColor" class="size-6">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                  </svg>
+                </button>
+                <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+                  role="menu"
+                  aria-orientation="vertical"
+                  tabindex="-1"
+                >
+                  <div class="py-1" role="none">
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/dist_histogram/?format=csv">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/dist_histogram/?format=json">Als JSON exportieren</a>
+                  </div>
+                </div>
+            </div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
             <div id="DistHistogramChart" class="chart-container h-[480px]"></div>
+          </div>
+              <!-- Wrapper for each ellipsis and dropdown -->
+          <div class="flex justify-end mb-4">
+            <div class="relative inline-block text-left">
+                <button type="button"
+                  class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                  aria-label="Optionen sehen"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke-width="1.5" stroke="currentColor" class="size-6">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                  </svg>
+                </button>
+                <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+                  role="menu"
+                  aria-orientation="vertical"
+                  tabindex="-1"
+                >
+                  <div class="py-1" role="none">
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/speed_histogram/?format=csv">Als CSV exportieren</a>
+                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/speed_histogram/?format=json">Als JSON exportieren</a>
+                  </div>
+                </div>
+            </div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
             <div id="SpeedHistogramChart" class="chart-container h-[480px]"></div>
@@ -762,8 +953,7 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'URL kopieren' %}</a>
-              </div>
+                <a href="#" class="map-export block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">Als PNG exportieren</a>              </div>
             </div>
           </div>
         </div>
@@ -812,7 +1002,23 @@
             .then(response => response.json())
             .then(data => {
                 // Filter out categories with zero values
-                const chartData = (data.data || []).filter(item => item.value > 0);
+
+            const chartData = (data.data || []).map(item => {
+                let nameField = "Unknown";
+                let valueField = 0;
+
+                for (const [key, val] of Object.entries(item)) {
+                    if (typeof val === "string" && nameField === "Unknown") {
+                        nameField = val;
+                    }
+                    if ((typeof val === "number") && valueField === 0) {
+                        valueField = val;
+                    }
+                }
+
+                return { name: String(nameField), value: valueField };
+            });
+
 
                 const chart = echarts.init(document.getElementById(chartId), 'ebusPalette');
 
