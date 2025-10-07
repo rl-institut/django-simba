@@ -46,7 +46,6 @@ from .forms import (
     FileUploadForm,
     ScenarioSelection,
     ManualTcoForm,
-    DepotChargingAreaForm,
 )
 from .tasks import merge_scenario
 from .import_export import ScenarioJSONImporterExporter, visit_all_scenario_queries
