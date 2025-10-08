@@ -182,7 +182,7 @@ class SimbaScheduleReader(ScheduleReader):
     ):
         self.errors = []
         self.file_path: Path = Path(file_path)
-        self.default_capacity = 99.99
+        self.default_capacity = 500
         self.encoding = None
         self.progress: Progress = None
         self.vehicles_opportunity_charging_capable = True
@@ -228,7 +228,8 @@ class SimbaScheduleReader(ScheduleReader):
             scenario = Scenario.objects.get(id=scenario_id)
             stations, station_dict = self.get_stations(scenario, trip_data)
             Station.objects.bulk_create(stations)
-            add_station_locations(Station.objects.filter(scenario=scenario))
+            if settings.SEARCH_STATION_LOCATIONS:
+                add_station_locations(Station.objects.filter(scenario=scenario))
 
             add_elevations(Station.objects.filter(scenario=scenario, geom__isnull=False))
             place_not_found_stations(scenario)
@@ -794,6 +795,7 @@ def add_station_locations(query: QuerySet):
         logger.error("Data scraper not available")
         return
     station_names = query.values_list("name", flat=True)
+    logger.info(f"Searching {len(station_names)} Station Locations")
     locations = find_station_locations(station_names)
     stations_with_geom = []
     not_found = []

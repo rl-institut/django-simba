@@ -37,6 +37,7 @@ env.read_env(str(ROOT_DIR.path(".env")))
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DJANGO_ELEVATION_TOKEN = env.str("DJANGO_ELEVATION_TOKEN", "notoken")
 OPENELEVATION_URL = env.str("OPENELEVATION_URL", "")
+SEARCH_STATION_LOCATIONS = env.bool("DJANGO_SEARCH_STATIONS", default=True)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
@@ -80,6 +81,7 @@ INSTALLED_APPS = [
     "bootstrap4",
     "tailwind",
     "tailwind_theme",
+    "widget_tweaks",
 ]
 
 
@@ -97,12 +99,7 @@ MIDDLEWARE = [
     # activate the language based on user cookie
     "core.middleware.LanguageMiddleware",
 ]
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379",
-    }
-}
+
 ROOT_URLCONF = "ebusdjango.urls"
 
 TEMPLATES = [
@@ -152,7 +149,14 @@ if CELERY_TASK_ALWAYS_EAGER:
     CELERY_TASK_STORE_EAGER_RESULT = env.bool("CELERY_TASK_STORE_EAGER_RESULT", default=True)
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=None)
+REDIS_URL = env("REDIS_URL", default=None)
 
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+    }
+}
 # For Database visualization
 GRAPH_MODELS = {
     "all_applications": False,

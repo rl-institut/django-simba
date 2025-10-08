@@ -2,6 +2,7 @@ from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbid
 from django.shortcuts import render
 from temperatures.tasks import import_data, get_closest_station, get_weatherdata
 import datetime
+from django.conf import settings
 from django.core.cache import cache
 
 # Create your views here.
@@ -28,7 +29,10 @@ def get_quantile_from_geo(
 ):
     lon = float(lon)
     lat = float(lat)
-    station = cache.get_or_set((lon, lat), lambda: get_closest_station(lon, lat), CACHE_TIMEOUT)
+    if settings.REDIS_URL:
+        station = cache.get_or_set((lon, lat), lambda: get_closest_station(lon, lat), CACHE_TIMEOUT)
+    else:
+        station = get_closest_station(lon, lat)
     return get_quantile_from_station(request, station.dwd_id, startdate, enddate, temperature)
 
 
@@ -67,22 +71,25 @@ def get_quantile_from_station(request, dwd_id: int, startdate: str, enddate: str
     # // Caching speeds up data fetching but for 100_000 datapoints its still taking half a second
     # Using a hash is more flexible with possibly varying backends
     # memcache does not like special characters
-    stats = cache.get_or_set(
-        (
-            hash(
-                str(
-                    (
-                        id(get_temperature_statistics),
-                        dwd_id,
-                        startdate.isoformat(),
-                        enddate.isoformat(),
+    if settings.REDIS_URL:
+        stats = cache.get_or_set(
+            (
+                hash(
+                    str(
+                        (
+                            id(get_temperature_statistics),
+                            dwd_id,
+                            startdate.isoformat(),
+                            enddate.isoformat(),
+                        )
                     )
                 )
-            )
-        ),
-        lambda: get_temperature_statistics(dwd_id, startdate, enddate),
-        CACHE_TIMEOUT,
-    )
+            ),
+            lambda: get_temperature_statistics(dwd_id, startdate, enddate),
+            CACHE_TIMEOUT,
+        )
+    else:
+        stats = get_temperature_statistics(dwd_id, startdate, enddate)
     if len(stats) == 0:
         return JsonResponse(
             {

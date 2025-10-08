@@ -41,6 +41,8 @@
      DATABASE_URL=postgis://YOUR_DB_USERNAME:YOUR_PASSWORD@localhost/YOUR_DB_NAME
      # Should the simulation run with eflips-depot. Development setting which will be set to True in stable Versions.
      EFLIPS_USE=TRUE
+     # Redis backend url. This allows caching. Can be the same as the celery broker url but does not have to be
+     REDIS_URL=redis://127.0.0.1:6379
      # Should celery be used synchronously? In this case no celery process and CELERY_BROKER_URL is needed.
      CELERY_TASK_ALWAYS_EAGER=True
      # CELERY_BROKER_URL=pyamqp://guest@localhost//
@@ -271,3 +273,4 @@ stundenwerte_TU_00003_19500401_20110331_hist.zip
 stundenwerte_TU_00003_19500401_20110331_hist.zip
 ...
 ```
+Temperature fetching uses caching. This requires a REDIS_URL. If no REDIS_URL is given, caching should be skipped.
