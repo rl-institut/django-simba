@@ -123,4 +123,5 @@ urlpatterns = [
     path("result/<uuid:task_id>/depot_power/", views.get_power_draw_and_occ, name="eflips_power"),
     path("result/<uuid:task_id>/soc_gantt/", views.get_soc_gantt, name="soc_gantt"),
     path("result/<uuid:task_id>/toc_bar/", views.get_toc, name="toc_bar"),
+    path("result/<uuid:task_id>/piecharts/", views.get_piecharts, name="piecharts"),
 ]

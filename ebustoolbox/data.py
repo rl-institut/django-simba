@@ -885,7 +885,7 @@ def get_soc_as_json(task_id: str):
     return {"data": soc_data}
 
 
-def get_binned_soc_as_json(task_id: str):
+def get_binned_soc(task_id: str):
     # load raw SOC events
     scenario = Scenario.objects.get(task_id=task_id)
     vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
@@ -943,7 +943,6 @@ def get_binned_soc_as_json(task_id: str):
         df_filled.groupby(["hour", "soc_bin"])
         .size()
         .reset_index(name="count")
-        .to_dict(orient="records")
     )
 
     return heatmap_data
@@ -972,7 +971,7 @@ def get_power_draw_as_json(request, task_id: str):
     return charging_status
 
 
-def get_event_gantt_as_json(task_id: str):
+def get_event_gantt(task_id: str):
     scenario = Scenario.objects.get(task_id=task_id)
 
     vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
@@ -999,10 +998,10 @@ def get_event_gantt_as_json(task_id: str):
                 "event_type": row["event_type"],  # Add event type so the frontend can style
             }
         )
-    return categories, gantt_data
+    return categories, pd.DataFrame(gantt_data)
 
 
-def get_stats_as_json(task_id: str):
+def get_stats(task_id: str):
     scenario = Scenario.objects.get(task_id=task_id)
 
     filter_dict = dict(task_id=task_id)
@@ -1128,10 +1127,10 @@ def get_stats_as_json(task_id: str):
         "peak_depot_power": np.round(peak_power_kw, 0),
     }
 
-    return resp
+    return pd.DataFrame(resp)
 
 
-def get_speed_hist_as_json(task_id: str):
+def get_speed_hist(task_id: str):
     scenario = Scenario.objects.get(task_id=task_id)
     vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
@@ -1149,15 +1148,15 @@ def get_speed_hist_as_json(task_id: str):
 
     hist, bin_edges = np.histogram(dur_df["avg_speed_kmh"], bins=bins)
 
-    return {
+    return pd.DataFrame({
         "bins": [
             f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km/h" for i in range(len(bin_edges) - 1)
         ],
         "counts": hist.tolist(),
-    }
+    })
 
 
-def get_dist_hist_as_json(task_id: str):
+def get_dist_hist(task_id: str):
     scenario = Scenario.objects.get(task_id=task_id)
     vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
@@ -1193,16 +1192,14 @@ def get_dist_hist_as_json(task_id: str):
         .reindex(columns=["Nicht kritisch", "kritisch"], fill_value=0)
     )
 
-    return {
+    return pd.DataFrame({
         "bins": grouped.index.tolist(),
-        "data": {
-            _("Nicht kritisch"): grouped["Nicht kritisch"].tolist(),
-            _("kritisch"): grouped["kritisch"].tolist(),
-        },
-    }
+        _("Nicht kritisch"): grouped["Nicht kritisch"].tolist(),
+        _("kritisch"): grouped["kritisch"].tolist(),
+    })
 
 
-def get_power_draw_and_occ_as_json(task_id: str):
+def get_power_draw_and_occ(task_id: str):
     # Get the scenario from Django ORM
     scenario = Scenario.objects.get(task_id=task_id)
 
@@ -1213,7 +1210,7 @@ def get_power_draw_and_occ_as_json(task_id: str):
     with Session(SqlAlchemyEngine.get_engine()) as session:
         prepared_data = power_and_occupancy(all_area_ids, session)
 
-    return prepared_data.to_dict(orient="records")
+    return prepared_data
 
 
 def get_soc_gantt_as_json(task_id: str):
@@ -1281,7 +1278,9 @@ def get_soc_gantt_as_json(task_id: str):
         )
     ]
 
-    return vehicles, records
+    vehicles_df = pd.DataFrame({"vehicle": vehicles})
+    return vehicles_df, pd.DataFrame(records)
+
 
 def get_tco_data(task_id: str):
     s = Scenario.objects.get(task_id=task_id)
@@ -1290,3 +1289,31 @@ def get_tco_data(task_id: str):
     db_url = os.environ.get("DATABASE_URL", "").replace("postgis://", "postgresql://")
     result = calculate_tco(scenario=int(s.id), database_url=db_url)  # replace with actual arguments
     return result
+
+def get_combined_piecharts(task_id, filters=None):
+    """
+    Returns two DataFrames:
+    1. critical_rotations_df: aggregated counts by SOC_category
+    2. bus_types_df: bus type counts
+    Both DataFrames can be turned into JSON or CSV.
+    """
+
+    s = Scenario.objects.get(task_id=task_id)
+
+    # Get raw DataFrames
+    critical_raw = get_critical_rotations_as_dataframe(s.id, filters)
+    bustype_raw = get_vehicle_types(s.id, filters)
+
+    # Aggregate critical rotations by SOC_category
+    critical_rotations_df = (
+        critical_raw.groupby("SOC_category")
+        .size()
+        .reset_index(name="count")
+        .rename(columns={"SOC_category": "category"})
+    )
+
+    # bus_types_df already has 'name' and 'count'
+    bus_types_df = bustype_raw.rename(columns={"name": "category"})
+
+    return critical_rotations_df, bus_types_df
+

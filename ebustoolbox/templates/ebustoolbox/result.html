@@ -158,7 +158,7 @@
           >
             <div class="py-1" role="none">
               <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=json">{% translate 'Als JSON exportieren' %}</a>
             </div>
           </div>
         </div>
@@ -363,7 +363,7 @@
           >
             <div class="py-1" role="none">
               <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100 text-left" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100 text-left" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100 text-left" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=json">{% translate 'Als JSON exportieren' %}</a>
             </div>
           </div>
         </div>
@@ -433,8 +433,8 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/csv">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=json" data-endpoint="/simba/result/{task-id}/soc_hist/?format=json">{% translate 'Als JSON exportieren' %}</a>
               </div>
             </div>
           </div>
@@ -521,7 +521,7 @@
             >
               <div class="py-1" role="none">
                 <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=json">{% translate 'Als JSON exportieren' %}</a>
               </div>
             </div>
           </div>
@@ -585,7 +585,7 @@
             >
               <div class="py-1" role="none">
                 <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/stats/?format=json">{% translate 'Als JSON exportieren' %}</a>
               </div>
             </div>
           </div>
@@ -2012,7 +2012,7 @@
         const values = Object.values(result);
 
         const option = {
-          title: { text: '"Total Cost of Ownership"', left: 'center' },
+          title: { text: 'Gesamtbetriebskosten', left: 'center' },
           tooltip: {
             trigger: 'item',
             formatter: '{a}<br/>{b}: {c}'
@@ -2032,6 +2032,7 @@
             name: key,
             type: 'bar',
             stack: 'total',
+              barWidth: "30%",
             emphasis: { focus: 'series' },
             data: [values[idx]]
           }))
@@ -2143,6 +2144,84 @@
       });
     });
   });
+
+
+    document.querySelectorAll('.fetch-option').forEach(option => {
+        option.addEventListener('click', async (e) => {
+            e.preventDefault();
+            let endpoint = option.getAttribute('data-endpoint');
+            // Replace placeholder with actual task ID (you can retrieve this dynamically)
+            endpoint = endpoint.replace('{task-id}', taskId);
+
+
+
+            try {
+              const response = await fetch(endpoint);
+              if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+              const contentType = response.headers.get("Content-Type");
+              const blob = await response.blob(); // Works for text, csv, json, etc.
+
+              // Optional: derive filename
+              const fileExtension = contentType.includes('json') ? 'json'
+                                  : contentType.includes('csv') ? 'csv'
+                                  : 'txt';
+              const filename = `export-${Date.now()}.${fileExtension}`;
+
+              // Create temporary download link
+              const link = document.createElement('a');
+              link.href = URL.createObjectURL(blob);
+              link.download = filename;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(link.href);
+
+            } catch (error) {
+              console.error('Download failed:', error);
+            }
+        });
+
+        // Custom function handler
+        document.querySelectorAll('.custom-action').forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.preventDefault();
+                mapScreenshot();
+            });
+        });
+
+        function mapScreenshot() {
+           // Slightly zoom the map to trigger a rerender
+            const currentZoom = map.getZoom();
+
+            // Set a one-time idle listener to export once rendering is done
+            map.once('idle', function () {
+                const canvas = map.getCanvas();
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                tempCtx.drawImage(canvas, 0, 0);
+
+                const link = document.createElement('a');
+                link.download = 'map-export.png';
+                link.href = tempCanvas.toDataURL('image/png');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                // Reset zoom if it was changed
+                if (map.getZoom() !== currentZoom) {
+                    map.setZoom(currentZoom);
+                }
+            });
+
+            // Trigger re-render by adjusting zoom slightly and then reverting
+            map.setZoom(currentZoom + 0.0001);
+        }
+  });
+</script>
+
 </script>
 
 <!-- Functionality for simple dropdown -->
