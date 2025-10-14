@@ -1542,7 +1542,6 @@ def get_critical_rotations(request, task_id: str):
 
 def get_bustype(request, task_id: str):
     file_format = request.GET.get("format", "json").lower()
-
     s = Scenario.objects.get(task_id=task_id)
     df = data.get_vehicle_types(s.id, None)
 
@@ -1579,7 +1578,6 @@ def get_soc_data(request, task_id: str):
 
 def get_binned_soc_data(request, task_id: str):
     file_format = request.GET.get("format", "json").lower()
-
     df = data.get_binned_soc(task_id)
 
     if file_format == "json":
@@ -1599,14 +1597,13 @@ def get_power_draw(request, task_id: str):
     Returns power draw data over time by station ID for selected buses.
     """
 
-    response_data = data.get_power_draw_as_json(request, task_id)
+    response_data = data.get_power_draw(request, task_id)
 
     return JsonResponse({"data": response_data})
 
 
 def get_gantt_data(request, task_id: str):
     file_format = request.GET.get("format", "json").lower()
-
     categories, df = data.get_event_gantt(task_id)
 
     if file_format == "json":
@@ -1623,7 +1620,6 @@ def get_gantt_data(request, task_id: str):
 
 def get_stats(request, task_id: str):
     file_format = request.GET.get("format", "json").lower()
-
     df = data.get_stats(task_id)
 
     if file_format == "json":
@@ -1640,7 +1636,6 @@ def get_stats(request, task_id: str):
 
 def get_speed_hist(request, task_id: str):
     file_format = request.GET.get("format", "json").lower()
-
     df = data.get_speed_hist(task_id)
 
     if file_format == "json":
@@ -1689,15 +1684,14 @@ def get_power_draw_and_occ(request, task_id: str):
 
 def get_soc_gantt(request, task_id: str):
     file_format = request.GET.get("format", "json").lower()
-    vehicles_df, records_df = data.get_soc_gantt_as_json(task_id)
+    vehicles_df, records_df = data.get_soc_gantt(task_id)
     if file_format == "json":
         vehicles = vehicles_df["vehicle"].tolist()
         records = records_df.to_dict(orient="records")
         response = JsonResponse({"vehicles": vehicles, "records": records}, safe=True)
 
     elif file_format == "csv":
-        pass
-        #response = HttpResponse(df.to_csv(index=False), content_type="text/csv")
+        response = HttpResponse(records_df.to_csv(index=False), content_type="text/csv")
 
     else:
         raise Http404
@@ -1812,7 +1806,7 @@ def get_piecharts(request, task_id: str):
         return JsonResponse(json_data, safe=True)
 
     elif file_format == "csv":
-        # Build CSV string manually, with empty row between tables
+        # Build CSV string manually, because empty row between tables
         lines = []
 
         # Header and rows for critical rotations

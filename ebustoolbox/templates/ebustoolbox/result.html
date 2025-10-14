@@ -157,7 +157,7 @@
             tabindex="-1"
           >
             <div class="py-1" role="none">
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=csv">{% translate 'Als CSV exportieren' %}</a>
               <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=json">{% translate 'Als JSON exportieren' %}</a>
             </div>
           </div>
@@ -362,7 +362,7 @@
             tabindex="-1"
           >
             <div class="py-1" role="none">
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100 text-left" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100 text-left" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=json">{% translate 'Als CSV exportieren' %}</a>
               <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100 text-left" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=json">{% translate 'Als JSON exportieren' %}</a>
             </div>
           </div>
@@ -433,8 +433,8 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/api/export/csv">{% translate 'Als CSV exportieren' %}</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=json" data-endpoint="/simba/result/{task-id}/soc_hist/?format=json">{% translate 'Als JSON exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=csv">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=json">{% translate 'Als JSON exportieren' %}</a>
               </div>
             </div>
           </div>
@@ -520,7 +520,7 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=csv">{% translate 'Als CSV exportieren' %}</a>
                 <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=json">{% translate 'Als JSON exportieren' %}</a>
               </div>
             </div>
@@ -584,7 +584,7 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/stats/?format=csv">{% translate 'Als CSV exportieren' %}</a>
                 <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/stats/?format=json">{% translate 'Als JSON exportieren' %}</a>
               </div>
             </div>
@@ -732,10 +732,10 @@
                 aria-orientation="vertical"
                 tabindex="-1"
               >
-                <div class="py-1" role="none">
-                  <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/piecharts/?format=csv">Als CSV exportieren</a>
-                  <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/piecharts/?format=json">Als JSON exportieren</a>
-                </div>
+              <div class="py-1" role="none">
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/piecharts/?format=csv">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/piecharts/?format=json">{% translate 'Als JSON exportieren' %}</a>
+              </div>
               </div>
             </div>
           </div>
@@ -769,10 +769,10 @@
                   aria-orientation="vertical"
                   tabindex="-1"
                 >
-                  <div class="py-1" role="none">
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc/?format=csv">Als CSV exportieren</a>
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc/?format=json">Als JSON exportieren</a>
-                  </div>
+              <div class="py-1" role="none">
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc/?format=csv">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc/?format=json">{% translate 'Als JSON exportieren' %}</a>
+              </div>
                 </div>
             </div>
           </div>
@@ -799,10 +799,10 @@
                   aria-orientation="vertical"
                   tabindex="-1"
                 >
-                  <div class="py-1" role="none">
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/depot_power/?format=csv">Als CSV exportieren</a>
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/depot_power/?format=json">Als JSON exportieren</a>
-                  </div>
+              <div class="py-1" role="none">
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/depot_power/?format=csv">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/depot_power/?format=json">{% translate 'Als JSON exportieren' %}</a>
+              </div>
                 </div>
             </div>
           </div>
@@ -829,10 +829,10 @@
                   aria-orientation="vertical"
                   tabindex="-1"
                 >
-                  <div class="py-1" role="none">
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/gantt/?format=csv">Als CSV exportieren</a>
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/gantt/?format=json">Als JSON exportieren</a>
-                  </div>
+              <div class="py-1" role="none">
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/gantt/?format=csv">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/gantt/?format=json">{% translate 'Als JSON exportieren' %}</a>
+              </div>
                 </div>
             </div>
           </div>
@@ -859,10 +859,10 @@
                   aria-orientation="vertical"
                   tabindex="-1"
                 >
-                  <div class="py-1" role="none">
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_gantt/?format=csv">Als CSV exportieren</a>
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_gantt/?format=json">Als JSON exportieren</a>
-                  </div>
+              <div class="py-1" role="none">
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_gantt/?format=csv">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_gantt/?format=json">{% translate 'Als JSON exportieren' %}</a>
+              </div>
                 </div>
             </div>
           </div>
@@ -889,10 +889,10 @@
                   aria-orientation="vertical"
                   tabindex="-1"
                 >
-                  <div class="py-1" role="none">
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/dist_histogram/?format=csv">Als CSV exportieren</a>
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/dist_histogram/?format=json">Als JSON exportieren</a>
-                  </div>
+              <div class="py-1" role="none">
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/dist_histogram/?format=csv">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/dist_histogram/?format=json">{% translate 'Als JSON exportieren' %}</a>
+              </div>
                 </div>
             </div>
           </div>
@@ -919,10 +919,10 @@
                   aria-orientation="vertical"
                   tabindex="-1"
                 >
-                  <div class="py-1" role="none">
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/speed_histogram/?format=csv">Als CSV exportieren</a>
-                <a href="#" class="fetch-option block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/speed_histogram/?format=json">Als JSON exportieren</a>
-                  </div>
+              <div class="py-1" role="none">
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/speed_histogram/?format=csv">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/speed_histogram/?format=json">{% translate 'Als JSON exportieren' %}</a>
+              </div>
                 </div>
             </div>
           </div>
@@ -2144,6 +2144,22 @@
       });
     });
   });
+
+  document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll("[data-endpoint]").forEach(link => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault(); // prevent "#" jump
+      const endpoint = link.getAttribute("data-endpoint");
+      // Replace {task-id} dynamically if needed
+        const taskId = document.getElementById("task-id").value;
+
+      const url = endpoint.replace("{task-id}", taskId);
+
+      // Trigger the file download
+      window.location.href = url;
+    });
+  });
+});
 
 
     document.querySelectorAll('.fetch-option').forEach(option => {

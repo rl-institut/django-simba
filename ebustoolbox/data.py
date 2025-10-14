@@ -461,7 +461,7 @@ def get_powerdraw_as_dataframe(scenario_id, buses=None):
     :return: DataFrame containing power draw data for specified buses.
     :rtype: pandas.DataFrame
     """
-    df = recent_memoizer(get_all_powerdraw_as_dataframe, scenario_id)(scenario_id)
+    df = recent_memoizer(get_all_powerdraw, scenario_id)(scenario_id)
     if buses is not None:
         df = df.query(f"V_id in {buses}")
     return df
@@ -733,7 +733,7 @@ def get_all_trip_info(scenario_id):
     return result_df
 
 
-def get_all_powerdraw_as_dataframe(scenario_id):
+def get_all_powerdraw(scenario_id):
     """
     Retrieves charging information for all vehicles in a given scenario.
 
@@ -948,7 +948,7 @@ def get_binned_soc(task_id: str):
     return heatmap_data
 
 
-def get_power_draw_as_json(request, task_id: str):
+def get_power_draw(request, task_id: str):
     scenario = Scenario.objects.get(task_id=task_id)
 
     buses = request.GET.getlist("buses[]")
@@ -1213,7 +1213,7 @@ def get_power_draw_and_occ(task_id: str):
     return prepared_data
 
 
-def get_soc_gantt_as_json(task_id: str):
+def get_soc_gantt(task_id: str):
     # Get all events for the scenario, ordered
     scenario = Scenario.objects.get(task_id=task_id)
     events = (
