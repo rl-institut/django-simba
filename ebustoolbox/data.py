@@ -864,7 +864,8 @@ def get_soc_as_json(task_id: str):
             lambda group: sorted(
                 group[["timestamp_start", "soc_start", "help1"]].values.tolist()
                 + group[["timestamp_end", "soc_end", "help2"]].values.tolist(),
-                key=lambda x: (x[0], -x[2]),  # Sort by timestamp
+                key=lambda x: (x[0], -x[2]),  # Sort by timestamp; if equal,
+                # place end points (help2=2) before start points (help1=1)
             )
         )
         .to_dict()
