@@ -867,6 +867,8 @@ def get_soc_as_json(task_id: str):
     selected_columns["timestamp_start"] = (
         pd.to_datetime(selected_columns["time_start"]).astype(int) // 10**6
     )
+    selected_columns["help1"] = 1
+    selected_columns["help2"] = 2
 
     # Combine both start and end points
     # Each group will contain a list of [timestamp, soc] pairs for both start and end
@@ -874,9 +876,10 @@ def get_soc_as_json(task_id: str):
         selected_columns.groupby("V_id")
         .apply(
             lambda group: sorted(
-                group[["timestamp_start", "soc_start"]].values.tolist()
-                + group[["timestamp_end", "soc_end"]].values.tolist(),
-                key=lambda x: x[0],  # Sort by timestamp
+                group[["timestamp_start", "soc_start", "help1"]].values.tolist()
+                + group[["timestamp_end", "soc_end", "help2"]].values.tolist(),
+                key=lambda x: (x[0], -x[2]),  # Sort by timestamp; if equal,
+                # place end points (help2=2) before start points (help1=1)
             )
         )
         .to_dict()

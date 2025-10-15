@@ -1780,7 +1780,7 @@ def import_scenario(request):
     return HttpResponseBadRequest(_("Use POST or GET"))
 
 
-def get_toc(request, task_id: str):
+def get_tco(request, task_id: str):
     file_format = request.GET.get("format", "json").lower()
     df = data.get_tco_data(task_id)
 

@@ -157,8 +157,8 @@
             tabindex="-1"
           >
             <div class="py-1" role="none">
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=csv">{% translate 'Als CSV exportieren' %}</a>
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=json">{% translate 'Als JSON exportieren' %}</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{{ task_id }}/soc_hist/?format=csv">{% translate 'Als CSV exportieren' %}</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{{ task_id }}/soc_hist/?format=json">{% translate 'Als JSON exportieren' %}</a>
             </div>
           </div>
         </div>
@@ -362,8 +362,8 @@
             tabindex="-1"
           >
             <div class="py-1" role="none">
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100 text-left" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=json">{% translate 'Als CSV exportieren' %}</a>
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100 text-left" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=json">{% translate 'Als JSON exportieren' %}</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100 text-left" role="menuitem" data-endpoint="/simba/result/{{ task_id }}/tco_bar/?format=json">{% translate 'Als CSV exportieren' %}</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100 text-left" role="menuitem" data-endpoint="/simba/result/{{ task_id }}/tco_bar/?format=json">{% translate 'Als JSON exportieren' %}</a>
             </div>
           </div>
         </div>
@@ -433,8 +433,8 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=csv">{% translate 'Als CSV exportieren' %}</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{task-id}/soc_hist/?format=json">{% translate 'Als JSON exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{{ task_id }}/soc_hist/?format=csv">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem" data-endpoint="/simba/result/{{ task_id }}/soc_hist/?format=json">{% translate 'Als JSON exportieren' %}</a>
               </div>
             </div>
           </div>
@@ -1066,7 +1066,7 @@
                 chart.setOption(options);
             });
     }
-    function fetchAndRenderLineChart(chartName, chartId, titleText, xKey, yKey) {
+    function fetchAndRenderLineChart(chartName, chartId, titleText) {
 
         return fetch(`/simba/result/${taskId}/${chartName}/`)
         .then(response => response.json())
@@ -1148,7 +1148,7 @@
             chart.setOption(options);
         });
     }
-    function fetchAndRenderDepotChart(chartName, chartId, titleText, xKey, yKey) {
+  function fetchAndRenderDepotChart(chartName, chartId, titleText) {
         return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(responseData => {
@@ -1896,7 +1896,7 @@
             .catch(error => console.error('Error fetching histogram data:', error));
     }
     function fetchAndRenderSoCHistogram(chartName, chartID) {
-        fetch(`/simba/result/${taskId}/${chartName}/`)
+        fetch(`/simba/result/${taskId}/${chartName}/`)  // Replace with the actual URL
       .then((res) => res.json())
       .then((result) => {
         const rawData = result.data;
@@ -2052,8 +2052,8 @@
         // Render the charts
         fetchAndRenderPieChart("critical_rotations", "chartContainer", "Kritische und nicht kritische Umläufe"),
         fetchAndRenderPieChart("bustype", "busTypeChartContainer", "Verteilung Fahrzeugtyp"),
-        fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit", "time_end", "soc_end_prc"),
-        fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Ladeleistung und Belegung", "time_end", "soc_end_prc"),
+        fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit"),
+        fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Ladeleistung und Belegung"),
 
         fetchAndRenderStats("stats", "_", "_"),
         fetchAndRenderGanttChart("gantt","ganttChart","_"),
@@ -2061,7 +2061,7 @@
         fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten"),
         fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap"),
         fetchAndRenderGanttChartSOC("soc_gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit")];
-        fetchAndRenderTOCBars('toc_bar', 'toc-bar');
+        fetchAndRenderTOCBars('tco_bar', 'toc-bar');
 
         Promise.allSettled(chartPromises).then((results)=>{
           const allSuccessful = results.every(r => r.status === "fulfilled");
@@ -2157,41 +2157,6 @@
   });
 });
 
-
-    document.querySelectorAll('.fetch-option').forEach(option => {
-        option.addEventListener('click', async (e) => {
-            e.preventDefault();
-            let endpoint = option.getAttribute('data-endpoint');
-            // Replace placeholder with actual task ID (you can retrieve this dynamically)
-            endpoint = endpoint.replace('{task-id}', taskId);
-
-            try {
-              const response = await fetch(endpoint);
-              if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-              const contentType = response.headers.get("Content-Type");
-              const blob = await response.blob(); // Works for text, csv, json, etc.
-
-              // Optional: derive filename
-              const fileExtension = contentType.includes('json') ? 'json'
-                                  : contentType.includes('csv') ? 'csv'
-                                  : 'txt';
-              const filename = `export-${Date.now()}.${fileExtension}`;
-
-              // Create temporary download link
-              const link = document.createElement('a');
-              link.href = URL.createObjectURL(blob);
-              link.download = filename;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              URL.revokeObjectURL(link.href);
-
-            } catch (error) {
-              console.error('Download failed:', error);
-            }
-        });
-    });
         // Custom behavior map screenshot (downlaod as png)
        document.addEventListener("DOMContentLoaded", function() {
 
