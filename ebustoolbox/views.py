@@ -1528,7 +1528,9 @@ def get_critical_rotations(request, task_id: str):
     df = data.get_critical_rotations_as_dataframe(s.id, None)
 
     if file_format == "json":
-        data_obj = df.groupby("SOC_category").size().reset_index(name="count").to_dict(orient="records")
+        data_obj = (
+            df.groupby("SOC_category").size().reset_index(name="count").to_dict(orient="records")
+        )
         response = JsonResponse({"data": data_obj}, safe=True)
 
     elif file_format == "csv":
@@ -1607,7 +1609,9 @@ def get_gantt_data(request, task_id: str):
     categories, df = data.get_event_gantt(task_id)
 
     if file_format == "json":
-        response = JsonResponse({"categories": categories, "data": df.to_dict(orient="records")}, safe=True)
+        response = JsonResponse(
+            {"categories": categories, "data": df.to_dict(orient="records")}, safe=True
+        )
 
     elif file_format == "csv":
         response = HttpResponse(df.to_csv(index=False), content_type="text/csv")
@@ -1775,20 +1779,21 @@ def import_scenario(request):
         )
     return HttpResponseBadRequest(_("Use POST or GET"))
 
+
 def get_toc(request, task_id: str):
     file_format = request.GET.get("format", "json").lower()
     df = data.get_tco_data(task_id)
 
     if file_format == "json":
-        result = JsonResponse(df)
+        response = JsonResponse(df)
 
     elif file_format == "csv":
-        result = HttpResponse(df.to_csv(index=False), content_type="text/csv")
+        response = HttpResponse(df.to_csv(index=False), content_type="text/csv")
 
     else:
         raise Http404
 
-    return result
+    return response
 
 
 def get_piecharts(request, task_id: str):
@@ -1801,7 +1806,7 @@ def get_piecharts(request, task_id: str):
         # Convert DataFrames to nested dicts
         json_data = {
             "critical_rotations": dict(zip(critical_df["category"], critical_df["count"])),
-            "bus_types": dict(zip(bus_df["category"], bus_df["count"]))
+            "bus_types": dict(zip(bus_df["category"], bus_df["count"])),
         }
         return JsonResponse(json_data, safe=True)
 

@@ -35,7 +35,7 @@ from dash.exceptions import PreventUpdate
 from eflips.depot.api import simulate_scenario  # noqa
 from eflips.eval.output.prepare import power_and_occupancy
 from eflips.tco import calculate_tco
-import os # TODO: should be removed once eflips tco works as expected
+import os  # TODO: should be removed once eflips tco works as expected
 
 # Maximum number of cached results per function
 MAX_SIZE = 10
@@ -112,7 +112,7 @@ def get_total_consumption(s: Scenario):
     for index, event in driving_events.iterrows():
         # Calculate the difference between soc_end and soc_start
         total_energy_difference += (
-                abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
+            abs(event["soc_start"] - event["soc_end"]) * battery_capacities[event["V_id"]]
         )
     return total_energy_difference
 
@@ -255,7 +255,7 @@ def get_number_longest_rot(filter_dict: dict):
     filter_dict["scenario"] = s
 
     if (
-            "vehicle__id__in" in filter_dict and len(filter_dict["vehicle__id__in"]) == 0
+        "vehicle__id__in" in filter_dict and len(filter_dict["vehicle__id__in"]) == 0
     ) and sim_is_finished(task_id):
         raise PreventUpdate
 
@@ -283,7 +283,7 @@ def get_number_shortest_rot(filter_dict: dict):
     filter_dict["scenario"] = s
 
     if (
-            "vehicle__id__in" in filter_dict and len(filter_dict["vehicle__id__in"]) == 0
+        "vehicle__id__in" in filter_dict and len(filter_dict["vehicle__id__in"]) == 0
     ) and sim_is_finished(task_id):
         raise PreventUpdate
 
@@ -862,10 +862,10 @@ def get_soc_as_json(task_id: str):
 
     # Convert both 'time_end' and 'time_start' to Unix timestamps (in milliseconds)
     selected_columns["timestamp_end"] = (
-            pd.to_datetime(selected_columns["time_end"]).astype(int) // 10 ** 6
+        pd.to_datetime(selected_columns["time_end"]).astype(int) // 10**6
     )
     selected_columns["timestamp_start"] = (
-            pd.to_datetime(selected_columns["time_start"]).astype(int) // 10 ** 6
+        pd.to_datetime(selected_columns["time_start"]).astype(int) // 10**6
     )
 
     # Combine both start and end points
@@ -939,11 +939,7 @@ def get_binned_soc(task_id: str):
     df_filled["soc_bin"] = df_filled["soc_end"].apply(soc_bin)
 
     # build the histogram: one count per vehicle‐hour in its lowest‐SOC bin
-    heatmap_data = (
-        df_filled.groupby(["hour", "soc_bin"])
-        .size()
-        .reset_index(name="count")
-    )
+    heatmap_data = df_filled.groupby(["hour", "soc_bin"]).size().reset_index(name="count")
 
     return heatmap_data
 
@@ -964,7 +960,7 @@ def get_power_draw(request, task_id: str):
     for time_point in all_times:
         charging_vehicles = df[
             (df["time_start"] <= time_point) & (df["time_end"] > time_point) & (df["Power"] > 0)
-            ]
+        ]
         total_power = charging_vehicles["Power"].sum()
         charging_status.append({"time": time_point.isoformat(), "total_power": total_power})
 
@@ -1148,12 +1144,14 @@ def get_speed_hist(task_id: str):
 
     hist, bin_edges = np.histogram(dur_df["avg_speed_kmh"], bins=bins)
 
-    return pd.DataFrame({
-        "bins": [
-            f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km/h" for i in range(len(bin_edges) - 1)
-        ],
-        "counts": hist.tolist(),
-    })
+    return pd.DataFrame(
+        {
+            "bins": [
+                f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f} km/h" for i in range(len(bin_edges) - 1)
+            ],
+            "counts": hist.tolist(),
+        }
+    )
 
 
 def get_dist_hist(task_id: str):
@@ -1192,11 +1190,13 @@ def get_dist_hist(task_id: str):
         .reindex(columns=["Nicht kritisch", "kritisch"], fill_value=0)
     )
 
-    return pd.DataFrame({
-        "bins": grouped.index.tolist(),
-        _("Nicht kritisch"): grouped["Nicht kritisch"].tolist(),
-        _("kritisch"): grouped["kritisch"].tolist(),
-    })
+    return pd.DataFrame(
+        {
+            "bins": grouped.index.tolist(),
+            _("Nicht kritisch"): grouped["Nicht kritisch"].tolist(),
+            _("kritisch"): grouped["kritisch"].tolist(),
+        }
+    )
 
 
 def get_power_draw_and_occ(task_id: str):
@@ -1262,17 +1262,19 @@ def get_soc_gantt(task_id: str):
                 }
             )
 
-    vehicle_first_times = {v.name: float("inf") for v in scenario.vehicle_set.all()}
-    # dict vehicle name -> first event start time. Default: inf.
-    # iterate over all events in reverse order (latest start time first) and update vehicle_first_time
-    # the earliest event start time will be the final entry in the dict
-    for event in events.order_by("-vehicle__name", "-time_start"):
-        ts = event.time_start.timestamp()
-        vehicle_first_times[event.vehicle.name] = ts
+    # find first event start time for each vehicle
+    # dict vehicle ID -> first event timestamp
+    vehicle_first_times = dict()
+    for vehicle in scenario.vehicle_set.all():
+        first_vehicle_event = events.filter(vehicle=vehicle).order_by("time_start").first()
+        if first_vehicle_event is not None:
+            vehicle_first_times[vehicle.name] = first_vehicle_event.time_start.timestamp()
+        else:
+            vehicle_first_times[vehicle.name] = float("inf")
 
     # Sort vehicles by their earliest event start time
     vehicles = [
-        str(v)
+        v
         for v, unused_variable in sorted(
             vehicle_first_times.items(), key=lambda x: x[1], reverse=True
         )
@@ -1289,6 +1291,7 @@ def get_tco_data(task_id: str):
     db_url = os.environ.get("DATABASE_URL", "").replace("postgis://", "postgresql://")
     result = calculate_tco(scenario=int(s.id), database_url=db_url)  # replace with actual arguments
     return result
+
 
 def get_combined_piecharts(task_id, filters=None):
     """
@@ -1316,4 +1319,3 @@ def get_combined_piecharts(task_id, filters=None):
     bus_types_df = bustype_raw.rename(columns={"name": "category"})
 
     return critical_rotations_df, bus_types_df
-
