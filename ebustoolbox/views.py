@@ -94,7 +94,6 @@ def progress_scenario(request: HttpRequest, progress_id, template_name):
 
     status_code = 200
     hx_trigger = "running"
-    print(AsyncResult(str(progress_id).encode()).state)
     result = AsyncResult(str(progress_id).encode())
     if result.state in ["PENDING", "REVOKED", "FAILURE"]:
         # the celery task is not running. The progress will not be updated. This has to be fixed.
