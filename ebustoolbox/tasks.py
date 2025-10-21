@@ -2878,7 +2878,7 @@ def consolidate_socs(scenario: Scenario) -> None:
                 )
             event.timeseries["soc"] = shifted_ts
 
-        assert event.soc_start, prev_event.soc_end
+        assert event.soc_start == prev_event.soc_end
 
     Event.objects.bulk_update(events, fields=["soc_end", "soc_start", "timeseries"])
 
