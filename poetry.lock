@@ -1013,19 +1013,19 @@ simpy = ">=4.0.1,<5.0.0"
 
 [[package]]
 name = "eflips-depot"
-version = "4.14.1"
+version = "4.15.1"
 description = "Depot Simulation for eFLIPS"
 optional = false
 python-versions = "<3.14,>=3.11"
 files = [
-    {file = "eflips_depot-4.14.1-py3-none-any.whl", hash = "sha256:f58741d47b98f43d8bdf4d092a11efb1347bf9d84f1a212df2aea3425d3897ae"},
-    {file = "eflips_depot-4.14.1.tar.gz", hash = "sha256:041d1877ae034c242774e3f230926c445388d15a07cb420d320e52fb1fb4c68b"},
+    {file = "eflips_depot-4.15.1-py3-none-any.whl", hash = "sha256:eb05302347d9b331555fc3092864c8a97cfd6537e2e2962d6790f9e34274d7d3"},
+    {file = "eflips_depot-4.15.1.tar.gz", hash = "sha256:70afccf0c146b53af3e3702f96ef40cd6132853e92987ed3d84a5671b94733c5"},
 ]
 
 [package.dependencies]
 eflips = ">=0.1.3,<0.2.0"
 eflips-model = ">=10.0.0,<11.0.0"
-eflips-opt = ">=0.3.0,<0.4.0"
+eflips-opt = ">=0.3.6,<0.4.0"
 pandas = ">=2.2.0,<3.0.0"
 scipy = ">=1.14.0,<2.0.0"
 simpy = ">=4.0.1,<5.0.0"
@@ -1096,13 +1096,13 @@ sqlalchemy = ">=2.0.23,<3.0.0"
 
 [[package]]
 name = "eflips-opt"
-version = "0.3.5"
+version = "0.3.6"
 description = "A collection of pre-simulation optimization algorithms for eFLIPS."
 optional = false
 python-versions = "<3.14,>=3.10"
 files = [
-    {file = "eflips_opt-0.3.5-py3-none-any.whl", hash = "sha256:6ca1248acd2a8c123553a5a33f257224fddccc1d5105cbc6f65dc785f7fc822c"},
-    {file = "eflips_opt-0.3.5.tar.gz", hash = "sha256:d3f85431efd00c7f69c5238f8ac121aec19168062ab2a036cf4a0fa975d70076"},
+    {file = "eflips_opt-0.3.6-py3-none-any.whl", hash = "sha256:3a7e0caffc3174df1b2959ce219b2cc8d7156ecb6bc5c401125124366c6346e3"},
+    {file = "eflips_opt-0.3.6.tar.gz", hash = "sha256:7ad2861095b483393a8c7ab69aa680d3bf262949c45341e88eb89e2c4d56a9a1"},
 ]
 
 [package.dependencies]

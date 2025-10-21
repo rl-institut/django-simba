@@ -1402,14 +1402,22 @@ def apply_depot_strategy(scenario: Scenario, strategy: str) -> None:
         ts_end = -((spice_ev_scenario.start_time - event.time_end) // spice_ev_scenario.interval)
         # end timestep is inclusive in range
         time_range = range(ts_start, ts_end + 1)
-        if event.timeseries is None:
-            event.timeseries = {
-                "time": [
-                    (spice_ev_scenario.start_time + i * spice_ev_scenario.interval).isoformat()
-                    for i in time_range
-                ]
-            }
+        spice_ev_timeseries = {
+            "time": [
+                (spice_ev_scenario.start_time + i * spice_ev_scenario.interval).isoformat()
+                for i in time_range
+            ]
+        }
         new_soc_ts = [spice_ev_scenario.vehicle_socs[vid][i] for i in time_range]
+        if not spice_ev_timeseries == event.timeseries["time"]:
+            # NOTE: timeseries data can contain all kinds of data which relates to the list of "time".
+            # Changing the "time" list therefore invalidates other data and is removed
+            # "time" data is changed so its consistent with the SpiceEV soc data.
+            logger.warning(
+                "Timesteps diverge between SpiceEV and eFlips. SpiceEV is used and other timeseries are discarded"
+            )
+            new_data = {**spice_ev_timeseries, "soc": event.timeseries["soc"]}
+            event.timeseries = new_data
         replace_event_timeseries(event, new_soc_ts)
         event.description = (
             f"{(event.description) or ''} from SimBA depot Strategy with "
