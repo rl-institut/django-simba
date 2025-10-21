@@ -1724,7 +1724,7 @@ def import_scenario_tree(request):
                     f"Imported Scenario will get a new task_id of {new_task_id}"
                 )
                 scenario.task_id = new_task_id
-                scenario.manager = request.user
+            scenario.manager = request.user
 
         importer.adjust_foreign_keys()
         importer.bulk_create()
