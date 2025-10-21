@@ -176,6 +176,9 @@ def build_scenario():
         # NOTE: Eflips needs masses for calculation
         vt.allowed_mass = 20_000
         vt.empty_mass = 10_000
+        vt.width = 3
+        vt.length = 12
+        vt.height = 10
         query = Consumption.objects.filter(vehicle_class=VehicleClass.objects.get(vehicletype=vt))
         assert query.exists()
         vt.save()
