@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("ebustoolbox", "0070_vehicletype_max_consumption"),
+        ("ebustoolbox", "0072_alter_notification_notification_type_and_more"),
     ]
 
     operations = [
