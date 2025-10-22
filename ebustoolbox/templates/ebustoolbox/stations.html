@@ -171,17 +171,20 @@
       {% csrf_token %}
 
       <p class="mt-1 text-sm text-slate-500 leading-6">
-          {% translate 'Standardmäßig berechnet die Simulation, ob die Endstationen elektrifiziert werden müssen, und bestimmt dabei automatisch die Anzahl der Ladepunkte. Sie haben jedoch die Möglichkeit, die Endstationen manuell zu elektrifizieren und die Anzahl der Ladepunkte sowie die Ladeleistung festzulegen – oder alternativ die Elektrifizierung vollständig auszuschließen.' %}
+        {% translate 'Es werden alle Standorte aus dem Umlaufplan als Endhaltestellen betrachtet, an denen ein Bus mindestens zwei Minuten lang steht. Standardmäßig berechnet die Simulation, ob die Endstationen elektrifiziert werden müssen, und bestimmt dabei automatisch die Anzahl der Ladepunkte. Sie haben jedoch die Möglichkeit, die Endstationen manuell zu elektrifizieren und die Anzahl der Ladepunkte sowie die Ladeleistung festzulegen – oder alternativ die Elektrifizierung vollständig auszuschließen.' %}
       </p>
 
-    <!-- Placeholder -->
     <div class="flex items-center justify-between space-x-4 border-b border-t pt-6 pb-8">
       <div class="w-4/12" id="">
         <label for="default_charge_power" class="flex items-center text-sm/6 font-medium text-slate-800 pb-2">
               <span>{% translate 'Ladeleistung' %}</span>
         </label>
         <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-              <input {{charging_power_form.default_charge_power|widget_attrs}} class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency" >
+              <input {{charging_power_form.default_charge_power|widget_attrs}} class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+              placeholder="0,00"
+              aria-describedby="price-currency"
+              onchange="updateDefaultChargePower()"
+              >
           <div id="" class="shrink-0 select-none text-slate-500">kW</div>
         </div>
       </div>
@@ -232,38 +235,6 @@
         </button>
       </div>
       <div class="flex items-end space-x-4 pb-4">
-        <div class="w-4/12">
-          <label for="stationFilterLabel" class="flex items-center space-x-2 text-sm/6 font-medium text-slate-500">
-            <span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-                class="h-4 w-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
-              </svg>
-            </span>
-                <span>{% translate 'Filter' %}</span>
-          </label>
-          <div class="mt-2 relative">
-            <button type="button"
-              id="stationFilter"
-              type="button"
-              class="grid w-full rounded-md bg-white py-1.5 px-3 text-left text-slate-800 outline outline-1 -outline-offset-0 outline-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-              aria-haspopup="listbox"
-              aria-expanded="false"
-              aria-labelledby="stationFilterlabel"
-            >
-                  <span id="assignedToLabel" class="col-start-1 row-start-1 truncate pr-6">{% translate 'linie' %}</span>
-              <svg class="col-start-1 row-start-1 h-5 w-5 self-center justify-self-end text-slate-500 sm:h-4 sm:w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
-              </svg>
-            </button>
-            <!-- Add Dropdown list -->
-          </div>
-        </div>
         <div class="w-8/12">
           <div class="mt-2 relative">
             <div
@@ -272,7 +243,7 @@
               tabindex="0"
               aria-label="Item auswählen"
             >
-                  <span id="placeholder" class="text-slate-400">{% translate 'Select an item...' %}</span>
+              <span id="line-filter" class="text-slate-400">{% translate 'Linie auswählen...' %}</span>
             </div>
             <svg
               class="absolute top-1/2 right-3 h-5 w-5 -translate-y-1/2 text-slate-500 pointer-events-none"
@@ -382,7 +353,46 @@
                   </div>
                 </div>
               </td>
-              <td class="px-4 py-3"></td>
+              <td class="px-4 py-3">
+                <div class="flex items-center space-x-2">
+                  <button type="button"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full all-station-btn"
+                    data-value="elektrifizieren"
+                  >
+                    <span class="pr-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
+                        <path d="M8.36842 4L6 8.16901H10L7.78947 12"/>
+                        <circle cx="8" cy="8" r="7.5"/>
+                      </svg>
+                    </span>
+                    Elektrifizieren
+                  </button>
+                  <button type="button"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full all-station-btn"
+                    data-value="automatisch"
+                  >
+                    <span class="pr-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
+                        <path d="M8.36842 4L6 8.16901H10L7.78947 12" />
+                        <circle cx="8" cy="8" r="7.5" stroke-dasharray="3 3"/>
+                      </svg>
+                    </span>
+                    Automatisch
+                  </button>
+                  <button type="button"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full all-station-btn"
+                    data-value="nicht-elektrifizieren"
+                  >
+                    <span class="pr-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
+                        <circle cx="8" cy="8" r="7.5" />
+                        <path d="M3 3.5L12.5 13" />
+                      </svg>
+                    </span>
+                    Nicht elektr.
+                  </button>
+                </div>
+              </td>
               <td class="px-4 py-3"></td>
               <td class="px-4 py-3"></td>
             </tr>
@@ -391,7 +401,10 @@
               {% with stations_forms|get_item:station_id as form %}
                 {% with stations|get_item:station_id as station %}
             <tr
-              class="bg-white station-row" data-value="{{ station.name }}" data-lines="{{ station.lines|join:' ' }}"
+              class="bg-white station-row"
+              data-station-id="{{ station.id }}"
+              data-value="{{ station.name }}"
+              data-lines="{{ station.lines|join:' ' }}"
             >
               <td class="px-4 py-3">
                 <div class="flex gap-3">
@@ -413,10 +426,10 @@
                 <div id="electrifyState" class="flex items-center space-x-2">
                   <input type="hidden"   {{form.is_electrified|widget_attrs}}>
                   <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-elektrifizieren"
                     data-color="emerald"
                     data-value="elektrifizieren"
-                          data-station-id="{{ station_id }}"
+                    data-station-id="{{ station_id }}"
                   >
                     <span class="pr-2">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
@@ -426,12 +439,12 @@
                     </span>
                         {% translate 'Elektrifizieren' %}
                   </button>
-{#                  Automatisch does not got an input since its the default. The state is implied by "electrified" not being set and "excluded" not being set#}
+                  <input type="hidden"  {{form.is_electrifiable|widget_attrs}}>
                   <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-amber-100 font-semibold text-sm text-amber-700 shadow rounded-full selected"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-automatisch"
                     data-color="amber"
                     data-value="automatisch"
-                          data-station-id="{{ station_id }}"
+                    data-station-id="{{ station_id }}"
                   >
                     <span class="pr-2">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
@@ -441,13 +454,12 @@
                     </span>
                         {% translate 'Automatisch' %}
                   </button>
-{#                  hidden input which is set via js#}
-                    <input type="hidden"  {{form.is_electrifiable|widget_attrs}}>
+                  {# Not electrified does not got an input since it is the default. The state is implied through the other two inputs. #}
                   <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-nicht-elektrifizieren"
                     data-color="gray"
                     data-value="nicht-elektrifizieren"
-                          data-station-id="{{ station_id }}"
+                    data-station-id="{{ station_id }}"
                   >
                     <span class="pr-2">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
@@ -478,8 +490,8 @@
                   class="mr-4"
                   data-input="charging-power"
                 >
-                  <div class="flex items-center rrounded-md outline outline-1 outline-transparent">
-                    <input {{ form.power_per_charger|widget_attrs }} class="block w-full bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6" placeholder="0,00" aria-describedby="price-currency">
+                  <div class="flex items-center rounded-md outline outline-1 outline-transparent">
+                    <input {{ form.power_per_charger|widget_attrs }} class="inp-charge-power block w-full bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6" placeholder="{{ charging_power_form.default_charge_power.value }}" aria-describedby="price-currency">
                     <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kW</div>
                   </div>
                 </div>
@@ -496,22 +508,16 @@
     </form>
   </section>
   <script>
-      // Placeholder for implementation
       function validate() {
           clearStationSearch();
           clearFilter();
           setAllRowsVisible();
-          let is_valid = true;
-          if (!is_valid) {
-              event.preventDefault();
-          }
-
       }
       function clearStationSearch(){
           stationSearch.value = "";
       }
       function clearFilter(){
-          let selectedLineDivs = select_container.querySelectorAll('span:not([id="placeholder"])')
+          let selectedLineDivs = select_container.querySelectorAll('span:not([id="line-filter"])')
           selectedLineDivs.forEach((element)=> element.remove())
       }
       function setAllRowsVisible(){
@@ -560,16 +566,23 @@
 
       function setRowsHidden() {
           console.log("fired")
-          let selectedDivs = select_container.querySelectorAll("[data-value]")
-          let searchLines = Array.from(selectedDivs).map((x) => x.getAttribute("data-value"))
-          let searchString = stationSearch.value.toString().toLowerCase()
+          const selectedDivs = select_container.querySelectorAll("[data-value]");
+          const searchLines = Array.from(selectedDivs).map((x) => x.getAttribute("data-value"));
+          const searchString = stationSearch.value.toString().toLowerCase();
+          const selectAll = document.getElementById("selectAll");
           rows.forEach((row) => {
               if (filterElement(row, searchString, searchLines)) {
                   row.classList.remove("hidden");
               } else {
                   row.classList.add("hidden");
+                  // deselect hidden row
+                  let stationId = row.getAttribute("data-station-id");
+                  let select = document.getElementById("selected_" + stationId);
+                  if (select && select.checked) {
+                    select.checked = false;
+                    selectAll.checked = false;
+                  }
               }
-
         })
 
     }
@@ -629,19 +642,15 @@
               const isElectrifiedDiv = row.querySelector('input[id$="is_electrified"]')
 
               const isElectrifiableDiv = row.querySelector('input[id$="is_electrifiable"]')
-              isElectrifiedDiv.checked = true;
-              isElectrifiableDiv.checked = true;
+              isElectrifiedDiv.checked = false;
+              isElectrifiableDiv.checked = false;
               var button;
               if (isElectrifiedDiv.value === 'true') {
-                  console.assert(isElectrifiableDiv.value === 'true');
                   button = row.querySelector('[data-value="elektrifizieren"]');
-              } else if (isElectrifiableDiv.value === 'false') {
-                  console.assert(isElectrifiedDiv.value === 'false');
-                  button = row.querySelector('[data-value="nicht-elektrifizieren"]');
-              } else {
-                  console.assert(isElectrifiedDiv.value === 'false');
-                  console.assert(isElectrifiableDiv.value === 'true');
+              } else if (isElectrifiableDiv.value === 'true') {
                   button = row.querySelector('[data-value="automatisch"]');
+              } else {
+                  button = row.querySelector('[data-value="nicht-elektrifizieren"]');
               }
               // click the button according to the passed inputs.
               button.click();
@@ -693,15 +702,23 @@
             setElectrifiedCount();
         }
 
+      function updateDefaultChargePower() {
+        let value = document.getElementById('id_default_charge_power').value;
+        for (let e of document.getElementsByClassName( 'inp-charge-power')) {
+          e.placeholder = value;
+        }
+      }
+      updateDefaultChargePower();
+
 
       function styleRowButtonsToState(clickedButton, buttons) {
           // Reset all buttons in the row to their unselected state
-          buttons.forEach((btn) => {
+          for (let btn of buttons) {
               const color = btn.getAttribute("data-color");
               btn.classList.remove("shadow", "selected");
               btn.classList.replace(`bg-${color}-100`, "bg-white");
               btn.classList.replace(`text-${color}-700`, "text-slate-500");
-          });
+          };
 
           // Apply selected styles to the clicked button
           const color = clickedButton.getAttribute("data-color");
@@ -717,15 +734,15 @@
 document.addEventListener("DOMContentLoaded", () => {
   const multiselectContainer = document.getElementById("multiselect-container");
   const dropdownList = document.getElementById("dropdown-list");
-  const placeholder = document.getElementById("placeholder");
+  const lineFilter = document.getElementById("line-filter");
 
-  // Function to toggle placeholder visibility
-    function togglePlaceholder() {
+  // Function to toggle line filter visibility
+    function toggleLineFilter() {
       const hasItems = multiselectContainer.querySelectorAll("[data-value]").length > 0;
       if (hasItems) {
-        placeholder.classList.add("hidden");
+        lineFilter.classList.add("hidden");
       } else {
-        placeholder.classList.remove("hidden");
+        lineFilter.classList.remove("hidden");
       }
     }
 
@@ -759,10 +776,10 @@ document.addEventListener("DOMContentLoaded", () => {
           pill.querySelector("span").addEventListener("click", (e) => {
             e.stopPropagation();
             pill.remove();
-            togglePlaceholder(); // Check placeholder visibility after removing
+            toggleLineFilter(); // Check line filter visibility after removing
           });
 
-          togglePlaceholder(); // Check placeholder visibility after adding
+          toggleLineFilter(); // Check line filter visibility after adding
         }
       });
     });
@@ -781,7 +798,7 @@ document.addEventListener("DOMContentLoaded", () => {
 document.addEventListener("DOMContentLoaded", () => {
     const bulkSelection = document.getElementById("bulkSelection");
     const buttons = bulkSelection.querySelectorAll("button");
-    const prefix = "bulk_"
+    const prefix = "bulk_";
     const bulkInputContainer = document.getElementById("bulkInputContainer");
 
     buttons.forEach((button) => {
@@ -824,7 +841,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         let num_charging = document.getElementById("bulk_chargingPointNumber")
         let charging_capacity = document.getElementById("bulk_chargingCapacity")
-        const selected_checkboxes = document.querySelectorAll(['input[type="checkbox"][id^="selected_"]:checked'])
+        const selected_checkboxes = document.querySelectorAll(['input[type="checkbox"][id^="selected_"]:checked']);
     if (!num_charging.checkValidity() || !charging_capacity.checkValidity()) {
         if (!num_charging.checkValidity()) {
             num_charging.reportValidity();
@@ -850,8 +867,40 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         })
     };
-})
+});
 
+// Update all rows button functionality
+document.addEventListener("DOMContentLoaded", _ => {
+  // find top row buttons by class
+  const buttons = document.getElementsByClassName("all-station-btn");
+  for (let button of buttons) {
+    button.addEventListener("click", _ => {
+      const value = button.getAttribute("data-value");
+      const affectedButtons = document.getElementsByClassName("station-btn-" + value);
+
+      // get ID from selected checkboxes
+      const selected_checkboxes = document.querySelectorAll(['input[type="checkbox"][id^="selected_"]:checked']);
+      const selected_ids = Array.prototype.map.call(
+        selected_checkboxes, chk=>chk.getAttribute("data-station-id"));
+
+      // change state of station rows (only selected/visible)
+      for (let affectedButton of affectedButtons) {
+        const stationId = affectedButton.getAttribute("data-station-id");
+        if (selected_checkboxes.length > 0) {
+          // checkboxes selected: is this row selected?
+          if (selected_ids.includes(stationId))
+            affectedButton.click();
+        } else {
+          // no checkboxes selected: is this row visible?
+          // (if not, filter is applied and this row should not be changed)
+          let row = document.querySelector('tr[data-station-id="' + stationId + '"]');
+          if (!row.classList.contains("hidden"))
+            affectedButton.click();
+        }
+      }
+    });
+  }
+});
 
 // Electrify state button functionality
 document.addEventListener("DOMContentLoaded", () => {
@@ -943,6 +992,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("DOMContentLoaded", () => {
     const checkboxes = document.querySelectorAll('input[type="checkbox"]');
     const bulkEditingButton = document.getElementById("bulkEditingButton");
+    const selectAll = document.getElementById("selectAll");
 
     checkboxes.forEach((checkbox) => {
       checkbox.addEventListener("change", () => {
@@ -953,6 +1003,11 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           bulkEditingButton.classList.add("hidden");
         }
+
+        // change state of "select all" checkbox based on other checkboxes
+        // all selected: check "select all", otherwise uncheck it
+        // off-by-one if "select all" itself is checked
+        selectAll.checked = (checkedCheckboxes.length - selectAll.checked) == (checkboxes.length - 1);
       });
     });
   });

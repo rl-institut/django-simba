@@ -833,7 +833,7 @@
             });
     }
 
-    function fetchAndRenderLineChart(chartName, chartId, titleText, xKey, yKey) {
+    function fetchAndRenderLineChart(chartName, chartId, titleText) {
 
         return fetch(`/simba/result/${taskId}/${chartName}/`)
         .then(response => response.json())
@@ -915,7 +915,7 @@
             chart.setOption(options);
         });
     }
-  function fetchAndRenderDepotChart(chartName, chartId, titleText, xKey, yKey) {
+  function fetchAndRenderDepotChart(chartName, chartId, titleText) {
         return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(responseData => {
@@ -1772,8 +1772,8 @@
         // Render the charts
         fetchAndRenderPieChart("critical_rotations", "chartContainer", "Kritische und nicht kritische Umläufe"),
         fetchAndRenderPieChart("bustype", "busTypeChartContainer", "Verteilung Fahrzeugtyp"),
-        fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit", "time_end", "soc_end_prc"),
-        fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Ladeleistung und Belegung", "time_end", "soc_end_prc"),
+        fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit"),
+        fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Ladeleistung und Belegung"),
 
         fetchAndRenderStats("stats", "_", "_"),
         fetchAndRenderGanttChart("gantt","ganttChart","_"),

@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("ebustoolbox", "0072_alter_notification_notification_type_and_more"),
+        ("ebustoolbox", "0073_alter_station_is_electrifiable_default.py"),
     ]
 
     operations = [
