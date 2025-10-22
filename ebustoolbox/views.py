@@ -1724,11 +1724,13 @@ def import_scenario_tree(request):
                     f"Imported Scenario will get a new task_id of {new_task_id}"
                 )
                 scenario.task_id = new_task_id
-            scenario.manager = request.user
 
         importer.adjust_foreign_keys()
         importer.bulk_create()
         importer.create_many_to_many()
+        scenario_ids = [scenario.id for scenario in importer.object_data["Scenario"]]
+        Scenario.objects.filter(id__in=scenario_ids).update(manager=request.user)
+
         core.deepcopy.reset_postgres_auto_increments([Scenario._meta.app_label])
         return HttpResponse(
             _(
