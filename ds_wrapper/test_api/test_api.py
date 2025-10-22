@@ -54,7 +54,7 @@ def clear_db():
     path_to_this_file = os.path.dirname(os.path.abspath(__file__))
     path_to_clear_database_sql = os.path.join(path_to_this_file, "clear_database.sql")
 
-    _, database_user, database_password, database_host, database_port, database_name = (
+    unused_variable, database_user, database_password, database_host, database_port, database_name = (
         database_url_components(DATABASE_URL)
     )
 
@@ -77,7 +77,7 @@ def import_db():
     path_to_this_file = os.path.dirname(os.path.abspath(__file__))
     path_to_import_eflips_model_sql = os.path.join(path_to_this_file, "eflips-model-sample-db.sql")
 
-    _, database_user, database_password, database_host, database_port, database_name = (
+    unused_variable, database_user, database_password, database_host, database_port, database_name = (
         database_url_components(DATABASE_URL)
     )
 

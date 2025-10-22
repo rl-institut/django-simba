@@ -26,6 +26,11 @@ Template:
 - Depot Layout is not yet copied over
 - Default scenario skips station optimization
 
+- [(#255)](https://github.com/rl-institut/django-simba/pull/255)
+- Change the depot input with two possible forms per depot
+  - Enable automatic depot configuration with a default charge power
+  - Enable custom depot configuration with cleaning duration, cleaning slots, shunting duration and shunting slots and a VehicleType dependent areas specifying charging point numbers and charging power.
+
 
 - [(#246)](https://github.com/rl-institut/django-simba/pull/246)
 - Update the database structure to match the one of eflips-model v10.0.0
@@ -77,6 +82,10 @@ django-admin compilemessages
 ### Changed
 - [(#242)](https://github.com/rl-institut/django-simba/pull/242)
 - Updated station and depot icons on map
+
+### Changed
+- [(#239)](https://github.com/rl-institut/django-simba/pull/239)
+- Improved comparison table layout
 
 ### Changed
 - [(#223)](https://github.com/rl-institut/django-simba/pull/223)

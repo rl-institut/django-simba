@@ -11,8 +11,8 @@
 >
 
   {% csrf_token %}
-  <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Umlaufplan' %}</h1>
+  <div class="sm:pt-8 sm:pb-4 lg:pt-6 sm:px-6 lg:px-8 w-full max-w-7xl">
+    <h1 class="pb-6 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Umlaufplan' %}</h1>
     <span class="block mb-6 text-sm text-slate-500">{% translate 'Laden Sie ihren Umlaufplan hoch. Alternativ können Sie den Umlaufplan aus einem existierendem Szenario auswählen.' %}</span>
 
 {# ToDo @Bryan add styling and position div to your liking #}
@@ -25,14 +25,16 @@
             <div class="relative inline-block">
               <!-- Info Icon with group -->
               <span class="cursor-pointer group">
+                <a target="_blank" and rel="noopener noreferrer" href="{% url "core:help" %}#umlaufplan">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                      stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round"
                         d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/>
                 </svg>
+                </a>
                 <!-- Tooltip -->
                 <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                  {% translate 'Bottom Left-Aligned Tooltip' %}
+                  {% translate 'Lade eine Datei hoch die Ihren Umlaufplan abbildet. Für unterstütze Dateiformate klicken Sie hier.' %}
                 </div>
               </span>
             </div>
@@ -132,9 +134,9 @@
           </label>
         </div>
         <div class="mt-2">
-          <textarea type="text" {{ form.description|widget_attrs }} rows="4"
+          <textarea type="text" {{ form.description|widget_attrs }} rows="3"
             class="bg-white w-full px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-emerald-400 sm:text-sm/6"
-            placeholder={% translate "Beschreiben Sie Ihr Szenario..." %}
+            placeholder="{% translate "Beschreiben Sie Ihr Szenario..." %}"
             aria-describedby="description-optional">{% if form.description.value %}{{ form.description.value }}{% endif %}</textarea>
         </div>
       </div>

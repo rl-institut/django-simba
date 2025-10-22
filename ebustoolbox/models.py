@@ -338,6 +338,20 @@ class VehicleType(models.Model):
             self.name_short = self.name
         super().save(*args, **kwargs)
 
+    def get_charging_power(self, soc: float) -> float:
+        """Get the charging power the vehicle type is capable of at a given soc"""
+        prev_s = 0
+        prev_power = self.charging_curve[0][1]
+        for s, power in self.charging_curve:
+            if s >= soc:
+                return (
+                    (soc - prev_s) * (power - prev_power) / (s - prev_s) + prev_power
+                ) * self.charging_efficiency
+            prev_s = s
+            prev_power = power
+        # Return the last value of the charging curve
+        return self.charging_curve[-1][1] * self.charging_efficiency
+
 
 class ChargingPointType(models.Model):
     """
@@ -1463,6 +1477,7 @@ class EventType(models.TextChoices):
     SERVICE = "SERVICE"
     STANDBY_DEPARTURE = "STANDBY_DEPARTURE"
     PRECONDITIONING = "PRECONDITIONING"
+    STANDBY = "STANDBY"
 
 
 class Event(models.Model):
@@ -1575,10 +1590,45 @@ class Event(models.Model):
                 )
         super().save(*args, **kwargs)
 
+    def get_duration(self):
+        return self.time_end - self.time_start
+
+    def get_energy_delta(self) -> timedelta:
+        """Energy delta between end and start of event in kWh"""
+        return (self.soc_end - self.soc_start) * self.vehicle_type.battery_capacity
+
+    def get_average_power(self) -> float:
+        """Average power in kW"""
+        return self.get_energy_delta() / (self.get_duration().total_seconds() / 60 / 60)
+
+    def get_power_curve(self):
+        """Get the power curve of the timeseries
+        Power is calculated in between socs.
+        For n soc values n-1 power values are generated
+        returns list[power:float]
+        """
+        if not self.timeseries:
+            return []
+        if not self.timeseries["soc"]:
+            return []
+        bat_cap = self.vehicle_type.battery_capacity
+        socs = self.timeseries["soc"]
+        times = self.timeseries["time"]
+        powers = []
+        for i, soc in enumerate(socs[:-1]):
+            next_soc = socs[i + 1]
+            t = datetime.fromisoformat(times[i])
+            next_t = datetime.fromisoformat(times[i + 1])
+            power = (next_soc - soc) * bat_cap / ((next_t - t).total_seconds() / 60 / 60)
+            powers.append(power)
+        return powers
+
     def __str__(self):
         out = f"Id={self.id} {self.event_type} Event "
         if self.trip:
-            out += f"for block {self.trip.rotation.name}:{self.trip.rotation.id}"
+            out += (
+                f"for block name {self.trip.rotation.name} and block id {self.trip.rotation.id}  "
+            )
         out += f"at start time {self.time_start.isoformat()}"
         return out
 
@@ -1791,6 +1841,29 @@ class ScenarioWizardOptions(models.Model):
     lca_calculation_mode = models.CharField(
         max_length=20, choices=EnumCalculationModes.choices, null=True, default=None
     )
+
+
+class DepotConfigurationWish(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE, blank=True)
+    station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE, blank=True)
+    auto_generate = models.BooleanField(null=False, default=True)
+    power = models.FloatField(null=True, blank=True)
+    cleaning_slots = models.IntegerField(null=True, blank=True)
+    cleaning_duration = models.IntegerField(null=True, blank=True)
+
+    shunting_slots = models.IntegerField(null=True, blank=True)
+    shunting_duration = models.IntegerField(null=True, blank=True)
+
+
+class AreaInformation(models.Model):
+    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE, blank=True)
+    depot_configuration_wish = models.ForeignKey(
+        DepotConfigurationWish, null=False, on_delete=models.CASCADE, blank=True
+    )
+    vehicle_type = models.ForeignKey(VehicleType, null=False, on_delete=models.CASCADE, blank=True)
+    area_type = models.CharField(max_length=14, choices=AreaType.choices, null=True, default=None)
+    capacity = models.IntegerField(null=True)
+    power = models.FloatField(null=True)
 
 
 class EnumNotificationLevels(models.TextChoices):

@@ -51,6 +51,8 @@ from simba.data_container import DataContainer
 from simba.schedule import Schedule as SimbaSchedule
 from . import schedule_readers, forms
 from .models import (
+    AreaInformation,
+    DepotConfigurationWish,
     DepotMutation,
     User,
     Route,
@@ -1365,22 +1367,40 @@ def simulate_depot_strategy(spice_ev_scenario_dict: dict, strategy: str) -> Simb
     return spice_ev_scenario
 
 
+def abbreviate_list(long_list: list, tail_elements: int = 2, delimiter: str = ",", fmt="") -> str:
+    delimiter += " "
+    if not len(long_list) > tail_elements * 2:
+        return "[ " + delimiter.join(long_list) + " ]"
+    return (
+        "[ "
+        + delimiter.join(format(x, fmt) for x in long_list[:tail_elements])
+        + " ... "
+        + delimiter.join(format(x, fmt) for x in long_list[-tail_elements:])
+        + " ] "
+        + f"{len(long_list)} elements"
+    )
+
+
 def replace_event_timeseries(event: Event, soc_ts: list) -> None:
     # replace Event soc timeseries with arbitrary list
     # ### sanity checks ### #
     # start and end soc must remain the same
     if not (abs(soc_ts[0] - event.soc_start) < EPS):
-        logger.info(
-            f"Delta of {abs(soc_ts[0] - event.soc_start)} at {event}."
-            f"{event.soc_start} Start Soc\n Timeseries:\n{soc_ts}"
+        logger.error(
+            "Depot Charging Simulation diverged\n"
+            f"Delta of {abs(soc_ts[0] - event.soc_start)} at {event}.\n"
+            f"{event.soc_start} Start Soc\n Timeseries:\n{abbreviate_list(soc_ts, fmt='.2e')}"
         )
-        raise AssertionError("Depot Charging Simulation diverged")
+        event.soc_start = soc_ts[0]
+        Event.objects.bulk_update([event], fields=["soc_start"])
     if not (abs(soc_ts[-1] - event.soc_end) < EPS):
-        logger.info(
-            f"Delta of {abs(soc_ts[-1] - event.soc_end)} at {event}."
-            f"{event.soc_end} END SOC\n Timeseries:\n{soc_ts}"
+        logger.error(
+            "Depot Charging Simulation diverged\n"
+            f"Delta of {abs(soc_ts[-1] - event.soc_end)} at {event}.\n"
+            f"{event.soc_end} END SOC\n Timeseries:\n{abbreviate_list(soc_ts, fmt='.2e')}"
         )
-        raise AssertionError("Depot Charging Simulation diverged")
+        event.soc_end = soc_ts[-1]
+        Event.objects.bulk_update([event], fields=["soc_end"])
     # event soc should always be defined / not null
     assert all([soc is not None for soc in soc_ts])
     # soc and time lists must have same length
@@ -1417,6 +1437,43 @@ def apply_depot_strategy(scenario: Scenario, strategy: str) -> None:
         replace_event_timeseries(event, new_soc_ts)
     Event.objects.bulk_update(events, ["timeseries"])
     logger.info(f"{events.count()} depot charging events updated")
+
+
+def apply_depot_and_area_wishes(mutation: Scenario, child: Scenario, stack: dict) -> None:
+    depot_configs = DepotConfigurationWish.objects.filter(scenario=mutation)
+    # Assert uniqueness of the mutations
+    new_depot_configs = []
+    new_area_infos = []
+    i = ebustoolbox.util.get_next_id(DepotConfigurationWish)
+    ii = ebustoolbox.util.get_next_id(AreaInformation)
+    for depot_config in depot_configs:
+        depot_config: DepotConfigurationWish
+        area_infos = AreaInformation.objects.filter(
+            scenario=mutation, depot_configuration_wish=depot_config
+        )
+        search_station = StationMutation.objects.get(
+            mutated_original_station=depot_config.station
+        ).original_station
+        depot_config.station_id = stack[Station][search_station.id]
+        depot_config.scenario = child
+        depot_config.id = i
+        i += 1
+        new_depot_configs.append(depot_config)
+
+        for area_info in area_infos:
+            area_info: AreaInformation
+            area_info.scenario = child
+            search_vt = VehicleTypeMutation.objects.get(
+                mutated_vehicle_type=area_info.vehicle_type
+            ).original_vehicle_type
+            area_info.vehicle_type_id = stack[VehicleType][search_vt.id]
+            area_info.depot_configuration_wish = depot_config
+            area_info.id = ii
+            ii += 1
+            new_area_infos.append(area_info)
+
+    DepotConfigurationWish.objects.bulk_create(new_depot_configs)
+    AreaInformation.objects.bulk_create(new_area_infos)
 
 
 def apply_station_mutation(mutation: Scenario, child: Scenario, stack: dict) -> None:
@@ -1604,6 +1661,7 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
 
     apply_vehicle_mutation(mutation, child, stack)
     apply_station_mutation(mutation, child, stack)
+    apply_depot_and_area_wishes(mutation, child, stack)
 
     child.save()
     return child
@@ -1769,8 +1827,13 @@ def _run_ebus_toolchain(self, task_id):
         schedule.assign_vehicles_custom(eflips_assignment)
 
         # Simba Run to add back the deleted events of eflips.
-        # TODO: Does eflips need to delete the events? then we could skip this step
+        # Since some blocks might start at lowered socs SimBA recalculation is appropriate.
+        # This will shift the driving SOCs towards 0, but posssibly increase charge due to
+        # higher charging rates at lower socs
         simba_scenario = run_simba(schedule, args, db_scenario, mode="sim", scenario=None)
+
+        consolidate_socs(db_scenario)
+
         # TODO: Keep that? / Set Depot values for final SimBA simulation?
         electrify_depot_station_w_default(db_scenario)
         #
@@ -1804,20 +1867,28 @@ def check_event_soc_consistency(db_scenario: Scenario):
 
     Consistency in this case is that soc_end values are identical to the next events soc_start of the same vehicle.
     """
+    logger.info(50 * "#" + "\nChecking event consistency")
+    consistent = True
     for vehicle in Vehicle.objects.filter(scenario=db_scenario):
         events = list(Event.objects.filter(vehicle=vehicle).order_by("time_start"))
         for i in range(len(events) - 2):
             if not events[i].soc_end == events[i + 1].soc_start:
+                delta = events[i].soc_end - events[i + 1].soc_start
                 logger.warning(
                     f"SOC does not align between events for {vehicle=} for "
-                    f"events {events[i]} and {events[i+1]}"
-                    f"\n DELTA = {events[i].soc_end - events[i + 1].soc_start}"
+                    # f"events {events[i]} and {events[i+1]}"
+                    f"\n DELTA = {delta}\n"
+                    f"\n{events[i].id} and {events[i+1].id}"
                 )
+                consistent = False
 
             if not events[i].time_end == events[i + 1].time_start:
                 logger.warning(
                     f"Times do not align for Events {events[i].id} and {events[i+1].id} "
                 )
+                consistent = False
+    if consistent:
+        logger.info(50 * "#" + "\nEvents did not show inconsistencies")
 
 
 def electrify_depot_station_w_default(db_scenario):
@@ -2740,4 +2811,148 @@ def transform_depot_stations(parent: Scenario, child: Scenario) -> None:
     if len(changed_rotations) > 0:
         logger.warning(
             f"{changed_rotations.keys()} were transformed so they dont have intermediate stops at depot stations"
+        )
+
+
+@atomic()
+def consolidate_socs(scenario: Scenario) -> None:
+    """Align socs of consecutive events for drive and depot events
+
+    Iterate over depot events and remove gaps in between driving/simba and depot events
+    Depot charge events keep their end soc, since this is used for simba vehicle initialization.
+    Log warnings for unexpected gaps.
+    Bad Event input can lead to negative socs after this consolidation.
+    This is only possible if previous assumptions are not met.
+    Assumptions:
+    eflips dispositions vehicles to meet block consumption criteria
+    and applies this consumption to depot events after this block.
+    In this case the consolidation should only shift the soc by the added charge during opportunity
+    charging due to higher charging powers at lower socs.
+    (Assumption monotonic sinking charging curves over soc)
+    This shift would be positive and would not create negative socs.
+    """
+    logger.info(50 * "#" + "\n Consolidation")
+    EPS = 0.001
+    events = list(Event.objects.filter(scenario=scenario).order_by("vehicle", "time_start"))
+
+    # the first event type from eflips could be one of many
+    depot_event_types = [
+        EventType.CHARGING_DEPOT,
+        EventType.STANDBY_DEPARTURE,
+        EventType.PRECONDITIONING,
+        EventType.SERVICE,
+        EventType.STANDBY,
+    ]
+    # The last event type of simba is always a driving event
+    driving_event_types = [EventType.DRIVING]
+    if not events:
+        logger.warning(
+            f"Scenario {scenario.task_id} could not be consolidated, since it has no events"
+        )
+        return
+    vehicle = None
+    prev_event = None
+
+    running_delta_soc = 0
+    for i, event in enumerate(events):
+        event: Event
+        assert event.vehicle is not None, "Events must have a vehicle"
+        # New vehicle detected. First event is used to initialize values
+        if event.vehicle != vehicle:
+            vehicle = event.vehicle
+            prev_event = event
+            pre_fix_end_soc = event.soc_end
+            continue
+        prev_event = events[i - 1]
+        assert isinstance(prev_event, Event)
+        assert prev_event.time_end == event.time_start
+
+        # This is the delta which exists between the current and the previous event
+        pre_fix_delta = event.soc_start - pre_fix_end_soc
+        # This is the delta which has to be applied to the current event
+        # The deltas differs since, the prev_event.soc might have been changed during consolidation
+        running_delta_soc = event.soc_start - prev_event.soc_end
+
+        pre_fix_end_soc = event.soc_end
+
+        # The delta soc which has to be applied to the current event
+        # This does not reflect the delta_soc between both events before consolidation
+        running_delta_soc = event.soc_start - prev_event.soc_end
+
+        if running_delta_soc == 0:
+            continue
+
+        next_event = (
+            events[i + 1]
+            if (i + 1 > len(events) and events[i + 1].vehicle == vehicle)
+            else "No next Event"
+        )
+        create_consolidate_log(event, next_event, prev_event, running_delta_soc, pre_fix_delta)
+        # NOTE: Small deltas of SOC might occur anywhere
+        # Bigger delta_socs 'should' only happen at the interface DRIVING - DEPOT
+        if abs(pre_fix_delta) > EPS:
+            if (
+                prev_event.event_type not in driving_event_types
+                or event.event_type not in depot_event_types
+            ):
+                raise AssertionError("Big SoC Jump not at interface of SimBA/eFlips")
+
+        # NOTE: Charging depot events are only aligned at their start value.
+        # This makes the timeseries not usable, therefor they are deleted
+        # The timeseries can be recreated by SimBAs depot strategy
+        if event.event_type == EventType.CHARGING_DEPOT:
+            event.soc_start -= running_delta_soc
+            if event.timeseries and event.timeseries.get("soc"):
+                event.timeseries["soc"] = None
+            assert event.soc_start == prev_event.soc_end
+            continue
+
+        event.soc_start -= running_delta_soc
+        event.soc_end -= running_delta_soc
+        if event.timeseries and event.timeseries["soc"]:
+            ts = event.timeseries["soc"]
+            shifted_ts = [v - running_delta_soc for v in ts]
+            if min(shifted_ts) < 0 and min(ts) >= 0:
+                logger.warning(
+                    f"Consolidation lead to negative SOCs which did not exist before. {event=}"
+                )
+            if max(shifted_ts) > 1:
+                logger.warning(
+                    f"Consolidation lead to SOCs above 1. This should never happen. {event=}"
+                )
+            event.timeseries["soc"] = shifted_ts
+
+        assert event.soc_start == prev_event.soc_end
+
+    Event.objects.bulk_update(events, fields=["soc_end", "soc_start", "timeseries"])
+
+
+def create_consolidate_log(
+    event: Event,
+    next_event: Event | str,
+    prev_event: Event,
+    running_delta_soc: float,
+    pre_fix_delta: float,
+) -> None:
+    """Create a log depending on severity of delta soc"""
+    if pre_fix_delta != 0 and abs(pre_fix_delta) < 0.01:
+        logger.debug(
+            f"Socs differed by: {pre_fix_delta=:.2e}. {running_delta_soc=:.2e} is applied"
+            f"\n{prev_event.id} and {event.id}"
+        )
+    elif 0.1 > abs(pre_fix_delta) >= 0.01:
+        logger.info(
+            f"Socs differed by: {pre_fix_delta=:.2e}. {running_delta_soc=:.2e} is applied"
+            f"\n{prev_event.id} and {event.id}"
+        )
+    elif abs(pre_fix_delta) >= 0.1:
+        logger.warning(
+            f"Unexpected high soc delta {round(pre_fix_delta, 3)} during consolidation.\n"
+            f"{event=}\n{prev_event=}\n{next_event}."
+        )
+
+    if pre_fix_delta > 0:
+        logger.warning(
+            f"Unexpected soc drop {round(running_delta_soc, 3)} due to consolidation.\n"
+            f"{prev_event=}\n{event=}\n{next_event}."
         )
