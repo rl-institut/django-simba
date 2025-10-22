@@ -60,6 +60,7 @@ from ebustoolbox.models import (
     AreaInformation,
     DepotConfigurationWish,
     EnumNotificationType,
+    EnumSimulationType,
     Notification,
     Rotation,
     Scenario,
@@ -114,6 +115,15 @@ def progress_scenario(request: HttpRequest, progress_id, template_name):
         hx_trigger = "notRunning"
     if progress.success:
         hx_trigger = "success"
+        mutation_scenario = progress.scenario
+        children = Scenario.objects.filter(parent=mutation_scenario)
+        assert (
+            children.count() == 2
+        ), "There should only be two children. A sizing and a default scenario"
+        sizing_scenario = children.get(simulationtype__sim_type=EnumSimulationType.SIZING)
+        default_scenario = children.get(simulationtype__sim_type=EnumSimulationType.DEFAULT)
+        context |= {"sizing_scenario": sizing_scenario, "default_scenario": default_scenario}
+
     response = render(request, f"core/{template_name}", context)
     response["HX-Trigger"] = hx_trigger
     response.status_code = status_code

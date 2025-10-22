@@ -54,6 +54,7 @@ from .models import (
     AreaInformation,
     DepotConfigurationWish,
     DepotMutation,
+    EnumSimulationType,
     User,
     Route,
     Consumption,
@@ -64,6 +65,7 @@ from .models import (
     Rotation,
     Trip,
     Scenario,
+    SimulationType,
     EnumChargeType,
     EnumVoltageLevel,
     Line,
@@ -994,6 +996,8 @@ def run_and_merge_scenarios(
     logger.info(f"Creating an extreme scenario {sizing_scenario_task_id} for the first Simulation")
     # Create a basic merge from the mutation and the source
     sizing_scenario = merge_scenario(mutation_id, sizing_scenario_task_id)
+    SimulationType.objects.create(scenario=sizing_scenario, sim_type=EnumSimulationType.SIZING)
+
     # Swap the consumption so in the first run the max consumption is used
     swap_consumption_w_max_consumption(sizing_scenario)
     # If a LUT is used change the temperature to the extreme Temperature
@@ -1013,7 +1017,7 @@ def run_and_merge_scenarios(
     sizing_scenario.task_id = default_simulation_task_id
     average_scenario, stack = deepcopy_scenario(sizing_scenario)
     sizing_scenario.refresh_from_db()
-    assert sizing_scenario != default_simulation_task_id
+    assert sizing_scenario.task_id != default_simulation_task_id
 
     logger.info(f"Simulating scenario {average_scenario.task_id} with average consumption")
     # Swap the consumptions back
@@ -1028,6 +1032,9 @@ def run_and_merge_scenarios(
     # In these cases we do not want to extend electrification but only simulate the users wishes.
     average_scenario.simba_options["modes"] = "sim"
     average_scenario.save(update_fields=["simba_options"])
+    SimulationType.objects.filter(scenario=average_scenario).update(
+        sim_type=EnumSimulationType.DEFAULT
+    )
 
     assign_new_vehicles_to_db(average_scenario)
     _ = _run_ebus_toolchain.apply((default_simulation_task_id,), task_id=default_simulation_task_id)
