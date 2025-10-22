@@ -872,9 +872,12 @@ class StationsView(ScenarioMixIn, TemplateView):
             return self.render_to_response(context)
         # The forms are valid. Update the stations and exclude stations
         # from electrification
+        default_charge_power = charge_form.cleaned_data["default_charge_power"]
         ebustoolbox.tasks.update_stations_and_exclusion(
-            context["stations_forms"].values(), charge_form.cleaned_data["default_charge_power"]
+            context["stations_forms"].values(), default_charge_power
         )
+        # update simba options
+        scenario.simba_options["cs_power_opps"] = default_charge_power
         response = redirect(reverse(self.success_name, args=[scenario.task_id]))
         return response
 
