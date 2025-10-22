@@ -10,7 +10,7 @@
 {% endblock wizard_navigation %}
 
 {% block wizard_content %}
-<main class="flex flex-col items-center flex-grow">
+<main class="flex flex-col flex-grow">
 
 <form
   method="post"
@@ -97,56 +97,193 @@
         </div>
       </fieldset>
       <div id="costsInputs" class="hidden">
-        <!-- required -->
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-          {% include "ebustoolbox/partials/cost_input.html" with label="Zeithorizont" tooltip="Berechnungsdauer für die TCO. Gesamtsystemkosten und jährliche Kosten werden innerhalb dieses Zeitraums berechnet" unit="Jahre" input=costs_manual.project_duration|widget_attrs initial=costs_manual.project_duration.initial %}
-          {% include "ebustoolbox/partials/cost_input.html" with label="Personalkosten" tooltip="Personalkosten pro Betriebsstunde für ein Fahrzeug. Üblicherweise Arbeitgeberkosten für die Busfahrer:in, evtl. zzgl. Schaffner:in" unit="€/h" input=costs_manual.staff_cost|widget_attrs initial=costs_manual.staff_cost.initial %}
-          {% include "ebustoolbox/partials/cost_input.html" with label="Stromkosten" tooltip="Stromkosten pro kWh inklusive aller Gebühren" unit="€/kWh" input=costs_manual.energy_cost|widget_attrs initial=costs_manual.energy_cost.initial %}
-          {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten E-Fahrzeug" tooltip="Wartungskosten für ein Elektrofahrzeug, pro Fahrzeugkilometer" unit="€/km" input=costs_manual.maint_cost|widget_attrs initial=costs_manual.maint_cost.initial %}
-          {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten Ladeinfrastruktur" tooltip="Durchschnittliche Wartungskosten für eine Ladesäule über ein Jahr" unit="€/a" input=costs_manual.maint_inf_cost|widget_attrs initial=costs_manual.maint_inf_cost.initial %}
-          {% for vehicle_type in vehicle_types %}
-            <div>
-              <h4>{{ vehicle_type.name }}</h4>
-              {% include "ebustoolbox/partials/cost_input.html" with label="Fahrzeuglebensdauer" tooltip="Durchschnittliche Lebensdauer für ein Fahrzeug dieses Fahrzeugtyps" unit="Jahre" input=costs_manual.useful_life_bus|widget_attrs initial=costs_manual.useful_life_bus.initial %}
-              {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis" tooltip="Durchschnittlicher Kaufpreis für ein Fahrzeug dieses Typs. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst" unit="€" input=costs_manual.procurement_cost_bus|widget_attrs initial=costs_manual.procurement_cost_bus.initial %}
-              {% include "ebustoolbox/partials/cost_input.html" with label="Batterielebensdauer" tooltip="Durchschnittliche Lebensdauer für eine Batterie dieses Typs" unit="Jahre" input=costs_manual.useful_life_battery|widget_attrs initial=costs_manual.useful_life_battery.initial %}
-              {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Batterie" tooltip="Durchschnittlicher Kaufpreis für eine Batterie dieses Typs, angegeben pro kWh. Wenn unbekannt, Fahrzeugkaufpreis inkl. Batterie angeben und hier 0 (dann kann ein Batterietausch aber nicht abgebildet werden)" unit="€/kWh"  input=costs_manual.procurement_cost_battery|widget_attrs initial=costs_manual.procurement_cost_battery.initial %}
+        <!-- required manual inputs: general -->
+        <div
+          id="acc-req-general"
+          class="overflow-hidden rounded-lg bg-white shadow accordion-container"
+          data-value="req-general"
+        >
+          <div class="border-b border-slate-200">
+            <button id="acc-btn-req-general"
+                    type="button"
+                    onclick="toggleAccordion(this)"
+                    class="w-full flex justify-between items-center py-5 text-slate-800 bg-green-200 accordion-header">
+              <span class="w-max text-base font-bold px-2">{% translate 'Allgemeine Einstellungen' %}</span>
+              <span id="acc-icon-req-general"
+                    class="text-slate-800 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     viewBox="0 0 16 16"
+                     fill="currentColor"
+                     class="w-4 h-4">
+                  <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                </svg>
+              </span>
+            </button>
+            <div id="acc-content-req-general"
+                 class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+              <div class="accordion_content">
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Zeithorizont" tooltip="Berechnungsdauer für die TCO. Gesamtsystemkosten und jährliche Kosten werden innerhalb dieses Zeitraums berechnet" unit="Jahre" input=costs_manual.project_duration|widget_attrs initial=costs_manual.project_duration.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Personalkosten" tooltip="Personalkosten pro Betriebsstunde für ein Fahrzeug. Üblicherweise Arbeitgeberkosten für die Busfahrer:in, evtl. zzgl. Schaffner:in" unit="€/h" input=costs_manual.staff_cost|widget_attrs initial=costs_manual.staff_cost.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Stromkosten" tooltip="Stromkosten pro kWh inklusive aller Gebühren" unit="€/kWh" input=costs_manual.energy_cost|widget_attrs initial=costs_manual.energy_cost.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten E-Fahrzeug" tooltip="Wartungskosten für ein Elektrofahrzeug, pro Fahrzeugkilometer" unit="€/km" input=costs_manual.maint_cost|widget_attrs initial=costs_manual.maint_cost.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten Ladeinfrastruktur" tooltip="Durchschnittliche Wartungskosten für eine Ladesäule über ein Jahr" unit="€/a" input=costs_manual.maint_inf_cost|widget_attrs initial=costs_manual.maint_inf_cost.initial %}
+                </div>
+              </div>
             </div>
-          {% endfor %}
-          {% include "ebustoolbox/partials/cost_input.html" with label="Lebensdauer Depot-Ladepunkt" tooltip="Durchschnittliche Lebensdauer für einen Depot-Ladepunkt" unit="Jahre" input=costs_manual.useful_life_chargepoint_depot|widget_attrs initial=costs_manual.useful_life_chargepoint_depot.initial %}
-          {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Depot-Ladepunkt" tooltip="Durchschnittlicher Kaufpreis für einen Depot-Ladepunkt, inklusive anteiliger Leistungselektronik und anteiligem Netzanschluss. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst." unit="€" input=costs_manual.procurement_cost_chargepoint_depot|widget_attrs initial=costs_manual.procurement_cost_chargepoint_depot.initial %}
-          {% include "ebustoolbox/partials/cost_input.html" with label="Lebensdauer Opportunity-Ladepunkt" tooltip="Durchschnittliche Lebensdauer für einen Opportunity-Ladepunkt." unit="Jahre" input=costs_manual.useful_life_chargepoint_opp|widget_attrs initial=costs_manual.useful_life_chargepoint_opp.initial %}
-          {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Opportunity-Ladepunkt" tooltip="Durchschnittlicher Kaufpreis für einen Opportunity-Ladepunkt, inklusive anteiliger Leistungselektronik und anteiligem Netzanschluss. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst." unit="€" input=costs_manual.procurement_cost_chargepoint_opp|widget_attrs initial=costs_manual.procurement_cost_chargepoint_opp.initial %}
+          </div>
         </div>
-        <!-- diesel (disabled) -->
-        {% include "ebustoolbox/partials/cost_input.html" with label="Dieselkosten" unit="€" input=costs_manual.fuel_cost|widget_attrs initial=costs_manual.fuel_cost.initial %}
-        {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten Diesel-Fahrzeug" unit="€/km" tooltip="Wartungskosten für ein Dieselfahrzeug, pro Fahrzeugkilometer" input=costs_manual.maint_cost_diesel|widget_attrs initial=costs_manual.maint_cost_diesel.initial %}
+        <!-- required manual inputs: charging infrastructure -->
+        <div
+          id="acc-req-charging"
+          class="overflow-hidden rounded-lg bg-white shadow accordion-container"
+          data-value="req-charging"
+        >
+          <div class="border-b border-slate-200">
+            <button type="button"
+                    onclick="toggleAccordion(this)"
+                    class="w-full flex justify-between items-center py-5 text-slate-800 bg-green-200 accordion-header">
+              <span class="w-max text-base font-bold px-2">{% translate 'Ladeinfrastruktur' %}</span>
+              <span id="acc-icon-req-charging"
+                    class="text-slate-800 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     viewBox="0 0 16 16"
+                     fill="currentColor"
+                     class="w-4 h-4">
+                  <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                </svg>
+              </span>
+            </button>
+            <div id="acc-content-req-charging"
+                 class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+              <div class="accordion_content">
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Lebensdauer Depot-Ladepunkt" tooltip="Durchschnittliche Lebensdauer für einen Depot-Ladepunkt" unit="Jahre" input=costs_manual.useful_life_chargepoint_depot|widget_attrs initial=costs_manual.useful_life_chargepoint_depot.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Depot-Ladepunkt" tooltip="Durchschnittlicher Kaufpreis für einen Depot-Ladepunkt, inklusive anteiliger Leistungselektronik und anteiligem Netzanschluss. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst." unit="€" input=costs_manual.procurement_cost_chargepoint_depot|widget_attrs initial=costs_manual.procurement_cost_chargepoint_depot.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Lebensdauer Opportunity-Ladepunkt" tooltip="Durchschnittliche Lebensdauer für einen Opportunity-Ladepunkt." unit="Jahre" input=costs_manual.useful_life_chargepoint_opp|widget_attrs initial=costs_manual.useful_life_chargepoint_opp.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Opportunity-Ladepunkt" tooltip="Durchschnittlicher Kaufpreis für einen Opportunity-Ladepunkt, inklusive anteiliger Leistungselektronik und anteiligem Netzanschluss. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst." unit="€" input=costs_manual.procurement_cost_chargepoint_opp|widget_attrs initial=costs_manual.procurement_cost_chargepoint_opp.initial %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- required manual inputs: diesel -->
+        <div
+          id="acc-req-diesel"
+          class="overflow-hidden rounded-lg bg-white shadow accordion-container"
+          data-value="req-diesel"
+        >
+          <div class="border-b border-slate-200">
+            <button type="button"
+                    onclick="toggleAccordion(this)"
+                    class="w-full flex justify-between items-center py-5 text-slate-800 bg-slate-200 accordion-header">
+              <span class="w-max text-base font-bold px-2">{% translate 'Diesel-Vergleich' %}</span>
+              <span id="acc-icon-req-diesel"
+                    class="text-slate-800 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     viewBox="0 0 16 16"
+                     fill="currentColor"
+                     class="w-4 h-4">
+                  <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                </svg>
+              </span>
+            </button>
+            <div id="acc-content-req-diesel"
+                 class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+              <div class="accordion_content">
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Dieselkosten" unit="€" input=costs_manual.fuel_cost|widget_attrs initial=costs_manual.fuel_cost.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten Diesel-Fahrzeug" unit="€/km" tooltip="Wartungskosten für ein Dieselfahrzeug, pro Fahrzeugkilometer" input=costs_manual.maint_cost_diesel|widget_attrs initial=costs_manual.maint_cost_diesel.initial %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- required manual inputs: vehicle types -->
         {% for vehicle_type in vehicle_types %}
-          <div>
-            <h4>{{ vehicle_type.name }}</h4>
-            {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis (Dieselbus)" tooltip="Durchschnittlicher Kaufpreis für einen äquivalenten Dieselbus" unit="€" input=costs_manual.procurement_cost_diesel|widget_attrs initial=costs_manual.procurement_cost_diesel.initial %}
+          <div
+            id="acc-req-vt-{{vehicle_type}}"
+            class="overflow-hidden rounded-lg bg-white shadow accordion-container"
+            data-value="req-vt-{{vehicle_type}}"
+          >
+            <div class="border-b border-slate-200">
+              <button type="button"
+                      onclick="toggleAccordion(this)"
+                      class="w-full flex justify-between items-center py-5 text-slate-800 bg-green-200 accordion-header">
+                <span class="w-max text-base font-bold px-2">{% translate 'Fahrzeugtyp' %} {{ vehicle_type.name }}</span>
+                <span id="acc-icon-req-vt-{{vehicle_type}}"
+                      class="text-slate-800 transition-transform duration-300">
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                       viewBox="0 0 16 16"
+                       fill="currentColor"
+                       class="w-4 h-4">
+                    <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                  </svg>
+                </span>
+              </button>
+              <div id="acc-content-req-vt-{{vehicle_type}}"
+                   class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                <div class="accordion_content">
+                  <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                    {% include "ebustoolbox/partials/cost_input.html" with label="Fahrzeuglebensdauer" tooltip="Durchschnittliche Lebensdauer für ein Fahrzeug dieses Fahrzeugtyps" unit="Jahre" input=costs_manual.useful_life_bus|widget_attrs initial=costs_manual.useful_life_bus.initial %}
+                    {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis" tooltip="Durchschnittlicher Kaufpreis für ein Fahrzeug dieses Typs. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst" unit="€" input=costs_manual.procurement_cost_bus|widget_attrs initial=costs_manual.procurement_cost_bus.initial %}
+                    {% include "ebustoolbox/partials/cost_input.html" with label="Batterielebensdauer" tooltip="Durchschnittliche Lebensdauer für eine Batterie dieses Typs" unit="Jahre" input=costs_manual.useful_life_battery|widget_attrs initial=costs_manual.useful_life_battery.initial %}
+                    {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Batterie" tooltip="Durchschnittlicher Kaufpreis für eine Batterie dieses Typs, angegeben pro kWh. Wenn unbekannt, Fahrzeugkaufpreis inkl. Batterie angeben und hier 0 (dann kann ein Batterietausch aber nicht abgebildet werden)" unit="€/kWh"  input=costs_manual.procurement_cost_battery|widget_attrs initial=costs_manual.procurement_cost_battery.initial %}
+                    {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis (Dieselbus)" tooltip="Durchschnittlicher Kaufpreis für einen äquivalenten Dieselbus" unit="€" input=costs_manual.procurement_cost_diesel|widget_attrs initial=costs_manual.procurement_cost_diesel.initial %}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         {% endfor %}
         <!-- optional -->
-        <details>
-          <summary>{% translate "Erweiterte Einstellungen" %}</summary>
-          {% include "ebustoolbox/partials/cost_input.html" with label="Zinssatz" unit="ppa" tooltip="Zinssatz für Investitionen und Kredite" input=costs_manual.interest_rate|widget_attrs initial=costs_manual.interest_rate.initial %}
-          {% include "ebustoolbox/partials/cost_input.html" with label="Inflation" unit="ppa" tooltip="Inflationsrate, Teuerung aller Güter bei gleichbleibendem Wert" input=costs_manual.inflation_rate|widget_attrs initial=costs_manual.inflation_rate.initial %}
-          {% include "ebustoolbox/partials/cost_input.html" with label="Kfz-Steuer" tooltip="Durchschnittliche Kraftfahrzeugsteuer pro Jahr" unit="€" input=costs_manual.taxes|widget_attrs initial=costs_manual.taxes.initial %}
-          {% include "ebustoolbox/partials/cost_input.html" with label="Versicherung für Fahrzeug" tooltip="Durchschnittliche jährliche Versicherungskosten, pro Fahrzeug" unit="€/a" input=costs_manual.insurance|widget_attrs initial=costs_manual.insurance.initial %}
-          {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – allgemein" tooltip="Generelle Preissteigerung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_general|widget_attrs initial=costs_manual.pef_general.initial %}
-          {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Arbeitslohn" tooltip="Preissteigerung für Arbeitslohn pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_staff_cost|widget_attrs initial=costs_manual.pef_staff_cost.initial %}
-          {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Strom" tooltip="Preissteigerung für Stromkosten pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_energy_cost|widget_attrs initial=costs_manual.pef_energy_cost.initial %}
-          {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Versicherung" tooltip="Preissteigerung für Versicherung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_insurance|widget_attrs initial=costs_manual.pef_insurance.initial %}
-          {% for vehicle_type in vehicle_types %}
-            <div>
-              <h4>{{ vehicle_type.name }}</h4>
-              {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Fahrzeug" tooltip="Preissteigerung für Fahrzeuge pro Jahr. Dient der Anpassung der Preise für Ersatzfahrzeuge im Betrachtungszeitraum" unit="%" input=costs_manual.cost_escalation_bus|widget_attrs initial=costs_manual.cost_escalation_bus.initial %}
-              {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Batterie" tooltip="Preissteigerung für Batterie pro Jahr. Dient der Anpassung der Preise für Ersatzbatterien im Betrachtungszeitraum" unit="%" input=costs_manual.cost_escalation_battery|widget_attrs initial=costs_manual.cost_escalation_battery.initial %}
+        <div
+          id="acc-optional"
+          class="overflow-hidden rounded-lg bg-white shadow accordion-container"
+          data-value="optional"
+        >
+          <div class="border-b border-slate-200">
+            <button type="button"
+                    onclick="toggleAccordion(this)"
+                    class="w-full flex justify-between items-center py-5 text-slate-800 bg-green-200 accordion-header">
+              <span class="w-max text-base font-bold px-2">{% translate "Erweiterte Einstellungen" %}</span>
+              <span id="acc-icon-optional"
+                    class="text-slate-800 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     viewBox="0 0 16 16"
+                     fill="currentColor"
+                     class="w-4 h-4">
+                  <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                </svg>
+              </span>
+            </button>
+            <div id="acc-content-optional"
+                 class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+              <div class="accordion_content">
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Zinssatz" unit="ppa" tooltip="Zinssatz für Investitionen und Kredite" input=costs_manual.interest_rate|widget_attrs initial=costs_manual.interest_rate.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Inflation" unit="ppa" tooltip="Inflationsrate, Teuerung aller Güter bei gleichbleibendem Wert" input=costs_manual.inflation_rate|widget_attrs initial=costs_manual.inflation_rate.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Kfz-Steuer" tooltip="Durchschnittliche Kraftfahrzeugsteuer pro Jahr" unit="€" input=costs_manual.taxes|widget_attrs initial=costs_manual.taxes.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Versicherung für Fahrzeug" tooltip="Durchschnittliche jährliche Versicherungskosten, pro Fahrzeug" unit="€/a" input=costs_manual.insurance|widget_attrs initial=costs_manual.insurance.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – allgemein" tooltip="Generelle Preissteigerung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_general|widget_attrs initial=costs_manual.pef_general.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Arbeitslohn" tooltip="Preissteigerung für Arbeitslohn pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_staff_cost|widget_attrs initial=costs_manual.pef_staff_cost.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Strom" tooltip="Preissteigerung für Stromkosten pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_energy_cost|widget_attrs initial=costs_manual.pef_energy_cost.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Versicherung" tooltip="Preissteigerung für Versicherung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_insurance|widget_attrs initial=costs_manual.pef_insurance.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Ladepunkt" tooltip="Preissteigerung für Ladepunkt dieses Typs pro Jahr. Dient der Anpassung der Preise für Ersatzladepunkte im Betrachtungszeitraum" unit="%" input=costs_manual.cost_escalation_chargepoint|widget_attrs initial=costs_manual.cost_escalation_chargepoint.initial %}
+                </div>
+                {% for vehicle_type in vehicle_types %}
+                  <fieldset>
+                    <legend>{% translate 'Fahrzeugtyp' %} {{ vehicle_type.name }}</legend>
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                      {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Fahrzeug" tooltip="Preissteigerung für Fahrzeuge pro Jahr. Dient der Anpassung der Preise für Ersatzfahrzeuge im Betrachtungszeitraum" unit="%" input=costs_manual.cost_escalation_bus|widget_attrs initial=costs_manual.cost_escalation_bus.initial %}
+                      {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Batterie" tooltip="Preissteigerung für Batterie pro Jahr. Dient der Anpassung der Preise für Ersatzbatterien im Betrachtungszeitraum" unit="%" input=costs_manual.cost_escalation_battery|widget_attrs initial=costs_manual.cost_escalation_battery.initial %}
+                    </div>
+                  </fieldset>
+                {% endfor %}
+              </div>
             </div>
-          {% endfor %}
-          {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Ladepunkt" tooltip="Preissteigerung für Ladepunkt dieses Typs pro Jahr. Dient der Anpassung der Preise für Ersatzladepunkte im Betrachtungszeitraum" unit="%" input=costs_manual.cost_escalation_chargepoint|widget_attrs initial=costs_manual.cost_escalation_chargepoint.initial %}
-        </details>
+          </div>
+        </div>
       </div>
     </section>
   </div>
@@ -172,33 +309,34 @@
   const radioButtons = document.querySelectorAll('input[name^="costsRadio"]');
 
   radioButtons.forEach(radio => {
-      radio.addEventListener('change', () => {
-          fileUpload.classList.toggle('hidden', radio.id !== 'costsFile');
-          childrenInputs(fileUpload).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'costsFile'));
-
-          dropdownSelect.classList.toggle('hidden', radio.id !== 'costsScenario');
-          childrenInputs(dropdownSelect).forEach((inputDiv) =>  toggleAttribute(inputDiv, "required", radio.id == 'costsScenario'));
-
-          costsInputs.classList.toggle('hidden', radio.id !== 'costsManually');
-          childrenInputs(costsInputs).forEach((inputDiv) =>  toggleAttribute(inputDiv, "required", radio.id == 'costsManually'));
-
-      });
+    radio.addEventListener('change', _ => showCostForRadio(radio));
   });
-</script>
 
-  <script>
-      // Show and hide inputs based on selected option for Umweltparameter
-      const envFileUpload = document.getElementById('env-file-upload');
-      const envDropdownSelect = document.getElementById('env-dropdown-select');
-      const envInputs = document.getElementById('envInputs');
+  function showCostForRadio(radio) {
+    fileUpload.classList.toggle('hidden', radio.id !== 'costsFile');
+    childrenInputs(fileUpload).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'costsFile'));
 
-      const envRadioButtons = document.querySelectorAll('input[name^="envRadio"]');
+    dropdownSelect.classList.toggle('hidden', radio.id !== 'costsScenario');
+    childrenInputs(dropdownSelect).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'costsScenario'));
 
-      const formAreas = [envFileUpload, envDropdownSelect, envInputs, fileUpload, dropdownSelect, costsInputs];
-      // unrequire all form inputs at the start
-      formAreas.forEach((area)=>
-          childrenInputs(area).forEach((inputDiv) => toggleAttribute(inputDiv, "required", false))
-      )
+    costsInputs.classList.toggle('hidden', radio.id !== 'costsManually');
+    childrenInputs(costsInputs).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'costsManually'));
+  }
+  // show section for initially selected
+  showCostForRadio(document.querySelector('input[name^="costsRadio"]:checked'));
+
+  // Show and hide inputs based on selected option for Umweltparameter
+  const envFileUpload = document.getElementById('env-file-upload');
+  const envDropdownSelect = document.getElementById('env-dropdown-select');
+  const envInputs = document.getElementById('envInputs');
+
+  const envRadioButtons = document.querySelectorAll('input[name^="envRadio"]');
+
+  const formAreas = [envFileUpload, envDropdownSelect, envInputs, fileUpload, dropdownSelect, costsInputs];
+  // unrequire all form inputs at the start
+  formAreas.forEach((area)=>
+      childrenInputs(area).forEach((inputDiv) => toggleAttribute(inputDiv, "required", false))
+  )
 
   envRadioButtons.forEach(radio => {
       radio.addEventListener('change', () => {
@@ -230,5 +368,32 @@
 
   }
 
+  /* Accordion */
+  // SVG for Down icon
+  const downSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/></svg>';
+
+  // SVG for Up icon
+  const upSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd"/></svg>';
+
+  function toggleAccordion(button) {
+    const container = button.closest('div.accordion-container');
+    const index = container.dataset.value;
+    const content = document.getElementById(`acc-content-${index}`);
+    const icon = document.getElementById(`acc-icon-${index}`);
+
+    // Toggle the content's max-height for smooth opening and closing
+    if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+      content.style.maxHeight = '0';
+      icon.innerHTML = upSVG;
+      if (button == open) {
+        toggleAccordion.open = undefined;
+      }
+    } else {
+      content.style.maxHeight = content.scrollHeight + 'px';
+      icon.innerHTML = downSVG;
+      toggleAccordion.open = button;
+    }
+  }
+  //toggleAccordion(document.getElementById("acc-btn-req-general"));
 </script>
 {% endblock script %}
