@@ -1640,6 +1640,67 @@ def get_soc_gantt(request, task_id: str):
     return JsonResponse({"vehicles": vehicles, "records": records})
 
 
+def export_scenario_tree(request, task_id: str):
+    """Allow admins and authorized users to download a json export of a scenario tree
+
+    A scenario tree contains all child scenarios as well as parents, but NOT other children
+    of parents.
+    In case a Mutation Scenario is given, no merging of the source will take place.
+    Exporting source scenarios directly is not allowed, since it can easily have to many children
+    Exporting is limited to MAX_NR_SCENARIOS scenarios
+    """
+    # Raise an exception if user is not authorized for this task_id
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
+    scenario = Scenario.objects.get(task_id=task_id)
+    default_scenario = DefaultScenario.objects.first()
+    if default_scenario and scenario == default_scenario.scenario:
+        return HttpResponseForbidden(_("Das Default Scenario darf nicht heruntergeladen werden."))
+    if scenario.scenario_type == EnumScenarioType.SOURCE:
+        return HttpResponseForbidden(
+            _("Das Source Scenarios dürfen nicht mit allen Nachfolgern heruntergeladen werden.")
+        )
+
+    # Limit export so we can be sure load is not exploding.
+    MAX_NR_SCENARIOS = 5
+    scenarios = [scenario]
+    count = 1
+
+    def increase_count(count) -> int:
+        if count > MAX_NR_SCENARIOS:
+            raise PermissionDenied(
+                _(f"Der gleichzeitige Export von mehr als {MAX_NR_SCENARIOS} ist nicht gestattet")
+            )
+        return count + 1
+
+    # Get all parent scenarios
+    for _i in range(count, MAX_NR_SCENARIOS):
+        if scenario.parent is None:
+            break
+        # By inserting parents at 0 we keep the correct order for importing later
+        # This way referenced scenarios exist when creating child scenarios
+        scenarios.insert(0, scenario.parent)
+        count = increase_count(count)
+        scenario = scenario.parent
+
+    scenario = Scenario.objects.get(task_id=task_id)
+    stack = list(scenario.scenario_set.all())
+    for _i in range(count, MAX_NR_SCENARIOS):
+        if not stack:
+            break
+        scenario = stack.pop(0)
+        scenarios.append(scenario)
+        count = increase_count(count)
+        stack.extend(list(scenario.scenario_set.all()))
+
+    exporter = ScenarioJSONImporterExporter()
+    for scenario in scenarios:
+        visit_all_scenario_queries(exporter, scenario)
+    json_data = exporter.renderJSON()
+    return HttpResponse(json_data, content_type="application/json")
+
+
 def export_scenario(request, task_id: str):
     """Allow admins and authorized users to download a json export of their scenario"""
     # Raise an exception if user is not authorized for this task_id
@@ -1677,6 +1738,48 @@ def import_locked(importer: ScenarioJSONImporterExporter):
     return importer
 
 
+def import_scenario_tree(request):
+    if not request.user.is_authenticated:
+        return HttpResponseForbidden(_("Importing data is only allowed for logged in Users"))
+
+    if request.method == "GET":
+        return render(request, "ebustoolbox/import_scenario.html")
+
+    if request.method == "POST":
+        assert request.FILES["scenario_json"]
+        importer = ScenarioJSONImporterExporter()
+        importer.loads(in_memory_file=request.FILES["scenario_json"])
+
+        importer.generate_instances()
+        for scenario in importer.object_data["Scenario"]:
+            if Scenario.objects.filter(task_id=scenario.task_id).exists():
+                new_task_id = get_unique_task_id()
+                logger.warning(
+                    f"task_id {scenario.task_id} already exists in the database. "
+                    f"Imported Scenario will get a new task_id of {new_task_id}"
+                )
+                scenario.task_id = new_task_id
+
+        # Generate the pks in a locked state via a worker with concurrency = 1
+        result = import_locked.apply_async()
+
+        # Wait for the result
+        importer = result.get()
+
+        importer.create_many_to_many()
+        scenario_ids = [scenario.id for scenario in importer.object_data["Scenario"]]
+        Scenario.objects.filter(id__in=scenario_ids).update(manager=request.user)
+
+        core.deepcopy.reset_postgres_auto_increments([Scenario._meta.app_label])
+        return HttpResponse(
+            _(
+                f"Szenarios wurden erfolgreich importiert mit folgenden ids <br>"
+                f"{'<br>'.join([s.task_id for s in importer.object_data['Scenario']])}. "
+            )
+        )
+    return HttpResponseBadRequest(_("Use POST or GET"))
+
+
 def import_scenario(request):
     if not request.user.is_authenticated:
         return HttpResponseForbidden(_("Importing data is only allowed for logged in Users"))
@@ -1708,15 +1811,11 @@ def import_scenario(request):
             EnumScenarioType.SOURCE,
         ):
             return HttpResponseBadRequest(
-                _(f"{scenario.scenario_type} is not supported for exporting.")
+                _(f"{scenario.scenario_type} is not supported for importing.")
             )
 
-        # Generate the pks in a locked state via a worker with concurrency = 1
-        result = import_locked.apply_async()
-
-        # Wait for the result
-        importer = result.get()
-
+        importer.adjust_foreign_keys()
+        importer.bulk_create()
         importer.create_many_to_many()
 
         scenario_ids = [scenario.id for scenario in importer.object_data["Scenario"]]
