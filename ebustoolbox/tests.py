@@ -482,11 +482,12 @@ class SimulationTestCase(TransactionTestCase):
             .last()
         )
         num_ts = len(event.timeseries["time"])
+        interval = timedelta(minutes=tasks.get_args(django_scenario).interval)
         # check start/end soc
         assert event.soc_start != event.soc_end
         soc_end = event.soc_end
         with self.assertLogs(logger="custom") as cm:
-            tasks.replace_event_timeseries(event, [event.soc_start] * num_ts)
+            tasks.replace_event_timeseries(event, [event.soc_start] * num_ts, interval)
             # Check if any log entry contains the substring
             self.assertTrue(
                 any("Depot Charging Simulation diverged" in message for message in cm.output),
@@ -494,7 +495,7 @@ class SimulationTestCase(TransactionTestCase):
             )
         event.soc_end = soc_end
         with self.assertLogs(logger="custom") as cm:
-            tasks.replace_event_timeseries(event, [event.soc_end] * num_ts)
+            tasks.replace_event_timeseries(event, [event.soc_end] * num_ts, interval)
             self.assertTrue(
                 any("Depot Charging Simulation diverged" in message for message in cm.output),
                 "Error log not found",
@@ -503,17 +504,17 @@ class SimulationTestCase(TransactionTestCase):
         # check length of timeseries
         assert num_ts > 2
         with self.assertRaises(AssertionError):
-            tasks.replace_event_timeseries(event, [event.soc_start, event.soc_end])
+            tasks.replace_event_timeseries(event, [event.soc_start, event.soc_end], interval)
 
         # check None values
         with self.assertRaises(AssertionError):
             tasks.replace_event_timeseries(
-                event, [event.soc_start, None] + [event.soc_end] * (num_ts - 2)
+                event, [event.soc_start, None] + [event.soc_end] * (num_ts - 2), interval
             )
 
         # success
         tasks.replace_event_timeseries(
-            event, [event.soc_start] + [0] * (num_ts - 2) + [event.soc_end]
+            event, [event.soc_start] + [0] * (num_ts - 2) + [event.soc_end], interval
         )
         assert event.timeseries["soc"][1] == 0
 
