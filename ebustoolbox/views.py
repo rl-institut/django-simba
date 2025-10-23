@@ -39,6 +39,7 @@ from temperatures.models import WeatherStation  # noqa
 from . import tasks, forms
 import temperatures.tasks
 from .forms import (
+    ChargingPowerForm,
     AreaInformationForm,
     DepotConfigurationWishForm,
     VehicleTypeForm,
@@ -337,7 +338,7 @@ class TripsView(FormView):
         if self.request.user.is_authenticated:
             manager = self.request.user
         # If schedule reading failed before a scenario already exists
-        scenario, _ = Scenario.objects.get_or_create(task_id=task_id, manager=manager)
+        scenario, unused_variable = Scenario.objects.get_or_create(task_id=task_id, manager=manager)
         scenario.name = cleaned_data["scenario_name"]
         scenario.description = cleaned_data["description"]
         # If schedule reading failed before there is a parent already. Delete it if
@@ -465,7 +466,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
     def get_context_data(self, **kwargs):
         scenario = self.scenario
         context = super().get_context_data(**kwargs)
-        data = {}
+        data = None
         if self.request.method == "POST":
             data = self.request.POST
         middlepoint = tasks.get_middlepoint(scenario)
@@ -513,7 +514,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         start_time = start.time().isoformat()
         end_date = end.date().isoformat()
         end_time = end.time().isoformat()
-        sim_range, _ = SimulationRange.objects.get_or_create(scenario=scenario)
+        sim_range, unused_variable = SimulationRange.objects.get_or_create(scenario=scenario)
         temperature_average = None
         temperature_extreme = None
         if data:
@@ -620,7 +621,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         child_vehicle_types = get_or_create_child_vehicle_types(scenario)
         vehicle_modification = {}
         for vt in child_vehicle_types:
-            vt_select, _ = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
+            vt_select, unused_variable = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
             dvt = vt_select.default_vehicle_type
             modification = VehicleTypeForm(data, instance=vt, prefix=f"mutation_{vt.id}")
 
@@ -634,7 +635,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
                 vt_select.default_vehicle_type = dvt
                 modification.fields["has_diesel_heating"].initial = True
             selection = VehicleTypeSelectionForm(
-                data,
+                data=data,
                 prefix=f"selection_{vt.id}",
                 vehicle_type=vt,
                 choices_queryset=default_vehicle_types,
@@ -782,7 +783,6 @@ class StationsView(ScenarioMixIn, TemplateView):
             min_standing_time = 0
 
         if min_standing_time > 0:
-
             parent_trips = Trip.objects.filter(scenario=scenario.parent)
             parent_trips_annotated = tasks.annotate_trips_with_standing_time(parent_trips)
             td_min_standing_time = datetime.timedelta(minutes=min_standing_time)
@@ -861,16 +861,22 @@ class StationsView(ScenarioMixIn, TemplateView):
     def post(self, request, *args, **kwargs):
         scenario = self.scenario
         context = self.get_context_data(**kwargs)
-
         all_valid = all(form.is_valid() for form in context["stations_forms"].values())
         if not all_valid:
             logger.debug("Invalid StationsForm provided")
             return self.render_to_response(context)
+        charge_form = ChargingPowerForm(request.POST)
+        if not charge_form.is_valid():
+            logger.debug("Invalid ChargingPowerForm provided")
+            return self.render_to_response(context)
         # The forms are valid. Update the stations and exclude stations
         # from electrification
+        default_charge_power = charge_form.cleaned_data["default_charge_power"]
         ebustoolbox.tasks.update_stations_and_exclusion(
-            context["stations_forms"].values(), scenario.simba_options["cs_power_opps"]
+            context["stations_forms"].values(), default_charge_power
         )
+        # update simba options
+        scenario.simba_options["cs_power_opps"] = default_charge_power
         response = redirect(reverse(self.success_name, args=[scenario.task_id]))
         return response
 
@@ -980,8 +986,12 @@ class DepotsView(ScenarioMixIn, TemplateView):
             # each depot needs one configuration. if this is not the case recreate them
             DepotConfigurationWish.objects.filter(scenario=scenario).delete()
             depot_configs = []
+            depot_id = ebustoolbox.util.get_next_id(DepotConfigurationWish)
             for station in depots_query:
-                depot_configs.append(DepotConfigurationWish(scenario=scenario, station=station))
+                depot_configs.append(
+                    DepotConfigurationWish(id=depot_id, scenario=scenario, station=station)
+                )
+                depot_id += 1
             DepotConfigurationWish.objects.bulk_create(depot_configs)
 
         if AreaInformation.objects.filter(scenario=scenario).count() < depots_query.count():
@@ -1003,15 +1013,20 @@ class DepotsView(ScenarioMixIn, TemplateView):
                 )
 
             area_informations = []
+            area_id = ebustoolbox.util.get_next_id(AreaInformation)
             for station, vehicle_types in depot_vehicle_type.items():
                 wish = DepotConfigurationWish.objects.get(station=station)
                 for vt in vehicle_types:
                     area_informations.append(
                         AreaInformation(
-                            scenario=scenario, depot_configuration_wish=wish, vehicle_type=vt
+                            id=area_id,
+                            scenario=scenario,
+                            depot_configuration_wish=wish,
+                            vehicle_type=vt,
                         )
                     )
-                AreaInformation.objects.bulk_create(area_informations)
+                    area_id += 1
+            AreaInformation.objects.bulk_create(area_informations)
 
         depot_configs = DepotConfigurationWish.objects.filter(scenario=scenario)
         context["forms"] = dict()
@@ -1513,7 +1528,7 @@ def usergroups(request):
 
 def render_critical_rotations(request, task_id: str):
     """Returns raw JSON data for critical rotations (critical vs. non-critical)"""
-    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    vehicle_name_dict, unused_variable = data.get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
     s = Scenario.objects.get(task_id=task_id)
@@ -1538,7 +1553,7 @@ def render_critical_rotations(request, task_id: str):
 
 def render_bustype(request, task_id: str):
     """Returns raw JSON data for vehicle type distribution"""
-    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    vehicle_name_dict, unused_variable = data.get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
     s = Scenario.objects.get(task_id=task_id)
@@ -1548,7 +1563,12 @@ def render_bustype(request, task_id: str):
         return JsonResponse({"data": []})
 
     return JsonResponse(
-        {"data": [{"value": row["count"], "name": row["name"]} for _, row in df.iterrows()]}
+        {
+            "data": [
+                {"value": row["count"], "name": row["name"]}
+                for unused_variable, row in df.iterrows()
+            ]
+        }
     )
 
 

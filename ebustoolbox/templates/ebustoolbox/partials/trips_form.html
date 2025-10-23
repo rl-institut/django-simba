@@ -11,8 +11,8 @@
 >
 
   {% csrf_token %}
-  <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Umlaufplan' %}</h1>
+  <div class="sm:pt-8 sm:pb-4 lg:pt-6 sm:px-6 lg:px-8 w-full max-w-7xl">
+    <h1 class="pb-6 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Umlaufplan' %}</h1>
     <span class="block mb-6 text-sm text-slate-500">{% translate 'Laden Sie ihren Umlaufplan hoch. Alternativ können Sie den Umlaufplan aus einem existierendem Szenario auswählen.' %}</span>
 
 {# ToDo @Bryan add styling and position div to your liking #}
@@ -134,9 +134,9 @@
           </label>
         </div>
         <div class="mt-2">
-          <textarea type="text" {{ form.description|widget_attrs }} rows="4"
+          <textarea type="text" {{ form.description|widget_attrs }} rows="3"
             class="bg-white w-full px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-emerald-400 sm:text-sm/6"
-            placeholder={% translate "Beschreiben Sie Ihr Szenario..." %}
+            placeholder="{% translate "Beschreiben Sie Ihr Szenario..." %}"
             aria-describedby="description-optional">{% if form.description.value %}{{ form.description.value }}{% endif %}</textarea>
         </div>
       </div>
