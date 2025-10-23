@@ -15,7 +15,7 @@ from pathlib import Path
 from django.utils.translation import gettext_lazy as _
 
 import environ
-
+from kombu import Queue
 from ebus_map.settings import *  # noqa
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -150,6 +150,16 @@ if CELERY_TASK_ALWAYS_EAGER:
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=None)
 REDIS_URL = env("REDIS_URL", default=None)
+
+
+# Not all tasks can guarantee that they can run concurrently
+# Tasks which should only run consecutively are put in the db_lock queue,
+# where concurrency is set to 1
+# the threads are then blocked to await the results, since queuing only works for async calls
+CELERY_TASK_QUEUES = (
+    Queue("default"),
+    Queue("db_lock"),
+)
 
 CACHES = {
     "default": {

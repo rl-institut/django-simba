@@ -18,6 +18,14 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
 
+# Pickle is needed to return complex objects from workers
+# This makes it necessary that the celery and server container are in sync at all times
+# Otherwise pickling might fail
+
+app.conf.task_serializer = "pickle"
+app.conf.result_serializer = "pickle"
+app.conf.accept_content = ["pickle", "json"]
+
 
 def get_scheduled():
     i = app.control.inspect()

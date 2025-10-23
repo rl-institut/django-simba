@@ -1724,17 +1724,8 @@ def export_scenario(request, task_id: str):
 
 @shared_task(queue="db_lock")
 def import_locked(importer: ScenarioJSONImporterExporter):
-    # __AUTO_GENERATED_PRINTF_START__
-    print("import_locked 1")  # __AUTO_GENERATED_PRINTF_END__
     importer.adjust_foreign_keys()
-    # __AUTO_GENERATED_PRINTF_START__
-    print("import_locked 2")  # __AUTO_GENERATED_PRINTF_END__
     importer.bulk_create()
-    # __AUTO_GENERATED_PRINTF_START__
-    print("1")  # __AUTO_GENERATED_PRINTF_END__
-    import time
-
-    time.sleep(5)
     return importer
 
 
@@ -1761,7 +1752,7 @@ def import_scenario_tree(request):
                 scenario.task_id = new_task_id
 
         # Generate the pks in a locked state via a worker with concurrency = 1
-        result = import_locked.apply_async()
+        result = import_locked.apply_async([importer])
 
         # Wait for the result
         importer = result.get()
@@ -1781,8 +1772,13 @@ def import_scenario_tree(request):
 
 
 def import_scenario(request):
-    if not request.user.is_authenticated:
-        return HttpResponseForbidden(_("Importing data is only allowed for logged in Users"))
+    # Normal importing is deprecated for normal users. Use
+    if not request.user.is_superuser:
+        return HttpResponseForbidden(
+            _(
+                "Import of single scenarios is not supported for normal users. You can Import Scenario Trees instead."
+            )
+        )
 
     if request.method == "GET":
         return render(request, "ebustoolbox/import_scenario.html")
