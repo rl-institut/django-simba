@@ -84,6 +84,12 @@ from ebustoolbox.models import (
     annotate_distance,
 )
 
+from celery import shared_task
+
+# import redis
+# r = redis.Redis.from_url(settings.REDIS_URL)
+# r.rpush('someKey', json.dumps({'i': (cache.get('key')), 'time': 0}))
+
 logger = logging.getLogger("custom")
 
 
@@ -987,12 +993,8 @@ class DepotsView(ScenarioMixIn, TemplateView):
             # each depot needs one configuration. if this is not the case recreate them
             DepotConfigurationWish.objects.filter(scenario=scenario).delete()
             depot_configs = []
-            depot_id = ebustoolbox.util.get_next_id(DepotConfigurationWish)
             for station in depots_query:
-                depot_configs.append(
-                    DepotConfigurationWish(id=depot_id, scenario=scenario, station=station)
-                )
-                depot_id += 1
+                depot_configs.append(DepotConfigurationWish(scenario=scenario, station=station))
             DepotConfigurationWish.objects.bulk_create(depot_configs)
 
         if AreaInformation.objects.filter(scenario=scenario).count() < depots_query.count():
@@ -1014,19 +1016,16 @@ class DepotsView(ScenarioMixIn, TemplateView):
                 )
 
             area_informations = []
-            area_id = ebustoolbox.util.get_next_id(AreaInformation)
             for station, vehicle_types in depot_vehicle_type.items():
                 wish = DepotConfigurationWish.objects.get(station=station)
                 for vt in vehicle_types:
                     area_informations.append(
                         AreaInformation(
-                            id=area_id,
                             scenario=scenario,
                             depot_configuration_wish=wish,
                             vehicle_type=vt,
                         )
                     )
-                    area_id += 1
             AreaInformation.objects.bulk_create(area_informations)
 
         depot_configs = DepotConfigurationWish.objects.filter(scenario=scenario)
@@ -1662,6 +1661,22 @@ def export_scenario(request, task_id: str):
     return HttpResponse(json_data, content_type="application/json")
 
 
+@shared_task(queue="db_lock")
+def import_locked(importer: ScenarioJSONImporterExporter):
+    # __AUTO_GENERATED_PRINTF_START__
+    print("import_locked 1")  # __AUTO_GENERATED_PRINTF_END__
+    importer.adjust_foreign_keys()
+    # __AUTO_GENERATED_PRINTF_START__
+    print("import_locked 2")  # __AUTO_GENERATED_PRINTF_END__
+    importer.bulk_create()
+    # __AUTO_GENERATED_PRINTF_START__
+    print("1")  # __AUTO_GENERATED_PRINTF_END__
+    import time
+
+    time.sleep(5)
+    return importer
+
+
 def import_scenario(request):
     if not request.user.is_authenticated:
         return HttpResponseForbidden(_("Importing data is only allowed for logged in Users"))
@@ -1695,9 +1710,18 @@ def import_scenario(request):
             return HttpResponseBadRequest(
                 _(f"{scenario.scenario_type} is not supported for exporting.")
             )
-        importer.adjust_foreign_keys()
-        importer.bulk_create()
+
+        # Generate the pks in a locked state via a worker with concurrency = 1
+        result = import_locked.apply_async()
+
+        # Wait for the result
+        importer = result.get()
+
         importer.create_many_to_many()
+
+        scenario_ids = [scenario.id for scenario in importer.object_data["Scenario"]]
+        Scenario.objects.filter(id__in=scenario_ids).update(manager=request.user)
+
         core.deepcopy.reset_postgres_auto_increments([Scenario._meta.app_label])
         task_id = scenario.task_id
         redirect_suggestion = ""
