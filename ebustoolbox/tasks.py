@@ -124,14 +124,14 @@ def apply_vehicle_type(
         # Cast consumptions to list to evaluate them early
         consumptions = list(vehicle_class.consumption_set.all())
 
-        vehicle_class.id = ebustoolbox.util.get_next_id(VehicleClass)
+        vehicle_class.id = None
         vehicle_class.scenario = target_vehicle_type.scenario
         vehicle_class.save()
         vehicle_class.vehicle_types.add(source_vehicle_type)
         if consumptions:
             assert len(consumptions) == 1
             c = consumptions[0]
-            c.id = ebustoolbox.util.get_next_id(Consumption)
+            c.id = None
             c.scenario = target_vehicle_type.scenario
             c.vehicle_class = vehicle_class
             c.save()
@@ -824,7 +824,7 @@ def get_parent(scenario):
     return parent, child
 
 
-@shared_task(bind=True, queue="default")
+@shared_task(bind=True)
 def init_db_with_trips(
     self, scenario_id: int, reader_num: int, files: dict, cleaned_data, progress_id: int
 ):
@@ -1537,9 +1537,9 @@ def create_empty_child_scenario(parent_scenario: Scenario, task_id):
     parent_id = parent_scenario.id
     # Decouple memory of parent and child
     new_child_scenario = Scenario.objects.get(id=parent_scenario.id)
-    new_child_scenario.id = ebustoolbox.util.get_next_id(Scenario)
     new_child_scenario.task_id = task_id
     new_child_scenario.parent_id = parent_id
+    new_child_scenario.id = None
     new_child_scenario.save()
     return new_child_scenario
 
@@ -1611,7 +1611,7 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     if temperatures_query.exists():
         assert temperatures_query.count() == 1
         temperature = temperatures_query.first()
-        temperature.id = ebustoolbox.util.get_next_id(Temperatures)
+        temperature.id = None
         temperature.scenario = child
         temperature.save()
 
@@ -2675,7 +2675,6 @@ def transform_depot_stations(parent: Scenario, child: Scenario) -> None:
     new_stations = dict()
     changed_rotations = dict()
 
-    # route_id = ebustoolbox.util.get_next_id(Route)
     # This is used to differentiate between existing routes and newly created ones
     max_route_id = ebustoolbox.util.get_next_id(Route)
 

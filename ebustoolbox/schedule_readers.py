@@ -268,7 +268,7 @@ class SimbaScheduleReader(ScheduleReader):
             return False
         return len(self.errors) == 0
 
-    def get_lines_routes_trips(self, rotations_dict, scenario, station_dict, trip_data):
+    def get_lines_routes_trips(self, rotations_dict, scenario, station_dict, trip_data):  # noqa
         trips = []
         lines = []
         line_dict = dict()
@@ -277,8 +277,6 @@ class SimbaScheduleReader(ScheduleReader):
         trip_overlap_errors = []  # collect trips that overlap
         duration_errors = []  # collect trips that have no or negative duration
         trip_previous_station_errors = {}  # collect trips that don't end at their previous depot
-        route_id = util.get_next_id(Route)
-        trip_id = util.get_next_id(Trip)
         line_id = util.get_next_id(Line)
         for rotation_id, rotation_trips in tqdm(trip_data.items()):
             sorted_trips = sorted(rotation_trips, key=lambda trip: trip["departure_time"])
@@ -338,8 +336,6 @@ class SimbaScheduleReader(ScheduleReader):
                             line,
                         )
                     ] = route
-                    route.pk = route_id
-                    route_id += 1
                     routes.append(route)
 
                 # handle timezone-related issues: force aware in UTC. Mainly for display reasons
@@ -360,8 +356,6 @@ class SimbaScheduleReader(ScheduleReader):
                     loaded_mass=0,
                 )
 
-                t.pk = trip_id
-                trip_id += 1
                 trips.append(t)
 
         # handle collected errors
@@ -387,6 +381,9 @@ class SimbaScheduleReader(ScheduleReader):
                     f"startet nicht an der vorherigen Station {station}"
                 )
             )
+        # Set line pks to none so they are set in the db. They were needed before for hashing
+        for line in lines:
+            line.pk = None
         return lines, routes, trips
 
     def get_rotations(self, scenario, trip_data, vt_dict):

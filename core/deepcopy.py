@@ -60,6 +60,18 @@ def reset_postgres_auto_increments(apps):
             logging.warning("Undefined table in PostgreSQL: %s", app)
 
 
+def write_multi_dict(source: dict, keys: list, value):
+    """Creates multiple layers of dictionaries if needed and sets values"""
+    stem = source
+    for key in keys[:-1]:
+        try:
+            stem[key]
+        except KeyError:
+            stem[key] = dict()
+        stem = stem[key]
+    stem[keys[-1]] = value
+
+
 @time_it
 @atomic
 def deepcopy(  # noqa
@@ -88,17 +100,6 @@ def deepcopy(  # noqa
         increases the speed of deep copying.
     :return: copy result instance, locals of this function
     """
-
-    def write_multi_dict(source: dict, keys: list, value):
-        """Creates multiple layers of dictionaries if needed and sets values"""
-        stem = source
-        for key in keys[:-1]:
-            try:
-                stem[key]
-            except KeyError:
-                stem[key] = dict()
-            stem = stem[key]
-        stem[keys[-1]] = value
 
     def _deepcopy(
         object: models.Model,
@@ -214,14 +215,14 @@ def deepcopy(  # noqa
     )
 
     # Revert the stack from old_pk-> new_pk to new_pk->old_pk
-    rev_stack = revert_stack(stack, write_multi_dict)
+    rev_stack = revert_stack(stack)
 
     apps = {model._meta.app_label for model in copies}
     counter = 0
     while counter < 100:
         counter += 1
         # Bulk create the objects to speed up the writing process
-        failed_classes = bulk_create_objects(copies)
+        failed_classes = bulk_create_objects(copies, stack, rev_stack)
         # Replace the foreign keys of the copied objects. This can only be done after they were created
         # to ensure they do not point to not created objects <-- Error
         managers = replace_keys_and_get_managers(
@@ -236,7 +237,8 @@ def deepcopy(  # noqa
             break
     else:
         raise Exception("Deepcopying could not create Objects. Database restrictions aren't met?")
-    return instance.__class__.objects.get(pk=new_pk), locals()
+    new_pk = instance.pk
+    return instance.__class__.objects.get(pk=stack[instance._meta.model][new_pk]), locals()
 
 
 @time_it
@@ -257,7 +259,7 @@ def _deepcopy_wrapper(
 
 
 @time_it
-def revert_stack(stack, write_multi_dict):
+def revert_stack(stack):
     rev_stack = {}
     for key in stack:
         for key2, value in stack[key].items():
@@ -266,10 +268,39 @@ def revert_stack(stack, write_multi_dict):
 
 
 @time_it
-def bulk_create_objects(copies) -> []:
+def bulk_create_objects(copies, stack, rev_stack) -> list:
     @atomic
     def atomic_creation(inner_object_class):
-        inner_object_class.objects.bulk_create(copies[inner_object_class].values())
+        instances = copies[inner_object_class].values()
+        instance_lut = [instance.id for instance in instances]
+        # Remove ids so database will handle settting of id/pk
+        for instance in instances:
+            instance.id = None
+
+        # returned instances have a pk set from the db
+        try:
+            instances = inner_object_class.objects.bulk_create(instances)
+        except Exception:
+            # Something failed. restore the pks
+            for pk, instance in zip(instance_lut, instances):
+                instance.id = pk
+            raise
+
+        copies[inner_object_class] = {instance.id: instance for instance in instances}
+
+        # update the stack which links old pks with new pks
+        assert len(instances) == len(rev_stack[inner_object_class])
+        assert len(instances) == len(stack[inner_object_class])
+
+        for i, instance in enumerate(instances):
+            old_pk = rev_stack[inner_object_class][instance_lut[i]]
+            stack[inner_object_class][old_pk] = instance.id
+
+        # update the reverse stack which is used later for lookups
+        del rev_stack[inner_object_class]
+        rev_stack[inner_object_class] = dict()
+        for key, value in stack[inner_object_class].items():
+            rev_stack[inner_object_class][value] = key
 
     failed_copies = []
     for object_class in copies:
@@ -292,6 +323,8 @@ def replace_keys_and_get_managers(
 ):
     managers = list()
     for obj_class in copies:
+        if len(copies[obj_class]) == 0:
+            continue
         all_copies = [c for c in copies[obj_class].values()]
         fields = obj_class._meta.fields + obj_class._meta.many_to_many
         fnames = []

@@ -84,7 +84,6 @@ from ebustoolbox.models import (
     annotate_distance,
 )
 
-from celery import shared_task
 
 # import redis
 # r = redis.Redis.from_url(settings.REDIS_URL)
@@ -339,13 +338,15 @@ class TripsView(FormView):
         """Handles successful form submission."""
         cleaned_data = form.cleaned_data
         task_id = self.kwargs.get("task_id", get_unique_task_id())
+        task_id = get_unique_task_id()
 
         # Get a User as manager or none
         manager = None
         if self.request.user.is_authenticated:
             manager = self.request.user
         # If schedule reading failed before a scenario already exists
-        scenario, unused_variable = Scenario.objects.get_or_create(task_id=task_id, manager=manager)
+        print((task_id, manager))
+        scenario = Scenario.objects.create(task_id=task_id, manager=manager)
         scenario.name = cleaned_data["scenario_name"]
         scenario.description = cleaned_data["description"]
         # If schedule reading failed before there is a parent already. Delete it if
@@ -358,7 +359,6 @@ class TripsView(FormView):
 
         data_file = form.files.get("data_file")
         scenario_uuid = form.cleaned_data["existing_scenario"]
-
         if data_file:
             assert len(form.files) == 1, "Currently only single file uploads are allowed"
 
@@ -1722,13 +1722,6 @@ def export_scenario(request, task_id: str):
     return HttpResponse(json_data, content_type="application/json")
 
 
-@shared_task(queue="db_lock")
-def import_locked(importer: ScenarioJSONImporterExporter):
-    importer.adjust_foreign_keys()
-    importer.bulk_create()
-    return importer
-
-
 def import_scenario_tree(request):
     if not request.user.is_authenticated:
         return HttpResponseForbidden(_("Importing data is only allowed for logged in Users"))
@@ -1737,6 +1730,7 @@ def import_scenario_tree(request):
         return render(request, "ebustoolbox/import_scenario.html")
 
     if request.method == "POST":
+
         assert request.FILES["scenario_json"]
         importer = ScenarioJSONImporterExporter()
         importer.loads(in_memory_file=request.FILES["scenario_json"])
@@ -1751,11 +1745,8 @@ def import_scenario_tree(request):
                 )
                 scenario.task_id = new_task_id
 
-        # Generate the pks in a locked state via a worker with concurrency = 1
-        result = import_locked.apply_async([importer])
-
-        # Wait for the result
-        importer = result.get()
+        # bulk create instances and the db generated ids to appropriately set the foreign keys
+        importer.bulk_create_and_adjust_foreign_keys()
 
         importer.create_many_to_many()
         scenario_ids = [scenario.id for scenario in importer.object_data["Scenario"]]
