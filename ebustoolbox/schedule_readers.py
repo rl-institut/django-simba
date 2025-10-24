@@ -226,8 +226,12 @@ class SimbaScheduleReader(ScheduleReader):
             self.set_progress(1, _("Finde Stationen"))
             # Create Stations
             scenario = Scenario.objects.get(id=scenario_id)
-            stations, station_dict = self.get_stations(scenario, trip_data)
-            Station.objects.bulk_create(stations)
+            stations = self.get_stations(scenario, trip_data)
+
+            # returned vts have pks and can be used as foreign key reference.
+            # Instances without pk can't be used as foreign key reference
+            stations = Station.objects.bulk_create(stations)
+            station_dict = {station.name: station for station in stations}
             if settings.SEARCH_STATION_LOCATIONS:
                 add_station_locations(Station.objects.filter(scenario=scenario))
 
@@ -236,13 +240,17 @@ class SimbaScheduleReader(ScheduleReader):
 
             self.set_progress(2, _("Finde Fahrzeugtypen"))
             # Create empty vehicle_types
-            vt_dict, vts = self.get_vehicles(scenario, trip_data)
-            VehicleType.objects.bulk_create(vts)
+            vts = self.get_vehicles(scenario, trip_data)
+            # returned vts have pks and can be used as foreign key reference.
+            vts = VehicleType.objects.bulk_create(vts)
+            vt_dict = {vt.name: vt for vt in vts}
 
             self.set_progress(3, _("Finde Umläufe"))
             # Create Rotations
-            rotations, rotations_dict = self.get_rotations(scenario, trip_data, vt_dict)
-            Rotation.objects.bulk_create(rotations)
+            rotations = self.get_rotations(scenario, trip_data, vt_dict)
+            # returned rotations have pks
+            rotations = Rotation.objects.bulk_create(rotations)
+            rotations_dict = {rotation.name: rotation for rotation in rotations}
 
             self.set_progress(4, _("Finde Fahrten"))
 
@@ -383,8 +391,6 @@ class SimbaScheduleReader(ScheduleReader):
 
     def get_rotations(self, scenario, trip_data, vt_dict):
         rotations = list()
-        rotations_dict = dict()
-        last_id = util.get_next_id(Rotation)
         i = -1
 
         for rotation_id, trips in trip_data.items():
@@ -396,18 +402,14 @@ class SimbaScheduleReader(ScheduleReader):
             rot = Rotation(
                 scenario=scenario,
                 name=rotation_id,
-                pk=last_id + i,
                 vehicle_type=vt,
             )
             rotations.append(rot)
-            rotations_dict[rotation_id] = rot
-        return rotations, rotations_dict
+        return rotations
 
     def get_vehicles(self, scenario, trip_data):
         vts = list()
-        vt_dict = dict()
         unique_vts = {trips[0][self.VEHICLE_TYPE] for trips in trip_data.values()}
-        last_id = util.get_next_id(VehicleType)
         for i, name in enumerate(unique_vts):
             default_params = {
                 "scenario": scenario,
@@ -418,16 +420,13 @@ class SimbaScheduleReader(ScheduleReader):
             }
             vt_opp = VehicleType(
                 **default_params,
-                id=last_id + i,
                 opportunity_charging_capable=self.vehicles_opportunity_charging_capable,
             )
             vts.append(vt_opp)
-            vt_dict[name] = vt_opp
-        return vt_dict, vts
+        return vts
 
     def get_stations(self, scenario, trip_data):
         stations = list()
-        station_dict = dict()
 
         # make sure the trips are sorted
         for rot_id, trips in trip_data.items():
@@ -440,7 +439,6 @@ class SimbaScheduleReader(ScheduleReader):
             for trips in trip_data.values()
             for num, name in [(-1, self.ARRIVAL_NAME), (0, self.DEPARTURE_NAME)]
         }
-
         unique_arrival_stations = {
             trip[self.ARRIVAL_NAME] for trips in trip_data.values() for trip in trips
         }
@@ -448,17 +446,14 @@ class SimbaScheduleReader(ScheduleReader):
             trip[self.DEPARTURE_NAME] for trips in trip_data.values() for trip in trips
         }
         unique_stations = unique_arrival_stations.union(unique_departure_stations)
-        last_id = util.get_next_id(Station)
         for i, name in enumerate(unique_stations):
-            station = Station(scenario=scenario, name=name, name_short=name, id=last_id + i)
+            station = Station(scenario=scenario, name=name, name_short=name)
             if name in depot_stations:
                 station.is_electrified = True
                 station.charge_type = EnumChargeType.DEPOT.value
                 station.voltage_level = EnumVoltageLevel.VOLTAGE_MV.value
             stations.append(station)
-            station_dict[name] = station
-
-        return stations, station_dict
+        return stations
 
     def file_data_to_dict(self) -> dict[str, []]:
         trip_data = dict()
