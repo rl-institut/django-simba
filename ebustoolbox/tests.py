@@ -998,7 +998,7 @@ class TemperaturesTestCase(TestCase):
         self.assertRaises(AttributeError, t_instance.save)
 
 
-class RotationSplitTest(TestCase):
+class RotationSplitTest(TransactionTestCase):
     def test_intermediate_depot_trip(self):
         """Insert some intermediate stops at depots and check if they are transformed"""
         django_scenario, simba_schedule, args = build_scenario()
