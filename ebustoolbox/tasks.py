@@ -1712,7 +1712,6 @@ def create_station_mutations(scenario):
 @shared_task(bind=True)
 def _run_ebus_toolchain(self, task_id):
     """Run the tool chain"""
-    raise Exception
     db_scenario: Scenario = Scenario.objects.get(task_id=task_id)
     assert is_consistent(db_scenario)
 
