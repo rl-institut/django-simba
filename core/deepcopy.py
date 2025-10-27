@@ -220,13 +220,18 @@ def deepcopy(  # noqa
     while counter < 100:
         counter += 1
         # Bulk create the objects to speed up the writing process
+        print("bulk creating")
         failed_classes = bulk_create_objects(copies, stack, rev_stack)
         # Replace the foreign keys of the copied objects. This can only be done after they were created
         # to ensure they do not point to not created objects <-- Error
+
+        print("bulk updating")
         managers = replace_keys_and_get_managers(
             already_copied, copies, rev_stack, stack, exclude_models, exclude_fields
         )
         # After objects are saved to DB ManyToMany fields can be set
+
+        print("many to many")
         replace_many2many(managers)
 
         copies = {key: values for key, values in copies.items() if key in failed_classes}
@@ -299,10 +304,13 @@ def bulk_create_objects(copies, stack, rev_stack) -> list:
 
     failed_copies = []
     for object_class in copies:
+        print(f"trying {copies}")
         try:
             atomic_creation(object_class)
         except django.db.IntegrityError:
             failed_copies.append(object_class)
+            print(f"failed {copies}")
+
     return failed_copies
 
 
