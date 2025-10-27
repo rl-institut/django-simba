@@ -948,7 +948,7 @@ def delete_old_scenario_data(scenario: Scenario):
     Line.objects.filter(scenario=scenario).delete()
 
 
-@shared_task(bind=True, queue="default")
+@shared_task(bind=True)
 def _celery_generate_zipped_scenario(self, task_id: str):
     _generate_zipped_scenario(task_id)
 
@@ -981,7 +981,7 @@ def merge_scenario(mutation_id, simulation_task_id):
 
 
 # TODO: catch exceptions and pass to progress if exists
-@shared_task(bind=True, queue="default")
+@shared_task(bind=True)
 def run_and_merge_scenarios(
     self,
     mutation_id: int,
@@ -1673,7 +1673,7 @@ def create_station_mutations(scenario):
     StationMutation.objects.bulk_create(station_mutations)
 
 
-@shared_task(bind=True, queue="default")
+@shared_task(bind=True)
 def _run_ebus_toolchain(self, task_id):
     """Run the tool chain"""
     db_scenario = Scenario.objects.get(task_id=task_id)
