@@ -260,8 +260,23 @@ class SimbaScheduleReader(ScheduleReader):
             )
 
             if not self.errors:
-                Line.objects.bulk_create(lines)
-                Route.objects.bulk_create(routes)
+                line_ids = [line.id for line in lines]
+                for line in lines:
+                    line.id = None
+                lines = Line.objects.bulk_create(lines)
+                line_lut = {l_id: line.id for l_id, line in zip(line_ids, lines)}
+                route_ids = [route.id for route in routes]
+                for route in routes:
+                    route.id = None
+                    new_id = line_lut[route.line_id]
+                    route.line = None
+                    route.line_id = new_id
+                routes = Route.objects.bulk_create(routes)
+                route_lut = {r_id: route.id for r_id, route in zip(route_ids, routes)}
+                for trip in trips:
+                    new_id = route_lut[trip.route_id]
+                    trip.route = None
+                    trip.route_id = new_id
                 Trip.objects.bulk_create(trips)
             self.set_progress(5, _("Fahrten erstellt"))
         except self.SimbaScheduleReaderException:
@@ -278,6 +293,7 @@ class SimbaScheduleReader(ScheduleReader):
         duration_errors = []  # collect trips that have no or negative duration
         trip_previous_station_errors = {}  # collect trips that don't end at their previous depot
         line_id = util.get_next_id(Line)
+        route_id = util.get_next_id(Route)
         for rotation_id, rotation_trips in tqdm(trip_data.items()):
             sorted_trips = sorted(rotation_trips, key=lambda trip: trip["departure_time"])
             prev_arrival_time = sorted_trips[0]["departure_time"] - timedelta(hours=1)
@@ -309,6 +325,7 @@ class SimbaScheduleReader(ScheduleReader):
                     line_id += 1
                     lines.append(line)
                     line_dict[trip[self.LINE]] = line
+                # line_id needs to be removed before db creation
                 line = line_dict[trip[self.LINE]]
 
                 route = existing_routes.get(
@@ -321,6 +338,7 @@ class SimbaScheduleReader(ScheduleReader):
                 )
                 if not route:
                     route = Route(
+                        id=route_id,
                         name=trip[self.DEPARTURE_NAME] + " - " + trip[self.ARRIVAL_NAME],
                         scenario=scenario,
                         departure_station=station_dict[trip[self.DEPARTURE_NAME]],
@@ -328,6 +346,8 @@ class SimbaScheduleReader(ScheduleReader):
                         distance=trip[self.DISTANCE],
                         line=line,
                     )
+                    # Route id needs to be removed before db creation
+                    route_id += 1
                     existing_routes[
                         (
                             station_dict[trip[self.DEPARTURE_NAME]].id,
@@ -381,9 +401,6 @@ class SimbaScheduleReader(ScheduleReader):
                     f"startet nicht an der vorherigen Station {station}"
                 )
             )
-        # Set line pks to none so they are set in the db. They were needed before for hashing
-        for line in lines:
-            line.pk = None
         return lines, routes, trips
 
     def get_rotations(self, scenario, trip_data, vt_dict):

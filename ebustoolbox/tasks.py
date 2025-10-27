@@ -162,9 +162,7 @@ def input_files_to_database(cleaned_data: dict, request: HttpRequest):
 
     assign_new_vehicles_to_db(django_scenario)
 
-    schedule, args = get_schedule_from_db(django_scenario)
-
-    return django_scenario, schedule, args
+    return django_scenario
 
 
 def consumption_file_to_db(consumption_path: Path, django_scenario: Scenario) -> None:
@@ -441,6 +439,12 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
                     warning_dict = validate_trip_lut_consumption_inputs(
                         trip, loaded_mass, level_of_loading, warning_dict
                     )
+            line_id = None
+            try:
+                line_id = trip.route.line.id
+            except AttributeError:
+                pass
+            line = lines_dict[line_id].name if line_id else None
             simba_trip_dict = {
                 "rotation_id": simba_id,
                 "departure_time": trip.departure_time,
@@ -450,7 +454,7 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
                 "vehicle_type": str(vehicle_type),
                 "charging_type": charging_type,
                 "distance": trip.route.distance,
-                "line": lines_dict[trip.route.line.id].name,
+                "line": line,
                 "height_diff": (
                     station_data[trip.route.arrival_station.to_simba_name()]["elevation"]
                     - station_data[trip.route.departure_station.to_simba_name()]["elevation"]
