@@ -11,7 +11,6 @@ from django.db.utils import ProgrammingError
 from django.core.management import call_command
 from os import devnull
 from django.db import connection
-from simba.optimizer_util import time_it
 from django.db.models.fields.related import ManyToManyField
 
 
@@ -72,7 +71,6 @@ def write_multi_dict(source: dict, keys: list, value):
     stem[keys[-1]] = value
 
 
-@time_it
 @atomic
 def deepcopy(  # noqa
     instance: models.Model,
@@ -241,7 +239,6 @@ def deepcopy(  # noqa
     return instance.__class__.objects.get(pk=stack[instance._meta.model][new_pk]), locals()
 
 
-@time_it
 def _deepcopy_wrapper(
     func, already_copied, copies, exclude_fields, exclude_models, instance, stack, max_depth=None
 ):
@@ -258,7 +255,6 @@ def _deepcopy_wrapper(
     return new_pk
 
 
-@time_it
 def revert_stack(stack):
     rev_stack = {}
     for key in stack:
@@ -267,7 +263,6 @@ def revert_stack(stack):
     return rev_stack
 
 
-@time_it
 def bulk_create_objects(copies, stack, rev_stack) -> list:
     @atomic
     def atomic_creation(inner_object_class):
@@ -311,13 +306,11 @@ def bulk_create_objects(copies, stack, rev_stack) -> list:
     return failed_copies
 
 
-@time_it
 def replace_many2many(managers):
     for manager, new_foreign_values in managers:
         manager.add(*new_foreign_values)
 
 
-@time_it
 def replace_keys_and_get_managers(
     already_copied, copies, rev_stack, stack, exclude_models, exclude_fields
 ):
