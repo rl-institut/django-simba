@@ -1009,7 +1009,10 @@ def run_and_merge_scenarios(
     logger.info("Simulating scenario with high consumption")
     # Run the sizing scenario with these applied changes
     assign_new_vehicles_to_db(sizing_scenario)
-    _ = _run_ebus_toolchain.apply((sizing_scenario_task_id,), task_id=sizing_scenario_task_id)
+
+    _ = _run_ebus_toolchain.apply(
+        (sizing_scenario_task_id,), task_id=sizing_scenario_task_id, throw=True
+    )
 
     logger.info("Copying result of first Simulation as basis for the second.")
     # The sizing scenario is supposed to be the basis of the average scenario
@@ -1037,7 +1040,9 @@ def run_and_merge_scenarios(
     )
 
     assign_new_vehicles_to_db(average_scenario)
-    _ = _run_ebus_toolchain.apply((default_simulation_task_id,), task_id=default_simulation_task_id)
+    _ = _run_ebus_toolchain.apply(
+        (default_simulation_task_id,), task_id=default_simulation_task_id, throw=True
+    )
     # default_simulation_scenario = merge_scenario(mutation_id, default_simulation_task_id)
     # run_toolchain_from_scenario(default_simulation_scenario, assign_vehicles=True)
     progress.set_success()
@@ -1707,6 +1712,7 @@ def create_station_mutations(scenario):
 @shared_task(bind=True)
 def _run_ebus_toolchain(self, task_id):
     """Run the tool chain"""
+    raise Exception
     db_scenario: Scenario = Scenario.objects.get(task_id=task_id)
     assert is_consistent(db_scenario)
 
