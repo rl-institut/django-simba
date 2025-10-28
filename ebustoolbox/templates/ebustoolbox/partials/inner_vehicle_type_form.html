@@ -18,7 +18,7 @@
                        {% if form.initial %}checked{% endif %}
                        {% endwith %}
                        aria-describedby="description-{{ vt_id }}"
-                       class="col-start-1 row-start-1 appearance-none rounded border border-slate-400 checked:border-emerald-500 checked:bg-emerald-500 checked:focus:bg-emerald-500 checked:hover:bg-emerald-500 focus:ring-green-500 focus-ring:outline focus-ring:outline-2 focus-ring:outline-offset-2 focus-ring:outline-green-500">
+                       class="col-start-1 row-start-1 appearance-none rounded border border-slate-400 checked:border-emerald-500 checked:bg-emerald-500 checked:focus:bg-emerald-500 checked:hover:bg-emerald-500 focus:ring-emerald-500 focus-ring:outline focus-ring:outline-2 focus-ring:outline-offset-2 focus-ring:outline-emerald-500">
                 <svg class="pointer-events-none size-3.5 self-center justify-self-center stroke-white"
                      viewBox="0 0 14 14"
                      fill="none">
@@ -69,7 +69,7 @@
           <div class="mt-2">
             <div class="flex w-6/12 items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-slate-400 focus-within:focus-visible:outline-2">
               <input {{ modification.vehicle_modification.battery_capacity|widget_attrs }}
-                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                      placeholder="500"
                      aria-labelledby="batteryCapacityLabel batteryCapacityUnit">
               <div id="batteryCapacityUnit{{ vt_id }}"
@@ -86,7 +86,7 @@
                      aria-describedby="description-{{ vt_id }}"
                      type="checkbox"
                      {% if modification.vehicle_modification.consumption.initial is not None %}checked{% endif %}
-                     class="col-start-1 row-start-1 appearance-none rounded border border-slate-400 checked:border-emerald-500 checked:bg-emerald-500 checked:focus:bg-emerald-500 checked:hover:bg-emerald-500 focus:ring-green-500 focus-ring:outline focus-ring:outline-2 focus-ring:outline-offset-2 focus-ring:outline-green-500">
+                     class="col-start-1 row-start-1 appearance-none rounded border border-slate-400 checked:border-emerald-500 checked:bg-emerald-500 checked:focus:bg-emerald-500 checked:hover:bg-emerald-500 focus:ring-emerald-500 focus-ring:outline focus-ring:outline-2 focus-ring:outline-offset-2 focus-ring:outline-emerald-500">
               <svg class="pointer-events-none size-3.5 self-center justify-self-center stroke-white"
                    viewBox="0 0 14 14"
                    fill="none">
@@ -150,7 +150,7 @@
               <input {% if modification.vehicle_modification.consumption.initial is None %}type="text"{% endif %}
                      {{ modification.vehicle_modification.consumption|widget_attrs }}
                      {% if modification.vehicle_modification.consumption.initial is None %}disabled{% endif %}
-                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                      placeholder='{% if modification.selection.instance.default_vehicle_type is not None %}{{ modification.selection.instance.default_vehicle_type.consumption }} {% else %} {% translate "Wählen Sie ein Fahrzeug aus" %} {% endif %}'>
               <div id="consumptionUnit{{ vt_id }}"
                    class="shrink-0 select-none text-slate-500">{% translate "kWh/km" %}</div>
@@ -216,7 +216,7 @@
               <input {% if modification.vehicle_modification.max_consumption.initial is None %}type="text"{% endif %}
                      {{ modification.vehicle_modification.max_consumption|widget_attrs }}
                      {% if modification.vehicle_modification.max_consumption.initial is None %}disabled{% endif %}
-                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                      placeholder="{% if modification.selection.instance.default_vehicle_type is not None %}{{ modification.selection.instance.default_vehicle_type.max_consumption }}               {% else %}  Wählen Sie ein Fahrzeug aus {% endif %}">
               <div id="maxconsumptionUnit{{ vt_id }}"
                    class="shrink-0 select-none text-slate-500">kWh/km</div>

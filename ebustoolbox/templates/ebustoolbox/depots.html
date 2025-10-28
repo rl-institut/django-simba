@@ -52,7 +52,7 @@
       </form>
     </div>
   </main>
-  <div class="hidden bg-green-200"></div>
+  <div class="hidden bg-emerald-200"></div>
 {% endblock wizard_content %}
 {% block wizard_buttons %}
   {% url 'simba:costs' scenario.task_id as prev_url %}
@@ -109,13 +109,13 @@ function validateDepotContainers(){
   var inputs = container.querySelectorAll('input');
   for (let i=0; i<inputs.length; i++){
     if (!inputs[i].checkValidity()) {
-        header.classList.remove("transition-colors", "duration-100", "bg-green-200");
+        header.classList.remove("transition-colors", "duration-100", "bg-emerald-200");
         header.classList.add( 'bg-gradient-to-r' ,'from-slate-100', 'to-slate-200') ;
       return;
     }
   }
         header.classList.remove( 'bg-gradient-to-r' ,'from-slate-100', 'to-slate-200') ;
-        header.classList.add("transition-colors", "duration-100", "bg-green-200");
+        header.classList.add("transition-colors", "duration-100", "bg-emerald-200");
   });
 }
 

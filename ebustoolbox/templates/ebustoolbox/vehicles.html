@@ -45,7 +45,7 @@
               <input type="date"
                      id="start-date"
                      name="start-date"
-                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                      aria-label="Startdatum"
                      min="{{ min_date }}"
                      max="{{ max_date }}"
@@ -58,7 +58,7 @@
               <input type="time"
                      id="start-time"
                      name="start-time"
-                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                      aria-label="Startzeit"
                      value="{{ initial_start_time }}"
                      required>
@@ -70,7 +70,7 @@
               <input type="date"
                      id="end-date"
                      name="end-date"
-                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                      aria-label="Enddatum"
                      min="{{ min_date }}"
                      max="{{ max_date }}"
@@ -83,7 +83,7 @@
               <input type="time"
                      id="end-time"
                      name="end-time"
-                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                      aria-label="Endzeit"
                      value="{{ initial_end_time }}"
                      required>
@@ -143,11 +143,11 @@
               </h3>
               <div class="w-12/12">
                 <div class="mt-2">
-                  <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
+                  <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-emerald-400 focus-within:focus-visible:outline-2">
                     <input {% with simulation_parameters_form.temperature_average as form %}
                           {{ form|widget_attrs}}
                            {% endwith %}
-                           class="flex-1 bg-white mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                           class="flex-1 bg-white mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                            placeholder="Gib eine Temperatur ein."
                            aria-describedby="temperature-heading temperature-unit"
                 onchange ="temperatureChange(this.value, 'AvgTemperatureHint','div .avg-consumption-hint', debounced_fetchAndSetTemperature2)"
@@ -214,11 +214,11 @@
               </h3>
               <div class="w-12/12">
                 <div class="mt-2">
-                  <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
+                  <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-emerald-400 focus-within:focus-visible:outline-2">
                     <input {% with simulation_parameters_form.temperature_extreme as form %}
                           {{ form|widget_attrs}}
                            {% endwith %}
-                           class="flex-1 bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                           class="flex-1 bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                            placeholder="Gib eine Temperatur ein."
                            aria-describedby="temperature-heading temperature-unit"
                 onchange ="temperatureChange(this.value, 'ExtremeTemperatureHint','div .extreme-consumption-hint', debounced_fetchAndSetTemperature1)"
@@ -717,10 +717,10 @@ function validateVehicleContainers(){
     }
     if (isValid){
       header.classList.remove("transition-colors", "duration-100", "bg-transparent");
-      header.classList.add("transition-colors", "duration-100", "bg-green-200");
+      header.classList.add("transition-colors", "duration-100", "bg-emerald-200");
       errorDiv.classList.add("hidden");
     } else {
-      header.classList.remove("transition-colors", "duration-100", "bg-green-200");
+      header.classList.remove("transition-colors", "duration-100", "bg-emerald-200");
       header.classList.add("transition-colors", "duration-100", "bg-transparent");
     }
   };

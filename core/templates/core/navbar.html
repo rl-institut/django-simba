@@ -10,7 +10,7 @@
         </a>
       </div>
       <div class="hidden sm:flex items-center space-x-6">
-        <a href="{% url 'simba:trips' %}" class="px-4 py-1 border-2 border-emerald-400 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-emerald-400 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-400 active:bg-emerald-500 transition-all duration-300">
+        <a href="{% url 'simba:trips' %}" class="px-4 py-1 border-2 border-emerald-400 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-emerald-400 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-400 active:bg-emerald-500 transition-all duration-300">
           {% translate '+ Szenario erstellen' %}
         </a>
         {% if user.is_authenticated %}
@@ -60,7 +60,7 @@
   <div id="mobile-menu" class="fixed inset-0 hidden z-20 bg-white">
     <div class="flex flex-col items-center justify-center h-full space-y-8">
       {% if user.is_authenticated %}
-      <button class="px-6 py-2 border-2 border-emerald-400 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-emerald-400 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-400 active:bg-emerald-500 transition-all duration-300">
+      <button class="px-6 py-2 border-2 border-emerald-400 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-emerald-400 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-400 active:bg-emerald-500 transition-all duration-300">
         {% translate '+ Szenario erstellen' %}
       </button>
       <a href="{% url 'simba:dashboard' %}" class="text-slate-800 text-base hover:text-teal-500 transition-colors">{% translate 'Szenarien' %}</a>
