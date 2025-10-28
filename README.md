@@ -290,3 +290,8 @@ stundenwerte_TU_00003_19500401_20110331_hist.zip
 ...
 ```
 Temperature fetching uses caching. This requires a REDIS_URL. If no REDIS_URL is given, caching should be skipped.
+
+## Image Licensing Notice
+Some visual assets in this project are licensed from Freepik under a Premium License.
+These assets are provided only for use within this project.
+They cannot be reused, redistributed, or modified outside of this context without obtaining a valid Freepik license.
