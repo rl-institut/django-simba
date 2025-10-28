@@ -1,9 +1,9 @@
 ## Development Updates
-To allow caching, enable permanent celery results storage and use the same stack as production redis is very **recommended**.
+To allow caching, enable permanent celery results storage and use the same stack as production. Redis is very **recommended**.
 Install redis and use the following .env settings
 
 ``` .env
-kREDIS_URL=redis://127.0.0.1:6379
+REDIS_URL=redis://127.0.0.1:6379
 CELERY_BROKER_URL=redis://127.0.0.1:6379
 CELERY_RESULT_BACKEND='redis://127.0.0.1:6379'
 ```
