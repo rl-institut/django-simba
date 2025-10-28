@@ -39,6 +39,7 @@ from temperatures.models import WeatherStation  # noqa
 from . import tasks, forms
 import temperatures.tasks
 from .forms import (
+    ChargingPowerForm,
     AreaInformationForm,
     DepotConfigurationWishForm,
     VehicleTypeForm,
@@ -881,16 +882,22 @@ class StationsView(ScenarioMixIn, TemplateView):
     def post(self, request, *args, **kwargs):
         scenario = self.scenario
         context = self.get_context_data(**kwargs)
-
         all_valid = all(form.is_valid() for form in context["stations_forms"].values())
         if not all_valid:
             logger.debug("Invalid StationsForm provided")
             return self.render_to_response(context)
+        charge_form = ChargingPowerForm(request.POST)
+        if not charge_form.is_valid():
+            logger.debug("Invalid ChargingPowerForm provided")
+            return self.render_to_response(context)
         # The forms are valid. Update the stations and exclude stations
         # from electrification
+        default_charge_power = charge_form.cleaned_data["default_charge_power"]
         ebustoolbox.tasks.update_stations_and_exclusion(
-            context["stations_forms"].values(), scenario.simba_options["cs_power_opps"]
+            context["stations_forms"].values(), default_charge_power
         )
+        # update simba options
+        scenario.simba_options["cs_power_opps"] = default_charge_power
         response = redirect(reverse(self.success_name, args=[scenario.task_id]))
         return response
 

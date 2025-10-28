@@ -2913,13 +2913,12 @@ def consolidate_socs(scenario: Scenario) -> None:
         # This makes the timeseries not usable, therefor they are deleted
         # The timeseries can be recreated by SimBAs depot strategy
         if event.event_type == EventType.CHARGING_DEPOT:
-            event.soc_start -= running_delta_soc
+            event.soc_start = prev_event.soc_end
             if event.timeseries and event.timeseries.get("soc"):
                 event.timeseries["soc"] = None
-            assert event.soc_start == prev_event.soc_end
             continue
 
-        event.soc_start -= running_delta_soc
+        event.soc_start = prev_event.soc_end
         event.soc_end -= running_delta_soc
         if event.timeseries and event.timeseries["soc"]:
             ts = event.timeseries["soc"]
