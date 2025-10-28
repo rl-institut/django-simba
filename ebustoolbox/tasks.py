@@ -54,6 +54,7 @@ from .models import (
     AreaInformation,
     DepotConfigurationWish,
     DepotMutation,
+    EnumSimulationType,
     User,
     Route,
     Consumption,
@@ -64,6 +65,7 @@ from .models import (
     Rotation,
     Trip,
     Scenario,
+    SimulationType,
     EnumChargeType,
     EnumVoltageLevel,
     Line,
@@ -988,46 +990,84 @@ def run_and_merge_scenarios(
     default_simulation_task_id: UUIDType,
     sizing_scenario_task_id: UUIDType,
 ):
-
     progress, created = Progress.objects.get_or_create(task_id=self.request.id)
     progress.reset()
     # We expect 10 steps of work, with 5 steps per simulation.
     # each step increments current_work by 1
     progress.total_work = 11
     progress.save()
-    logger.info("Simulating scenario with average consumption first")
-    default_simulation_scenario = merge_scenario(mutation_id, default_simulation_task_id)
-    assign_new_vehicles_to_db(default_simulation_scenario)
-    _ = _run_ebus_toolchain.apply(
-        (str(default_simulation_task_id),),
-        task_id=str(default_simulation_task_id),
-    )
-    logger.info("Simulating scenario with high consumption")
+
+    logger.info(f"Creating an extreme scenario {sizing_scenario_task_id} for the first Simulation")
+    # Create a basic merge from the mutation and the source
     sizing_scenario = merge_scenario(mutation_id, sizing_scenario_task_id)
-    apply_sizing_parameters(mutation_id, sizing_scenario)
+    SimulationType.objects.create(scenario=sizing_scenario, sim_type=EnumSimulationType.SIZING)
+
+    # Swap the consumption so in the first run the max consumption is used
+    swap_consumption_w_max_consumption(sizing_scenario)
+    # If a LUT is used change the temperature to the extreme Temperature
+    sim_range = SimulationRange.objects.get(scenario_id=mutation_id)
+    Temperatures.objects.filter(scenario=sizing_scenario).delete()
+    # Create temperature instance
+    Temperatures.create_constant_temperatures(sizing_scenario, sim_range.temperature_extreme)
+
+    logger.info("Simulating scenario with high consumption")
+    # Run the sizing scenario with these applied changes
     assign_new_vehicles_to_db(sizing_scenario)
+
     _ = _run_ebus_toolchain.apply(
-        (str(sizing_scenario_task_id),), task_id=str(sizing_scenario_task_id)
+        (sizing_scenario_task_id,), task_id=sizing_scenario_task_id, throw=True
     )
+
+    logger.info("Copying result of first Simulation as basis for the second.")
+    # The sizing scenario is supposed to be the basis of the average scenario
+    # Create a copy of the scenario
+    sizing_scenario.task_id = default_simulation_task_id
+    average_scenario, stack = deepcopy_scenario(sizing_scenario)
+    sizing_scenario.refresh_from_db()
+    assert sizing_scenario.task_id != default_simulation_task_id
+
+    logger.info(f"Simulating scenario {average_scenario.task_id} with average consumption")
+    # Swap the consumptions back
+    swap_consumption_w_max_consumption(average_scenario)
+    # Apply the average temperature
+    Temperatures.objects.filter(scenario=average_scenario).delete()
+    # Create temperature instance
+    Temperatures.create_constant_temperatures(average_scenario, sim_range.temperature_average)
+    # Run the average scenario with these applied changes.
+    # Do not optimize Stations this run. In most cases the optimization should not do anything.
+    # In some circumstances the average scenario might be badly setup and have higher consumptions.
+    # In these cases we do not want to extend electrification but only simulate the users wishes.
+    average_scenario.simba_options["modes"] = "sim"
+    average_scenario.save(update_fields=["simba_options"])
+    SimulationType.objects.filter(scenario=average_scenario).update(
+        sim_type=EnumSimulationType.DEFAULT
+    )
+
+    assign_new_vehicles_to_db(average_scenario)
+    _ = _run_ebus_toolchain.apply(
+        (default_simulation_task_id,), task_id=default_simulation_task_id, throw=True
+    )
+    # default_simulation_scenario = merge_scenario(mutation_id, default_simulation_task_id)
+    # run_toolchain_from_scenario(default_simulation_scenario, assign_vehicles=True)
     progress.set_success()
 
 
-def apply_sizing_parameters(mutation_id, scenario: Scenario) -> None:
-    """Increase all consumptions in some way"""
+def swap_consumption_w_max_consumption(scenario: Scenario) -> None:
+    """Swap the consumptions of the VehicleTypes
+
+    This is used to toggle the extreme and average scenario
+    """
 
     vts = VehicleType.objects.filter(scenario=scenario)
     for vt in vts:
         if vt.consumption is not None:
-            vt.consumption *= 2
-        else:
             consumptions = Consumption.objects.filter(vehicle_class__vehicle_types=vt)
-            assert consumptions.count() == 1
+            assert consumptions.count() == 0
+
+            tmp = vt.consumption
             vt.consumption = vt.max_consumption
-        vt.save()
-    sim_range = SimulationRange.objects.get(scenario_id=mutation_id)
-    Temperatures.objects.filter(scenario=scenario).delete()
-    # Create temperature instance
-    Temperatures.create_constant_temperatures(scenario, sim_range.temperature_extreme)
+            vt.max_consumption = tmp
+            vt.save()
 
 
 def run_toolchain_from_scenario(django_scenario: Scenario, assign_vehicles=False):
@@ -1626,17 +1666,10 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     # Some stations are not electrified or excluded -->possible need for optimization
     if all_stations.count() > electrified_stations.count() + excluded_stations.count():
         logger.info("Mode is set to optimization.")
-        child.simba_options["modes"] = "sim,station_optimization,report"
+        child.simba_options["modes"] = "sim,station_optimization"
     else:
         logger.info("Mode is set to NO optimization.")
-        child.simba_options["modes"] = "sim,report"
-
-    # org_ele_station_ids = ele_option.electrified_stations.all().values_list("id", flat=True)
-    # copied_ele_station_ids = [stack[Station][org_id] for org_id in org_ele_station_ids]
-    # electrify_db_stations(child, copied_ele_station_ids)
-    # for station in Station.objects.filter(scenario=mutation).exclude(id__in=copied_ele_station_ids):
-    #     station.is_electrified = False
-    #     station.save()
+        child.simba_options["modes"] = "sim"
 
     apply_vehicle_mutation(mutation, child, stack)
     apply_station_mutation(mutation, child, stack)
@@ -1676,8 +1709,9 @@ def create_station_mutations(scenario):
 @shared_task(bind=True)
 def _run_ebus_toolchain(self, task_id):
     """Run the tool chain"""
-    db_scenario = Scenario.objects.get(task_id=task_id)
+    db_scenario: Scenario = Scenario.objects.get(task_id=task_id)
     assert is_consistent(db_scenario)
+
     # With multiple simulations the progress is linked through the parent to its child scenarios
     progress = Progress.objects.filter(
         scenario=db_scenario.parent, progress_type=EnumProgress.RUNNING_SIMULATION
@@ -1723,14 +1757,24 @@ def _run_ebus_toolchain(self, task_id):
         # SimBA consolidation
         Event.objects.filter(scenario=db_scenario).delete()
 
-        schedule, simba_scenario = run_simba(schedule, args, db_scenario, mode="sim", scenario=None)
-
+        progress.status = "Berechne Verbrauch"
+        progress.save()
+        modes = db_scenario.simba_options["modes"].split(",")
+        assert modes[0] == "sim"
+        schedule, simba_scenario = run_simba(
+            schedule, args, db_scenario, mode=modes[0], scenario=None
+        )
         progress.current_work += 1
         progress.save()
-        schedule, simba_scenario = run_simba(
-            schedule, args, db_scenario, mode="station_optimization", scenario=simba_scenario
-        )
 
+        if len(modes) > 1 and "station_optimization" in modes[1]:
+            progress.status = "Elektrifziere notwendige Stationen"
+            progress.save()
+            schedule, simba_scenario = run_simba(
+                schedule, args, db_scenario, mode=modes[1], scenario=simba_scenario
+            )
+        else:
+            logger.info("Station optimization was skipped")
         progress.current_work += 1
         progress.save()
         notifications = []
@@ -1968,6 +2012,7 @@ def run_mode(
         new_scenario: "SimbaScenario" = schedule.run(args, mode="greedy")
         return schedule, new_scenario
     conf = create_optimizer_config(db_scenario)
+    conf.remove_impossible_rotations = True
     if mode == "station_optimization_single_step":
         conf.early_return = True
 
@@ -1993,8 +2038,18 @@ def run_simba(
     args.output_directory = Path(settings.UPLOAD_PATH) / str(db_scenario.task_id)
     args.attach_vehicle_soc = True
 
-    schedule, scenario = run_mode(mode, schedule, scenario, args, db_scenario)
-
+    try:
+        schedule, scenario = run_mode(mode, schedule, scenario, args, db_scenario)
+    except AssertionError as e:
+        logger.info(traceback.format_exception(e))
+        # TODO: Let SimBA throw custom exceptions to be caught
+        if any(
+            ("Schedule cannot be optimized, since rotations cannot be electrified.") in x
+            for x in e.args
+        ):
+            return schedule, scenario
+        logger.info("Assertion not found")
+        raise
     # Apply changes to database depending on mode
     match mode:
         case "sim":

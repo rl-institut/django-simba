@@ -146,7 +146,13 @@ CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=
 # if set, eager tasks will save results in backend
 CELERY_TASK_STORE_EAGER_RESULT = env.bool("CELERY_TASK_STORE_EAGER_RESULT", default=True)
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=None)
+# Recommended celery backend for persistent storage is REDIS.
+# rpc is an alternative which does not need extra dependency but is epheremal.
+# Once fetched the results are gone.
+# The status Started can only be fetched once.
+# Therefore the status of tasks can not be determined accurately.
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="rpc://")
+CELERY_TASK_TRACK_STARTED = True
 REDIS_URL = env("REDIS_URL", default=None)
 
 
