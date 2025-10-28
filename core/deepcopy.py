@@ -33,7 +33,7 @@ def deepcopy_and_sequence_reset(
     :param exclude_fields: fields which are skipped during copying
     :param max_depth: maximum recursion depth. For known structures, reducing the max depth
         increases the speed of deep copying.
-    :return: copy result instance, stack which links original with copied instances
+    :return: copy result instance, stack_pre which links original with copied instances
     """
 
     copied_instance, deepcopy_locals = deepcopy(
@@ -42,7 +42,7 @@ def deepcopy_and_sequence_reset(
         exclude_fields=exclude_fields,
         max_depth=max_depth,
     )
-    original_copy_dict = deepcopy_locals["stack"]
+    original_copy_dict = deepcopy_locals["stack_pre"]
     reset_postgres_auto_increments(deepcopy_locals["apps"])
 
     return copied_instance, original_copy_dict
@@ -58,7 +58,7 @@ def reset_postgres_auto_increments(apps):
             with connection.cursor() as cursor:
                 cursor.execute(postgres_reset_sql)
         except (psycopg2.errors.UndefinedTable, ProgrammingError):
-            logging.warning("Undefined table in PostgreSQL: %s", app)
+            logging.debug("Undefined table in PostgreSQL: %s", app)
 
 
 def write_multi_dict(source: dict, keys: list, value):
@@ -101,9 +101,11 @@ def deepcopy(  # noqa
     :return: copy result instance, locals of this function
     """
 
+    old_id = instance.id
+
     def _deepcopy(
         object: models.Model,
-        stack: dict,
+        stack_pre: dict,
         already_copied: dict,
         copies: dict,
         exclude_models: set,
@@ -115,7 +117,7 @@ def deepcopy(  # noqa
         """Recursive deepcopy call
 
         :param object: object to be copied
-        :param stack: reference between old pks and new pks
+        :param stack_pre: reference between old pks and new pks
         :param already_copied: reference of source instances of copying
         :param copies:  reference of result instances of copying
         :param exclude_models: models which are skipped during copying
@@ -154,7 +156,7 @@ def deepcopy(  # noqa
         #
         write_multi_dict(copies, [object.__class__, new_pk], copied_obj)
         write_multi_dict(already_copied, [object.__class__, old_pk], object)
-        write_multi_dict(stack, [object.__class__, old_pk], new_pk)
+        write_multi_dict(stack_pre, [object.__class__, old_pk], new_pk)
 
         if max_depth is not None:
             if current_depth >= max_depth:
@@ -181,7 +183,7 @@ def deepcopy(  # noqa
                 for o in rel_objs:
                     _deepcopy(
                         o,
-                        stack=stack,
+                        stack_pre=stack_pre,
                         already_copied=already_copied,
                         copies=copies,
                         exclude_models=exclude_models,
@@ -193,7 +195,7 @@ def deepcopy(  # noqa
         return new_pk
 
     # links old_pk-> new_pk for each class
-    stack = dict()
+    stack_pre = dict()
     already_copied = dict()
     copies = dict()
 
@@ -210,48 +212,106 @@ def deepcopy(  # noqa
         exclude_fields,
         exclude_models,
         instance,
-        stack,
+        stack_pre,
         max_depth=max_depth,
     )
 
-    # Revert the stack from old_pk-> new_pk to new_pk->old_pk
-    rev_stack = revert_stack(stack)
+    # Revert the stack_pre from old_pk-> new_pk to new_pk->old_pk
+    # pre stands for linkage BEFORE creation.
+    # The final pks are set by the db during bulk creation.
+    # the final linkage between objects is found in the stack_post rev_stack_post dicts
+    rev_stack_pre = revert_stack(stack_pre)
 
-    apps = {model._meta.app_label for model in copies}
+    stack_post = {}
+    rev_stack_post = {}
+    already_updated_fields = {}
+    managers = []
+
     counter = 0
-    while counter < 100:
+    _copies = {key: value for key, value in copies.items()}
+    # Allow 10 retries
+    while _copies and counter < 10:
         counter += 1
         # Bulk create the objects to speed up the writing process
-        logger.warning("bulk creating")
-        failed_classes = bulk_create_objects(copies, stack, rev_stack)
-        # Replace the foreign keys of the copied objects. This can only be done after they were created
-        # to ensure they do not point to not created objects <-- Error
-
-        logger.warning("bulk updating")
-        managers = replace_keys_and_get_managers(
-            already_copied, copies, rev_stack, stack, exclude_models, exclude_fields
+        logger.debug("bulk creating")
+        # Mutates all stacks in place
+        failed_classes = bulk_create_objects(
+            _copies, stack_pre, rev_stack_pre, stack_post, rev_stack_post
         )
-        # After objects are saved to DB ManyToMany fields can be set
+        suceeded_classes = set(_copies.keys()).difference(failed_classes)
 
-        logger.warning("many to many")
-        replace_many2many(managers)
+        # Replace the foreign keys of the all objects, when their foreign key model has been created
+        logger.debug("updating copies with new foreign keys")
+        managers.extend(
+            replace_keys_and_get_managers(
+                already_copied,
+                _copies,
+                rev_stack_post,
+                stack_post,
+                rev_stack_pre,
+                exclude_models,
+                exclude_fields,
+                already_updated_fields,
+            )
+        )
 
-        copies = {key: values for key, values in copies.items() if key in failed_classes}
-
-        if len(copies) == 0:
+        _copies = {key: values for key, values in _copies.items() if key in failed_classes}
+        if len(_copies) == 0:
             break
     else:
         raise Exception("Deepcopying could not create Objects. Database restrictions aren't met?")
-    new_pk = instance.pk
-    return instance.__class__.objects.get(pk=stack[instance._meta.model][new_pk]), locals()
+
+    # Make sure to iterate of copies and not the filtered _copies version
+    # At this point all instances are created. Update fields which might have not been updated before
+    logger.debug("Check for missing updates")
+    managers.extend(
+        replace_keys_and_get_managers(
+            already_copied,
+            copies,
+            rev_stack_post,
+            stack_post,
+            rev_stack_pre,
+            exclude_models,
+            exclude_fields,
+            already_updated_fields,
+        )
+    )
+
+    # After objects are saved to DB ManyToMany fields can be set
+    logger.debug("setting new many to many")
+    replace_many2many(managers)
+
+    for model_class, objs in copies.items():
+        logger.debug(f"bulk updating copies with new foreign keys for {model_class}")
+        fnames = [
+            f.name
+            for f in already_updated_fields[model_class]
+            if not isinstance(f, ManyToManyField)
+        ]
+        if not fnames:
+            logger.debug(f"skipped {model_class} since no fields were updated")
+            continue
+        try:
+            model_class.objects.fast_update(objs.values(), fnames)
+        except AttributeError:
+            model_class.objects.bulk_update(objs.values(), fnames)
+
+    return instance.__class__.objects.get(pk=stack_post[instance._meta.model][old_id]), locals()
 
 
 def _deepcopy_wrapper(
-    func, already_copied, copies, exclude_fields, exclude_models, instance, stack, max_depth=None
+    func,
+    already_copied,
+    copies,
+    exclude_fields,
+    exclude_models,
+    instance,
+    stack_pre,
+    max_depth=None,
 ):
     new_pk = func(
         instance,
-        stack=stack,
+        stack_pre=stack_pre,
         already_copied=already_copied,
         copies=copies,
         exclude_models=exclude_models,
@@ -270,7 +330,7 @@ def revert_stack(stack):
     return rev_stack
 
 
-def bulk_create_objects(copies, stack, rev_stack) -> list:
+def bulk_create_objects(copies, stack_pre, rev_stack_pre, stack_post, rev_stack_post) -> list:
     @atomic
     def atomic_creation(inner_object_class):
         instances = copies[inner_object_class].values()
@@ -291,60 +351,82 @@ def bulk_create_objects(copies, stack, rev_stack) -> list:
         copies[inner_object_class] = {instance.id: instance for instance in instances}
 
         # update the stack which links old pks with new pks
-        assert len(instances) == len(rev_stack[inner_object_class])
-        assert len(instances) == len(stack[inner_object_class])
+        assert len(instances) == len(rev_stack_pre[inner_object_class])
+        assert len(instances) == len(stack_pre[inner_object_class])
 
+        assert stack_post.get(inner_object_class) is None
+        stack_post[inner_object_class] = dict()
         for i, instance in enumerate(instances):
-            old_pk = rev_stack[inner_object_class][instance_lut[i]]
-            stack[inner_object_class][old_pk] = instance.id
+            old_pk = rev_stack_pre[inner_object_class][instance_lut[i]]
+            stack_post[inner_object_class][old_pk] = instance.id
 
         # update the reverse stack which is used later for lookups
-        del rev_stack[inner_object_class]
-        rev_stack[inner_object_class] = dict()
-        for key, value in stack[inner_object_class].items():
-            rev_stack[inner_object_class][value] = key
+        rev_stack_post[inner_object_class] = dict()
+        rev_stack_post[inner_object_class] = dict()
+        for key, value in stack_post[inner_object_class].items():
+            rev_stack_post[inner_object_class][value] = key
 
     failed_copies = []
     for object_class in copies:
-        logger.warning(f"trying {copies}")
+        logger.debug(f"trying {object_class}")
         try:
             atomic_creation(object_class)
         except django.db.IntegrityError:
             failed_copies.append(object_class)
-            logger.warning(f"failed {copies}")
+            logger.debug(f"failed {object_class}")
 
     return failed_copies
 
 
 def replace_many2many(managers):
     for manager, new_foreign_values in managers:
+        logger.debug(manager)
         manager.add(*new_foreign_values)
 
 
 def replace_keys_and_get_managers(
-    already_copied, copies, rev_stack, stack, exclude_models, exclude_fields
+    already_copied,
+    copies,
+    rev_stack_post,
+    stack_post,
+    rev_stack_pre,
+    exclude_models,
+    exclude_fields,
+    already_updated_fields,
 ):
     managers = list()
-    for obj_class in copies:
-        if len(copies[obj_class]) == 0:
-            continue
-        all_copies = [c for c in copies[obj_class].values()]
+    filtered_copies = {key: value for key, value in copies.items() if not len(value) == 0}
+    for obj_class in filtered_copies:
+        if obj_class not in already_updated_fields:
+            already_updated_fields[obj_class] = set()
+        updated_fields = already_updated_fields[obj_class]
+
         fields = obj_class._meta.fields + obj_class._meta.many_to_many
-        fnames = []
-        for f in fields:
-            if not f.related_model or len(copies[obj_class]) == 0:
-                continue
+        # Only update fields if they have are have a related model, e.g. a foreignkey or many to many
+        # Only update fields which have not been updated before
+        # Only update fields, if the related model has been bulk created yet
+        filtered_fields = [
+            f
+            for f in fields
+            if f.related_model and f not in updated_fields and f.related_model in stack_post
+        ]
+        for f in filtered_fields:
+            logger.info(f"Updating {f} in {obj_class}")
+            # Keep track of this field, so its not updated twice
+            updated_fields.add(f)
             m2m = isinstance(f, ManyToManyField)
-            if not m2m:
-                fnames.append(f.name)
 
             # Depending on if it is a m2m field, different functions grab the keys
             get_keys = get_keys_factory(m2m)
 
-            for pk in copies[obj_class]:
-                obj_copy = copies[obj_class][pk]
-                # Get the foreign key of the original
-                org_pk = rev_stack[obj_class][pk]
+            for pk, obj_copy in copies[obj_class].items():
+                # Get the pk key of the original. ManyToManyFields are not stored in the
+                # copied instance but accessible through the manager.
+                # We need the original instance to look up the proper  manager
+                if obj_class in rev_stack_post:
+                    org_pk = rev_stack_post[obj_class][pk]
+                else:
+                    org_pk = rev_stack_pre[obj_class][pk]
                 # Get the instance of the original
                 obj = already_copied[obj_class][org_pk]
                 # Grab the primary key(s) of the foreign field
@@ -356,26 +438,27 @@ def replace_keys_and_get_managers(
                         f,
                         obj_copy,
                         org_foreign_values,
-                        stack,
+                        stack_post,
                         exclude_models=exclude_models,
                         exclude_fields=exclude_fields,
                     )
                 else:
-                    managers.append(
-                        create_m2m_managers(
-                            f,
-                            obj_copy,
-                            org_foreign_values,
-                            stack,
-                            exclude_models=exclude_models,
-                            exclude_fields=exclude_fields,
-                        )
+                    manager = create_m2m_managers(
+                        f,
+                        obj_copy,
+                        org_foreign_values,
+                        stack_post,
+                        exclude_models=exclude_models,
+                        exclude_fields=exclude_fields,
                     )
-        if len(fnames) > 0:
-            try:
-                obj_class.objects.fast_update(all_copies, fnames)
-            except AttributeError:
-                obj_class.objects.bulk_update(all_copies, fnames)
+                    # Actively managed through models dont need to be handled through managers
+                    # They are handled through foreign fields of the through model instances
+                    if manager[0].through in copies or manager[0].through in stack_post:
+                        logger.debug(f"skipping {f} manager for {obj_class} ")
+                        continue
+
+                    logger.debug(f"appending {f} manager for { obj_class } ")
+                    managers.append(manager)
     return managers
 
 
@@ -393,12 +476,14 @@ def get_keys_factory(m2m):
     return get_keys
 
 
-def create_m2m_managers(f, obj_copy, org_foreign_values, stack, exclude_models, exclude_fields):
+def create_m2m_managers(
+    f, obj_copy, org_foreign_values, stack_post, exclude_models, exclude_fields
+):
     new_foreign_values = []
     # Replace all foreign keys with the copy/pk translation of the objects
     for old_foreign in org_foreign_values:
         try:
-            new_foreign_values.append(stack[f.related_model][old_foreign.pk])
+            new_foreign_values.append(stack_post[f.related_model][old_foreign.pk])
         except KeyError:
             if f in exclude_fields or f.related_model in exclude_models:
                 new_foreign_values = org_foreign_values
@@ -409,9 +494,11 @@ def create_m2m_managers(f, obj_copy, org_foreign_values, stack, exclude_models, 
     return manager, new_foreign_values
 
 
-def set_new_foreign_value(f, obj_copy, org_foreign_values, stack, exclude_models, exclude_fields):
+def set_new_foreign_value(
+    f, obj_copy, org_foreign_values, stack_post, exclude_models, exclude_fields
+):
     try:
-        new_foreign_values = stack[f.related_model][org_foreign_values]
+        new_foreign_values = stack_post[f.related_model][org_foreign_values]
         setattr(obj_copy, f.name + "_id", new_foreign_values)
     except KeyError:
         if f in exclude_fields or f.related_model in exclude_models:
