@@ -16,14 +16,14 @@
         <form class="space-y-6" action="#" method="POST">
           {% csrf_token %}
           <div>
-            <label for="email" class="block text-sm/6 font-medium text-slate-800">{% translate 'E-Mail-Adresse' %}</label>
+            <label for="email" class="block text-sm/6 font-semibold text-slate-800">{% translate 'E-Mail-Adresse' %}</label>
             <div class="mt-2">
               <input type="text" name="username" id="email" autocomplete="email" required class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-slate-800 outline outline-1 -outline-offset-1 outline-slate-300 placeholder:text-slate-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-emerald-500 sm:text-sm/6">
             </div>
           </div>
 
           <div>
-            <label for="password" class="block text-sm/6 font-medium text-slate-800">{% translate 'Passwort' %}</label>
+            <label for="password" class="block text-sm/6 font-semibold text-slate-800">{% translate 'Passwort' %}</label>
             <div class="mt-2">
               <input type="password" name="password" id="password" autocomplete="current-password" required class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-slate-800 outline outline-1 -outline-offset-1 outline-slate-300 placeholder:text-slate-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-emerald-500 sm:text-sm/6">
             </div>

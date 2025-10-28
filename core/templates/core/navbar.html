@@ -14,16 +14,16 @@
           {% translate '+ Szenario erstellen' %}
         </a>
         {% if user.is_authenticated %}
-          <a href="{% url 'simba:dashboard' %}" class="text-sm text-slate-600 hover:text-emerald-500 transition-colors">{% translate 'Szenarien' %}</a>
-          <a href="{% url 'simba:compare' %}" class="text-sm text-slate-600 hover:text-emerald-500 transition-colors">{% translate 'Szenarienvergleich' %}</a>
-          <a href="{% url 'core:profile' %}" class="text-sm text-slate-600 hover:text-emerald-500 transition-colors">{% translate 'Profil' %}</a>
+          <a href="{% url 'simba:dashboard' %}" class="text-sm text-slate-500 hover:text-emerald-500 transition-colors">{% translate 'Szenarien' %}</a>
+          <a href="{% url 'simba:compare' %}" class="text-sm text-slate-500 hover:text-emerald-500 transition-colors">{% translate 'Szenarienvergleich' %}</a>
+          <a href="{% url 'core:profile' %}" class="text-sm text-slate-500 hover:text-emerald-500 transition-colors">{% translate 'Profil' %}</a>
         {% endif %}
-        <a href="{% url 'core:help' %}" class="text-sm text-slate-600 hover:text-emerald-500 transition-colors">{% translate 'Hilfe' %}</a>
-        <a href="#" class="text-sm text-slate-600 hover:text-emerald-500 transition-colors">Über das Projekt</a>
+        <a href="{% url 'core:help' %}" class="text-sm text-slate-500 hover:text-emerald-500 transition-colors">{% translate 'Hilfe' %}</a>
+        <a href="#" class="text-sm text-slate-500 hover:text-emerald-500 transition-colors">Über das Projekt</a>
         {% if user.is_authenticated %}
           <form action="{% url 'core:logout' %}" method="post">
             {% csrf_token %}
-            <button type="submit" class="text-sm flex items-center text-slate-600 hover:text-emerald-500 transition-colors">
+            <button type="submit" class="text-sm flex items-center text-slate-500 hover:text-emerald-500 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15m-3 0-3-3m0 0 3-3m-3 3H15" />
               </svg>
@@ -34,7 +34,7 @@
           <a class="border-2 border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white px-4 py-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black cursor-pointer">
             Registrieren
           </a>
-          <a href="{% url 'core:login' %}" class="text-sm flex items-center text-slate-600 hover:text-emerald-500 transition-colors">
+          <a href="{% url 'core:login' %}" class="text-sm flex items-center text-slate-500 hover:text-emerald-500 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
             </svg>
@@ -82,7 +82,7 @@
       <a class="border-2 border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white px-4 py-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black cursor-pointer">
         Registrieren
       </a>
-      <a href="{% url 'core:login' %}" class="text-sm flex items-center text-slate-600 hover:text-emerald-500 transition-colors">
+      <a href="{% url 'core:login' %}" class="text-sm flex items-center text-slate-500 hover:text-emerald-500 transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
         </svg>
@@ -95,9 +95,9 @@
 <!-- Mobile Full-Screen Menu -->
 <div id="mobile-menu" class="fixed inset-0 hidden z-20 bg-slate-800" aria-hidden="true">
   <div class="flex flex-col items-center justify-center h-full space-y-8">
-    <a href="{% url 'login' %}" class="text-white text-2xl font-medium hover:underline">{% translate 'Einloggen' %}</a>
-    <a href="{% url 'simba:dashboard' %}" class="text-white text-2xl font-medium hover:underline">{% translate 'Szenarienvergleich' %}</a>
-    <a href="#" class="text-white text-2xl font-medium hover:underline">{% translate 'Hilfe' %}</a>
+    <a href="{% url 'login' %}" class="text-white text-2xl font-semibold hover:underline">{% translate 'Einloggen' %}</a>
+    <a href="{% url 'simba:dashboard' %}" class="text-white text-2xl font-semibold hover:underline">{% translate 'Szenarienvergleich' %}</a>
+    <a href="#" class="text-white text-2xl font-semibold hover:underline">{% translate 'Hilfe' %}</a>
     <button id="close-menu" class="absolute top-4 right-4 p-2 text-white focus:outline-none">
       <span class="sr-only">{% translate 'Menü schließen' %}</span>
       <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

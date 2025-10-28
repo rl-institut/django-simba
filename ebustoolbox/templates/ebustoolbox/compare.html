@@ -6,7 +6,7 @@
 {% block content %}
 <main class="flex flex-col items-center flex-grow">
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-[120rem]">
-    <h1 class="text-4xl font-semibold mb-6">{% translate "Szenarienvergleich" %}</h1>
+    <h1 class="text-2xl font-semibold mb-6">{% translate "Szenarienvergleich" %}</h1>
   {% if scenarios %}
     <div class="flex flex-col">
       <div id="cmp-addContainer" class="flex justify-end h-12"></div>
@@ -18,7 +18,7 @@
                 <th class="px-4 py-4 border-r border-slate-300 w-64 min-w-[16rem]">&nbsp;</th>
               </tr>
             </thead>
-            <tbody class="text-sm text-slate-700">
+            <tbody class="text-sm text-slate-800">
             </tbody>
           </table>
         </div>
@@ -50,7 +50,7 @@
   const headerBtnStyle = ['px-2', 'py-1', 'rounded-full', 'border-2', 'font-semibold', 'border-emerald-400', 'hover:bg-emerald-400', 'hover:text-black', 'focus:outline-none', 'focus:ring-2', 'focus:ring-offset-2', 'focus:ring-emerald-400', 'active:bg-emerald-500', 'transition-all', 'duration-300'];
   const selectStyle = ['pl-2', 'pr-8', 'py-1', 'border-slate-300', 'bg-white', 'text-slate-800', 'text-sm', 'focus:outline-none', 'focus:ring-2', 'focus:ring-offset-2', 'focus:ring-emerald-400'];
   const rowStyle = ['border-t'];
-  const rowKeyStyle = ['px-4', 'py-3', 'text-slate-600', 'border-r', 'w-64','min-w-[16rem]', 'text-left'];
+  const rowKeyStyle = ['px-4', 'py-3', 'text-slate-500', 'border-r', 'w-64','min-w-[16rem]', 'text-left'];
   const rowValueStyle = ['px-4', 'py-3', 'text-right'];
   const rowStringStyle = ['px-4', 'py-3', 'text-left'];
 
@@ -82,8 +82,8 @@
       const select = document.createElement('select');
       select.id = 'cmp-select';
       select.classList.add(
-        'pl-4', 'pr-6', 'py-1', 'rounded-full', 'border-2', 'font-semibold',
-        'border-emerald-100', 'bg-emerald-100', 'hover:bg-emerald-200', 'text-slate-800', 'hover:text-slate-800', 'hover:border-emerald-200',
+        'pl-4', 'pr-8', 'py-1', 'rounded-full', 'border-none', 'font-semibold',
+        'bg-emerald-100', 'hover:bg-emerald-200', 'text-slate-800', 'hover:text-slate-800', 'hover:border-emerald-200',
         'focus:outline-none', 'focus:ring-2', 'focus:ring-offset-2', 'focus:ring-emerald-300', 'active:bg-white', 'focus:bg-white', 'focus:border-emerald-300',
         'transition-all', 'duration-300', 'cursor-pointer', 'h-10', 'pr-24',
         'appearance-none',

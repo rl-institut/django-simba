@@ -17,9 +17,9 @@
         enctype="multipart/form-data">
       {% csrf_token %}
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">
+    <h1 class="pb-12 text-2xl text-slate-500 font-light tracking-wide uppercase">
         {% translate "Kosten" %}
-        <span class="text-sm normal-case font-normal text-slate-600">{% translate '(optional)' %}</span>
+        <span class="text-sm normal-case font-normal text-slate-500">{% translate '(optional)' %}</span>
     </h1>
     <section class="pb-12">
       <fieldset class="pb-8">
@@ -32,7 +32,7 @@
           <div class="flex items-center h-12">
             <input id="costsAutomatic" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.no_input }}" type="radio" checked class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
             <div class="flex items-center gap-2">
-                <label for="costsAutomatic" class="ml-3 block text-sm/6 font-medium text-slate-800">{% translate 'Keine Eingabe' %}</label>
+                <label for="costsAutomatic" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Keine Eingabe' %}</label>
               <div class="relative inline-block">
                 <!-- Info Icon -->
                 <span class="cursor-pointer group">
@@ -51,7 +51,7 @@
           <div class="flex items-center h-12">
             <input id="costsFile" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.file_upload }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
             <div class="flex items-center gap-2">
-                <label for="costsFile" class="ml-3 block text-sm/6 font-medium text-slate-800">{% translate 'Datei hochladen' %}</label>
+                <label for="costsFile" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Datei hochladen' %}</label>
               <div class="relative inline-block">
                 <!-- Info Icon -->
                 <span class="cursor-pointer group">
@@ -78,7 +78,7 @@
           <!-- Option 3 -->
           <div class="flex items-center h-12">
             <input id="costsScenario" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.reference_scenario }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
-              <label for="costsScenario" class="ml-3 block text-sm/6 font-medium text-slate-800">{% translate 'Werte aus anderem Szenario übernehmen' %}</label>
+              <label for="costsScenario" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Werte aus anderem Szenario übernehmen' %}</label>
             <div class="ml-4 flex-grow hidden" id="dropdown-select">
               <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
                 <select
@@ -96,7 +96,7 @@
           <!-- Option 4 -->
           <div class="flex items-center h-12">
             <input id="costsManually" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.manual }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
-              <label for="costsManually" class="ml-3 block text-sm/6 font-medium text-slate-800">{% translate 'Manuelle Eingabe' %}</label>
+              <label for="costsManually" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Manuelle Eingabe' %}</label>
           </div>
         </div>
       </fieldset>
@@ -105,7 +105,7 @@
           <!-- CO2 Emission -->
           <div class="flex-grow">
             <div class="flex items-center gap-2">
-                <label for="co2Emissions" id="co2EmissionsLabel" class="block text-sm/6 font-medium text-slate-800">{% translate 'CO₂-Emissionen' %}</label>
+                <label for="co2Emissions" id="co2EmissionsLabel" class="block text-sm/6 font-semibold text-slate-800">{% translate 'CO₂-Emissionen' %}</label>
               <div class="relative inline-block">
                 <!-- Info Icon -->
                 <span class="cursor-pointer group">
@@ -134,7 +134,7 @@
           <!-- Energy Consumption -->
           <div class="flex-grow">
             <div class="flex items-center gap-2">
-                <label for="energyConsumption" id="energyConsumptionLabel" class="block text-sm/6 font-medium text-slate-800">{% translate 'Energieverbrauch' %}</label>
+                <label for="energyConsumption" id="energyConsumptionLabel" class="block text-sm/6 font-semibold text-slate-800">{% translate 'Energieverbrauch' %}</label>
               <div class="relative inline-block">
                 <span class="cursor-pointer group">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
@@ -161,7 +161,7 @@
           <!-- Resource Consumption -->
           <div class="flex-grow">
             <div class="flex items-center gap-2">
-                <label for="resourceConsumption" id="resourceConsumptionLabel" class="block text-sm/6 font-medium text-slate-800">{% translate 'Ressourcenverbrauch' %}</label>
+                <label for="resourceConsumption" id="resourceConsumptionLabel" class="block text-sm/6 font-semibold text-slate-800">{% translate 'Ressourcenverbrauch' %}</label>
               <div class="relative inline-block">
                 <span class="cursor-pointer group">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
@@ -188,7 +188,7 @@
           <!-- Lifetime Analysis -->
           <div class="flex-grow">
             <div class="flex items-center gap-2">
-                <label for="lifetimeAnalysis" id="lifetimeAnalysisLabel" class="block text-sm/6 font-medium text-slate-800">{% translate 'Lebensdaueranalyse' %}</label>
+                <label for="lifetimeAnalysis" id="lifetimeAnalysisLabel" class="block text-sm/6 font-semibold text-slate-800">{% translate 'Lebensdaueranalyse' %}</label>
               <div class="relative inline-block">
                 <span class="cursor-pointer group">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
@@ -225,7 +225,7 @@
           <div class="flex items-center h-12">
             <input id="envAutomatic" name="{{ env_mode_form.input_mode.html_name }}" value="{{ radio_values.no_input }}" type="radio" checked class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
             <div class="flex items-center gap-2">
-              <label for="envAutomatic" class="ml-3 block text-sm/6 font-medium text-slate-800">{% translate 'Keine Eingabe' %}</label>
+              <label for="envAutomatic" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Keine Eingabe' %}</label>
               <div class="relative inline-block">
                 <!-- Info Icon -->
                 <span class="cursor-pointer group">
@@ -244,7 +244,7 @@
           <div class="flex items-center h-12">
             <input id="envFile" name="{{ env_mode_form.input_mode.html_name }}" value="{{ radio_values.file_upload }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
             <div class="flex items-center gap-2">
-              <label for="envFile" class="ml-3 block text-sm/6 font-medium text-slate-800">{% translate 'Datei hochladen' %}</label>
+              <label for="envFile" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Datei hochladen' %}</label>
               <div class="relative inline-block">
                 <!-- Info Icon -->
                 <span class="cursor-pointer group">
@@ -271,7 +271,7 @@
           <!-- Option 3 -->
           <div class="flex items-center h-12">
             <input id="envScenario" name="{{ env_mode_form.input_mode.html_name }}" value="{{ radio_values.reference_scenario }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
-            <label for="envScenario" class="ml-3 block text-sm/6 font-medium text-slate-800">{% translate 'Werte aus anderem Szenario übernehmen' %}</label>
+            <label for="envScenario" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Werte aus anderem Szenario übernehmen' %}</label>
             <div class="ml-4 flex-grow hidden" id="env-dropdown-select">
               <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
                 <select
@@ -289,7 +289,7 @@
           <!-- Option 4 -->
           <div class="flex items-center h-12">
             <input id="envManually" name="{{ env_mode_form.input_mode.html_name }}" value="{{ radio_values.manual }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
-            <label for="envManually" class="ml-3 block text-sm/6 font-medium text-slate-800">{% translate 'Manuelle Eingabe' %}</label>
+            <label for="envManually" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Manuelle Eingabe' %}</label>
           </div>
         </div>
       </fieldset>
@@ -298,7 +298,7 @@
           <!-- CO2 Emission -->
           <div class="flex-grow">
             <div class="flex items-center gap-2">
-              <label for="envCo2Emissions" id="envCo2EmissionsLabel" class="block text-sm/6 font-medium text-slate-800">{% translate 'CO₂-Emissionen' %}</label>
+              <label for="envCo2Emissions" id="envCo2EmissionsLabel" class="block text-sm/6 font-semibold text-slate-800">{% translate 'CO₂-Emissionen' %}</label>
               <div class="relative inline-block">
                 <!-- Info Icon -->
                 <span class="cursor-pointer group">
@@ -327,7 +327,7 @@
           <!-- Energy Consumption -->
           <div class="flex-grow">
             <div class="flex items-center gap-2">
-              <label for="envEnergyConsumption" id="envEnergyConsumptionLabel" class="block text-sm/6 font-medium text-slate-800">{% translate 'Energieverbrauch' %}</label>
+              <label for="envEnergyConsumption" id="envEnergyConsumptionLabel" class="block text-sm/6 font-semibold text-slate-800">{% translate 'Energieverbrauch' %}</label>
               <div class="relative inline-block">
                 <span class="cursor-pointer group">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
@@ -354,7 +354,7 @@
           <!-- Resource Consumption -->
           <div class="flex-grow">
             <div class="flex items-center gap-2">
-                <label for="envResourceConsumption" id="envResourceConsumptionLabel" class="block text-sm/6 font-medium text-slate-800">{% translate 'Ressourcenverbrauch' %}</label>
+                <label for="envResourceConsumption" id="envResourceConsumptionLabel" class="block text-sm/6 font-semibold text-slate-800">{% translate 'Ressourcenverbrauch' %}</label>
               <div class="relative inline-block">
                 <span class="cursor-pointer group">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
@@ -381,7 +381,7 @@
           <!-- Lifetime Analysis -->
           <div class="flex-grow">
             <div class="flex items-center gap-2">
-                <label for="envLifetimeAnalysis" id="envLifetimeAnalysisLabel" class="block text-sm/6 font-medium text-slate-800">{% translate 'Lebensdaueranalyse' %}</label>
+                <label for="envLifetimeAnalysis" id="envLifetimeAnalysisLabel" class="block text-sm/6 font-semibold text-slate-800">{% translate 'Lebensdaueranalyse' %}</label>
               <div class="relative inline-block">
                 <span class="cursor-pointer group">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">

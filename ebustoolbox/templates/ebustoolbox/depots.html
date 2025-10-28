@@ -11,7 +11,7 @@
 {% block wizard_content %}
   <main class="flex flex-col items-center flex-grow">
     <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-      <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Depots' %}</h1>
+      <h1 class="pb-12 text-2xl text-slate-500 font-light tracking-wide uppercase">{% translate 'Depots' %}</h1>
       <form type="sumbit" method="POST">
         {% csrf_token %}
         {% for depot, form_dict in forms.items %}

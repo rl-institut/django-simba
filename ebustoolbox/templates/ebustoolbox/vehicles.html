@@ -18,7 +18,7 @@
         type="submit"
         method ="POST">
         {% csrf_token %}
-        <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Fahrzeuge' %}</h1>
+        <h1 class="pb-12 text-2xl text-slate-500 font-light tracking-wide uppercase">{% translate 'Fahrzeuge' %}</h1>
 
     <section class="pb-12">
       <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide">
@@ -36,9 +36,9 @@
             </span>
           </div>
           </h2>
-          <span class="block mb-6 text-sm text-slate-500">{% translate 'Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.' %}</span>
-          <fieldset class="flex items-center gap-4">
-            <span class="text-slate-600">{% translate 'Von' %}</span>
+          <span class="block mb-2 text-sm text-slate-500">{% translate 'Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.' %}</span>
+          <fieldset class="flex items-center gap-2">
+            <span class="text-sm text-slate-500">{% translate 'Von' %}</span>
             <!-- Start Date -->
             <div class="flex items-center rounded-md outline outline-1 outline-transparent">
               <label for="start-date" class="sr-only">{% translate 'Startdatum' %}</label>
@@ -63,7 +63,7 @@
                      value="{{ initial_start_time }}"
                      required>
             </div>
-            <span class="text-slate-600">{% translate 'bis' %}</span>
+            <span class="text-sm text-slate-500">{% translate 'bis' %}</span>
             <!-- End Date -->
             <div class="flex items-center rounded-md outline outline-1 outline-transparent">
               <label for="end-date" class="sr-only">Enddatum</label>
@@ -118,9 +118,9 @@
               </span>
             </div>
           </h2>
-          <div class="row flex">
-            <div class="min-w-[16rem]">
-              <h3 class="flex items-center gap-2 pb-2 text-l font-semibold tracking-wide"
+          <div class="flex gap-8">
+            <div class="min-w-[12rem]">
+              <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-800 tracking-wide"
                   id="temperature-heading">
                 {% translate 'Durchschnittstemperatur' %}
                 <div class="relative inline-block">
@@ -141,7 +141,7 @@
                   </span>
                 </div>
               </h3>
-              <div class="w-12/12">
+              <div class="w-6/12">
                 <div class="mt-2">
                   <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-emerald-400 focus-within:focus-visible:outline-2">
                     <input {% with simulation_parameters_form.temperature_average as form %}
@@ -152,12 +152,12 @@
                            aria-describedby="temperature-heading temperature-unit"
                 onchange ="temperatureChange(this.value, 'AvgTemperatureHint','div .avg-consumption-hint', debounced_fetchAndSetTemperature2)"
                   >
-                    <div id="temperature-unit" class="shrink-0 select-none text-slate-500">°C</div>
+                    <div id="temperature-unit" class="shrink-0 select-none text-sm text-slate-500">°C</div>
                   </div>
                 </div>
               </div>
                 <div class="flex" >
-                  <div id="AvgTemperatureHint"  class="hidden flex mt-1 text-sm text-slate-600 italic transition-opacity duration-200 ease-in-out">
+                  <div id="AvgTemperatureHint"  class="hidden flex mt-1 text-sm text-slate-500 italic transition-opacity duration-200 ease-in-out">
                     <!-- Next div is queried for class= text and filled with temperature fetch. -->
                     <div class="flex text">
                   </div>
@@ -186,12 +186,8 @@
                   </div>
                 </div>
             </div>
-            <div class="px-6">
-
-              <!-- Gap between inputs -->
-            </div>
-            <div class="min-w-[16rem]">
-              <h3 class="flex items-center gap-2 pb-2 text-l font-semibold tracking-wide"
+            <div class="min-w-[12rem]">
+              <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-800 tracking-wide"
                   id="temperature-heading">
                 {% translate 'Extremtemperatur' %}
                 <div class="relative inline-block">
@@ -212,7 +208,7 @@
                   </span>
                 </div>
               </h3>
-              <div class="w-12/12">
+              <div class="w-6/12">
                 <div class="mt-2">
                   <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-emerald-400 focus-within:focus-visible:outline-2">
                     <input {% with simulation_parameters_form.temperature_extreme as form %}
@@ -223,11 +219,11 @@
                            aria-describedby="temperature-heading temperature-unit"
                 onchange ="temperatureChange(this.value, 'ExtremeTemperatureHint','div .extreme-consumption-hint', debounced_fetchAndSetTemperature1)"
                   >
-                    <div id="temperature-unit" class="shrink-0 select-none text-slate-500">°C</div>
+                    <div id="temperature-unit" class="shrink-0 select-none text-sm text-slate-500">°C</div>
                   </div>
 
                 <div class="flex" >
-                  <div id="ExtremeTemperatureHint"  class="hidden flex mt-1 text-sm text-slate-600 italic transition-opacity duration-200 ease-in-out">
+                  <div id="ExtremeTemperatureHint"  class="hidden flex mt-1 text-sm text-slate-500 italic transition-opacity duration-200 ease-in-out">
                     <!-- Next div is queried for class= text and filled with temperature fetch. -->
                     <div class="flex text">
                   </div>

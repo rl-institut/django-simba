@@ -4,8 +4,8 @@
   <div class="flex-grow flex-row ">
     <!-- Tab content -->
     <div class="flex-col ">
-      <div class="flex ">
-        <div class="flex-col ">
+      <div class="flex gap-8 pb-4">
+        <div class="flex-col flex-1">
           <!-- Left block xlb -->
           <!--Start Checkbox for dieselzusatzheizung  -->
           <dieselCheckboxk>
@@ -26,13 +26,13 @@
                   <path class="opacity-0" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </div>
-              <div class="text-sm text-slate-700 space-y-1">
+              <div class="text-sm text-slate-800 space-y-1">
                 <label for="{{ vt_id }}enableDieselHeating"
                        data-value="enabledDieselCheckbox"
-                       class="font-medium">{% translate 'Fahrzeugtyp mit Dieselzusatzheizung ausstatten' %}</label>
+                       class="font-normal">{% translate 'Fahrzeugtyp mit Dieselzusatzheizung ausstatten' %}</label>
                 <label for="{{ vt_id }}enableDieselHeating"
                        data-value="disabledDieselCheckbox"
-                       class="font-medium   opacity-70">
+                       class="font-normal   opacity-70">
                   {% translate 'Fahrzeugtyp besitzt keine Variante mit Dieselzusatzheizung' %}
                 </label>
               </div>
@@ -45,7 +45,7 @@
           <div class="flex items-center gap-2">
             <label for="{{ modification.vehicle_modification.battery_capacity.auto_id }}"
                    id="batteryCapacityLabel{{ vt_id }}"
-                   class="block text-sm/6 font-medium text-slate-800">
+                   class="block text-sm/6 font-semibold text-slate-800">
               {% translate "Nutzbare Batteriekapazität" %}
             </label>
             <div class="relative inline-block">
@@ -73,13 +73,13 @@
                      placeholder="500"
                      aria-labelledby="batteryCapacityLabel batteryCapacityUnit">
               <div id="batteryCapacityUnit{{ vt_id }}"
-                   class="shrink-0 select-none text-slate-500">{% translate "kWh" %}</div>
+                   class="shrink-0 select-none text-sm text-slate-500">{% translate "kWh" %}</div>
             </div>
           </div>
           </batteryCapacity>
           <!-- Ende Batteriekapazität -->
           <customConsumptionCheckbox>
-          <div class="flex gap-2 items-center">
+          <div class="flex gap-2 pt-2 items-center">
             <div class="group grid size-4 grid-cols-1">
               <input id="enableCustomConsumption{{ vt_id }}"
                      name="{{ vt_id }}enableCustomConsumption"
@@ -94,8 +94,8 @@
                 <path class="opacity-0" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </div>
-            <div class="text-sm text-slate-700">
-              <label for="{{ vt_id }}enableCustomConsumption" class="font-medium">
+            <div class="text-sm text-slate-800">
+              <label for="{{ vt_id }}enableCustomConsumption" class="font-normal">
                 {% translate 'Energieverbrauch des gewählten Fahrzeugs überschreiben.' %}
               </label>
             </div>
@@ -108,7 +108,7 @@
         </div>
 
     <!-- Start chart/plot -->
-    <div id="busTypeHiddenSection{{ vt_id }}" class="flex-grow bg-slate-100">
+    <div id="busTypeHiddenSection{{ vt_id }}" class="flex-1 bg-slate-100">
       <div id="ChartPlaceholder{{ vt_id }}"
            class="flex flex-col justify-center items-center text-sm text-slate-500 h-full">
         <div>{% translate 'Wählen Sie einen Bus aus.' %}</div>
@@ -120,12 +120,12 @@
     <!-- end chart/plot -->
       </div>
       <!-- Left block xlb -->
-      <div class="flex">
-        <div class="flex-grow">
+      <div class="flex gap-8">
+        <div class="flex-1">
           <div class="flex items-center gap-2">
             <label for="{{ modification.vehicle_modification.consumption.auto_id }}"
                    id="consumptionLabel{{ vt_id }}"
-                   class="block text-sm/6 font-medium text-slate-800">{% translate "Energieverbrauch" %}</label>
+                   class="block text-sm/6 font-semibold text-slate-800">{% translate "Energieverbrauch" %}</label>
             <div class="relative inline-block">
               <!-- Info Icon -->
               <span class="cursor-pointer group">
@@ -153,10 +153,10 @@
                      class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                      placeholder='{% if modification.selection.instance.default_vehicle_type is not None %}{{ modification.selection.instance.default_vehicle_type.consumption }} {% else %} {% translate "Wählen Sie ein Fahrzeug aus" %} {% endif %}'>
               <div id="consumptionUnit{{ vt_id }}"
-                   class="shrink-0 select-none text-slate-500">{% translate "kWh/km" %}</div>
+                   class="shrink-0 select-none text-sm text-slate-500">{% translate "kWh/km" %}</div>
             </div>
             <div class="flex">
-              <div class="hidden avg-consumption-hint flex mt-1 text-sm text-slate-600 italic transition-opacity duration-200 ease-in-out">
+              <div class="hidden avg-consumption-hint flex mt-1 text-sm text-slate-500 italic transition-opacity duration-200 ease-in-out">
                 <!-- Next div is queried for class= text and filled with temperature fetch. -->
                 <div class="flex text"></div>
                 <div class="px-2 relative inline-block">
@@ -181,15 +181,12 @@
           </div>
         </div>
         <!-- End of Constant Consumption input -->
-        <div class="px-4">
-          <!-- placeholder -->
-        </div>
         <!-- Constant Extreme Consumption input -->
-        <div class="flex-grow">
+        <div class="flex-1">
           <div class="flex items-center gap-2">
             <label for="{{ modification.vehicle_modification.max_consumption.auto_id }}"
                    id="consumptionLabel{{ vt_id }}"
-                   class="block text-sm/6 font-medium text-slate-800">
+                   class="block text-sm/6 font-semibold text-slate-800">
               {% translate 'Extremer Energieverbrauch' %}
             </label>
             <div class="relative inline-block">
@@ -219,11 +216,11 @@
                      class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                      placeholder="{% if modification.selection.instance.default_vehicle_type is not None %}{{ modification.selection.instance.default_vehicle_type.max_consumption }}               {% else %}  Wählen Sie ein Fahrzeug aus {% endif %}">
               <div id="maxconsumptionUnit{{ vt_id }}"
-                   class="shrink-0 select-none text-slate-500">kWh/km</div>
+                   class="shrink-0 select-none text-sm text-slate-500">kWh/km</div>
             </div>
           </div>
           <div class="flex">
-            <div class="hidden extreme-consumption-hint flex mt-1 text-sm text-slate-600 italic transition-opacity duration-200 ease-in-out">
+            <div class="hidden extreme-consumption-hint flex mt-1 text-sm text-slate-500 italic transition-opacity duration-200 ease-in-out">
               <!-- Next div is queried for class= text and filled with temperature fetch. -->
               <div class="flex text"></div>
               <div class="px-2 relative inline-block">
