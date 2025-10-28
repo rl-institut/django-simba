@@ -1294,7 +1294,7 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
     # iterate over events in-order, creating SpiceEV event-dicts for each charging event
     for event in charging_events:
         vid = event.vehicle.to_simba_name()
-        # find adjancent standby event (can still charge)
+        # find adjacent standby event (can still charge)
         next_event = Event.objects.filter(
             event_type=EventType.STANDBY_DEPARTURE,
             vehicle_id=event.vehicle_id,  # vehicle is linked to scenario
