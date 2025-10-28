@@ -223,28 +223,22 @@ class SimbaScheduleReader(ScheduleReader):
             self.set_progress(0, _("Lese Datei"))
             trip_data = self.file_data_to_dict()
 
-            self.set_progress(1, _("Finde Stationen"))
+            self.set_progress(1, _("Erstelle Stationen und Fahrzeugtypen"))
             # Create Stations
             scenario = Scenario.objects.get(id=scenario_id)
             stations, station_dict = self.get_stations(scenario, trip_data)
             Station.objects.bulk_create(stations)
-            if settings.SEARCH_STATION_LOCATIONS:
-                add_station_locations(Station.objects.filter(scenario=scenario))
 
-            add_elevations(Station.objects.filter(scenario=scenario, geom__isnull=False))
-            place_not_found_stations(scenario)
-
-            self.set_progress(2, _("Finde Fahrzeugtypen"))
             # Create empty vehicle_types
             vt_dict, vts = self.get_vehicles(scenario, trip_data)
             VehicleType.objects.bulk_create(vts)
 
-            self.set_progress(3, _("Finde Umläufe"))
+            self.set_progress(2, _("Finde Umläufe"))
             # Create Rotations
             rotations, rotations_dict = self.get_rotations(scenario, trip_data, vt_dict)
             Rotation.objects.bulk_create(rotations)
 
-            self.set_progress(4, _("Finde Fahrten"))
+            self.set_progress(3, _("Finde Fahrten"))
 
             # Create Trips and Routes
             lines, routes, trips = self.get_lines_routes_trips(
@@ -255,7 +249,14 @@ class SimbaScheduleReader(ScheduleReader):
                 Line.objects.bulk_create(lines)
                 Route.objects.bulk_create(routes)
                 Trip.objects.bulk_create(trips)
-            self.set_progress(5, _("Fahrten erstellt"))
+
+            if settings.SEARCH_STATION_LOCATIONS:
+                self.set_progress(5, _("Finde Stationen"))
+                add_station_locations(Station.objects.filter(scenario=scenario))
+
+            add_elevations(Station.objects.filter(scenario=scenario, geom__isnull=False))
+            place_not_found_stations(scenario)
+
         except self.SimbaScheduleReaderException:
             return False
         return len(self.errors) == 0

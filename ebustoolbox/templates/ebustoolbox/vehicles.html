@@ -595,12 +595,12 @@ containers.forEach((container) => {
     const placeHolder = container.querySelector('[id*="ChartPlaceholder"]');
     var myChart = echarts.init(chartDom);
 
-    function plot_selected_charging_curve(selected_vehicle_type) {
+    function plot_selected_consumption_over_temp(selected_vehicle_type) {
       if (selected_vehicle_type === "") {
         return;
       }
       chartDom.style.height = "180px";
-      let charging_curve = JSON.parse(document.getElementById(selected_vehicle_type+"_charging_curve").textContent)
+      let conumption_curve = JSON.parse(document.getElementById(selected_vehicle_type+"_consumption_over_temp").textContent)
       if (placeHolder) placeHolder.remove();
 
       var option = {
@@ -613,24 +613,24 @@ containers.forEach((container) => {
         },
         xAxis: {
           type: 'value',
-          name: 'Ladezustand (-)',
+          name: 'Temperatur (˚C)',
           nameLocation: 'middle',
           nameGap: 25,
-          min: 0,
-          max: 1,
-          interval: 0.2
+          // min: 0,
+          // max: 1,
+          // interval: 0.2
         },
         yAxis: {
           type: 'value',
-          name: 'Leistung (kW)',
+          name: 'Verbrauch (kWh/km)',
           nameLocation: 'middle',
           nameGap: 40,
-          min: 0,
-          max: 500,
-          interval: 100
+          // min: 0,
+          // max: 500,
+          // interval: 100
         },
         series: [{
-          data: charging_curve,
+          data: conumption_curve,
           type: 'line',
           showSymbol: false,
           lineStyle: {
@@ -641,8 +641,9 @@ containers.forEach((container) => {
         tooltip: {
           trigger: 'axis',
           formatter: function (params) {
-            return 'Ladezustand: ' + params[0].data[0].toFixed(1) +
-              '<br>Leistung: ' + params[0].data[1] + ' kW';
+            return 'Temperatur: ' + params[0].data[0].toFixed(1) + ' ˚C' +
+              '<br>Verbrauch: ' + params[0].data[1].toFixed(3) + ' kWh/km'+
+            '<br><div class="text-xs">Werte für ermittelte Durchschnittsgeschwindigkeit</div>';
           }
         }
       };
@@ -651,11 +652,11 @@ containers.forEach((container) => {
 
     }
 
-    plot_selected_charging_curve(input_selection.value);
+    plot_selected_consumption_over_temp(input_selection.value);
     listItems.forEach((item)=>{
       item.addEventListener("click",function () {
         let selected_vehicle_type=item.getAttribute('data-dropdown-item');
-        plot_selected_charging_curve(selected_vehicle_type);
+        plot_selected_consumption_over_temp(selected_vehicle_type);
         myChart.resize();
       })
     });
@@ -673,7 +674,9 @@ containers.forEach((container) => {
 
     })
 
+
   });
+setTimeout(() => window.dispatchEvent(new Event('resize')), 500);
 function validate(){
   console.log("validating")
   const defaultVehicleTypeSelectionDivs = document.querySelectorAll('select[id*="default_vehicle_type"]')
