@@ -61,6 +61,7 @@ from ebustoolbox.models import (
     AreaInformation,
     DepotConfigurationWish,
     EnumNotificationType,
+    EnumSimulationType,
     Notification,
     Rotation,
     Scenario,
@@ -89,15 +90,24 @@ logger = logging.getLogger("custom")
 
 def progress_scenario(request: HttpRequest, progress_id, template_name):
     context = {"progress_id": progress_id, "status": "", "current_progress": 0}
-
     context |= {"finished": False}
-    progress = Progress.objects.get(task_id=progress_id)
+    progress: Progress = Progress.objects.get(task_id=progress_id)
     context["progress"] = progress
 
     context["current_progress"] = max(progress.get_progress(), 1)
     context["status"] = progress.status
+
     status_code = 200
     hx_trigger = "running"
+    result = AsyncResult(str(progress_id).encode())
+    if result.state in ["PENDING", "REVOKED", "FAILURE"]:
+        # the celery task is not running. The progress will not be updated. This has to be fixed.
+        if progress.running:
+            progress.running = False
+            progress.status = "Abgebrochen"
+            progress.errors.append(f"Task is {result.state}")
+            progress.save()
+
     if progress.success or not progress.running or len(progress.errors) != 0:
         context["errors"] = progress.errors
         # End polling
@@ -106,6 +116,16 @@ def progress_scenario(request: HttpRequest, progress_id, template_name):
         hx_trigger = "notRunning"
     if progress.success:
         hx_trigger = "success"
+        if progress.progress_type == EnumProgress.RUNNING_SIMULATION:
+            mutation_scenario = progress.scenario
+            children = Scenario.objects.filter(parent=mutation_scenario)
+            assert (
+                children.count() == 2
+            ), "There should only be two children. A sizing and a default scenario"
+            sizing_scenario = children.get(simulationtype__sim_type=EnumSimulationType.SIZING)
+            default_scenario = children.get(simulationtype__sim_type=EnumSimulationType.DEFAULT)
+            context |= {"sizing_scenario": sizing_scenario, "default_scenario": default_scenario}
+
     response = render(request, f"core/{template_name}", context)
     response["HX-Trigger"] = hx_trigger
     response.status_code = status_code
@@ -1543,9 +1563,7 @@ def render_critical_rotations(request, task_id: str):
 
     # Aggregate category counts
     category_counts = (
-        df["SOC_category"]
-        .value_counts()
-        .reindex([_("Nicht kritisch"), _("kritisch")], fill_value=0)
+        df["SOC_category"].value_counts().reindex(["Nicht kritisch", "kritisch"], fill_value=0)
     )
 
     return JsonResponse(
