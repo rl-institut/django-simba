@@ -1427,7 +1427,7 @@ def apply_depot_and_area_wishes(mutation: Scenario, child: Scenario, stack: dict
         ).original_station
         depot_config.station_id = stack[Station][search_station.id]
         depot_config.scenario = child
-        depot_config.pk = None
+        depot_config.id = None
         new_depot_configs.append(depot_config)
 
     new_depot_configs = DepotConfigurationWish.objects.bulk_create(new_depot_configs)
@@ -1443,7 +1443,7 @@ def apply_depot_and_area_wishes(mutation: Scenario, child: Scenario, stack: dict
             ).original_vehicle_type
             area_info.vehicle_type_id = stack[VehicleType][search_vt.id]
             area_info.depot_configuration_wish = new_depot_config
-            area_info.pk = None
+            area_info.id = None
             new_area_infos.append(area_info)
 
     AreaInformation.objects.bulk_create(new_area_infos)
@@ -2655,7 +2655,7 @@ def transform_depot_stations(parent: Scenario, child: Scenario) -> None:
     depot_departure_routes = all_routes.filter(departure_station__in=depots)
     # Only the first and last trip of a block should departe/arrive in a depot station.
     # The other trips should refrence routes which go to a newly generated opportunity station,
-    # instead of the depot station.
+    # instead of the depot station.tasks
     # This query expects a outer ref to a rotation and returns the ordered trips by arrival time
     # with the last arrival first
     last_trip_subquery = Trip.objects.filter(rotation=OuterRef("pk")).order_by("-arrival_time")
