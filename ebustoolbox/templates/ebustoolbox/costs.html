@@ -100,7 +100,7 @@
         <!-- required manual inputs: general -->
         <div
           id="acc-req-general"
-          class="overflow-hidden rounded-lg bg-white shadow accordion-container"
+          class="rounded-lg bg-white shadow accordion-container"
           data-value="req-general"
         >
           <div class="border-b border-slate-200">
@@ -121,7 +121,7 @@
             </button>
             <div id="acc-content-req-general"
                  class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
-              <div class="accordion_content">
+              <div class="accordion-cost-content">
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
                   {% include "ebustoolbox/partials/cost_input.html" with label="Zeithorizont" tooltip="Berechnungsdauer für die TCO. Gesamtsystemkosten und jährliche Kosten werden innerhalb dieses Zeitraums berechnet" unit="Jahre" input=costs_manual.project_duration|widget_attrs initial=costs_manual.project_duration.initial %}
                   {% include "ebustoolbox/partials/cost_input.html" with label="Personalkosten" tooltip="Personalkosten pro Betriebsstunde für ein Fahrzeug. Üblicherweise Arbeitgeberkosten für die Busfahrer:in, evtl. zzgl. Schaffner:in" unit="€/h" input=costs_manual.staff_cost|widget_attrs initial=costs_manual.staff_cost.initial %}
@@ -136,7 +136,7 @@
         <!-- required manual inputs: charging infrastructure -->
         <div
           id="acc-req-charging"
-          class="overflow-hidden rounded-lg bg-white shadow accordion-container"
+          class="rounded-lg bg-white shadow accordion-container"
           data-value="req-charging"
         >
           <div class="border-b border-slate-200">
@@ -156,7 +156,7 @@
             </button>
             <div id="acc-content-req-charging"
                  class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
-              <div class="accordion_content">
+              <div class="accordion-cost-content">
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
                   {% include "ebustoolbox/partials/cost_input.html" with label="Lebensdauer Depot-Ladepunkt" tooltip="Durchschnittliche Lebensdauer für einen Depot-Ladepunkt" unit="Jahre" input=costs_manual.useful_life_chargepoint_depot|widget_attrs initial=costs_manual.useful_life_chargepoint_depot.initial %}
                   {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Depot-Ladepunkt" tooltip="Durchschnittlicher Kaufpreis für einen Depot-Ladepunkt, inklusive anteiliger Leistungselektronik und anteiligem Netzanschluss. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst." unit="€" input=costs_manual.procurement_cost_chargepoint_depot|widget_attrs initial=costs_manual.procurement_cost_chargepoint_depot.initial %}
@@ -170,7 +170,7 @@
         <!-- required manual inputs: diesel -->
         <div
           id="acc-req-diesel"
-          class="overflow-hidden rounded-lg bg-white shadow accordion-container"
+          class="rounded-lg bg-white shadow accordion-container"
           data-value="req-diesel"
         >
           <div class="border-b border-slate-200">
@@ -190,7 +190,7 @@
             </button>
             <div id="acc-content-req-diesel"
                  class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
-              <div class="accordion_content">
+              <div class="accordion-cost-content">
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
                   {% include "ebustoolbox/partials/cost_input.html" with label="Dieselkosten" unit="€" input=costs_manual.fuel_cost|widget_attrs initial=costs_manual.fuel_cost.initial %}
                   {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten Diesel-Fahrzeug" unit="€/km" tooltip="Wartungskosten für ein Dieselfahrzeug, pro Fahrzeugkilometer" input=costs_manual.maint_cost_diesel|widget_attrs initial=costs_manual.maint_cost_diesel.initial %}
@@ -203,7 +203,7 @@
         {% for vehicle_type in vehicle_types %}
           <div
             id="acc-req-vt-{{vehicle_type}}"
-            class="overflow-hidden rounded-lg bg-white shadow accordion-container"
+            class="rounded-lg bg-white shadow accordion-container"
             data-value="req-vt-{{vehicle_type}}"
           >
             <div class="border-b border-slate-200">
@@ -223,7 +223,7 @@
               </button>
               <div id="acc-content-req-vt-{{vehicle_type}}"
                    class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
-                <div class="accordion_content">
+                <div class="accordion-cost-content">
                   <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
                     {% include "ebustoolbox/partials/cost_input.html" with label="Fahrzeuglebensdauer" tooltip="Durchschnittliche Lebensdauer für ein Fahrzeug dieses Fahrzeugtyps" unit="Jahre" input=costs_manual.useful_life_bus|widget_attrs initial=costs_manual.useful_life_bus.initial %}
                     {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis" tooltip="Durchschnittlicher Kaufpreis für ein Fahrzeug dieses Typs. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst" unit="€" input=costs_manual.procurement_cost_bus|widget_attrs initial=costs_manual.procurement_cost_bus.initial %}
@@ -239,7 +239,7 @@
         <!-- optional -->
         <div
           id="acc-optional"
-          class="overflow-hidden rounded-lg bg-white shadow accordion-container"
+          class="rounded-lg bg-white shadow accordion-container"
           data-value="optional"
         >
           <div class="border-b border-slate-200">
@@ -259,7 +259,7 @@
             </button>
             <div id="acc-content-optional"
                  class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
-              <div class="accordion_content">
+              <div class="accordion-cost-content">
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
                   {% include "ebustoolbox/partials/cost_input.html" with label="Zinssatz" unit="ppa" tooltip="Zinssatz für Investitionen und Kredite" input=costs_manual.interest_rate|widget_attrs initial=costs_manual.interest_rate.initial %}
                   {% include "ebustoolbox/partials/cost_input.html" with label="Inflation" unit="ppa" tooltip="Inflationsrate, Teuerung aller Güter bei gleichbleibendem Wert" input=costs_manual.inflation_rate|widget_attrs initial=costs_manual.inflation_rate.initial %}
@@ -384,12 +384,14 @@
     // Toggle the content's max-height for smooth opening and closing
     if (content.style.maxHeight && content.style.maxHeight !== '0px') {
       content.style.maxHeight = '0';
+      content.classList.add('overflow-hidden');
       icon.innerHTML = upSVG;
       if (button == open) {
         toggleAccordion.open = undefined;
       }
     } else {
       content.style.maxHeight = content.scrollHeight + 'px';
+      content.classList.remove('overflow-hidden');
       icon.innerHTML = downSVG;
       toggleAccordion.open = button;
     }
