@@ -518,10 +518,61 @@ class SimulationTestCase(TransactionTestCase):
         )
         assert event.timeseries["soc"][1] == 0
 
-    def test_apply_depot_strategy(self):
+    def test_apply_depot_strategy_basic(self):
         # basic test
         django_scenario = self.create_depot_simulation()
         tasks.apply_depot_strategy(django_scenario, "greedy")
+
+    def test_apply_depot_strategy_standby_departure(self):
+        # is standby departure used for charging as well?
+        django_scenario = self.create_depot_simulation()
+        # find first depot charging
+        charge_evt = django_scenario.event_set.filter(
+            event_type=EventType.CHARGING_DEPOT
+        ).order_by("time_start").first()
+        # find next event
+        next_evt = django_scenario.event_set.get(
+            vehicle=charge_evt.vehicle, time_start=charge_evt.time_end
+        )
+        # adjust next event, so a standby departure event fits
+        adjusted_start_time = next_evt.time_start.replace(hour=next_evt.time_start.hour+1, minute=0)
+        assert adjusted_start_time < next_evt.time_end
+        next_evt.time_start = adjusted_start_time
+        next_evt.soc_start = charge_evt.soc_end
+        next_evt.save(update_fields=["time_start", "soc_start"])
+        # insert standby departure event
+        standby_evt = Event.objects.create(
+            scenario = django_scenario,
+            vehicle_type = charge_evt.vehicle_type,
+            vehicle = charge_evt.vehicle,
+            station = charge_evt.station,
+            trip = charge_evt.trip,
+            area = charge_evt.area,
+            subloc_no = charge_evt.subloc_no,
+            time_start = charge_evt.time_end,
+            time_end = adjusted_start_time,
+            soc_start = charge_evt.soc_end,
+            soc_end = charge_evt.soc_end,
+            event_type = EventType.STANDBY_DEPARTURE,
+            description = "dummy standby departure",
+            timeseries = {"time": list(), "soc": list()},
+        )
+        original_standby_duration = standby_evt.get_duration()
+        # run simulation
+        tasks.apply_depot_strategy(django_scenario, "balanced")
+        # simulation should stretch charging into standby departure, adjusting times
+        charge_evt.refresh_from_db()
+        standby_evt.refresh_from_db()
+        next_evt.refresh_from_db()
+        # basic sanity checks
+        self.assertEqual(charge_evt.time_end, standby_evt.time_start)
+        self.assertEqual(standby_evt.time_end, next_evt.time_start)
+        self.assertEqual(charge_evt.soc_end, standby_evt.soc_start)
+        self.assertEqual(standby_evt.soc_end, next_evt.soc_start)
+        self.assertEqual(standby_evt.soc_start, standby_evt.soc_end)
+        # standby duration should be shorter
+        adjusted_standby_duration = standby_evt.get_duration()
+        assert adjusted_standby_duration < original_standby_duration
 
 
 class ConsumptionTestCase(TransactionTestCase):

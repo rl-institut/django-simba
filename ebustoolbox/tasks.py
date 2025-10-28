@@ -1113,7 +1113,9 @@ class SimulationExecutionFailException(Exception):
 
 
 def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
-    events = scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT)
+    events = scenario.event_set.filter(
+        event_type__in=[EventType.CHARGING_DEPOT, EventType.STANDBY_DEPARTURE]
+    )
     if not events.exists():
         raise SimulationEventsMissingException("SpiceEV scenario generation: no events found")
 
@@ -1316,6 +1318,17 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
         # create departure event (end of charging/standby, not necessarily leaving station)
         departure_time = event.time_end
         if next_event:
+            # check for additional standby events
+            if Event.objects.filter(
+                event_type=EventType.STANDBY_DEPARTURE,
+                vehicle_id=event.vehicle_id,
+                subloc_no=event.subloc_no,
+                time_start=next_event.time_end,
+            ).exists():
+                logger.warning(
+                    "Multiple standby departure events back-to-back for "
+                    f"{event.vehicle_id} at {next_event.time_end.isoformat()}"
+                )
             # use standby departure time, with some buffer
             event = next_event
             # departure_time = next_event.time_end
@@ -1486,7 +1499,7 @@ def apply_depot_strategy(scenario: Scenario, strategy: str) -> None:
             replace_event_timeseries(next_event, socs_standby + socs_buffer, interval)
             event_list.append(next_event)
 
-    Event.objects.bulk_update(event_list, ["timeseries"])
+    Event.objects.bulk_update(event_list, ["timeseries", "time_start", "time_end"])
     logger.info(f"{events.count()} depot charging events updated")
 
 
