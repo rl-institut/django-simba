@@ -42,7 +42,7 @@ def deepcopy_and_sequence_reset(
         exclude_fields=exclude_fields,
         max_depth=max_depth,
     )
-    original_copy_dict = deepcopy_locals["stack_pre"]
+    original_copy_dict = deepcopy_locals["stack_post"]
     reset_postgres_auto_increments(deepcopy_locals["apps"])
 
     return copied_instance, original_copy_dict
@@ -296,6 +296,7 @@ def deepcopy(  # noqa
         except AttributeError:
             model_class.objects.bulk_update(objs.values(), fnames)
 
+    apps = {model._meta.app_label for model in copies}
     return instance.__class__.objects.get(pk=stack_post[instance._meta.model][old_id]), locals()
 
 
@@ -411,7 +412,7 @@ def replace_keys_and_get_managers(
             if f.related_model and f not in updated_fields and f.related_model in stack_post
         ]
         for f in filtered_fields:
-            logger.info(f"Updating {f} in {obj_class}")
+            logger.debug(f"Updating {f} in {obj_class}")
             # Keep track of this field, so its not updated twice
             updated_fields.add(f)
             m2m = isinstance(f, ManyToManyField)
