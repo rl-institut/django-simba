@@ -2089,4 +2089,20 @@ switchCostsTab('costs-tab-1');
     switchSocTab('soc-tab-1');
   });
 </script>
+
+<script>
+  /* tabs in map popups functionality */
+  function openTab(e, tab_id) {
+    let tab_contents = document.getElementsByClassName("tab-pane");
+    for (let content of tab_contents) {
+      content.style.display = "none";
+    }
+    let tab_links = document.getElementsByClassName("tab-link");
+    for (let tab_link of tab_links) {
+      tab_link.classList.remove("active");
+    }
+    document.getElementById("tab-" + tab_id).style.display = "block";
+    e.currentTarget.classList.add("active");
+  }
+</script>
 {% endblock script %}
