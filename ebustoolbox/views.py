@@ -10,7 +10,7 @@ import pytz
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail, serializers
-from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
+from django.db.models import F, QuerySet, Sum, Value, FloatField, Q, Avg
 from django.db.models.functions import Cast, Coalesce
 from django.db.transaction import atomic
 from django.utils.translation import gettext as _
@@ -52,6 +52,8 @@ from .tasks import merge_scenario
 from .import_export import ScenarioJSONImporterExporter, visit_all_scenario_queries
 
 from .util import get_unique_task_id
+
+from ebus_map.managers import X, Y
 
 from . import data
 import ebustoolbox
@@ -1188,9 +1190,26 @@ def result_view(request: HttpRequest, task_id):
     except Scenario.DoesNotExist:
         raise Http404
 
-
 class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
     template_name = "ebustoolbox/result.html"
+
+    def get_scenario_center(self, scenario):
+        """
+        Compute the mean center [longitude, latitude] of all stations
+        belonging to the given scenario.
+        """
+        all_stations = Station.objects.filter(scenario=scenario).exclude(geom__isnull=True)
+
+        agg = all_stations.aggregate(
+            mean_lon=Avg(Cast(X('geom'), FloatField())),
+            mean_lat=Avg(Cast(Y('geom'), FloatField())),
+        )
+
+        # Handle case with no stations
+        if agg["mean_lon"] is None or agg["mean_lat"] is None:
+            return [52.31, 13.24]  # fallback, Berlin
+
+        return [agg["mean_lon"], agg["mean_lat"]]
 
     def get_context_data(self, **kwargs):
         context = super(ResultView, self).get_context_data(**kwargs)
@@ -1203,6 +1222,12 @@ class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
         context["scenario"] = scenario
         notifications = Notification.objects.filter(scenario=scenario)
         context["notifications"] = tasks.get_notfications_dict(notifications)
+        center = self.get_scenario_center(scenario)
+        # Update mapengine_setup and store so JS sees the center
+        context["mapengine_setup"] = {
+            **context["mapengine_setup"],
+            "center": center
+        }
         return context
 
 
