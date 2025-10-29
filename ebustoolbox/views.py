@@ -1224,7 +1224,7 @@ class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
         notifications = Notification.objects.filter(scenario=scenario)
         context["notifications"] = tasks.get_notfications_dict(notifications)
         center = self.get_scenario_center(scenario)
-        # Update mapengine_setup and store so JS sees the center
+        # Update mapengine_setup JS sees the center
         context["mapengine_setup"] = {**context["mapengine_setup"], "center": center}
         return context
 
