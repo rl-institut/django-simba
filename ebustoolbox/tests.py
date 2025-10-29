@@ -168,9 +168,9 @@ def build_scenario():
     # Empty request, since no files are used for this simulation.
     request = HttpRequest()
 
-    django_scenario, simba_schedule, args = tasks.input_files_to_database(
-        form.cleaned_data, request
-    )
+    django_scenario = tasks.input_files_to_database(form.cleaned_data, request)
+
+    simba_schedule, args = tasks.get_schedule_from_db(django_scenario)
     for vt in VehicleType.objects.filter(scenario=django_scenario):
         # NOTE: Eflips needs masses for calculation
         vt.allowed_mass = 20_000
@@ -427,6 +427,19 @@ class ScenarioTestCase(TestCase):
 
 
 class SimulationTestCase(TransactionTestCase):
+    def test_flex_band_off(self):
+        django_scenario, simba_schedule, args = build_scenario()
+        args.skip_flex_report = False
+        django_scenario.options = vars(args)
+        django_scenario.save()
+        django_scenario.refresh_from_db()
+        # switching the flex_report_on does not work
+        assert django_scenario.options["skip_flex_report"] is False
+        # Even though the flag is set in the database, simba will ignore it
+        simba_schedule, simba_scenario = run_simba_scenario(django_scenario)
+        # no flex_band calculations are found
+        assert simba_scenario.flex_bands is None, "Flex bands should be turned off"
+
     def create_depot_simulation(self):
         # PROBLEM: test scenario has no CHARGING_DEPOT events, just DRIVING and STANDBY_DEPARTURE
         # => can't test depot charging with this
@@ -448,19 +461,6 @@ class SimulationTestCase(TransactionTestCase):
             is_electrified=True, charge_type=EnumChargeType.DEPOT, voltage_level="MV"
         )
         return django_scenario
-
-    def test_flex_band_off(self):
-        django_scenario, simba_schedule, args = build_scenario()
-        args.skip_flex_report = False
-        django_scenario.options = vars(args)
-        django_scenario.save()
-        django_scenario.refresh_from_db()
-        # switching the flex_report_on does not work
-        assert django_scenario.options["skip_flex_report"] is False
-        # Even though the flag is set in the database, simba will ignore it
-        simba_schedule, simba_scenario = run_simba_scenario(django_scenario)
-        # no flex_band calculations are found
-        assert simba_scenario.flex_bands is None, "Flex bands should be turned off"
 
     def test_simulate_depot_strategy(self):
         django_scenario = self.create_depot_simulation()
@@ -604,8 +604,9 @@ class ConsumptionTestCase(TransactionTestCase):
                 any(missing_temp_text in message for message in cm.output),
                 "Expected log message not found in output",
             )
-        temp.id += 1
+        temp.id = None
         temp.save()
+        assert Temperatures.objects.filter(scenario=django_scenario).count() == 2
         # Two temperatures for the same scenario should raise an exception
         self.assertRaises(Exception, tasks.get_schedule_from_db, django_scenario=django_scenario)
 
@@ -1054,7 +1055,7 @@ class TemperaturesTestCase(TestCase):
         self.assertRaises(AttributeError, t_instance.save)
 
 
-class RotationSplitTest(TestCase):
+class RotationSplitTest(TransactionTestCase):
     def test_intermediate_depot_trip(self):
         """Insert some intermediate stops at depots and check if they are transformed"""
         django_scenario, simba_schedule, args = build_scenario()

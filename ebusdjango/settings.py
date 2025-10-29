@@ -15,7 +15,6 @@ from pathlib import Path
 from django.utils.translation import gettext_lazy as _
 
 import environ
-
 from ebus_map.settings import *  # noqa
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -142,11 +141,10 @@ LOGIN_REDIRECT_URL = "/"  # redirect to landing page after login
 DATABASES = {"default": env.db("DATABASE_URL")}
 
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=True)
-if CELERY_TASK_ALWAYS_EAGER:
-    # if set, eager tasks will propagate exceptions
-    CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=True)
-    # if set, eager tasks will save results in backend
-    CELERY_TASK_STORE_EAGER_RESULT = env.bool("CELERY_TASK_STORE_EAGER_RESULT", default=True)
+# if set, eager tasks will propagate exceptions
+CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=True)
+# if set, eager tasks will save results in backend
+CELERY_TASK_STORE_EAGER_RESULT = env.bool("CELERY_TASK_STORE_EAGER_RESULT", default=True)
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
 # Recommended celery backend for persistent storage is REDIS.
 # rpc is an alternative which does not need extra dependency but is epheremal.
@@ -156,6 +154,7 @@ CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="rpc://")
 CELERY_TASK_TRACK_STARTED = True
 REDIS_URL = env("REDIS_URL", default=None)
+
 
 CACHES = {
     "default": {
