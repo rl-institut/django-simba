@@ -1202,8 +1202,8 @@ class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
         all_stations = Station.objects.filter(scenario=scenario).exclude(geom__isnull=True)
 
         agg = all_stations.aggregate(
-            mean_lon=Avg(Cast(X('geom'), FloatField())),
-            mean_lat=Avg(Cast(Y('geom'), FloatField())),
+            mean_lon=Avg(Cast(X("geom"), FloatField())),
+            mean_lat=Avg(Cast(Y("geom"), FloatField())),
         )
 
         # Handle case with no stations
@@ -1225,10 +1225,7 @@ class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
         context["notifications"] = tasks.get_notfications_dict(notifications)
         center = self.get_scenario_center(scenario)
         # Update mapengine_setup and store so JS sees the center
-        context["mapengine_setup"] = {
-            **context["mapengine_setup"],
-            "center": center
-        }
+        context["mapengine_setup"] = {**context["mapengine_setup"], "center": center}
         return context
 
 
