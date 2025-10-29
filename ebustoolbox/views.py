@@ -1190,6 +1190,7 @@ def result_view(request: HttpRequest, task_id):
     except Scenario.DoesNotExist:
         raise Http404
 
+
 class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
     template_name = "ebustoolbox/result.html"
 
