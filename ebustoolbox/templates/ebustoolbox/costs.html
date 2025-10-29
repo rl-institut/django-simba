@@ -110,7 +110,7 @@
                     class="w-full flex justify-between items-center py-5 text-slate-800 bg-green-200 accordion-header">
               <span class="w-max text-base font-bold px-2">{% translate 'Allgemeine Einstellungen' %}</span>
               <span id="acc-icon-req-general"
-                    class="text-slate-800 transition-transform duration-300">
+                    class="accordion-cost-icon text-slate-800 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      viewBox="0 0 16 16"
                      fill="currentColor"
@@ -145,7 +145,7 @@
                     class="w-full flex justify-between items-center py-5 text-slate-800 bg-green-200 accordion-header">
               <span class="w-max text-base font-bold px-2">{% translate 'Ladeinfrastruktur' %}</span>
               <span id="acc-icon-req-charging"
-                    class="text-slate-800 transition-transform duration-300">
+                    class="accordion-cost-icon text-slate-800 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      viewBox="0 0 16 16"
                      fill="currentColor"
@@ -179,7 +179,7 @@
                     class="w-full flex justify-between items-center py-5 text-slate-800 bg-slate-200 accordion-header">
               <span class="w-max text-base font-bold px-2">{% translate 'Diesel-Vergleich' %}</span>
               <span id="acc-icon-req-diesel"
-                    class="text-slate-800 transition-transform duration-300">
+                    class="accordion-cost-icon text-slate-800 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      viewBox="0 0 16 16"
                      fill="currentColor"
@@ -212,7 +212,7 @@
                       class="w-full flex justify-between items-center py-5 text-slate-800 bg-green-200 accordion-header">
                 <span class="w-max text-base font-bold px-2">{% translate 'Fahrzeugtyp' %} {{ vehicle_type.name }}</span>
                 <span id="acc-icon-req-vt-{{vehicle_type}}"
-                      class="text-slate-800 transition-transform duration-300">
+                      class="accordion-cost-icon text-slate-800 transition-transform duration-300">
                   <svg xmlns="http://www.w3.org/2000/svg"
                        viewBox="0 0 16 16"
                        fill="currentColor"
@@ -248,7 +248,7 @@
                     class="w-full flex justify-between items-center py-5 text-slate-800 bg-green-200 accordion-header">
               <span class="w-max text-base font-bold px-2">{% translate "Erweiterte Einstellungen" %}</span>
               <span id="acc-icon-optional"
-                    class="text-slate-800 transition-transform duration-300">
+                    class="accordion-cost-icon text-slate-800 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      viewBox="0 0 16 16"
                      fill="currentColor"
@@ -384,6 +384,10 @@
     // Toggle the content's max-height for smooth opening and closing
     if (content.style.maxHeight && content.style.maxHeight !== '0px') {
       content.style.maxHeight = '0';
+      if (content.hasAttribute('timeout')) {
+        clearTimeout(content.getAttribute('timeout'));
+        content.removeAttribute('timeout');
+      }
       content.classList.add('overflow-hidden');
       icon.innerHTML = upSVG;
       if (button == open) {
@@ -391,9 +395,15 @@
       }
     } else {
       content.style.maxHeight = content.scrollHeight + 'px';
-      content.classList.remove('overflow-hidden');
       icon.innerHTML = downSVG;
       toggleAccordion.open = button;
+      // remove overflow after animation has ended
+      let timeout = setTimeout(_ => {
+          content.classList.remove('overflow-hidden');
+          content.removeAttribute('timeout');
+        }, 500
+      );
+      content.setAttribute('timeout', timeout);
     }
   }
   //toggleAccordion(document.getElementById("acc-btn-req-general"));

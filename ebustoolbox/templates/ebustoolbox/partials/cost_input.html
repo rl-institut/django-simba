@@ -1,4 +1,8 @@
-{% load i18n %}
+{% load i18n static %}
+
+{% block imports %}
+<link href="{%  static 'ebustoolbox/css/costs.css' %}" rel="stylesheet">
+{% endblock imports %}
 
 <div class="flex-grow">
   <div class="flex items-center gap-2">
