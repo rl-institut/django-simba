@@ -4048,6 +4048,14 @@ progress::-moz-progress-bar {
   .xl\:border-r {
     border-right-width: 1px;
   }
+
+  .xl\:pb-16 {
+    padding-bottom: 4rem;
+  }
+
+  .xl\:pb-24 {
+    padding-bottom: 6rem;
+  }
 }
 
 @media (min-width: 1536px) {
