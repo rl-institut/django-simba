@@ -1890,6 +1890,7 @@ def _run_ebus_toolchain(self, task_id):
             progress.status = "Elektrifziere notwendige Stationen"
             progress.save()
             try:
+
                 schedule, simba_scenario = run_simba(
                     schedule, args, db_scenario, mode=modes[1], scenario=simba_scenario
                 )
@@ -1905,6 +1906,7 @@ def _run_ebus_toolchain(self, task_id):
                         "Genauere Information finden sie in der Hilfe unter Stationsoptimierung"
                     ),
                 )
+                schedule, args = get_schedule_from_db(db_scenario)
         else:
             logger.info("Station optimization was skipped")
 
@@ -2192,9 +2194,9 @@ def run_simba(
             ("Schedule cannot be optimized, since rotations cannot be electrified.") in x
             for x in e.args
         ):
-            return schedule, scenario
+            raise StationOpimizationImpossible("StationOptimization was impossible")
         logger.info("Assertion not found")
-        raise StationOpimizationImpossible()
+        raise
     # Apply changes to database depending on mode
     match mode:
         case "sim":
