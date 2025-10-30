@@ -294,10 +294,10 @@ class VehicleType(models.Model):
         db_table = "VehicleType"
 
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
-    battery_type = models.ForeignKey(BatteryType, null=True, on_delete=models.CASCADE)
+    battery_type = models.ForeignKey(BatteryType, null=True, on_delete=models.CASCADE, blank=True)
 
     name = models.TextField(null=False, blank=False)
-    name_short = models.TextField(null=True, blank=False, default=name)
+    name_short = models.TextField(null=True, blank=True)
     opportunity_charging_capable = models.BooleanField()
     battery_capacity = models.FloatField(
         validators=[MinValueValidator(0), MaxValueValidator(1000000)]
@@ -308,17 +308,17 @@ class VehicleType(models.Model):
 
     # SOC, ChargingPower
     charging_curve = ArrayField(ArrayField(models.FloatField(), size=2))
-    v2g_curve = ArrayField(ArrayField(models.FloatField(), size=2), null=True)
+    v2g_curve = ArrayField(ArrayField(models.FloatField(), size=2), null=True, blank=True)
 
     # Possible constant value for average consumption
-    consumption = models.FloatField(default=None, null=True)
+    consumption = models.FloatField(default=None, null=True, blank=True)
     # Possible constant value for extreme/max consumption
-    max_consumption = models.FloatField(default=None, null=True)
+    max_consumption = models.FloatField(default=None, null=True, blank=True)
 
     # Shape of the vehicle in the form of length, width, height.
-    length = models.FloatField(default=None, null=True)
-    width = models.FloatField(default=None, null=True)
-    height = models.FloatField(default=None, null=True)
+    length = models.FloatField(default=None, null=False)
+    width = models.FloatField(default=None, null=False)
+    height = models.FloatField(default=None, null=False)
 
     # Including battery and driver, no passengers
     empty_mass = models.FloatField(default=None, null=True)
@@ -327,6 +327,7 @@ class VehicleType(models.Model):
     tco_parameters = models.JSONField(
         default=dict,
         null=True,
+        blank=True,
         db_default={
             "useful_life": 14,
             "procurement_cost": None,
@@ -341,6 +342,14 @@ class VehicleType(models.Model):
         # Override save to make certain name_short exists
         if not self.name_short or self.name_short == str(models.TextField(null=False, blank=False)):
             self.name_short = self.name
+        if not self.tco_parameters:
+            self.tco_parameters = {
+                "useful_life": 14,
+                "procurement_cost": None,
+                "procurement_cost_diesel": None,
+                "cost_escalation": 0.02,
+            }
+
         super().save(*args, **kwargs)
 
     @property
