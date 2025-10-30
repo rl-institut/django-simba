@@ -1438,7 +1438,7 @@ def simulate_depot_strategy(spice_ev_scenario_dict: dict, strategy: str) -> Simb
 def abbreviate_list(long_list: list, tail_elements: int = 2, delimiter: str = ",", fmt="") -> str:
     delimiter += " "
     if not len(long_list) > tail_elements * 2:
-        return "[ " + delimiter.join((str(x) for x in long_list)) + " ]"
+        return "[ " + delimiter.join(map(str, long_list)) + " ]"
     return (
         "[ "
         + delimiter.join(format(x, fmt) for x in long_list[:tail_elements])

@@ -19,7 +19,7 @@
             <!-- Accordion Item {{depot.id}} -->
             <section class="">
               <div id='DepotContent{{ depot.id }}' data-value='{{depot.id}}' class="accordion-container" >
-                <div class="overflow-hidden rounded-lg bg-white shadow mb-0">
+                <div class="rounded-lg bg-white shadow mb-0">
                   <button type='button'
                           onclick="toggleAccordion(this)"
                           class="w-full flex items-center justify-between py-4 px-4 gap-4 bg-gradient-to-r from-slate-100 to-slate-200 accordion-header">
@@ -81,13 +81,19 @@
   }
 
   function toggleAccordion(button) {
+    if (toggleAccordion.open == button ) {
+      return
+    }
     const container = button.closest('div.accordion-container');
     index = container.dataset.value;
     const content = document.getElementById(`content-${index}`);
+    content.classList.toggle('overflow-hidden');
     const icon = document.getElementById(`icon-${index}`);
 
     if (toggleAccordion.open != undefined) {
-      toggleAccordion.open.click();
+      let old_button = toggleAccordion.open;
+      toggleAccordion.open = undefined;
+      old_button.click();
     }
 
     // SVG for Down icon
@@ -108,9 +114,6 @@
     if (content.style.maxHeight && content.style.maxHeight !== '0px') {
       content.style.maxHeight = '0';
       icon.innerHTML = upSVG;
-      if (button == open) {
-        toggleAccordion.open = undefined;
-      }
     } else {
       content.style.maxHeight = content.scrollHeight + 'px';
       icon.innerHTML = downSVG;

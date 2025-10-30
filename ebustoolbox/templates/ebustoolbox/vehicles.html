@@ -754,14 +754,20 @@ debounce(validateVehicleContainers,100)();
 </script>
 <script>
   function toggleAccordion(button) {
+    if (toggleAccordion.open == button ) {
+      return
+    }
     const container = button.closest('div.accordion-container');
     index = container.dataset.value;
     const accordions = document.querySelectorAll(`button.accordion-header`);
     const content = document.getElementById(`content-${index}`);
     const icon = document.getElementById(`icon-${index}`);
 
+
     if (toggleAccordion.open != undefined) {
-      toggleAccordion.open.click();
+      let old_button = toggleAccordion.open;
+      toggleAccordion.open = undefined;
+      old_button.click();
     }
 
     // SVG for Down icon
@@ -782,9 +788,6 @@ debounce(validateVehicleContainers,100)();
     if (content.style.maxHeight && content.style.maxHeight !== '0px') {
       content.style.maxHeight = '0';
       icon.innerHTML = upSVG;
-      if (button == open) {
-        toggleAccordion.open = undefined;
-      }
     } else {
       content.style.maxHeight = content.scrollHeight + 'px';
       icon.innerHTML = downSVG;
