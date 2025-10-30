@@ -106,6 +106,7 @@ def progress_scenario(request: HttpRequest, progress_id, template_name):
     result = AsyncResult(str(progress_id).encode())
     if result.state in ["PENDING", "REVOKED", "FAILURE"]:
         # the celery task is not running. The progress will not be updated. This has to be fixed.
+        progress.refresh_from_db()
         if progress.running:
             progress.running = False
             progress.status = "Abgebrochen"
