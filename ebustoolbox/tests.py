@@ -24,6 +24,7 @@ from .import_export import visit_all_scenario_queries, ScenarioJSONImporterExpor
 from . import tasks
 from .forms import UploadFileForm
 from .models import (
+    DepotConfigurationWish,
     Notification,
     Route,
     Scenario,
@@ -175,6 +176,9 @@ def build_scenario():
         # NOTE: Eflips needs masses for calculation
         vt.allowed_mass = 20_000
         vt.empty_mass = 10_000
+        vt.width = 3
+        vt.length = 12
+        vt.height = 10
         query = Consumption.objects.filter(vehicle_class=VehicleClass.objects.get(vehicletype=vt))
         assert query.exists()
         vt.save()
@@ -187,8 +191,17 @@ def build_scenario():
         if station.power_total is None:
             station.power_total = django_scenario.simba_options["gc_power_opps"]
         station.save()
+        if station.charge_type == EnumChargeType.DEPOT:
+            DepotConfigurationWish.objects.create(
+                scenario=django_scenario,
+                station=station,
+                auto_generate=True,
+                default_power=150,
+                standard_block_length=3,
+            )
     django_scenario.task_id = get_unique_task_id()
     Temperatures.create_constant_temperatures(django_scenario, 20)
+
     return django_scenario, simba_schedule, args
 
 
