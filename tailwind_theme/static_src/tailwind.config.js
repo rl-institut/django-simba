@@ -55,7 +55,7 @@ module.exports = {
         },
 
         'slide-in-top': {
-          '0%': { opacity: '0.8', transform: 'translateY(-20px)' },
+          '0%': { opacity: '0.8', transform: 'translateY(-100%)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
