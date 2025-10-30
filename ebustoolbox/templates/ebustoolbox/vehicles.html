@@ -9,8 +9,13 @@
   {% with wiz_idx=2 %}{{ block.super }}{% endwith %}
 {% endblock wizard_navigation %}
 {% block wizard_content %}
-{% url "simba:notifications" task_id 'VehiclesView' as n_url %}
-{% include "ebustoolbox/partials/notifications_multi.html"  with url=n_url %}
+
+<!-- ebustoolbox/templates/ebustoolbox/partials/notifications_multi.html -->
+<div id='multiNotificationDiv'
+hx-get='{% url "simba:notifications" task_id 'VehiclesView' %}'
+hx-swap='outerHTML'
+hx-trigger='load'
+></div>
 <main class="flex flex-col items-center flex-grow">
 
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
@@ -299,10 +304,6 @@
 {% endblock wizard_buttons %}
 {% block script %}
 {% include "ebustoolbox/partials/dropdown_partial_js.html" %}
-<script>
-// from notifications_multi.html. Fetch notifications based on view and task id
-    fetchAndRenderNotifications();
-</script>
 <!-- Tabs Functionality of Bus Type Cards -->
 
 <script>

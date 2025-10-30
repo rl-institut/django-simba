@@ -104,7 +104,7 @@ DEFAULT_LOADED_MASS = 0
 DEFAULT_ALLOWED_LOAD = 1000
 
 # NOTE: 1% is not a very small number, but the balanced strategy can have deltas of at least 0.6%
-EPS = 1e-2  # a small number, used to allow for difference when comparing floats
+EPS = 1e-3  # a small number, used to allow for difference when comparing floats
 
 
 def apply_vehicle_type(
@@ -293,16 +293,22 @@ def temperatures_to_db(
 
 def get_notfications_dict(
     notifications: QuerySet[Notification],
-) -> dict[str, QuerySet[Notification]]:
+) -> dict[str, list[Notification]]:
     return {
-        "error": notifications.filter(
-            level=EnumNotificationLevels.ERROR,
+        "error": list(
+            notifications.filter(
+                level=EnumNotificationLevels.ERROR,
+            )
         ),
-        "warning": notifications.filter(
-            level=EnumNotificationLevels.WARNING,
+        "warning": list(
+            notifications.filter(
+                level=EnumNotificationLevels.WARNING,
+            )
         ),
-        "info": notifications.filter(
-            level=EnumNotificationLevels.INFO,
+        "info": list(
+            notifications.filter(
+                level=EnumNotificationLevels.INFO,
+            )
         ),
     }
 
@@ -759,9 +765,23 @@ def vehicles_to_db(vehicle_types: dict, scenario: Scenario):
 
 def update_electrified_stations_db(electrified_stations, scenario):
     """Update stations which are electrified with info from electrified_stations dictionary"""
+    notifications = []
     for name, ele_station in electrified_stations.items():
         # TODO: loop over stations
         station = Station.objects.get(id=Station.get_id_from_simba_name(name), scenario=scenario)
+        if not station.is_electrified:
+            notification = Notification(
+                scenario=scenario,
+                sender="SimBA-Optimizier from tasks.py",
+                level=EnumNotificationLevels.INFO,
+                notification_type=EnumNotificationType.ADDED_ELECTRIFICATION,
+                message=_(
+                    f"Die Stationsoptimierung hat {station.name} als geeignete Station "
+                    "erkannt und ihr eine Elektrifizierung hinzugefügt."
+                ),
+            )
+            notifications.append(notification)
+
         station.is_electrified = True
 
         charge_type = ele_station.get("type")
@@ -791,6 +811,7 @@ def update_electrified_stations_db(electrified_stations, scenario):
         if station.power_total is None:
             logger.warning(f"Station {station.name} does not have a power_total Value")
         station.save()
+    Notification.objects.bulk_create(notifications)
 
 
 def generate_zipped_scenario(task_id: str):
@@ -1433,6 +1454,7 @@ def apply_depot_strategy(scenario: Scenario, strategy: str) -> None:
     events = scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT).order_by(
         "vehicle__id", "time_start"
     )
+    not_warned = True
     for event in events:
         vid = event.vehicle.to_simba_name()
         # find timeseries timestep range (indices of relevant timesteps)
@@ -1453,9 +1475,11 @@ def apply_depot_strategy(scenario: Scenario, strategy: str) -> None:
             # NOTE: timeseries data can contain all kinds of data which relates to the list of "time".
             # Changing the "time" list therefore invalidates other data and is removed
             # "time" data is changed so its consistent with the SpiceEV soc data.
-            logger.warning(
-                "Timesteps diverge between SpiceEV and eFlips. SpiceEV is used and other timeseries are discarded"
-            )
+            if not_warned:
+                logger.warning(
+                    "Timesteps diverge between SpiceEV and eFlips. SpiceEV is used and other timeseries are discarded"
+                )
+                not_warned = False
             new_data = {**spice_ev_timeseries, "soc": event.timeseries["soc"]}
             event.timeseries = new_data
         replace_event_timeseries(event, new_soc_ts)
@@ -1678,7 +1702,9 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     # child.simba_options.update(ele_dict)
     all_stations = Station.objects.filter(scenario=mutation)
     electrified_stations = Station.objects.filter(scenario=mutation, is_electrified=True)
-    excluded_stations = Station.objects.filter(scenario=mutation, is_electrifiable=False)
+    excluded_stations = Station.objects.filter(
+        scenario=mutation, is_electrified=False, is_electrifiable=False
+    )
     # Some stations are not electrified or excluded -->possible need for optimization
     if all_stations.count() > electrified_stations.count() + excluded_stations.count():
         logger.info("Mode is set to optimization.")
@@ -1776,7 +1802,7 @@ def _run_ebus_toolchain(self, task_id):
         # SimBA consolidation
         Event.objects.filter(scenario=db_scenario).delete()
 
-        progress.status = "Berechne Verbrauch"
+        progress.status = _("Berechne Verbrauch")
         progress.save()
         modes = db_scenario.simba_options["modes"].split(",")
         assert modes[0] == "sim"
@@ -1789,21 +1815,39 @@ def _run_ebus_toolchain(self, task_id):
         if len(modes) > 1 and "station_optimization" in modes[1]:
             progress.status = "Elektrifziere notwendige Stationen"
             progress.save()
-            schedule, simba_scenario = run_simba(
-                schedule, args, db_scenario, mode=modes[1], scenario=simba_scenario
-            )
+            try:
+                schedule, simba_scenario = run_simba(
+                    schedule, args, db_scenario, mode=modes[1], scenario=simba_scenario
+                )
+            except StationOpimizationImpossible:
+                Notification.objects.create(
+                    scenario=db_scenario,
+                    sender="SimBA-Optimizier from tasks.py",
+                    level=EnumNotificationLevels.INFO,
+                    notification_type=EnumNotificationType.ADDED_ELECTRIFICATION,
+                    # TODO: Add text to help section
+                    message=_(
+                        "Die Stationsoptimierung konnte das Szenario nicht optimieren. "
+                        "Genauere Information finden sie in der Hilfe unter Stationsoptimierung"
+                    ),
+                )
         else:
             logger.info("Station optimization was skipped")
+
+        # Create notifications for the user since the optimizer could achieve full electrification
+        create_negative_block_notifications(db_scenario)
         progress.current_work += 1
+        progress.status = _("Berechne das Depot")
         progress.save()
         notifications = []
         try:
-            run_eflips(db_scenario, delete_existing_depot=True)
+            run_eflips(db_scenario, delete_existing_depot=True, progress=progress)
         except UnstableSimulationException as e:
             # TODO: handle it and pass information to user
             logger.error("The simulation is unstable")
             logger.error(traceback.format_exception(e))
             notification = Notification(
+                scenario=db_scenario,
                 sender="eflips-depot",
                 level=EnumNotificationLevels.WARNING,
                 notification_type=EnumNotificationType.UNSTABLE_DEPOT_WARNING,
@@ -1820,6 +1864,7 @@ def _run_ebus_toolchain(self, task_id):
             logger.error(traceback.format_exception(e))
             # TODO: @TU what notification should the user receive
             notification = Notification(
+                scenario=db_scenario,
                 sender="eflips-depot",
                 level=EnumNotificationLevels.WARNING,
                 notification_type=EnumNotificationType.DELAYED_TRIP_WARNING,
@@ -1829,6 +1874,7 @@ def _run_ebus_toolchain(self, task_id):
             logger.error("Eflips raised an unexpected Exception")
             logger.error(traceback.format_exception(e))
             notification = Notification(
+                scenario=db_scenario,
                 sender="eflips-depot",
                 level=EnumNotificationLevels.ERROR,
                 notification_type=EnumNotificationType.UNEXPECTED_ERROR,
@@ -1840,13 +1886,7 @@ def _run_ebus_toolchain(self, task_id):
             progress.set_failed()
             raise
         finally:
-            for scenario in [db_scenario, db_scenario.parent]:
-                # parent might not exist
-                if scenario is None:
-                    continue
-                for notification in notifications:
-                    notification.scenario = scenario
-                    notification.save()
+            Notification.objects.bulk_create(notifications)
 
         progress.current_work += 1
         progress.save()
@@ -2080,7 +2120,7 @@ def run_simba(
         ):
             return schedule, scenario
         logger.info("Assertion not found")
-        raise
+        raise StationOpimizationImpossible()
     # Apply changes to database depending on mode
     match mode:
         case "sim":
@@ -2140,7 +2180,7 @@ def depot_rotation_to_eflips_input(db_rotation, db_scenario, input_for_eflips, r
     return input_for_eflips
 
 
-def run_eflips(scenario, delete_existing_depot) -> None:
+def run_eflips(scenario, delete_existing_depot, progress) -> None:
     logger.info(f"Running eFLIPS {datetime.now()}")
     # Constructing the database URL manually
     db_url = create_db_url()
@@ -2151,13 +2191,22 @@ def run_eflips(scenario, delete_existing_depot) -> None:
     for config in depot_configs:
         eflips_configs.append(config.to_dataclass())
 
-    generate_optimal_depot_layout(
-        depot_config_wishes=eflips_configs,
-        scenario=scenario,
-        database_url=db_url,
-        delete_existing_depot=delete_existing_depot,
-    )
-    #
+    if not Depot.objects.filter(scenario=scenario).exists():
+        progress.status = _("Optimiere das Depot Layout")
+        progress.save()
+        logger.info("Eflips starts generating an optimal depot layout")
+        generate_optimal_depot_layout(
+            depot_config_wishes=eflips_configs,
+            scenario=scenario,
+            database_url=db_url,
+            delete_existing_depot=delete_existing_depot,
+        )
+    else:
+        logger.info("Eflips is reusing the existing depot layout")
+        #
+
+    progress.status = _("Simuliere das Depot")
+    progress.save()
     simulate_scenario(
         scenario,
         database_url=db_url,
@@ -2894,7 +2943,6 @@ def consolidate_socs(scenario: Scenario) -> None:
         # New vehicle detected. First event is used to initialize values
         if event.vehicle != vehicle:
             vehicle = event.vehicle
-            prev_event = event
             pre_fix_end_soc = event.soc_end
             summed_difference[vehicle] = 0
             continue
@@ -2949,19 +2997,26 @@ def consolidate_socs(scenario: Scenario) -> None:
         if event.timeseries and event.timeseries["soc"]:
             ts = event.timeseries["soc"]
             shifted_ts = [v - running_delta_soc for v in ts]
-            if min(shifted_ts) < 0 and min(ts) >= 0:
+            min_shifted_ts = min(shifted_ts)
+            if min_shifted_ts < 0 and min(ts) >= 0:
                 logger.warning(
-                    f"Consolidation lead to negative SOCs which did not exist before. {event=}"
+                    f"Consolidation lead to negative SOCs ({min_shifted_ts:.3e}) which did not exist before. {event=}"
                 )
-            if max(shifted_ts) > 1:
-                logger.warning(
-                    f"Consolidation lead to SOCs above 1. This should never happen. {event=}"
+            max_shifted_ts = max(shifted_ts)
+            if max_shifted_ts > 1:
+                log = logger.warning if max_shifted_ts > 1 + EPS else logger.debug
+                log(
+                    f"Consolidation lead to SOCs above 1 ({max_shifted_ts:.3e}). This should never happen. {event=}"
                 )
             event.timeseries["soc"] = shifted_ts
 
         if not math.isclose(event.soc_start, prev_event.soc_end):
             raise AssertionError(f"Events dont align after consolidation {event=} , {prev_event=}")
 
+    logger.info(
+        50 * "#" + "\nDuring consolidation summed abs(soc_shift) per vehicle did not exceed "
+        f"{max(summed_difference.values()):.3e}"
+    )
     logger.debug(summed_difference)
     Event.objects.bulk_update(events, fields=["soc_end", "soc_start", "timeseries"])
 
@@ -2974,24 +3029,52 @@ def create_consolidate_log(
     pre_fix_delta: float,
 ) -> None:
     """Create a log depending on severity of delta soc"""
-    if pre_fix_delta != 0 and abs(pre_fix_delta) < 0.01:
-        logger.debug(
-            f"Socs differed by: {pre_fix_delta=:.2e}. {running_delta_soc=:.2e} is applied"
-            f"\n{prev_event.id} and {event.id}"
+
+    if abs(pre_fix_delta) >= 0.1:
+        logger.warning(
+            f"Unexpected high soc delta {pre_fix_delta:.2e} during consolidation.\n"
+            f"{event=}\n{prev_event=}\n{next_event=}."
         )
-    elif 0.1 > abs(pre_fix_delta) >= 0.01:
+    elif abs(pre_fix_delta) >= 0.01:
         logger.info(
             f"Socs differed by: {pre_fix_delta=:.2e}. {running_delta_soc=:.2e} is applied"
             f"\n{prev_event.id} and {event.id}"
         )
-    elif abs(pre_fix_delta) >= 0.1:
-        logger.warning(
-            f"Unexpected high soc delta {round(pre_fix_delta, 3)} during consolidation.\n"
-            f"{event=}\n{prev_event=}\n{next_event}."
+    elif pre_fix_delta != 0:
+        logger.debug(
+            f"Socs differed by: {pre_fix_delta=:.2e}. {running_delta_soc=:.2e} is applied"
+            f"\n{prev_event.id} and {event.id}"
         )
 
-    if pre_fix_delta > 0:
+    if pre_fix_delta > EPS:
         logger.warning(
-            f"Unexpected soc drop {round(running_delta_soc, 3)} due to consolidation.\n"
-            f"{prev_event=}\n{event=}\n{next_event}."
+            f"Unexpected soc drop {running_delta_soc=:.2e} due to consolidation.\n"
+            f"{prev_event=}\n{event=}\n{next_event=}."
         )
+    elif pre_fix_delta > 0:
+        logger.debug(
+            f"Unexpected soc drop {running_delta_soc=:.2e} due to consolidation.\n"
+            f"{prev_event=}\n{event=}\n{next_event=}."
+        )
+
+
+def create_negative_block_notifications(scenario: Scenario) -> None:
+    events = Event.objects.filter(
+        scenario=scenario, event_type=EventType.DRIVING, soc_end__lt=0
+    ).select_related("trip__rotation")
+    low_soc_blocks = {event.trip.rotation.name for event in events}
+    Notification.objects.create(
+        scenario=scenario,
+        sender="SimBA-Optimizier from tasks.py",
+        level=EnumNotificationLevels.INFO,
+        notification_type=EnumNotificationType.LOW_SOC_BLOCKS,
+        message=_(
+            "Die Stationsoptimierung konnte nicht alle Umläufe elektrifzieren. "
+            f"Folgende {len(low_soc_blocks)} Umläufe haben auch nach der Optimierung einen SOC unter 0%: "
+            + ", ".join(low_soc_blocks)
+        ),
+    )
+
+
+class StationOpimizationImpossible(Exception):
+    pass

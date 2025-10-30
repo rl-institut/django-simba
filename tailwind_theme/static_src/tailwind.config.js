@@ -53,6 +53,11 @@ module.exports = {
           '0%': { opacity: '0', transform: 'translateY(20px)' },
           '100%': { opacity: '0.8', transform: 'translateY(0)' },
         },
+
+        'slide-in-top': {
+          '0%': { opacity: '0.8', transform: 'translateY(-20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         'slide-in-top': 'slide-in-top 0.4s ease-out forwards',

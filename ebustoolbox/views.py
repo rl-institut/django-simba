@@ -1,4 +1,3 @@
-import json
 import logging
 import traceback
 import dateutil.parser as parser
@@ -300,11 +299,16 @@ def get_notifications(request, task_id: str, view: str):
     if view_class is None or view_class.__dict__.get("get_notifications") is None:
         raise Http404("Benachrichtigungen für diese Seite gibt es nicht")
     notifications = view_class.get_notifications(task_id)
+    print(notifications.count())
     # Make a dictionary out of the different classes for easier template acccess
-    data = tasks.get_notfications_dict(notifications)
-    for ntype, values in data.items():
-        data[ntype] = json.loads(serializers.serialize("json", values))
-    return JsonResponse(data)
+    notifications_dict = tasks.get_notfications_dict(notifications)
+    context = dict()
+    context = {"notifications": notifications_dict}
+    context["any_notification"] = notifications.exists()
+    context["task_id"] = task_id
+    context["hx_trigger"] = "htmx:afterSettle from:body throttle:1s"
+
+    return render(request, "ebustoolbox/partials/notifications_multi.html", context)
 
 
 class TripsView(FormView):
@@ -1131,7 +1135,8 @@ class SummaryView(AuthorizedMixIn, TemplateView):
     @staticmethod
     def get_notifications(task_id):
         scenario = get_object_or_404(Scenario, task_id=task_id)
-        notifications = Notification.objects.filter(scenario=scenario).exclude(
+        children = list(Scenario.objects.filter(parent=scenario).values_list("id", flat=True))
+        notifications = Notification.objects.filter(scenario__in=[scenario.id] + children).exclude(
             notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING
         )
         return notifications
@@ -1304,6 +1309,9 @@ def merge_and_run(request: HttpRequest, task_id: str):
     # (TODO: Discuss)
     logger.info("Deleting failed previous child-scenarios")
     logger.info(str(Scenario.objects.filter(parent=scenario).delete()))
+
+    print(Notification.objects.filter(scenario__parent=scenario))
+    print(Notification.objects.filter(scenario=scenario))
 
     if not request.user.is_superuser:
         # Delete failed scenarios

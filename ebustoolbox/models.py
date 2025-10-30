@@ -1911,6 +1911,8 @@ class EnumNotificationType(models.TextChoices):
     UNSTABLE_DEPOT_WARNING = "unstable_sim_w_shifting_socs"
     DELAYED_TRIP_WARNING = "delayed_trip"
     UNEXPECTED_ERROR = "unexpected_error"
+    ADDED_ELECTRIFICATION = "added_electrification"
+    LOW_SOC_BLOCKS = "low_soc_blocks"
 
 
 class Notification(models.Model):
