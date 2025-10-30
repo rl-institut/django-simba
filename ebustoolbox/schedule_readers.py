@@ -223,7 +223,7 @@ class SimbaScheduleReader(ScheduleReader):
             self.set_progress(0, _("Lese Datei"))
             trip_data = self.file_data_to_dict()
 
-            self.set_progress(1, _("Finde Stationen"))
+            self.set_progress(1, _("Erstelle Stationen und Fahrzeugtypen"))
             # Create Stations
             scenario = Scenario.objects.get(id=scenario_id)
             stations = self.get_stations(scenario, trip_data)
@@ -232,27 +232,21 @@ class SimbaScheduleReader(ScheduleReader):
             # Instances without pk can't be used as foreign key reference
             stations = Station.objects.bulk_create(stations)
             station_dict = {station.name: station for station in stations}
-            if settings.SEARCH_STATION_LOCATIONS:
-                add_station_locations(Station.objects.filter(scenario=scenario))
 
-            add_elevations(Station.objects.filter(scenario=scenario, geom__isnull=False))
-            place_not_found_stations(scenario)
-
-            self.set_progress(2, _("Finde Fahrzeugtypen"))
             # Create empty vehicle_types
             vts = self.get_vehicles(scenario, trip_data)
             # returned vts have pks and can be used as foreign key reference.
             vts = VehicleType.objects.bulk_create(vts)
             vt_dict = {vt.name: vt for vt in vts}
 
-            self.set_progress(3, _("Finde Umläufe"))
+            self.set_progress(2, _("Finde Umläufe"))
             # Create Rotations
             rotations = self.get_rotations(scenario, trip_data, vt_dict)
             # returned rotations have pks
             rotations = Rotation.objects.bulk_create(rotations)
             rotations_dict = {rotation.name: rotation for rotation in rotations}
 
-            self.set_progress(4, _("Finde Fahrten"))
+            self.set_progress(3, _("Finde Fahrten"))
 
             # Create Trips and Routes
             lines, routes, trips = self.get_lines_routes_trips(
@@ -278,7 +272,14 @@ class SimbaScheduleReader(ScheduleReader):
                     trip.route = None
                     trip.route_id = new_id
                 Trip.objects.bulk_create(trips)
-            self.set_progress(5, _("Fahrten erstellt"))
+
+            if settings.SEARCH_STATION_LOCATIONS:
+                self.set_progress(5, _("Finde Stationen"))
+                add_station_locations(Station.objects.filter(scenario=scenario))
+
+            add_elevations(Station.objects.filter(scenario=scenario, geom__isnull=False))
+            place_not_found_stations(scenario)
+
         except self.SimbaScheduleReaderException:
             return False
         return len(self.errors) == 0

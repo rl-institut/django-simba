@@ -59,7 +59,6 @@ import ebustoolbox.tasks
 from ebustoolbox.models import (
     AreaInformation,
     DepotConfigurationWish,
-    EnumNotificationType,
     EnumSimulationType,
     Notification,
     Rotation,
@@ -81,6 +80,7 @@ from ebustoolbox.models import (
     VehicleTypeMutation,
     StationMutation,
     EnumScenarioType,
+    EnumNotificationType,
     annotate_distance,
 )
 

@@ -343,6 +343,42 @@ class VehicleType(models.Model):
             self.name_short = self.name
         super().save(*args, **kwargs)
 
+    @property
+    def get_average_speed_kmh_from_parent(self):
+        parent_vehicle_type = self.get_parent_vehicle_type()
+        return parent_vehicle_type.get_average_speed_kmh
+
+    def get_parent_vehicle_type(self):
+        return VehicleTypeMutation.objects.get(mutated_vehicle_type=self).original_vehicle_type
+
+    @property
+    def get_average_speed_kmh(self):
+        # Get all default vehicle types. Only Opportunity charging capable for now
+        # Expand the query for desired vehicle types which can be selected
+        rots = annotate_distance(Rotation.objects.filter(vehicle_type_id=self.id))
+        result = rots.aggregate(
+            distance=Sum("distance"),
+            duration=Sum(F("trip__arrival_time") - F("trip__departure_time")),
+        )
+        average_speed_kmh = (result["distance"] / 1000) / (
+            result["duration"].total_seconds() / 3600
+        )
+        return average_speed_kmh
+
+    @property
+    def get_total_distance_km_from_parent(self):
+        parent_vehicle_type = self.get_parent_vehicle_type()
+        return parent_vehicle_type.get_total_distance_km
+
+    @property
+    def get_total_distance_km(self):
+        return (
+            Route.objects.filter(trip__rotation__vehicle_type_id=self.id).aggregate(
+                Sum("distance")
+            )["distance__sum"]
+            / 1000
+        )
+
     def get_charging_power(self, soc: float) -> float:
         """Get the charging power the vehicle type is capable of at a given soc"""
         prev_s = 0
