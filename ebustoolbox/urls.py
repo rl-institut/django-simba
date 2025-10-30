@@ -18,7 +18,9 @@ from ebustoolbox.views import (
     get_dashboard,
     compare,
     export_scenario,
+    export_scenario_tree,
     import_scenario,
+    import_scenario_tree,
 )
 
 from ebustoolbox import views
@@ -85,6 +87,16 @@ urlpatterns = [
         "export/<str:model_str>/<uuid:task_id>/",
         model_export_json,
         name="model_export_json",
+    ),
+    path(
+        "import_tree/",
+        import_scenario_tree,
+        name="JSON_import_scenario_tree",
+    ),
+    path(
+        "export_tree/<uuid:task_id>/",
+        export_scenario_tree,
+        name="JSON_export_scenario_tree",
     ),
     path(
         "export/<uuid:task_id>/",

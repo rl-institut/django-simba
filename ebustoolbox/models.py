@@ -1143,6 +1143,7 @@ class Station(models.Model):
 
         obj = cls.objects.get(id=id)
         data = vars(obj)
+        data["title"] = obj.name_short or obj.name
         plot = get_charge_chart(obj)
         if plot:
             data["plot"] = plot
