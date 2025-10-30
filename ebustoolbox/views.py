@@ -1,4 +1,3 @@
-import json
 import logging
 import traceback
 import dateutil.parser as parser
@@ -305,11 +304,16 @@ def get_notifications(request, task_id: str, view: str):
     if view_class is None or view_class.__dict__.get("get_notifications") is None:
         raise Http404("Benachrichtigungen für diese Seite gibt es nicht")
     notifications = view_class.get_notifications(task_id)
+    print(notifications.count())
     # Make a dictionary out of the different classes for easier template acccess
-    data = tasks.get_notfications_dict(notifications)
-    for ntype, values in data.items():
-        data[ntype] = json.loads(serializers.serialize("json", values))
-    return JsonResponse(data)
+    notifications_dict = tasks.get_notfications_dict(notifications)
+    context = dict()
+    context = {"notifications": notifications_dict}
+    context["any_notification"] = notifications.exists()
+    context["task_id"] = task_id
+    context["hx_trigger"] = "htmx:afterSettle from:body throttle:1s"
+
+    return render(request, "ebustoolbox/partials/notifications_multi.html", context)
 
 
 class TripsView(FormView):
@@ -1057,10 +1061,15 @@ class DepotsView(ScenarioMixIn, TemplateView):
                 instance=depot_config,
                 prefix=f"depot_configuration_wish_{depot_config.station.id}",
             )
-            depot_forms["area_information"] = [
+            areas = [
                 AreaInformationForm(data=data, instance=x, prefix=f"area_info_{x.id}")
-                for x in AreaInformation.objects.filter(depot_configuration_wish=depot_config)
+                for x in AreaInformation.objects.filter(
+                    depot_configuration_wish=depot_config
+                ).select_related("vehicle_type")
             ]
+            depot_forms["area_information"] = sorted(
+                areas, key=lambda x: x.instance.vehicle_type.name
+            )
             context["forms"][depot_config.station] = depot_forms
         return context
 
@@ -1113,8 +1122,6 @@ class DepotsView(ScenarioMixIn, TemplateView):
                 for form in forms_:
                     form.save()
 
-            # TODO: Implement Database stuff of multiple areas and calculation mode
-            logger.warning("Depot forms are valid, but are yet used in the simulation.")
             response = redirect(reverse(self.success_name, args=[self.scenario.task_id]))
             return response
 
@@ -1127,7 +1134,8 @@ class SummaryView(AuthorizedMixIn, TemplateView):
     @staticmethod
     def get_notifications(task_id):
         scenario = get_object_or_404(Scenario, task_id=task_id)
-        notifications = Notification.objects.filter(scenario=scenario).exclude(
+        children = list(Scenario.objects.filter(parent=scenario).values_list("id", flat=True))
+        notifications = Notification.objects.filter(scenario__in=[scenario.id] + children).exclude(
             notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING
         )
         return notifications

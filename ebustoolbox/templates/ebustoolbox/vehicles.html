@@ -9,8 +9,13 @@
   {% with wiz_idx=2 %}{{ block.super }}{% endwith %}
 {% endblock wizard_navigation %}
 {% block wizard_content %}
-{% url "simba:notifications" task_id 'VehiclesView' as n_url %}
-{% include "ebustoolbox/partials/notifications_multi.html"  with url=n_url %}
+
+<!-- ebustoolbox/templates/ebustoolbox/partials/notifications_multi.html -->
+<div id='multiNotificationDiv'
+hx-get='{% url "simba:notifications" task_id 'VehiclesView' %}'
+hx-swap='outerHTML'
+hx-trigger='load'
+></div>
 <main class="flex flex-col items-center flex-grow">
 
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
@@ -299,10 +304,6 @@
 {% endblock wizard_buttons %}
 {% block script %}
 {% include "ebustoolbox/partials/dropdown_partial_js.html" %}
-<script>
-// from notifications_multi.html. Fetch notifications based on view and task id
-    fetchAndRenderNotifications();
-</script>
 <!-- Tabs Functionality of Bus Type Cards -->
 
 <script>
@@ -675,8 +676,9 @@ containers.forEach((container) => {
 
   });
 function validate(){
-  console.log("validating")
-  const defaultVehicleTypeSelectionDivs = document.querySelectorAll('select[id*="default_vehicle_type"]')
+  console.log("validating");
+  validateAccordions();
+  const defaultVehicleTypeSelectionDivs = document.querySelectorAll('select[id*="default_vehicle_type"]');
   let isValid = true;
   defaultVehicleTypeSelectionDivs.forEach((input)=>{
     const container = input.closest("[id*='VehicleTypeContainer']");
@@ -752,14 +754,20 @@ debounce(validateVehicleContainers,100)();
 </script>
 <script>
   function toggleAccordion(button) {
+    if (toggleAccordion.open == button ) {
+      return
+    }
     const container = button.closest('div.accordion-container');
     index = container.dataset.value;
     const accordions = document.querySelectorAll(`button.accordion-header`);
     const content = document.getElementById(`content-${index}`);
     const icon = document.getElementById(`icon-${index}`);
 
+
     if (toggleAccordion.open != undefined) {
-      toggleAccordion.open.click();
+      let old_button = toggleAccordion.open;
+      toggleAccordion.open = undefined;
+      old_button.click();
     }
 
     // SVG for Down icon
@@ -780,20 +788,35 @@ debounce(validateVehicleContainers,100)();
     if (content.style.maxHeight && content.style.maxHeight !== '0px') {
       content.style.maxHeight = '0';
       icon.innerHTML = upSVG;
-      if (button == open) {
-        toggleAccordion.open = undefined;
-      }
     } else {
       content.style.maxHeight = content.scrollHeight + 'px';
       icon.innerHTML = downSVG;
       toggleAccordion.open = button;
     }
     }
-{% for vt_id in vehicle_modification.keys|slice:":1" %}
-    {% if forloop.first %}
-  var button = document.querySelector("#VehicleTypeContainer{{vt_id}} .accordion-header");
+  var button = document.querySelector(".accordion-header");
   toggleAccordion(button);
- {% endif %}  {% endfor %}
+
+  function validateAccordions(){
+    const containers = document.querySelectorAll('div.accordion-container');
+    error = false;
+    containers.forEach((container) => {
+      if (error) return;
+      inputs = container.querySelectorAll('input');
+      inputs.forEach((input) => {
+      if (!input.checkValidity()){
+        error = true;
+        button = container.querySelector('button');
+         if (toggleAccordion.open !== button) toggleAccordion(button)
+
+      }
+      });
+
+    });
+
+  }
+
+
 </script>
   <!-- Tabs Functionality of Bus Type Cards -->
 {% endblock script %}

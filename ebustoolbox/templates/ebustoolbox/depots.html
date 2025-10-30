@@ -17,11 +17,11 @@
         {% for depot, form_dict in forms.items %}
           {% with depot_form=form_dict.depot_config %}
             <!-- Accordion Item {{depot.id}} -->
-            <section class="pb-12">
-              <div id=DepotContent{{ depot_id }}>
-                <div class="overflow-hidden rounded-lg bg-white shadow mb-4">
+            <section class="">
+              <div id='DepotContent{{ depot.id }}' data-value='{{depot.id}}' class="accordion-container" >
+                <div class="rounded-lg bg-white shadow mb-0">
                   <button type='button'
-                          onclick="toggleAccordion({{ depot.id }})"
+                          onclick="toggleAccordion(this)"
                           class="w-full flex items-center justify-between py-4 px-4 gap-4 bg-gradient-to-r from-slate-100 to-slate-200 accordion-header">
                     <div class="flex items-center gap-2">
                       <p class="flex gap-2 items-center">
@@ -39,7 +39,7 @@
                     </div>
                   </button>
                   <div id="content-{{ depot.id }}"
-                       class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out ">
+                       class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out accordion-content">
                     <!-- General Depot configuration -->
                     {% include "ebustoolbox/partials/depot_configuration_wish.html" %}
                   </div>
@@ -48,7 +48,7 @@
             </section>
           {% endwith %}
         {% endfor %}
-        <button hidden id="submitButton"></button>
+        <button hidden id="submitButton" onclick="validateAccordions()"></button>
       </form>
     </div>
   </main>
@@ -60,9 +60,48 @@
 {% endblock wizard_buttons %}
 {% block script %}
   <script>
-  function toggleAccordion(index) {
+
+  function validateAccordions(){
+    const containers = document.querySelectorAll('div.accordion-container');
+    error = false;
+    containers.forEach((container) => {
+      if (error) return;
+      inputs = container.querySelectorAll('input');
+      inputs.forEach((input) => {
+      if (!input.checkValidity()){
+        error = true;
+        button = container.querySelector('button');
+         if (toggleAccordion.open !== button) toggleAccordion(button)
+
+      }
+      });
+
+    });
+
+  }
+
+  function toggleAccordion(button) {
+    if (toggleAccordion.open == button ) {
+      return
+    }
+    const container = button.closest('div.accordion-container');
+    index = container.dataset.value;
     const content = document.getElementById(`content-${index}`);
+    content.classList.toggle('overflow-hidden');
     const icon = document.getElementById(`icon-${index}`);
+
+    if (toggleAccordion.open != undefined) {
+      let old_button = toggleAccordion.open;
+      toggleAccordion.open = undefined;
+      old_button.click();
+    }
+
+    // SVG for Down icon
+    const downSVG = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
+        <path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+      </svg>
+    `;
 
     // SVG for Up icon
     const upSVG = `
@@ -76,13 +115,15 @@
       content.style.maxHeight = '0';
       icon.innerHTML = upSVG;
     } else {
-      openAccordion(index);
+      content.style.maxHeight = content.scrollHeight + 'px';
+      icon.innerHTML = downSVG;
+      toggleAccordion.open = button;
     }
-  }
-  function openAccordion(index) {
+    }
+
+  function openAccordion(index){
     const content = document.getElementById(`content-${index}`);
     const icon = document.getElementById(`icon-${index}`);
-
     // SVG for Down icon
     const downSVG = `
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
@@ -90,17 +131,22 @@
       </svg>
     `;
 
+    // SVG for Up icon
+    const upSVG = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
+        <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+      </svg>
+    `;
       content.style.maxHeight = content.scrollHeight + 'px';
       icon.innerHTML = downSVG;
-  }
+    // }
+    }
 
-  {% for depot in forms.keys|slice:"1:" %}
-    {% if forloop.first %}
-  toggleAccordion({{depot.id}});
- {% endif %}  {% endfor %}
-
+  var button = document.querySelector(".accordion-header");
+  toggleAccordion(button);
   </script>
   <script>
+
 function validateDepotContainers(){
   console.log('validating');
   var containers = document.querySelectorAll("div[id^='DepotContent']");
