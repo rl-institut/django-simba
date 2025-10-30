@@ -39,6 +39,7 @@ from temperatures.models import WeatherStation  # noqa
 from . import tasks, forms
 import temperatures.tasks
 from .forms import (
+    ChargingPowerForm,
     AreaInformationForm,
     DepotConfigurationWishForm,
     VehicleTypeForm,
@@ -60,6 +61,7 @@ from ebustoolbox.models import (
     AreaInformation,
     DepotConfigurationWish,
     EnumNotificationType,
+    EnumSimulationType,
     Notification,
     Rotation,
     Scenario,
@@ -83,20 +85,34 @@ from ebustoolbox.models import (
     annotate_distance,
 )
 
+
+# import redis
+# r = redis.Redis.from_url(settings.REDIS_URL)
+# r.rpush('someKey', json.dumps({'i': (cache.get('key')), 'time': 0}))
+
 logger = logging.getLogger("custom")
 
 
 def progress_scenario(request: HttpRequest, progress_id, template_name):
     context = {"progress_id": progress_id, "status": "", "current_progress": 0}
-
     context |= {"finished": False}
-    progress = Progress.objects.get(task_id=progress_id)
+    progress: Progress = Progress.objects.get(task_id=progress_id)
     context["progress"] = progress
 
     context["current_progress"] = max(progress.get_progress(), 1)
     context["status"] = progress.status
+
     status_code = 200
     hx_trigger = "running"
+    result = AsyncResult(str(progress_id).encode())
+    if result.state in ["PENDING", "REVOKED", "FAILURE"]:
+        # the celery task is not running. The progress will not be updated. This has to be fixed.
+        if progress.running:
+            progress.running = False
+            progress.status = "Abgebrochen"
+            progress.errors.append(f"Task is {result.state}")
+            progress.save()
+
     if progress.success or not progress.running or len(progress.errors) != 0:
         context["errors"] = progress.errors
         # End polling
@@ -105,6 +121,16 @@ def progress_scenario(request: HttpRequest, progress_id, template_name):
         hx_trigger = "notRunning"
     if progress.success:
         hx_trigger = "success"
+        if progress.progress_type == EnumProgress.RUNNING_SIMULATION:
+            mutation_scenario = progress.scenario
+            children = Scenario.objects.filter(parent=mutation_scenario)
+            assert (
+                children.count() == 2
+            ), "There should only be two children. A sizing and a default scenario"
+            sizing_scenario = children.get(simulationtype__sim_type=EnumSimulationType.SIZING)
+            default_scenario = children.get(simulationtype__sim_type=EnumSimulationType.DEFAULT)
+            context |= {"sizing_scenario": sizing_scenario, "default_scenario": default_scenario}
+
     response = render(request, f"core/{template_name}", context)
     response["HX-Trigger"] = hx_trigger
     response.status_code = status_code
@@ -332,13 +358,15 @@ class TripsView(FormView):
         """Handles successful form submission."""
         cleaned_data = form.cleaned_data
         task_id = self.kwargs.get("task_id", get_unique_task_id())
+        task_id = get_unique_task_id()
 
         # Get a User as manager or none
         manager = None
         if self.request.user.is_authenticated:
             manager = self.request.user
         # If schedule reading failed before a scenario already exists
-        scenario, _ = Scenario.objects.get_or_create(task_id=task_id, manager=manager)
+        print((task_id, manager))
+        scenario = Scenario.objects.create(task_id=task_id, manager=manager)
         scenario.name = cleaned_data["scenario_name"]
         scenario.description = cleaned_data["description"]
         # If schedule reading failed before there is a parent already. Delete it if
@@ -351,7 +379,6 @@ class TripsView(FormView):
 
         data_file = form.files.get("data_file")
         scenario_uuid = form.cleaned_data["existing_scenario"]
-
         if data_file:
             assert len(form.files) == 1, "Currently only single file uploads are allowed"
 
@@ -466,7 +493,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
     def get_context_data(self, **kwargs):
         scenario = self.scenario
         context = super().get_context_data(**kwargs)
-        data = {}
+        data = None
         if self.request.method == "POST":
             data = self.request.POST
         middlepoint = tasks.get_middlepoint(scenario)
@@ -514,7 +541,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         start_time = start.time().isoformat()
         end_date = end.date().isoformat()
         end_time = end.time().isoformat()
-        sim_range, _ = SimulationRange.objects.get_or_create(scenario=scenario)
+        sim_range, unused_variable = SimulationRange.objects.get_or_create(scenario=scenario)
         temperature_average = None
         temperature_extreme = None
         if data:
@@ -621,7 +648,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         child_vehicle_types = get_or_create_child_vehicle_types(scenario)
         vehicle_modification = {}
         for vt in child_vehicle_types:
-            vt_select, _ = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
+            vt_select, unused_variable = VehicleTypeSelection.objects.get_or_create(vehicle_type=vt)
             dvt = vt_select.default_vehicle_type
             modification = VehicleTypeForm(data, instance=vt, prefix=f"mutation_{vt.id}")
 
@@ -635,7 +662,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
                 vt_select.default_vehicle_type = dvt
                 modification.fields["has_diesel_heating"].initial = True
             selection = VehicleTypeSelectionForm(
-                data,
+                data=data,
                 prefix=f"selection_{vt.id}",
                 vehicle_type=vt,
                 choices_queryset=default_vehicle_types,
@@ -783,7 +810,6 @@ class StationsView(ScenarioMixIn, TemplateView):
             min_standing_time = 0
 
         if min_standing_time > 0:
-
             parent_trips = Trip.objects.filter(scenario=scenario.parent)
             parent_trips_annotated = tasks.annotate_trips_with_standing_time(parent_trips)
             td_min_standing_time = datetime.timedelta(minutes=min_standing_time)
@@ -862,16 +888,22 @@ class StationsView(ScenarioMixIn, TemplateView):
     def post(self, request, *args, **kwargs):
         scenario = self.scenario
         context = self.get_context_data(**kwargs)
-
         all_valid = all(form.is_valid() for form in context["stations_forms"].values())
         if not all_valid:
             logger.debug("Invalid StationsForm provided")
             return self.render_to_response(context)
+        charge_form = ChargingPowerForm(request.POST)
+        if not charge_form.is_valid():
+            logger.debug("Invalid ChargingPowerForm provided")
+            return self.render_to_response(context)
         # The forms are valid. Update the stations and exclude stations
         # from electrification
+        default_charge_power = charge_form.cleaned_data["default_charge_power"]
         ebustoolbox.tasks.update_stations_and_exclusion(
-            context["stations_forms"].values(), scenario.simba_options["cs_power_opps"]
+            context["stations_forms"].values(), default_charge_power
         )
+        # update simba options
+        scenario.simba_options["cs_power_opps"] = default_charge_power
         response = redirect(reverse(self.success_name, args=[scenario.task_id]))
         return response
 
@@ -1009,10 +1041,12 @@ class DepotsView(ScenarioMixIn, TemplateView):
                 for vt in vehicle_types:
                     area_informations.append(
                         AreaInformation(
-                            scenario=scenario, depot_configuration_wish=wish, vehicle_type=vt
+                            scenario=scenario,
+                            depot_configuration_wish=wish,
+                            vehicle_type=vt,
                         )
                     )
-                AreaInformation.objects.bulk_create(area_informations)
+            AreaInformation.objects.bulk_create(area_informations)
 
         depot_configs = DepotConfigurationWish.objects.filter(scenario=scenario)
         context["forms"] = dict()
@@ -1516,7 +1550,7 @@ def usergroups(request):
 
 def render_critical_rotations(request, task_id: str):
     """Returns raw JSON data for critical rotations (critical vs. non-critical)"""
-    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    vehicle_name_dict, unused_variable = data.get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
     s = Scenario.objects.get(task_id=task_id)
@@ -1525,9 +1559,7 @@ def render_critical_rotations(request, task_id: str):
 
     # Aggregate category counts
     category_counts = (
-        df["SOC_category"]
-        .value_counts()
-        .reindex([_("Nicht kritisch"), _("kritisch")], fill_value=0)
+        df["SOC_category"].value_counts().reindex(["Nicht kritisch", "kritisch"], fill_value=0)
     )
 
     return JsonResponse(
@@ -1541,7 +1573,7 @@ def render_critical_rotations(request, task_id: str):
 
 def render_bustype(request, task_id: str):
     """Returns raw JSON data for vehicle type distribution"""
-    vehicle_name_dict, _ = data.get_all_buses_labeled(task_id)
+    vehicle_name_dict, unused_variable = data.get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
 
     s = Scenario.objects.get(task_id=task_id)
@@ -1551,7 +1583,12 @@ def render_bustype(request, task_id: str):
         return JsonResponse({"data": []})
 
     return JsonResponse(
-        {"data": [{"value": row["count"], "name": row["name"]} for _, row in df.iterrows()]}
+        {
+            "data": [
+                {"value": row["count"], "name": row["name"]}
+                for unused_variable, row in df.iterrows()
+            ]
+        }
     )
 
 
@@ -1742,8 +1779,13 @@ def import_scenario_tree(request):
 
 
 def import_scenario(request):
-    if not request.user.is_authenticated:
-        return HttpResponseForbidden(_("Importing data is only allowed for logged in Users"))
+    # Normal importing is deprecated for normal users. Use
+    if not request.user.is_superuser:
+        return HttpResponseForbidden(
+            _(
+                "Import of single scenarios is not supported for normal users. You can Import Scenario Trees instead."
+            )
+        )
 
     if request.method == "GET":
         return render(request, "ebustoolbox/import_scenario.html")
@@ -1774,9 +1816,14 @@ def import_scenario(request):
             return HttpResponseBadRequest(
                 _(f"{scenario.scenario_type} is not supported for importing.")
             )
+
         importer.adjust_foreign_keys()
         importer.bulk_create()
         importer.create_many_to_many()
+
+        scenario_ids = [scenario.id for scenario in importer.object_data["Scenario"]]
+        Scenario.objects.filter(id__in=scenario_ids).update(manager=request.user)
+
         core.deepcopy.reset_postgres_auto_increments([Scenario._meta.app_label])
         task_id = scenario.task_id
         redirect_suggestion = ""

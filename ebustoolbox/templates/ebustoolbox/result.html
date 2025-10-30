@@ -833,7 +833,7 @@
             });
     }
 
-    function fetchAndRenderLineChart(chartName, chartId, titleText, xKey, yKey) {
+    function fetchAndRenderLineChart(chartName, chartId, titleText) {
 
         return fetch(`/simba/result/${taskId}/${chartName}/`)
         .then(response => response.json())
@@ -915,7 +915,7 @@
             chart.setOption(options);
         });
     }
-  function fetchAndRenderDepotChart(chartName, chartId, titleText, xKey, yKey) {
+  function fetchAndRenderDepotChart(chartName, chartId, titleText) {
         return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(responseData => {
@@ -1772,8 +1772,8 @@
         // Render the charts
         fetchAndRenderPieChart("critical_rotations", "chartContainer", "Kritische und nicht kritische Umläufe"),
         fetchAndRenderPieChart("bustype", "busTypeChartContainer", "Verteilung Fahrzeugtyp"),
-        fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit", "time_end", "soc_end_prc"),
-        fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Ladeleistung und Belegung", "time_end", "soc_end_prc"),
+        fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit"),
+        fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Ladeleistung und Belegung"),
 
         fetchAndRenderStats("stats", "_", "_"),
         fetchAndRenderGanttChart("gantt","ganttChart","_"),
@@ -2088,5 +2088,21 @@ switchCostsTab('costs-tab-1');
     // Initialize with the first tab active
     switchSocTab('soc-tab-1');
   });
+</script>
+
+<script>
+  /* tabs in map popups functionality */
+  function openTab(e, tab_id) {
+    let tab_contents = document.getElementsByClassName("tab-pane");
+    for (let content of tab_contents) {
+      content.style.display = "none";
+    }
+    let tab_links = document.getElementsByClassName("tab-link");
+    for (let tab_link of tab_links) {
+      tab_link.classList.remove("active");
+    }
+    document.getElementById("tab-" + tab_id).style.display = "block";
+    e.currentTarget.classList.add("active");
+  }
 </script>
 {% endblock script %}

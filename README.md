@@ -1,3 +1,19 @@
+## Development Updates
+To allow caching, enable permanent celery results storage and use the same stack as production. Redis is very **recommended**.
+Install redis and use the following .env settings
+
+``` .env
+REDIS_URL=redis://127.0.0.1:6379
+CELERY_BROKER_URL=redis://127.0.0.1:6379
+CELERY_RESULT_BACKEND='redis://127.0.0.1:6379'
+```
+
+This removes rabbitmq or other brokers from the necessary dependencies.
+REDIS_URL is used for caching and needs to be redis. If no REDIS_URL is supplied, caching will be skipped.
+CELERY_BROKER_URL is the broker which manages celery task management.
+CELERY_RESULT_BACKEND is used to store results.
+CELERY_TASK_RESULT_EXPIRES can be used to define how long the results are stored (in seconds). default is 1 day.
+
 ## Installation
 
 1. Clone this git repository (or [download a specific release](https://github.com/rl-institut/django-simba/releases))

@@ -168,9 +168,9 @@ def build_scenario():
     # Empty request, since no files are used for this simulation.
     request = HttpRequest()
 
-    django_scenario, simba_schedule, args = tasks.input_files_to_database(
-        form.cleaned_data, request
-    )
+    django_scenario = tasks.input_files_to_database(form.cleaned_data, request)
+
+    simba_schedule, args = tasks.get_schedule_from_db(django_scenario)
     for vt in VehicleType.objects.filter(scenario=django_scenario):
         # NOTE: Eflips needs masses for calculation
         vt.allowed_mass = 20_000
@@ -427,6 +427,19 @@ class ScenarioTestCase(TestCase):
 
 
 class SimulationTestCase(TransactionTestCase):
+    def test_flex_band_off(self):
+        django_scenario, simba_schedule, args = build_scenario()
+        args.skip_flex_report = False
+        django_scenario.options = vars(args)
+        django_scenario.save()
+        django_scenario.refresh_from_db()
+        # switching the flex_report_on does not work
+        assert django_scenario.options["skip_flex_report"] is False
+        # Even though the flag is set in the database, simba will ignore it
+        simba_schedule, simba_scenario = run_simba_scenario(django_scenario)
+        # no flex_band calculations are found
+        assert simba_scenario.flex_bands is None, "Flex bands should be turned off"
+
     def create_depot_simulation(self):
         # PROBLEM: test scenario has no CHARGING_DEPOT events, just DRIVING and STANDBY_DEPARTURE
         # => can't test depot charging with this
@@ -449,19 +462,6 @@ class SimulationTestCase(TransactionTestCase):
         )
         return django_scenario
 
-    def test_flex_band_off(self):
-        django_scenario, simba_schedule, args = build_scenario()
-        args.skip_flex_report = False
-        django_scenario.options = vars(args)
-        django_scenario.save()
-        django_scenario.refresh_from_db()
-        # switching the flex_report_on does not work
-        assert django_scenario.options["skip_flex_report"] is False
-        # Even though the flag is set in the database, simba will ignore it
-        simba_schedule, simba_scenario = run_simba_scenario(django_scenario)
-        # no flex_band calculations are found
-        assert simba_scenario.flex_bands is None, "Flex bands should be turned off"
-
     def test_simulate_depot_strategy(self):
         django_scenario = self.create_depot_simulation()
         spiceev_scenario_dict = tasks.create_spiceev_scenario_dict(django_scenario)
@@ -482,34 +482,101 @@ class SimulationTestCase(TransactionTestCase):
             .last()
         )
         num_ts = len(event.timeseries["time"])
+        interval = timedelta(minutes=tasks.get_args(django_scenario).interval)
         # check start/end soc
         assert event.soc_start != event.soc_end
-        with self.assertRaises(AssertionError):
-            tasks.replace_event_timeseries(event, [event.soc_start] * num_ts)
-        with self.assertRaises(AssertionError):
-            tasks.replace_event_timeseries(event, [event.soc_end] * num_ts)
+        soc_end = event.soc_end
+        with self.assertLogs(logger="custom") as cm:
+            tasks.replace_event_timeseries(event, [event.soc_start] * num_ts, interval)
+            # Check if any log entry contains the substring
+            self.assertTrue(
+                any("Depot Charging Simulation diverged" in message for message in cm.output),
+                "Error log not found",
+            )
+        event.soc_end = soc_end
+        with self.assertLogs(logger="custom") as cm:
+            tasks.replace_event_timeseries(event, [event.soc_end] * num_ts, interval)
+            self.assertTrue(
+                any("Depot Charging Simulation diverged" in message for message in cm.output),
+                "Error log not found",
+            )
 
         # check length of timeseries
         assert num_ts > 2
         with self.assertRaises(AssertionError):
-            tasks.replace_event_timeseries(event, [event.soc_start, event.soc_end])
+            tasks.replace_event_timeseries(event, [event.soc_start, event.soc_end], interval)
 
         # check None values
         with self.assertRaises(AssertionError):
             tasks.replace_event_timeseries(
-                event, [event.soc_start, None] + [event.soc_end] * (num_ts - 2)
+                event, [event.soc_start, None] + [event.soc_end] * (num_ts - 2), interval
             )
 
         # success
         tasks.replace_event_timeseries(
-            event, [event.soc_start] + [0] * (num_ts - 2) + [event.soc_end]
+            event, [event.soc_start] + [0] * (num_ts - 2) + [event.soc_end], interval
         )
         assert event.timeseries["soc"][1] == 0
 
-    def test_apply_depot_strategy(self):
+    def test_apply_depot_strategy_basic(self):
         # basic test
         django_scenario = self.create_depot_simulation()
         tasks.apply_depot_strategy(django_scenario, "greedy")
+
+    def test_apply_depot_strategy_standby_departure(self):
+        # is standby departure used for charging as well?
+        django_scenario = self.create_depot_simulation()
+        # find first depot charging
+        charge_evt = (
+            django_scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT)
+            .order_by("time_start")
+            .first()
+        )
+        # find next event
+        next_evt = django_scenario.event_set.get(
+            vehicle=charge_evt.vehicle, time_start=charge_evt.time_end
+        )
+        # adjust next event, so a standby departure event fits
+        adjusted_start_time = next_evt.time_start.replace(
+            hour=next_evt.time_start.hour + 1, minute=0
+        )
+        assert adjusted_start_time < next_evt.time_end
+        next_evt.time_start = adjusted_start_time
+        next_evt.soc_start = charge_evt.soc_end
+        next_evt.save(update_fields=["time_start", "soc_start"])
+        # insert standby departure event
+        standby_evt = Event.objects.create(
+            scenario=django_scenario,
+            vehicle_type=charge_evt.vehicle_type,
+            vehicle=charge_evt.vehicle,
+            station=charge_evt.station,
+            trip=charge_evt.trip,
+            area=charge_evt.area,
+            subloc_no=charge_evt.subloc_no,
+            time_start=charge_evt.time_end,
+            time_end=adjusted_start_time,
+            soc_start=charge_evt.soc_end,
+            soc_end=charge_evt.soc_end,
+            event_type=EventType.STANDBY_DEPARTURE,
+            description="dummy standby departure",
+            timeseries={"time": list(), "soc": list()},
+        )
+        original_standby_duration = standby_evt.get_duration()
+        # run simulation
+        tasks.apply_depot_strategy(django_scenario, "balanced")
+        # simulation should stretch charging into standby departure, adjusting times
+        charge_evt.refresh_from_db()
+        standby_evt.refresh_from_db()
+        next_evt.refresh_from_db()
+        # basic sanity checks
+        self.assertEqual(charge_evt.time_end, standby_evt.time_start)
+        self.assertEqual(standby_evt.time_end, next_evt.time_start)
+        self.assertEqual(charge_evt.soc_end, standby_evt.soc_start)
+        self.assertEqual(standby_evt.soc_end, next_evt.soc_start)
+        self.assertEqual(standby_evt.soc_start, standby_evt.soc_end)
+        # standby duration should be shorter
+        adjusted_standby_duration = standby_evt.get_duration()
+        assert adjusted_standby_duration < original_standby_duration
 
 
 class ConsumptionTestCase(TransactionTestCase):
@@ -537,8 +604,9 @@ class ConsumptionTestCase(TransactionTestCase):
                 any(missing_temp_text in message for message in cm.output),
                 "Expected log message not found in output",
             )
-        temp.id += 1
+        temp.id = None
         temp.save()
+        assert Temperatures.objects.filter(scenario=django_scenario).count() == 2
         # Two temperatures for the same scenario should raise an exception
         self.assertRaises(Exception, tasks.get_schedule_from_db, django_scenario=django_scenario)
 
@@ -987,7 +1055,7 @@ class TemperaturesTestCase(TestCase):
         self.assertRaises(AttributeError, t_instance.save)
 
 
-class RotationSplitTest(TestCase):
+class RotationSplitTest(TransactionTestCase):
     def test_intermediate_depot_trip(self):
         """Insert some intermediate stops at depots and check if they are transformed"""
         django_scenario, simba_schedule, args = build_scenario()
@@ -1041,7 +1109,7 @@ class RotationSplitTest(TestCase):
 class SerializerTest(TransactionTestCase):
     def test_serializer(self):
         count_before = count_all_rows()
-        django_scenario, _, _ = build_scenario()
+        django_scenario, unused_variable, unused_variable_2 = build_scenario()
         django_scenario.task_id = get_unique_task_id()
         django_scenario.save()
         tasks.run_toolchain_from_scenario(django_scenario, assign_vehicles=True)

@@ -158,7 +158,7 @@ class TripsForm(forms.Form):
 
 class VehicleTypeSelectionForm(forms.ModelForm):
     class Meta:
-        exclude = ["vehicle_type"]
+        fields = ["default_vehicle_type"]
         model = models.VehicleTypeSelection
 
     def __init__(self, *args, vehicle_type=None, choices_queryset=None, **kwargs):
