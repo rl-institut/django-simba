@@ -695,9 +695,6 @@ class Rotation(models.Model):
         # get distance of this rotation in meters
         return Route.objects.filter(trip__rotation=self).aggregate(Sum("distance"))["distance__sum"]
 
-    # def get_energy_delta(self):
-    #     events = Event.objects.filter(trip__rotation=self).order_by("time_start")
-
 
 def annotate_distance(query: QuerySet[Rotation]):
     return query.annotate(distance=Sum("trip__route__distance"))
