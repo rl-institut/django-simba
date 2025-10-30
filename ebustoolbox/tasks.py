@@ -1576,6 +1576,7 @@ def apply_depot_and_area_wishes(mutation: Scenario, child: Scenario, stack: dict
     # Assert uniqueness of the mutations
     new_depot_configs = []
     new_area_infos = []
+    old_ids = [x.id for x in depot_configs]
     for depot_config in depot_configs:
         depot_config: DepotConfigurationWish
         search_station = StationMutation.objects.get(
@@ -1587,9 +1588,9 @@ def apply_depot_and_area_wishes(mutation: Scenario, child: Scenario, stack: dict
         new_depot_configs.append(depot_config)
 
     new_depot_configs = DepotConfigurationWish.objects.bulk_create(new_depot_configs)
-    for depot_config, new_depot_config in zip(depot_configs, new_depot_configs):
+    for old_id, new_depot_config in zip(old_ids, new_depot_configs):
         area_infos = AreaInformation.objects.filter(
-            scenario=mutation, depot_configuration_wish=depot_config
+            scenario=mutation, depot_configuration_wish_id=old_id
         )
         for area_info in area_infos:
             area_info: AreaInformation
@@ -3142,6 +3143,8 @@ def create_negative_block_notifications(scenario: Scenario) -> None:
     events = Event.objects.filter(
         scenario=scenario, event_type=EventType.DRIVING, soc_end__lt=0
     ).select_related("trip__rotation")
+    if not events.exists():
+        return
     low_soc_blocks = {event.trip.rotation.name for event in events}
     Notification.objects.create(
         scenario=scenario,

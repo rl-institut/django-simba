@@ -14,13 +14,13 @@
     x-show="!noNotifications"
     x-on:htmx:after-settle="console.log('foo'); noNotifications = (!document.querySelector('.notification-summary')) "
     x-effect="if (noNotifications){expanded = false}"
-    @click='expanded = !expanded'
   >
     <button
       id="MultiNotificationButton"
       type="button"
       class="w-full text-left p-4 flex justify-between items-start text-sm font-medium text-blue-800 hover:bg-blue-100 transition"
       :aria-expanded="expanded"
+      @click='expanded = !expanded'
     >
 
       <div id='notificationSummary'

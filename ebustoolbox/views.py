@@ -1309,9 +1309,6 @@ def merge_and_run(request: HttpRequest, task_id: str):
     logger.info("Deleting failed previous child-scenarios")
     logger.info(str(Scenario.objects.filter(parent=scenario).delete()))
 
-    print(Notification.objects.filter(scenario__parent=scenario))
-    print(Notification.objects.filter(scenario=scenario))
-
     if not request.user.is_superuser:
         # Delete failed scenarios
         if simulation_progess.filter(running=True).exists():
