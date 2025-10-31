@@ -335,6 +335,9 @@ class ModelTests(TestCase):
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
+            width=2.5,
+            length=12,
+            height=3,
             charging_curve=[[0, 0], [1, 3]],
             opportunity_charging_capable=True,
             battery_capacity=100,
@@ -347,6 +350,9 @@ class ModelTests(TestCase):
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
+            width=2.5,
+            length=12,
+            height=3,
             charging_curve=[[0, 0], [1, 3]],
             opportunity_charging_capable=True,
             battery_capacity=100,
@@ -362,6 +368,9 @@ class ModelTests(TestCase):
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
+            width=2.5,
+            length=12,
+            height=3,
             charging_curve=[[0.0, 150], [1.0, 150]],
             opportunity_charging_capable=True,
             battery_capacity=100,
@@ -387,6 +396,9 @@ class ModelTests(TestCase):
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
+            width=2.5,
+            length=12,
+            height=3,
             charging_curve=[[0.0, 150], [1.0, 150]],
             opportunity_charging_capable=True,
             battery_capacity=100,
