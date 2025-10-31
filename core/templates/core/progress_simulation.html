@@ -39,8 +39,8 @@
 
 
 
-          {%   if progress.estimate_duration is not None %}
-          <span class="font-bold">{{ progress.estimate_duration|floatformat:1 }}</span>
+          {%   if progress.estimate_duration is not None and progress.running %}
+          <span class="font-bold">{{ progress.estimate_duration|floatformat:0 }}</span>
           <span class="font-normal">{% translate 'Minuten verbleibend' %}</span>
           {% endif %}
         </div>
