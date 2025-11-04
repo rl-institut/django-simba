@@ -20,6 +20,10 @@ Template:
 
 ## [x.x.x] - Unreleased
 ### Changed
+- [(#292)](https://github.com/rl-institut/django-simba/pull/292)
+- Overall design update
+- Hide stations table by default for better UX
+
 - [(#256)](https://github.com/rl-institut/django-simba/pull/256)
 - Run extreme/sizing and default scenario consecutively.
 - default scenario is a copy of the extreme scenario with the results of the station optimization and other parameters.
