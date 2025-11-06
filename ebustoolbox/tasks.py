@@ -2937,10 +2937,10 @@ class ScheduleStationMerger:
 
     @staticmethod
     def fix_next_trip(trip, station, route_id) -> None:
-        route = trip.route
+        route: Route = trip.route
         route.id = route_id
         route.departure_station = station
-        route.name = f"Fixed zero duration/distance route {route.departure_station.name} - {route.arrival_station}"
+        route.name = f"Fixed zero duration/distance route {route.departure_station.name} - {route.arrival_station.name}"
         trip.route = route
         trip.route_id = route_id
 
@@ -2964,7 +2964,6 @@ class ScheduleStationMerger:
         """
 
         rotation_trip_dict = dict()
-        station_id = ebustoolbox.util.get_next_id(Station)
         route_id = ebustoolbox.util.get_next_id(Route)
 
         # Merge all routes. This is done by creating new routes. change stations and trips accordingly
@@ -2983,6 +2982,7 @@ class ScheduleStationMerger:
             route: Route
             for trip in route.trip_set.all():
                 trip: Trip
+                # Trip is already marked to be deleted. Skip it
                 if trip.id in delete_trips:
                     continue
                 logger.debug(f"Handling problematic trip {trip}")
@@ -3000,6 +3000,7 @@ class ScheduleStationMerger:
                 problematic_distance = trip.route.distance
 
                 # expand the selection of problematic trips/routes
+                # until an non problematic trip is found
                 distance, prev_trip = cls.expand_prev_trips(
                     prev_trip, merge_stations, delete_trips, rotation_trips
                 )
@@ -3012,6 +3013,8 @@ class ScheduleStationMerger:
                 problematic_distance += distance
 
                 next_trip: Trip = rotation_trips.get(trip.id, {}).get("next")
+                # Zero distance/duration trips are merged with the next trip.
+                # Therefor the last trip must have distance and duration
                 assert (
                     next_trip is not None
                 ), "The last trip of a rotation cannot be a 0 distance/duration trip"
@@ -3029,10 +3032,11 @@ class ScheduleStationMerger:
                         station = new_stations[search_station]
                         break
                 else:
-                    station = Station(
-                        id=station_id, scenario=parent, name="Zusammengelegte Station: "
-                    )
-                    station_id += 1
+                    # Saving stations as single calls is not very performant,
+                    # but it allows for directly accessing the id.
+                    # Since only few stations should be created, performance shouldn't be a problem
+                    station = Station(scenario=parent, name="Zusammengelegte Station: ")
+                    station.save()
                     created_stations.add(station)
                     # Make this station reusable for all other trips which connect with this station
                     for search_station in merge_stations:
@@ -3041,8 +3045,6 @@ class ScheduleStationMerger:
                 # and duration
                 new_route = prev_trip.route
 
-                if new_route in new_routes:
-                    print("fo")
                 new_route.id = route_id
                 route_id += 1
                 # In case this is a trip without duration and a route with some distance
@@ -3077,7 +3079,10 @@ class ScheduleStationMerger:
         # The name should reflect stations they were merged from
         for original_station, new_station in new_stations.items():
             new_station.name += f"{original_station.name} "
-        logger.info(f"Creating new merged stations {Station.objects.bulk_create(created_stations)}")
+        logger.info(
+            "Creating new merged stations "
+            f"{Station.objects.bulk_update(created_stations, fields=['name'])}"
+        )
 
         # Reverse the lookup
         reversed_station = dict()
@@ -3106,7 +3111,9 @@ class ScheduleStationMerger:
 
         # After the stations were created we can change the routes
         logger.info(f"Creating new {len(new_routes)} Routes with merged stations")
-        Route.objects.bulk_create(new_routes)
+        new_routes_ids = [x.id for x in new_routes]
+        new_routes = Route.objects.bulk_create(new_routes)
+        route_lookup = {old_id: x.id for old_id, x in zip(new_routes_ids, new_routes)}
         for original_station, new_station in new_stations.items():
             # other routes hitting this station should use the merged station too
             routes = Route.objects.filter(arrival_station=original_station).update(
@@ -3115,7 +3122,9 @@ class ScheduleStationMerger:
             routes = Route.objects.filter(departure_station=original_station).update(
                 departure_station=new_station
             )
-
+        # The trips had placeholder route ids. Replace them with the ids returned from the db
+        for t in changed_trips:
+            t.route_id = route_lookup[t.route_id]
         logger.info(
             f"Updating trips {(Trip.objects.bulk_update(changed_trips, fields=['route_id']))}"
         )
