@@ -9,17 +9,25 @@
 >
 <div class="flex gap-2">
   <div class="flex items-center">
-      {% include 'ebustoolbox/partials/toggle_field.html' with field=depot_form.auto_generate tooltip=automatic_calc_tooltip label="Automatische Berechnung" %}
+      {% with field=depot_form.auto_generate %}
+      {% include 'ebustoolbox/partials/toggle_field.html' with field=field tooltip=field.help_text label=field.label %}
+      {% endwith %}
   </div>
 </div>
 
 {% if depot_form.auto_generate.value %}
     <div class="py-4 w-4/12">
-      {% include 'ebustoolbox/partials/tailwind_field.html' with field=depot_form.default_power tooltip="Welche Ladeleistung haben die einzelnen Ladepunkte?" unit="kW" label="Leistung" %}
+    {% with field=depot_form.default_power %}
+      {% include 'ebustoolbox/partials/tailwind_field.html' with field=field tooltip=field.help_text unit=field.field.unit label=field.label %}
+      {% endwith %}
+
     </div>
 
     <div class="py-4 w-4/12">
-      {% include 'ebustoolbox/partials/tailwind_field.html' with field=depot_form.standard_block_length tooltip="Wieviel Plätze gibt es pro Fahrzeugtyp und Linie?" unit="[-]" label="Platzanzahl je Linie" %}
+
+    {% with field=depot_form.standard_block_length %}
+      {% include 'ebustoolbox/partials/tailwind_field.html' with field=field tooltip=field.help_text unit=field.field.unit label=field.label %}
+      {% endwith %}
     </div>
 {% endif %}
 
@@ -29,20 +37,32 @@
 
     <div class="grid grid-cols-2 gap-6 point-row">
       <div class="flex">
-      {% include 'ebustoolbox/partials/tailwind_field.html' with field=depot_form.cleaning_slots tooltip="Reinigungsplätze" label="Reinigungsplätze" %}
+
+    {% with field=depot_form.cleaning_slots %}
+      {% include 'ebustoolbox/partials/tailwind_field.html' with field=field tooltip=field.help_text unit=field.field.unit label=field.label %}
+      {% endwith %}
       </div>
 
       <div class="flex">
-      {% include 'ebustoolbox/partials/tailwind_field.html' with field=depot_form.cleaning_duration tooltip="Wie lange dauert die Reinigung" unit="Minuten" label="Reinigungsdauer" %}
+
+    {% with field=depot_form.cleaning_duration %}
+      {% include 'ebustoolbox/partials/tailwind_field.html' with field=field tooltip=field.help_text unit=field.field.unit label=field.label %}
+      {% endwith %}
       </div>
       </div>
     <div class="grid grid-cols-2 gap-6 point-row">
       <div class="flex">
-      {% include 'ebustoolbox/partials/tailwind_field.html' with field=depot_form.shunting_slots tooltip="Anzahl an Rangierparkplätzen" label="Rangierplarkplätze" %}
+
+    {% with field=depot_form.shunting_slots %}
+      {% include 'ebustoolbox/partials/tailwind_field.html' with field=field tooltip=field.help_text unit=field.field.unit label=field.label %}
+      {% endwith %}
       </div>
 
       <div class="flex">
-      {% include 'ebustoolbox/partials/tailwind_field.html' with field=depot_form.shunting_duration tooltip="Wie lange dauert das Rangieren" unit="Minuten" label="Rangierdauer" %}
+
+    {% with field=depot_form.shunting_duration %}
+      {% include 'ebustoolbox/partials/tailwind_field.html' with field=field tooltip=field.help_text unit=field.field.unit label=field.label %}
+      {% endwith %}
       </div>
       </div>
 </div>
@@ -66,11 +86,17 @@
       <div class="flex flex-row gap-6 point-row" >
       <!-- First Column: Anzahl -->
       <div class="flex flex-1" >
-{% include 'ebustoolbox/partials/tailwind_field.html' with field=form.capacity|attr:"x-on::change:dispatchCheckBlockEvent($event)"|attr:"x-model.fill:capacity" tooltip="Wie viel Ladeplätze gibt es" unit="" label="Ladeplätze" %}
+
+    {% with field=form.capacity %}
+{% include 'ebustoolbox/partials/tailwind_field.html' with field=field|attr:"x-on::change:dispatchCheckBlockEvent($event)"|attr:"x-model.fill:capacity" tooltip=field.help_text unit=field.field.unit label=field.label %}
+      {% endwith %}
       </div>
 
       <div class="flex flex-1">
-      {% include 'ebustoolbox/partials/tailwind_field.html' with field=form.power tooltip="Welche Ladeleistung haben die einzelenen Ladepunkte?" unit="kW" label="Ladeleistung" %}
+
+    {% with field=form.power %}
+      {% include 'ebustoolbox/partials/tailwind_field.html' with field=field tooltip=field.help_text unit=field.field.unit label=field.label %}
+      {% endwith %}
       </div>
 
         <!-- Third Column: Area Type -->
@@ -78,12 +104,17 @@
       <div class="flex flex-1">
 
     <!-- Use alpine js to toggle values of the block length. We bind the selected value to the value of this input/select field. Selected now reflects what is selected in this field. fill means the variable instance is initialized with the html/input value. When disable is triggered after a change, reset block length to blank -->
-      {% include 'ebustoolbox/partials/tailwind_field.html' with field=form.area_type|attr:"x-model.fill:selected"|attr:"x-on::change:if (disable) block_length=''" tooltip="Welche Form hat die Fläche?" unit="" label="Flächentyp" %}
+
+    {% with field=form.area_type %}
+      {% include 'ebustoolbox/partials/tailwind_field.html' with field=field|attr:"x-model.fill:selected"|attr:"x-on::change:if (disable) block_length=''" tooltip=field.help_text unit=field.field.unit label=field.label %}
+      {% endwith %}
       </div>
         <div class="flex flex-1" >
       <!-- Depending on the state of this variable the input is disabled   -->
-{% include 'ebustoolbox/partials/tailwind_field.html' with field=form.block_length|attr:"x-bind::disabled:disable"|attr:"x-model.fill:block_length"|attr:"x-bind::required:!disable"|attr:"@change:dispatchCheckBlockEvent($event)" tooltip="Wieviel Ladeplätze sind in einer Reihe angeordnet? Der eingegebene Wert wird automatisch auf den nächsten ganzahligen Teil der Ladeplätze gerundet." unit="" label="Ladeplätze pro Reihe" label_position="right-0 top-full" %}
-      </div>
+          {% with field=form.block_length %}
+          {% include 'ebustoolbox/partials/tailwind_field.html' with field=field|attr:"x-bind::disabled:disable"|attr:"x-model.fill:block_length"|attr:"x-bind::required:!disable"|attr:"@change:dispatchCheckBlockEvent($event)" tooltip=field.help_text unit=field.field.unit label=field.label %}
+          {% endwith %}
+        </div>
     </div>
   </div>
 {% endfor %}

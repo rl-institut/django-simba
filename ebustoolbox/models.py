@@ -23,6 +23,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import QuerySet, Sum, Case, When, Value, IntegerField, Func, F
 from django.db.models.functions import Now, Length
 from django.dispatch import receiver
+from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import make_aware
 
 from ebus_map.managers import MVTManager, X, Y
@@ -1738,9 +1739,9 @@ class AreaType(models.TextChoices):
     The AreaType represents a certain type of area, which is used to define the location of a process.
     """
 
-    DIRECT_ONESIDE = "DIRECT_ONESIDE"
-    DIRECT_TWOSIDE = "DIRECT_TWOSIDE"
-    LINEAR = "LINE"
+    DIRECT_ONESIDE = "DIRECT_ONESIDE", _("Direkt einseitig")
+    DIRECT_TWOSIDE = "DIRECT_TWOSIDE", _("Direkt Zweiseitig")
+    LINEAR = "LINE", _("Linie")
 
 
 class Area(models.Model):
@@ -1898,13 +1899,13 @@ class DepotConfigurationWish(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE, blank=True)
     station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE, blank=True)
     auto_generate = models.BooleanField(null=False, default=True)
-    default_power = models.FloatField(null=True, blank=True)
-    standard_block_length = models.IntegerField(null=True, blank=True)
+    default_power = models.FloatField(null=True, blank=True, default=150)
+    standard_block_length = models.IntegerField(null=True, blank=True, default=6)
     cleaning_slots = models.IntegerField(null=True, blank=True)
-    cleaning_duration = models.IntegerField(null=True, blank=True)
+    cleaning_duration = models.IntegerField(null=True, blank=True, default=30)
 
     shunting_slots = models.IntegerField(null=True, blank=True)
-    shunting_duration = models.IntegerField(null=True, blank=True)
+    shunting_duration = models.IntegerField(null=True, blank=True, default=5)
 
     def to_dataclass(self) -> EflipsDepotConfig:
         depot_config_data = {x.name: getattr(self, x.name, None) for x in fields(EflipsDepotConfig)}
