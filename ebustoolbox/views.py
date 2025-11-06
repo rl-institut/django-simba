@@ -1002,7 +1002,16 @@ class DepotsView(ScenarioMixIn, TemplateView):
             DepotConfigurationWish.objects.filter(scenario=scenario).delete()
             depot_configs = []
             for station in depots_query:
-                depot_configs.append(DepotConfigurationWish(scenario=scenario, station=station))
+                # Create the depot configs with default values.
+                # This also instantiates the form with these values
+                depot_configs.append(
+                    DepotConfigurationWish(
+                        scenario=scenario,
+                        station=station,
+                        default_power=150,
+                        standard_block_length=6,
+                    )
+                )
             DepotConfigurationWish.objects.bulk_create(depot_configs)
 
         if AreaInformation.objects.filter(scenario=scenario).count() < depots_query.count():

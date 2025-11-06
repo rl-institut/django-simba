@@ -1899,13 +1899,13 @@ class DepotConfigurationWish(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE, blank=True)
     station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE, blank=True)
     auto_generate = models.BooleanField(null=False, default=True)
-    default_power = models.FloatField(null=True, blank=True, default=150)
-    standard_block_length = models.IntegerField(null=True, blank=True, default=6)
+    default_power = models.FloatField(null=True, blank=True)
+    standard_block_length = models.IntegerField(null=True, blank=True)
     cleaning_slots = models.IntegerField(null=True, blank=True)
-    cleaning_duration = models.IntegerField(null=True, blank=True, default=30)
+    cleaning_duration = models.IntegerField(null=True, blank=True)
 
     shunting_slots = models.IntegerField(null=True, blank=True)
-    shunting_duration = models.IntegerField(null=True, blank=True, default=5)
+    shunting_duration = models.IntegerField(null=True, blank=True)
 
     def to_dataclass(self) -> EflipsDepotConfig:
         depot_config_data = {x.name: getattr(self, x.name, None) for x in fields(EflipsDepotConfig)}

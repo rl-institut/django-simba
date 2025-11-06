@@ -376,11 +376,21 @@ class DepotConfigurationWishForm(forms.ModelForm):
                 or cleaned_data.get("shunting_duration")
             ):
                 raise ValidationError("More data then expected")
-        else:
 
+            cleaned_data["cleaning_slots"] = None
+            cleaned_data["shunting_slots"] = None
+            cleaned_data["cleaning_duration"] = None
+            cleaned_data["shunting_duration"] = None
+
+        else:
             if cleaned_data.get("default_power"):
                 raise ValidationError(
                     "If auto generate is false, the DepotConfigurationWish must not have power"
+                )
+            if cleaned_data.get("standard_block_length"):
+                raise ValidationError(
+                    "If auto generate is false, "
+                    "the DepotConfigurationWish must not have a standard block length"
                 )
             if (
                 not cleaned_data.get("cleaning_slots")
@@ -389,6 +399,8 @@ class DepotConfigurationWishForm(forms.ModelForm):
                 or not cleaned_data.get("shunting_duration")
             ):
                 raise ValidationError("Missing Data")
+            cleaned_data["default_power"] = None
+            cleaned_data["standard_block_length"] = None
         return cleaned_data
 
 
