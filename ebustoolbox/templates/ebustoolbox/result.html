@@ -833,7 +833,7 @@
             });
     }
 
-    function fetchAndRenderLineChart(chartName, chartId, titleText, xKey, yKey) {
+    function fetchAndRenderLineChart(chartName, chartId, titleText) {
 
         return fetch(`/simba/result/${taskId}/${chartName}/`)
         .then(response => response.json())
@@ -871,19 +871,32 @@
                     trigger: 'axis',
                     formatter: function (params) {
                         const timestamp = params[0].value[0]; // Unix timestamp
-                        const soc = params[0].value[1] *100 ; // SOC value
+                        const soc = params[0].value[1] * 100; // SOC value
                         const date = new Date(timestamp);
-                        return `${date.toLocaleString()} : ${soc.toFixed(2)}%`; // Format the tooltip
+                        const formattedDate = date.toLocaleString('en-GB', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false
+                        });
+                        return `<strong>${formattedDate}</strong><br/>${params[0].marker} ${params[0].seriesName}: ${soc.toFixed(2)}%`;
                     }
                 },
                 xAxis: {
                     type: 'time',
                     name: 'Zeit',
-                    splitNumber: 4,
+                    splitNumber: 8,
                     axisLabel: {
                         formatter: function (value) {
                             const date = new Date(value);
-                            return date.toLocaleString(); // Format x-axis labels
+                            const yyyy = date.getFullYear();
+                            const mm = String(date.getMonth() + 1).padStart(2, '0'); // Months start at 0
+                            const dd = String(date.getDate()).padStart(2, '0');
+                            const hh = String(date.getHours()).padStart(2, '0');
+                            const min = String(date.getMinutes()).padStart(2, '0');
+                            return `${yyyy}-${mm}-${dd} - ${hh}:${min}`;
                         },
                         rotate: 0
                     }
@@ -915,7 +928,7 @@
             chart.setOption(options);
         });
     }
-  function fetchAndRenderDepotChart(chartName, chartId, titleText, xKey, yKey) {
+  function fetchAndRenderDepotChart(chartName, chartId, titleText) {
         return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
             .then(responseData => {
@@ -945,20 +958,10 @@
                     },
                     tooltip: {
                         trigger: 'axis',
-                        formatter: function (params) {
-                            // params is an array of series values at the hovered x-value
-                            const dateStr = params[0].axisValue;  // assuming all share the same x-axis value (time)
-                            const date = new Date(dateStr);
-                            const formattedDate = date.toLocaleString('en-GB', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                hour12: false
-                            });
-
-                            let tooltipContent = `<strong>${formattedDate}</strong><br/>`;
+                        formatter: function(params) {
+                            const dateStr = params[0].axisValue; // already your x-axis label
+                            // optional: parse into Date object if you want, else just show it
+                            let tooltipContent = `<strong>${dateStr}</strong><br/>`;
                             params.forEach(item => {
                                 let value = item.value;
                                 if (item.seriesName === 'Ladeleistung (kW)') {
@@ -971,7 +974,24 @@
                     },
                     xAxis: {
                         type: 'category',
-                        data: times
+                        name: 'Zeit',
+                        data: times.map(ts => {
+                            const date = new Date(ts);
+                            const yyyy = date.getFullYear();
+                            const mm = String(date.getMonth() + 1).padStart(2, '0');
+                            const dd = String(date.getDate()).padStart(2, '0');
+                            const hh = String(date.getHours()).padStart(2, '0');
+                            const min = String(date.getMinutes()).padStart(2, '0');
+                            return `${yyyy}-${mm}-${dd} - ${hh}:${min}`;
+                        }),
+                        axisLabel: {
+                            rotate: 0,
+                            interval: function(index) {
+                                const total = times.length;
+                                const step = Math.ceil(total / 8);
+                                return index % step === 0;
+                            }
+                        }
                     },
                     legend: {
                       orient: 'vertical',
@@ -1499,7 +1519,7 @@
                         axisLabel: {
                             interval: 0,  // Display all bus labels
                             formatter: function (value) {
-                                return value;  // Keep the category labels (bus names) as they are
+                                return "Bus " + value;
                             }
                         },
                         axisTick: {
@@ -1772,8 +1792,8 @@
         // Render the charts
         fetchAndRenderPieChart("critical_rotations", "chartContainer", "Kritische und nicht kritische Umläufe"),
         fetchAndRenderPieChart("bustype", "busTypeChartContainer", "Verteilung Fahrzeugtyp"),
-        fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit", "time_end", "soc_end_prc"),
-        fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Ladeleistung und Belegung", "time_end", "soc_end_prc"),
+        fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit"),
+        fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Ladeleistung und Belegung"),
 
         fetchAndRenderStats("stats", "_", "_"),
         fetchAndRenderGanttChart("gantt","ganttChart","_"),
@@ -2088,5 +2108,21 @@ switchCostsTab('costs-tab-1');
     // Initialize with the first tab active
     switchSocTab('soc-tab-1');
   });
+</script>
+
+<script>
+  /* tabs in map popups functionality */
+  function openTab(e, tab_id) {
+    let tab_contents = document.getElementsByClassName("tab-pane");
+    for (let content of tab_contents) {
+      content.style.display = "none";
+    }
+    let tab_links = document.getElementsByClassName("tab-link");
+    for (let tab_link of tab_links) {
+      tab_link.classList.remove("active");
+    }
+    document.getElementById("tab-" + tab_id).style.display = "block";
+    e.currentTarget.classList.add("active");
+  }
 </script>
 {% endblock script %}

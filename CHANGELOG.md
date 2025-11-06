@@ -30,6 +30,12 @@ Template:
    - Generates warnings in parent and child scenarios about auto-generated merged stations.
 
 - [(#256)](https://github.com/rl-institut/django-simba/pull/256)
+- Run extreme/sizing and default scenario consecutively.
+- default scenario is a copy of the extreme scenario with the results of the station optimization and other parameters.
+- Depot Layout is not yet copied over
+- Default scenario skips station optimization
+
+- [(#255)](https://github.com/rl-institut/django-simba/pull/255)
 - Change the depot input with two possible forms per depot
   - Enable automatic depot configuration with a default charge power
   - Enable custom depot configuration with cleaning duration, cleaning slots, shunting duration and shunting slots and a VehicleType dependent areas specifying charging point numbers and charging power.

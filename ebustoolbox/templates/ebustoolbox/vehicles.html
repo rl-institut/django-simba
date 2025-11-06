@@ -9,8 +9,13 @@
   {% with wiz_idx=2 %}{{ block.super }}{% endwith %}
 {% endblock wizard_navigation %}
 {% block wizard_content %}
-{% url "simba:notifications" task_id 'VehiclesView' as n_url %}
-{% include "ebustoolbox/partials/notifications_multi.html"  with url=n_url %}
+
+<!-- ebustoolbox/templates/ebustoolbox/partials/notifications_multi.html -->
+<div id='multiNotificationDiv'
+hx-get='{% url "simba:notifications" task_id 'VehiclesView' %}'
+hx-swap='outerHTML'
+hx-trigger='load'
+></div>
 <main class="flex flex-col items-center flex-grow">
 
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
@@ -299,10 +304,6 @@
 {% endblock wizard_buttons %}
 {% block script %}
 {% include "ebustoolbox/partials/dropdown_partial_js.html" %}
-<script>
-// from notifications_multi.html. Fetch notifications based on view and task id
-    fetchAndRenderNotifications();
-</script>
 <!-- Tabs Functionality of Bus Type Cards -->
 
 <script>
@@ -595,12 +596,12 @@ containers.forEach((container) => {
     const placeHolder = container.querySelector('[id*="ChartPlaceholder"]');
     var myChart = echarts.init(chartDom);
 
-    function plot_selected_charging_curve(selected_vehicle_type) {
+    function plot_selected_consumption_over_temp(selected_vehicle_type) {
       if (selected_vehicle_type === "") {
         return;
       }
       chartDom.style.height = "180px";
-      let charging_curve = JSON.parse(document.getElementById(selected_vehicle_type+"_charging_curve").textContent)
+      let conumption_curve = JSON.parse(document.getElementById(selected_vehicle_type+"_consumption_over_temp").textContent)
       if (placeHolder) placeHolder.remove();
 
       var option = {
@@ -613,24 +614,24 @@ containers.forEach((container) => {
         },
         xAxis: {
           type: 'value',
-          name: 'Ladezustand (-)',
+          name: 'Temperatur (˚C)',
           nameLocation: 'middle',
           nameGap: 25,
-          min: 0,
-          max: 1,
-          interval: 0.2
+          // min: 0,
+          // max: 1,
+          // interval: 0.2
         },
         yAxis: {
           type: 'value',
-          name: 'Leistung (kW)',
+          name: 'Verbrauch (kWh/km)',
           nameLocation: 'middle',
           nameGap: 40,
-          min: 0,
-          max: 500,
-          interval: 100
+          // min: 0,
+          // max: 500,
+          // interval: 100
         },
         series: [{
-          data: charging_curve,
+          data: conumption_curve,
           type: 'line',
           showSymbol: false,
           lineStyle: {
@@ -641,8 +642,9 @@ containers.forEach((container) => {
         tooltip: {
           trigger: 'axis',
           formatter: function (params) {
-            return 'Ladezustand: ' + params[0].data[0].toFixed(1) +
-              '<br>Leistung: ' + params[0].data[1] + ' kW';
+            return 'Temperatur: ' + params[0].data[0].toFixed(1) + ' ˚C' +
+              '<br>Verbrauch: ' + params[0].data[1].toFixed(3) + ' kWh/km'+
+            '<br><div class="text-xs">Werte für ermittelte Durchschnittsgeschwindigkeit</div>';
           }
         }
       };
@@ -651,11 +653,11 @@ containers.forEach((container) => {
 
     }
 
-    plot_selected_charging_curve(input_selection.value);
+    plot_selected_consumption_over_temp(input_selection.value);
     listItems.forEach((item)=>{
       item.addEventListener("click",function () {
         let selected_vehicle_type=item.getAttribute('data-dropdown-item');
-        plot_selected_charging_curve(selected_vehicle_type);
+        plot_selected_consumption_over_temp(selected_vehicle_type);
         myChart.resize();
       })
     });
@@ -673,10 +675,13 @@ containers.forEach((container) => {
 
     })
 
+
   });
+setTimeout(() => window.dispatchEvent(new Event('resize')), 500);
 function validate(){
-  console.log("validating")
-  const defaultVehicleTypeSelectionDivs = document.querySelectorAll('select[id*="default_vehicle_type"]')
+  console.log("validating");
+  validateAccordions();
+  const defaultVehicleTypeSelectionDivs = document.querySelectorAll('select[id*="default_vehicle_type"]');
   let isValid = true;
   defaultVehicleTypeSelectionDivs.forEach((input)=>{
     const container = input.closest("[id*='VehicleTypeContainer']");
@@ -752,14 +757,20 @@ debounce(validateVehicleContainers,100)();
 </script>
 <script>
   function toggleAccordion(button) {
+    if (toggleAccordion.open == button ) {
+      return
+    }
     const container = button.closest('div.accordion-container');
     index = container.dataset.value;
     const accordions = document.querySelectorAll(`button.accordion-header`);
     const content = document.getElementById(`content-${index}`);
     const icon = document.getElementById(`icon-${index}`);
 
+
     if (toggleAccordion.open != undefined) {
-      toggleAccordion.open.click();
+      let old_button = toggleAccordion.open;
+      toggleAccordion.open = undefined;
+      old_button.click();
     }
 
     // SVG for Down icon
@@ -780,20 +791,35 @@ debounce(validateVehicleContainers,100)();
     if (content.style.maxHeight && content.style.maxHeight !== '0px') {
       content.style.maxHeight = '0';
       icon.innerHTML = upSVG;
-      if (button == open) {
-        toggleAccordion.open = undefined;
-      }
     } else {
       content.style.maxHeight = content.scrollHeight + 'px';
       icon.innerHTML = downSVG;
       toggleAccordion.open = button;
     }
     }
-{% for vt_id in vehicle_modification.keys|slice:":1" %}
-    {% if forloop.first %}
-  var button = document.querySelector("#VehicleTypeContainer{{vt_id}} .accordion-header");
+  var button = document.querySelector(".accordion-header");
   toggleAccordion(button);
- {% endif %}  {% endfor %}
+
+  function validateAccordions(){
+    const containers = document.querySelectorAll('div.accordion-container');
+    error = false;
+    containers.forEach((container) => {
+      if (error) return;
+      inputs = container.querySelectorAll('input');
+      inputs.forEach((input) => {
+      if (!input.checkValidity()){
+        error = true;
+        button = container.querySelector('button');
+         if (toggleAccordion.open !== button) toggleAccordion(button)
+
+      }
+      });
+
+    });
+
+  }
+
+
 </script>
   <!-- Tabs Functionality of Bus Type Cards -->
 {% endblock script %}

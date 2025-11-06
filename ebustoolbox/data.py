@@ -853,6 +853,8 @@ def get_soc_as_json(task_id: str):
     selected_columns["timestamp_start"] = (
         pd.to_datetime(selected_columns["time_start"]).astype(int) // 10**6
     )
+    selected_columns["help1"] = 1
+    selected_columns["help2"] = 2
 
     # Combine both start and end points
     # Each group will contain a list of [timestamp, soc] pairs for both start and end
@@ -860,9 +862,10 @@ def get_soc_as_json(task_id: str):
         selected_columns.groupby("V_id")
         .apply(
             lambda group: sorted(
-                group[["timestamp_start", "soc_start"]].values.tolist()
-                + group[["timestamp_end", "soc_end"]].values.tolist(),
-                key=lambda x: x[0],  # Sort by timestamp
+                group[["timestamp_start", "soc_start", "help1"]].values.tolist()
+                + group[["timestamp_end", "soc_end", "help2"]].values.tolist(),
+                key=lambda x: (x[0], -x[2]),  # Sort by timestamp; if equal,
+                # place end points (help2=2) before start points (help1=1)
             )
         )
         .to_dict()
@@ -1207,13 +1210,13 @@ def get_soc_gantt_as_json(task_id: str):
     scenario = Scenario.objects.get(task_id=task_id)
     events = (
         scenario.event_set.exclude(vehicle=None)
-        .order_by("vehicle__name", "time_start")
+        .order_by("vehicle__id", "time_start")
         .select_related("vehicle")
     )
 
     records = []
     for event in events:
-        vehicle_name = event.vehicle.name
+        vehicle_id = event.vehicle.id
         tz_start = event.time_start
         tz_end = event.time_end
 
@@ -1221,7 +1224,7 @@ def get_soc_gantt_as_json(task_id: str):
         if not event.timeseries or "time" not in event.timeseries or "soc" not in event.timeseries:
             records.append(
                 {
-                    "vehicle": vehicle_name,
+                    "vehicle": vehicle_id,
                     "start": tz_start.isoformat(),
                     "end": tz_end.isoformat(),
                     "soc_start": event.soc_start,
@@ -1243,7 +1246,7 @@ def get_soc_gantt_as_json(task_id: str):
         for i in range(len(times) - 1):
             records.append(
                 {
-                    "vehicle": vehicle_name,
+                    "vehicle": vehicle_id,
                     "start": times[i].isoformat(),
                     "end": times[i + 1].isoformat(),
                     "soc_start": socs[i],
@@ -1251,13 +1254,13 @@ def get_soc_gantt_as_json(task_id: str):
                 }
             )
 
-    vehicle_first_times = {v.name: float("inf") for v in scenario.vehicle_set.all()}
+    vehicle_first_times = {v.id: float("inf") for v in scenario.vehicle_set.all()}
     # dict vehicle name -> first event start time. Default: inf.
     # iterate over all events in reverse order (latest start time first) and update vehicle_first_time
     # the earliest event start time will be the final entry in the dict
-    for event in events.order_by("-vehicle__name", "-time_start"):
+    for event in events.order_by("-vehicle__id", "-time_start"):
         ts = event.time_start.timestamp()
-        vehicle_first_times[event.vehicle.name] = ts
+        vehicle_first_times[event.vehicle.id] = ts
 
     # Sort vehicles by their earliest event start time
     vehicles = [

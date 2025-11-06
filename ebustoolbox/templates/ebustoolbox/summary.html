@@ -15,9 +15,13 @@
 {% endblock header %}
 
 {% block wizard_content %}
-  <!-- show notifications if they were sent in the context -->
-{% url "simba:notifications" task_id 'SummaryView' as n_url %}
-{% include "ebustoolbox/partials/notifications_multi.html"  with url=n_url %}
+
+<!-- ebustoolbox/templates/ebustoolbox/partials/notifications_multi.html -->
+<div id='multiNotificationDiv'
+hx-get='{% url "simba:notifications" task_id 'SummaryView' %}'
+hx-swap='outerHTML'
+hx-trigger='load'
+></div>
   <div
     class="rounded-md bg-yellow-50 p-4"
     role="alert"
@@ -102,12 +106,12 @@
         </button>
       </div>
     </div>
-    <section class="tab-content pt-12" id="content-summary">
+    <section class="tab-content pt-12 " id="content-summary">
       <div class="pt-8">
         <div class="pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Szenarioname' %}</p>
+            <p class="text-slate-800 font-medium tracking-wide  ">{% translate 'Szenarioname' %}</p>
           <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
-            <div>
+            <div class='animate-slide-in-top'>
               <p>{{ scenario.name }}</p>
             </div>
           </div>
@@ -161,33 +165,14 @@
           {%  for vehicle_type in vehicle_types %}
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
-              <p class="text-slate-800 font-semibold uppercase">{{ vehicle_type.name }}</p>
-              <div class="pt-4 pl-4">
-                <div class="inline-flex items-center gap-1 pb-2">
-                    <span class="text-slate-800 font-semibold">{% translate 'Default' %}</span>
+                <div class="flex">
+              <p class="text-slate-800 font-semibold uppercase pr-2">{{ vehicle_type.name }}</p>
+                  {% if vehicle_type.lines %}
+              <div class="relative inline-flex">
                   <span>({{ vehicle_type.lines|length}} {% translate 'Linie(n)' %}</span>
-                {% if vehicle_type.lines %}
-                  <span class="relative inline-flex items-center">
+                  <span class="px-1 relative inline-flex ">
                     <span class="cursor-pointer group">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="#00856C"
-                        class="size-5"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                        />
-                      </svg>
+                      {% include "ebustoolbox/partials/eye_icon_svg.html" %}
                       <!-- Tooltip -->
                       <div
                         class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none"
@@ -198,71 +183,25 @@
                       </div>
                     </span>
                   </span>
-                {% endif %}
-                  <span>)</span>
-                </div>
-                <div class="flex flex-col pl-4 font-normal border-l gap-2">
-                  <p class="flex">
-                      <span class="w-[16rem] text-slate-500">{% translate 'Anzahl Fahrzeuge:' %}</span>
-                    <span class="text-slate-800">not implemented</span>
-                  </p>
-                  <p class="flex">
-                      <span class="w-[16rem] text-slate-500">{% translate 'Gesamtkilometer:' %}</span>
-                    <span class="text-slate-800">not implemented</span>
-                  </p>
-                  <p class="flex">
-                      <span class="w-[16rem] text-slate-500">{% translate 'Nutz. Batteriekapazität:' %}</span>
-                    <span class="text-slate-800">{{ vehicle_type.battery_capacity }} kW</span>
-                  </p>
-                </div>
               </div>
-              <div class="pt-4 pl-4">
+                {% endif %}
                 <div class="inline-flex items-center gap-1 pb-2">
-                  <span class="text-slate-800 font-semibold">Gruppe 1 (not implemented)</span>
-                  <span>(4 Linien</span>
-                  <span class="relative inline-flex items-center">
-                    <span class="cursor-pointer group">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="#00856C"
-                        class="size-5"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                        />
-                      </svg>
-                      <!-- Tooltip -->
-                      <div
-                        class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none"
-                      >
-                        Linien 102, 104
-                      </div>
-                    </span>
-                  </span>
                   <span>)</span>
                 </div>
+            </div>
+              <div class="pt-2">
                 <div class="flex flex-col pl-4 font-normal border-l gap-2">
                   <p class="flex">
-                      <span class="w-[16rem] text-slate-500">{% translate 'Anzahl Fahrzeuge:' %}</span>
-                    <span class="text-slate-800">30</span>
+                      <span class="w-[16rem] text-slate-500">{% translate 'Gesamtkilometer:' %}</span>
+                    <span class="text-slate-800">{{vehicle_type.get_total_distance_km_from_parent|floatformat:2}} km</span>
                   </p>
                   <p class="flex">
-                      <span class="w-[16rem] text-slate-500">{% translate 'Gesamtkilometer:' %}</span>
-                    <span class="text-slate-800">503,6 km</span>
+                      <span class="w-[16rem] text-slate-500">{% translate 'Durchschnittsgeschwindigkeit:' %}</span>
+                    <span class="text-slate-800">{{vehicle_type.get_average_speed_kmh_from_parent|floatformat:2}} km/h</span>
                   </p>
                   <p class="flex">
                       <span class="w-[16rem] text-slate-500">{% translate 'Nutz. Batteriekapazität:' %}</span>
-                    <span class="text-slate-800">500 kW</span>
+                    <span class="text-slate-800">{{ vehicle_type.battery_capacity|floatformat:2 }} kW</span>
                   </p>
                 </div>
               </div>
@@ -363,7 +302,7 @@
                   </div>
                 </div>
                 <div class="flex items-center">
-                    <span class="w-[18rem] text-slate-500">{% translate 'Elektrifizierung nicht aktiviert:' %}</span>
+                    <span class="w-[18rem] text-slate-500">{% translate 'Elektrifizierung nicht möglich:' %}</span>
                   <div class="flex items-center gap-2">
                       <span class="text-slate-800">{{ excluded_stations|length }} {% translate 'Stationen' %}</span>
                                     {% if excluded_stations %}
@@ -414,6 +353,7 @@
           </div>
         </div>
 
+        {% if costs %}
         <div class="pb-8 space-y-2">
             <p class="text-slate-800 font-medium tracking-wide">{% translate 'Kostenparameter' %}</p>
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
@@ -455,7 +395,10 @@
             </div>
           </div>
         </div>
+        {%  endif %}
 
+
+        {% if lca %}
         <div class="pb-8 space-y-2">
             <p class="text-slate-800 font-medium tracking-wide">{% translate 'Umweltparameter' %}</p>
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
@@ -497,6 +440,7 @@
             </div>
           </div>
         </div>
+        {%  endif %}
 
         <div class="flex flex-col pb-8 space-y-2">
             <p class="text-slate-800 font-medium tracking-wide">{% translate 'Depots' %}</p>
@@ -590,10 +534,6 @@
 
 {% block script %}
 <script>
-  // from notifications_multi.html. Fetch notifications based on view and task id
-  document.addEventListener("DOMContentLoaded", () => {
-    fetchAndRenderNotifications();
-  })
   // Tabs
   document.addEventListener("DOMContentLoaded", () => {
     const buttons = document.querySelectorAll(".tab-button");

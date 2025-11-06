@@ -1,4 +1,3 @@
-import json
 import logging
 import traceback
 import dateutil.parser as parser
@@ -10,7 +9,7 @@ import pytz
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import signing, mail, serializers
-from django.db.models import F, QuerySet, Sum, Value, FloatField, Q
+from django.db.models import F, QuerySet, Sum, Value, FloatField, Q, Avg
 from django.db.models.functions import Cast, Coalesce
 from django.db.transaction import atomic
 from django.utils.translation import gettext as _
@@ -39,6 +38,7 @@ from temperatures.models import WeatherStation  # noqa
 from . import tasks, forms
 import temperatures.tasks
 from .forms import (
+    ChargingPowerForm,
     AreaInformationForm,
     DepotConfigurationWishForm,
     VehicleTypeForm,
@@ -46,12 +46,13 @@ from .forms import (
     FileUploadForm,
     ScenarioSelection,
     ManualTcoForm,
-    ManualLcaForm,
 )
 from .tasks import merge_scenario
 from .import_export import ScenarioJSONImporterExporter, visit_all_scenario_queries
 
 from .util import get_unique_task_id
+
+from ebus_map.managers import X, Y
 
 from . import data
 import ebustoolbox
@@ -59,7 +60,7 @@ import ebustoolbox.tasks
 from ebustoolbox.models import (
     AreaInformation,
     DepotConfigurationWish,
-    EnumNotificationType,
+    EnumSimulationType,
     Notification,
     Rotation,
     Scenario,
@@ -80,23 +81,39 @@ from ebustoolbox.models import (
     VehicleTypeMutation,
     StationMutation,
     EnumScenarioType,
+    EnumNotificationType,
     annotate_distance,
 )
+
+
+# import redis
+# r = redis.Redis.from_url(settings.REDIS_URL)
+# r.rpush('someKey', json.dumps({'i': (cache.get('key')), 'time': 0}))
 
 logger = logging.getLogger("custom")
 
 
 def progress_scenario(request: HttpRequest, progress_id, template_name):
     context = {"progress_id": progress_id, "status": "", "current_progress": 0}
-
     context |= {"finished": False}
-    progress = Progress.objects.get(task_id=progress_id)
+    progress: Progress = Progress.objects.get(task_id=progress_id)
     context["progress"] = progress
 
     context["current_progress"] = max(progress.get_progress(), 1)
     context["status"] = progress.status
+
     status_code = 200
     hx_trigger = "running"
+    result = AsyncResult(str(progress_id).encode())
+    if result.state in ["PENDING", "REVOKED", "FAILURE"]:
+        # the celery task is not running. The progress will not be updated. This has to be fixed.
+        progress.refresh_from_db()
+        if progress.running:
+            progress.running = False
+            progress.status = "Abgebrochen"
+            progress.errors.append(f"Task is {result.state}")
+            progress.save()
+
     if progress.success or not progress.running or len(progress.errors) != 0:
         context["errors"] = progress.errors
         # End polling
@@ -105,6 +122,16 @@ def progress_scenario(request: HttpRequest, progress_id, template_name):
         hx_trigger = "notRunning"
     if progress.success:
         hx_trigger = "success"
+        if progress.progress_type == EnumProgress.RUNNING_SIMULATION:
+            mutation_scenario = progress.scenario
+            children = Scenario.objects.filter(parent=mutation_scenario)
+            assert (
+                children.count() == 2
+            ), "There should only be two children. A sizing and a default scenario"
+            sizing_scenario = children.get(simulationtype__sim_type=EnumSimulationType.SIZING)
+            default_scenario = children.get(simulationtype__sim_type=EnumSimulationType.DEFAULT)
+            context |= {"sizing_scenario": sizing_scenario, "default_scenario": default_scenario}
+
     response = render(request, f"core/{template_name}", context)
     response["HX-Trigger"] = hx_trigger
     response.status_code = status_code
@@ -279,11 +306,16 @@ def get_notifications(request, task_id: str, view: str):
     if view_class is None or view_class.__dict__.get("get_notifications") is None:
         raise Http404("Benachrichtigungen für diese Seite gibt es nicht")
     notifications = view_class.get_notifications(task_id)
+    print(notifications.count())
     # Make a dictionary out of the different classes for easier template acccess
-    data = tasks.get_notfications_dict(notifications)
-    for ntype, values in data.items():
-        data[ntype] = json.loads(serializers.serialize("json", values))
-    return JsonResponse(data)
+    notifications_dict = tasks.get_notfications_dict(notifications)
+    context = dict()
+    context = {"notifications": notifications_dict}
+    context["any_notification"] = notifications.exists()
+    context["task_id"] = task_id
+    context["hx_trigger"] = "htmx:afterSettle from:body throttle:1s"
+
+    return render(request, "ebustoolbox/partials/notifications_multi.html", context)
 
 
 class TripsView(FormView):
@@ -332,13 +364,15 @@ class TripsView(FormView):
         """Handles successful form submission."""
         cleaned_data = form.cleaned_data
         task_id = self.kwargs.get("task_id", get_unique_task_id())
+        task_id = get_unique_task_id()
 
         # Get a User as manager or none
         manager = None
         if self.request.user.is_authenticated:
             manager = self.request.user
         # If schedule reading failed before a scenario already exists
-        scenario, unused_variable = Scenario.objects.get_or_create(task_id=task_id, manager=manager)
+        print((task_id, manager))
+        scenario = Scenario.objects.create(task_id=task_id, manager=manager)
         scenario.name = cleaned_data["scenario_name"]
         scenario.description = cleaned_data["description"]
         # If schedule reading failed before there is a parent already. Delete it if
@@ -351,7 +385,6 @@ class TripsView(FormView):
 
         data_file = form.files.get("data_file")
         scenario_uuid = form.cleaned_data["existing_scenario"]
-
         if data_file:
             assert len(form.files) == 1, "Currently only single file uploads are allowed"
 
@@ -861,16 +894,22 @@ class StationsView(ScenarioMixIn, TemplateView):
     def post(self, request, *args, **kwargs):
         scenario = self.scenario
         context = self.get_context_data(**kwargs)
-
         all_valid = all(form.is_valid() for form in context["stations_forms"].values())
         if not all_valid:
             logger.debug("Invalid StationsForm provided")
             return self.render_to_response(context)
+        charge_form = ChargingPowerForm(request.POST)
+        if not charge_form.is_valid():
+            logger.debug("Invalid ChargingPowerForm provided")
+            return self.render_to_response(context)
         # The forms are valid. Update the stations and exclude stations
         # from electrification
+        default_charge_power = charge_form.cleaned_data["default_charge_power"]
         ebustoolbox.tasks.update_stations_and_exclusion(
-            context["stations_forms"].values(), scenario.simba_options["cs_power_opps"]
+            context["stations_forms"].values(), default_charge_power
         )
+        # update simba options
+        scenario.simba_options["cs_power_opps"] = default_charge_power
         response = redirect(reverse(self.success_name, args=[scenario.task_id]))
         return response
 
@@ -889,22 +928,18 @@ class CostsView(ScenarioMixIn, TemplateView):
         selectable_scenarios = Scenario.objects.filter(id__gte=590)
         costs_form = forms.CostInputModeForm(data=data, prefix="costsRadio")
         context["cost_mode_form"] = costs_form
-        lca_form = forms.CostInputModeForm(data=data, prefix="envRadio")
-        context["env_mode_form"] = lca_form
         # Radio Button Values
         context["radio_values"] = dict()
         for choice in forms.CostInputModeForm.CHOICES:
             val = choice[0]
             context["radio_values"][val] = choice[0]
-
-        for prefix in ["costs", "env"]:
-            context[prefix + "_fileUpload"] = FileUploadForm(data=data, prefix=prefix)
-            form = ScenarioSelection(data=data, queryset=selectable_scenarios, prefix=prefix)
-            form.is_valid()
-            context[prefix + "_scenario_selection"] = form
-
+        context["costs_fileUpload"] = FileUploadForm(data=data)
+        form = ScenarioSelection(data=data, queryset=selectable_scenarios)
+        context["costs_scenario_selection"] = form
         context["costs_manual"] = ManualTcoForm(data=data, prefix="costs")
-        context["env_manual"] = ManualLcaForm(data=data, prefix="env")
+        # get all vehicle types in scenario to show cost params for each type
+        scenario = Scenario.objects.get(task_id=kwargs["task_id"])
+        context["vehicle_types"] = scenario.vehicletype_set.all()
 
         return context
 
@@ -913,48 +948,34 @@ class CostsView(ScenarioMixIn, TemplateView):
 
     def post(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        all_valid = True
-
-        for form, prefix in zip(
-            [context["cost_mode_form"], context["env_mode_form"]],
-            ["costs", "env"],
-        ):
-            valid = form.is_valid()
-            all_valid = all_valid & valid
-            if not valid:
-                logger.debug("Invalid Costs Form provided")
-
-                break
-            match form.cleaned_data["input_mode"]:
-                case "no_input":
-                    pass
-                case "file_upload":
-                    file_form = context[prefix + "_fileUpload"]
-                    if not file_form.is_valid():
-                        logger.debug("Invalid Costs File Form provided")
-                        all_valid = False
-                        break
-                    raise NotImplementedError("file upload is not yet implemented")
-                    pass
-                case "reference_scenario":
-                    scenario_selection = context[prefix + "_scenario_selection"]
-                    if not scenario_selection.is_valid():
-                        logger.debug("Invalid Costs Scenario Selection provided")
-                        all_valid = False
-                        break
-                    raise NotImplementedError("scenario_selection is not yet implemented")
-                case "manual":
-                    manual_form = context[prefix + "_manual"]
-                    if not manual_form.is_valid():
-                        logger.debug("Invalid Cost Manual Form provided")
-                        all_valid = False
-                        break
-                    raise NotImplementedError("manual_form is not yet implemented")
-                case _:
-                    raise NotImplementedError(f"Mode {form.cleaned_data['input_mode']}")
-        if not all_valid:
+        form = context["cost_mode_form"]
+        if not form.is_valid():
+            logger.debug("Invalid Costs Form provided")
             return self.render_to_response(context)
-
+        match form.cleaned_data["input_mode"]:
+            case "no_input":
+                pass
+            case "file_upload":
+                file_form = context["costs_fileUpload"]
+                if not file_form.is_valid():
+                    logger.debug("Invalid Costs File Form provided")
+                    return self.render_to_response(context)
+                raise NotImplementedError("file upload is not yet implemented")
+            case "reference_scenario":
+                scenario_selection = context["costs_scenario_selection"]
+                if not scenario_selection.is_valid():
+                    logger.debug("Invalid Costs Scenario Selection provided")
+                    return self.render_to_response(context)
+                raise NotImplementedError("scenario_selection is not yet implemented")
+            case "manual":
+                manual_form = context["costs_manual"]
+                if not manual_form.is_valid():
+                    logger.debug("Invalid Cost Manual Form provided")
+                    return self.render_to_response(context)
+                # TODO: actually do something with manual inputs, like saving them in DB
+                pass
+            case _:
+                raise NotImplementedError(f"Mode {form.cleaned_data['input_mode']}")
         return redirect(reverse(self.success_name, args=[kwargs["task_id"]]))
 
 
@@ -980,12 +1001,8 @@ class DepotsView(ScenarioMixIn, TemplateView):
             # each depot needs one configuration. if this is not the case recreate them
             DepotConfigurationWish.objects.filter(scenario=scenario).delete()
             depot_configs = []
-            depot_id = ebustoolbox.util.get_next_id(DepotConfigurationWish)
             for station in depots_query:
-                depot_configs.append(
-                    DepotConfigurationWish(id=depot_id, scenario=scenario, station=station)
-                )
-                depot_id += 1
+                depot_configs.append(DepotConfigurationWish(scenario=scenario, station=station))
             DepotConfigurationWish.objects.bulk_create(depot_configs)
 
         if AreaInformation.objects.filter(scenario=scenario).count() < depots_query.count():
@@ -1007,19 +1024,16 @@ class DepotsView(ScenarioMixIn, TemplateView):
                 )
 
             area_informations = []
-            area_id = ebustoolbox.util.get_next_id(AreaInformation)
             for station, vehicle_types in depot_vehicle_type.items():
                 wish = DepotConfigurationWish.objects.get(station=station)
                 for vt in vehicle_types:
                     area_informations.append(
                         AreaInformation(
-                            id=area_id,
                             scenario=scenario,
                             depot_configuration_wish=wish,
                             vehicle_type=vt,
                         )
                     )
-                    area_id += 1
             AreaInformation.objects.bulk_create(area_informations)
 
         depot_configs = DepotConfigurationWish.objects.filter(scenario=scenario)
@@ -1031,10 +1045,15 @@ class DepotsView(ScenarioMixIn, TemplateView):
                 instance=depot_config,
                 prefix=f"depot_configuration_wish_{depot_config.station.id}",
             )
-            depot_forms["area_information"] = [
+            areas = [
                 AreaInformationForm(data=data, instance=x, prefix=f"area_info_{x.id}")
-                for x in AreaInformation.objects.filter(depot_configuration_wish=depot_config)
+                for x in AreaInformation.objects.filter(
+                    depot_configuration_wish=depot_config
+                ).select_related("vehicle_type")
             ]
+            depot_forms["area_information"] = sorted(
+                areas, key=lambda x: x.instance.vehicle_type.name
+            )
             context["forms"][depot_config.station] = depot_forms
         return context
 
@@ -1087,8 +1106,6 @@ class DepotsView(ScenarioMixIn, TemplateView):
                 for form in forms_:
                     form.save()
 
-            # TODO: Implement Database stuff of multiple areas and calculation mode
-            logger.warning("Depot forms are valid, but are yet used in the simulation.")
             response = redirect(reverse(self.success_name, args=[self.scenario.task_id]))
             return response
 
@@ -1101,7 +1118,8 @@ class SummaryView(AuthorizedMixIn, TemplateView):
     @staticmethod
     def get_notifications(task_id):
         scenario = get_object_or_404(Scenario, task_id=task_id)
-        notifications = Notification.objects.filter(scenario=scenario).exclude(
+        children = list(Scenario.objects.filter(parent=scenario).values_list("id", flat=True))
+        notifications = Notification.objects.filter(scenario__in=[scenario.id] + children).exclude(
             notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING
         )
         return notifications
@@ -1192,6 +1210,24 @@ def result_view(request: HttpRequest, task_id):
 class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
     template_name = "ebustoolbox/result.html"
 
+    def get_scenario_center(self, scenario):
+        """
+        Compute the mean center [longitude, latitude] of all stations
+        belonging to the given scenario.
+        """
+        all_stations = Station.objects.filter(scenario=scenario).exclude(geom__isnull=True)
+
+        agg = all_stations.aggregate(
+            mean_lon=Avg(Cast(X("geom"), FloatField())),
+            mean_lat=Avg(Cast(Y("geom"), FloatField())),
+        )
+
+        # Handle case with no stations
+        if agg["mean_lon"] is None or agg["mean_lat"] is None:
+            return [52.31, 13.24]  # fallback, Berlin
+
+        return [agg["mean_lon"], agg["mean_lat"]]
+
     def get_context_data(self, **kwargs):
         context = super(ResultView, self).get_context_data(**kwargs)
         task_id = kwargs.get("task_id")
@@ -1203,6 +1239,9 @@ class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
         context["scenario"] = scenario
         notifications = Notification.objects.filter(scenario=scenario)
         context["notifications"] = tasks.get_notfications_dict(notifications)
+        center = self.get_scenario_center(scenario)
+        # Update mapengine_setup JS sees the center
+        context["mapengine_setup"] = {**context["mapengine_setup"], "center": center}
         return context
 
 
@@ -1533,9 +1572,7 @@ def render_critical_rotations(request, task_id: str):
 
     # Aggregate category counts
     category_counts = (
-        df["SOC_category"]
-        .value_counts()
-        .reindex([_("Nicht kritisch"), _("kritisch")], fill_value=0)
+        df["SOC_category"].value_counts().reindex(["Nicht kritisch", "kritisch"], fill_value=0)
     )
 
     return JsonResponse(
@@ -1634,6 +1671,67 @@ def get_soc_gantt(request, task_id: str):
     return JsonResponse({"vehicles": vehicles, "records": records})
 
 
+def export_scenario_tree(request, task_id: str):
+    """Allow admins and authorized users to download a json export of a scenario tree
+
+    A scenario tree contains all child scenarios as well as parents, but NOT other children
+    of parents.
+    In case a Mutation Scenario is given, no merging of the source will take place.
+    Exporting source scenarios directly is not allowed, since it can easily have to many children
+    Exporting is limited to MAX_NR_SCENARIOS scenarios
+    """
+    # Raise an exception if user is not authorized for this task_id
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
+    scenario = Scenario.objects.get(task_id=task_id)
+    default_scenario = DefaultScenario.objects.first()
+    if default_scenario and scenario == default_scenario.scenario:
+        return HttpResponseForbidden(_("Das Default Scenario darf nicht heruntergeladen werden."))
+    if scenario.scenario_type == EnumScenarioType.SOURCE:
+        return HttpResponseForbidden(
+            _("Das Source Scenarios dürfen nicht mit allen Nachfolgern heruntergeladen werden.")
+        )
+
+    # Limit export so we can be sure load is not exploding.
+    MAX_NR_SCENARIOS = 5
+    scenarios = [scenario]
+    count = 1
+
+    def increase_count(count) -> int:
+        if count > MAX_NR_SCENARIOS:
+            raise PermissionDenied(
+                _(f"Der gleichzeitige Export von mehr als {MAX_NR_SCENARIOS} ist nicht gestattet")
+            )
+        return count + 1
+
+    # Get all parent scenarios
+    for _i in range(count, MAX_NR_SCENARIOS):
+        if scenario.parent is None:
+            break
+        # By inserting parents at 0 we keep the correct order for importing later
+        # This way referenced scenarios exist when creating child scenarios
+        scenarios.insert(0, scenario.parent)
+        count = increase_count(count)
+        scenario = scenario.parent
+
+    scenario = Scenario.objects.get(task_id=task_id)
+    stack = list(scenario.scenario_set.all())
+    for _i in range(count, MAX_NR_SCENARIOS):
+        if not stack:
+            break
+        scenario = stack.pop(0)
+        scenarios.append(scenario)
+        count = increase_count(count)
+        stack.extend(list(scenario.scenario_set.all()))
+
+    exporter = ScenarioJSONImporterExporter()
+    for scenario in scenarios:
+        visit_all_scenario_queries(exporter, scenario)
+    json_data = exporter.renderJSON()
+    return HttpResponse(json_data, content_type="application/json")
+
+
 def export_scenario(request, task_id: str):
     """Allow admins and authorized users to download a json export of their scenario"""
     # Raise an exception if user is not authorized for this task_id
@@ -1655,9 +1753,54 @@ def export_scenario(request, task_id: str):
     return HttpResponse(json_data, content_type="application/json")
 
 
-def import_scenario(request):
+def import_scenario_tree(request):
     if not request.user.is_authenticated:
         return HttpResponseForbidden(_("Importing data is only allowed for logged in Users"))
+
+    if request.method == "GET":
+        return render(request, "ebustoolbox/import_scenario.html")
+
+    if request.method == "POST":
+
+        assert request.FILES["scenario_json"]
+        importer = ScenarioJSONImporterExporter()
+        importer.loads(in_memory_file=request.FILES["scenario_json"])
+
+        importer.generate_instances()
+        for scenario in importer.object_data["Scenario"]:
+            if Scenario.objects.filter(task_id=scenario.task_id).exists():
+                new_task_id = get_unique_task_id()
+                logger.warning(
+                    f"task_id {scenario.task_id} already exists in the database. "
+                    f"Imported Scenario will get a new task_id of {new_task_id}"
+                )
+                scenario.task_id = new_task_id
+
+        # bulk create instances and the db generated ids to appropriately set the foreign keys
+        importer.bulk_create_and_adjust_foreign_keys()
+
+        importer.create_many_to_many()
+        scenario_ids = [scenario.id for scenario in importer.object_data["Scenario"]]
+        Scenario.objects.filter(id__in=scenario_ids).update(manager=request.user)
+
+        core.deepcopy.reset_postgres_auto_increments([Scenario._meta.app_label])
+        return HttpResponse(
+            _(
+                f"Szenarios wurden erfolgreich importiert mit folgenden ids <br>"
+                f"{'<br>'.join([s.task_id for s in importer.object_data['Scenario']])}. "
+            )
+        )
+    return HttpResponseBadRequest(_("Use POST or GET"))
+
+
+def import_scenario(request):
+    # Normal importing is deprecated for normal users. Use
+    if not request.user.is_superuser:
+        return HttpResponseForbidden(
+            _(
+                "Import of single scenarios is not supported for normal users. You can Import Scenario Trees instead."
+            )
+        )
 
     if request.method == "GET":
         return render(request, "ebustoolbox/import_scenario.html")
@@ -1686,11 +1829,16 @@ def import_scenario(request):
             EnumScenarioType.SOURCE,
         ):
             return HttpResponseBadRequest(
-                _(f"{scenario.scenario_type} is not supported for exporting.")
+                _(f"{scenario.scenario_type} is not supported for importing.")
             )
+
         importer.adjust_foreign_keys()
         importer.bulk_create()
         importer.create_many_to_many()
+
+        scenario_ids = [scenario.id for scenario in importer.object_data["Scenario"]]
+        Scenario.objects.filter(id__in=scenario_ids).update(manager=request.user)
+
         core.deepcopy.reset_postgres_auto_increments([Scenario._meta.app_label])
         task_id = scenario.task_id
         redirect_suggestion = ""
