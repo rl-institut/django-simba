@@ -21,7 +21,7 @@ Template:
 ## [x.x.x] - Unreleased
 ### Changed
 
-- [(#XX)](https://github.com/rl-institut/django-simba/pull/XX)
+- [(#263)](https://github.com/rl-institut/django-simba/pull/263)
  - Added transform_zero_duration_trips function
    - Detects and merges trips/routes with zero duration or distance.
    - Creates new merged stations when inconsistent trips occur.
