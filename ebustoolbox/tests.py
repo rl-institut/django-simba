@@ -547,6 +547,8 @@ class SimulationTestCase(TransactionTestCase):
         # basic test
         django_scenario = self.create_depot_simulation()
         tasks.apply_depot_strategy(django_scenario, "greedy")
+        # only one charging event per vehicle, so split_vehicles does not do much
+        tasks.apply_depot_strategy(django_scenario, "balanced", split_vehicles=True)
 
     def test_apply_depot_strategy_standby_departure(self):
         # is standby departure used for charging as well?
