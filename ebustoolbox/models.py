@@ -740,6 +740,9 @@ class Rotation(models.Model):
         # get distance of this rotation in meters
         return Route.objects.filter(trip__rotation=self).aggregate(Sum("distance"))["distance__sum"]
 
+    def __str__(self):
+        return f"Rotation: id={self.id}, name={self.name}"
+
 
 def annotate_distance(query: QuerySet[Rotation]):
     return query.annotate(distance=Sum("trip__route__distance"))
@@ -1950,6 +1953,7 @@ class EnumNotificationType(models.TextChoices):
     """Definitions for notification types which define where the message is shown"""
 
     MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING = "multi_dep_trips_in_block"
+    MERGED_STATIONS_FOR_INCONSISTENT_TRIPS = "merged_station_trips_and_routes"
     INTERMEDIATE_DEPOT_STOPS_TRANSFORMED = "transformed_depot_stop_to_opp_station"
     UNSTABLE_DEPOT_WARNING = "unstable_sim_w_shifting_socs"
     DELAYED_TRIP_WARNING = "delayed_trip"
@@ -1968,3 +1972,9 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"[{self.level}] {self.sender}: {self.message[:50]}"
+
+
+def copy_model_instance(obj: models.Model) -> models.Model:
+    return obj.__class__(
+        **{f.name: getattr(obj, f.name) for f in obj.__class__._meta.fields if f.name != "id"}
+    )
