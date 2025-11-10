@@ -777,7 +777,9 @@ def update_electrified_stations_db(electrified_stations, scenario):
         station = Station.objects.get(id=Station.get_id_from_simba_name(name), scenario=scenario)
         if not station.is_electrified:
             notification = Notification(
-                scenario=scenario,
+                # Notifications should be saved to the mutation.
+                # If the toolchain is run without a parent the notification is saved to the scenario
+                scenario=scenario.parent or scenario,
                 sender="SimBA-Optimizier from tasks.py",
                 level=EnumNotificationLevels.INFO,
                 notification_type=EnumNotificationType.ADDED_ELECTRIFICATION,
@@ -1039,7 +1041,21 @@ def run_and_merge_scenarios(
     # Run the sizing scenario with these applied changes
     assign_new_vehicles_to_db(sizing_scenario)
 
-    _ = _run_ebus_toolchain.apply(
+    if "station_optimization" not in sizing_scenario.simba_options.get("modes"):
+        Notification.objects.create(
+            # Notifications should be saved to the mutation.
+            # If the toolchain is run without a parent the notification is saved to the scenario
+            scenario=sizing_scenario.parent or sizing_scenario,
+            sender="WeBus Scenario Merge",
+            level=EnumNotificationLevels.INFO,
+            notification_type=EnumNotificationType.STATION_OPTIMIZATION_SKIPPED,
+            message=_(
+                "Die Stationsoptimierung wurde übersprungen, "
+                "da keine Stationen auf 'automatisch' gesetzt wurden."
+            ),
+        )
+
+    _run_ebus_toolchain.apply(
         (sizing_scenario_task_id,), task_id=sizing_scenario_task_id, throw=True
     )
 
@@ -1069,7 +1085,7 @@ def run_and_merge_scenarios(
     )
 
     assign_new_vehicles_to_db(average_scenario)
-    _ = _run_ebus_toolchain.apply(
+    _run_ebus_toolchain.apply(
         (default_simulation_task_id,), task_id=default_simulation_task_id, throw=True
     )
     # default_simulation_scenario = merge_scenario(mutation_id, default_simulation_task_id)
@@ -1733,7 +1749,7 @@ def deepcopy_scenario(scenario: Scenario) -> tuple[Scenario, dict]:
     """
     copied_instance, stack = core.deepcopy.deepcopy_and_sequence_reset(
         scenario,
-        exclude_models={Scenario, User, Event, Progress, UserGroup},
+        exclude_models={Scenario, User, Event, Progress, UserGroup, Notification},
         exclude_fields={
             DepotSelection._meta.get_field("depots"),
             ElectrificationOptions._meta.get_field("electrified_stations"),
@@ -1948,7 +1964,9 @@ def _run_ebus_toolchain(self, task_id):
                 )
             except StationOpimizationImpossible:
                 Notification.objects.create(
-                    scenario=db_scenario,
+                    # Notifications should be saved to the mutation.
+                    # If the toolchain is run without a parent the notification is saved to the scenario
+                    scenario=db_scenario.parent or db_scenario,
                     sender="SimBA-Optimizier from tasks.py",
                     level=EnumNotificationLevels.INFO,
                     notification_type=EnumNotificationType.ADDED_ELECTRIFICATION,
@@ -1959,11 +1977,13 @@ def _run_ebus_toolchain(self, task_id):
                     ),
                 )
                 schedule, args = get_schedule_from_db(db_scenario)
+            finally:
+                # Create notifications for the user
+                # if the optimizer could not achieve full electrification
+                create_negative_block_notifications(db_scenario)
         else:
             logger.info("Station optimization was skipped")
 
-        # Create notifications for the user since the optimizer could achieve full electrification
-        create_negative_block_notifications(db_scenario)
         progress.current_work += 1
         progress.status = _("Berechne das Depot")
         progress.save()
@@ -1975,7 +1995,7 @@ def _run_ebus_toolchain(self, task_id):
             logger.error("The simulation is unstable")
             logger.error(traceback.format_exception(e))
             notification = Notification(
-                scenario=db_scenario,
+                scenario=db_scenario.parent or db_scenario,
                 sender="eflips-depot",
                 level=EnumNotificationLevels.WARNING,
                 notification_type=EnumNotificationType.UNSTABLE_DEPOT_WARNING,
@@ -1992,7 +2012,7 @@ def _run_ebus_toolchain(self, task_id):
             logger.error(traceback.format_exception(e))
             # TODO: @TU what notification should the user receive
             notification = Notification(
-                scenario=db_scenario,
+                scenario=db_scenario.parent or db_scenario,
                 sender="eflips-depot",
                 level=EnumNotificationLevels.WARNING,
                 notification_type=EnumNotificationType.DELAYED_TRIP_WARNING,
@@ -2002,7 +2022,7 @@ def _run_ebus_toolchain(self, task_id):
             logger.error("Eflips raised an unexpected Exception")
             logger.error(traceback.format_exception(e))
             notification = Notification(
-                scenario=db_scenario,
+                scenario=db_scenario.parent or db_scenario,
                 sender="eflips-depot",
                 level=EnumNotificationLevels.ERROR,
                 notification_type=EnumNotificationType.UNEXPECTED_ERROR,

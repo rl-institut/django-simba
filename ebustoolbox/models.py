@@ -35,6 +35,7 @@ class EnumScenarioType(models.TextChoices):
     SOURCE = "SOURCE"
     MUTATION = "MUTATION"
     SIMULATION = "SIMULATION"
+    PUBLIC_DATA = "PUBLIC_DATA"
 
 
 class EnumSimulationType(models.TextChoices):
@@ -94,8 +95,8 @@ class Scenario(models.Model):
     created = models.DateTimeField(auto_now_add=True, db_default=Now())
     task_id = models.UUIDField(default=None, null=False, unique=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
-    simba_options = models.JSONField(default=dict, null=True)
-    eflips_depot_options = models.JSONField(default=dict, null=True)
+    simba_options = models.JSONField(default=dict, null=True, blank=True)
+    eflips_depot_options = models.JSONField(default=dict, null=True, blank=True)
     tco_parameters = models.JSONField(
         default=dict,
         null=True,
@@ -116,6 +117,7 @@ class Scenario(models.Model):
             "pef_energy": 0.038,
             "pef_insurance": 0.02,
         },
+        blank=True,
     )
 
     manager = models.ForeignKey(
@@ -1955,6 +1957,7 @@ class EnumNotificationType(models.TextChoices):
     MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING = "multi_dep_trips_in_block"
     MERGED_STATIONS_FOR_INCONSISTENT_TRIPS = "merged_station_trips_and_routes"
     INTERMEDIATE_DEPOT_STOPS_TRANSFORMED = "transformed_depot_stop_to_opp_station"
+    STATION_OPTIMIZATION_SKIPPED = "station_optimization_skipped"
     UNSTABLE_DEPOT_WARNING = "unstable_sim_w_shifting_socs"
     DELAYED_TRIP_WARNING = "delayed_trip"
     UNEXPECTED_ERROR = "unexpected_error"

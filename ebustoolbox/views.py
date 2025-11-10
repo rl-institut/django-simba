@@ -186,21 +186,24 @@ def get_sorted_mutation_scenarios(user) -> QuerySet[Scenario]:
 
     The QuerySet is ordered by User Scenarios, UserGroup Scenarios and lastly the default Scenario
     """
-    # Todo Define what admins should see and refactor function with new get_user_scenario_qs
     if not user.is_authenticated:
         # Query for default scenario
-        default_scenario = Scenario.objects.filter(defaultscenario=DefaultScenario.objects.first())
-        return default_scenario
+        data_scenarios = Scenario.objects.filter(
+            scenario_type=EnumScenarioType.PUBLIC_DATA,
+            manager__is_superuser=True,
+        )
+        return data_scenarios
     scenario_qs = Scenario.objects.filter(scenario_type=EnumScenarioType.MUTATION).annotate(
         order_id=Cast(F("manager_id"), FloatField()) - user.id,
     )
 
     user_scenarios = get_user_scenario_qs(user, scenario_qs=scenario_qs)
-    # Get the Scenario related to the Singleton DefaultScenario as queryset
-    default_scenario = Scenario.objects.filter(
-        defaultscenario=DefaultScenario.objects.first()
+    # Get the Scenario related to the scenarios which contain default data
+    data_scenarios = Scenario.objects.filter(
+        manager__is_superuser=True,
+        scenario_type=EnumScenarioType.PUBLIC_DATA,
     ).annotate(order_id=Value(float("inf"), output_field=FloatField()))
-    all_scenarios = user_scenarios.union(default_scenario)
+    all_scenarios = user_scenarios.union(data_scenarios)
 
     # Annotation is not possible after using union
     # Order output. User Scenarios first
@@ -449,7 +452,10 @@ class TripsView(FormView):
             ):
                 raise Http404
             mutation_scenario = Scenario.objects.get(task_id=scenario_uuid)
-            assert mutation_scenario.scenario_type == EnumScenarioType.MUTATION
+            assert mutation_scenario.scenario_type in [
+                EnumScenarioType.MUTATION,
+                EnumScenarioType.PUBLIC_DATA,
+            ]
             copied_mutation = tasks.create_scenario_copy_for_user(mutation_scenario)
             copied_mutation.name = scenario.name
             copied_mutation.name_short = scenario.name_short
