@@ -1,0 +1,6 @@
+services:
+  web:
+    # This mounts your current project directory into the container.
+    # Any changes you make to the code will be immediately reflected.
+    volumes:
+      - .:/app
