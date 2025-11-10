@@ -41,7 +41,10 @@ WORKDIR /app
 COPY . /app
 
 # The django user needs write access to these directories (for logging, fileupload and simulation)
-RUN mkdir -p /var/log/app /app/media && chown django:django /var/log/app /app/media
+RUN mkdir -p /var/log/app /app/media \
+    && touch /var/log/app/info.log \
+    && chown -R django:django /var/log/app /app/media
+
 RUN chown -R django:django /app/data
 
 # Install dependencies
