@@ -12,8 +12,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 
-import environ
+from django.utils.translation import gettext_lazy as _
 
+import environ
 from ebus_map.settings import *  # noqa
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -35,6 +36,7 @@ env.read_env(str(ROOT_DIR.path(".env")))
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DJANGO_ELEVATION_TOKEN = env.str("DJANGO_ELEVATION_TOKEN", "notoken")
 OPENELEVATION_URL = env.str("OPENELEVATION_URL", "")
+SEARCH_STATION_LOCATIONS = env.bool("DJANGO_SEARCH_STATIONS", default=True)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
@@ -72,17 +74,20 @@ INSTALLED_APPS = [
     "data_scrapers",
     "ebustoolbox",
     "elevation_api",
+    "temperatures",
     "django_mapengine",
     "ebus_map",
     "bootstrap4",
     "tailwind",
     "tailwind_theme",
+    "widget_tweaks",
 ]
 
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -90,6 +95,8 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # if the header and footer tags are in use this setting should be used. No problem if not in use
     "core.middleware.TimezoneMiddleware",
+    # activate the language based on user cookie
+    "core.middleware.LanguageMiddleware",
 ]
 
 ROOT_URLCONF = "ebusdjango.urls"
@@ -134,14 +141,27 @@ LOGIN_REDIRECT_URL = "/"  # redirect to landing page after login
 DATABASES = {"default": env.db("DATABASE_URL")}
 
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=True)
-if CELERY_TASK_ALWAYS_EAGER:
-    # if set, eager tasks will propagate exceptions
-    CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=True)
-    # if set, eager tasks will save results in backend
-    CELERY_TASK_STORE_EAGER_RESULT = env.bool("CELERY_TASK_STORE_EAGER_RESULT", default=True)
+# if set, eager tasks will propagate exceptions
+CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=True)
+# if set, eager tasks will save results in backend
+CELERY_TASK_STORE_EAGER_RESULT = env.bool("CELERY_TASK_STORE_EAGER_RESULT", default=True)
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=None)
+# Recommended celery backend for persistent storage is REDIS.
+# rpc is an alternative which does not need extra dependency but is epheremal.
+# Once fetched the results are gone.
+# The status Started can only be fetched once.
+# Therefore the status of tasks can not be determined accurately.
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="rpc://")
+CELERY_TASK_TRACK_STARTED = True
+REDIS_URL = env("REDIS_URL", default=None)
 
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+    }
+}
 # For Database visualization
 GRAPH_MODELS = {
     "all_applications": False,
@@ -191,22 +211,18 @@ LOGGING = {
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            # These logs clutter the console and are not very helpful
-            "filters": [
-                "map_status_no_content",
-            ],
             "formatter": "simple",
         },
         "file": {
             "level": "INFO",
             "class": "logging.FileHandler",
-            'filename': '/var/log/app/info.log',
+            "filename": "./info.log",
             "formatter": "simple",
         },
     },
     "root": {
         "handlers": ["console"],
-        "level": "WARNING",
+        "level": "INFO",
     },
     "loggers": {
         "django": {
@@ -225,8 +241,15 @@ LOGGING = {
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
-
+LANGUAGE_CODE = "de"
+LANGUAGES = [
+    ("de", _("German")),
+    ("en", _("English")),
+]
+# Set the directory where Django will look for translations
+LOCALE_PATHS = [
+    BASE_DIR / "locale",  # Adjust the path based on  your project structure
+]
 TIME_ZONE = "UTC"
 
 USE_I18N = True
