@@ -54,7 +54,6 @@ from .models import (
     copy_model_instance,
     AreaInformation,
     DepotConfigurationWish,
-    DepotMutation,
     EnumSimulationType,
     User,
     Route,
@@ -81,7 +80,6 @@ from .models import (
     UserGroup,
     SimulationRange,
     DepotSelection,
-    ElectrificationOptions,
     VehicleTypeMutation,
     VehicleTypeSelection,
     StationMutation,
@@ -1752,9 +1750,7 @@ def deepcopy_scenario(scenario: Scenario) -> tuple[Scenario, dict]:
         exclude_models={Scenario, User, Event, Progress, UserGroup, Notification},
         exclude_fields={
             DepotSelection._meta.get_field("depots"),
-            ElectrificationOptions._meta.get_field("electrified_stations"),
             VehicleTypeMutation._meta.get_field("original_vehicle_type"),
-            DepotMutation._meta.get_field("original_depot"),
             StationMutation._meta.get_field("original_station"),
         },
         max_depth=1,
@@ -3173,10 +3169,12 @@ class ScheduleStationMerger:
                     scenario=scenario,
                     level=EnumNotificationLevels.WARNING,
                     notification_type=EnumNotificationType.MERGED_STATIONS_FOR_INCONSISTENT_TRIPS,
-                    message=message.format(
-                        escape(new_station.name),
-                        escape(", ".join([s.name for s in original_stations])),
-                    ),
+                    message=(
+                        message.format(
+                            escape(new_station.name),
+                            escape(", ".join([s.name for s in original_stations])),
+                        )
+                    )[:999],
                 )
 
         # After the stations were created we can change the routes
@@ -3354,7 +3352,7 @@ def transform_depot_stations(parent: Scenario, child: Scenario) -> None:
                     f"Für den Umlauf {escape(rotation.name)} wurden Zwischenhaltestellen "
                     f"an den Depots {[escape(s.name) for s in stations]} erzeugt. "
                     "Mehr Informationen finden Sie in der Hilfe."
-                ),
+                )[:999],
             )
     if len(changed_rotations) > 0:
         logger.warning(
@@ -3530,16 +3528,18 @@ def create_negative_block_notifications(scenario: Scenario) -> None:
     ).select_related("trip__rotation")
     if not events.exists():
         return
-    low_soc_blocks = {event.trip.rotation.name for event in events}
+    low_soc_blocks = {str(event.trip.rotation.name) for event in events}
     Notification.objects.create(
         scenario=scenario,
         sender="SimBA-Optimizier from tasks.py",
         level=EnumNotificationLevels.INFO,
         notification_type=EnumNotificationType.LOW_SOC_BLOCKS,
         message=_(
-            "Die Stationsoptimierung konnte nicht alle Umläufe elektrifzieren. "
-            f"Folgende {len(low_soc_blocks)} Umläufe haben auch nach der Optimierung einen SOC unter 0%: "
-            + ", ".join(low_soc_blocks)
+            (
+                "Die Stationsoptimierung konnte nicht alle Umläufe elektrifzieren. "
+                f"Folgende {len(low_soc_blocks)} Umläufe haben auch nach der Optimierung einen SOC unter 0%: "
+                + ", ".join(low_soc_blocks)
+            )[:999]
         ),
     )
 

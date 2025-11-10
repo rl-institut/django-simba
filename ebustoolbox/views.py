@@ -508,15 +508,14 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         data = None
         if self.request.method == "POST":
             data = self.request.POST
-        middlepoint = tasks.get_middlepoint(scenario)
+        # NOTE: stations are linked with the parent/source scenario
+        middlepoint = tasks.get_middlepoint(scenario.parent)
         lon, lat = None, None
         startdate = datetime.datetime(year=2015, month=1, day=1)
         # Historical dwd data goes mostly till end of 2024 and does not include the current year
         enddate = datetime.datetime(year=2024, month=12, day=31)
         # TODO: define default weatherstation in central germany
         weatherstation = WeatherStation.objects.first()
-        # Only pick a weather station close to the system,
-        # if there are at least data for 80% of time
         minimal_data_ratio = 0.8
         min_data_points = (enddate - startdate).total_seconds() / 3600 * minimal_data_ratio
         if middlepoint:
@@ -1126,7 +1125,11 @@ class SummaryView(AuthorizedMixIn, TemplateView):
         scenario = get_object_or_404(Scenario, task_id=task_id)
         children = list(Scenario.objects.filter(parent=scenario).values_list("id", flat=True))
         notifications = Notification.objects.filter(scenario__in=[scenario.id] + children).exclude(
-            notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING
+            notification_type__in=[
+                EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING,
+                EnumNotificationType.INTERMEDIATE_DEPOT_STOPS_TRANSFORMED,
+                EnumNotificationType.MERGED_STATIONS_FOR_INCONSISTENT_TRIPS,
+            ]
         )
         return notifications
 

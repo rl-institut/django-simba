@@ -183,7 +183,9 @@ hx-trigger='load'
                         {% blocktranslate %}Bezogen auf die pro Stunde gemittelten Temperaturen von {{startYear}} bis {{endYear}} an der Messstation {{w_name}}. {% endblocktranslate %}
                         {% endwith %}
                         {% if distance %}
-                        {% blocktranslate %}diese liegt {{distance.km|floatformat:1 }} km entfernt vom Mittelpunkt des Szenarios {% endblocktranslate %}
+                      {% with km_distance=distance.km|floatformat:1 %}
+                        {% blocktranslate %}Diese liegt {{km_distance}}&nbsp;km entfernt vom Mittelpunkt des Szenarios {% endblocktranslate %}
+                      {% endwith %}
                         {% endif %}
                       </div>
                     </span>
@@ -254,7 +256,9 @@ hx-trigger='load'
                         {% blocktranslate %}Bezogen auf die pro Stunde gemittelten Temperaturen von {{startYear}} bis {{endYear}} an der Messstation {{w_name}}. {{distance_text}} {% endblocktranslate %}
                         {% endwith %}
                         {% if distance %}
-                        {% blocktranslate %}diese liegt {{distance.km|floatformat:1 }} km entfernt vom Mittelpunkt des Szenarios {% endblocktranslate %}
+                      {% with km_distance=distance.km|floatformat:1 %}
+                        {% blocktranslate %}Diese liegt {{km_distance}}&nbsp;km entfernt vom Mittelpunkt des Szenarios {% endblocktranslate %}
+                      {% endwith %}
                         {% endif %}
                         </div>
                       </span>
