@@ -993,7 +993,6 @@ def get_event_gantt_as_json(task_id: str):
                 "vehicle_type": row["V_type"],
                 "route_name": row["route_name"],
                 "rotation_name": row["rotation_name"],
-                "location": row.get("location", None)
             }
         )
     return categories, gantt_data
