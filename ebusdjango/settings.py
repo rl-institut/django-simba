@@ -287,3 +287,16 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 TAILWIND_APP_NAME = "tailwind_theme"
 INTERNAL_IPS = ["localhost", "127.0.0.1"]
+
+
+# Production / Deploy settings recommended by manage.py check --deploy
+if not DEBUG:
+    # Small value for testing
+    # https://docs.djangoproject.com/en/5.1/ref/middleware/#http-strict-transport-security
+    SECURE_HSTS_SECONDS = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=0)
+    SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
+
+    SESSION_COOKIE_SECURE = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
+    CSRF_COOKIE_SECURE = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
+    SECURE_HSTS_PRELOAD = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
