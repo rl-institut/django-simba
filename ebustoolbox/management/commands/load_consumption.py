@@ -1,4 +1,5 @@
 from django.core.management.base import BaseCommand
+from core.deepcopy import reset_postgres_auto_increments
 from ebustoolbox.default_scenario import get_default_scenario
 from ebustoolbox.models import Consumption, VehicleType, VehicleClass, Scenario, DefaultScenario
 import pandas as pd
@@ -9,6 +10,7 @@ class Command(BaseCommand):
     help = "Load Consumption tables and connect them with default Vehicle Types"
 
     def handle(self, *args, **kwargs):
+        reset_postgres_auto_increments(apps=[Scenario._meta.app_label])
         scenario = get_default_scenario(DefaultScenario, Scenario).scenario
         consumption_paths = {
             7: "./ebustoolbox/static/ebustoolbox/examples/6m_consumption_sprinter_6m.csv",
