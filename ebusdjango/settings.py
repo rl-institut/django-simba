@@ -216,7 +216,8 @@ LOGGING = {
         "file": {
             "level": "INFO",
             "class": "logging.FileHandler",
-            "filename": "./logs/info.log",
+            "filename": BASE_DIR
+            / "logs/info.log",  # Adjust the path based on  your project structure
             "formatter": "simple",
         },
     },
