@@ -41,9 +41,9 @@ WORKDIR /app
 COPY . /app
 
 # The django user needs write access to these directories (for logging, fileupload and simulation)
-RUN mkdir -p /app/logs /app/media \
+RUN mkdir -p /app/logs /app/media /app/staticfiles \
     && touch /app/logs/info.log \
-    && chown -R django:django /app/logs/ /app/media
+    && chown -R django:django /app/logs/ /app/media /app/staticfiles
 
 # Install dependencies
 RUN poetry install --no-root
