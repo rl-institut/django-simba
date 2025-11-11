@@ -45,8 +45,6 @@ RUN mkdir -p /app/logs /app/media \
     && touch /app/logs/info.log \
     && chown -R django:django /app/logs/ /app/media
 
-RUN chown -R django:django /app/data
-
 # Install dependencies
 RUN poetry install --no-root
 
