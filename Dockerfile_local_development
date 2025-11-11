@@ -2,10 +2,6 @@
 # The container is run with root access so mounting the local app directory works
 FROM python:3.11-slim
 
-# Add django as user and group
-RUN addgroup --system django \
-    && adduser --system --ingroup django django
-
 # Configure Poetry
 ENV POETRY_VERSION=1.4.2
 ENV POETRY_HOME=/opt/poetry
@@ -31,11 +27,11 @@ RUN apt-get update &&\
 # Add `poetry` to PATH
 ENV PATH="${PATH}:${POETRY_VENV}/bin"
 
-COPY --chown=django:django ./start /start
+COPY  ./start /start
 RUN sed -i 's/\r$//g' /start
 RUN chmod +x /start
 
-COPY --chown=django:django ./start_celery /start_celery
+COPY  ./start_celery /start_celery
 RUN sed -i 's/\r$//g' /start_celery
 RUN chmod +x /start_celery
 
