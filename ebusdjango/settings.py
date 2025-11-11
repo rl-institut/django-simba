@@ -40,7 +40,9 @@ SEARCH_STATION_LOCATIONS = env.bool("DJANGO_SEARCH_STATIONS", default=True)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "*"])
+ALLOWED_HOSTS = env.list(
+    "DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1", ".rl-institut.de/"]
+)
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://127.0.0.1"])
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-proxy-ssl-header
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -86,6 +88,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -168,6 +171,12 @@ GRAPH_MODELS = {
     "group_models": True,
     "app_labels": ["ebustoolbox"],
 }
+#
+# STORAGES = {
+#     "staticfiles": {
+#         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+#     },
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -264,6 +273,7 @@ X_FRAME_OPTIONS = "DENY"
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 UPLOAD_PATH = "uploads/"
 MEDIA_ROOT = env.str("DJANGO_MEDIA_ROOT", "media/")
 
@@ -274,11 +284,10 @@ MAX_FILE_SIZE_B = env.int("DJANGO_MAX_FILE_SIZE_KB", 64000) << 10
 # while the above line checks all the app folders for static folders the below one can be a list of
 # general static file folders
 STATICFILES_DIRS = [
-    BASE_DIR,
+    BASE_DIR / "static",
     BASE_DIR / "templates/js",
     BASE_DIR / "templates/css",
     BASE_DIR / "templates/img",
-    BASE_DIR / UPLOAD_PATH,
 ]
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -290,13 +299,16 @@ INTERNAL_IPS = ["localhost", "127.0.0.1"]
 
 
 # Production / Deploy settings recommended by manage.py check --deploy
+# The default values reflect the recommendations
+# Using these locally during development might not work because of missing ssl certificates
+# NOTE: Remember to collectstatic when running for production
 if not DEBUG:
-    # Small value for testing
+    # Small value for testing, maybe increase?
     # https://docs.djangoproject.com/en/5.1/ref/middleware/#http-strict-transport-security
-    SECURE_HSTS_SECONDS = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=0)
-    SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
+    SECURE_HSTS_SECONDS = env.bool("SECURE_HSTS_SECONDS", default=300)
+    SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)
 
-    SESSION_COOKIE_SECURE = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
-    CSRF_COOKIE_SECURE = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
-    SECURE_HSTS_PRELOAD = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
+    SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=True)
+    CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=True)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True)
+    SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=True)
