@@ -1154,6 +1154,9 @@
                     tooltip: {
                         formatter: function (params) {
                             const eventType = params.value[5];
+                            const vehicleType = params.value[6];
+                            const routeName = params.value[7];
+                            const rotationName = params.value[8];
                             const color = EVENT_COLORS[eventType] || '#000';
 
                             const marker = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
@@ -1175,7 +1178,21 @@
                             };
                             const durationFormatted = formatFractionToHHmm(durationFraction);
 
-                            return `${marker}${params.name}<br>${formatDate(startTime)} - Dauer: ${durationFormatted} h`;
+                            let html = `${marker}<strong>${params.name}</strong><br>`;
+                            html += `<strong>Fahrzeugtyp:</strong> <strong>${vehicleType || 'N/A'}</strong><br>`;
+
+                            // Only show Rotation/Route if the data exists
+                            if (rotationName) {
+                            html += `<strong>Umlauf:</strong> <strong>${rotationName}</strong><br>`;
+                            }
+                            if (routeName) {
+                            html += `<strong>Linie:</strong> <strong>${routeName}</strong><br>`;
+                            }
+                            html += `<strong>Startzeit:</strong> ${formatDate(startTime)}<br>`;
+                            html += `<strong>Endzeit:</strong> ${formatDate(endTime)}<br>`;
+                            html += `<strong>Dauer:</strong> ${durationFormatted} <strong>h</strong>` ;
+
+                            return html;
                         }
                     },
                     legend : {
@@ -1280,7 +1297,14 @@
                       },
                       data: ganttData
                           .filter(d => d.event_type === eventType)
-                          .map(d => [...d.value, d.name, d.event_type])
+                          .map(d => [
+                                ...d.value,
+                                d.name,             // readable_name
+                                d.event_type,
+                                d.vehicle_type,
+                                d.route_name,
+                                d.rotation_name
+                            ])
                   }))
                 };
 
@@ -1459,7 +1483,7 @@
                         type: 'continuous',
                         min: 0,
                         max: 1,
-                        calculable: false,
+                        calculable: true,
                         orient: 'horizontal',
                         left: 'center',
                         bottom: 60,

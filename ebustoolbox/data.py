@@ -439,9 +439,6 @@ def get_activities_as_dataframe(scenario_id, buses):
     :rtype: pandas.DataFrame
     """
     result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
-    vehicle_labels, unused_variable = recent_memoizer(get_vehicle_dictionaries, scenario_id)(
-        scenario_id
-    )
 
     filtered_df = result_df.query(f"V_id in {buses}")
     return filtered_df
@@ -564,7 +561,14 @@ def get_all_event_info(scenario_id):
     :rtype: pandas.DataFrame
     """
     # Fetch vehicles and scenario
-    vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
+    vehicles = Vehicle.objects.filter(scenario_id=scenario_id).select_related(
+        "vehicle_type"
+    )
+
+    vehicle_type_map = {
+        v.id: v.vehicle_type.name
+        for v in vehicles
+    }
     scenario = Scenario.objects.get(id=scenario_id)
 
     # Fetch all events and rotations in advance
@@ -595,6 +599,7 @@ def get_all_event_info(scenario_id):
     # Iterate over vehicles
     for vehicle in vehicles:
         v_id = vehicle.id
+        v_type_name = vehicle_type_map.get(v_id)
         if vehicle.id in events_by_vehicle:
             # Filter rotations for the current vehicle
             vehicle_rotations = all_rotations.filter(vehicle_id=vehicle.id)
@@ -617,34 +622,27 @@ def get_all_event_info(scenario_id):
                 time_end = event.time_end
                 # Fetch events for the current rotation
                 vehicle_rotation = None
-                for rot, times in rotation_times.items():
-                    if time_start >= times[0] and time_end <= times[1]:
-                        if vehicle_rotation is not None:
-                            raise Exception("Multiple rotations detected")
-                        vehicle_rotation = rot
+                route_name = None
 
-                else:
-                    if vehicle_rotation is None and first_warning:
-                        warnings.warn(
-                            f"No rotation detected for event {event}. "
-                            f"Similar warnings will be omitted."
-                        )
-                        vehicle_rotation = None
-                        first_warning = False
-                suffix = ""
-                if vehicle_rotation is not None:
-                    suffix = f" in Rotation {vehicle_rotation.id}"
+                # Check if event has a trip property linked to a Rotation
+                if hasattr(event, 'trip') and event.trip:
+                    vehicle_rotation = event.trip.rotation
+                    route_name = event.trip.route.name
+
                 dfs.append(
                     {
                         "V_id": v_id,
+                        "V_type": v_type_name,
                         "time_start": time_start,
                         "time_end": time_end,
                         "duration": duration,
                         "event_type": event_type,
                         "soc_start": event.soc_start,
                         "soc_end": event.soc_end,
-                        "R_id": vehicle_rotation,
-                        "readable_name": vehicle_name_dict[vehicle.id] + suffix,
+                        "route_name": route_name,
+                        "R_id": vehicle_rotation.id if vehicle_rotation else None,
+                        "rotation_name": vehicle_rotation.name if vehicle_rotation else None,
+                        "readable_name": vehicle_name_dict[vehicle.id]
                     }
                 )
 
@@ -659,13 +657,16 @@ def get_all_event_info(scenario_id):
         result_df = pd.DataFrame(
             {
                 "V_id": [None],
-                "R_id": [None],
-                "time_end": [None],
+                "V_type": [None],
                 "time_start": [None],
+                "time_end": [None],
                 "duration": [None],
                 "event_type": [None],
                 "soc_start": [None],
                 "soc_end": [None],
+                "route_name": [None],
+                "R_id": [None],  # Rotation ID
+                "rotation_name": [None],
                 "readable_name": [None],
             }
         )
@@ -974,18 +975,25 @@ def get_event_gantt_as_json(task_id: str):
     buses = df["V_id"].unique()
     categories = [f"Bus {bus}" for bus in buses]
 
+    bus_to_index = {bus_id: i for i, bus_id in enumerate(buses)}
+
     gantt_data = []
     for unused_variable, row in df.iterrows():
         start_time = int(row["time_start"].timestamp() * 1000)
         end_time = int(row["time_end"].timestamp() * 1000)
         duration = row["duration"]
-        bus_index = list(buses).index(row["V_id"])
+        bus_index = bus_to_index.get(row["V_id"])
 
         gantt_data.append(
             {
                 "name": row["readable_name"],
                 "value": [bus_index, start_time, end_time, duration],
-                "event_type": row["event_type"],  # Add event type so the frontend can style
+                "event_type": row["event_type"],
+                "bus_name": f"Bus {row['V_id']}",
+                "vehicle_type": row["V_type"],
+                "route_name": row["route_name"],
+                "rotation_name": row["rotation_name"],
+                "location": row.get("location", None)
             }
         )
     return categories, gantt_data
