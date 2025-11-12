@@ -1176,13 +1176,20 @@ class SummaryView(AuthorizedMixIn, TemplateView):
             annotated_vehicle_types.append(mutated_vt)
         context["vehicle_types"] = annotated_vehicle_types
 
-        context["electrified_stations"] = scenario_stations.filter(is_electrified=True)
+        context["electrified_stations"] = [
+            station.name for station in scenario_stations.filter(is_electrified=True).order_by("id")
+        ]
         excluded = Station.objects.filter(scenario=scenario, is_electrifiable=False)
         excluded_ids = excluded.values_list("id", flat=True)
-        context["automatic_stations"] = scenario_stations.filter(
-            is_electrified=False, is_electrifiable=True
-        )
-        context["excluded_stations"] = scenario_stations.filter(id__in=excluded_ids)
+        context["automatic_stations"] = [
+            station.name
+            for station in scenario_stations.filter(
+                is_electrified=False, is_electrifiable=True
+            ).order_by("id")
+        ]
+        context["excluded_stations"] = [
+            station.name for station in scenario_stations.filter(id__in=excluded_ids).order_by("id")
+        ]
         context["depots"] = Station.objects.filter(
             scenario=scenario, charge_type=EnumChargeType.DEPOT
         )
@@ -1761,7 +1768,6 @@ def import_scenario_tree(request):
         return render(request, "ebustoolbox/import_scenario.html")
 
     if request.method == "POST":
-
         assert request.FILES["scenario_json"]
         importer = ScenarioJSONImporterExporter()
         importer.loads(in_memory_file=request.FILES["scenario_json"])
