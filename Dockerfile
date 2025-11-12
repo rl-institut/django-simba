@@ -49,7 +49,7 @@ COPY . /app
 # The django user needs write access to these directories (for logging, fileupload and simulation)
 RUN mkdir -p /app/logs /app/media /app/staticfiles /app/media/uploads \
     && touch /app/logs/info.log \
-    && chown -R django:django /app/logs /app/media /app/staticfiles
+    && chown -R django:django /app/logs /app/media /app/staticfiles /app/media/uploads
 
 # Install dependencies
 RUN chown django:django /app
