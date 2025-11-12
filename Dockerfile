@@ -37,16 +37,22 @@ RUN sed -i 's/\r$//g' /start /start_celery && chmod +x /start /start_celery
 
 WORKDIR /app
 
+# Copy only dependency files first
+COPY pyproject.toml poetry.lock ./
+
+# Install dependencies (cached if files unchanged)
+RUN poetry config virtualenvs.create false \
+ && poetry install --no-root --no-interaction --no-ansi
+
 # Since ebustoolbox and mapengine are installed as well, copy whole directory first
 COPY . /app
 
 # The django user needs write access to these directories (for logging, fileupload and simulation)
 RUN mkdir -p /app/logs /app/media /app/staticfiles /app/media/uploads \
     && touch /app/logs/info.log \
-    && chown -R django:django /app/logs/ /app/media /app/staticfiles
+    && chown -R django:django /app/logs /app/media /app/staticfiles
 
 # Install dependencies
-RUN poetry install --no-root --no-interaction
 RUN chown django:django /app
 
 # switch to non-root User
