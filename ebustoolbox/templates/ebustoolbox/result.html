@@ -700,6 +700,7 @@
             <div id="DepotlineChart" class="chart-container h-[480px]"></div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
+          <div id="filterContainer"></div>
             <div id="ganttChart" class="chart-container h-[480px]"></div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
@@ -1092,6 +1093,62 @@
                 const categories = data.categories;  // Array of bus categories
                 const ganttData = data.data;         // Array of Gantt data
 
+                // Bus y-axis sorting
+                const vehicleMap = {};
+                // Map to store the desired readable name for the Y-axis label
+                const readableNameMap = {};
+
+                ganttData.forEach(item => {
+                    const vehicleId = item.value[0]; // The original bus index (V_id)
+                    const vehicleType = item.vehicle_type;
+                    const startTime = item.value[1];
+
+                    // Store the readable name for the final categories array
+                    if (!readableNameMap[vehicleId]) {
+                        readableNameMap[vehicleId] = item.name;
+                    }
+
+                    if (!vehicleMap[vehicleId]) {
+                        vehicleMap[vehicleId] = {
+                            id: vehicleId,
+                            type: vehicleType,
+                            minTime: startTime,
+                            originalIndex: vehicleId
+                        };
+                    } else {
+                        // Find the absolute minimum start time for the vehicle
+                        if (startTime < vehicleMap[vehicleId].minTime) {
+                            vehicleMap[vehicleId].minTime = startTime;
+                        }
+                    }
+                });
+
+                // Convert map to a sortable array
+                const sortedVehicles = Object.values(vehicleMap);
+
+                // Sort: Primary key is Vehicle Type (alphabetical), secondary is Min Time
+                sortedVehicles.sort((a, b) => {
+                    // Primary sort: Vehicle Type (Alphabetical)
+                    if (a.type < b.type) return -1;
+                    if (a.type > b.type) return 1;
+
+                    // Secondary sort: Earliest Start Time (Ascending)
+                    return a.minTime - b.minTime;
+                });
+
+                // Use the readableNameMap to populate the sorted list
+                const sortedCategories = sortedVehicles.map(v => readableNameMap[v.id]);
+                const newIndexMap = sortedVehicles.reduce((map, v, index) => {
+                    map[v.id] = index;
+                    return map;
+                }, {});
+
+                // Update the ganttData with the new Y-axis index
+                ganttData.forEach(item => {
+                    const oldIndex = item.value[0]; // Original vehicle ID (V_id)
+                    const newIndex = newIndexMap[oldIndex];
+                    item.value[0] = newIndex; // Overwrite the Y-axis index in the 'value' array
+                });
 
                 const totalVehicles = categories.length;
                 const visibleTracks = 10;
@@ -1179,18 +1236,18 @@
                             const durationFormatted = formatFractionToHHmm(durationFraction);
 
                             let html = `${marker}<strong>${params.name}</strong><br>`;
-                            html += `<strong>Fahrzeugtyp:</strong> <strong>${vehicleType || 'N/A'}</strong><br>`;
+                            html += `<strong>Fahrzeugtyp: </strong>${vehicleType || 'N/A'}<br>`;
 
                             // Only show Rotation/Route if the data exists
                             if (rotationName) {
-                            html += `<strong>Umlauf:</strong> <strong>${rotationName}</strong><br>`;
+                            html += `<strong>Umlauf: </strong> ${rotationName}<br>`;
                             }
                             if (routeName) {
-                            html += `<strong>Linie:</strong> <strong>${routeName}</strong><br>`;
+                            html += `<strong>Linie: </strong>${routeName}<br>`;
                             }
-                            html += `<strong>Startzeit:</strong> ${formatDate(startTime)}<br>`;
-                            html += `<strong>Endzeit:</strong> ${formatDate(endTime)}<br>`;
-                            html += `<strong>Dauer:</strong> ${durationFormatted} <strong>h</strong>` ;
+                            html += `<strong>Startzeit: </strong> ${formatDate(startTime)}<br>`;
+                            html += `<strong>Endzeit: </strong> ${formatDate(endTime)}<br>`;
+                            html += `<strong>Dauer: </strong> ${durationFormatted} <strong>h</strong>`;
 
                             return html;
                         }
@@ -1236,17 +1293,31 @@
                     yAxis: {
                         type: 'category',
                         inverse: true,
-                        data: categories,
-                        // Ensure enough space for each category (bus)
+                        data: sortedCategories, // This array already contains the sorted readable names
                         axisLabel: {
-                            interval: 0,  // Display all bus labels
-                            formatter: function (value) {
-                                return value;  // Keep the category labels (bus names) as they are
-                            }
-                        },
-                        axisTick: {
-                            show: false  // Hide ticks to save space
-                        },
+                          interval: 0,  // Display all bus labels
+                          formatter: function (value, index) {
+                              const vehicleType = sortedVehicles[index].type;
+
+                              if (index === 0 || sortedVehicles[index - 1].type !== vehicleType) {
+                                  // The 'value' variable here is the readable name (e.g., AB_Oppb_1_1000052670)
+                                  return `{type|${vehicleType}} ${value}`;
+                              }
+                              return value;
+                          },
+                          rich: {
+                              type: {
+                                  backgroundColor: '#4269d0',
+                                  color: '#fff',
+                                  padding: [3, 5],
+                                  borderRadius: 3,
+                                  margin: [0, 5, 0, 0]
+                              }
+                          }
+                      },
+                      axisTick: {
+                          show: false  // Hide ticks to save space
+                      },
                         splitLine: {
                             show: false  // Hide grid lines between categories
                         }
@@ -1277,13 +1348,11 @@
                               }
                           );
 
-                          const color = EVENT_COLORS[eventType] || "#000000";
-
                           return rectShape && {
                               type: 'rect',
                               transition: ['shape'],
                               shape: rectShape,
-                              style: api.style({ fill: color })
+                              style: api.style()
                           };
                       },
                       itemStyle: {
@@ -1308,12 +1377,187 @@
                   }))
                 };
 
+                // Find unique vehicle types and store them
+                const uniqueVehicleTypes = Array.from(new Set(sortedVehicles.map(v => v.type)));
+
+                function createVehicleTypeFilter(types, chartInstance) {
+                    const container = document.getElementById('filterContainer');
+                    if (!container) return;
+
+                    // Clear previous filters
+                    container.innerHTML = '<h4>Fahrzeugtyp filtern:</h4>';
+
+                    const allCheckbox = document.createElement('input');
+                    allCheckbox.type = 'checkbox';
+                    allCheckbox.id = 'filterAll';
+                    allCheckbox.checked = true;
+                    allCheckbox.addEventListener('change', () => applyFilter(chartInstance));
+
+                    const allLabel = document.createElement('label');
+                    allLabel.htmlFor = 'filterAll';
+                    allLabel.textContent = 'Alle anzeigen';
+
+                    container.appendChild(allCheckbox);
+                    container.appendChild(allLabel);
+                    container.appendChild(document.createElement('br'));
+
+
+                    types.forEach(type => {
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.id = `filter-${type}`;
+                        checkbox.value = type;
+                        checkbox.checked = true;
+                        checkbox.addEventListener('change', () => {
+                            // Uncheck 'All' if a specific type is deselected
+                            if (!checkbox.checked) {
+                                document.getElementById('filterAll').checked = false;
+                            }
+                            applyFilter(chartInstance);
+                        });
+
+                        const label = document.createElement('label');
+                        label.htmlFor = `filter-${type}`;
+                        label.textContent = type;
+
+                        container.appendChild(checkbox);
+                        container.appendChild(label);
+                        container.appendChild(document.createElement('br'));
+                    });
+                }
+
+                function applyFilter(chartInstance) {
+
+                    const normId = id => Number(id);
+                    const normType = t => (t == null ? '' : String(t).trim().toLowerCase());
+
+                    // Get selected vehicle types and normalize
+                    const selectedTypes = Array.from(document.querySelectorAll('#filterContainer input[type="checkbox"]:checked'))
+                        .map(cb => cb.value)
+                        .filter(val => val !== 'on')
+                        .map(normType);
+
+                    const showAll = document.getElementById('filterAll').checked
+                        || selectedTypes.length === uniqueVehicleTypes.length;
+
+                    let vehiclesToKeep;
+                    if (showAll) {
+                        vehiclesToKeep = sortedVehicles.slice();
+                    } else {
+                        vehiclesToKeep = sortedVehicles.filter(v => selectedTypes.includes(normType(v.type)));
+                    }
+
+                    // Build filteredCategories and newIndexMap with normalized id keys
+                    const filteredCategories = vehiclesToKeep.map(v => {
+                        const rid = normId(v.id);
+                        return readableNameMap[rid];
+                    });
+
+                    const newIndexMap = vehiclesToKeep.reduce((map, v, index) => {
+                        map[normId(v.id)] = index;
+                        return map;
+                    }, {});
+
+                    // Re-index ganttData into filteredGanttData
+                    const filteredGanttData = [];
+
+                    ganttData.forEach(item => {
+                        const oldIndex = normId(item.value[0]);
+                        const oldVehicleId = String(sortedVehicles[oldIndex]?.id);
+
+                        if (oldVehicleId && Object.hasOwn(newIndexMap, oldVehicleId)) {
+                            const newIndex = newIndexMap[oldVehicleId];
+                            const newValue = [...item.value];
+                            newValue[0] = newIndex;
+
+                            filteredGanttData.push({
+                                ...item,
+                                value: newValue
+                            });
+                        }
+                    });
+
+                    // ---- 5) Rebuild Series ----
+                    const baseSeriesOption = chartInstance.getOption().series[0] || {};
+                    const newSeries = Object.keys(EVENT_COLORS).map(eventType => {
+                        const seriesData = filteredGanttData
+                            .filter(d => d.event_type === eventType)
+                            .map(d => {
+                                // d.value[0] is the new numeric index
+                                return [
+                                    ...d.value,
+                                    d.name,
+                                    d.event_type,
+                                    d.vehicle_type,
+                                    d.route_name,
+                                    d.rotation_name
+                                ];
+                            });
+
+                        seriesData.sort((a, b) => (Number(a[1] || 0) - Number(b[1] || 0))); // sort by start time
+
+                        return {
+                            name: LEGEND_LABELS && LEGEND_LABELS[eventType] ? LEGEND_LABELS[eventType] : eventType,
+                            type: 'custom',
+                            renderItem: baseSeriesOption.renderItem,
+                            encode: baseSeriesOption.encode,
+                            itemStyle: {
+                                color: EVENT_COLORS[eventType],
+                                opacity: 0.8
+                            },
+                            data: seriesData
+                        };
+                    });
+
+                    // New Y axis config (TODO: should probably be unified with the y axis config from the plot, as its own function.
+                    //  currently code douplication)
+                    const newYAxisConfig = {
+                        type: 'category',
+                        inverse: true,
+                        data: filteredCategories,
+                        axisLabel: {
+                            interval: 0,
+                            formatter: function (value, index) {
+                                const currentVehicle = vehiclesToKeep[index];
+                                const prevVehicle = vehiclesToKeep[index - 1];
+
+                                if (index === 0 || (prevVehicle && prevVehicle.type !== currentVehicle.type)) {
+                                    return `{type|${currentVehicle.type}} ${value}`;
+                                }
+                                return value;
+                            },
+                            rich: {
+                                type: {
+                                    backgroundColor: '#4269d0',
+                                    color: '#fff',
+                                    padding: [3, 5],
+                                    borderRadius: 3,
+                                    margin: [0, 5, 0, 0]
+                                }
+                            }
+                        },
+                        axisTick: { show: false },
+                        splitLine: { show: false }
+                    };
+
+                    // Apply the changes
+                    chartInstance.setOption({
+                        yAxis: newYAxisConfig,
+                        series: newSeries
+                    }, { replaceMerge: ['series', 'yAxis'] });
+
+                }
+
                 // Initialize ECharts instance and set option
                 const chart = echarts.init(document.getElementById(chartId), 'ebusPalette');
                 chart.setOption(option);
-            })
-            .catch(error => console.error('Error loading Gantt data:', error));
+
+              // NEW: Create the filtering UI after the chart is initialized
+              createVehicleTypeFilter(uniqueVehicleTypes, chart);
+          })
+          .catch(error => console.error('Error loading Gantt data:', error));
     }
+
     function fetchAndRenderGanttChartSOC(chartName, chartId, titleText) {
         return fetch(`/simba/result/${taskId}/${chartName}/`)
             .then(response => response.json())
