@@ -1767,7 +1767,6 @@ def import_scenario_tree(request):
         return render(request, "ebustoolbox/import_scenario.html")
 
     if request.method == "POST":
-
         assert request.FILES["scenario_json"]
         importer = ScenarioJSONImporterExporter()
         importer.loads(in_memory_file=request.FILES["scenario_json"])
