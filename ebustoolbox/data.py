@@ -3,7 +3,6 @@
 This way data should be easily swappable, while the dash_layout allows for swapping of the design
 """
 
-import warnings
 import logging
 import datetime
 
@@ -594,7 +593,6 @@ def get_all_event_info(scenario_id):
 
     # Initialize lists to store data
     dfs = []
-    first_warning = True
 
     # Iterate over vehicles
     for vehicle in vehicles:
