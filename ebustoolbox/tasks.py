@@ -3544,5 +3544,25 @@ def create_negative_block_notifications(scenario: Scenario) -> None:
     )
 
 
+def delete_scenario(scenario: Scenario):
+    """Delete the scenario and appropriate relatives
+
+    In case of a SimulationScenario only this scenario is deleted.
+    In case of a MutationScenario the parent is deleted if the parent has no other children.
+    This is done since the user does not see source scenarios inside his management view.
+    """
+    logger.info(f"Deleting Scenario with {scenario.id=} and {scenario.manager}")
+    # Delete from db. This does not affect the in memory scenario
+    logger.info(scenario.delete())
+    if scenario.scenario_type == EnumScenarioType.SIMULATION:
+        return
+    if scenario.parent is None:
+        return
+    children = Scenario.objects.filter(parent=scenario.parent)
+    if children.exists():
+        return
+    logger.info(scenario.parent.delete())
+
+
 class StationOpimizationImpossible(Exception):
     pass
