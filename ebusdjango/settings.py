@@ -32,7 +32,6 @@ env.read_env(str(ROOT_DIR.path(".env")))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DJANGO_ELEVATION_TOKEN = env.str("DJANGO_ELEVATION_TOKEN", "notoken")
 OPENELEVATION_URL = env.str("OPENELEVATION_URL", "")
@@ -40,7 +39,7 @@ SEARCH_STATION_LOCATIONS = env.bool("DJANGO_SEARCH_STATIONS", default=True)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "*"])
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://127.0.0.1"])
 
 # Source to xyzascii zip of elevations

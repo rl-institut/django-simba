@@ -46,7 +46,7 @@ RUN mkdir -p /app/logs /app/media /app/staticfiles \
     && chown -R django:django /app/logs/ /app/media /app/staticfiles
 
 # Install dependencies
-RUN poetry install --no-root
+RUN poetry install --no-root --no-interaction
 
 # switch to non-root User
 USER django
