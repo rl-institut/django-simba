@@ -1751,11 +1751,8 @@ def export_scenario(request, task_id: str):
     if child is not None:
         child.delete()
 
-    response = HttpResponse(
-        json_data,
-        content_type="application/json"
-    )
-    response['Content-Disposition'] = 'attachment; filename=scenario.json'
+    response = HttpResponse(json_data, content_type="application/json")
+    response["Content-Disposition"] = "attachment; filename=scenario.json"
     return response
 
 
