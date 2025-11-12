@@ -1136,8 +1136,17 @@
                     return a.minTime - b.minTime;
                 });
 
+                //Construct y-axis lables
+                const typeCounters = {};
+                sortedVehicles.forEach(v => {
+                    if (!typeCounters[v.type]) typeCounters[v.type] = 1; // start numbering at 1 per type
+                    v.busNumber = typeCounters[v.type]++;
+                });
+
                 // Use the readableNameMap to populate the sorted list
-                const sortedCategories = sortedVehicles.map(v => readableNameMap[v.id]);
+                //const sortedCategories = sortedVehicles.map(v => readableNameMap[v.id]);
+                const sortedCategories = sortedVehicles.map(v => `Bus ${v.busNumber}`);
+
                 const newIndexMap = sortedVehicles.reduce((map, v, index) => {
                     map[v.id] = index;
                     return map;
@@ -1153,6 +1162,43 @@
                 const totalVehicles = categories.length;
                 const visibleTracks = 10;
                 const visiblePercent = (visibleTracks / totalVehicles) * 100;
+
+                function buildYAxisConfig(vehicles) {
+                    const uniqueTypes = Array.from(new Set(vehicles.map(v => v.type)));
+                    // colors for the y-axis vehicle type label
+                    const vehicleTypeColors = ['#4269d0', '#8baafd', '#021d66', '#032b99', '#b6c9fe'];
+                    const typeColorMap = {};
+                    uniqueTypes.forEach((type, i) => {
+                        typeColorMap[type] = vehicleTypeColors[i % vehicleTypeColors.length];
+                    });
+
+                    const rich = {};
+                    uniqueTypes.forEach(type => {
+                        rich[type] = {
+                            backgroundColor: typeColorMap[type],
+                            color: '#fff',
+                            padding: [3, 5],
+                            borderRadius: 3,
+                            margin: [0, 5, 0, 0]
+                        };
+                    });
+
+                    return {
+                        type: 'category',
+                        inverse: true,
+                        data: vehicles.map(v => `Bus ${v.busNumber}`),
+                        axisLabel: {
+                            interval: 0,
+                            formatter: function(value, index) {
+                                const vehicle = vehicles[index];
+                                return `{${vehicle.type}|${vehicle.type}} ${value}`;
+                            },
+                            rich: rich
+                        },
+                        axisTick: { show: false },
+                        splitLine: { show: false }
+                    };
+                }
 
                 // Prepare ECharts option
                 const option = {
@@ -1290,38 +1336,7 @@
                             rotate: 0  // You can override this below
                         }
                     },
-                    yAxis: {
-                        type: 'category',
-                        inverse: true,
-                        data: sortedCategories, // This array already contains the sorted readable names
-                        axisLabel: {
-                          interval: 0,  // Display all bus labels
-                          formatter: function (value, index) {
-                              const vehicleType = sortedVehicles[index].type;
-
-                              if (index === 0 || sortedVehicles[index - 1].type !== vehicleType) {
-                                  // The 'value' variable here is the readable name (e.g., AB_Oppb_1_1000052670)
-                                  return `{type|${vehicleType}} ${value}`;
-                              }
-                              return value;
-                          },
-                          rich: {
-                              type: {
-                                  backgroundColor: '#4269d0',
-                                  color: '#fff',
-                                  padding: [3, 5],
-                                  borderRadius: 3,
-                                  margin: [0, 5, 0, 0]
-                              }
-                          }
-                      },
-                      axisTick: {
-                          show: false  // Hide ticks to save space
-                      },
-                        splitLine: {
-                            show: false  // Hide grid lines between categories
-                        }
-                    },
+                    yAxis: buildYAxisConfig(sortedVehicles),
                     series: Object.keys(EVENT_COLORS).map(eventType => ({
                       name: LEGEND_LABELS[eventType],
                       type: 'custom',
@@ -1447,11 +1462,8 @@
                         vehiclesToKeep = sortedVehicles.filter(v => selectedTypes.includes(normType(v.type)));
                     }
 
-                    // Build filteredCategories and newIndexMap with normalized id keys
-                    const filteredCategories = vehiclesToKeep.map(v => {
-                        const rid = normId(v.id);
-                        return readableNameMap[rid];
-                    });
+                    // Build filteredCategories with Bus <number> labels
+                    const filteredCategories = vehiclesToKeep.map(v => `Bus ${v.busNumber}`);
 
                     const newIndexMap = vehiclesToKeep.reduce((map, v, index) => {
                         map[normId(v.id)] = index;
@@ -1483,7 +1495,6 @@
                         const seriesData = filteredGanttData
                             .filter(d => d.event_type === eventType)
                             .map(d => {
-                                // d.value[0] is the new numeric index
                                 return [
                                     ...d.value,
                                     d.name,
@@ -1509,36 +1520,7 @@
                         };
                     });
 
-                    // New Y axis config (TODO: should probably be unified with the y axis config from the plot, as its own function.
-                    //  currently code douplication)
-                    const newYAxisConfig = {
-                        type: 'category',
-                        inverse: true,
-                        data: filteredCategories,
-                        axisLabel: {
-                            interval: 0,
-                            formatter: function (value, index) {
-                                const currentVehicle = vehiclesToKeep[index];
-                                const prevVehicle = vehiclesToKeep[index - 1];
-
-                                if (index === 0 || (prevVehicle && prevVehicle.type !== currentVehicle.type)) {
-                                    return `{type|${currentVehicle.type}} ${value}`;
-                                }
-                                return value;
-                            },
-                            rich: {
-                                type: {
-                                    backgroundColor: '#4269d0',
-                                    color: '#fff',
-                                    padding: [3, 5],
-                                    borderRadius: 3,
-                                    margin: [0, 5, 0, 0]
-                                }
-                            }
-                        },
-                        axisTick: { show: false },
-                        splitLine: { show: false }
-                    };
+                    const newYAxisConfig =buildYAxisConfig(vehiclesToKeep);
 
                     // Apply the changes
                     chartInstance.setOption({
@@ -1552,7 +1534,6 @@
                 const chart = echarts.init(document.getElementById(chartId), 'ebusPalette');
                 chart.setOption(option);
 
-              // NEW: Create the filtering UI after the chart is initialized
               createVehicleTypeFilter(uniqueVehicleTypes, chart);
           })
           .catch(error => console.error('Error loading Gantt data:', error));
