@@ -41,8 +41,7 @@ WORKDIR /app
 COPY pyproject.toml poetry.lock ./
 
 # Install dependencies (cached if files unchanged)
-RUN poetry config virtualenvs.create false \
- && poetry install --no-root --no-interaction --no-ansi
+RUN poetry install --no-root --no-interaction --no-ansi
 
 # Since ebustoolbox and mapengine are installed as well, copy whole directory first
 COPY . /app
