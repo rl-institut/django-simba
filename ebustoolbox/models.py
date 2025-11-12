@@ -1826,6 +1826,7 @@ class SimulationRange(models.Model):
     )
 
 
+# Unused currently but maybe reactivated in the future?
 class DepotSelection(models.Model):
     # Mutation Scenario
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
@@ -1864,16 +1865,6 @@ class VehicleTypeMutation(models.Model):
     )
 
 
-class DepotMutation(models.Model):
-    scenario = models.ForeignKey(Scenario, null=True, blank=True, on_delete=models.CASCADE)
-    original_depot = models.ForeignKey(
-        Depot, related_name="originaldepot", null=True, blank=True, on_delete=models.CASCADE
-    )
-    mutated_original_depot = models.ForeignKey(
-        Depot, related_name="mutateddepot", null=True, blank=True, on_delete=models.CASCADE
-    )
-
-
 class StationMutation(models.Model):
     scenario = models.ForeignKey(Scenario, null=True, blank=True, on_delete=models.CASCADE)
     original_station = models.ForeignKey(
@@ -1882,12 +1873,6 @@ class StationMutation(models.Model):
     mutated_original_station = models.ForeignKey(
         Station, related_name="mutatedstation", null=True, blank=True, on_delete=models.CASCADE
     )
-
-
-class EnumCalculationModes(models.TextChoices):
-    AUTOMATIC = "automatic"
-    CONSTANT_POWER = "constant_power"
-    MANUAL = "manual"
 
 
 class DepotConfigurationWish(models.Model):
