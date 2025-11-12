@@ -6,7 +6,7 @@ set -o nounset
 
 
 # clear previous static files without needing a user input
-poetry run python manage.py collectstatic -c --noinput
+poetry run python manage.py collectstatic -c --noinput &
 poetry run python manage.py migrate
 poetry run python manage.py load_consumption
-poetry run gunicorn ebusdjango.wsgi
+poetry run gunicorn ebusdjango.wsgi --bind 0.0.0.0:8000 --chdir=/app
