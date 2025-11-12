@@ -1,6 +1,6 @@
 from datetime import timedelta, datetime
 
-from django.core.validators import MinValueValidator, MaxValueValidator
+from dataclasses import fields
 from fast_update.query import FastUpdateManager
 from functools import partial
 import numpy as np
@@ -11,10 +11,15 @@ from scipy.spatial._qhull import QhullError
 import shutil
 import warnings
 
+from eflips.depot.api import DepotConfigurationWish as EflipsDepotConfig
+from eflips.depot.api import AreaInformation as EflipsAreaInfo
+from eflips.depot.api import AreaType as EflipsAreaType
+
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import QuerySet, Sum, Case, When, Value, IntegerField, Func, F
 from django.db.models.functions import Now, Length
 from django.dispatch import receiver
@@ -289,10 +294,10 @@ class VehicleType(models.Model):
         db_table = "VehicleType"
 
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
-    battery_type = models.ForeignKey(BatteryType, null=True, on_delete=models.CASCADE)
+    battery_type = models.ForeignKey(BatteryType, null=True, on_delete=models.CASCADE, blank=True)
 
     name = models.TextField(null=False, blank=False)
-    name_short = models.TextField(null=True, blank=False, default=name)
+    name_short = models.TextField(null=True, blank=True)
     opportunity_charging_capable = models.BooleanField()
     battery_capacity = models.FloatField(
         validators=[MinValueValidator(0), MaxValueValidator(1000000)]
@@ -303,17 +308,17 @@ class VehicleType(models.Model):
 
     # SOC, ChargingPower
     charging_curve = ArrayField(ArrayField(models.FloatField(), size=2))
-    v2g_curve = ArrayField(ArrayField(models.FloatField(), size=2), null=True)
+    v2g_curve = ArrayField(ArrayField(models.FloatField(), size=2), null=True, blank=True)
 
     # Possible constant value for average consumption
-    consumption = models.FloatField(default=None, null=True)
+    consumption = models.FloatField(default=None, null=True, blank=True)
     # Possible constant value for extreme/max consumption
-    max_consumption = models.FloatField(default=None, null=True)
+    max_consumption = models.FloatField(default=None, null=True, blank=True)
 
     # Shape of the vehicle in the form of length, width, height.
-    length = models.FloatField(default=None, null=True)
-    width = models.FloatField(default=None, null=True)
-    height = models.FloatField(default=None, null=True)
+    length = models.FloatField(default=None, null=False)
+    width = models.FloatField(default=None, null=False)
+    height = models.FloatField(default=None, null=False)
 
     # Including battery and driver, no passengers
     empty_mass = models.FloatField(default=None, null=True)
@@ -322,6 +327,7 @@ class VehicleType(models.Model):
     tco_parameters = models.JSONField(
         default=dict,
         null=True,
+        blank=True,
         db_default={
             "useful_life": 14,
             "procurement_cost": None,
@@ -336,7 +342,51 @@ class VehicleType(models.Model):
         # Override save to make certain name_short exists
         if not self.name_short or self.name_short == str(models.TextField(null=False, blank=False)):
             self.name_short = self.name
+        if not self.tco_parameters:
+            self.tco_parameters = {
+                "useful_life": 14,
+                "procurement_cost": None,
+                "procurement_cost_diesel": None,
+                "cost_escalation": 0.02,
+            }
+
         super().save(*args, **kwargs)
+
+    @property
+    def get_average_speed_kmh_from_parent(self):
+        parent_vehicle_type = self.get_parent_vehicle_type()
+        return parent_vehicle_type.get_average_speed_kmh
+
+    def get_parent_vehicle_type(self):
+        return VehicleTypeMutation.objects.get(mutated_vehicle_type=self).original_vehicle_type
+
+    @property
+    def get_average_speed_kmh(self):
+        # Get all default vehicle types. Only Opportunity charging capable for now
+        # Expand the query for desired vehicle types which can be selected
+        rots = annotate_distance(Rotation.objects.filter(vehicle_type_id=self.id))
+        result = rots.aggregate(
+            distance=Sum("distance"),
+            duration=Sum(F("trip__arrival_time") - F("trip__departure_time")),
+        )
+        average_speed_kmh = (result["distance"] / 1000) / (
+            result["duration"].total_seconds() / 3600
+        )
+        return average_speed_kmh
+
+    @property
+    def get_total_distance_km_from_parent(self):
+        parent_vehicle_type = self.get_parent_vehicle_type()
+        return parent_vehicle_type.get_total_distance_km
+
+    @property
+    def get_total_distance_km(self):
+        return (
+            Route.objects.filter(trip__rotation__vehicle_type_id=self.id).aggregate(
+                Sum("distance")
+            )["distance__sum"]
+            / 1000
+        )
 
     def get_charging_power(self, soc: float) -> float:
         """Get the charging power the vehicle type is capable of at a given soc"""
@@ -689,6 +739,9 @@ class Rotation(models.Model):
     def get_distance(self):
         # get distance of this rotation in meters
         return Route.objects.filter(trip__rotation=self).aggregate(Sum("distance"))["distance__sum"]
+
+    def __str__(self):
+        return f"Rotation: id={self.id}, name={self.name}"
 
 
 def annotate_distance(query: QuerySet[Rotation]):
@@ -1107,6 +1160,7 @@ class Station(models.Model):
 
         obj = cls.objects.get(id=id)
         data = vars(obj)
+        data["title"] = obj.name_short or obj.name
         plot = get_charge_chart(obj)
         if plot:
             data["plot"] = plot
@@ -1847,12 +1901,31 @@ class DepotConfigurationWish(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE, blank=True)
     station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE, blank=True)
     auto_generate = models.BooleanField(null=False, default=True)
-    power = models.FloatField(null=True, blank=True)
+    default_power = models.FloatField(null=True, blank=True)
+    standard_block_length = models.IntegerField(null=True, blank=True)
     cleaning_slots = models.IntegerField(null=True, blank=True)
     cleaning_duration = models.IntegerField(null=True, blank=True)
 
     shunting_slots = models.IntegerField(null=True, blank=True)
     shunting_duration = models.IntegerField(null=True, blank=True)
+
+    def to_dataclass(self) -> EflipsDepotConfig:
+        depot_config_data = {x.name: getattr(self, x.name, None) for x in fields(EflipsDepotConfig)}
+
+        for key, value in depot_config_data.items():
+            if "duration" in key and value is not None:
+                depot_config_data[key] = timedelta(minutes=value)
+        area_informations = []
+        if not self.auto_generate:
+            for area_info in self.areainformation_set.all():
+                data = {x.name: getattr(area_info, x.name, None) for x in fields(EflipsAreaInfo)}
+                data["area_type"] = EflipsAreaType._member_map_[data["area_type"]]
+                eflips_area_info = EflipsAreaInfo(**data)
+                area_informations.append(eflips_area_info)
+
+        depot_config_data["areas"] = area_informations
+        eflips_config = EflipsDepotConfig(**depot_config_data)
+        return eflips_config
 
 
 class AreaInformation(models.Model):
@@ -1860,6 +1933,7 @@ class AreaInformation(models.Model):
     depot_configuration_wish = models.ForeignKey(
         DepotConfigurationWish, null=False, on_delete=models.CASCADE, blank=True
     )
+    block_length = models.IntegerField(null=True, blank=True)
     vehicle_type = models.ForeignKey(VehicleType, null=False, on_delete=models.CASCADE, blank=True)
     area_type = models.CharField(max_length=14, choices=AreaType.choices, null=True, default=None)
     capacity = models.IntegerField(null=True)
@@ -1879,10 +1953,13 @@ class EnumNotificationType(models.TextChoices):
     """Definitions for notification types which define where the message is shown"""
 
     MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING = "multi_dep_trips_in_block"
+    MERGED_STATIONS_FOR_INCONSISTENT_TRIPS = "merged_station_trips_and_routes"
     INTERMEDIATE_DEPOT_STOPS_TRANSFORMED = "transformed_depot_stop_to_opp_station"
     UNSTABLE_DEPOT_WARNING = "unstable_sim_w_shifting_socs"
     DELAYED_TRIP_WARNING = "delayed_trip"
     UNEXPECTED_ERROR = "unexpected_error"
+    ADDED_ELECTRIFICATION = "added_electrification"
+    LOW_SOC_BLOCKS = "low_soc_blocks"
 
 
 class Notification(models.Model):
@@ -1895,3 +1972,9 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"[{self.level}] {self.sender}: {self.message[:50]}"
+
+
+def copy_model_instance(obj: models.Model) -> models.Model:
+    return obj.__class__(
+        **{f.name: getattr(obj, f.name) for f in obj.__class__._meta.fields if f.name != "id"}
+    )

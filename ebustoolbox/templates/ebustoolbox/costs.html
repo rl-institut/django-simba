@@ -13,20 +13,16 @@
 <main class="flex flex-col items-center flex-grow">
 
 <form
-        method="post"
-        enctype="multipart/form-data">
-      {% csrf_token %}
+  method="post"
+  enctype="multipart/form-data">
+  {% csrf_token %}
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
     <h1 class="pb-12 text-2xl text-slate-500 font-light tracking-wide uppercase">
-        {% translate "Kosten" %}
-        <span class="text-sm normal-case font-normal text-slate-500">{% translate '(optional)' %}</span>
+      <span class="text-sm normal-case font-normal text-slate-500">{% translate '(optional)' %}</span>
+      {% translate "Kosten" %}
     </h1>
     <section class="pb-12">
       <fieldset class="pb-8">
-          <legend class="text-xl font-semibold text-slate-800">{% translate 'Kostenparameter' %}</legend>
-        <p class="mt-1 text-sm text-slate-500 leading-6">
-            {% translate 'Beim Life Cycle Costing (LCC) können neben den finanziellen auch die ökologischen Kosten über den gesamten Lebenszyklus betrachtet werden. So unterstützt LCC nachhaltige Entscheidungen, indem es Umweltauswirkungen wie Emissionen und Ressourcenverbrauch einbezieht.' %}
-        </p>
         <div class="mt-6">
           <!-- Option 1 -->
           <div class="flex items-center h-12">
@@ -100,307 +96,190 @@
           </div>
         </div>
       </fieldset>
-      <div id="costsInputs" class="hidden">
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-          <!-- CO2 Emission -->
-          <div class="flex-grow">
-            <div class="flex items-center gap-2">
-                <label for="co2Emissions" id="co2EmissionsLabel" class="block text-sm/6 font-semibold text-slate-800">{% translate 'CO₂-Emissionen' %}</label>
-              <div class="relative inline-block">
-                <!-- Info Icon -->
-                <span class="cursor-pointer group">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                  </svg>
-                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      {% translate 'CO₂ Emission Tooltip' %}
-                  </div>
-                </span>
-              </div>
-            </div>
-            <div class="mt-2">
-              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
-                <input
-                        {{ costs_manual.co2_emissions|widget_attrs }}
-                  type="number"
-                  class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                  placeholder="800"
-                  aria-labelledby="co2EmissionsLabel co2EmissionsUnit">
-                  <div id="co2EmissionsUnit" class="shrink-0 select-none text-sm text-slate-500">{% translate 'g/km' %}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Energy Consumption -->
-          <div class="flex-grow">
-            <div class="flex items-center gap-2">
-                <label for="energyConsumption" id="energyConsumptionLabel" class="block text-sm/6 font-semibold text-slate-800">{% translate 'Energieverbrauch' %}</label>
-              <div class="relative inline-block">
-                <span class="cursor-pointer group">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                  </svg>
-                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      {% translate 'Energieverbrauch Tooltip' %}
-                  </div>
-                </span>
-              </div>
-            </div>
-            <div class="mt-2">
-              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
-                <input
-                        {{ costs_manual.energy_consumption|widget_attrs }}
-                  class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                  placeholder="1.2"
-                  aria-labelledby="energyConsumptionLabel energyConsumptionUnit">
-                  <div id="energyConsumptionUnit" class="shrink-0 select-none text-sm text-slate-500">{% translate 'kWh/km' %}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Resource Consumption -->
-          <div class="flex-grow">
-            <div class="flex items-center gap-2">
-                <label for="resourceConsumption" id="resourceConsumptionLabel" class="block text-sm/6 font-semibold text-slate-800">{% translate 'Ressourcenverbrauch' %}</label>
-              <div class="relative inline-block">
-                <span class="cursor-pointer group">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                  </svg>
-                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      {% translate 'Ressourcenverbrauch Tooltip' %}
-                  </div>
-                </span>
-              </div>
-            </div>
-            <div class="mt-2">
-              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
-                <input
-                        {{ costs_manual.resources_consumption|widget_attrs }}
-                  class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                  placeholder="500"
-                  aria-labelledby="resourceConsumptionLabel resourceConsumptionUnit">
-                  <div id="resourceConsumptionUnit" class="shrink-0 select-none text-sm text-slate-500">{% translate 'kg/Jahr' %}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Lifetime Analysis -->
-          <div class="flex-grow">
-            <div class="flex items-center gap-2">
-                <label for="lifetimeAnalysis" id="lifetimeAnalysisLabel" class="block text-sm/6 font-semibold text-slate-800">{% translate 'Lebensdaueranalyse' %}</label>
-              <div class="relative inline-block">
-                <span class="cursor-pointer group">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                  </svg>
-                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      {% translate 'Lebensdaueranalyse Tooltip' %}
-                  </div>
-                </span>
-              </div>
-            </div>
-            <div class="mt-2">
-              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
-                <input
-                        {{ costs_manual.years|widget_attrs }}
-                  class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                  placeholder="15"
-                  aria-labelledby="lifetimeAnalysisLabel lifetimeAnalysisUnit">
-                  <div id="lifetimeAnalysisUnit" class="shrink-0 select-none text-sm text-slate-500">{% translate 'Jahre' %}</div>
+            <div id="costsInputs" class="hidden">
+        <!-- required manual inputs: general -->
+        <div
+          id="acc-req-general"
+          class="rounded-lg bg-white shadow accordion-container"
+          data-value="req-general"
+        >
+          <div class="border-b border-slate-200">
+            <button id="acc-btn-req-general"
+                    type="button"
+                    onclick="toggleAccordion(this)"
+                    class="w-full flex justify-between items-center py-5 text-slate-800 bg-emerald-200 accordion-header">
+              <span class="w-max text-base font-bold px-2">{% translate 'Allgemeine Einstellungen' %}</span>
+              <span id="acc-icon-req-general"
+                    class="accordion-cost-icon text-slate-800 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     viewBox="0 0 16 16"
+                     fill="currentColor"
+                     class="w-4 h-4">
+                  <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                </svg>
+              </span>
+            </button>
+            <div id="acc-content-req-general"
+                 class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+              <div class="accordion-cost-content">
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Zeithorizont" tooltip="Berechnungsdauer für die TCO. Gesamtsystemkosten und jährliche Kosten werden innerhalb dieses Zeitraums berechnet" unit="Jahre" input=costs_manual.project_duration|widget_attrs initial=costs_manual.project_duration.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Personalkosten" tooltip="Personalkosten pro Betriebsstunde für ein Fahrzeug. Üblicherweise Arbeitgeberkosten für die Busfahrer:in, evtl. zzgl. Schaffner:in" unit="€/h" input=costs_manual.staff_cost|widget_attrs initial=costs_manual.staff_cost.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Stromkosten" tooltip="Stromkosten pro kWh inklusive aller Gebühren" unit="€/kWh" input=costs_manual.energy_cost|widget_attrs initial=costs_manual.energy_cost.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten E-Fahrzeug" tooltip="Wartungskosten für ein Elektrofahrzeug, pro Fahrzeugkilometer" unit="€/km" input=costs_manual.maint_cost|widget_attrs initial=costs_manual.maint_cost.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten Ladeinfrastruktur" tooltip="Durchschnittliche Wartungskosten für eine Ladesäule über ein Jahr" unit="€/a" input=costs_manual.maint_inf_cost|widget_attrs initial=costs_manual.maint_inf_cost.initial %}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
-    <section class="pb-12">
-      <fieldset class="pb-8">
-          <legend class="text-xl font-semibold text-slate-800">{% translate 'Umweltparameter' %}</legend>
-        <p class="mt-1 text-sm text-slate-500 leading-6">
-            {% translate 'Umweltparameter umfassen verschiedene Aspekte der Umweltbelastung, die durch den Lebenszyklus eines Produkts oder einer Dienstleistung verursacht werden. Dazu gehören Emissionen, Energieverbrauch und Ressourcenverbrauch.' %}
-        </p>
-        <div class="mt-6">
-          <!-- Option 1 -->
-          <div class="flex items-center h-12">
-            <input id="envAutomatic" name="{{ env_mode_form.input_mode.html_name }}" value="{{ radio_values.no_input }}" type="radio" checked class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
-            <div class="flex items-center gap-2">
-              <label for="envAutomatic" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Keine Eingabe' %}</label>
-              <div class="relative inline-block">
-                <!-- Info Icon -->
-                <span class="cursor-pointer group">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
-                  </svg>
-                  <!-- Tooltip -->
-                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                    Bottom Left-Aligned Tooltip
-                  </div>
-                </span>
+        <!-- required manual inputs: charging infrastructure -->
+        <div
+          id="acc-req-charging"
+          class="rounded-lg bg-white shadow accordion-container"
+          data-value="req-charging"
+        >
+          <div class="border-b border-slate-200">
+            <button type="button"
+                    onclick="toggleAccordion(this)"
+                    class="w-full flex justify-between items-center py-5 text-slate-800 bg-emerald-200 accordion-header">
+              <span class="w-max text-base font-bold px-2">{% translate 'Ladeinfrastruktur' %}</span>
+              <span id="acc-icon-req-charging"
+                    class="accordion-cost-icon text-slate-800 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     viewBox="0 0 16 16"
+                     fill="currentColor"
+                     class="w-4 h-4">
+                  <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                </svg>
+              </span>
+            </button>
+            <div id="acc-content-req-charging"
+                 class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+              <div class="accordion-cost-content">
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Lebensdauer Depot-Ladepunkt" tooltip="Durchschnittliche Lebensdauer für einen Depot-Ladepunkt" unit="Jahre" input=costs_manual.useful_life_chargepoint_depot|widget_attrs initial=costs_manual.useful_life_chargepoint_depot.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Depot-Ladepunkt" tooltip="Durchschnittlicher Kaufpreis für einen Depot-Ladepunkt, inklusive anteiliger Leistungselektronik und anteiligem Netzanschluss. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst." unit="€" input=costs_manual.procurement_cost_chargepoint_depot|widget_attrs initial=costs_manual.procurement_cost_chargepoint_depot.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Lebensdauer Opportunity-Ladepunkt" tooltip="Durchschnittliche Lebensdauer für einen Opportunity-Ladepunkt." unit="Jahre" input=costs_manual.useful_life_chargepoint_opp|widget_attrs initial=costs_manual.useful_life_chargepoint_opp.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Opportunity-Ladepunkt" tooltip="Durchschnittlicher Kaufpreis für einen Opportunity-Ladepunkt, inklusive anteiliger Leistungselektronik und anteiligem Netzanschluss. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst." unit="€" input=costs_manual.procurement_cost_chargepoint_opp|widget_attrs initial=costs_manual.procurement_cost_chargepoint_opp.initial %}
+                </div>
               </div>
             </div>
-          </div>
-          <!-- Option 2 -->
-          <div class="flex items-center h-12">
-            <input id="envFile" name="{{ env_mode_form.input_mode.html_name }}" value="{{ radio_values.file_upload }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
-            <div class="flex items-center gap-2">
-              <label for="envFile" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Datei hochladen' %}</label>
-              <div class="relative inline-block">
-                <!-- Info Icon -->
-                <span class="cursor-pointer group">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
-                  </svg>
-                  <!-- Tooltip -->
-                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                    {% translate 'Bottom Left-Aligned Tooltip' %}
-                  </div>
-                </span>
-              </div>
-            </div>
-            <div class="ml-4 flex-grow hidden" id="env-file-upload">
-              <div class="flex items-center rounded-md bg-white px-1 py-1 outline outline-1 -outline-offset-1 outline-slate-400">
-                <input
-                  type="file"
-                  {{ env_fileUpload.file|widget_attrs }}
-                  class="block w-full text-sm text-slate-800 file:mr-4 file:py-1 file:px-4 file:rounded-md file:border-0 file:bg-slate-800 file:text-white hover:file:bg-black"
-                >
-              </div>
-            </div>
-          </div>
-          <!-- Option 3 -->
-          <div class="flex items-center h-12">
-            <input id="envScenario" name="{{ env_mode_form.input_mode.html_name }}" value="{{ radio_values.reference_scenario }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
-            <label for="envScenario" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Werte aus anderem Szenario übernehmen' %}</label>
-            <div class="ml-4 flex-grow hidden" id="env-dropdown-select">
-              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
-                <select
-                        {{ env_scenario_selection.scenario|widget_attrs }}
-                  class="block w-full rounded-md bg-white py-1.5 px-3 text-left text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                >
-                  <option value="">Szenario auswählen</option>
-                  {% for choice in  env_scenario_selection.scenario.field.queryset %}
-                    <option value="{{ choice.id }}">{{ choice.name }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-            </div>
-          </div>
-          <!-- Option 4 -->
-          <div class="flex items-center h-12">
-            <input id="envManually" name="{{ env_mode_form.input_mode.html_name }}" value="{{ radio_values.manual }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
-            <label for="envManually" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Manuelle Eingabe' %}</label>
           </div>
         </div>
-      </fieldset>
-      <div id="envInputs" class="hidden">
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-          <!-- CO2 Emission -->
-          <div class="flex-grow">
-            <div class="flex items-center gap-2">
-              <label for="envCo2Emissions" id="envCo2EmissionsLabel" class="block text-sm/6 font-semibold text-slate-800">{% translate 'CO₂-Emissionen' %}</label>
-              <div class="relative inline-block">
-                <!-- Info Icon -->
-                <span class="cursor-pointer group">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                  </svg>
-                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                    {% translate 'CO₂ Emission Tooltip' %}
-                  </div>
-                </span>
-              </div>
-            </div>
-            <div class="mt-2">
-              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
-                <input
-                  type="number"
-                  {{ env_manual.co2_emissions|widget_attrs }}
-                  class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                  placeholder="800"
-                  aria-labelledby="envCo2EmissionsLabel envCo2EmissionsUnit">
-                <div id="envCo2EmissionsUnit" class="shrink-0 select-none text-sm text-slate-500">g/km</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Energy Consumption -->
-          <div class="flex-grow">
-            <div class="flex items-center gap-2">
-              <label for="envEnergyConsumption" id="envEnergyConsumptionLabel" class="block text-sm/6 font-semibold text-slate-800">{% translate 'Energieverbrauch' %}</label>
-              <div class="relative inline-block">
-                <span class="cursor-pointer group">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                  </svg>
-                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                    {% translate 'Energieverbrauch Tooltip' %}
-                  </div>
-                </span>
-              </div>
-            </div>
-            <div class="mt-2">
-              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
-                <input
-                  {{ env_manual.energy_consumption|widget_attrs }}
-                  class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                  placeholder="1.2"
-                  aria-labelledby="envEnergyConsumptionLabel envEnergyConsumptionUnit">
-                <div id="envEnergyConsumptionUnit" class="shrink-0 select-none text-sm text-slate-500">kWh/km</div>
+        <!-- required manual inputs: diesel -->
+        <div
+          id="acc-req-diesel"
+          class="rounded-lg bg-white shadow accordion-container"
+          data-value="req-diesel"
+        >
+          <div class="border-b border-slate-200">
+            <button type="button"
+                    onclick="toggleAccordion(this)"
+                    class="w-full flex justify-between items-center py-5 text-slate-800 bg-slate-200 accordion-header">
+              <span class="w-max text-base font-bold px-2">{% translate 'Diesel-Vergleich' %}</span>
+              <span id="acc-icon-req-diesel"
+                    class="accordion-cost-icon text-slate-800 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     viewBox="0 0 16 16"
+                     fill="currentColor"
+                     class="w-4 h-4">
+                  <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                </svg>
+              </span>
+            </button>
+            <div id="acc-content-req-diesel"
+                 class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+              <div class="accordion-cost-content">
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Dieselkosten" unit="€" input=costs_manual.fuel_cost|widget_attrs initial=costs_manual.fuel_cost.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten Diesel-Fahrzeug" unit="€/km" tooltip="Wartungskosten für ein Dieselfahrzeug, pro Fahrzeugkilometer" input=costs_manual.maint_cost_diesel|widget_attrs initial=costs_manual.maint_cost_diesel.initial %}
+                </div>
               </div>
             </div>
           </div>
-
-          <!-- Resource Consumption -->
-          <div class="flex-grow">
-            <div class="flex items-center gap-2">
-                <label for="envResourceConsumption" id="envResourceConsumptionLabel" class="block text-sm/6 font-semibold text-slate-800">{% translate 'Ressourcenverbrauch' %}</label>
-              <div class="relative inline-block">
-                <span class="cursor-pointer group">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+        </div>
+        <!-- required manual inputs: vehicle types -->
+        {% for vehicle_type in vehicle_types %}
+          <div
+            id="acc-req-vt-{{vehicle_type}}"
+            class="rounded-lg bg-white shadow accordion-container"
+            data-value="req-vt-{{vehicle_type}}"
+          >
+            <div class="border-b border-slate-200">
+              <button type="button"
+                      onclick="toggleAccordion(this)"
+                      class="w-full flex justify-between items-center py-5 text-slate-800 bg-emerald-200 accordion-header">
+                <span class="w-max text-base font-bold px-2">{% translate 'Fahrzeugtyp' %} {{ vehicle_type.name }}</span>
+                <span id="acc-icon-req-vt-{{vehicle_type}}"
+                      class="accordion-cost-icon text-slate-800 transition-transform duration-300">
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                       viewBox="0 0 16 16"
+                       fill="currentColor"
+                       class="w-4 h-4">
+                    <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
                   </svg>
-                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      {% translate 'Ressourcenverbrauch Tooltip' %}
-                  </div>
                 </span>
-              </div>
-            </div>
-            <div class="mt-2">
-              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
-                <input
-                  {{ env_manual.resources_consumption|widget_attrs }}
-                  class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                  placeholder="500"
-                  aria-labelledby="envResourceConsumptionLabel envResourceConsumptionUnit">
-                  <div id="envResourceConsumptionUnit" class="shrink-0 select-none text-sm text-slate-500">{% translate 'kg/Jahr' %}</div>
+              </button>
+              <div id="acc-content-req-vt-{{vehicle_type}}"
+                   class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                <div class="accordion-cost-content">
+                  <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                    {% include "ebustoolbox/partials/cost_input.html" with label="Fahrzeuglebensdauer" tooltip="Durchschnittliche Lebensdauer für ein Fahrzeug dieses Fahrzeugtyps" unit="Jahre" input=costs_manual.useful_life_bus|widget_attrs initial=costs_manual.useful_life_bus.initial %}
+                    {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis" tooltip="Durchschnittlicher Kaufpreis für ein Fahrzeug dieses Typs. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst" unit="€" input=costs_manual.procurement_cost_bus|widget_attrs initial=costs_manual.procurement_cost_bus.initial %}
+                    {% include "ebustoolbox/partials/cost_input.html" with label="Batterielebensdauer" tooltip="Durchschnittliche Lebensdauer für eine Batterie dieses Typs" unit="Jahre" input=costs_manual.useful_life_battery|widget_attrs initial=costs_manual.useful_life_battery.initial %}
+                    {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Batterie" tooltip="Durchschnittlicher Kaufpreis für eine Batterie dieses Typs, angegeben pro kWh. Wenn unbekannt, Fahrzeugkaufpreis inkl. Batterie angeben und hier 0 (dann kann ein Batterietausch aber nicht abgebildet werden)" unit="€/kWh"  input=costs_manual.procurement_cost_battery|widget_attrs initial=costs_manual.procurement_cost_battery.initial %}
+                    {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis (Dieselbus)" tooltip="Durchschnittlicher Kaufpreis für einen äquivalenten Dieselbus" unit="€" input=costs_manual.procurement_cost_diesel|widget_attrs initial=costs_manual.procurement_cost_diesel.initial %}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-
-          <!-- Lifetime Analysis -->
-          <div class="flex-grow">
-            <div class="flex items-center gap-2">
-                <label for="envLifetimeAnalysis" id="envLifetimeAnalysisLabel" class="block text-sm/6 font-semibold text-slate-800">{% translate 'Lebensdaueranalyse' %}</label>
-              <div class="relative inline-block">
-                <span class="cursor-pointer group">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                  </svg>
-                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      {% translate 'Lebensdaueranalyse Tooltip' %}
-                  </div>
-                </span>
-              </div>
-            </div>
-            <div class="mt-2">
-              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
-                <input
-                  {{ env_manual.years|widget_attrs }}
-                  class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                  placeholder="15"
-                  aria-labelledby="envLifetimeAnalysisLabel envLifetimeAnalysisUnit">
-                  <div id="envLifetimeAnalysisUnit" class="shrink-0 select-none text-sm text-slate-500">{% translate 'Jahre' %}</div>
+        {% endfor %}
+        <!-- optional -->
+        <div
+          id="acc-optional"
+          class="rounded-lg bg-white shadow accordion-container"
+          data-value="optional"
+        >
+          <div class="border-b border-slate-200">
+            <button type="button"
+                    onclick="toggleAccordion(this)"
+                    class="w-full flex justify-between items-center py-5 text-slate-800 bg-emerald-200 accordion-header">
+              <span class="w-max text-base font-bold px-2">{% translate "Erweiterte Einstellungen" %}</span>
+              <span id="acc-icon-optional"
+                    class="accordion-cost-icon text-slate-800 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     viewBox="0 0 16 16"
+                     fill="currentColor"
+                     class="w-4 h-4">
+                  <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                </svg>
+              </span>
+            </button>
+            <div id="acc-content-optional"
+                 class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+              <div class="accordion-cost-content">
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Zinssatz" unit="ppa" tooltip="Zinssatz für Investitionen und Kredite" input=costs_manual.interest_rate|widget_attrs initial=costs_manual.interest_rate.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Inflation" unit="ppa" tooltip="Inflationsrate, Teuerung aller Güter bei gleichbleibendem Wert" input=costs_manual.inflation_rate|widget_attrs initial=costs_manual.inflation_rate.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Kfz-Steuer" tooltip="Durchschnittliche Kraftfahrzeugsteuer pro Jahr" unit="€" input=costs_manual.taxes|widget_attrs initial=costs_manual.taxes.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Versicherung für Fahrzeug" tooltip="Durchschnittliche jährliche Versicherungskosten, pro Fahrzeug" unit="€/a" input=costs_manual.insurance|widget_attrs initial=costs_manual.insurance.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – allgemein" tooltip="Generelle Preissteigerung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_general|widget_attrs initial=costs_manual.pef_general.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Arbeitslohn" tooltip="Preissteigerung für Arbeitslohn pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_staff_cost|widget_attrs initial=costs_manual.pef_staff_cost.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Strom" tooltip="Preissteigerung für Stromkosten pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_energy_cost|widget_attrs initial=costs_manual.pef_energy_cost.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Versicherung" tooltip="Preissteigerung für Versicherung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_insurance|widget_attrs initial=costs_manual.pef_insurance.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Ladepunkt" tooltip="Preissteigerung für Ladepunkt dieses Typs pro Jahr. Dient der Anpassung der Preise für Ersatzladepunkte im Betrachtungszeitraum" unit="%" input=costs_manual.cost_escalation_chargepoint|widget_attrs initial=costs_manual.cost_escalation_chargepoint.initial %}
+                </div>
+                {% for vehicle_type in vehicle_types %}
+                  <fieldset>
+                    <legend>{% translate 'Fahrzeugtyp' %} {{ vehicle_type.name }}</legend>
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                      {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Fahrzeug" tooltip="Preissteigerung für Fahrzeuge pro Jahr. Dient der Anpassung der Preise für Ersatzfahrzeuge im Betrachtungszeitraum" unit="%" input=costs_manual.cost_escalation_bus|widget_attrs initial=costs_manual.cost_escalation_bus.initial %}
+                      {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Batterie" tooltip="Preissteigerung für Batterie pro Jahr. Dient der Anpassung der Preise für Ersatzbatterien im Betrachtungszeitraum" unit="%" input=costs_manual.cost_escalation_battery|widget_attrs initial=costs_manual.cost_escalation_battery.initial %}
+                    </div>
+                  </fieldset>
+                {% endfor %}
               </div>
             </div>
           </div>
@@ -430,33 +309,34 @@
   const radioButtons = document.querySelectorAll('input[name^="costsRadio"]');
 
   radioButtons.forEach(radio => {
-      radio.addEventListener('change', () => {
-          fileUpload.classList.toggle('hidden', radio.id !== 'costsFile');
-          childrenInputs(fileUpload).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'costsFile'));
-
-          dropdownSelect.classList.toggle('hidden', radio.id !== 'costsScenario');
-          childrenInputs(dropdownSelect).forEach((inputDiv) =>  toggleAttribute(inputDiv, "required", radio.id == 'costsScenario'));
-
-          costsInputs.classList.toggle('hidden', radio.id !== 'costsManually');
-          childrenInputs(costsInputs).forEach((inputDiv) =>  toggleAttribute(inputDiv, "required", radio.id == 'costsManually'));
-
-      });
+    radio.addEventListener('change', _ => showCostForRadio(radio));
   });
-</script>
 
-  <script>
-      // Show and hide inputs based on selected option for Umweltparameter
-      const envFileUpload = document.getElementById('env-file-upload');
-      const envDropdownSelect = document.getElementById('env-dropdown-select');
-      const envInputs = document.getElementById('envInputs');
+  function showCostForRadio(radio) {
+    fileUpload.classList.toggle('hidden', radio.id !== 'costsFile');
+    childrenInputs(fileUpload).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'costsFile'));
 
-      const envRadioButtons = document.querySelectorAll('input[name^="envRadio"]');
+    dropdownSelect.classList.toggle('hidden', radio.id !== 'costsScenario');
+    childrenInputs(dropdownSelect).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'costsScenario'));
 
-      const formAreas = [envFileUpload, envDropdownSelect, envInputs, fileUpload, dropdownSelect, costsInputs];
-      // unrequire all form inputs at the start
-      formAreas.forEach((area)=>
-          childrenInputs(area).forEach((inputDiv) => toggleAttribute(inputDiv, "required", false))
-      )
+    costsInputs.classList.toggle('hidden', radio.id !== 'costsManually');
+    childrenInputs(costsInputs).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'costsManually'));
+  }
+  // show section for initially selected
+  showCostForRadio(document.querySelector('input[name^="costsRadio"]:checked'));
+
+  // Show and hide inputs based on selected option for Umweltparameter
+  const envFileUpload = document.getElementById('env-file-upload');
+  const envDropdownSelect = document.getElementById('env-dropdown-select');
+  const envInputs = document.getElementById('envInputs');
+
+  const envRadioButtons = document.querySelectorAll('input[name^="envRadio"]');
+
+  const formAreas = [envFileUpload, envDropdownSelect, envInputs, fileUpload, dropdownSelect, costsInputs];
+  // unrequire all form inputs at the start
+  formAreas.forEach((area)=>
+      childrenInputs(area).forEach((inputDiv) => toggleAttribute(inputDiv, "required", false))
+  )
 
   envRadioButtons.forEach(radio => {
       radio.addEventListener('change', () => {
@@ -473,7 +353,10 @@
   });
 
   function childrenInputs(element){
+    if (element)
       return element.querySelectorAll("input")
+    // default if no element was found/given: no children
+    return new Array();
   }
 
   function toggleAttribute(element, attribute, value){
@@ -485,5 +368,44 @@
 
   }
 
+  /* Accordion */
+  // SVG for Down icon
+  const downSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/></svg>';
+
+  // SVG for Up icon
+  const upSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd"/></svg>';
+
+  function toggleAccordion(button) {
+    const container = button.closest('div.accordion-container');
+    const index = container.dataset.value;
+    const content = document.getElementById(`acc-content-${index}`);
+    const icon = document.getElementById(`acc-icon-${index}`);
+
+    // Toggle the content's max-height for smooth opening and closing
+    if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+      content.style.maxHeight = '0';
+      if (content.hasAttribute('timeout')) {
+        clearTimeout(content.getAttribute('timeout'));
+        content.removeAttribute('timeout');
+      }
+      content.classList.add('overflow-hidden');
+      icon.innerHTML = upSVG;
+      if (button == open) {
+        toggleAccordion.open = undefined;
+      }
+    } else {
+      content.style.maxHeight = content.scrollHeight + 'px';
+      icon.innerHTML = downSVG;
+      toggleAccordion.open = button;
+      // remove overflow after animation has ended
+      let timeout = setTimeout(_ => {
+          content.classList.remove('overflow-hidden');
+          content.removeAttribute('timeout');
+        }, 500
+      );
+      content.setAttribute('timeout', timeout);
+    }
+  }
+  //toggleAccordion(document.getElementById("acc-btn-req-general"));
 </script>
 {% endblock script %}

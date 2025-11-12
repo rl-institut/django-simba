@@ -223,28 +223,30 @@ class SimbaScheduleReader(ScheduleReader):
             self.set_progress(0, _("Lese Datei"))
             trip_data = self.file_data_to_dict()
 
-            self.set_progress(1, _("Finde Stationen"))
+            self.set_progress(1, _("Erstelle Stationen und Fahrzeugtypen"))
             # Create Stations
             scenario = Scenario.objects.get(id=scenario_id)
-            stations, station_dict = self.get_stations(scenario, trip_data)
-            Station.objects.bulk_create(stations)
-            if settings.SEARCH_STATION_LOCATIONS:
-                add_station_locations(Station.objects.filter(scenario=scenario))
+            stations = self.get_stations(scenario, trip_data)
 
-            add_elevations(Station.objects.filter(scenario=scenario, geom__isnull=False))
-            place_not_found_stations(scenario)
+            # returned vts have pks and can be used as foreign key reference.
+            # Instances without pk can't be used as foreign key reference
+            stations = Station.objects.bulk_create(stations)
+            station_dict = {station.name: station for station in stations}
 
-            self.set_progress(2, _("Finde Fahrzeugtypen"))
             # Create empty vehicle_types
-            vt_dict, vts = self.get_vehicles(scenario, trip_data)
-            VehicleType.objects.bulk_create(vts)
+            vts = self.get_vehicles(scenario, trip_data)
+            # returned vts have pks and can be used as foreign key reference.
+            vts = VehicleType.objects.bulk_create(vts)
+            vt_dict = {vt.name: vt for vt in vts}
 
-            self.set_progress(3, _("Finde Umläufe"))
+            self.set_progress(2, _("Finde Umläufe"))
             # Create Rotations
-            rotations, rotations_dict = self.get_rotations(scenario, trip_data, vt_dict)
-            Rotation.objects.bulk_create(rotations)
+            rotations = self.get_rotations(scenario, trip_data, vt_dict)
+            # returned rotations have pks
+            rotations = Rotation.objects.bulk_create(rotations)
+            rotations_dict = {rotation.name: rotation for rotation in rotations}
 
-            self.set_progress(4, _("Finde Fahrten"))
+            self.set_progress(3, _("Finde Fahrten"))
 
             # Create Trips and Routes
             lines, routes, trips = self.get_lines_routes_trips(
@@ -252,15 +254,37 @@ class SimbaScheduleReader(ScheduleReader):
             )
 
             if not self.errors:
-                Line.objects.bulk_create(lines)
-                Route.objects.bulk_create(routes)
+                line_ids = [line.id for line in lines]
+                for line in lines:
+                    line.id = None
+                lines = Line.objects.bulk_create(lines)
+                line_lut = {l_id: line.id for l_id, line in zip(line_ids, lines)}
+                route_ids = [route.id for route in routes]
+                for route in routes:
+                    route.id = None
+                    new_id = line_lut[route.line_id]
+                    route.line = None
+                    route.line_id = new_id
+                routes = Route.objects.bulk_create(routes)
+                route_lut = {r_id: route.id for r_id, route in zip(route_ids, routes)}
+                for trip in trips:
+                    new_id = route_lut[trip.route_id]
+                    trip.route = None
+                    trip.route_id = new_id
                 Trip.objects.bulk_create(trips)
-            self.set_progress(5, _("Fahrten erstellt"))
+
+            if settings.SEARCH_STATION_LOCATIONS:
+                self.set_progress(5, _("Finde Stationen"))
+                add_station_locations(Station.objects.filter(scenario=scenario))
+
+            add_elevations(Station.objects.filter(scenario=scenario, geom__isnull=False))
+            place_not_found_stations(scenario)
+
         except self.SimbaScheduleReaderException:
             return False
         return len(self.errors) == 0
 
-    def get_lines_routes_trips(self, rotations_dict, scenario, station_dict, trip_data):
+    def get_lines_routes_trips(self, rotations_dict, scenario, station_dict, trip_data):  # noqa
         trips = []
         lines = []
         line_dict = dict()
@@ -269,9 +293,8 @@ class SimbaScheduleReader(ScheduleReader):
         trip_overlap_errors = []  # collect trips that overlap
         duration_errors = []  # collect trips that have no or negative duration
         trip_previous_station_errors = {}  # collect trips that don't end at their previous depot
-        route_id = util.get_next_id(Route)
-        trip_id = util.get_next_id(Trip)
         line_id = util.get_next_id(Line)
+        route_id = util.get_next_id(Route)
         for rotation_id, rotation_trips in tqdm(trip_data.items()):
             sorted_trips = sorted(rotation_trips, key=lambda trip: trip["departure_time"])
             prev_arrival_time = sorted_trips[0]["departure_time"] - timedelta(hours=1)
@@ -283,7 +306,7 @@ class SimbaScheduleReader(ScheduleReader):
                 prev_arrival_time = trip["arrival_time"]
                 prev_arrival_name = trip["arrival_name"]
 
-                if not trip[self.DEPARTURE_TIME] < trip[self.ARRIVAL_TIME]:
+                if not trip[self.DEPARTURE_TIME] <= trip[self.ARRIVAL_TIME]:
                     # trip arrives before it departs
                     duration_errors.append(trip["row"])
                 if trip["departure_time"] < saved_arrival_time:
@@ -303,6 +326,7 @@ class SimbaScheduleReader(ScheduleReader):
                     line_id += 1
                     lines.append(line)
                     line_dict[trip[self.LINE]] = line
+                # line_id needs to be removed before db creation
                 line = line_dict[trip[self.LINE]]
 
                 route = existing_routes.get(
@@ -315,6 +339,7 @@ class SimbaScheduleReader(ScheduleReader):
                 )
                 if not route:
                     route = Route(
+                        id=route_id,
                         name=trip[self.DEPARTURE_NAME] + " - " + trip[self.ARRIVAL_NAME],
                         scenario=scenario,
                         departure_station=station_dict[trip[self.DEPARTURE_NAME]],
@@ -322,6 +347,8 @@ class SimbaScheduleReader(ScheduleReader):
                         distance=trip[self.DISTANCE],
                         line=line,
                     )
+                    # Route id needs to be removed before db creation
+                    route_id += 1
                     existing_routes[
                         (
                             station_dict[trip[self.DEPARTURE_NAME]].id,
@@ -330,8 +357,6 @@ class SimbaScheduleReader(ScheduleReader):
                             line,
                         )
                     ] = route
-                    route.pk = route_id
-                    route_id += 1
                     routes.append(route)
 
                 # handle timezone-related issues: force aware in UTC. Mainly for display reasons
@@ -352,8 +377,6 @@ class SimbaScheduleReader(ScheduleReader):
                     loaded_mass=0,
                 )
 
-                t.pk = trip_id
-                trip_id += 1
                 trips.append(t)
 
         # handle collected errors
@@ -383,8 +406,6 @@ class SimbaScheduleReader(ScheduleReader):
 
     def get_rotations(self, scenario, trip_data, vt_dict):
         rotations = list()
-        rotations_dict = dict()
-        last_id = util.get_next_id(Rotation)
         i = -1
 
         for rotation_id, trips in trip_data.items():
@@ -396,38 +417,34 @@ class SimbaScheduleReader(ScheduleReader):
             rot = Rotation(
                 scenario=scenario,
                 name=rotation_id,
-                pk=last_id + i,
                 vehicle_type=vt,
             )
             rotations.append(rot)
-            rotations_dict[rotation_id] = rot
-        return rotations, rotations_dict
+        return rotations
 
     def get_vehicles(self, scenario, trip_data):
         vts = list()
-        vt_dict = dict()
         unique_vts = {trips[0][self.VEHICLE_TYPE] for trips in trip_data.values()}
-        last_id = util.get_next_id(VehicleType)
         for i, name in enumerate(unique_vts):
             default_params = {
                 "scenario": scenario,
                 "name": name,
                 "name_short": name,
+                "length": 12,
+                "width": 2.5,
+                "height": 3.1,
                 "battery_capacity": self.default_capacity,
                 "charging_curve": [[0, self.default_capacity], [1, self.default_capacity]],
             }
             vt_opp = VehicleType(
                 **default_params,
-                id=last_id + i,
                 opportunity_charging_capable=self.vehicles_opportunity_charging_capable,
             )
             vts.append(vt_opp)
-            vt_dict[name] = vt_opp
-        return vt_dict, vts
+        return vts
 
     def get_stations(self, scenario, trip_data):
         stations = list()
-        station_dict = dict()
 
         # make sure the trips are sorted
         for rot_id, trips in trip_data.items():
@@ -440,7 +457,6 @@ class SimbaScheduleReader(ScheduleReader):
             for trips in trip_data.values()
             for num, name in [(-1, self.ARRIVAL_NAME), (0, self.DEPARTURE_NAME)]
         }
-
         unique_arrival_stations = {
             trip[self.ARRIVAL_NAME] for trips in trip_data.values() for trip in trips
         }
@@ -448,17 +464,14 @@ class SimbaScheduleReader(ScheduleReader):
             trip[self.DEPARTURE_NAME] for trips in trip_data.values() for trip in trips
         }
         unique_stations = unique_arrival_stations.union(unique_departure_stations)
-        last_id = util.get_next_id(Station)
         for i, name in enumerate(unique_stations):
-            station = Station(scenario=scenario, name=name, name_short=name, id=last_id + i)
+            station = Station(scenario=scenario, name=name, name_short=name)
             if name in depot_stations:
                 station.is_electrified = True
                 station.charge_type = EnumChargeType.DEPOT.value
                 station.voltage_level = EnumVoltageLevel.VOLTAGE_MV.value
             stations.append(station)
-            station_dict[name] = station
-
-        return stations, station_dict
+        return stations
 
     def file_data_to_dict(self) -> dict[str, []]:
         trip_data = dict()

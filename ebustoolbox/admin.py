@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Scenario, UserGroup
+from .models import Scenario, UserGroup, VehicleType
 
 
 class ScenarioAdmin(admin.ModelAdmin):
@@ -8,6 +8,13 @@ class ScenarioAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Scenario, ScenarioAdmin)
+
+
+class VehicleTypeAdmin(admin.ModelAdmin):
+    list_display = ("name", "scenario")
+
+
+admin.site.register(VehicleType, VehicleTypeAdmin)
 
 
 class UserGroupAdmin(admin.ModelAdmin):

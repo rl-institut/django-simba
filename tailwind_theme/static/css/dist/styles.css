@@ -1225,10 +1225,6 @@ select {
   height: 100%;
 }
 
-.h-0 {
-  height: 0px;
-}
-
 .h-1\/2 {
   height: 50%;
 }
@@ -1668,6 +1664,18 @@ select {
   animation: hero-fade-in-up 0.8s ease-out 0.45s forwards;
 }
 
+@keyframes slide-in-top {
+  0% {
+    opacity: 0.8;
+    transform: translateY(-100%);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-slide-in-top {
   animation: slide-in-top 0.4s ease-out forwards;
 }
@@ -1945,6 +1953,10 @@ select {
   white-space: nowrap;
 }
 
+.break-words {
+  overflow-wrap: break-word;
+}
+
 .rounded {
   border-radius: 0.25rem;
 }
@@ -2204,21 +2216,6 @@ select {
 .bg-yellow-50 {
   --tw-bg-opacity: 1;
   background-color: rgb(254 252 232 / var(--tw-bg-opacity, 1));
-}
-
-.bg-green-100 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(220 252 231 / var(--tw-bg-opacity, 1));
-}
-
-.bg-green-200 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(187 247 208 / var(--tw-bg-opacity, 1));
-}
-
-.bg-green-400 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(74 222 128 / var(--tw-bg-opacity, 1));
 }
 
 .bg-gradient-to-b {
@@ -3317,11 +3314,6 @@ progress::-moz-progress-bar {
   background-color: rgb(254 249 195 / var(--tw-bg-opacity, 1));
 }
 
-.hover\:bg-green-300:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(134 239 172 / var(--tw-bg-opacity, 1));
-}
-
 .hover\:text-black:hover {
   --tw-text-opacity: 1;
   color: rgb(0 0 0 / var(--tw-text-opacity, 1));
@@ -3676,11 +3668,6 @@ progress::-moz-progress-bar {
   background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
 }
 
-.active\:bg-green-500:active {
-  --tw-bg-opacity: 1;
-  background-color: rgb(34 197 94 / var(--tw-bg-opacity, 1));
-}
-
 .disabled\:cursor-not-allowed:disabled {
   cursor: not-allowed;
 }
@@ -3688,6 +3675,11 @@ progress::-moz-progress-bar {
 .disabled\:border-slate-300:disabled {
   --tw-border-opacity: 1;
   border-color: rgb(203 213 225 / var(--tw-border-opacity, 1));
+}
+
+.disabled\:bg-gray-200:disabled {
+  --tw-bg-opacity: 1;
+  background-color: rgb(229 231 235 / var(--tw-bg-opacity, 1));
 }
 
 .disabled\:bg-slate-100:disabled {

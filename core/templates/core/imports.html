@@ -7,12 +7,14 @@
 <script src="{% static "bootstrap.min.js" %}"></script>
 <script src="{% static "htmx.min.js" %}"></script>
 <script src="{% static "class-tools.js" %}"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 {#ToDo remove cdn #}
 <script src=" https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js "></script>
 <script src="{% static "chart.umd.js" %}"> type="module"</script>
 <script src="{% static "nouislider.min.js" %}"></script>
 <link href="{%  static "nouislider.min.css" %}" rel="stylesheet">
 <link href="{%  static "custom_style.css" %}" rel="stylesheet">
+{% block imports %}{% endblock imports %}
 <!-- For translations in javascript -->
 {#to do move to appropriate spot?#}
 <style>

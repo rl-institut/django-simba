@@ -53,7 +53,11 @@ class ScenarioJSONImporterExporter:
         model_class: models.Model = elements.model
         serializer_class = generate_serializer(model_class)
         serializer = serializer_class(elements, many=True)
-        self.object_data[elements.model.__qualname__] = serializer.data
+        if self.object_data.get(elements.model.__qualname__) is None:
+            self.object_data[elements.model.__qualname__] = serializer.data
+        else:
+            # When multiple scenarios exported, we do not want the previous data to be overwritten
+            self.object_data[elements.model.__qualname__].extend(serializer.data)
 
     def renderJSON(self):
         return JSONRenderer().render(self.object_data)
@@ -124,6 +128,87 @@ class ScenarioJSONImporterExporter:
                 creation_order.pop(creation_order.index(model_name))
         return creation_order
 
+    def bulk_create_and_adjust_foreign_keys(self):
+        """Merged version of bulk_create and adjust foreign_keys fixed for concurrent writing
+
+        Pks are set in the db, and the returned pks are used to adjust foreign keys
+        """
+
+        self.instance_lookup = dict()
+        # Bulk create instances
+        model_names = self.create_creation_order()
+        num_iterations = 0
+        max_iterations = len(model_names) + 100
+        # num iterations to make sure loop returns
+
+        scenarios = []
+        while model_names and num_iterations < max_iterations:
+            num_iterations += 1
+            model_name = model_names.pop(0)
+            if model_name.lower() != "scenario":
+                instances = self.object_data[model_name]
+            else:
+                # NOTE: Scenarios are created as single instances.
+                # Since they reference themselves, they can be bulk created without knowing the
+                # appropriate pks
+                instances = [self.object_data[model_name].pop(0)]
+                if len(self.object_data[model_name]) >= 1:
+                    model_names.insert(0, model_name)
+
+            # Create objects in bulk
+            model_class = django.apps.apps.get_model("ebustoolbox", model_name)
+            old_ids = []
+            # Let db handle id generation
+            for instance in instances:
+                old_ids.append(instance.id)
+                instance.id = None
+
+            # Adjust foreign keys.
+            # This can only access instances which were created beforehand
+            # Date needs pruning in the case of the Scenario model
+            data = self.parsed_data[model_name][-(len(self.object_data[model_name]) + 1) :]
+            # Instances has at least a single element since its create_creation_order does not contain
+            # empty lists
+            foreign_fields = [
+                field
+                for field in model_class._meta.fields
+                if isinstance(field, ForeignKey) or isinstance(field, OneToOneField)
+            ]
+            for instance, instance_data, old_id in zip(instances, data, old_ids):
+                for field in foreign_fields:
+                    old_id_of_fk = instance_data.get(field.name)
+                    if old_id_of_fk is None:
+                        continue
+                    try:
+                        new_key = self.instance_lookup[field.related_model][old_id_of_fk]
+                        setattr(instance, field.name + "_id", new_key)
+                    except KeyError:
+                        logger.info(
+                            f"{model_class} Import Error: Field {field.name} could not be adjusted"
+                            " with an imported Instance. Trying to set it to None"
+                        )
+                        setattr(instance, field.name, None)
+
+            # Returned instances have id from db
+            instances = model_class.objects.bulk_create(instances)
+
+            # Make sure object data keeps references to the instances.
+            # Scenarios need to be handled differently because of self references/parents
+            if model_name.lower() != "scenario":
+                instances = self.object_data[model_name]
+            else:
+                scenarios.extend(instances)
+            # Add the created instances to the lookup
+            # These are used if needed for the foreign keys lookups
+
+            if self.instance_lookup.get(model_class) is None:
+                self.instance_lookup[model_class] = {}
+            for instance, old_id in zip(instances, old_ids):
+                self.instance_lookup[model_class][old_id] = instance.id
+
+        # Reinsert scenario data
+        self.object_data["Scenario"].extend(scenarios)
+
     def adjust_foreign_keys(self):
         self.instance_lookup = dict()
         model_names = self.create_creation_order()
@@ -135,14 +220,14 @@ class ScenarioJSONImporterExporter:
             # Instances has at least a single element since its create_creation_order does not contain
             # empty lists
             next_id = get_next_id(model_class)
-            lookup = dict()
+            self.instance_lookup[model_class] = {}
             foreign_fields = [
                 field
                 for field in model_class._meta.fields
                 if isinstance(field, ForeignKey) or isinstance(field, OneToOneField)
             ]
             for instance, instance_data in zip(instances, data):
-                lookup[instance.id] = next_id
+                self.instance_lookup[model_class][instance.id] = next_id
                 instance.id = next_id
                 next_id += 1
                 for field in foreign_fields:
@@ -158,7 +243,6 @@ class ScenarioJSONImporterExporter:
                             " with an imported Instance. Trying to set it to None"
                         )
                         setattr(instance, field.name, None)
-            self.instance_lookup[model_class] = lookup
 
     def bulk_create(self):
         # Bulk create instances
