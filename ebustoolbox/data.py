@@ -560,14 +560,9 @@ def get_all_event_info(scenario_id):
     :rtype: pandas.DataFrame
     """
     # Fetch vehicles and scenario
-    vehicles = Vehicle.objects.filter(scenario_id=scenario_id).select_related(
-        "vehicle_type"
-    )
+    vehicles = Vehicle.objects.filter(scenario_id=scenario_id).select_related("vehicle_type")
 
-    vehicle_type_map = {
-        v.id: v.vehicle_type.name
-        for v in vehicles
-    }
+    vehicle_type_map = {v.id: v.vehicle_type.name for v in vehicles}
     scenario = Scenario.objects.get(id=scenario_id)
 
     # Fetch all events and rotations in advance
@@ -623,7 +618,7 @@ def get_all_event_info(scenario_id):
                 route_name = None
 
                 # Check if event has a trip property linked to a Rotation
-                if hasattr(event, 'trip') and event.trip:
+                if hasattr(event, "trip") and event.trip:
                     vehicle_rotation = event.trip.rotation
                     route_name = event.trip.route.name
 
@@ -640,7 +635,7 @@ def get_all_event_info(scenario_id):
                         "route_name": route_name,
                         "R_id": vehicle_rotation.id if vehicle_rotation else None,
                         "rotation_name": vehicle_rotation.name if vehicle_rotation else None,
-                        "readable_name": vehicle_name_dict[vehicle.id]
+                        "readable_name": vehicle_name_dict[vehicle.id],
                     }
                 )
 
