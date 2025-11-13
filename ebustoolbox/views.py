@@ -1049,6 +1049,7 @@ class DepotsView(ScenarioMixIn, TemplateView):
         context["forms"] = dict()
         for depot_config in depot_configs:
             depot_forms = dict()
+
             depot_forms["depot_config"] = DepotConfigurationWishForm(
                 data=data,
                 instance=depot_config,
@@ -1076,7 +1077,13 @@ class DepotsView(ScenarioMixIn, TemplateView):
             for depot_id, form_dict in context["forms"].items():
                 form_dict["depot_config"].is_valid()
                 instance = form_dict["depot_config"].instance
-                instance.save(update_fields=["auto_generate"])
+                # Set default for the depot config when auto generate was set to false
+                if not form_dict["depot_config"].cleaned_data["auto_generate"]:
+                    instance.cleaning_duration = 30
+                    instance.shunting_duration = 5
+                instance.save(
+                    update_fields=["auto_generate", "cleaning_duration", "shunting_duration"]
+                )
             self.request.method = "get"
             return self.get(request, *args, **kwargs)
 
