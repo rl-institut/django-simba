@@ -5,9 +5,10 @@ MAP_ENGINE_CENTER_AT_STARTUP = [13, 52]
 MAP_ENGINE_ZOOM_AT_STARTUP = 8
 
 MAP_ENGINE_IMAGES = [
-    setup.MapImage("busstop", "ebus_map/static/ebus_map/bus_station_never_electrified.png"),
-    setup.MapImage("busstop_red", "ebus_map/static/ebus_map/depot.png"),
-    setup.MapImage("busstop_blue", "ebus_map/static/ebus_map/bus_station_electrified.png"),
+    # NOTE: path is cast to static by MapImage
+    setup.MapImage("busstop", ("/ebus_map/bus_station_never_electrified.png")),
+    setup.MapImage("busstop_red", ("/ebus_map/depot.png")),
+    setup.MapImage("busstop_blue", ("/ebus_map/bus_station_electrified.png")),
 ]
 
 # MAP_ENGINE_API_MVTS = {}
