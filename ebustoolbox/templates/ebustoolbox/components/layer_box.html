@@ -1,4 +1,5 @@
 {% load i18n %}
+{% load static %}
 <div class="map-overlay" id="map-overlay">
     <div>
         <button type="button" class="btn-close text-slate-600" id="js-map-layers-box-close" aria-label="Close">X</button>
@@ -43,7 +44,7 @@
             const depotLayer = [
                 {
                     label: 'Depots',
-                    icon: '/static/ebus_map/static/ebus_map/depot.png',
+                    icon: "{% static '/ebus_map/depot.png' %}",
                     toggleFunction: () => updateFilter()
                 }
             ];
@@ -51,17 +52,17 @@
             const stationLayers = [
                 {
                     label: 'Elektrifiziert',
-                    icon: '/static/ebus_map/static/ebus_map/bus_station_electrified.png',
+                    icon: "{% static 'ebus_map/bus_station_electrified.png' %}",
                     toggleFunction: () => updateFilter()
                 },
                 {
                     label: 'Nicht elektrifiziert',
-                    icon: '/static/ebus_map/static/ebus_map/bus_station_not_electrified.png',
+                    icon: "{% static 'ebus_map/bus_station_not_electrified.png' %}",
                     toggleFunction: () => updateFilter()
                 },
                 {
                     label: 'Nie elektrifiziert',
-                    icon: '/static/ebus_map/static/ebus_map/bus_station_never_electrified.png',
+                    icon: "{% static '/ebus_map/bus_station_never_electrified.png' %}",
                     toggleFunction: () => updateFilter()
                 }
             ];
