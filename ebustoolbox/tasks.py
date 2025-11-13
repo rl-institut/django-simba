@@ -3233,7 +3233,6 @@ def transform_depot_stations(parent: Scenario, child: Scenario) -> None:
     :param parent: Source scenario
     :param child: Child scenario which is notified about changes
     """
-    reset_postgres_auto_increments(apps=[Station._meta.app_label])
     depots = Station.objects.filter(scenario=parent, charge_type=EnumChargeType.DEPOT)
     all_routes = Route.objects.filter(scenario=parent)
     depot_arrival_routes = all_routes.filter(arrival_station__in=depots)
