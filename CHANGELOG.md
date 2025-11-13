@@ -20,6 +20,15 @@ Template:
 
 ## [x.x.x] - Unreleased
 ### Changed
+
+- [(#263)](https://github.com/rl-institut/django-simba/pull/263)
+ - Added transform_zero_duration_trips function
+   - Detects and merges trips/routes with zero duration or distance.
+   - Creates new merged stations when inconsistent trips occur.
+   - Updates related routes and trips to use merged stations.
+   - Deletes problematic trips and orphaned routes.
+   - Generates warnings in parent and child scenarios about auto-generated merged stations.
+
 - [(#256)](https://github.com/rl-institut/django-simba/pull/256)
 - Run extreme/sizing and default scenario consecutively.
 - default scenario is a copy of the extreme scenario with the results of the station optimization and other parameters.

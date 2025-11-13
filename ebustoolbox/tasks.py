@@ -51,6 +51,7 @@ from simba.data_container import DataContainer
 from simba.schedule import Schedule as SimbaSchedule
 from . import schedule_readers, forms
 from .models import (
+    copy_model_instance,
     AreaInformation,
     DepotConfigurationWish,
     DepotMutation,
@@ -893,6 +894,7 @@ def init_db_with_trips(
         parent.scenario_type = EnumScenarioType.SOURCE
         scenario.save()
         transform_depot_stations(parent, scenario)
+        ScheduleStationMerger.transform_zero_duration_trips(parent, scenario)
         # Parent contains the trip data so check the consistency of the parent and not the mutation.
         if not (is_consistent(parent)):
             logger.error("Scenario does not seem to be consistent with assumptions")
@@ -1163,6 +1165,10 @@ class SimulationEventsMissingException(Exception):
     pass
 
 
+class SimulationUnknownVehicleException(Exception):
+    pass
+
+
 class SimulationDepotsMissingException(Exception):
     pass
 
@@ -1179,20 +1185,14 @@ class SimulationExecutionFailException(Exception):
     pass
 
 
-def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
-    events = scenario.event_set.filter(
-        event_type__in=[EventType.CHARGING_DEPOT, EventType.STANDBY_DEPARTURE]
-    )
+def create_spiceev_scenario_dict(scenario: Scenario, split_vehicles=False) -> dict:  # noqa: C901
+    events = scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT)
     if not events.exists():
         raise SimulationEventsMissingException("SpiceEV scenario generation: no events found")
 
     args = get_args(scenario)
     start_simulation = events.order_by("time_start").first().time_start
-    stop_simulation = events.order_by("time_end").last().time_end
-    # simulate whole last timestep
-    n_intervals = -int((start_simulation - stop_simulation) // timedelta(minutes=args.interval))
-    # and one more timestep, since vehicle soc are taken at begin of each timestep
-    n_intervals += 1
+    stop_simulation = events.order_by("time_end").last().time_end  # might be updated
 
     # SpiceEV vehicle types
     vehicle_types = {
@@ -1233,7 +1233,9 @@ def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
         raise SimulationDepotsMissingException("SpiceEV scenario generation: no depots found")
 
     # get all depot events
-    spice_ev_events = get_spiceev_events_from_scenario(scenario, skip_oppb=True)
+    spice_ev_events = get_spiceev_events_from_scenario(
+        scenario, skip_oppb=True, split_vehicles=split_vehicles
+    )
     if len(spice_ev_events) == 0:
         raise SimulationEventsMissingException("SpiceEV scenario generation: no events found")
 
@@ -1250,8 +1252,28 @@ def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
     unoccupied_cs = {gc: set() for gc in grid_connectors}
 
     for event in spice_ev_events:
+        vid = event["vehicle_id"]
+
         if event["event_type"] == "arrival":
-            if vehicle_to_cs.get(event["vehicle_id"]) is not None:
+            if split_vehicles:
+                # vehicle is split into multiple -> create new vehicle info
+                # new vehicle ID are of form "parentVID#NR"
+                # ignore number after last #, but there may be other # before in vehicle name
+                parent_vid = "#".join(vid.split("#")[:-1])
+                if parent_vid not in vehicles:
+                    raise SimulationUnknownVehicleException(f"Unknown vehicle ID {vid}")
+                if vid in vehicles:
+                    raise Exception("Vehicles not split enough")
+                # assume perfect charging at last station, reaching desired soc
+                # (which is the same for all depots)
+                soc = event["update"]["desired_soc"]
+                vehicles[vid] = {
+                    "connected_charging_station": None,
+                    "soc": soc,
+                    "vehicle_type": vehicles[parent_vid]["vehicle_type"],
+                }
+
+            if vehicle_to_cs.get(vid) is not None:
                 raise SimulationDoubleArrivalException(
                     f"SpiceEV scenario generation: double arrival {event}"
                 )
@@ -1276,12 +1298,12 @@ def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
                     max_cs_dict[station] = None
             # take note in lookup tables for future reference (departure)
             occupied_cs[station].add(cs_id)
-            vehicle_to_cs[event["vehicle_id"]] = (station, cs_id)
+            vehicle_to_cs[vid] = (station, cs_id)
             # update event station from Station (GC) name to charging station
             event["update"]["connected_charging_station"] = cs_id
         elif event["event_type"] == "departure":
             try:
-                station, cs_id = vehicle_to_cs[event["vehicle_id"]]
+                station, cs_id = vehicle_to_cs[vid]
             except KeyError:
                 raise SimulationDepartureFailException(
                     f"SpiceEV scenario generation: departure without arrival {event}"
@@ -1289,7 +1311,10 @@ def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
             # clear occupied state
             occupied_cs[station].remove(cs_id)
             unoccupied_cs[station].add(cs_id)
-            vehicle_to_cs[event["vehicle_id"]] = None
+            vehicle_to_cs[vid] = None
+
+            # simulation will always end after last charging is finished
+            stop_simulation = max(stop_simulation, datetime.fromisoformat(event["start_time"]))
 
     # create needed charging stations
     charging_stations = dict()
@@ -1299,6 +1324,11 @@ def create_spiceev_scenario_dict(scenario: Scenario) -> dict:  # noqa: C901
                 "max_power": station_info["power_per_charger"],
                 "parent": station,
             }
+
+    # compute number of intervals: simulate whole last timestep
+    n_intervals = -int((start_simulation - stop_simulation) // timedelta(minutes=args.interval))
+    # and one more timestep, since vehicle soc are taken at begin of each timestep
+    n_intervals += 1
 
     return {
         "scenario": {
@@ -1336,8 +1366,14 @@ def get_initial_vehicle_soc(scenario: Scenario) -> dict:
     return vehicle_soc
 
 
-def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
-    # Create SpiceEV-like event dictionaries for a Scenario
+def get_spiceev_events_from_scenario(scenario, skip_oppb=False, split_vehicles=False):
+    """
+    Create SpiceEV-like event dictionaries for a Scenario
+
+    skip_oppb: only use depot events
+    split_vehicles: each charging event is independent from others,
+        generating a new vehicle for every charge
+    """
 
     events = scenario.event_set.order_by("time_start")
     event_list = list()
@@ -1358,9 +1394,17 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False):
         charging_events = charging_events.union(
             events.filter(event_type=EventType.CHARGING_OPPORTUNITY)
         )
+    # for split_vehicles: how many new vehicles have been created from original?
+    # vid -> count
+    vehicle_counter = dict()
     # iterate over events in-order, creating SpiceEV event-dicts for each charging event
     for event in charging_events:
         vid = event.vehicle.to_simba_name()
+        if split_vehicles:
+            v_nr = vehicle_counter.get(vid, 0)
+            vehicle_counter[vid] = v_nr + 1
+            vid = f"{vid}#{v_nr}"
+
         # find adjacent standby event (can still charge)
         next_event = Event.objects.filter(
             event_type=EventType.STANDBY_DEPARTURE,
@@ -1507,17 +1551,20 @@ def get_tail_index(arr: list) -> int:
     return len(arr)
 
 
-def apply_depot_strategy(scenario: Scenario, strategy: str) -> None:
+def apply_depot_strategy(scenario: Scenario, strategy: str, split_vehicles=False) -> None:
     # simulate all depot charging in SpiceEV with new strategy, update timeseries
-    spice_ev_scenario_dict = create_spiceev_scenario_dict(scenario)
+    spice_ev_scenario_dict = create_spiceev_scenario_dict(scenario, split_vehicles=split_vehicles)
     spice_ev_scenario = simulate_depot_strategy(spice_ev_scenario_dict, strategy)
     # attach vehicle soc to SpiceEV scenario
     spice_ev_report.generate_soc_timeseries(spice_ev_scenario)
     # update events with new soc timeseries
-    events = scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT)
+    events = scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT).order_by("time_start")
     # keep track of changed events
     event_list = list()
     interval = spice_ev_scenario.interval
+    # for split_vehicles: how many new vehicles have been created from original?
+    # vid -> count
+    vehicle_counter = dict()
     for event in events:
         # charging might include following standby_departure
         next_event = Event.objects.filter(
@@ -1534,6 +1581,11 @@ def apply_depot_strategy(scenario: Scenario, strategy: str) -> None:
         if next_event is not None:
             departure_time = max(departure_time, next_event.time_end - STANDBY_BUFFER)
         ts_end = get_ts_index_from_time(spice_ev_scenario, departure_time)
+
+        if split_vehicles:
+            v_nr = vehicle_counter.get(vid, 0)
+            vehicle_counter[vid] = v_nr + 1
+            vid = f"{vid}#{v_nr}"
 
         # end timestep is inclusive in range, might be after end of SpiceEV scenario
         time_range = range(ts_start, ts_end + 1)
@@ -2336,10 +2388,16 @@ def get_middlepoint(scenario: Scenario) -> tuple[float, float] | None:
 
 
 def is_consistent_rotation(rotation: Rotation) -> bool:
-    trips = list(Trip.objects.filter(rotation=rotation).order_by("departure_time"))
+    trips = list(
+        Trip.objects.filter(rotation=rotation).select_related("route").order_by("departure_time")
+    )
     for trip in trips:
-        if trip.arrival_time <= trip.departure_time:
+        if trip.arrival_time < trip.departure_time:
             logger.error(f"A trip must have a duration. {trip=}")
+            return False
+
+        if trip.route.distance is None or trip.route.distance < 0:
+            logger.error(f"A route must have a postive distance. {trip=}")
             return False
 
     if trips[-1].route.arrival_station.charge_type != EnumChargeType.DEPOT:
@@ -2788,7 +2846,8 @@ def find_and_make_depots(scenario):
     for r in Rotation.objects.filter(scenario=scenario).prefetch_related("trip_set"):
         trips = r.trip_set.order_by("departure_time")
         depot_stations.add(trips.first().route.departure_station)
-        depot_stations.add(trips.last().route.arrival_station)
+        arrival_sorted = sorted(trips, key=lambda x: x.arrival_time)
+        depot_stations.add(arrival_sorted[-1].route.arrival_station)
 
     logger.info(f"{len(depot_stations)} Depot Stations found")
 
@@ -2838,6 +2897,310 @@ def trim_depots(scenario, depot_ids: list[int]):
         f"stations: {station_before_count} ->{Station.objects.filter(scenario=scenario).count()}\n"
         f"vehicles: {vehicle_before_count} ->{Vehicle.objects.filter(scenario=scenario).count()}\n"
     )
+
+
+class ScheduleStationMerger:
+    @staticmethod
+    def get_problematic_routes(scenario) -> QuerySet[Route]:
+        # Routes with less than 0 distance
+        route_ids = Route.objects.filter(scenario=scenario, distance__lte=0).values_list(
+            "id", flat=True
+        )
+        # Trips with less than zero duration
+        min_duration = timedelta(minutes=0)
+        trip_route_ids = (
+            Trip.objects.filter(scenario=scenario)
+            .annotate(duration=F("arrival_time") - F("departure_time"))
+            .filter(duration__lte=min_duration)
+            .select_related("route")
+            .values_list("route_id", flat=True)
+        )
+
+        routes_to_change = set(route_ids).union(set(trip_route_ids))
+        routes = (
+            Route.objects.filter(id__in=routes_to_change)
+            .prefetch_related("trip_set")
+            .select_related("departure_station", "arrival_station")
+        )
+        return routes
+
+    @staticmethod
+    def get_rotations_trips(rotation: Rotation, rotation_trip_dict):
+        # get a dictionary of the next and prev trip for all trips of a rotation.
+        # The first key is the trip.id
+        trip_dict = rotation_trip_dict.get(rotation)
+        if trip_dict is None:
+            trips = list(
+                Trip.objects.filter(rotation=rotation)
+                .order_by("departure_time")
+                .select_related("route")
+            )
+            assert len(trips) > 1, "A rotation must have at least two trips"
+            prev_trip = trips[0]
+            trip_dict = {prev_trip.id: {"prev": None}}
+            for _trip in trips[1:]:
+                trip_dict[prev_trip.id]["next"] = _trip
+                trip_dict[_trip.id] = {"prev": prev_trip}
+                prev_trip = _trip
+        rotation_trip_dict[rotation] = trip_dict
+
+    @classmethod
+    def expand_next_trips(cls, next_trip, merge_stations, delete_trips, rotation_trips):
+        distance = 0
+        while cls.is_problematic(next_trip):
+            distance += next_trip.route.distance
+            merge_stations.union(
+                [next_trip.route.arrival_station, next_trip.route.departure_station]
+            )
+            # Mark for deletion
+            delete_trips.add(next_trip.id)
+            next_trip = rotation_trips.get(next_trip.id, {}).get("next")
+            assert (
+                next_trip is not None
+            ), "The last trip of a rotation cannot be a 0 distance/duration trip"
+        return distance, next_trip
+
+    @classmethod
+    def expand_prev_trips(cls, prev_trip, merge_stations, delete_trips, rotation_trips):
+        distance = 0
+        while cls.is_problematic(prev_trip):
+
+            distance += prev_trip.route.distance
+            merge_stations.union(
+                [prev_trip.route.arrival_station, prev_trip.route.departure_station]
+            )
+            # Mark for deletion
+            delete_trips.add(prev_trip.id)
+            prev_trip = rotation_trips.get(prev_trip.id, {}).get("prev")
+            assert (
+                prev_trip is not None
+            ), "The first trip of a rotation cannot be a 0 distance/duration trip"
+        return distance, prev_trip
+
+    @staticmethod
+    def is_problematic(trip: Trip) -> bool:
+        if trip.arrival_time - trip.departure_time <= timedelta(minutes=0):
+            return True
+        if trip.route.distance == 0:
+            return True
+        return False
+
+    @staticmethod
+    def fix_next_trip(trip, station, route_id) -> None:
+        route: Route = trip.route
+        route.id = route_id
+        route.departure_station = station
+        route.name = f"Fixed zero duration/distance route {route.departure_station.name} - {route.arrival_station.name}"
+        trip.route = route
+        trip.route_id = route_id
+
+    @classmethod
+    @atomic()
+    def transform_zero_duration_trips(cls, parent: Scenario, child: Scenario) -> None:
+        """
+        Merge routes and trips with zero duration or distance
+
+        Trips need to have a duration and a distance. If this is not the case this function merges
+        stations when this occurs. The routes and trips with no duration/distanced are rerouted to this
+        station. The number of trips and routes will be reduced.
+        Routes which are generated and use these new stations are not shared across trips.
+        With bad data, cases my arise where stations are merged since trips/routes connect them
+        with zero duration/distance, while at the same time other routes using these merged stations
+        contain distance and duration. This is not handled specifically as edge case of already bad
+        data.
+
+        :param parent: Source scenario
+        :param child: Child scenario which is notified about changes
+        """
+
+        rotation_trip_dict = dict()
+        route_id = ebustoolbox.util.get_next_id(Route)
+
+        # Merge all routes. This is done by creating new routes. change stations and trips accordingly
+        new_stations = dict()
+        created_stations = set()
+        changed_trips = []
+        new_routes = []
+        delete_trips: set[int] = set()
+
+        routes = cls.get_problematic_routes(parent)
+        # Merge trips and routes with all successive zero duration/distance trips.
+        # The emerging stations are used for all routes which arrive
+        # or depart from one of these multi-stations.
+
+        for route in routes:
+            route: Route
+            for trip in route.trip_set.all():
+                trip: Trip
+                # Trip is already marked to be deleted. Skip it
+                if trip.id in delete_trips:
+                    continue
+                logger.debug(f"Handling problematic trip {trip}")
+                delete_trips.add(trip.id)
+                cls.get_rotations_trips(trip.rotation, rotation_trip_dict)
+                rotation_trips = rotation_trip_dict[trip.rotation]
+                assert cls.is_problematic(trip)
+                merge_stations = set([trip.route.arrival_station, trip.route.departure_station])
+                prev_trip: Trip = rotation_trips.get(trip.id, {}).get("prev")
+                assert (
+                    prev_trip is not None
+                ), "The first trip of a rotation cannot be a 0 distance/duration trip"
+
+                # This will be added to the new trip and route
+                problematic_distance = trip.route.distance
+
+                # expand the selection of problematic trips/routes
+                # until an non problematic trip is found
+                distance, prev_trip = cls.expand_prev_trips(
+                    prev_trip, merge_stations, delete_trips, rotation_trips
+                )
+
+                # NOTE: When fetching trip data with select_related("route")
+                # multiple trip objects may share the same in memory route.
+                # To make sure only this trip specific route instance is mutated
+                # a in memory copy is created
+                prev_trip.route = copy_model_instance(prev_trip.route)
+                problematic_distance += distance
+
+                next_trip: Trip = rotation_trips.get(trip.id, {}).get("next")
+                # Zero distance/duration trips are merged with the next trip.
+                # Therefor the last trip must have distance and duration
+                assert (
+                    next_trip is not None
+                ), "The last trip of a rotation cannot be a 0 distance/duration trip"
+                distance, next_trip = cls.expand_next_trips(
+                    next_trip, merge_stations, delete_trips, rotation_trips
+                )
+
+                # Same logic for copying as in the previous copy_model_instance call
+                next_trip.route = copy_model_instance(next_trip.route)
+                problematic_distance += distance
+                # Create a station or find a station with a common station
+                station = None
+                for search_station in merge_stations:
+                    if search_station in new_stations:
+                        station = new_stations[search_station]
+                        break
+                else:
+                    # Saving stations as single calls is not very performant,
+                    # but it allows for directly accessing the id.
+                    # Since only few stations should be created, performance shouldn't be a problem
+                    station = Station(scenario=parent, name="Zusammengelegte Station: ")
+                    station.save()
+                    created_stations.add(station)
+                    # Make this station reusable for all other trips which connect with this station
+                    for search_station in merge_stations:
+                        new_stations[search_station] = station
+                # at this point the next and previous trip should be trips with non zero distance
+                # and duration
+                new_route = prev_trip.route
+
+                new_route.id = route_id
+                route_id += 1
+                # In case this is a trip without duration and a route with some distance
+                new_route.distance += problematic_distance
+                new_route.name = (
+                    "Fixed zero duration/distance route "
+                    f"{new_route.departure_station.name} - {new_route.arrival_station}"
+                )
+                # NOTE: the route also has an attribute called stations,
+                # which describes the path of a route. This is column is skipped since its optional,
+                # and this kind of faulty data is more likely to occur with SimBA schedule data,
+                # which does not pass station data
+                # the new route of the previous trip ends at the merged station
+                new_route.arrival_station = station
+                # Store the new route and changed trip to update it after the route is created
+                new_routes.append(new_route)
+                prev_trip.route_id = new_route.id
+                # NOTE: The trip duration is NOT changed. Adding trips with zero driving duration
+                # would not change the driving time. Driving durations for routes with 0 distance
+                # are ignored. this means possible standing times of 0 duration/distance trips
+                # occur right after the first previous trip with duration and distance.
+                changed_trips.append(prev_trip)
+                cls.fix_next_trip(next_trip, station, route_id)
+                assert next_trip.route not in new_routes
+                route_id += 1
+                new_routes.append(next_trip.route)
+
+                # Store this changed trip to update it after the route is created
+                changed_trips.append(next_trip)
+
+        # The algorithm created some stations which are shared across routes.
+        # The name should reflect stations they were merged from
+        for original_station, new_station in new_stations.items():
+            new_station.name += f"{original_station.name} "
+        logger.info(
+            "Creating new merged stations "
+            f"{Station.objects.bulk_update(created_stations, fields=['name'])}"
+        )
+
+        # Reverse the lookup
+        reversed_station = dict()
+        for original_station, new_station in new_stations.items():
+            if reversed_station.get(new_station) is None:
+                reversed_station[new_station] = set()
+            reversed_station[new_station].add(original_station)
+
+        message = (
+            "Die Station '{}' wurde automatisch generiert. "
+            "Grund hierfür ist, dass folgende Stationen über Fahrten ohne Fahrtzeit "
+            "oder ohne Distanz verknüpft sind:{}."
+        )
+
+        for scenario in [parent, child]:
+            for new_station, original_stations in reversed_station.items():
+                Notification.objects.create(
+                    scenario=scenario,
+                    level=EnumNotificationLevels.WARNING,
+                    notification_type=EnumNotificationType.MERGED_STATIONS_FOR_INCONSISTENT_TRIPS,
+                    message=message.format(
+                        escape(new_station.name),
+                        escape(", ".join([s.name for s in original_stations])),
+                    ),
+                )
+
+        # After the stations were created we can change the routes
+        logger.info(f"Creating new {len(new_routes)} Routes with merged stations")
+        new_routes_ids = [x.id for x in new_routes]
+        new_routes = Route.objects.bulk_create(new_routes)
+        route_lookup = {old_id: x.id for old_id, x in zip(new_routes_ids, new_routes)}
+        for original_station, new_station in new_stations.items():
+            # other routes hitting this station should use the merged station too
+            routes = Route.objects.filter(arrival_station=original_station).update(
+                arrival_station=new_station
+            )
+            routes = Route.objects.filter(departure_station=original_station).update(
+                departure_station=new_station
+            )
+        # The trips had placeholder route ids. Replace them with the ids returned from the db
+        for t in changed_trips:
+            t.route_id = route_lookup[t.route_id]
+        logger.info(
+            f"Updating trips {(Trip.objects.bulk_update(changed_trips, fields=['route_id']))}"
+        )
+        logger.info(
+            f"Deleting zero distance/duration trips {(Trip.objects.filter(id__in=delete_trips).delete())}"
+        )
+
+        # Filter for routes which do not have a trip anymore and delete them.
+        logger.info(
+            f"Deleting orphaned routes without trips {(Route.objects.filter(trip__isnull=True).delete())}"
+        )
+
+        deleted_stations = str(
+            Station.objects.filter(scenario=parent)
+            .annotate(departure_count=Count("route_departure_set__trip"))
+            .annotate(arrival_count=Count("route_arrival_set__trip"))
+            .filter(departure_count=0, arrival_count=0)
+            .delete()
+        )
+
+        logger.info(f"Deleting orphaned Stations without trips {deleted_stations}")
+
+        if cls.get_problematic_routes(parent).count() > 0:
+            logger.error(
+                "Removing zero duration or distance trips did not work for all trips/routes"
+            )
 
 
 @atomic()
