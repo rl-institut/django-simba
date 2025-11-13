@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from ebustoolbox.models import (
     Scenario,
     Event,
+    SimulationRange,
     get_longest_distance_rotation,
     get_shortest_distance_rotation,
     Vehicle,
@@ -571,6 +572,11 @@ def get_all_event_info(scenario_id):
     all_events = Event.objects.filter(scenario=scenario, vehicle__isnull=False).prefetch_related(
         "vehicle"
     )
+
+    time_start, time_end = get_start_end_time(scenario)
+    # Filter events to the simulation range
+    all_events = all_events.filter(time_start__gte=time_start, time_end__lte=time_end)
+
     all_rotations = Rotation.objects.filter(
         scenario=scenario, vehicle__isnull=False
     ).prefetch_related("vehicle")
@@ -1014,6 +1020,11 @@ def get_stats_as_json(task_id: str):
     depots = scenario.depot_set.all()
     num_electrified_opps = stations.filter(charge_type=EnumChargeType.OPPORTUNITY).count()
     events = scenario.event_set.select_related("vehicle_type").all()
+
+    time_start, time_end = get_start_end_time(scenario)
+    # Filter events to the simulation range
+    events = events.filter(time_start__gte=time_start, time_end__lte=time_end)
+
     # calculate charged energy for all events
     events = events.annotate(
         charged=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity"),
@@ -1054,6 +1065,7 @@ def get_stats_as_json(task_id: str):
     charging_events = events.filter(event_type=EventType.CHARGING_OPPORTUNITY).select_related(
         "station"
     )
+    charging_events = charging_events.filter(time_start__gte=time_start, time_end__lte=time_end)
 
     stations_with_null_amount = opp_stations.filter(
         amount_charging_places__isnull=True,
@@ -1199,8 +1211,12 @@ def get_power_draw_and_occ_as_json(task_id: str):
     all_areas = scenario.area_set.all()
     all_area_ids = [area.id for area in all_areas]
 
+    time_start, time_end = get_start_end_time(scenario)
+
     with Session(SqlAlchemyEngine.get_engine()) as session:
-        prepared_data = power_and_occupancy(all_area_ids, session)
+        prepared_data = power_and_occupancy(
+            all_area_ids, session, sim_start_time=time_start, sim_end_time=time_end
+        )
 
     return prepared_data.to_dict(orient="records")
 
@@ -1214,6 +1230,9 @@ def get_soc_gantt_as_json(task_id: str):
         .select_related("vehicle")
     )
 
+    time_start, time_end = get_start_end_time(scenario)
+
+    events = events.filter(time_start__gte=time_start, time_end__lte=time_end)
     records = []
     for event in events:
         vehicle_id = event.vehicle.id
@@ -1271,3 +1290,17 @@ def get_soc_gantt_as_json(task_id: str):
     ]
 
     return vehicles, records
+
+
+def get_start_end_time(scenario: Scenario) -> tuple[datetime.datetime, datetime.datetime]:
+    """Get the time_start and the time_end of the simulation_range"""
+    if scenario.parent:
+        sim_range = SimulationRange.objects.get(scenario=scenario.parent)
+        time_start = sim_range.start
+        time_end = sim_range.end
+    else:
+        # Fallback if a scenario should be plotted without a parent and a simulation range
+        trips = Trip.objects.filter(scenario=scenario).order_by("departure_time")
+        time_start = trips.first().departure_time
+        time_end = trips.last().arrival_time
+    return time_start, time_end
