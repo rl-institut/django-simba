@@ -21,14 +21,14 @@
         {{ progress.status }}
         <div class="w-full lg:w-8/12 mt-4">
           <div class="relative w-full h-2 bg-blue-200 rounded-full">
-            <div id="transitionProgresBar"
+            <div id="transitionProgressBar"
                     class="transition-all duration-1000 absolute left-0 h-2 bg-blue-800 rounded-full"
                     style="width: {{ progress.get_progress|floatformat:0 }}%;"
             >        <div class="m-2">{{ progress.get_progress|floatformat:1 }}%</div>
             </div>
           </div>
         </div>
-              <div class='mt-2'>
+              <div class='mt-6'>
         {% if progress.success %}
 {#          a new scenario was created which has a new task_id identical to the progress task_id#}
           <a class="text-blue-600 hover:underline" href="{%  url 'simba:result' default_scenario.task_id %}" >{% translate 'Zu den Ergebnissen für das Standard-Szenario' %}</a><br>
