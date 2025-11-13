@@ -1065,6 +1065,7 @@ def get_stats_as_json(task_id: str):
     charging_events = events.filter(event_type=EventType.CHARGING_OPPORTUNITY).select_related(
         "station"
     )
+    charging_events = charging_events.filter(time_start__gte=time_start, time_end__lte=time_end)
 
     stations_with_null_amount = opp_stations.filter(
         amount_charging_places__isnull=True,
@@ -1074,10 +1075,7 @@ def get_stats_as_json(task_id: str):
 
     for station in stations_with_null_amount:
         timeline = []
-        station_events = station.charging_events.filter(
-            time_start__gte=time_start, time_end__lte=time_end
-        )
-        for event in station_events:
+        for event in station.charging_events:
             timeline.append((event.time_start, +1))  # Charger starts
             timeline.append((event.time_end, -1))  # Charger ends
 
