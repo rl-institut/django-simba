@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("ebustoolbox", "0077_alter_vehicletype_battery_type_and_more"),
+        ("ebustoolbox", "0078_alter_notification_notification_type"),
     ]
 
     operations = [
