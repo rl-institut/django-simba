@@ -186,21 +186,24 @@ def get_sorted_mutation_scenarios(user) -> QuerySet[Scenario]:
 
     The QuerySet is ordered by User Scenarios, UserGroup Scenarios and lastly the default Scenario
     """
-    # Todo Define what admins should see and refactor function with new get_user_scenario_qs
     if not user.is_authenticated:
         # Query for default scenario
-        default_scenario = Scenario.objects.filter(defaultscenario=DefaultScenario.objects.first())
-        return default_scenario
+        data_scenarios = Scenario.objects.filter(
+            scenario_type=EnumScenarioType.PUBLIC_DATA,
+            manager__is_superuser=True,
+        )
+        return data_scenarios
     scenario_qs = Scenario.objects.filter(scenario_type=EnumScenarioType.MUTATION).annotate(
         order_id=Cast(F("manager_id"), FloatField()) - user.id,
     )
 
     user_scenarios = get_user_scenario_qs(user, scenario_qs=scenario_qs)
-    # Get the Scenario related to the Singleton DefaultScenario as queryset
-    default_scenario = Scenario.objects.filter(
-        defaultscenario=DefaultScenario.objects.first()
+    # Get the Scenario related to the scenarios which contain default data
+    data_scenarios = Scenario.objects.filter(
+        manager__is_superuser=True,
+        scenario_type=EnumScenarioType.PUBLIC_DATA,
     ).annotate(order_id=Value(float("inf"), output_field=FloatField()))
-    all_scenarios = user_scenarios.union(default_scenario)
+    all_scenarios = user_scenarios.union(data_scenarios)
 
     # Annotation is not possible after using union
     # Order output. User Scenarios first
@@ -449,7 +452,10 @@ class TripsView(FormView):
             ):
                 raise Http404
             mutation_scenario = Scenario.objects.get(task_id=scenario_uuid)
-            assert mutation_scenario.scenario_type == EnumScenarioType.MUTATION
+            assert mutation_scenario.scenario_type in [
+                EnumScenarioType.MUTATION,
+                EnumScenarioType.PUBLIC_DATA,
+            ]
             copied_mutation = tasks.create_scenario_copy_for_user(mutation_scenario)
             copied_mutation.name = scenario.name
             copied_mutation.name_short = scenario.name_short
@@ -502,15 +508,14 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         data = None
         if self.request.method == "POST":
             data = self.request.POST
-        middlepoint = tasks.get_middlepoint(scenario)
+        # NOTE: stations are linked with the parent/source scenario
+        middlepoint = tasks.get_middlepoint(scenario.parent)
         lon, lat = None, None
         startdate = datetime.datetime(year=2015, month=1, day=1)
         # Historical dwd data goes mostly till end of 2024 and does not include the current year
         enddate = datetime.datetime(year=2024, month=12, day=31)
         # TODO: define default weatherstation in central germany
         weatherstation = WeatherStation.objects.first()
-        # Only pick a weather station close to the system,
-        # if there are at least data for 80% of time
         minimal_data_ratio = 0.8
         min_data_points = (enddate - startdate).total_seconds() / 3600 * minimal_data_ratio
         if middlepoint:
@@ -1136,7 +1141,11 @@ class SummaryView(AuthorizedMixIn, TemplateView):
         scenario = get_object_or_404(Scenario, task_id=task_id)
         children = list(Scenario.objects.filter(parent=scenario).values_list("id", flat=True))
         notifications = Notification.objects.filter(scenario__in=[scenario.id] + children).exclude(
-            notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING
+            notification_type__in=[
+                EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING,
+                EnumNotificationType.INTERMEDIATE_DEPOT_STOPS_TRANSFORMED,
+                EnumNotificationType.MERGED_STATIONS_FOR_INCONSISTENT_TRIPS,
+            ]
         )
         return notifications
 

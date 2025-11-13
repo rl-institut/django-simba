@@ -274,7 +274,7 @@ class SimbaScheduleReader(ScheduleReader):
                 Trip.objects.bulk_create(trips)
 
             if settings.SEARCH_STATION_LOCATIONS:
-                self.set_progress(5, _("Finde Stationen"))
+                self.set_progress(4, _("Finde Stationen"))
                 add_station_locations(Station.objects.filter(scenario=scenario))
 
             add_elevations(Station.objects.filter(scenario=scenario, geom__isnull=False))

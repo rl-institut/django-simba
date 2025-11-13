@@ -8,7 +8,6 @@ from .models import (
     AreaType,
     EnumChargeType,
     EnumVoltageLevel,
-    ElectrificationOptions,
     VehicleType,
     SimulationRange,
     Scenario,
@@ -107,17 +106,6 @@ class SimulationParameters(forms.ModelForm):
         ):
             raise ValidationError(_("In dieser Zeitspanne starten keine Umläufe."))
         return cleaned_data
-
-
-class ElectrificationOptionsForm(forms.ModelForm):
-    class Meta:
-        model = ElectrificationOptions
-        exclude = ("scenario", "electrified_stations")
-        help_texts = {
-            "gc_power_opps": _("Grid connector power in kVA"),
-            "cs_power_opps": _("Charging point power in kW"),
-            "amount_charging_places": _("Number of charging points per electrified station"),
-        }
 
 
 class TripsForm(forms.Form):

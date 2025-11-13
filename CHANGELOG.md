@@ -21,6 +21,15 @@ Template:
 ## [x.x.x] - Unreleased
 ### Changed
 
+- [(#299)](https://github.com/rl-institut/django-simba/pull/299)
+Progress bars get a static id so transitions using htmx work properly
+Allow running toolchain without parent
+Fix duplicated Notifications
+Give consumption plot on vehicles.html some padding
+Add most Models to the admin panel
+Create a new ScenarioType 'PUBLIC_DATA'
+Scenarios of type PUBLIC_DATA can be selected to be used as a data source
+
 - [(#263)](https://github.com/rl-institut/django-simba/pull/263)
  - Added transform_zero_duration_trips function
    - Detects and merges trips/routes with zero duration or distance.
