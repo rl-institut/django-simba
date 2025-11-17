@@ -8,6 +8,7 @@
   hx-encoding="multipart/form-data"
   hx-trigger="submit"
   hx-swap="outerHTML"
+  x-data = "{scheduleFile: '', get isSimbaSchedule() {return this.scheduleFile.split('.').pop() =='csv'}}"
 >
 
   {% csrf_token %}
@@ -15,7 +16,6 @@
     <h1 class="pb-6 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Umlaufplan' %}</h1>
     <span class="block mb-6 text-sm text-slate-500">{% translate 'Laden Sie ihren Umlaufplan hoch. Alternativ können Sie den Umlaufplan aus einem existierendem Szenario auswählen.' %}</span>
 
-{# ToDo @Bryan add styling and position div to your liking #}
     <div id="error-message" style="display:None">{% translate 'Lade eine Datei aus oder wähle ein Szenario aus.' %}</div>
     <div class="grid grid-cols-12 gap-4">
       <div class="col-span-full pb-4">
@@ -67,7 +67,7 @@
                   class="relative w-full cursor-pointer text-sm font-semibold text-emerald-700">
                 <span>{% translate 'Datei hochladen' %}</span>
                 {# this sets the id=form.data_file.auto_id #}
-                <input {{ form.data_file|widget_attrs }} type="file" class="sr-only" accept=".csv,.zip" onchange="updateFileName(this)">
+                <input x-model='scheduleFile' {{ form.data_file|widget_attrs }} type="file" class="sr-only" accept=".csv,.zip" onchange="updateFileName(this)">
                 {# progress bar during upload #}
                 <progress
                   id='progress'
@@ -117,6 +117,7 @@
       </div>
     </div>
     <div class="col-span-full pt-4 border-t">
+      <scenario-and-checkbox class="flex  gap-6">
       <div class="w-full pb-6">
         <label for="{{ form.scenario_name.auto_id }}"
           class="block text-sm/6 font-medium text-slate-900">{% translate 'Szenario-Name' %}</label>
@@ -126,6 +127,30 @@
             placeholder={% translate "Szenario-Name eingeben" %}>
         </div>
       </div>
+      <checkbox-finder class='flex items-center'  x-show="isSimbaSchedule">
+            <div class="flex gap-4 items-center ">
+              <div class="group grid size-4 grid-cols-1">
+                <input type="checkbox"
+                       {{ form.find_stations|widget_attrs }}
+                       {% if form.find_stations.initial %}checked{% endif %}
+                       aria-describedby="description-{{ vt_id }}"
+                       class="col-start-1 row-start-1 size-6 appearance-none rounded border border-slate-400 checked:border-emerald-500 checked:bg-emerald-500 checked:focus:bg-emerald-500 checked:hover:bg-emerald-500 focus:ring-green-500 focus-ring:outline focus-ring:outline-2 focus-ring:outline-offset-2 focus-ring:outline-green-500">
+                <svg class="pointer-events-none size-3.5 self-center justify-self-center stroke-white"
+                     viewBox="0 0 14 14"
+                     fill="none">
+                  <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path class="opacity-0" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+              <div class="text-sm text-slate-700 space-y-1 mx-2">
+                <label for="{{form.find_stations.auto_id}}"
+                       class="font-medium">{% translate 'Haltestellen automatisch lokalisieren? Dies verlängert den Einleseprozess.' %}</label>
+              </div>
+            </div>
+
+      </checkbox-finder >
+
+    </scenario-and-checkbox>
       <div class="w-full">
         <div class="flex justify-between">
           <label for="{{ form.description.auto_id }}" class="block text-sm/6 font-medium text-slate-800">
