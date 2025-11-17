@@ -1025,6 +1025,8 @@ def run_and_merge_scenarios(
     logger.info(f"Creating an extreme scenario {sizing_scenario_task_id} for the first Simulation")
     # Create a basic merge from the mutation and the source
     sizing_scenario = merge_scenario(mutation_id, sizing_scenario_task_id)
+    sizing_scenario.manager = Scenario.objects.get(id=mutation_id).manager
+    sizing_scenario.save()
     SimulationType.objects.create(scenario=sizing_scenario, sim_type=EnumSimulationType.SIZING)
 
     # Swap the consumption so in the first run the max consumption is used

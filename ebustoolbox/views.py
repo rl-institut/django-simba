@@ -456,9 +456,14 @@ class TripsView(FormView):
                 EnumScenarioType.MUTATION,
                 EnumScenarioType.PUBLIC_DATA,
             ]
+            if self.request.user.is_authenticated:
+                mutation_scenario.manager = self.request.user
+            else:
+                mutation_scenario.manager = None
             copied_mutation = tasks.create_scenario_copy_for_user(mutation_scenario)
             copied_mutation.name = scenario.name
             copied_mutation.name_short = scenario.name_short
+            copied_mutation.scenario_type = EnumScenarioType.MUTATION
             copied_mutation.description = scenario.description
             copied_mutation.save()
             scenario.delete()
