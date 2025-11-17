@@ -1469,12 +1469,20 @@ def get_dashboard(request):
     # show all scenarios of a user
     # what about staff?
     base_qs = Scenario.objects.filter(
-        scenario_type=EnumScenarioType.SIMULATION,
+        scenario_type__in=[EnumScenarioType.SIMULATION, EnumScenarioType.MUTATION]
     )
-    scenarios = get_user_scenario_qs(request.user, scenario_qs=base_qs)
+    scenarios = get_user_scenario_qs(request.user, scenario_qs=base_qs).prefetch_related(
+        "scenario_set"
+    )
     # get task status from task_id for each scenario
     scenario_list = list()
     for scenario in scenarios:
+        # Also show mutation scenarios, but only if they have not been simulated yet
+        if scenario.scenario_type == EnumScenarioType.MUTATION:
+            if scenario.scenario_set.count() == 0:
+                scenario.state = "idle"
+                scenario_list.append(scenario)
+            continue
         # The progress is linked to the mutation sceanario.
         # The progress task_id is set to the resulting (simulation-) scenario task_id
         progress = Progress.objects.filter(task_id=scenario.task_id)
