@@ -1191,7 +1191,12 @@
                             interval: 0,
                             formatter: function(value, index) {
                                 const vehicle = vehicles[index];
-                                return `{${vehicle.type}|${vehicle.type}} ${value}`;
+                                const type = vehicle.type;
+
+                                // truncate the label inside the rich block
+                                const truncated = type.length > 15 ? type.slice(0, 15) + '…' : type;
+
+                                return `{${type}|${truncated}} ${value}`;
                             },
                             rich: rich
                         },
