@@ -1214,21 +1214,36 @@ def get_soc_gantt_as_json(task_id: str):
         .select_related("vehicle")
     )
 
+    vehicles = Vehicle.objects.filter(scenario_id=scenario.id).select_related("vehicle_type")
+
+    vehicle_type_map = {v.id: v.vehicle_type.name for v in vehicles}
+
     records = []
     for event in events:
         vehicle_id = event.vehicle.id
+        v_type_name = vehicle_type_map.get(vehicle_id)
         tz_start = event.time_start
         tz_end = event.time_end
+
+        if hasattr(event, "trip") and event.trip:
+            vehicle_rotation = event.trip.rotation.name
+            route_name = event.trip.route.name
+        else:
+            vehicle_rotation = None
+            route_name = None
 
         # Fallback in case timeseries is missing or invalid
         if not event.timeseries or "time" not in event.timeseries or "soc" not in event.timeseries:
             records.append(
                 {
                     "vehicle": vehicle_id,
+                    "vehicle_type": v_type_name,
                     "start": tz_start.isoformat(),
                     "end": tz_end.isoformat(),
                     "soc_start": event.soc_start,
                     "soc_end": event.soc_end,
+                    "route_name": route_name,
+                    "rotation_name": vehicle_rotation,
                 }
             )
             continue
@@ -1247,10 +1262,13 @@ def get_soc_gantt_as_json(task_id: str):
             records.append(
                 {
                     "vehicle": vehicle_id,
+                    "vehicle_type": v_type_name,
                     "start": times[i].isoformat(),
                     "end": times[i + 1].isoformat(),
                     "soc_start": socs[i],
                     "soc_end": socs[i + 1],
+                    "route_name": route_name,
+                    "rotation_name": vehicle_rotation,
                 }
             )
 
