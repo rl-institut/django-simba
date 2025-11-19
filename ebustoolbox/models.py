@@ -1750,9 +1750,9 @@ class AreaType(models.TextChoices):
     The AreaType represents a certain type of area, which is used to define the location of a process.
     """
 
-    DIRECT_ONESIDE = "DIRECT_ONESIDE", _("Direkt einseitig")
-    DIRECT_TWOSIDE = "DIRECT_TWOSIDE", _("Direkt Zweiseitig")
-    LINEAR = "LINE", _("Linie")
+    DIRECT_ONESIDE = "DIRECT_ONESIDE", _("Schrägabstellung")
+    DIRECT_TWOSIDE = "DIRECT_TWOSIDE", _("Schrägabstellung in Doppelreihe")
+    LINEAR = "LINE", _("Blockabstellung")
 
 
 class Area(models.Model):

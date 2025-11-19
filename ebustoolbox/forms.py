@@ -318,7 +318,7 @@ class DepotConfigurationWishForm(forms.ModelForm):
             "default_power": _("Standard Ladeleistung"),
             "standard_block_length": _("Standard Blocklänge"),
             "cleaning_slots": _("Reinigungsplätze"),
-            "shunting_slots": _("Rangierplätze"),
+            "shunting_slots": _("Rangierkapazität"),
             "cleaning_duration": _("Reinigungsdauer"),
             "shunting_duration": _("Rangierdauer"),
         }
