@@ -1972,56 +1972,49 @@ ganttData.forEach(item => {
                     ganttData.forEach(item => {
                         const oldId = item.originalVehicleId; // Use the preserved database ID
 
-if (Object.hasOwn(newIndexMap, oldId)) {
-    const newIndex = newIndexMap[oldId];
+                    if (Object.hasOwn(newIndexMap, oldId)) {
+                        const newIndex = newIndexMap[oldId];
 
-    const newValue = [
-        newIndex,
-        +new Date(item.start),
-        +new Date(item.end),
-        item.soc_start,
-        item.soc_end,
-        item.vehicle_type,
-        item.route_name,
-        item.rotation_name
-    ];
+                        const newValue = [
+                            newIndex,
+                            +new Date(item.start),
+                            +new Date(item.end),
+                            item.soc_start,
+                            item.soc_end,
+                            item.vehicle_type,
+                            item.route_name,
+                            item.rotation_name
+                        ];
 
-    filteredGanttData.push({
-        ...item,
-        value: newValue
-    });
-}
-
+                        filteredGanttData.push({
+                            ...item,
+                            value: newValue
+                        });
+                    }
                     });
+                    // Rebuild Series
+                    const baseSeriesOption = chartInstance.getOption().series[0] || {};
 
-
-console.log(filteredGanttData)
-
-                    // ---- 5) Rebuild Series ----
-const baseSeriesOption = chartInstance.getOption().series[0] || {};
-
-const newSeries = [{
-    type: 'custom',
-    renderItem: baseSeriesOption.renderItem,
-    encode: baseSeriesOption.encode,
-    data: filteredGanttData
-        .map(d => d.value)
-        .sort((a, b) => a[1] - b[1])
+                    const newSeries = [{
+                        type: 'custom',
+                        renderItem: baseSeriesOption.renderItem,
+                        encode: baseSeriesOption.encode,
+                        data: filteredGanttData
+                            .map(d => d.value)
+                            .sort((a, b) => a[1] - b[1])
                     }];
 
                     const newYAxisConfig =buildYAxisConfig(vehiclesToKeep);
 
-                    // Apply the changes
                     chartInstance.setOption({
                         yAxis: newYAxisConfig,
                         series: newSeries
                     }, { replaceMerge: ['series','yAxis'] });
-
                 }
 
-            const chart = echarts.init(document.getElementById(chartId), 'ebusPalette'); // Use chartId passed
-            chart.setOption(option);
-            createVehicleTypeFilter(uniqueVehicleTypes, chart);
+                const chart = echarts.init(document.getElementById(chartId), 'ebusPalette'); // Use chartId passed
+                chart.setOption(option);
+                createVehicleTypeFilter(uniqueVehicleTypes, chart);
             })
             .catch(error => {
                 console.error('Error fetching or rendering SOC Gantt chart:', error);
