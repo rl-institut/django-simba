@@ -24,7 +24,7 @@
     <section class="pb-12">
       <fieldset class="pb-8">
         <div class="mt-6">
-          <!-- Option 1 -->
+          <!-- Option 1: no settings -->
           <div class="flex items-center h-12">
             <input id="costsAutomatic" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.no_input }}" type="radio" checked class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
             <div class="flex items-center gap-2">
@@ -37,59 +37,13 @@
                   </svg>
                   <!-- Tooltip -->
                   <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      {% translate 'Bottom Left-Aligned Tooltip' %}
+                      {% translate 'Keine Kostenparameter setzen' %}
                   </div>
                 </span>
               </div>
             </div>
           </div>
-          <!-- Option 2 -->
-          <div class="flex items-center h-12">
-            <input id="costsFile" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.file_upload }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
-            <div class="flex items-center gap-2">
-                <label for="costsFile" class="ml-3 block text-sm/6 font-medium text-slate-800">{% translate 'Datei hochladen' %}</label>
-              <div class="relative inline-block">
-                <!-- Info Icon -->
-                <span class="cursor-pointer group">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
-                  </svg>
-                  <!-- Tooltip -->
-                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      {% translate 'Bottom Left-Aligned Tooltip' %}
-                  </div>
-                </span>
-              </div>
-            </div>
-            <div class="ml-4 flex-grow hidden" id="file-upload">
-              <div class="flex items-center rounded-md bg-white px-1 py-1 outline outline-1 -outline-offset-1 outline-slate-400">
-                <input
-                        type="file"
-                  {{ costs_fileUpload.file|widget_attrs }}
-                  class="block w-full text-sm text-slate-800 file:mr-4 file:py-1 file:px-4 file:rounded-md file:border-0 file:bg-slate-800 file:text-white hover:file:bg-black"
-                >
-              </div>
-            </div>
-          </div>
-          <!-- Option 3 -->
-          <div class="flex items-center h-12">
-            <input id="costsScenario" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.reference_scenario }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
-              <label for="costsScenario" class="ml-3 block text-sm/6 font-medium text-slate-800">{% translate 'Werte aus anderem Szenario übernehmen' %}</label>
-            <div class="ml-4 flex-grow hidden" id="dropdown-select">
-              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
-                <select
-                        {{ costs_scenario_selection.scenario|widget_attrs }}
-                        class="block w-full rounded-md bg-white py-1.5 px-3 text-left text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                >
-                    <option value="">{% translate 'Szenario auswählen' %}</option>
-                  {% for choice in  costs_scenario_selection.scenario.field.queryset %}
-                    <option value="{{ choice.id }}">{{ choice.name }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-            </div>
-          </div>
-          <!-- Option 4 -->
+          <!-- Option 2: manual settings -->
           <div class="flex items-center h-12">
             <input id="costsManually" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.manual }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500">
               <label for="costsManually" class="ml-3 block text-sm/6 font-medium text-slate-800">{% translate 'Manuelle Eingabe' %}</label>
@@ -97,6 +51,22 @@
         </div>
       </fieldset>
       <div id="costsInputs" class="hidden">
+        <div style="display:inline-grid">
+          <label
+            class="block text-sm/6 font-medium text-slate-800"
+            for="select-from-scenario"
+          >{% translate 'Aus Szenario übernehmen' %}</label>
+          <select
+            id="select-from-scenario"
+            class="flex flex-wrap items-center w-full rounded-md bg-white px-3 py-1.5 text-left text-slate-800 border border-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6 cursor-pointer"
+            onchange="updateCostValues(this);"
+          >
+            <option value="">{% translate 'Auswählen...' %}</option>
+            {% for cost in costs_scenario_selection.values %}
+              <option value={{ cost.id }}>{{ cost.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
         <!-- required manual inputs: general -->
         <div
           id="acc-req-general"
@@ -300,10 +270,27 @@
 {% endblock wizard_buttons %}
 
 {% block script %}
+{{ costs_scenario_selection|json_script:"cost_params" }}
 <script>
+  const costParams = JSON.parse(document.getElementById('cost_params').textContent);
+  function updateCostValues(select) {
+    // update manual costs with parameters from other scenario
+    if (!select.value)
+      return;
+    let params = costParams[select.value].params;
+    for ([k, v] of Object.entries(params)) {
+      let inp = document.getElementById('id_costs-' + k);
+      if (inp) {
+        // update value
+        inp.value = v;
+        // visual indicator, remove after 5 seconds
+        inp.classList.add('bg-yellow-50');
+        setTimeout(_ => inp.classList.remove('bg-yellow-50'), 5000);
+      }
+    }
+  }
+
   // Show and hide inputs based on selected option
-  const fileUpload = document.getElementById('file-upload');
-  const dropdownSelect = document.getElementById('dropdown-select');
   const costsInputs = document.getElementById('costsInputs');
 
   const radioButtons = document.querySelectorAll('input[name^="costsRadio"]');
@@ -313,44 +300,16 @@
   });
 
   function showCostForRadio(radio) {
-    fileUpload.classList.toggle('hidden', radio.id !== 'costsFile');
-    childrenInputs(fileUpload).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'costsFile'));
-
-    dropdownSelect.classList.toggle('hidden', radio.id !== 'costsScenario');
-    childrenInputs(dropdownSelect).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'costsScenario'));
-
     costsInputs.classList.toggle('hidden', radio.id !== 'costsManually');
     childrenInputs(costsInputs).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'costsManually'));
   }
   // show section for initially selected
   showCostForRadio(document.querySelector('input[name^="costsRadio"]:checked'));
 
-  // Show and hide inputs based on selected option for Umweltparameter
-  const envFileUpload = document.getElementById('env-file-upload');
-  const envDropdownSelect = document.getElementById('env-dropdown-select');
-  const envInputs = document.getElementById('envInputs');
-
   const envRadioButtons = document.querySelectorAll('input[name^="envRadio"]');
 
-  const formAreas = [envFileUpload, envDropdownSelect, envInputs, fileUpload, dropdownSelect, costsInputs];
   // unrequire all form inputs at the start
-  formAreas.forEach((area)=>
-      childrenInputs(area).forEach((inputDiv) => toggleAttribute(inputDiv, "required", false))
-  )
-
-  envRadioButtons.forEach(radio => {
-      radio.addEventListener('change', () => {
-          envFileUpload.classList.toggle('hidden', radio.id !== 'envFile');
-          childrenInputs(envFileUpload).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'envFile'));
-
-          envDropdownSelect.classList.toggle('hidden', radio.id !== 'envScenario');
-          childrenInputs(envDropdownSelect).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'envScenario'));
-
-          envInputs.classList.toggle('hidden', radio.id !== 'envManually');
-          childrenInputs(envInputs).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'envManually'));
-
-      });
-  });
+  childrenInputs(costsInputs).forEach((inputDiv) => toggleAttribute(inputDiv, "required", false));
 
   function childrenInputs(element){
     if (element)

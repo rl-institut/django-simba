@@ -10,7 +10,6 @@ from .models import (
     EnumVoltageLevel,
     VehicleType,
     SimulationRange,
-    Scenario,
 )
 
 
@@ -237,26 +236,12 @@ class StationExcludedForm(forms.Form):
 class CostInputModeForm(forms.Form):
     CHOICES = [
         ("no_input", "Keine Eingabe"),
-        ("file_upload", "Datei hochladen"),
-        ("reference_scenario", "Werte aus anderem Szenario übernehmen"),
         ("manual", "Manuelle Eingabe"),
     ]
     input_mode = forms.ChoiceField(
         widget=forms.RadioSelect,
         choices=CHOICES,
     )
-
-
-class FileUploadForm(forms.Form):
-    file = forms.FileField(required=True)
-
-
-class ScenarioSelection(forms.Form):
-    scenario = forms.ModelChoiceField(queryset=Scenario.objects.all())
-
-    def __init__(self, *args, queryset, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["scenario"].queryset = queryset
 
 
 class ManualTcoForm(forms.Form):

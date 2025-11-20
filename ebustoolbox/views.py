@@ -43,8 +43,6 @@ from .forms import (
     DepotConfigurationWishForm,
     VehicleTypeForm,
     VehicleTypeSelectionForm,
-    FileUploadForm,
-    ScenarioSelection,
     ManualTcoForm,
 )
 from .tasks import merge_scenario
@@ -935,7 +933,17 @@ class CostsView(ScenarioMixIn, TemplateView):
 
         context = super().get_context_data(**kwargs)
         # Todo define which scenarios can be picked
-        selectable_scenarios = Scenario.objects.filter(id__gte=590)
+        scenarios = Scenario.objects.filter(scenario_type=EnumScenarioType.MUTATION)
+        selectable_scenarios = get_user_scenario_qs(self.request.user, scenarios)
+        costs_scenario_selection = {
+            scenario.id: {
+                "id": scenario.id,
+                "name": scenario.name,
+                "params": scenario.tco_parameters,
+            }
+            for scenario in selectable_scenarios
+        }
+        context["costs_scenario_selection"] = costs_scenario_selection
         costs_form = forms.CostInputModeForm(data=data, prefix="costsRadio")
         context["cost_mode_form"] = costs_form
         # Radio Button Values
@@ -943,9 +951,6 @@ class CostsView(ScenarioMixIn, TemplateView):
         for choice in forms.CostInputModeForm.CHOICES:
             val = choice[0]
             context["radio_values"][val] = choice[0]
-        context["costs_fileUpload"] = FileUploadForm(data=data)
-        form = ScenarioSelection(data=data, queryset=selectable_scenarios)
-        context["costs_scenario_selection"] = form
         context["costs_manual"] = ManualTcoForm(data=data, prefix="costs")
         # get all vehicle types in scenario to show cost params for each type
         scenario = Scenario.objects.get(task_id=kwargs["task_id"])
@@ -965,25 +970,13 @@ class CostsView(ScenarioMixIn, TemplateView):
         match form.cleaned_data["input_mode"]:
             case "no_input":
                 pass
-            case "file_upload":
-                file_form = context["costs_fileUpload"]
-                if not file_form.is_valid():
-                    logger.debug("Invalid Costs File Form provided")
-                    return self.render_to_response(context)
-                raise NotImplementedError("file upload is not yet implemented")
-            case "reference_scenario":
-                scenario_selection = context["costs_scenario_selection"]
-                if not scenario_selection.is_valid():
-                    logger.debug("Invalid Costs Scenario Selection provided")
-                    return self.render_to_response(context)
-                raise NotImplementedError("scenario_selection is not yet implemented")
             case "manual":
                 manual_form = context["costs_manual"]
                 if not manual_form.is_valid():
                     logger.debug("Invalid Cost Manual Form provided")
                     return self.render_to_response(context)
-                # TODO: actually do something with manual inputs, like saving them in DB
-                pass
+                self.scenario.tco_parameters = manual_form.cleaned_data
+                self.scenario.save(update_fields=["tco_parameters"])
             case _:
                 raise NotImplementedError(f"Mode {form.cleaned_data['input_mode']}")
         return redirect(reverse(self.success_name, args=[kwargs["task_id"]]))
@@ -1799,7 +1792,6 @@ def import_scenario_tree(request):
         return render(request, "ebustoolbox/import_scenario.html")
 
     if request.method == "POST":
-
         assert request.FILES["scenario_json"]
         importer = ScenarioJSONImporterExporter()
         importer.loads(in_memory_file=request.FILES["scenario_json"])
