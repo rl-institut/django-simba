@@ -97,7 +97,11 @@
                 {% for scenario in scenarios %}
                   <tr class="px-2 scenario-row" name="{{ scenario.name }}">
                     <td class="whitespace-nowrap px-3 py-4 text-sm font-bold text-black underline decoration-transparent hover:decoration-black transition-all duration-300" sortval="{{ scenario.name }}">
+                      {% if scenario.state == 'success' %}
                       <a href="{% url 'simba:result' scenario.task_id %}" class="flex items-center" {% if scenario.description %}title="{{ scenario.description }}"{% endif %}>
+                      {% else %}
+                      <a href="{% url 'simba:vehicles' scenario.task_id %}" class="flex items-center" {% if scenario.description %}title="{{ scenario.description }}"{% endif %}>
+                      {% endif %}
                         <span class="mr-2">
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                             <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 15.75-2.489-2.489m0 0a3.375 3.375 0 1 0-4.773-4.773 3.375 3.375 0 0 0 4.774 4.774ZM21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -153,7 +157,7 @@
                     <td class="whitespace-nowrap px-3 py-3 text-sm text-slate-500" sortval="{{ scenario.created|date:'Ymd' }}"</td>{{ scenario.created|date:"j.n.Y" }}</td>
                     <td class="whitespace-nowrap px-3 py-3">
                       <a
-                        href="{% url 'simba:trips' %}?s={{scenario.parent.id}}"
+                        href="{% url 'simba:trips' %}?s={{scenario.variante}}"
                         class="cursor-pointer px-4 py-2 bg-slate-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:bg-slate-300 transition-all duration-300"
                         role="button"
                         aria-label="Variante erstellen"

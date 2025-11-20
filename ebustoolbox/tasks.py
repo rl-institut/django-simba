@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import List
 from django import conf
 import environ
-from uuid import UUID as UUIDType
+from uuid import UUID as UUIDType, uuid4
 from celery import shared_task, uuid
 import math
 import zipfile as zf
@@ -1027,8 +1027,15 @@ def run_and_merge_scenarios(
     sizing_scenario = merge_scenario(mutation_id, sizing_scenario_task_id)
     sizing_scenario.manager = Scenario.objects.get(id=mutation_id).manager
     sizing_scenario.save()
-    SimulationType.objects.create(scenario=sizing_scenario, sim_type=EnumSimulationType.SIZING)
+    from core.models import ProgressEnum
 
+    sizing_progress = Progress.objects.create(
+        scenario=sizing_scenario,
+        task_id=uuid4(),
+        progress_type=ProgressEnum.RUNNING_SIMULATION,
+        running=True,
+    )
+    SimulationType.objects.create(scenario=sizing_scenario, sim_type=EnumSimulationType.SIZING)
     # Swap the consumption so in the first run the max consumption is used
     swap_consumption_w_max_consumption(sizing_scenario)
     # If a LUT is used change the temperature to the extreme Temperature
@@ -1067,6 +1074,12 @@ def run_and_merge_scenarios(
     sizing_scenario.refresh_from_db()
     assert sizing_scenario.task_id != default_simulation_task_id
 
+    average_progress = Progress.objects.create(
+        scenario=average_scenario,
+        task_id=uuid4(),
+        progress_type=ProgressEnum.RUNNING_SIMULATION,
+        running=True,
+    )
     logger.info(f"Simulating scenario {average_scenario.task_id} with average consumption")
     # Swap the consumptions back
     swap_consumption_w_max_consumption(average_scenario)
@@ -1088,8 +1101,9 @@ def run_and_merge_scenarios(
     _run_ebus_toolchain.apply(
         (default_simulation_task_id,), task_id=default_simulation_task_id, throw=True
     )
-    # default_simulation_scenario = merge_scenario(mutation_id, default_simulation_task_id)
-    # run_toolchain_from_scenario(default_simulation_scenario, assign_vehicles=True)
+    # Give each scenario a Progress which succeeded
+    sizing_progress.set_success()
+    average_progress.set_success()
     progress.set_success()
 
 
@@ -1904,11 +1918,15 @@ def _run_ebus_toolchain(self, task_id):
     if not progress:
         logger.warning(
             "The toolchain did not find a progress belonging to the parent of the scenario. "
-            "Creating a Progress bound to the simulation scenario instead"
+            "Using or creating a Progress bound to the simulation scenario instead"
         )
-        progress = Progress.objects.create(
-            scenario=db_scenario, progress_type=EnumProgress.RUNNING_SIMULATION, task_id=task_id
-        )
+        progress = Progress.objects.filter(
+            scenario=db_scenario, progress_type=EnumProgress.RUNNING_SIMULATION
+        ).first()
+        if not progress:
+            progress = Progress.objects.create(
+                scenario=db_scenario, progress_type=EnumProgress.RUNNING_SIMULATION, task_id=task_id
+            )
 
     # Clean up of previous notifications which can be produced during the simulation
     # without cleaning they might appear multiple times, from previous failed simulations
@@ -2027,9 +2045,8 @@ def _run_ebus_toolchain(self, task_id):
                 message=_("Ein unerwarteter Fehler ist aufgetreten! "),
             )
             notifications.append(notification)
-            progress.refresh_from_db()
-            progress.errors.append(str(e))
-            progress.set_failed()
+            # Let all progress no of the failed simulation
+            set_scenario_progress_failed(db_scenario, e)
             raise
         finally:
             Notification.objects.bulk_create(notifications)
@@ -2069,10 +2086,25 @@ def _run_ebus_toolchain(self, task_id):
         db_scenario.save()
     except Exception as e:
         logger.error(traceback.format_exc())
-        progress.refresh_from_db()
-        progress.errors.append(str(e))
-        progress.set_failed()
+        # Let all progress no of the failed simulation
+        set_scenario_progress_failed(db_scenario, e)
         raise
+
+
+def set_scenario_progress_failed(scenario: Scenario, exception: Exception | None = None):
+    mutation_progress = Progress.objects.filter(
+        scneario=scenario.parent, progress_type=EnumProgress.RUNNING_SIMULATION
+    ).first()
+    if mutation_progress:
+        mutation_progress.errors.append(str(exception))
+        mutation_progress.set_failed()
+    # Also set simulation specific scenario progress to failed
+    simulation_scenario_progress = Progress.objects.filter(
+        scneario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
+    ).first()
+    if simulation_scenario_progress:
+        simulation_scenario_progress.errors.append(str(exception))
+        simulation_scenario_progress.set_failed()
 
 
 def check_event_soc_consistency(db_scenario: Scenario):

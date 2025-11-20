@@ -1333,7 +1333,7 @@ def cancel_upload(request: HttpRequest, task_id: str):
 def merge_and_run(request: HttpRequest, task_id: str):
     scenario = get_scenario_and_assert_authorization(request, task_id)
 
-    simulation_progess = Progress.objects.filter(
+    simulation_progress = Progress.objects.filter(
         scenario=scenario,
         progress_type=EnumProgress.RUNNING_SIMULATION,
     )
@@ -1346,37 +1346,34 @@ def merge_and_run(request: HttpRequest, task_id: str):
 
     if not request.user.is_superuser:
         # Delete failed scenarios
-        if simulation_progess.filter(running=True).exists():
+        if simulation_progress.filter(running=True).exists():
             error_text = _("Starting multiple Simulations from the same source is not allowed")
             logger.info(error_text)
             return HttpResponseForbidden(error_text)
 
-        if simulation_progess.filter(success=True).exists():
+        if simulation_progress.filter(success=True).exists():
             error_text = _("Starting a Simulation which was sucessfully simulated is not allowed")
             logger.info(error_text)
             return HttpResponseForbidden(error_text)
 
     sim_task_id = get_unique_task_id()
-    prev_progress = simulation_progess.first()
-    if prev_progress:
-        prev_progress.task_id = sim_task_id
-        prev_progress.save()
-        progress = prev_progress
-    else:
-        progress = Progress.objects.create(
-            scenario=scenario,
-            progress_type=EnumProgress.RUNNING_SIMULATION,
-            task_id=sim_task_id,
-        )
+
+    simulation_progress.delete()
+    progress = Progress.objects.create(
+        scenario=scenario,
+        progress_type=EnumProgress.RUNNING_SIMULATION,
+        task_id=get_unique_task_id(),
+    )
     logger.info("Running Toolchain.")
     sizing_task_id = get_unique_task_id()
     # create scenario from mutation and parent and simulate it
     try:
         async_result = tasks.run_and_merge_scenarios.apply_async(
             (scenario.id, sim_task_id, sizing_task_id),
-            task_id=str(sim_task_id),
+            task_id=str(progress.task_id),
         )
-        assert async_result.task_id == sim_task_id, "Task ids are expected to be equal"
+        assert async_result.task_id == progress.task_id, "Task ids are expected to be equal"
+        assert async_result.task_id != sim_task_id, "Task ids are expected to be equal"
     except Exception:
         progress.errors.append(
             _("Ein unerwarteter Fehler ist aufgetreten. Wenden Sie sich an ihren Administrator")
@@ -1384,11 +1381,8 @@ def merge_and_run(request: HttpRequest, task_id: str):
         progress.set_failed()
         logger.error(traceback.format_exc())
 
-    progress.refresh_from_db()
-    progress.task_id = sim_task_id
-    progress.save(update_fields=["task_id"])
     context = {}
-    context["progress_id"] = sim_task_id
+    context["progress_id"] = progress.task_id
     context["scenario"] = scenario
     context["template_name"] = "progress_simulation.html"
     context["progress"] = progress
@@ -1477,16 +1471,11 @@ def get_dashboard(request):
     # get task status from task_id for each scenario
     scenario_list = list()
     for scenario in scenarios:
-        # Also show mutation scenarios, but only if they have not been simulated yet
-        if scenario.scenario_type == EnumScenarioType.MUTATION:
-            if scenario.scenario_set.count() == 0:
-                scenario.state = "idle"
-                scenario_list.append(scenario)
-            continue
-        # The progress is linked to the mutation sceanario.
-        # The progress task_id is set to the resulting (simulation-) scenario task_id
-        progress = Progress.objects.filter(task_id=scenario.task_id)
-        # TODO: use scenario state enum or class constants
+        # The progress task_id is now unique.
+        # During run and merge each simulation gets progress which is set
+        progress = Progress.objects.filter(
+            scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
+        )
         if progress.filter(success=True).exists():
             scenario.state = "success"
         elif progress.filter(running=True).exists():
@@ -1497,6 +1486,26 @@ def get_dashboard(request):
         else:
             # no progress: still in setup
             scenario.state = "idle"
+
+        # Filter out Mutation scenarios which succeeded.
+        # The user will be able to access the run simulations instead
+        if scenario.state == "success" and scenario.scenario_type == EnumScenarioType.MUTATION:
+            continue
+
+        # Give each scenario a reference to its "variante".
+        # For Mutations its a reference to itself.
+        # Simulations point to their parent mutation
+        # switch scenario.scenario_type:
+        match scenario.scenario_type:
+            case EnumScenarioType.MUTATION:
+                scenario.variante = scenario.id
+            case EnumScenarioType.SIMULATION:
+                scenario.variante = scenario.parent.id
+            case _:
+                logger.error(
+                    f"Dashboard lookup of variante for scenario {scenario} failed unexpectedly"
+                )
+
         scenario_list.append(scenario)
 
     if scenarios:
