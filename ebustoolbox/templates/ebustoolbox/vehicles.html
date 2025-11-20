@@ -140,8 +140,8 @@ hx-trigger='load'
                       <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                     </svg>
                     <!-- Tooltip -->
-                    <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      {% translate 'Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.' %}
+                    <div class="absolute left-0 top-full z-10 mt-2 w-96 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                      {% translate 'Die gewählte Temperatur verändert den simulierten Durchschnitts-Verbrauch der Fahrzeuge. Dieser ist entscheidend für den kumulierten Energieverbrauch und die damit einhergenden Kosten und Emissionen der Energiebereitstellung. Die Temperatur hat keinen Einfluss wenn Sie den Fahrzeugtypen unten einen konstanten Verbrauch zuordnen.' %}
                     </div>
                   </span>
                 </div>
@@ -149,7 +149,13 @@ hx-trigger='load'
               <div class="w-12/12">
                 <div class="mt-2">
                   <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
-                    <input {% with simulation_parameters_form.temperature_average as form %}
+                    <input
+                    x-data="{value:''}"
+                    x-model.fill="value"
+                    @input="const n = parseInt($event.target.value);
+                          $event.target.value = Number.isNaN(n) ? '' : n;
+                    "
+                    {% with simulation_parameters_form.temperature_average as form %}
                           {{ form|widget_attrs}}
                            {% endwith %}
                            class="flex-1 bg-white mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
@@ -213,16 +219,25 @@ hx-trigger='load'
                       <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                     </svg>
                     <!-- Tooltip -->
-                    <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      {% translate 'Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.' %}
+                    <div class="absolute left-0 top-full z-10 mt-2 w-96 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                      {% translate 'Die gewählte Temperatur verändert den simulierten Extrem-Verbrauch der Fahrzeuge. Dieser ist entscheidend für die Auslegung der Infrastruktur und automatischen Identifikation von zu elektrifizierender Zwischenhaltestellen. Die Temperatur hat keinen Einfluss wenn Sie den Fahrzeugtypen unten einen konstanten Verbrauch zuordnen.' %}
                     </div>
                   </span>
                 </div>
               </h3>
               <div class="w-12/12">
-                <div class="mt-2">
+              <div  class="mt-2" x-data="{value:''}"
+              >
+                {% comment %}
+                 Use alpine to get rid of decimal places using comma or dot
+                {% endcomment %}
                   <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
-                    <input {% with simulation_parameters_form.temperature_extreme as form %}
+                  <input
+                    x-model.fill="value"
+                    @input="const n = parseInt($event.target.value);
+                          $event.target.value = Number.isNaN(n) ? '' : n;
+                    "
+                {% with simulation_parameters_form.temperature_extreme as form %}
                           {{ form|widget_attrs}}
                            {% endwith %}
                            class="flex-1 bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
