@@ -426,7 +426,7 @@
                 <div id="electrifyState" class="flex items-center space-x-2">
                   <input type="hidden"   {{form.is_electrified|widget_attrs}}>
                   <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-elektrifizieren"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-elektrifizieren hover:shadow-lg"
                     data-color="emerald"
                     data-value="elektrifizieren"
                     data-station-id="{{ station_id }}"
@@ -441,7 +441,7 @@
                   </button>
                   <input type="hidden"  {{form.is_electrifiable|widget_attrs}}>
                   <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-automatisch"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-automatisch hover:shadow-lg"
                     data-color="amber"
                     data-value="automatisch"
                     data-station-id="{{ station_id }}"
@@ -455,8 +455,11 @@
                         {% translate 'Automatisch' %}
                   </button>
                   {# Not electrified does not got an input since it is the default. The state is implied through the other two inputs. #}
+                      <!-- Placeholder for tailwind classes which are added through js magic. The tailwind does not pick up bg-${color}-100.
+                    This way the tailwind-cli picks them up. The other colors are already "known"  -->
+                    <div class="hidden bg-gray-100  text-gray-700 "></div>
                   <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-nicht-elektrifizieren"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-nicht-elektrifizieren hover:shadow-lg"
                     data-color="gray"
                     data-value="nicht-elektrifizieren"
                     data-station-id="{{ station_id }}"
@@ -715,14 +718,14 @@
           // Reset all buttons in the row to their unselected state
           for (let btn of buttons) {
               const color = btn.getAttribute("data-color");
-              btn.classList.remove("shadow", "selected");
+              btn.classList.remove("shadow", "selected", "border-gray-700", "border-2", );
               btn.classList.replace(`bg-${color}-100`, "bg-white");
               btn.classList.replace(`text-${color}-700`, "text-slate-500");
           };
 
           // Apply selected styles to the clicked button
           const color = clickedButton.getAttribute("data-color");
-          clickedButton.classList.add("shadow", "selected");
+          clickedButton.classList.add("shadow", "selected", "border-gray-700","border-2", );
           clickedButton.classList.replace("bg-white", `bg-${color}-100`);
           clickedButton.classList.replace("text-slate-500", `text-${color}-700`);
       }
