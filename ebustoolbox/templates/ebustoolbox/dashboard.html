@@ -15,7 +15,7 @@
           name="scenario-search"
           id="scenario-search"
           class="block w-full bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-          placeholder={% translate "Nach Szenarien suchen" %}
+          placeholder='{% translate "Nach Szenarien suchen" %}'
           oninput="searchScenario(this);"
         >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 pointer-events-none">
@@ -65,7 +65,9 @@
                   </th>
                   <th scope="col" class="px-3 py-4 text-left text-sm font-semibold text-slate-600">
                     <button href="#" class="group inline-flex" onclick="sortTable(3);">
-                      CO<sub>2</sub{% translate '-Reduzierung' %}>
+                      <span>
+                        CO<sub>2</sub>{% translate '-Reduzierung' %}
+                      </span>
                       <!-- Sorting Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
                       <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
                         <svg class="invisible ml-2 size-5 flex-none rounded text-slate-400 group-hover:visible group-focus:visible" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
