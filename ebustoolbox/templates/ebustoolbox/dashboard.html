@@ -226,7 +226,7 @@
     let searchString = input.value;
     for (let row of document.getElementsByClassName('scenario-row')) {
       // show row if search string is too short or if search string is part of scenario name (case-insensitive)
-      let visible = searchString.length < 3 || row.getAttribute('name').toLowerCase().includes(searchString.toLowerCase());
+      let visible = searchString.length < 1 || row.getAttribute('name').toLowerCase().includes(searchString.toLowerCase());
       row.style.display = visible? '' : 'none';
     }
   }
