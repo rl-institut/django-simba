@@ -1914,8 +1914,10 @@ class AreaInformation(models.Model):
     )
     block_length = models.IntegerField(null=True, blank=True)
     vehicle_type = models.ForeignKey(VehicleType, null=False, on_delete=models.CASCADE, blank=True)
+    # blank is false although null is true, since django would show an "empty" select.
+    # overriding this behavior is harder than accepting that admins by default have to set a value
     area_type = models.CharField(
-        max_length=14, choices=AreaType.choices, null=True, blank=True, default=None
+        max_length=14, choices=AreaType.choices, null=True, blank=False, default=None
     )
     capacity = models.IntegerField(null=True, blank=True)
     power = models.FloatField(null=True, blank=True)

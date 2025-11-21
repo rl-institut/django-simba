@@ -306,7 +306,7 @@ class DepotConfigurationWishForm(forms.ModelForm):
                 "sowie technische Parameter, automatisch für Sie."
             ),
             "default_power": _("max. Ladeleistung pro Ladepunkt"),
-            "standard_block_length": _("Charging point power in kW"),
+            "standard_block_length": _("Länge des Blocks"),
             "cleaning_slots": _("Anzahl der Plätze für gleichzeitige Reinigung"),
             "shunting_slots": _("Anzahl an Rangierplätzen"),
             "cleaning_duration": _("Dauer der Reinigung in Minuten"),
@@ -418,6 +418,7 @@ class AreaInformationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["capacity"].widget.attrs.update({"min": 1.0, "max": 10_000, "required": True})
         self.fields["power"].widget.attrs.update({"min": 1.0, "required": True})
+        self.fields["area_type"].required = True
         self.fields["block_length"].widget.attrs.update({"min": 1.0, "required": True})
 
     def clean(self):
