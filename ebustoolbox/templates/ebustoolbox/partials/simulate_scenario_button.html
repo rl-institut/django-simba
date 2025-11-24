@@ -5,6 +5,7 @@
   hx-get="{% url 'simba:merge_and_run' scenario.task_id %}"
   hx-select="*"
   hx-target="#simulationProgressAlert"
+  hx-swap="innerHTML show:bottom"
   data-value="simulateButton"
   class="px-6 py-2 w-[16rem]  text-black text-base font-semibold tracking-wide rounded-full transition-all duration-300
     {% if progress.running or progress.success %}cursor-not-allowed bg-slate-200{% else %}
