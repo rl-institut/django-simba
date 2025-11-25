@@ -507,10 +507,14 @@ class FilterView(ScenarioMixIn, TemplateView):
 
     def get_context_data(self, request, **kwargs):
         context = super(FilterView, self).get_context_data(**kwargs)
-        data = None
         if self.request.method == "POST":
-            data = request.POST.copy()  # mutable
-        context |= __class__.get_simulation_parameters_context(data, self.scenario)
+            self.data = request.POST.copy()  # mutable
+        elif self.request.method == "GET":
+            self.data = request.GET.copy()  # mutable
+        else:
+            raise Http404()
+
+        context |= __class__.get_simulation_parameters_context(self.data, self.scenario)
         return context
 
     @staticmethod
@@ -576,7 +580,17 @@ class FilterView(ScenarioMixIn, TemplateView):
             # If the scenario has children, changing the source_scenario is not allowed
             return redirect(reverse(self.success_name, args=[self.scenario.task_id]))
 
-        return self.render_to_response(self.get_context_data(request, **kwargs))
+        context = self.get_context_data(request, **kwargs)
+        form: forms.SimulationFilterForm = context["simulation_parameters_form"]
+        if form.is_valid():
+            with atomic():
+                __class__.delete_with_filter(self.scenario.parent, form)
+                context["simulation_parameters_form"] = forms.SimulationFilterForm(
+                    scenario=self.scenario, data=self.data
+                )
+                set_rollback(True)
+
+        return self.render_to_response(context)
 
     def post(self, request, *args, **kwargs):
         context = self.get_context_data(request, **kwargs)
@@ -594,7 +608,6 @@ class FilterView(ScenarioMixIn, TemplateView):
                         field=None, error=_("Eine Simulation benötigt mindestens einen Umlauf")
                     )
                     set_rollback(True)
-
         return self.render_to_response(context)
 
     @staticmethod

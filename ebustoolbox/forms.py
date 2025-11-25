@@ -95,11 +95,16 @@ class SimulationFilterForm(forms.Form):
     def __init__(self, scenario, *args, **kwargs):
         self.scenario = scenario
         super().__init__(*args, **kwargs)
+        qs = Station.objects.filter(scenario=scenario.parent, charge_type=EnumChargeType.DEPOT)
+
         self.fields["depot_select"].queryset = Station.objects.filter(
-            scenario=scenario.parent, charge_type=EnumChargeType.DEPOT
+            id__in=list(qs.values_list("id", flat=True))
         )
         self.fields["depot_select"].label_from_instance = lambda obj: f"{obj.name}"
-        self.fields["line_select"].queryset = Line.objects.filter(scenario=scenario.parent)
+        qs = Line.objects.filter(scenario=scenario.parent)
+        self.fields["line_select"].queryset = Line.objects.filter(
+            id__in=list(qs.values_list("id", flat=True))
+        )
         self.fields["line_select"].label_from_instance = lambda obj: f"{obj.name}"
 
 

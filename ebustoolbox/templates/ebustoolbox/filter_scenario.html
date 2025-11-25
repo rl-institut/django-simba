@@ -42,16 +42,34 @@ hx-trigger='load'
         <div id='rotationcount'>
         Nothing here yet
         </div>
-        <form method='POST' >
+
+          <button
+            hx-trigger="click"
+            hx-include="#filterform"
+            hx-select="#filterform"
+            hx-get="."
+            hx-target="#filterform"
+class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300"
+        >Filter Anwenden
+          </button>
+          <button
+            hx-trigger="click"
+            hx-select="#filterform"
+            hx-get="."
+            hx-target="#filterform"
+
+class="px-6 py-2 w-[16rem] bg-red-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-red-300 hover:shadow-lg active:bg-red-500 transition-all duration-300"
+        >Filter Löschen
+          </button>
+        <form id="filterform" method='POST' >
           <div
-            hx-trigger="change from:closest form, load"
-            hx-include="closest form"
+            hx-trigger="change from:#filterform delay:50ms, load"
+            hx-include="#filterform"
             hx-get='{% url "simba:filter_scenario_get_count" task_id %}'
             hx-target='#rotationcount'>
-          </div>
         {% csrf_token %}
 
-          <section class="pb-2">
+          <time-select-section class="pb-2">
             <h2 class="flex items-center gap-2 pt-2 text-xl font-semibold tracking-wide">
                 {% translate 'Zeitspanne' %}
               <div class="relative inline-block">
@@ -120,15 +138,9 @@ hx-trigger='load'
                            required>
                   </div>
                 </fieldset>
-                <!-- ToDo Bryan: Styling and positioning of errors -->
-                <div id="sim_range_errors">
-                  <ul class="text-red-500 text-sm mt-2">
-                    {% for error in simulation_parameters_form.errors.values %}<li>{{ error }}</li>{% endfor %}
-                  </ul>
-                </div>
-              </section>
+              </time-select-section>
 
-          <section class="pb-2">
+          <depot-select-section class="pb-2">
             <h2 class="flex items-center gap-2 pt-2 text-xl font-semibold tracking-wide">
                 {% translate 'Depots' %}
               <div class="relative inline-block">
@@ -147,22 +159,14 @@ hx-trigger='load'
                 <span class="block mb-2 text-sm text-slate-500">{% translate 'Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.' %}</span>
                 <fieldset class="flex items-center gap-4">
 
-              {% include "ebustoolbox/partials/tailwind_field.html" with field=simulation_parameters_form.depot_select %}
+              <div class="w-1/3 h-32">
+                {% include "ebustoolbox/partials/multi_select.html" with field=simulation_parameters_form.depot_select %}
+                </div>
 
-              {% comment %}
-              {{ simulation_parameters_form.depot_select }}
-
-              {% endcomment %}
                 </fieldset>
                 <!-- ToDo Bryan: Styling and positioning of errors -->
-                <div id="sim_range_errors">
-                  <ul class="text-red-500 text-sm mt-2">
-                    {% for error in temperature_form.errors.values %}<li>{{ error }}</li>{% endfor %}
-                  </ul>
-                </div>
-            </section>
-
-          <section class="pb-2">
+            </depot-select-section>
+          <line-select-section class="pb-2">
             <h2 class="flex items-center gap-2 pt-2 text-xl font-semibold tracking-wide">
                 {% translate 'Linien' %}
               <div class="relative inline-block">
@@ -180,24 +184,17 @@ hx-trigger='load'
                 </h2>
                 <span class="block mb-2 text-sm text-slate-500">{% translate 'Nur Umläufe die diese Linien bedienen werden simuliert.' %}</span>
                 <fieldset class="flex items-center gap-4">
-              {% comment %}
-              {{ simulation_parameters_form.line_select }}
-
-              {% endcomment %}
-              {% include "ebustoolbox/partials/tailwind_field.html" with field=simulation_parameters_form.line_select %}
-
-                </fieldset>
-                <!-- ToDo Bryan: Styling and positioning of errors -->
-                <div id="sim_range_errors">
-                  <ul class="text-red-500 text-sm mt-2">
-                    {% for error in temperature_form.errors.values %}<li>{{ error }}</li>{% endfor %}
-                  </ul>
+              <div class="w-1/3 h-32">
+                  {% include "ebustoolbox/partials/multi_select.html" with field=simulation_parameters_form.line_select %}
                 </div>
+                </fieldset>
 
 
-            </section>
+            </line-select-section>
+
 
           <button id="SubmitButton" hidden ></button>
+          </div>
         </form>
   </section>
     </div>
