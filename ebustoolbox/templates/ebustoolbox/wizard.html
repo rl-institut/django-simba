@@ -4,17 +4,18 @@
 {% block wizard_navigation %}
   <nav aria-label="Progress" class="bg-white">
     <ol role="list" class="divide-y divide-slate-300 border-b border-slate-200 md:flex md:divide-y-0">
-{% translate 'Umlaufplan' as umlaufplan %} {% translate 'Fahrzeuge' as fahrzeuge %} {% translate 'Endhaltestellen' as endhaltestelle %} {% translate 'Kosten' as kosten %} {% translate 'Depots' as depots %} {% translate 'Zusammenfassung' as zusammenfassung %} {% translate 'Simulation' as simlation %}
-      {% for i in '123456' %}
-        {% cycle  umlaufplan fahrzeuge endhaltestelle kosten depots zusammenfassung simlation as wiz_text silent %}
+{% translate 'Umlaufplan' as umlaufplan %} {% translate 'Simulationsfilter' as filter_scenario %} {% translate 'Fahrzeuge' as fahrzeuge %} {% translate 'Endhaltestellen' as endhaltestelle %} {% translate 'Kosten' as kosten %} {% translate 'Depots' as depots %} {% translate 'Zusammenfassung' as zusammenfassung %} {% translate 'Simulation' as simlation %}
+      {% for i in '1234567' %}
+        {% cycle  umlaufplan filter_scenario fahrzeuge endhaltestelle kosten depots zusammenfassung simlation as wiz_text silent %}
         {% url 'simba:trips' task_id as url_trips %}
+        {% url 'simba:filter_scenario' task_id as url_filter %}
         {% url 'simba:vehicles' task_id as url_vehicles %}
         {% url 'simba:stations'  task_id as url_stations %}
         {% url 'simba:costs' task_id as url_costs %}
         {% url 'simba:depots' task_id as url_depots %}
         {% url 'simba:summary' task_id as url_summary %}
         {% url 'simba:simulation' task_id as url_simulation %}
-        {% cycle url_trips url_vehicles url_stations url_costs url_depots url_summary url_simulation as wiz_url silent %}
+        {% cycle url_trips url_filter url_vehicles url_stations url_costs url_depots url_summary url_simulation as wiz_url silent %}
 
         <li class="relative md:flex md:flex-1">
           {% if wiz_idx > forloop.counter %}
