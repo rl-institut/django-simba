@@ -378,6 +378,7 @@ class TripsView(FormView):
         scenario = Scenario.objects.create(task_id=task_id, manager=manager)
         scenario.name = cleaned_data["scenario_name"]
         scenario.description = cleaned_data["description"]
+        scenario.simba_options["find_stations"] = bool(cleaned_data.get("find_stations"))
         # If schedule reading failed before there is a parent already. Delete it if
         # its only child is the current scenario
         if scenario.parent:

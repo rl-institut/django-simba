@@ -113,6 +113,7 @@ class TripsForm(forms.Form):
     existing_scenario = forms.UUIDField(required=False)
     scenario_name = forms.CharField(max_length=100)
     description = forms.CharField(max_length=100, required=False)
+    find_stations = forms.BooleanField(required=False)
 
     # TODO: use clean method instead
     def is_valid(self):

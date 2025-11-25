@@ -273,7 +273,9 @@ class SimbaScheduleReader(ScheduleReader):
                     trip.route_id = new_id
                 Trip.objects.bulk_create(trips)
 
-            if settings.SEARCH_STATION_LOCATIONS:
+            if isinstance(scenario.simba_options, dict) and scenario.simba_options.get(
+                "find_stations"
+            ):
                 self.set_progress(4, _("Finde Stationen"))
                 add_station_locations(Station.objects.filter(scenario=scenario))
 
