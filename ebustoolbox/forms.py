@@ -416,10 +416,10 @@ class AreaInformationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["capacity"].widget.attrs.update({"min": 1.0, "max": 10_000, "required": True})
+        self.fields["capacity"].widget.attrs.update({"min": 2.0, "max": 10_000, "required": True})
         self.fields["power"].widget.attrs.update({"min": 1.0, "required": True})
         self.fields["area_type"].required = True
-        self.fields["block_length"].widget.attrs.update({"min": 1.0, "required": True})
+        self.fields["block_length"].widget.attrs.update({"min": 2.0, "required": True})
 
     def clean(self):
         cleaned_data = super().clean()
