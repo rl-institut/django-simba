@@ -1785,7 +1785,9 @@ def create_empty_child_scenario(parent_scenario: Scenario, task_id):
 def create_scenario_copy_for_user(mutation_scenario: Scenario):
     assert isinstance(mutation_scenario, Scenario)
     assert mutation_scenario.parent is not None
-    assert mutation_scenario.parent.parent is None
+    # Assert no deeper nesting than source file
+    if mutation_scenario.parent.parent:
+        assert mutation_scenario.parent.parent.parent is None
     mutation_scenario.task_id = ebustoolbox.util.get_unique_task_id()
     copied_scenario, stack = deepcopy_scenario(mutation_scenario)
 

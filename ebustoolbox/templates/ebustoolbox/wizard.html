@@ -19,6 +19,20 @@
 
         <li class="relative md:flex md:flex-1">
           {% if wiz_idx > forloop.counter %}
+
+          {% if forloop.counter < 3 %}
+            <!-- Completed Step but do not allow linking to trips and filter-->
+            <span class="group flex w-full items-center" aria-label="Schritt {{ i }}: {{ wiz_text }}">
+              <span class="flex items-center px-3 lg:px-5 py-4 lg:mx-auto lg:-translate-x-4 text-sm font-medium">
+                <span class="flex size-5 shrink-0 items-center justify-center rounded-full bg-slate-800 group-hover:bg-black">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#ffffff" class="size-3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                </span>
+                <span class="ml-2 lg:ml-3 text-sm font-normal text-slate-800">{{ wiz_text }}</span>
+              </span>
+            </span>
+          {% else %}
             <!-- Completed Step -->
             <a href="{{ wiz_url }}" class="group flex w-full items-center" aria-label="Schritt {{ i }}: {{ wiz_text }}">
               <span class="flex items-center px-3 lg:px-5 py-4 lg:mx-auto lg:-translate-x-4 text-sm font-medium">
@@ -30,6 +44,7 @@
                 <span class="ml-2 lg:ml-3 text-sm font-normal text-slate-800">{{ wiz_text }}</span>
               </span>
             </a>
+          {% endif %}
           {% elif wiz_idx == forloop.counter %}
             <!-- Current Step -->
             <span class="flex items-center px-3 lg:px-5 py-4 lg:mx-auto lg:-translate-x-4 text-sm font-medium" aria-current="step" aria-label="Schritt {{forloop.counter}}: {{ wiz_text }}">

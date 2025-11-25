@@ -225,7 +225,6 @@ hx-trigger='load'
 </main>
 {% endblock wizard_content %}
 {% block wizard_buttons %}
-  {% url 'simba:trips' scenario.task_id as prev_url %}
   {% with "SubmitButton" as buttonId %}{{ block.super }}{% endwith %}
 {% endblock wizard_buttons %}
 {% block script %}

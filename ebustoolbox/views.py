@@ -86,10 +86,6 @@ from ebustoolbox.models import (
 )
 
 
-# import redis
-# r = redis.Redis.from_url(settings.REDIS_URL)
-# r.rpush('someKey', json.dumps({'i': (cache.get('key')), 'time': 0}))
-
 logger = logging.getLogger("custom")
 
 
@@ -576,6 +572,10 @@ class FilterView(ScenarioMixIn, TemplateView):
         return context
 
     def get(self, request, *args, **kwargs):
+        if Scenario.objects.filter(parent=self.scenario.parent).count() > 1:
+            # If the scenario has children, changing the source_scenario is not allowed
+            return redirect(reverse(self.success_name, args=[self.scenario.task_id]))
+
         return self.render_to_response(self.get_context_data(request, **kwargs))
 
     def post(self, request, *args, **kwargs):
