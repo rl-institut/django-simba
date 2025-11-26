@@ -10,12 +10,6 @@
 {% endblock wizard_navigation %}
 {% block wizard_content %}
 
-<!-- ebustoolbox/templates/ebustoolbox/partials/notifications_multi.html -->
-<div id='multiNotificationDiv'
-hx-get='{% url "simba:notifications" task_id 'VehiclesView' %}'
-hx-swap='outerHTML'
-hx-trigger='load'
-></div>
 <main class="flex flex-col items-center flex-grow">
 
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
