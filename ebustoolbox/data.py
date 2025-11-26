@@ -966,7 +966,6 @@ def get_event_gantt_as_json(task_id: str):
     df["time_end"] = pd.to_datetime(df["time_end"])
 
     buses = df["V_id"].unique()
-    categories = [f"Bus {bus}" for bus in buses]
 
     bus_to_index = {bus_id: i for i, bus_id in enumerate(buses)}
 
@@ -979,7 +978,7 @@ def get_event_gantt_as_json(task_id: str):
 
         gantt_data.append(
             {
-                "name": row["readable_name"],
+                "vehicle_id": row['V_id'],
                 "value": [bus_index, start_time, end_time, duration],
                 "event_type": row["event_type"],
                 "bus_name": f"Bus {row['V_id']}",
@@ -988,7 +987,7 @@ def get_event_gantt_as_json(task_id: str):
                 "rotation_name": row["rotation_name"],
             }
         )
-    return categories, gantt_data
+    return gantt_data
 
 
 def get_stats_as_json(task_id: str):
@@ -1236,8 +1235,9 @@ def get_soc_gantt_as_json(task_id: str):
         if not event.timeseries or "time" not in event.timeseries or "soc" not in event.timeseries:
             records.append(
                 {
-                    "vehicle": vehicle_id,
+                    "vehicle_id": vehicle_id,
                     "vehicle_type": v_type_name,
+                    "bus_name": vehicle_id,
                     "start": tz_start.isoformat(),
                     "end": tz_end.isoformat(),
                     "soc_start": event.soc_start,
@@ -1261,8 +1261,9 @@ def get_soc_gantt_as_json(task_id: str):
         for i in range(len(times) - 1):
             records.append(
                 {
-                    "vehicle": vehicle_id,
+                    "vehicle_id": vehicle_id,
                     "vehicle_type": v_type_name,
+                    "bus_name": vehicle_id,
                     "start": times[i].isoformat(),
                     "end": times[i + 1].isoformat(),
                     "soc_start": socs[i],
@@ -1280,12 +1281,4 @@ def get_soc_gantt_as_json(task_id: str):
         ts = event.time_start.timestamp()
         vehicle_first_times[event.vehicle.id] = ts
 
-    # Sort vehicles by their earliest event start time
-    vehicles = [
-        str(v)
-        for v, unused_variable in sorted(
-            vehicle_first_times.items(), key=lambda x: x[1], reverse=True
-        )
-    ]
-
-    return vehicles, records
+    return records
