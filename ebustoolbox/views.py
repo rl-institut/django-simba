@@ -504,7 +504,8 @@ class FilterView(ScenarioMixIn, TemplateView):
     def get_notifications(task_id):
         scenario = get_object_or_404(Scenario, task_id=task_id)
         # TODO: show only a subset of notifications or all notifications?
-        notifications = Notification.objects.filter(scenario=scenario)
+        # Show notifications of the schedule reading which are linked to the source
+        notifications = Notification.objects.filter(scenario=scenario.parent)
         return notifications
 
     def get_context_data(self, request, **kwargs):
