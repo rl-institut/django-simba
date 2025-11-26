@@ -425,14 +425,18 @@ class AreaInformationForm(forms.ModelForm):
         cleaned_data = super().clean()
         if cleaned_data.get("area_type") == AreaType.LINEAR:
             if cleaned_data.get("capacity") is None:
-                self.errors["capacity"].append(
-                    _("Für diesen Flächentyp muss ein Kapazität angegeben werden")
+                self.add_error(
+                    "capacity", _("Für diesen Flächentyp muss ein Kapazität >=2 angegeben werden")
                 )
                 raise ValidationError("Block length cant be None")
 
             if cleaned_data.get("capacity") % cleaned_data.get("block_length") != 0:
-                self.errors["block_length"].append(
-                    _("Die Anzahl muss ein ganzahliger Teiler der Ladeplätze Anzahl sein.")
+                self.add_error(
+                    "block_length",
+                    _(
+                        "Die Anzahl muss ein ganzahliger Teiler der Ladeplätze Anzahl sein "
+                        "und größer oder gleich 2 sein."
+                    ),
                 )
                 raise ValidationError("Block length must be an integer divider of Capacity")
         return cleaned_data

@@ -135,19 +135,22 @@ function findClosestDivider(total, divider, prev_divider) {
   total = parseInt(total);
   divider = parseInt(divider);
   divider = Math.min(total,divider);
-  divider = Math.max(1,divider);
+  min_value = 2;
+  divider = Math.max(min_value,divider);
   if (total % divider == 0) return divider;
   var bigger = divider;
   while (bigger<total && total % bigger != 0) bigger++;
   var smaller = divider;
-  while (smaller>0 && total % smaller != 0) smaller--;
+  while (smaller>min_value && total % smaller != 0) smaller--;
   // Set the default output to the bigger value
   output = bigger;
   // Use the smaller divider if it is closer to the target and not identical with the previous divider
-  if (divider - smaller< bigger-divider && prev_divider != smaller) output=smaller;
+  if (total % smaller == 0){
+  if (divider - smaller< bigger-divider && prev_divider != smaller ) output=smaller;
   else {
     // if the bigger divider is closer to the target but indentical we also use the smaller divider
     if (prev_divider == bigger) output=smaller;
+  }
   }
   return output;
 }
