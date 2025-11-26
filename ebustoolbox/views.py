@@ -59,6 +59,7 @@ import ebustoolbox
 import ebustoolbox.tasks
 from ebustoolbox.models import (
     AreaInformation,
+    AreaType,
     DepotConfigurationWish,
     EnumSimulationType,
     Notification,
@@ -1052,6 +1053,7 @@ class DepotsView(ScenarioMixIn, TemplateView):
                             scenario=scenario,
                             depot_configuration_wish=wish,
                             vehicle_type=vt,
+                            area_type=AreaType.DIRECT_ONESIDE,
                         )
                     )
             AreaInformation.objects.bulk_create(area_informations)

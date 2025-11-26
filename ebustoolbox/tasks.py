@@ -1807,9 +1807,8 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     child, stack = deepcopy_scenario(parent_scenario)
     parent_scenario.refresh_from_db()
     child.parent = mutation
-    if parent_scenario.simba_options:
-        child.simba_options = parent_scenario.simba_options
-    else:
+    child.simba_options.update(mutation.simba_options)
+    if not child.simba_options:
         child.simba_options = vars(get_args(child))
     child.save()
 
