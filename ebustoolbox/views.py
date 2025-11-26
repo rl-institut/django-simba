@@ -627,6 +627,9 @@ class FilterView(ScenarioMixIn, TemplateView):
             count = Rotation.objects.filter(scenario=scenario.parent).count()
             set_rollback(True)
         context = {"count": count, "errors": form.errors}
+        import time
+
+        time.sleep(1)
         return render(request, "ebustoolbox/partials/rotation_count.html", context)
 
     @staticmethod

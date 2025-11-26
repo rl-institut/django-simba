@@ -39,33 +39,13 @@ hx-trigger='load'
             Depots zu Filtern. Mögliche Optimierungen, wie z.B. eine Optmierung des Depots oder eine Optimierung von zu elektrifzierenden Zwischenhalten werden sich nur auf die hier getroffene Auswahl beziehen.
           {% endblocktrans %}
         </p>
-        <div id='rotationcount'>
-        Nothing here yet
-        </div>
 
-          <button
-            hx-trigger="click"
-            hx-include="#filterform"
-            hx-select="#filterform"
-            hx-get="."
-            hx-target="#filterform"
-class="px-6 py-2 w-[16rem] bg-green-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-green-300 hover:shadow-lg active:bg-green-500 transition-all duration-300"
-        >Filter Anwenden
-          </button>
-          <button
-            hx-trigger="click"
-            hx-select="#filterform"
-            hx-get="."
-            hx-target="#filterform"
-
-class="px-6 py-2 w-[16rem] bg-red-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-red-300 hover:shadow-lg active:bg-red-500 transition-all duration-300"
-        >Filter Löschen
-          </button>
         <form id="filterform" method='POST' >
           <div
             hx-trigger="change from:#filterform delay:50ms, load"
             hx-include="#filterform"
             hx-get='{% url "simba:filter_scenario_get_count" task_id %}'
+            hx-indicator='#rotationCountWrapper'
             hx-target='#rotationcount'>
         {% csrf_token %}
 
@@ -156,10 +136,10 @@ class="px-6 py-2 w-[16rem] bg-red-400 text-black text-base font-semibold trackin
                   </span>
                 </div>
                 </h2>
-                <span class="block mb-2 text-sm text-slate-500">{% translate 'Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.' %}</span>
+                <span class="block mb-2 text-sm text-slate-500">{% translate 'Nur Umläufe die von diesen Depots starten werden simuliert. Eine leere Auswahl überspringt die Filterung. Eine leere Auswahl überspringt die Filterung.' %}</span>
                 <fieldset class="flex items-center gap-4">
 
-              <div class="w-1/3 h-32">
+              <div class="min-w-[33%] h-24">
                 {% include "ebustoolbox/partials/multi_select.html" with field=simulation_parameters_form.depot_select %}
                 </div>
 
@@ -182,9 +162,9 @@ class="px-6 py-2 w-[16rem] bg-red-400 text-black text-base font-semibold trackin
                   </span>
                 </div>
                 </h2>
-                <span class="block mb-2 text-sm text-slate-500">{% translate 'Nur Umläufe die diese Linien bedienen werden simuliert.' %}</span>
+                <span class="block mb-2 text-sm text-slate-500">{% translate 'Nur Umläufe die diese Linien bedienen werden simuliert. Wenn ein Umlauf mehrere Linien bedient, von denen Sie mindestens eine ausgewählt haben, wird der gesamte Umlauf simuliert.' %}</span>
                 <fieldset class="flex items-center gap-4">
-              <div class="w-1/3 h-32">
+              <div class="min-w-[33%] h-24">
                   {% include "ebustoolbox/partials/multi_select.html" with field=simulation_parameters_form.line_select %}
                 </div>
                 </fieldset>
@@ -192,16 +172,41 @@ class="px-6 py-2 w-[16rem] bg-red-400 text-black text-base font-semibold trackin
 
             </line-select-section>
 
-
+          <!-- Fixed size so refreshing the count does not move elements -->
+        <div id="rotationCountWrapper" class="h-12 my-2 ">
+        <!-- htmx-hidden is a custom css class to hide the elmen while the request is in flight -->
+            <div id='rotationcount'>
+              </div>
+          </div>
           <button id="SubmitButton" hidden ></button>
           </div>
         </form>
+
+         <!-- Buttons are outside of form, so they dont include the form data, by default. -->
+         <!-- We use it to apply the filter when sending the content via hx-include or refresh the page when we dont include the form -->
+          <span class="block mb-2 text-sm text-slate-500">{% translate 'Durchs Anwenden des Filters werden Ihnen nur verbleibende Depots und Linien angezeigt.' %}</span>
+          <button
+            hx-trigger="click"
+            hx-include="#filterform"
+            hx-select="#filterform"
+            hx-get="."
+            hx-target="#filterform"
+            class="px-6 py-2 w-[16rem] bg-slate-200 text-black text-base font-semibold tracking-wide rounded-full hover:bg-slate-300 hover:shadow-lg active:bg-slate-500 transition-all duration-300"
+        >Filter Anwenden
+          </button>
+          <button
+            hx-trigger="click"
+            hx-select="#filterform"
+            hx-get="."
+            hx-target="#filterform"
+            class="px-6 py-2 w-[16rem] bg-slate-200 text-black text-base font-semibold tracking-wide rounded-full hover:bg-slate-300 hover:shadow-lg active:bg-slate-500 transition-all duration-300"
+        >Filter Löschen
+          </button>
   </section>
     </div>
 </main>
 {% endblock wizard_content %}
 {% block wizard_buttons %}
-
   {% with "SubmitButton" as buttonId %}{{ block.super }}{% endwith %}
 {% endblock wizard_buttons %}
 

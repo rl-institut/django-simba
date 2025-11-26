@@ -1,5 +1,6 @@
 {% load i18n %}
-<div class="m-4 p-4 bg-white border-t border-blue-100 space-y-4 text-sm text-blue-900">
+<div class="mx-4 p-4 bg-white border-t border-blue-100  text-sm text-blue-900">
+  <div class="htmx-hidden">
   {% if not errors %}
     {% if count == 0 %}
       <div class="notification">
@@ -37,4 +38,7 @@
     </div>
   </div>
 {% endif %}
+
+</div>
+<span class="loader htmx-indicator"></span>
 </div>
