@@ -903,7 +903,7 @@ def init_db_with_trips(
         transform_depot_stations(parent)
         ScheduleStationMerger.transform_zero_duration_trips(parent)
         source_file_scenario, unused_variable = deepcopy_scenario(parent)
-        source_file_scenario.name += " [ohne Simulationsfilter]"
+        source_file_scenario.name += _(" [ohne Simulationsfilter]")
         source_file_scenario.save()
         parent.refresh_from_db()
         parent.parent = source_file_scenario
