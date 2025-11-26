@@ -1751,9 +1751,9 @@ class AreaType(models.TextChoices):
     The AreaType represents a certain type of area, which is used to define the location of a process.
     """
 
-    DIRECT_ONESIDE = "DIRECT_ONESIDE", _("Direkt einseitig")
-    DIRECT_TWOSIDE = "DIRECT_TWOSIDE", _("Direkt Zweiseitig")
-    LINEAR = "LINE", _("Linie")
+    DIRECT_ONESIDE = "DIRECT_ONESIDE", _("Schrägabstellung")
+    DIRECT_TWOSIDE = "DIRECT_TWOSIDE", _("Schrägabstellung in Doppelreihe")
+    LINEAR = "LINE", _("Blockabstellung")
 
 
 class Area(models.Model):
@@ -1913,8 +1913,10 @@ class AreaInformation(models.Model):
     )
     block_length = models.IntegerField(null=True, blank=True)
     vehicle_type = models.ForeignKey(VehicleType, null=False, on_delete=models.CASCADE, blank=True)
+    # blank is false although null is true, since django would show an "empty" select.
+    # overriding this behavior is harder than accepting that admins by default have to set a value
     area_type = models.CharField(
-        max_length=14, choices=AreaType.choices, null=True, blank=True, default=None
+        max_length=14, choices=AreaType.choices, null=True, blank=False, default=None
     )
     capacity = models.IntegerField(null=True, blank=True)
     power = models.FloatField(null=True, blank=True)
