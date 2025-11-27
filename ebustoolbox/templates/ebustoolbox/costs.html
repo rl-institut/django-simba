@@ -17,12 +17,12 @@
   enctype="multipart/form-data">
   {% csrf_token %}
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">
+    <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase text-center">
       {% translate "Kosten" %}
       <span class="text-sm normal-case font-normal text-slate-600">{% translate '(optional)' %}</span>
     </h1>
     <section class="pb-12">
-      <fieldset class="pb-8">
+      <fieldset class="pb-8 flex" style="justify-content: center">
         <div class="mt-6">
           <!-- Option 1: no settings -->
           <div class="flex items-center h-12">
@@ -51,7 +51,7 @@
         </div>
       </fieldset>
       <div id="costsInputs" class="hidden">
-        <div style="display:inline-grid">
+        <div style="padding:1rem">
           <label
             class="block text-sm/6 font-medium text-slate-800"
             for="select-from-scenario"
@@ -335,6 +335,17 @@
   const upSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd"/></svg>';
 
   function toggleAccordion(button) {
+    if (toggleAccordion.open == button ) {
+      // clicked same accordion: skip
+      return
+    }
+    if (toggleAccordion.open != undefined) {
+      // close prior accordion
+      let old_button = toggleAccordion.open;
+      toggleAccordion.open = undefined;
+      old_button.click();
+    }
+
     const container = button.closest('div.accordion-container');
     const index = container.dataset.value;
     const content = document.getElementById(`acc-content-${index}`);
@@ -365,6 +376,17 @@
       content.setAttribute('timeout', timeout);
     }
   }
-  //toggleAccordion(document.getElementById("acc-btn-req-general"));
+  let man_inp = document.getElementById('costsManually');
+  if (man_inp) {
+    let button = document.querySelector(".accordion-header");
+    if (man_inp.checked)
+      toggleAccordion(button); // find first accordion header and toggle open
+    man_inp.onchange = e => {
+      console.log(e);
+      if (e.target.checked) {
+        toggleAccordion(button);
+      }
+    }
+  }
 </script>
 {% endblock script %}
