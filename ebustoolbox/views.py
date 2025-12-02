@@ -59,6 +59,7 @@ import ebustoolbox
 import ebustoolbox.tasks
 from ebustoolbox.models import (
     AreaInformation,
+    AreaType,
     DepotConfigurationWish,
     EnumSimulationType,
     Notification,
@@ -186,21 +187,24 @@ def get_sorted_mutation_scenarios(user) -> QuerySet[Scenario]:
 
     The QuerySet is ordered by User Scenarios, UserGroup Scenarios and lastly the default Scenario
     """
-    # Todo Define what admins should see and refactor function with new get_user_scenario_qs
     if not user.is_authenticated:
         # Query for default scenario
-        default_scenario = Scenario.objects.filter(defaultscenario=DefaultScenario.objects.first())
-        return default_scenario
+        data_scenarios = Scenario.objects.filter(
+            scenario_type=EnumScenarioType.PUBLIC_DATA,
+            manager__is_superuser=True,
+        )
+        return data_scenarios
     scenario_qs = Scenario.objects.filter(scenario_type=EnumScenarioType.MUTATION).annotate(
         order_id=Cast(F("manager_id"), FloatField()) - user.id,
     )
 
     user_scenarios = get_user_scenario_qs(user, scenario_qs=scenario_qs)
-    # Get the Scenario related to the Singleton DefaultScenario as queryset
-    default_scenario = Scenario.objects.filter(
-        defaultscenario=DefaultScenario.objects.first()
+    # Get the Scenario related to the scenarios which contain default data
+    data_scenarios = Scenario.objects.filter(
+        manager__is_superuser=True,
+        scenario_type=EnumScenarioType.PUBLIC_DATA,
     ).annotate(order_id=Value(float("inf"), output_field=FloatField()))
-    all_scenarios = user_scenarios.union(default_scenario)
+    all_scenarios = user_scenarios.union(data_scenarios)
 
     # Annotation is not possible after using union
     # Order output. User Scenarios first
@@ -375,6 +379,7 @@ class TripsView(FormView):
         scenario = Scenario.objects.create(task_id=task_id, manager=manager)
         scenario.name = cleaned_data["scenario_name"]
         scenario.description = cleaned_data["description"]
+        scenario.simba_options["find_stations"] = bool(cleaned_data.get("find_stations"))
         # If schedule reading failed before there is a parent already. Delete it if
         # its only child is the current scenario
         if scenario.parent:
@@ -449,10 +454,18 @@ class TripsView(FormView):
             ):
                 raise Http404
             mutation_scenario = Scenario.objects.get(task_id=scenario_uuid)
-            assert mutation_scenario.scenario_type == EnumScenarioType.MUTATION
+            assert mutation_scenario.scenario_type in [
+                EnumScenarioType.MUTATION,
+                EnumScenarioType.PUBLIC_DATA,
+            ]
+            if self.request.user.is_authenticated:
+                mutation_scenario.manager = self.request.user
+            else:
+                mutation_scenario.manager = None
             copied_mutation = tasks.create_scenario_copy_for_user(mutation_scenario)
             copied_mutation.name = scenario.name
             copied_mutation.name_short = scenario.name_short
+            copied_mutation.scenario_type = EnumScenarioType.MUTATION
             copied_mutation.description = scenario.description
             copied_mutation.save()
             scenario.delete()
@@ -502,15 +515,14 @@ class VehiclesView(ScenarioMixIn, TemplateView):
         data = None
         if self.request.method == "POST":
             data = self.request.POST
-        middlepoint = tasks.get_middlepoint(scenario)
+        # NOTE: stations are linked with the parent/source scenario
+        middlepoint = tasks.get_middlepoint(scenario.parent)
         lon, lat = None, None
         startdate = datetime.datetime(year=2015, month=1, day=1)
         # Historical dwd data goes mostly till end of 2024 and does not include the current year
         enddate = datetime.datetime(year=2024, month=12, day=31)
         # TODO: define default weatherstation in central germany
         weatherstation = WeatherStation.objects.first()
-        # Only pick a weather station close to the system,
-        # if there are at least data for 80% of time
         minimal_data_ratio = 0.8
         min_data_points = (enddate - startdate).total_seconds() / 3600 * minimal_data_ratio
         if middlepoint:
@@ -1002,7 +1014,16 @@ class DepotsView(ScenarioMixIn, TemplateView):
             DepotConfigurationWish.objects.filter(scenario=scenario).delete()
             depot_configs = []
             for station in depots_query:
-                depot_configs.append(DepotConfigurationWish(scenario=scenario, station=station))
+                # Create the depot configs with default values.
+                # This also instantiates the form with these values
+                depot_configs.append(
+                    DepotConfigurationWish(
+                        scenario=scenario,
+                        station=station,
+                        default_power=150,
+                        standard_block_length=6,
+                    )
+                )
             DepotConfigurationWish.objects.bulk_create(depot_configs)
 
         if AreaInformation.objects.filter(scenario=scenario).count() < depots_query.count():
@@ -1032,6 +1053,7 @@ class DepotsView(ScenarioMixIn, TemplateView):
                             scenario=scenario,
                             depot_configuration_wish=wish,
                             vehicle_type=vt,
+                            area_type=AreaType.DIRECT_ONESIDE,
                         )
                     )
             AreaInformation.objects.bulk_create(area_informations)
@@ -1040,6 +1062,7 @@ class DepotsView(ScenarioMixIn, TemplateView):
         context["forms"] = dict()
         for depot_config in depot_configs:
             depot_forms = dict()
+
             depot_forms["depot_config"] = DepotConfigurationWishForm(
                 data=data,
                 instance=depot_config,
@@ -1067,7 +1090,13 @@ class DepotsView(ScenarioMixIn, TemplateView):
             for depot_id, form_dict in context["forms"].items():
                 form_dict["depot_config"].is_valid()
                 instance = form_dict["depot_config"].instance
-                instance.save(update_fields=["auto_generate"])
+                # Set default for the depot config when auto generate was set to false
+                if not form_dict["depot_config"].cleaned_data["auto_generate"]:
+                    instance.cleaning_duration = 30
+                    instance.shunting_duration = 5
+                instance.save(
+                    update_fields=["auto_generate", "cleaning_duration", "shunting_duration"]
+                )
             self.request.method = "get"
             return self.get(request, *args, **kwargs)
 
@@ -1120,7 +1149,11 @@ class SummaryView(AuthorizedMixIn, TemplateView):
         scenario = get_object_or_404(Scenario, task_id=task_id)
         children = list(Scenario.objects.filter(parent=scenario).values_list("id", flat=True))
         notifications = Notification.objects.filter(scenario__in=[scenario.id] + children).exclude(
-            notification_type=EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING
+            notification_type__in=[
+                EnumNotificationType.MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING,
+                EnumNotificationType.INTERMEDIATE_DEPOT_STOPS_TRANSFORMED,
+                EnumNotificationType.MERGED_STATIONS_FOR_INCONSISTENT_TRIPS,
+            ]
         )
         return notifications
 
@@ -1439,12 +1472,20 @@ def get_dashboard(request):
     # show all scenarios of a user
     # what about staff?
     base_qs = Scenario.objects.filter(
-        scenario_type=EnumScenarioType.SIMULATION,
+        scenario_type__in=[EnumScenarioType.SIMULATION, EnumScenarioType.MUTATION]
     )
-    scenarios = get_user_scenario_qs(request.user, scenario_qs=base_qs)
+    scenarios = get_user_scenario_qs(request.user, scenario_qs=base_qs).prefetch_related(
+        "scenario_set"
+    )
     # get task status from task_id for each scenario
     scenario_list = list()
     for scenario in scenarios:
+        # Also show mutation scenarios, but only if they have not been simulated yet
+        if scenario.scenario_type == EnumScenarioType.MUTATION:
+            if scenario.scenario_set.count() == 0:
+                scenario.state = "idle"
+                scenario_list.append(scenario)
+            continue
         # The progress is linked to the mutation sceanario.
         # The progress task_id is set to the resulting (simulation-) scenario task_id
         progress = Progress.objects.filter(task_id=scenario.task_id)

@@ -4,9 +4,10 @@ services:
   web:
     build:
       context: .
+      dockerfile: ./Dockerfile_local_development
     image: django-web:latest
     command:
-      /start
+      /start_dev
     volumes:
       - .:/app
     ports:
@@ -26,7 +27,6 @@ services:
       - my-docker-postgres
       - my-docker-redis
       - web
-
 
   my-docker-redis:
     # in .env_file

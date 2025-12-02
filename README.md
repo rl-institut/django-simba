@@ -1,4 +1,20 @@
 ## Development Updates
+### Data Scenarios
+How to create public data scenarios.
+Admins can now easily add Scenarios which can be selected by users to run a scenarios without uploading data.
+Steps
+1. Login as Superuser
+2. Upload a Scenarios using the standard way/trips.html
+3. Go to the admin panel, select the created mutation scenario and make the scenario a PUBLIC_DATA scenario
+
+### Admin Panel
+Most Models have been added to the scenario panel.
+If you search for a specific item a query can be added to the model url,
+```
+vehicletype/?battery_capacity__gte=500&name__contains=MyVehicleType
+```
+
+### Redis
 To allow caching, enable permanent celery results storage and use the same stack as production. Redis is very **recommended**.
 Install redis and use the following .env settings
 

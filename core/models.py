@@ -4,7 +4,7 @@ import pytz
 # Create your models here.
 from django.contrib.gis.db import models
 from django.db.models.functions import Now
-
+from django.utils.translation import gettext as _
 from ebustoolbox.models import Scenario
 
 
@@ -50,7 +50,7 @@ class Progress(models.Model):
             return 0
 
     def set_success(self):
-        self.status = "Fertig"
+        self.status = _("Fertig")
         self.current_work = self.total_work
         self.success = True
         self.running = False
