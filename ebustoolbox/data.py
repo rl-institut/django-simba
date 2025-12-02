@@ -498,7 +498,6 @@ def get_critical_rotations_as_dataframe(scenario_id, buses):
     df = result_df[result_df["V_id"].isin(buses)]
 
     df = df.explode("R_id")
-    df["R_id"] = df["R_id"].apply(apply_id)
 
     df = df.groupby(["R_id", "V_id"])["soc_end"].min().reset_index()
 
