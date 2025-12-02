@@ -50,6 +50,8 @@ django-widget-tweaks = "^1.5.0"
 eflips-depot = "^4.13.0"
 eflips-ingest = "^1.2.79"
 eflips-eval = "^1.7.3"
+eflips-tco = { git = "https://github.com/mpm-tu-berlin/eflips-tco.git", branch = "main"}
+
 
 [tool.poetry.group.dev]
 optional = true
