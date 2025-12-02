@@ -621,6 +621,8 @@ def get_all_event_info(scenario_id):
                     vehicle_rotation = event.trip.rotation
                     route_name = event.trip.route.name
 
+                station_name = event.station.name if getattr(event, "station_id", None) else None
+
                 dfs.append(
                     {
                         "V_id": v_id,
@@ -635,6 +637,7 @@ def get_all_event_info(scenario_id):
                         "R_id": vehicle_rotation.id if vehicle_rotation else None,
                         "rotation_name": vehicle_rotation.name if vehicle_rotation else None,
                         "readable_name": vehicle_name_dict[vehicle.id],
+                        "station_name": station_name,
                     }
                 )
 
@@ -660,6 +663,7 @@ def get_all_event_info(scenario_id):
                 "R_id": [None],  # Rotation ID
                 "rotation_name": [None],
                 "readable_name": [None],
+                "station_name": [None],
             }
         )
 
@@ -977,13 +981,14 @@ def get_event_gantt_as_json(task_id: str):
 
         gantt_data.append(
             {
-                "vehicle_id": row['V_id'],
+                "vehicle_id": row["V_id"],
                 "value": [bus_index, start_time, end_time, duration],
                 "event_type": row["event_type"],
                 "bus_name": f"Bus {row['V_id']}",
                 "vehicle_type": row["V_type"],
                 "route_name": row["route_name"],
                 "rotation_name": row["rotation_name"],
+                "station_name": row["station_name"],
             }
         )
     return gantt_data
@@ -1230,6 +1235,8 @@ def get_soc_gantt_as_json(task_id: str):
             vehicle_rotation = None
             route_name = None
 
+        station_name = event.station.name if getattr(event, "station_id", None) else None
+
         # Fallback in case timeseries is missing or invalid
         if not event.timeseries or "time" not in event.timeseries or "soc" not in event.timeseries:
             records.append(
@@ -1243,6 +1250,7 @@ def get_soc_gantt_as_json(task_id: str):
                     "soc_end": event.soc_end,
                     "route_name": route_name,
                     "rotation_name": vehicle_rotation,
+                    "station_name": station_name,
                 }
             )
             continue
@@ -1269,6 +1277,7 @@ def get_soc_gantt_as_json(task_id: str):
                     "soc_end": socs[i + 1],
                     "route_name": route_name,
                     "rotation_name": vehicle_rotation,
+                    "station_name": station_name,
                 }
             )
 
