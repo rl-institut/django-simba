@@ -317,7 +317,9 @@ def recent_memoizer(function, scenario_id, _dcache1=dict(), _result_cache2=dict(
             last_simulations.append((scenario_id, scenario.finished))
             for function_key, all_f_args in _dcache1.copy().items():
                 f_args_w_scenario_id = filter(lambda x: x[0] == scenario_id, all_f_args)
-                logger.debug("Deleting deprecated scenario ", scenario_id)
+                logger.debug(
+                    f"ScenarioId:{scenario_id} :Deleting deprecated scenario ", scenario_id
+                )
                 for f_args in f_args_w_scenario_id:
                     try:
                         _dcache1[function_key].remove(f_args)

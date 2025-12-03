@@ -45,7 +45,9 @@ class BusStationListView(ListView):
             context["error"] = f"The Station search API needs the non empty param '{QUERY_PARAM}'."
         else:
             search_stations_request = get_station_search(self.request)
-            logger.info(f"Searching for {len(search_stations_request)} stations")
+            logger.info(
+                f"ScenarioId:{self.scenario.id}: Searching for {len(search_stations_request)} stations"
+            )
             use_filter = self.request.GET.get("filter", "false").lower() == "true"
             found_stations = search_stations(search_stations_request, use_filter)
         geoms = []
