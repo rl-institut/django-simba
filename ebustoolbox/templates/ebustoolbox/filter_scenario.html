@@ -34,9 +34,9 @@ hx-trigger='load'
           {% blocktrans %}
             Wenn Sie eine Simulation mit nur einem Teil der gerade ausgewählten
             Daten starten möchten, können Sie die Daten hier filtern. Es ist
-            möglich die Zeitspanne auszuwählen die Sie Simulieren möchten,
+            möglich die Zeitspanne auszuwählen die Sie simulieren möchten,
             Depots auszuwählen die simuliert werden sollen und die Umläufe nach
-            Depots zu Filtern. Mögliche Optimierungen, wie z.B. eine Optmierung des Depots oder eine Optimierung von zu elektrifzierenden Zwischenhalten werden sich nur auf die hier getroffene Auswahl beziehen.
+            Depots zu Filtern. Mögliche Optimierungen, wie z.B. eine Optimierung des Depots oder eine Optimierung von zu elektrifzierenden Zwischenhalten werden sich nur auf die hier getroffene Auswahl beziehen.
           {% endblocktrans %}
         </p>
 
@@ -65,7 +65,7 @@ hx-trigger='load'
                   </span>
                 </div>
                 </h2>
-                <span class="block mb-2 text-sm text-slate-500">{% translate 'Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.' %}</span>
+                <span class="block mb-2 text-sm text-slate-500">{% translate 'Nur Umläufe, die innerhalb dieser Zeitspanne starten, werden simuliert.' %}</span>
                 <fieldset class="flex items-center gap-4">
                   <span class="text-slate-600">{% translate 'Von' %}</span>
                   <!-- Start Date -->
@@ -136,7 +136,7 @@ hx-trigger='load'
                   </span>
                 </div>
                 </h2>
-                <span class="block mb-2 text-sm text-slate-500">{% translate 'Nur Umläufe die von diesen Depots starten werden simuliert. Eine leere Auswahl überspringt die Filterung. Eine leere Auswahl überspringt die Filterung.' %}</span>
+                <span class="block mb-2 text-sm text-slate-500">{% translate 'Nur Umläufe die von diesen Depots starten werden simuliert. Eine leere Auswahl überspringt die Filterung.' %}</span>
                 <fieldset class="flex items-center gap-4">
 
               <div class="min-w-[33%] h-24">
@@ -162,7 +162,7 @@ hx-trigger='load'
                   </span>
                 </div>
                 </h2>
-                <span class="block mb-2 text-sm text-slate-500">{% translate 'Nur Umläufe die diese Linien bedienen werden simuliert. Wenn ein Umlauf mehrere Linien bedient, von denen Sie mindestens eine ausgewählt haben, wird der gesamte Umlauf simuliert.' %}</span>
+                <span class="block mb-2 text-sm text-slate-500">{% translate 'Nur Umläufe, die diese Linien bedienen, werden simuliert. Wenn ein Umlauf mehrere Linien bedient, von denen Sie mindestens eine ausgewählt haben, wird der gesamte Umlauf simuliert. Eine leere Auswahl überspringt die Filterung.' %}</span>
                 <fieldset class="flex items-center gap-4">
               <div class="min-w-[33%] h-24">
                   {% include "ebustoolbox/partials/multi_select.html" with field=simulation_parameters_form.line_select %}
