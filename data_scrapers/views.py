@@ -46,7 +46,7 @@ class BusStationListView(ListView):
         else:
             search_stations_request = get_station_search(self.request)
             logger.info(
-                f"ScenarioId:{self.scenario.id}: Searching for {len(search_stations_request)} stations"
+                f"S.ID:{self.scenario.id}: Searching for {len(search_stations_request)} stations"
             )
             use_filter = self.request.GET.get("filter", "false").lower() == "true"
             found_stations = search_stations(search_stations_request, use_filter)

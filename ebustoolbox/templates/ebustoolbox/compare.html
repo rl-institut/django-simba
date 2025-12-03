@@ -102,9 +102,9 @@
 
       // Handle selection
       select.addEventListener('change', (e) => {
-        const selectedScenarioId = e.target.value;
-        if (selectedScenarioId) {
-          addColumn(selectedScenarioId);
+        const selectedS.ID = e.target.value;
+        if (selectedS.ID) {
+          addColumn(selectedS.ID);
           // Reset select to default state
           e.target.value = '';
           updateSelectOptions(select);
