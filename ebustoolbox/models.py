@@ -34,6 +34,7 @@ MINIMAL_TRIP_DURATION_S = 60  # seconds
 
 class EnumScenarioType(models.TextChoices):
     SOURCE = "SOURCE"
+    SOURCE_FILE = "SOURCE_FILE"
     MUTATION = "MUTATION"
     SIMULATION = "SIMULATION"
     PUBLIC_DATA = "PUBLIC_DATA"
@@ -1808,11 +1809,9 @@ class AssocAreaProcess(models.Model):
     process = models.ForeignKey(Process, on_delete=models.CASCADE)
 
 
-class SimulationRange(models.Model):
+class SimulationTemperatures(models.Model):
     # Mutation Scenario
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
-    start = models.DateTimeField(null=True, blank=True)
-    end = models.DateTimeField(null=True, blank=True)
     temperature_average = models.FloatField(
         blank=True,
         default=10,
