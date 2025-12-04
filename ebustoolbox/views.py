@@ -1291,9 +1291,7 @@ class SummaryView(AuthorizedMixIn, TemplateView):
             is_electrified=False, is_electrifiable=True
         )
         context["excluded_stations"] = scenario_stations.filter(id__in=excluded_ids)
-        context["depots"] = Station.objects.filter(
-            scenario=scenario, charge_type=EnumChargeType.DEPOT
-        )
+        context["depot_wishes"] = DepotConfigurationWish.objects.filter(scenario=scenario)
         return context
 
     def post(self, request, *args, **kwargs):
