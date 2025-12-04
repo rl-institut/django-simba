@@ -367,16 +367,19 @@ class VehicleType(models.Model):
 
     @property
     def get_average_speed_kmh(self):
-        # Get all default vehicle types. Only Opportunity charging capable for now
-        # Expand the query for desired vehicle types which can be selected
-        rots = annotate_distance(Rotation.objects.filter(vehicle_type_id=self.id))
-        result = rots.aggregate(
-            distance=Sum("distance"),
-            duration=Sum(F("trip__arrival_time") - F("trip__departure_time")),
-        )
-        average_speed_kmh = (result["distance"] / 1000) / (
-            result["duration"].total_seconds() / 3600
-        )
+        try:
+            # Get all default vehicle types. Only Opportunity charging capable for now
+            # Expand the query for desired vehicle types which can be selected
+            rots = annotate_distance(Rotation.objects.filter(vehicle_type_id=self.id))
+            result = rots.aggregate(
+                distance=Sum("distance"),
+                duration=Sum(F("trip__arrival_time") - F("trip__departure_time")),
+            )
+            average_speed_kmh = (result["distance"] / 1000) / (
+                result["duration"].total_seconds() / 3600
+            )
+        except TypeError:
+            average_speed_kmh = 0
         return average_speed_kmh
 
     @property
@@ -386,12 +389,16 @@ class VehicleType(models.Model):
 
     @property
     def get_total_distance_km(self):
-        return (
-            Route.objects.filter(trip__rotation__vehicle_type_id=self.id).aggregate(
-                Sum("distance")
-            )["distance__sum"]
-            / 1000
-        )
+        try:
+            distance = (
+                Route.objects.filter(trip__rotation__vehicle_type_id=self.id).aggregate(
+                    Sum("distance")
+                )["distance__sum"]
+                / 1000
+            )
+        except TypeError:
+            distance = 0
+        return distance
 
     def get_charging_power(self, soc: float) -> float:
         """Get the charging power the vehicle type is capable of at a given soc"""

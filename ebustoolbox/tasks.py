@@ -2905,6 +2905,7 @@ def trim_depots(scenario, depot_ids: list[int]):
     )
     (Route.objects.filter(scenario=scenario).annotate(count=Count("trip")).filter(count=0).delete())
     Line.objects.filter(scenario=scenario, route__isnull=True).delete()
+    VehicleType.objects.filter(scenario=scenario, rotation__isnull=True).delete()
     logger.info(
         f"Before -> After trimming\n"
         f"rotations:{rot_before_count} -> {Rotation.objects.filter(scenario=scenario).count()}\n"
