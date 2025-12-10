@@ -43,7 +43,6 @@ def deepcopy_and_sequence_reset(
         max_depth=max_depth,
     )
     original_copy_dict = deepcopy_locals["stack_post"]
-    reset_postgres_auto_increments(deepcopy_locals["apps"])
 
     return copied_instance, original_copy_dict
 

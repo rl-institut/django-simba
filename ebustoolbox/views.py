@@ -1961,6 +1961,48 @@ def import_scenario(request):
                 f"View <a href={reverse('simba:result', args=[task_id])}>results</a>"
             )
         return HttpResponse(
-            _(f"Scenario succesfully imported with task_id {task_id}. ") + redirect_suggestion
+            _(f"Scenario successfully imported with task_id {task_id}. ") + redirect_suggestion
         )
     return HttpResponseBadRequest(_("Use POST or GET"))
+
+
+def loadTester(request, task_id: str):
+    if not request.user.is_authenticated:
+        raise Http404()
+    if not request.user.is_superuser:
+        raise Http404()
+    scenarios = request.GET.getlist("scenario")
+    scenario = Scenario.objects.get(task_id=task_id)
+    context = {}
+    context["scenario"] = scenario
+    context["scenarios"] = scenarios
+    if request.method == "GET":
+        progresses = Progress.objects.filter(scenario=scenario, running=True)
+        context["progresses"] = progresses
+        return render(request, "ebustoolbox/load_test.html", context)
+    elif request.method == "POST":
+        repeats = int(request.POST.get("repeats", 0))
+        progresses = []
+        for i in range(repeats):
+            progress = Progress.objects.create(
+                scenario=scenario,
+                progress_type=EnumProgress.RUNNING_SIMULATION,
+                task_id=get_unique_task_id(),
+            )
+            progresses.append(progress)
+            try:
+                tasks.run_and_merge_scenarios.apply_async(
+                    (scenario.id, get_unique_task_id(), get_unique_task_id()),
+                    task_id=str(progress.task_id),
+                )
+            except Exception:
+                progress.errors.append(
+                    _(
+                        "Ein unerwarteter Fehler ist aufgetreten. Wenden Sie sich an ihren Administrator"
+                    )
+                )
+                progress.set_failed()
+                logger.error(traceback.format_exc())
+        context["progresses"] = progresses
+        return render(request, "ebustoolbox/load_test.html", context)
+    return HttpResponse("wrong method")

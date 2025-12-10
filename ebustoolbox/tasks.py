@@ -45,7 +45,6 @@ import simba.optimizer_util
 import simba.station_optimization
 import simba.simulate
 import simba.util
-from core.deepcopy import reset_postgres_auto_increments
 from core.models import EnumProgress, Progress
 from simba.data_container import DataContainer
 from simba.schedule import Schedule as SimbaSchedule
@@ -1066,7 +1065,7 @@ def run_and_merge_scenarios(
         )
 
     _run_ebus_toolchain.apply(
-        (sizing_scenario_task_id,), task_id=sizing_scenario_task_id, throw=True
+        (sizing_scenario_task_id, progress.task_id), task_id=sizing_scenario_task_id, throw=True
     )
 
     logger.info("Copying result of first Simulation as basis for the second.")
@@ -1096,7 +1095,9 @@ def run_and_merge_scenarios(
 
     assign_new_vehicles_to_db(average_scenario)
     _run_ebus_toolchain.apply(
-        (default_simulation_task_id,), task_id=default_simulation_task_id, throw=True
+        (default_simulation_task_id, progress.task_id),
+        task_id=default_simulation_task_id,
+        throw=True,
     )
     # default_simulation_scenario = merge_scenario(mutation_id, default_simulation_task_id)
     # run_toolchain_from_scenario(default_simulation_scenario, assign_vehicles=True)
@@ -1890,23 +1891,26 @@ def create_station_mutations(scenario):
 
 
 @shared_task(bind=True)
-def _run_ebus_toolchain(self, task_id):
+def _run_ebus_toolchain(self, task_id, progress_id=None):
     """Run the tool chain"""
     db_scenario: Scenario = Scenario.objects.get(task_id=task_id)
     assert is_consistent(db_scenario)
 
     # With multiple simulations the progress is linked through the parent to its child scenarios
-    progress = Progress.objects.filter(
-        scenario=db_scenario.parent, progress_type=EnumProgress.RUNNING_SIMULATION
-    ).first()
-    if not progress:
-        logger.warning(
-            "The toolchain did not find a progress belonging to the parent of the scenario. "
-            "Creating a Progress bound to the simulation scenario instead"
-        )
-        progress = Progress.objects.create(
-            scenario=db_scenario, progress_type=EnumProgress.RUNNING_SIMULATION, task_id=task_id
-        )
+    if not progress_id:
+        progress = Progress.objects.filter(
+            scenario=db_scenario.parent, progress_type=EnumProgress.RUNNING_SIMULATION
+        ).first()
+        if not progress:
+            logger.warning(
+                "The toolchain did not find a progress belonging to the parent of the scenario. "
+                "Creating a Progress bound to the simulation scenario instead"
+            )
+            progress = Progress.objects.create(
+                scenario=db_scenario, progress_type=EnumProgress.RUNNING_SIMULATION, task_id=task_id
+            )
+    else:
+        progress = Progress.objects.get(task_id=progress_id)
 
     # Clean up of previous notifications which can be produced during the simulation
     # without cleaning they might appear multiple times, from previous failed simulations
@@ -2277,7 +2281,6 @@ def run_simba(
     logger.info(f"Creating SimBA Events {datetime.now()}")
     create_event_output(scenario, db_scenario)
     logger.info(f"SimBA Events Created {datetime.now()}")
-    reset_postgres_auto_increments(apps=[Event._meta.app_label])
     return schedule, scenario
 
 
