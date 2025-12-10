@@ -143,7 +143,7 @@ def deepcopy(  # noqa
             model_pks[object.__class__] += 1
         except KeyError:
             model_pks[object.__class__] = (
-                object.__class__.objects.aggregate(Max("id"))["id__max"] + 1
+                object.__class__.objects.aggregate(Max("id"))["id__max"] + 100_000
             )
         new_pk = model_pks[object.__class__]
         # Create new reference
@@ -254,6 +254,10 @@ def deepcopy(  # noqa
             )
         )
 
+        # _copies have updated ids. To use them later pass them to copies
+        for key in _copies:
+            if key not in failed_classes:
+                copies[key] = _copies[key]
         _copies = {key: values for key, values in _copies.items() if key in failed_classes}
         if len(_copies) == 0:
             break
@@ -362,7 +366,7 @@ def bulk_create_objects(copies, stack_pre, rev_stack_pre, stack_post, rev_stack_
 
         # update the reverse stack which is used later for lookups
         rev_stack_post[inner_object_class] = dict()
-        rev_stack_post[inner_object_class] = dict()
+
         for key, value in stack_post[inner_object_class].items():
             rev_stack_post[inner_object_class][value] = key
 

@@ -935,9 +935,6 @@ def init_db_with_trips(
         progress.running = False
         progress.save()
 
-        # Make sure postgres auto increment is up to date
-        core.deepcopy.reset_postgres_auto_increments(["ebustoolbox"])
-
 
 def trim_scenario(scenario, time_delta, start_time=None):
     rotations = get_rotations_by_timespan(scenario, time_delta, start_time)
