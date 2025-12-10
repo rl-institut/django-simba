@@ -2096,11 +2096,6 @@ select {
   background-color: rgb(255 251 235 / var(--tw-bg-opacity, 1));
 }
 
-.bg-black {
-  --tw-bg-opacity: 1;
-  background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1));
-}
-
 .bg-blue-200 {
   --tw-bg-opacity: 1;
   background-color: rgb(191 219 254 / var(--tw-bg-opacity, 1));
@@ -4146,4 +4141,43 @@ progress::-moz-progress-bar {
        -moz-appearance: auto;
             appearance: auto;
   }
+}
+
+.\[\&\>tr\:hover\]\:bg-slate-100>tr:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(241 245 249 / var(--tw-bg-opacity, 1));
+}
+
+.\[\&\>tr\:hover\]\:hover\:bg-slate-100:hover>tr:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(241 245 249 / var(--tw-bg-opacity, 1));
+}
+
+.\[\&\>tr\]\:bg-slate-100>tr {
+  --tw-bg-opacity: 1;
+  background-color: rgb(241 245 249 / var(--tw-bg-opacity, 1));
+}
+
+.\[\&\>tr\]\:hover\:bg-slate-100:hover>tr {
+  --tw-bg-opacity: 1;
+  background-color: rgb(241 245 249 / var(--tw-bg-opacity, 1));
+}
+
+.\[\&_td\]\:border-b td {
+  border-bottom-width: 1px;
+}
+
+.\[\&_td\]\:border-slate-200 td {
+  --tw-border-opacity: 1;
+  border-color: rgb(226 232 240 / var(--tw-border-opacity, 1));
+}
+
+.\[\&_td\]\:px-4 td {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.\[\&_td\]\:py-2 td {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
