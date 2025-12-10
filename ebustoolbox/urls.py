@@ -121,7 +121,6 @@ urlpatterns = [
     # results endpoints
     path("result/<uuid:task_id>/soc/", views.get_soc_data, name="soc_data"),
     path("result/<uuid:task_id>/power-draw/", views.get_power_draw, name="power_draw_data"),
-    path("result/<uuid:task_id>/gantt/", views.get_gantt_data, name="gantt_data"),
     path("result/<uuid:task_id>/stats/", views.get_stats, name="stats"),
     path("result/<uuid:task_id>/dist_histogram/", views.get_dist_hist, name="dist_hist_data"),
     path("result/<uuid:task_id>/speed_histogram/", views.get_speed_hist, name="speed_hist_data"),

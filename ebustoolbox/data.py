@@ -86,7 +86,7 @@ def vid_human_readable(vehicle: Vehicle, counter, name="", c_type=False, rotatio
 def get_total_consumption(s: Scenario):
     vehicles = Vehicle.objects.filter(scenario_id=s.id)
 
-    df = recent_memoizer(get_all_event_info, s.id)(s.id)
+    df =  recent_memoizer(get_soc_gantt_as_json, s.id)(s.id)
 
     # Convert time columns to datetime
     df["time_start"] = pd.to_datetime(df["time_start"])
@@ -221,7 +221,7 @@ def get_frequently_served_station(task_id: str) -> list[str]:
 
 def get_scenario_duration(task_id: str) -> dict:
     s = Scenario.objects.get(task_id=task_id)
-    df = recent_memoizer(get_all_event_info, s.id)(s.id)
+    df =  recent_memoizer(get_soc_gantt_as_json, s.id)(s.id)
 
     # Convert time columns to datetime
     df["time_start"] = pd.to_datetime(df["time_start"])
@@ -383,8 +383,8 @@ def get_soc_as_dataframe(scenario_id, buses):
     :rtype: pandas.DataFrame
     """
 
-    result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
-    filtered_df = result_df.query(f"V_id in {buses}")
+    result_df = recent_memoizer(get_soc_gantt_as_json, scenario_id)(scenario_id)
+    filtered_df = result_df.query(f"vehicle_id in {buses}")
     return filtered_df
 
 
@@ -438,9 +438,9 @@ def get_activities_as_dataframe(scenario_id, buses):
     :return: DataFrame containing activity data for specified buses.
     :rtype: pandas.DataFrame
     """
-    result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
+    result_df =  recent_memoizer(get_soc_gantt_as_json, scenario_id)(scenario_id)
 
-    filtered_df = result_df.query(f"V_id in {buses}")
+    filtered_df = result_df.query(f"vehicle_id in {buses}")
     return filtered_df
 
 
@@ -494,13 +494,13 @@ def get_critical_rotations_as_dataframe(scenario_id, buses):
     :param buses: List of bus IDs to include.
     :return: DataFrame with R_id, V_id, soc_end, and SOC_category columns.
     """
-    result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
+    result_df = recent_memoizer(get_soc_gantt_as_json, scenario_id)(scenario_id)
 
-    df = result_df[result_df["V_id"].isin(buses)]
+    df = result_df[result_df["vehicle_id"].isin(buses)]
 
     df = df.explode("R_id")
 
-    df = df.groupby(["R_id", "V_id"])["soc_end"].min().reset_index()
+    df = df.groupby(["R_id", "vehicle_id"])["soc_end"].min().reset_index()
 
     df["SOC_category"] = df["soc_end"].apply(
         lambda x: "Nicht kritisch" if x > CRITICAL_SOC else "kritisch"
@@ -520,7 +520,7 @@ def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
     """
     TODO
     """
-    result_df = recent_memoizer(get_all_event_info, scenario_id)(scenario_id)
+    result_df =  recent_memoizer(get_soc_gantt_as_json, scenario_id)(scenario_id)
 
     df = result_df[result_df["V_id"].isin(buses)]
 
@@ -547,133 +547,6 @@ def get_all_routes(scenario_id):
     df = pd.DataFrame(data)
 
     return df
-
-
-def get_all_event_info(scenario_id):
-    """
-    Retrieves event information for all vehicles in a given scenario.
-
-    :param scenario_id: The ID of the scenario.
-    :type scenario_id: int
-
-    :return: DataFrame containing event information for all vehicles.
-    :rtype: pandas.DataFrame
-    """
-    # Fetch vehicles and scenario
-    vehicles = Vehicle.objects.filter(scenario_id=scenario_id).select_related("vehicle_type")
-
-    vehicle_type_map = {v.id: v.vehicle_type.name for v in vehicles}
-    scenario = Scenario.objects.get(id=scenario_id)
-
-    # Fetch all events and rotations in advance
-    all_events = Event.objects.filter(scenario=scenario, vehicle__isnull=False).prefetch_related(
-        "vehicle"
-    )
-
-    time_start, time_end = get_start_end_time(scenario)
-    # Filter events to the simulation range
-    all_events = all_events.filter(time_start__gte=time_start, time_end__lte=time_end)
-
-    all_rotations = Rotation.objects.filter(
-        scenario=scenario, vehicle__isnull=False
-    ).prefetch_related("vehicle")
-
-    # Organize events by vehicle_id
-    events_by_vehicle = {}
-    for event in all_events:
-        vehicle_id = event.vehicle_id
-        if vehicle_id not in events_by_vehicle:
-            events_by_vehicle[vehicle_id] = []
-        events_by_vehicle[vehicle_id].append(event)
-
-    # Get the translations from v.id to readable vehicle_name
-    vehicle_name_dict, unused_variable = recent_memoizer(get_vehicle_dictionaries, scenario_id)(
-        scenario_id
-    )
-
-    # Initialize lists to store data
-    dfs = []
-
-    # Iterate over vehicles
-    for vehicle in vehicles:
-        v_id = vehicle.id
-        v_type_name = vehicle_type_map.get(v_id)
-        if vehicle.id in events_by_vehicle:
-            # Filter rotations for the current vehicle
-            vehicle_rotations = all_rotations.filter(vehicle_id=vehicle.id)
-            # Dictionary which finds the rotation according to the event time
-
-            rotation_times = dict()
-            for rot in vehicle_rotations:
-                if rot in rotation_times:
-                    continue
-                trips = Trip.objects.filter(rotation=rot).order_by("departure_time")
-                rstart = trips.first().departure_time
-                rend = trips.last().arrival_time
-                rotation_times[rot] = rstart, rend
-
-            events = events_by_vehicle[vehicle.id]
-            for event in events:
-                time_start = event.time_start
-                event_type = event.event_type
-                duration = (event.time_end - event.time_start).total_seconds()
-                time_end = event.time_end
-                # Fetch events for the current rotation
-                vehicle_rotation = None
-                route_name = None
-
-                # Check if event has a trip property linked to a Rotation
-                if hasattr(event, "trip") and event.trip:
-                    vehicle_rotation = event.trip.rotation
-                    route_name = event.trip.route.name
-
-                station_name = event.station.name if getattr(event, "station_id", None) else None
-
-                dfs.append(
-                    {
-                        "V_id": v_id,
-                        "V_type": v_type_name,
-                        "time_start": time_start,
-                        "time_end": time_end,
-                        "duration": duration,
-                        "event_type": event_type,
-                        "soc_start": event.soc_start,
-                        "soc_end": event.soc_end,
-                        "route_name": route_name,
-                        "R_id": vehicle_rotation.id if vehicle_rotation else None,
-                        "rotation_name": vehicle_rotation.name if vehicle_rotation else None,
-                        "readable_name": vehicle_name_dict[vehicle.id],
-                        "station_name": station_name,
-                    }
-                )
-
-    # Create DataFrame from collected data
-    if dfs:
-        result_df = pd.DataFrame(dfs).drop_duplicates()
-        result_df["time_start"] = pd.to_datetime(result_df["time_start"])
-        result_df["time_end"] = pd.to_datetime(result_df["time_end"])
-        result_df = result_df.sort_values(by="time_start")
-
-    else:
-        result_df = pd.DataFrame(
-            {
-                "V_id": [None],
-                "V_type": [None],
-                "time_start": [None],
-                "time_end": [None],
-                "duration": [None],
-                "event_type": [None],
-                "soc_start": [None],
-                "soc_end": [None],
-                "route_name": [None],
-                "R_id": [None],  # Rotation ID
-                "rotation_name": [None],
-                "readable_name": [None],
-                "station_name": [None],
-            }
-        )
-
-    return result_df
 
 
 def get_all_trip_info(scenario_id):
@@ -847,14 +720,14 @@ def get_soc_as_json(task_id: str):
     buses = list(vehicle_name_dict.keys())
     df = get_soc_as_dataframe(s.id, buses)
 
-    selected_columns = df[["V_id", "time_end", "soc_end", "time_start", "soc_start"]].copy()
+    selected_columns = df[["vehicle_id", "end", "soc_end", "start", "soc_start"]].copy()
 
     # Convert both 'time_end' and 'time_start' to Unix timestamps (in milliseconds)
     selected_columns["timestamp_end"] = (
-        pd.to_datetime(selected_columns["time_end"]).astype(int) // 10**6
+        pd.to_datetime(selected_columns["end"]).astype(int) // 10**6
     )
     selected_columns["timestamp_start"] = (
-        pd.to_datetime(selected_columns["time_start"]).astype(int) // 10**6
+        pd.to_datetime(selected_columns["start"]).astype(int) // 10**6
     )
     selected_columns["help1"] = 1
     selected_columns["help2"] = 2
@@ -862,7 +735,7 @@ def get_soc_as_json(task_id: str):
     # Combine both start and end points
     # Each group will contain a list of [timestamp, soc] pairs for both start and end
     soc_data = (
-        selected_columns.groupby("V_id")
+        selected_columns.groupby("vehicle_id")
         .apply(
             lambda group: sorted(
                 group[["timestamp_start", "soc_start", "help1"]].values.tolist()
@@ -885,8 +758,8 @@ def get_binned_soc_as_json(task_id: str):
     df = get_soc_as_dataframe(scenario.id, buses)
 
     # parse timestamps
-    df["timestamp"] = pd.to_datetime(df["time_start"])
-    df = df[["V_id", "timestamp", "soc_end"]]
+    df["timestamp"] = pd.to_datetime(df["start"])
+    df = df[["vehicle_id", "timestamp", "soc_end"]]
 
     # build the global hourly index
     all_hours = pd.date_range(
@@ -895,7 +768,7 @@ def get_binned_soc_as_json(task_id: str):
 
     filled_dfs = []
     # for each vehicle, bucket into 1-hour bins taking the MIN soc_end per hour
-    for vid, group in df.groupby("V_id"):
+    for vid, group in df.groupby("vehicle_id"):
         # ensure time ordering
         group = group.set_index("timestamp").sort_index()
 
@@ -962,42 +835,6 @@ def get_power_draw_as_json(request, task_id: str):
         charging_status.append({"time": time_point.isoformat(), "total_power": total_power})
 
     return charging_status
-
-
-def get_event_gantt_as_json(task_id: str):
-    scenario = Scenario.objects.get(task_id=task_id)
-
-    vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
-    buses = list(vehicle_name_dict.keys())
-    df = get_activities_as_dataframe(scenario.id, buses)
-
-    df["time_start"] = pd.to_datetime(df["time_start"])
-    df["time_end"] = pd.to_datetime(df["time_end"])
-
-    buses = df["V_id"].unique()
-
-    bus_to_index = {bus_id: i for i, bus_id in enumerate(buses)}
-
-    gantt_data = []
-    for unused_variable, row in df.iterrows():
-        start_time = int(row["time_start"].timestamp() * 1000)
-        end_time = int(row["time_end"].timestamp() * 1000)
-        duration = row["duration"]
-        bus_index = bus_to_index.get(row["V_id"])
-
-        gantt_data.append(
-            {
-                "vehicle_id": row["V_id"],
-                "value": [bus_index, start_time, end_time, duration],
-                "event_type": row["event_type"],
-                "bus_name": f"Bus {row['V_id']}",
-                "vehicle_type": row["V_type"],
-                "route_name": row["route_name"],
-                "rotation_name": row["rotation_name"],
-                "station_name": row["station_name"],
-            }
-        )
-    return gantt_data
 
 
 def get_stats_as_json(task_id: str):
@@ -1224,86 +1061,57 @@ def get_power_draw_and_occ_as_json(task_id: str):
     return prepared_data.to_dict(orient="records")
 
 
-def get_soc_gantt_as_json(task_id: str):
+def get_soc_gantt_as_json(scenario_id: str):
     # Get all events for the scenario, ordered
-    scenario = Scenario.objects.get(task_id=task_id)
+
+    scenario = Scenario.objects.get(id=scenario_id)
     events = (
         scenario.event_set.exclude(vehicle=None)
         .order_by("vehicle__id", "time_start")
-        .select_related("vehicle")
+        .select_related(
+            "vehicle",
+            "vehicle__vehicle_type",  # Ensure vehicle type is fetched
+            "trip__rotation",
+            "trip__route",
+            "station",
+        )
     )
-
-    vehicles = Vehicle.objects.filter(scenario_id=scenario.id).select_related("vehicle_type")
-
-    vehicle_type_map = {v.id: v.vehicle_type.name for v in vehicles}
 
     records = []
     for event in events:
         vehicle_id = event.vehicle.id
-        v_type_name = vehicle_type_map.get(vehicle_id)
-        tz_start = event.time_start
-        tz_end = event.time_end
+        vehicle_type_name = event.vehicle.vehicle_type.name
 
-        if hasattr(event, "trip") and event.trip:
-            vehicle_rotation = event.trip.rotation.name
-            route_name = event.trip.route.name
+        if event.trip:
+            rotation_id = event.trip.rotation.id if event.trip.rotation else None
+            rotation_name = event.trip.rotation.name if event.trip.rotation else None
+            route_name = event.trip.route.name if event.trip.route else None
         else:
-            vehicle_rotation = None
-            route_name = None
+            rotation_id, rotation_name, route_name = None, None, None
 
-        station_name = event.station.name if getattr(event, "station_id", None) else None
+        station_name = event.station.name if event.station else None
 
-        # Fallback in case timeseries is missing or invalid
-        if not event.timeseries or "time" not in event.timeseries or "soc" not in event.timeseries:
-            records.append(
-                {
-                    "vehicle_id": vehicle_id,
-                    "vehicle_type": v_type_name,
-                    "bus_name": vehicle_id,
-                    "start": tz_start.isoformat(),
-                    "end": tz_end.isoformat(),
-                    "soc_start": event.soc_start,
-                    "soc_end": event.soc_end,
-                    "route_name": route_name,
-                    "rotation_name": vehicle_rotation,
-                    "station_name": station_name,
-                }
-            )
-            continue
+        records.append(
+            {
+                "vehicle_id": vehicle_id,
+                "vehicle_type": vehicle_type_name,
+                "bus_name": vehicle_id,
+                "start": event.time_start.isoformat(),
+                "end": event.time_end.isoformat(),
+                "soc_start": event.soc_start,
+                "soc_end": event.soc_end,
+                "route_name": route_name,
+                "rotation_name": rotation_name,
+                "station_name": station_name,
+                "R_id": rotation_id,
+                "event_type": event.event_type,
+            }
+        )
 
-        # Build time-segmented records with start/end + soc
-        times = [datetime.datetime.fromisoformat(t) for t in event.timeseries["time"]]
-        socs = event.timeseries["soc"]
-        if len(times) != len(socs):
-            continue  # Skip inconsistent timeseries
-
-        # Prepend and append actual event bounds
-        times = [tz_start] + times + [tz_end]
-        socs = [event.soc_start] + socs + [event.soc_end]
-
-        for i in range(len(times) - 1):
-            records.append(
-                {
-                    "vehicle_id": vehicle_id,
-                    "vehicle_type": v_type_name,
-                    "bus_name": vehicle_id,
-                    "start": times[i].isoformat(),
-                    "end": times[i + 1].isoformat(),
-                    "soc_start": socs[i],
-                    "soc_end": socs[i + 1],
-                    "route_name": route_name,
-                    "rotation_name": vehicle_rotation,
-                    "station_name": station_name,
-                }
-            )
-
-    vehicle_first_times = {v.id: float("inf") for v in scenario.vehicle_set.all()}
-    # dict vehicle name -> first event start time. Default: inf.
-    # iterate over all events in reverse order (latest start time first) and update vehicle_first_time
-    # the earliest event start time will be the final entry in the dict
-    for event in events.order_by("-vehicle__id", "-time_start"):
-        ts = event.time_start.timestamp()
-        vehicle_first_times[event.vehicle.id] = ts
+    records = pd.DataFrame(records)
+    records['R_id'] = records['R_id'].astype(object) # Needed, since R_id has mixed Int and None,
+    # wich would otherwise json serialize to nan but needs to serialize to null
+    records = records.where(pd.notna(records), None)  # replaces NaN with None across the ENTIRE dataframe
 
     return records
 

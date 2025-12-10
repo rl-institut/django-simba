@@ -1339,15 +1339,25 @@
         } else {
             newSeries = Object.keys(EVENT_COLORS).map(eventType => {
 
-                let seriesData = filteredGanttData
-                    .filter(d => d.event_type === eventType)
-                    .map(d => [
-                        ...d.value,             // [NewIndex, StartTime, EndTime, Duration, ...]
-                        d.event_type,           // Index 4
-                        d.vehicle_type,         // Index 5
-                        d.route_name,           // Index 6
-                        d.rotation_name         // Index 7
-                    ]);
+                const seriesData = filteredGanttData
+                  .filter(d => d.event_type === eventType)
+                  .map(d => ({
+                    value: [
+                                d.vehicle,
+                                +new Date(d.start),           // 1: start
+                                +new Date(d.end),             // 2: end
+                                d.event_type,
+                                d.vehicle_type,
+                                d.route_name,
+                                d.rotation_name,
+                                d.station_name
+                    ],
+                    itemStyle: {
+                      color: EVENT_COLORS[eventType],
+                      opacity: 1
+                    }
+                  }));
+
 
                 seriesData.sort((a, b) => {
                     if (a[0] !== b[0]) return a[0] - b[0];
@@ -1355,15 +1365,11 @@
                 });
 
                 return {
-                    name: LEGEND_LABELS[eventType],
-                    type: 'custom',
-                    renderItem: baseRenderItem,
-                    encode: baseEncode,
-                    itemStyle: {
-                        color: EVENT_COLORS[eventType],
-                        opacity: 0.8
-                    },
-                    data: seriesData
+                  name: LEGEND_LABELS[eventType],
+                  type: 'custom',
+                  renderItem: baseRenderItem,
+                  encode: baseEncode,
+                  data: seriesData
                 };
             });
         }
@@ -1403,12 +1409,16 @@
             .then(response => response.json())
             .then(data => {
 
+                console.log(data.data)
+
                 const {
                     ganttData,
                     sortedVehicles,
                     uniqueVehicleTypes,
                     visiblePercent
                 } = prepareGanttData(data.data);
+
+                const EVENT_TYPE_INDEX = 3;
 
                 const option = {
                     title: {
@@ -1453,17 +1463,17 @@
                     ],
                     tooltip: {
                         formatter: function (params) {
-                            const eventType = params.data[4];
-                            const vehicleType = params.data[5];
-                            const routeName = params.data[6];
-                            const rotationName = params.data[7];
-                            const stationName = params.data[8];
+                            const eventType = params.data[3];
+                            const vehicleType = params.data[4];
+                            const routeName = params.data[5];
+                            const rotationName = params.data[6];
+                            const stationName = params.data[7];
                             const color = EVENT_COLORS[eventType] || '#000';
 
                             const marker = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
                             const startTime = new Date(params.value[1]);
                             const endTime = new Date(params.value[2]);
-                            const durationMs = params.value[3];
+                            const durationMs = 0;// endTime-startTime;
 
                             const formatDate = (date) => {
                                 const pad = n => String(n).padStart(2, '0');
@@ -1516,52 +1526,40 @@
                     series: Object.keys(EVENT_COLORS).map(eventType => ({
                       name: LEGEND_LABELS[eventType],
                       type: 'custom',
-                      renderItem: function (params, api) {
-                          const categoryIndex = api.value(0);
-                          const start = api.coord([api.value(1), categoryIndex]);
-                          const end = api.coord([api.value(2), categoryIndex]);
+                        renderItem: function (params, api) {
+                            const categoryIndex = api.value(0);
+                            const startCoord = api.coord([api.value(1), categoryIndex]);
+                            const endCoord   = api.coord([api.value(2), categoryIndex]);
 
-                          const size = api.size([1, 2]);
-                          const dynamicHeight = size[1] * 0.8;
+                            const eventTypeKey = api.value(EVENT_TYPE_INDEX);
 
-                          const rectShape = echarts.graphic.clipRectByRect(
-                              {
-                                  x: start[0],
-                                  y: start[1] - dynamicHeight / 2,
-                                  width: end[0] - start[0],
-                                  height: dynamicHeight
-                              },
-                              {
-                                  x: params.coordSys.x,
-                                  y: params.coordSys.y,
-                                  width: params.coordSys.width,
-                                  height: params.coordSys.height
-                              }
-                          );
+                            const height = api.size([0, 1])[1] * 0.8;
 
-                          return rectShape && {
-                              type: 'rect',
-                              transition: ['shape'],
-                              shape: rectShape,
-                              style: api.style()
-                          };
-                      },
-                      itemStyle: {
-                        color: EVENT_COLORS[eventType],
-                        opacity: 0.8
-                      },
+                            return {
+                                  type: 'rect',
+                                  shape: {
+                                    x: startCoord[0],
+                                    y: startCoord[1] - height / 2,
+                                    width: endCoord[0] - startCoord[0],
+                                    height
+                                  },
+                                  style: {
+                                    ...api.style(),
+                                    fill: EVENT_COLORS[eventTypeKey]
+                                  }
+                            };
+                        },
                       encode: {
                           x: [1, 2],
                           y: 0,
-                          itemName: 5
+                          itemName: 4
                       },
                       data: ganttData
                           .filter(d => d.event_type === eventType)
                           .map(d => [
                                 d.vehicle,
-                                d.value[1],
-                                d.value[2],
-                                d.value[3],
+                                +new Date(d.start),           // 1: start
+                                +new Date(d.end),             // 2: end
                                 d.event_type,
                                 d.vehicle_type,
                                 d.route_name,
@@ -1569,6 +1567,7 @@
                                 d.station_name
                             ])
                   }))
+
                 };
 
                 const chart = echarts.init(document.getElementById(chartId), 'ebusPalette');
@@ -1769,6 +1768,7 @@
                         type: 'continuous',
                         min: 0,
                         max: 1,
+                        dimension: 3,
                         calculable: false,
                         orient: 'horizontal',
                         left: 'center',
@@ -2080,11 +2080,12 @@
         fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Ladeleistung und Belegung"),
 
         fetchAndRenderStats("stats", "_", "_"),
-        fetchAndRenderGanttChart("gantt","ganttChart","_"),
+        fetchAndRenderGanttChart("soc_gantt","ganttChart","_"),
         fetchAndRenderStackedHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen"),
         fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten"),
         fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap"),
-        fetchAndRenderGanttChartSOC("soc_gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit")];
+        fetchAndRenderGanttChartSOC("soc_gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit")
+        ];
 
         Promise.allSettled(chartPromises).then((results)=>{
           const allSuccessful = results.every(r => r.status === "fulfilled");
