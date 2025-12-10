@@ -86,7 +86,7 @@ def vid_human_readable(vehicle: Vehicle, counter, name="", c_type=False, rotatio
 def get_total_consumption(s: Scenario):
     vehicles = Vehicle.objects.filter(scenario_id=s.id)
 
-    df =  recent_memoizer(get_soc_gantt_as_json, s.id)(s.id)
+    df = recent_memoizer(get_soc_gantt_as_json, s.id)(s.id)
 
     # Convert time columns to datetime
     df["time_start"] = pd.to_datetime(df["time_start"])
@@ -221,7 +221,7 @@ def get_frequently_served_station(task_id: str) -> list[str]:
 
 def get_scenario_duration(task_id: str) -> dict:
     s = Scenario.objects.get(task_id=task_id)
-    df =  recent_memoizer(get_soc_gantt_as_json, s.id)(s.id)
+    df = recent_memoizer(get_soc_gantt_as_json, s.id)(s.id)
 
     # Convert time columns to datetime
     df["time_start"] = pd.to_datetime(df["time_start"])
@@ -438,7 +438,7 @@ def get_activities_as_dataframe(scenario_id, buses):
     :return: DataFrame containing activity data for specified buses.
     :rtype: pandas.DataFrame
     """
-    result_df =  recent_memoizer(get_soc_gantt_as_json, scenario_id)(scenario_id)
+    result_df = recent_memoizer(get_soc_gantt_as_json, scenario_id)(scenario_id)
 
     filtered_df = result_df.query(f"vehicle_id in {buses}")
     return filtered_df
@@ -520,7 +520,7 @@ def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
     """
     TODO
     """
-    result_df =  recent_memoizer(get_soc_gantt_as_json, scenario_id)(scenario_id)
+    result_df = recent_memoizer(get_soc_gantt_as_json, scenario_id)(scenario_id)
 
     df = result_df[result_df["V_id"].isin(buses)]
 
@@ -724,10 +724,10 @@ def get_soc_as_json(task_id: str):
 
     # Convert both 'time_end' and 'time_start' to Unix timestamps (in milliseconds)
     selected_columns["timestamp_end"] = (
-        pd.to_datetime(selected_columns["end"]).astype(int) // 10**6
+        pd.to_datetime(selected_columns["end"]).astype(int) // 10 ** 6
     )
     selected_columns["timestamp_start"] = (
-        pd.to_datetime(selected_columns["start"]).astype(int) // 10**6
+        pd.to_datetime(selected_columns["start"]).astype(int) // 10 ** 6
     )
     selected_columns["help1"] = 1
     selected_columns["help2"] = 2
@@ -1109,9 +1109,11 @@ def get_soc_gantt_as_json(scenario_id: str):
         )
 
     records = pd.DataFrame(records)
-    records['R_id'] = records['R_id'].astype(object) # Needed, since R_id has mixed Int and None,
+    records["R_id"] = records["R_id"].astype(object)  # Needed, since R_id has mixed Int and None,
     # wich would otherwise json serialize to nan but needs to serialize to null
-    records = records.where(pd.notna(records), None)  # replaces NaN with None across the ENTIRE dataframe
+    records = records.where(
+        pd.notna(records), None
+    )  # replaces NaN with None across the ENTIRE dataframe
 
     return records
 
