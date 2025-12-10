@@ -723,11 +723,9 @@ def get_soc_as_json(task_id: str):
     selected_columns = df[["vehicle_id", "end", "soc_end", "start", "soc_start"]].copy()
 
     # Convert both 'time_end' and 'time_start' to Unix timestamps (in milliseconds)
-    selected_columns["timestamp_end"] = (
-        pd.to_datetime(selected_columns["end"]).astype(int) // 10 ** 6
-    )
+    selected_columns["timestamp_end"] = pd.to_datetime(selected_columns["end"]).astype(int) // 10**6
     selected_columns["timestamp_start"] = (
-        pd.to_datetime(selected_columns["start"]).astype(int) // 10 ** 6
+        pd.to_datetime(selected_columns["start"]).astype(int) // 10**6
     )
     selected_columns["help1"] = 1
     selected_columns["help2"] = 2
