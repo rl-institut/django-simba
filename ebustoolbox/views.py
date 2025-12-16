@@ -1611,8 +1611,6 @@ def render_critical_rotations(request, task_id: str):
 
     df = data.get_critical_rotations_as_dataframe(s.id, buses)
 
-    print(vehicle_name_dict.keys(), df)
-
     # Aggregate category counts
     category_counts = (
         df["SOC_category"].value_counts().reindex(["Nicht kritisch", "kritisch"], fill_value=0)
