@@ -86,7 +86,7 @@ def vid_human_readable(vehicle: Vehicle, counter, name="", c_type=False, rotatio
 def get_total_consumption(s: Scenario):
     vehicles = Vehicle.objects.filter(scenario_id=s.id)
 
-    df = recent_memoizer(get_soc_gantt_as_json, s.id)(s.id)
+    df = recent_memoizer(get_gantt_as_json, s.id)(s.id)
 
     # Convert time columns to datetime
     df["time_start"] = pd.to_datetime(df["time_start"])
@@ -221,7 +221,7 @@ def get_frequently_served_station(task_id: str) -> list[str]:
 
 def get_scenario_duration(task_id: str) -> dict:
     s = Scenario.objects.get(task_id=task_id)
-    df = recent_memoizer(get_soc_gantt_as_json, s.id)(s.id)
+    df = recent_memoizer(get_gantt_as_json, s.id)(s.id)
 
     # Convert time columns to datetime
     df["time_start"] = pd.to_datetime(df["time_start"])
@@ -383,7 +383,7 @@ def get_soc_as_dataframe(scenario_id, buses):
     :rtype: pandas.DataFrame
     """
 
-    result_df = recent_memoizer(get_soc_gantt_as_json, scenario_id)(scenario_id)
+    result_df = recent_memoizer(get_gantt_as_json, scenario_id)(scenario_id)
     filtered_df = result_df.query(f"vehicle_id in {buses}")
     return filtered_df
 
@@ -438,7 +438,7 @@ def get_activities_as_dataframe(scenario_id, buses):
     :return: DataFrame containing activity data for specified buses.
     :rtype: pandas.DataFrame
     """
-    result_df = recent_memoizer(get_soc_gantt_as_json, scenario_id)(scenario_id)
+    result_df = recent_memoizer(get_gantt_as_json, scenario_id)(scenario_id)
 
     filtered_df = result_df.query(f"vehicle_id in {buses}")
     return filtered_df
@@ -494,7 +494,7 @@ def get_critical_rotations_as_dataframe(scenario_id, buses):
     :param buses: List of bus IDs to include.
     :return: DataFrame with R_id, V_id, soc_end, and SOC_category columns.
     """
-    result_df = recent_memoizer(get_soc_gantt_as_json, scenario_id)(scenario_id)
+    result_df = recent_memoizer(get_gantt_as_json, scenario_id)(scenario_id)
 
     df = result_df[result_df["vehicle_id"].isin(buses)]
 
@@ -520,7 +520,7 @@ def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
     """
     TODO
     """
-    result_df = recent_memoizer(get_soc_gantt_as_json, scenario_id)(scenario_id)
+    result_df = recent_memoizer(get_gantt_as_json, scenario_id)(scenario_id)
 
     df = result_df[result_df["V_id"].isin(buses)]
 
@@ -1061,7 +1061,7 @@ def get_power_draw_and_occ_as_json(task_id: str):
     return prepared_data.to_dict(orient="records")
 
 
-def get_soc_gantt_as_json(scenario_id: str):
+def get_gantt_as_json(scenario_id: str):
     # Get all events for the scenario, ordered
 
     scenario = Scenario.objects.get(id=scenario_id)

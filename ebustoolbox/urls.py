@@ -132,5 +132,5 @@ urlpatterns = [
     path("result/<uuid:task_id>/bustype/", views.render_bustype, name="bustype"),
     path("result/<uuid:task_id>/soc_hist/", views.get_binned_soc_data, name="soc_hist"),
     path("result/<uuid:task_id>/depot_power/", views.get_power_draw_and_occ, name="eflips_power"),
-    path("result/<uuid:task_id>/soc_gantt/", views.get_soc_gantt, name="soc_gantt"),
+    path("result/<uuid:task_id>/gantt/", views.get_gantt, name="gantt"),
 ]
