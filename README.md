@@ -1,4 +1,7 @@
 ## Development Updates
+### SOURCE_FILE Scenarios
+A new Scenario Type has been introduced, called SOURCE_FILE. After uploading a source, the source is deepcopied, and inserted as a parent of the SOURCE scenario. This happens after functions which fix zero duration or zero distance trips and creating opp stations at depots when needed. This source_file scenario should never be mutated. The SOURCE scenario is now mutable by a filter_scenario view, which permanently removes rotations/stations/lines. This is only possible as long as there are no other children of this scenario.
+
 ### Data Scenarios
 How to create public data scenarios.
 Admins can now easily add Scenarios which can be selected by users to run a scenarios without uploading data.
