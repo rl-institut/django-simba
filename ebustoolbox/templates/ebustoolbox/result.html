@@ -1332,11 +1332,11 @@
                 d.vehicle,                    // 0: new y-axis category index
                 +new Date(d.start),           // 1: start time
                 +new Date(d.end),             // 2: end time
-                d.soc_start,                  // 3
-                d.soc_end,                    // 4
-                d.vehicle_type,               // 5
-                d.route_name,                 // 6
-                d.rotation_name               // 7
+                d.soc_start,
+                d.soc_end,
+                d.vehicle_type,
+                d.route_name,
+                d.rotation_name
             ]);
 
             seriesData.sort((a, b) => {
@@ -1355,23 +1355,17 @@
             newSeries = Object.keys(EVENT_COLORS).map(eventType => {
 
                 const seriesData = filteredGanttData
-                  .filter(d => d.event_type === eventType)
-                  .map(d => ({
-                    value: [
-                                d.vehicle,
-                                +new Date(d.start),           // 1: start
-                                +new Date(d.end),             // 2: end
-                                d.event_type,
-                                d.vehicle_type,
-                                d.route_name,
-                                d.rotation_name,
-                                d.station_name
-                    ],
-                    itemStyle: {
-                      color: EVENT_COLORS[eventType],
-                      opacity: 1
-                    }
-                  }));
+                    .filter(d => d.event_type === eventType)
+                    .map(d => [
+                        d.vehicle,                    // 0
+                        +new Date(d.start),           // 1
+                        +new Date(d.end),             // 2
+                        d.event_type,                 // 3
+                        d.vehicle_type,               // 4
+                        d.route_name,                 // 5
+                        d.rotation_name,              // 6
+                        d.station_name                // 7
+                    ]);
 
 
                 seriesData.sort((a, b) => {
