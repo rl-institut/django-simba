@@ -1703,7 +1703,7 @@ def get_power_draw_and_occ(request, task_id: str):
 def get_gantt(request, task_id: str):
     scenario = Scenario.objects.get(task_id=task_id)
 
-    records = data.recent_memoizer(data.get_gantt_as_json, scenario.id)(scenario.id).to_dict(
+    records = data.recent_memoizer(data.get_gantt, scenario.id)(scenario.id).to_dict(
         orient="records"
     )
 
