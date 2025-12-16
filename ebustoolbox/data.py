@@ -1070,7 +1070,7 @@ def get_gantt(scenario_id: str):
         .order_by("vehicle__id", "time_start")
         .select_related(
             "vehicle",
-            "vehicle__vehicle_type",  # Ensure vehicle type is fetched
+            "vehicle__vehicle_type",
             "trip__rotation",
             "trip__route",
             "station",

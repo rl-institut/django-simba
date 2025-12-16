@@ -1855,8 +1855,6 @@
                     const listHtml = data.electrified_stations_list
                         .map(station => `<li>${station}</li>`)
                         .join('');
-
-                    // Use innerHTML to render the <ul> tags
                     tooltipElement.innerHTML = `<ul class="text-left list-disc pl-4">${listHtml}</ul>`;
                 } else {
                     tooltipElement.textContent = "Keine Station elektrifiziert";
