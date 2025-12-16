@@ -887,6 +887,7 @@ def get_stats_as_json(task_id: str):
     # first, for vehicles with non-null amount of charging spaces
     stations = scenario.station_set.all()
     opp_stations = stations.filter(charge_type=EnumChargeType.OPPORTUNITY)
+    electrified_stations_list = list(opp_stations.values_list("name", flat=True))
 
     installed_power = opp_stations.annotate(
         charger_count=F("amount_charging_places"),
@@ -965,6 +966,7 @@ def get_stats_as_json(task_id: str):
         "installed_power": np.round(total_installed_power, 0),
         "depot_energy": np.round(energy_deps, 0),
         "peak_depot_power": np.round(peak_power_kw, 0),
+        "electrified_stations_list": electrified_stations_list,
     }
 
     return resp
@@ -1108,7 +1110,7 @@ def get_soc_gantt_as_json(scenario_id: str):
 
     records = pd.DataFrame(records)
     records["R_id"] = records["R_id"].astype(object)  # Needed, since R_id has mixed Int and None,
-    # wich would otherwise json serialize to nan but needs to serialize to null
+    # which would otherwise json serialize to nan but needs to serialize to null
     records = records.where(
         pd.notna(records), None
     )  # replaces NaN with None across the ENTIRE dataframe

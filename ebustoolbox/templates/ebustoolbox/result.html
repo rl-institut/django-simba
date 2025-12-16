@@ -603,7 +603,6 @@
                         <div class="w-1/3 px-2 pb-4 text-center border-r border-slate-300 overflow-visible relative z-10">
                             <p class="text-slate-800 flex items-center justify-center">
                                 <span id="num_stations_value" class="text-xl 2xl:text-2xl font-semibold">--</span>
-
                                 <span class="group relative inline-block ml-2 cursor-pointer z-50">
                                     <svg xmlns="http://www.w3.org/2000/svg"
                                       fill="none"
@@ -613,9 +612,8 @@
                                       class="size-4">
                                       <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                                     </svg>
-
-                                    <span class="pointer-events-none absolute left-1/2 top-[120%] z-[9999] w-96 -translate-x-1/2 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                                        {% translate 'This is where the electrified stations should be listed' %}
+                                    <span  id="list_electrified_stations"  class="pointer-events-none absolute left-1/2 top-[120%] z-[9999] w-96 -translate-x-1/2 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                        {% translate 'Lade Stationen...' %}
                                     </span>
                                 </span>
                             </p>
@@ -1856,6 +1854,20 @@
                 document.getElementById('depots-anzahl-stellplaetze').textContent = data.num_busses;
                 document.getElementById('depots-energie').textContent = data.depot_energy;
                 document.getElementById('depots-spitzenleistung').textContent = data.peak_depot_power;
+
+                const tooltipElement = document.getElementById('list_electrified_stations');
+
+                if (data.electrified_stations_list && Array.isArray(data.electrified_stations_list)) {
+                    const listHtml = data.electrified_stations_list
+                        .map(station => `<li>${station}</li>`)
+                        .join('');
+
+                    // Use innerHTML to render the <ul> tags
+                    tooltipElement.innerHTML = `<ul class="text-left list-disc pl-4">${listHtml}</ul>`;
+                } else {
+                    tooltipElement.textContent = "Keine Station elektrifiziert";
+                }
+
             })
             .catch(error => {
                 console.error('Error fetching statistics:', error);
