@@ -1,7 +1,7 @@
 {% load i18n static %}
 
 {% block imports %}
-<link href="{%  static 'ebustoolbox/css/costs.css' %}" rel="stylesheet">
+  <link href="{%  static 'ebustoolbox/css/costs.css' %}" rel="stylesheet">
 {% endblock imports %}
 
 <div class="flex-grow">
@@ -23,12 +23,12 @@
   </div>
   <div class="mt-2">
     <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
-      <span>{{name}}</span>
       <input
         {{ input }}
         type="number"
         value="{{ initial }}"
-        class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+        for="{{name}}"
+        class="block min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
       >
       <div class="shrink-0 select-none text-sm text-slate-500">{% blocktrans %}{{ unit }}{% endblocktrans %}</div>
     </div>
