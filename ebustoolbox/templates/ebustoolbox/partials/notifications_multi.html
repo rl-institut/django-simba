@@ -10,9 +10,9 @@
     hx-swap='none'
     hx-select-oob="#notificationSummary,#notificationDetails"
     hx-trigger='{% if hx_trigger %}{{hx_trigger}}{% else %}load{% endif %}'
-    hx-get='{% url "simba:notifications" task_id "SummaryView" %}'
+    hx-get='{% url "simba:notifications" task_id viewname %}'
     x-show="!noNotifications"
-    x-on:htmx:after-settle="console.log('foo'); noNotifications = (!document.querySelector('.notification-summary')) "
+    x-on:htmx:after-settle="noNotifications = (!document.querySelector('.notification-summary')) "
     x-effect="if (noNotifications){expanded = false}"
   >
     <button

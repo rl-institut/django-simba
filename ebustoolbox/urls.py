@@ -9,6 +9,7 @@ from ebustoolbox.views import (
     progress_scenario,
     StationsView,
     CostsView,
+    FilterView,
     DepotsView,
     SummaryView,
     model_export_json,
@@ -109,6 +110,16 @@ urlpatterns = [
         name="JSON_import_scenario",
     ),
     path(
+        "filter_scenario/<uuid:task_id>/",
+        FilterView.as_view(),
+        name="filter_scenario",
+    ),
+    path(
+        "filter_scenario/<uuid:task_id>/get_count/",
+        FilterView.get_rotation_count,
+        name="filter_scenario_get_count",
+    ),
+    path(
         "vehicles/<uuid:task_id>/",
         VehiclesView.as_view(),
         name="vehicles",
@@ -134,4 +145,5 @@ urlpatterns = [
     path("result/<uuid:task_id>/soc_hist/", views.get_binned_soc_data, name="soc_hist"),
     path("result/<uuid:task_id>/depot_power/", views.get_power_draw_and_occ, name="eflips_power"),
     path("result/<uuid:task_id>/soc_gantt/", views.get_soc_gantt, name="soc_gantt"),
+    path("delete/<uuid:task_id>", views.delete_scenario, name="delete"),
 ]

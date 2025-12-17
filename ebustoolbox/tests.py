@@ -1110,7 +1110,7 @@ class ZeroDurationTripTest(TestCase):
         # Split the rotations of the source but also notify the child
         # for testing passing the same scenario works
         assert Notification.objects.filter(scenario=django_scenario).count() == 0
-        tasks.ScheduleStationMerger.transform_zero_duration_trips(django_scenario, django_scenario)
+        tasks.ScheduleStationMerger.transform_zero_duration_trips(django_scenario)
         cleaned_trips = list(Trip.objects.filter(rotation=rotation).order_by("arrival_time"))
         cleaned_ids = [t.id for t in cleaned_trips]
         assert trips[1].id not in cleaned_ids
@@ -1164,7 +1164,7 @@ class RotationSplitTest(TransactionTestCase):
         # Split the rotations of the source but also notifiy the child
         # for testing passing the same scenario works
         assert Notification.objects.filter(scenario=django_scenario).count() == 0
-        tasks.transform_depot_stations(django_scenario, django_scenario)
+        tasks.transform_depot_stations(django_scenario)
 
         # Refetch trips which should be updated
         trips = list(Trip.objects.filter(rotation=rotation).order_by("arrival_time"))
