@@ -1673,6 +1673,22 @@ select {
   animation: slide-in-top 0.4s ease-out forwards;
 }
 
+@keyframes slide-out-top {
+  0% {
+    opacity: 0.8;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(-100%);
+  }
+}
+
+.animate-slide-out-top {
+  animation: slide-out-top 0.4s ease-out forwards;
+}
+
 .cursor-default {
   cursor: default;
 }
@@ -2217,6 +2233,11 @@ select {
 .bg-white {
   --tw-bg-opacity: 1;
   background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
+}
+
+.bg-yellow-200 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(254 240 138 / var(--tw-bg-opacity, 1));
 }
 
 .bg-yellow-50 {

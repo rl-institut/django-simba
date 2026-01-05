@@ -410,9 +410,11 @@ class AreaInformationForm(forms.ModelForm):
         model = models.AreaInformation
         exclude = ["scenario", "depot_configuration_wish", "vehicle_type"]
         help_texts = {
-            "capacity": _("Anzahl der Ladeplätze für diesen Fahrzeugtyp"),
+            "capacity": _("Anzahl der Ladeplätze für diesen Fahrzeugtyp. Mindestanzahl = 2"),
             "power": _("max. Ladeleistung der Ladesäule"),
-            "block_length": _("Anzahl hintereinanderliegender Parkplätze"),
+            "block_length": _(
+                "Anzahl hintereinanderliegender Parkplätze. Dies muss ein ganzzahliger Teiler der Kapazität sein."
+            ),
             "area_type": _("Form in der die Ladeplätze angelegt sind"),
         }
         labels = {

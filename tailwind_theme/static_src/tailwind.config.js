@@ -58,9 +58,14 @@ module.exports = {
           '0%': { opacity: '0.8', transform: 'translateY(-100%)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        'slide-out-top': {
+          '0%': { opacity: '1', transform: 'translateY(0)' },
+          '100%': { opacity: '0.8', transform: 'translateY(-100%)' },
+        },
       },
       animation: {
         'slide-in-top': 'slide-in-top 0.4s ease-out forwards',
+        'slide-out-top': 'slide-out-top 0.4s ease-out forwards',
         'hero-fade-in-up': 'hero-fade-in-up 0.8s ease-out forwards',
         'hero-fade-in-up-delay-1': 'hero-fade-in-up 0.8s ease-out 0.15s forwards',
         'hero-fade-in-up-delay-2': 'hero-fade-in-up 0.8s ease-out 0.3s forwards',
