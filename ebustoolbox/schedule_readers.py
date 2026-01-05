@@ -24,6 +24,8 @@ import eflips
 from eflips.ingest import DummyIngester, AbstractIngester
 from eflips.ingest.dummy import BusType
 from eflips.ingest.vdv import VdvIngester
+from eflips.ingest.gtfs import GtfsIngester
+import gtfs_kit as gk  # type: ignore [import-untyped]
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
@@ -126,7 +128,8 @@ def get_schedule_reader_factory(reader_num: int) -> type(ScheduleReader):
             return EflipsIngestScheduleReaderDummy
         case 3:
             return EflipsIngestScheduleReaderVDV
-
+        case 4:
+            return EflipsIngestGTFS
     raise NotImplementedError(f"Schedule Reader with {reader_num} not found")
 
 
@@ -773,6 +776,43 @@ class EflipsIngestScheduleReaderVDV(EflipsIngestScheduleReaderBase):
 
         self._kwargs = {
             "x10_zip_file": x10_zip_file,
+            "progress_callback": None,
+        }
+
+
+class EflipsIngestGTFS(EflipsIngestScheduleReaderBase):
+    """
+    Used to ingest GTFS
+    """
+
+    def __init__(
+        self,
+        gtfs_zip_file: str,
+    ):
+        super().__init__()
+        self._ingester = GtfsIngester(self._database_url)
+
+        # random_text_file is a Path as string, we need to convert it to a Path
+        gtfs_zip_file = Path(gtfs_zip_file)
+
+        # Read the GTFS feed
+        feed = gk.read_feed(gtfs_zip_file, dist_units="m")
+        dates_optional = GtfsIngester.get_feed_validity_period(feed)
+        if dates_optional is None:
+            raise ValueError("GtfsIngester did not find dates in the Data")
+
+        start_date = str(dates_optional[0])
+        # Get agency Name
+        agency_name = ""
+        if feed.agency is not None and len(feed.agency) > 0:
+            agency_name = feed.agency["agency_name"].tolist()[0]
+
+        self._kwargs = {
+            "gtfs_zip_file": gtfs_zip_file,
+            "start_date": start_date,
+            "duration": "WEEK",
+            "agency_name": agency_name,
+            "bus_only": True,
             "progress_callback": None,
         }
 

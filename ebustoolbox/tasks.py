@@ -867,13 +867,14 @@ def init_db_with_trips(
     # The progress is linked to the child scenario.
     schedule_reader.set_observer(progress)
     try:
-        # Allow for compression of 0.5
-        max_uncompressed_size = conf.settings.MAX_FILE_SIZE_B * 2
+        # Allow for compression of 0.1
+        max_uncompressed_size = conf.settings.MAX_FILE_SIZE_B * 10
         [
             ebustoolbox.util.validate_zip(zf.ZipFile(f), 100, max_uncompressed_size, 5)
             for f in file_paths.values()
             if Path(f).suffix == ".zip"
         ]
+
         schedule_reader_factory = schedule_readers.get_schedule_reader_factory(reader_num)
         schedule_reader: ScheduleReader = schedule_reader_factory(**file_paths, **cleaned_data)
         # The progress is linked to the child scenario.

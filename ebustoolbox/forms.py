@@ -117,12 +117,42 @@ class SimulationTemperaturesForm(forms.ModelForm):
         exclude = ("scenario",)
 
 
+class GtfsForm(forms.Form):
+    """gtfs_zip_file: A zip file containing the GTFS data to ingest. This file should contain all the necessary
+        GTFS files, such as stops.txt, routes.txt, trips.txt, stop_times.txt, etc. The timezone will be
+        automatically extracted from the agency_timezone field in agency.txt.,
+        start_date: The start date for the import in ISO 8601 format (YYYY-MM-DD). Trips will be imported
+        starting from this date. The calendar.txt and calendar_dates.txt files will be used to determine which
+        trips run on which dates, including handling exceptions for added or removed services.,
+        duration: The duration of the import period. Must be either 'DAY' (import one day) or 'WEEK' (import
+        one week starting from the start_date). For 'WEEK', trips will be imported for 7 consecutive days.,
+        agency_name: The name of the agency to import from the GTFS feed. This parameter is required if the
+        feed contains multiple agencies. If the feed contains only one agency, this parameter is optional and
+        will be ignored. The agency name must match the 'agency_name' field in agency.txt exactly. If not
+        specified for a multi-agency feed, an error will be returned listing all available agencies.,
+        bus_only: If True (default), only bus routes will be imported from the GTFS feed. This includes routes
+        with route_type of 3 (standard GTFS bus) or 700-799 (extended GTFS bus types). If False, all route types
+        will be imported. If set to True and the feed contains no bus routes, an error will be returned.,
+    }
+    """
+
+    # gtfs_zip_file =forms.FileField(required=True)
+    start_date = forms.DateField(required=True)
+    CHOICES = [
+        ("day", "Ein Tag einlesen"),
+        ("week", "Eine Woche einlesen"),
+    ]
+    duration = forms.ChoiceField(choices=CHOICES, required=True)
+    agency_name = forms.CharField(max_length=100, required=False)
+
+
 class TripsForm(forms.Form):
     data_file = forms.FileField(required=False)
     existing_scenario = forms.UUIDField(required=False)
     scenario_name = forms.CharField(max_length=100)
     description = forms.CharField(max_length=100, required=False)
     find_stations = forms.BooleanField(required=False)
+    use_gtfs = forms.BooleanField(required=False)
 
     # TODO: use clean method instead
     def is_valid(self):

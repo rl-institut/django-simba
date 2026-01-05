@@ -441,6 +441,23 @@ files = [
 colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
+name = "click-default-group"
+version = "1.2.4"
+description = "click_default_group"
+optional = false
+python-versions = ">=2.7"
+files = [
+    {file = "click_default_group-1.2.4-py2.py3-none-any.whl", hash = "sha256:9b60486923720e7fc61731bdb32b617039aba820e22e1c88766b1125592eaa5f"},
+    {file = "click_default_group-1.2.4.tar.gz", hash = "sha256:eb3f3c99ec0d456ca6cd2a7f08f7d4e91771bef51b01bdd9580cc6450fe1251e"},
+]
+
+[package.dependencies]
+click = "*"
+
+[package.extras]
+test = ["pytest"]
+
+[[package]]
 name = "click-didyoumean"
 version = "0.3.1"
 description = "Enables git-like *did-you-mean* feature in click"
@@ -996,6 +1013,24 @@ djangorestframework-gis = ">=0.14"
 dev = ["black", "coveralls", "mock", "pylint", "pytest", "pytest-cov", "sphinx", "sphinx_rtd_theme"]
 
 [[package]]
+name = "docformatter"
+version = "1.7.7"
+description = "Formats docstrings to follow PEP 257"
+optional = false
+python-versions = "<4.0,>=3.9"
+files = [
+    {file = "docformatter-1.7.7-py3-none-any.whl", hash = "sha256:7af49f8a46346a77858f6651f431b882c503c2f4442c8b4524b920c863277834"},
+    {file = "docformatter-1.7.7.tar.gz", hash = "sha256:ea0e1e8867e5af468dfc3f9e947b92230a55be9ec17cd1609556387bffac7978"},
+]
+
+[package.dependencies]
+charset_normalizer = ">=3.0.0,<4.0.0"
+untokenize = ">=0.1.1,<0.2.0"
+
+[package.extras]
+tomli = ["tomli (>=2.0.0,<3.0.0)"]
+
+[[package]]
 name = "eflips"
 version = "0.1.3"
 description = "eFLIPS: Electric Fleet and Infrastructure Planning/Simulation"
@@ -1055,23 +1090,24 @@ shapely = ">=2.0.5,<3.0.0"
 
 [[package]]
 name = "eflips-ingest"
-version = "1.2.81"
+version = "1.3.3"
 description = "A collection of import scripts for converting bus schedule data into the [eflips-model](https://github.com/mpm-tu-berlin/eflips-model) data format."
 optional = false
-python-versions = "<4.0,>=3.10"
+python-versions = "<3.14,>=3.10"
 files = [
-    {file = "eflips_ingest-1.2.81-py3-none-any.whl", hash = "sha256:12d53535180670fc166e032532248c52cde31e49f36ae5215800af873ba4a794"},
-    {file = "eflips_ingest-1.2.81.tar.gz", hash = "sha256:8097a423ed6d86447df8cb50c396b4908694003a4c0f417f4c4723eb73a887f2"},
+    {file = "eflips_ingest-1.3.3-py3-none-any.whl", hash = "sha256:ffab91b6c4826667b6d43cd181fd417d8a18ca83f50b699437b63949dc88d891"},
+    {file = "eflips_ingest-1.3.3.tar.gz", hash = "sha256:0b2730dff6beb232861f5f76de1d50fc0d3c395533345630f6c42fc0a9d286a4"},
 ]
 
 [package.dependencies]
 eflips-model = ">=3.1.1,<11.0.0"
 fire = ">=0.7.0,<0.8.0"
+gtfs-kit = ">=12.0.0,<13.0.0"
 lxml = ">=5.1.0,<6.0.0"
 pyproj = ">=3.6.1,<4.0.0"
 pytz = ">=2024.1,<2025.0"
 requests = ">=2.31.0,<3.0.0"
-tqdm = ">=4.66.1,<5.0.0"
+xsdata = {version = ">=24.1,<25.0", extras = ["cli", "lxml"]}
 
 [[package]]
 name = "eflips-model"
@@ -1532,6 +1568,26 @@ docs = ["Sphinx", "furo"]
 test = ["objgraph", "psutil"]
 
 [[package]]
+name = "gtfs-kit"
+version = "12.0.0"
+description = "A Python library for analyzing GTFS feeds."
+optional = false
+python-versions = ">=3.10"
+files = [
+    {file = "gtfs_kit-12.0.0-py3-none-any.whl", hash = "sha256:c758eefa9837a13dc89d9dcb090303c3fbbcbba8b47bd4b5db68f62ef4ffd870"},
+    {file = "gtfs_kit-12.0.0.tar.gz", hash = "sha256:aba66bf83e78c685c22454841b2b4c9461b19c124e4c0cfcd1139196121b9e3f"},
+]
+
+[package.dependencies]
+folium = ">=0"
+geopandas = ">=1"
+json2html = ">=1"
+pandas = ">=2.2.2"
+requests = ">=2"
+rtree = ">=0"
+shapely = ">=1.8"
+
+[[package]]
 name = "gunicorn"
 version = "23.0.0"
 description = "WSGI HTTP Server for UNIX"
@@ -1647,6 +1703,16 @@ MarkupSafe = ">=2.0"
 
 [package.extras]
 i18n = ["Babel (>=2.7)"]
+
+[[package]]
+name = "json2html"
+version = "1.3.0"
+description = "JSON to HTML Table Representation"
+optional = false
+python-versions = "*"
+files = [
+    {file = "json2html-1.3.0.tar.gz", hash = "sha256:8951a53662ae9cfd812685facdba693fc950ffc1c1fd1a8a2d3cf4c34600689c"},
+]
 
 [[package]]
 name = "kaleido"
@@ -2829,6 +2895,52 @@ socks = ["PySocks (>=1.5.6,!=1.5.7)"]
 use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
+name = "rtree"
+version = "1.4.1"
+description = "R-Tree spatial index for Python GIS"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "rtree-1.4.1-py3-none-macosx_10_9_x86_64.whl", hash = "sha256:d672184298527522d4914d8ae53bf76982b86ca420b0acde9298a7a87d81d4a4"},
+    {file = "rtree-1.4.1-py3-none-macosx_11_0_arm64.whl", hash = "sha256:a7e48d805e12011c2cf739a29d6a60ae852fb1de9fc84220bbcef67e6e595d7d"},
+    {file = "rtree-1.4.1-py3-none-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:efa8c4496e31e9ad58ff6c7df89abceac7022d906cb64a3e18e4fceae6b77f65"},
+    {file = "rtree-1.4.1-py3-none-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:12de4578f1b3381a93a655846900be4e3d5f4cd5e306b8b00aa77c1121dc7e8c"},
+    {file = "rtree-1.4.1-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:b558edda52eca3e6d1ee629042192c65e6b7f2c150d6d6cd207ce82f85be3967"},
+    {file = "rtree-1.4.1-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:f155bc8d6bac9dcd383481dee8c130947a4866db1d16cb6dff442329a038a0dc"},
+    {file = "rtree-1.4.1-py3-none-win_amd64.whl", hash = "sha256:efe125f416fd27150197ab8521158662943a40f87acab8028a1aac4ad667a489"},
+    {file = "rtree-1.4.1-py3-none-win_arm64.whl", hash = "sha256:3d46f55729b28138e897ffef32f7ce93ac335cb67f9120125ad3742a220800f0"},
+    {file = "rtree-1.4.1.tar.gz", hash = "sha256:c6b1b3550881e57ebe530cc6cffefc87cd9bf49c30b37b894065a9f810875e46"},
+]
+
+[[package]]
+name = "ruff"
+version = "0.14.9"
+description = "An extremely fast Python linter and code formatter, written in Rust."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "ruff-0.14.9-py3-none-linux_armv6l.whl", hash = "sha256:f1ec5de1ce150ca6e43691f4a9ef5c04574ad9ca35c8b3b0e18877314aba7e75"},
+    {file = "ruff-0.14.9-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:ed9d7417a299fc6030b4f26333bf1117ed82a61ea91238558c0268c14e00d0c2"},
+    {file = "ruff-0.14.9-py3-none-macosx_11_0_arm64.whl", hash = "sha256:d5dc3473c3f0e4a1008d0ef1d75cee24a48e254c8bed3a7afdd2b4392657ed2c"},
+    {file = "ruff-0.14.9-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:84bf7c698fc8f3cb8278830fb6b5a47f9bcc1ed8cb4f689b9dd02698fa840697"},
+    {file = "ruff-0.14.9-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:aa733093d1f9d88a5d98988d8834ef5d6f9828d03743bf5e338bf980a19fce27"},
+    {file = "ruff-0.14.9-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:6a1cfb04eda979b20c8c19550c8b5f498df64ff8da151283311ce3199e8b3648"},
+    {file = "ruff-0.14.9-py3-none-manylinux_2_17_ppc64.manylinux2014_ppc64.whl", hash = "sha256:1e5cb521e5ccf0008bd74d5595a4580313844a42b9103b7388eca5a12c970743"},
+    {file = "ruff-0.14.9-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:cd429a8926be6bba4befa8cdcf3f4dd2591c413ea5066b1e99155ed245ae42bb"},
+    {file = "ruff-0.14.9-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:ab208c1b7a492e37caeaf290b1378148f75e13c2225af5d44628b95fd7834273"},
+    {file = "ruff-0.14.9-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:72034534e5b11e8a593f517b2f2f2b273eb68a30978c6a2d40473ad0aaa4cb4a"},
+    {file = "ruff-0.14.9-py3-none-manylinux_2_31_riscv64.whl", hash = "sha256:712ff04f44663f1b90a1195f51525836e3413c8a773574a7b7775554269c30ed"},
+    {file = "ruff-0.14.9-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:a111fee1db6f1d5d5810245295527cda1d367c5aa8f42e0fca9a78ede9b4498b"},
+    {file = "ruff-0.14.9-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:8769efc71558fecc25eb295ddec7d1030d41a51e9dcf127cbd63ec517f22d567"},
+    {file = "ruff-0.14.9-py3-none-musllinux_1_2_i686.whl", hash = "sha256:347e3bf16197e8a2de17940cd75fd6491e25c0aa7edf7d61aa03f146a1aa885a"},
+    {file = "ruff-0.14.9-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:7715d14e5bccf5b660f54516558aa94781d3eb0838f8e706fb60e3ff6eff03a8"},
+    {file = "ruff-0.14.9-py3-none-win32.whl", hash = "sha256:df0937f30aaabe83da172adaf8937003ff28172f59ca9f17883b4213783df197"},
+    {file = "ruff-0.14.9-py3-none-win_amd64.whl", hash = "sha256:c0b53a10e61df15a42ed711ec0bda0c582039cf6c754c49c020084c55b5b0bc2"},
+    {file = "ruff-0.14.9-py3-none-win_arm64.whl", hash = "sha256:8e821c366517a074046d92f0e9213ed1c13dbc5b37a7fc20b07f79b64d62cc84"},
+    {file = "ruff-0.14.9.tar.gz", hash = "sha256:35f85b25dd586381c0cc053f48826109384c81c00ad7ef1bd977bfcc28119d5b"},
+]
+
+[[package]]
 name = "scipy"
 version = "1.15.2"
 description = "Fundamental algorithms for scientific computing in Python"
@@ -3236,6 +3348,17 @@ files = [
 tests = ["pytest", "pytest-cov"]
 
 [[package]]
+name = "toposort"
+version = "1.10"
+description = "Implements a topological sort algorithm."
+optional = false
+python-versions = "*"
+files = [
+    {file = "toposort-1.10-py3-none-any.whl", hash = "sha256:cbdbc0d0bee4d2695ab2ceec97fe0679e9c10eab4b2a87a9372b929e70563a87"},
+    {file = "toposort-1.10.tar.gz", hash = "sha256:bfbb479c53d0a696ea7402601f4e693c97b0367837c8898bc6471adfca37a6bd"},
+]
+
+[[package]]
 name = "tqdm"
 version = "4.67.1"
 description = "Fast, Extensible Progress Meter"
@@ -3333,6 +3456,16 @@ python-versions = ">=2"
 files = [
     {file = "tzdata-2025.2-py2.py3-none-any.whl", hash = "sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8"},
     {file = "tzdata-2025.2.tar.gz", hash = "sha256:b60a638fcc0daffadf82fe0f57e53d06bdec2f36c4df66280ae79bce6bd6f2b9"},
+]
+
+[[package]]
+name = "untokenize"
+version = "0.1.1"
+description = "Transforms tokens into original source code (while preserving whitespace)."
+optional = false
+python-versions = "*"
+files = [
+    {file = "untokenize-0.1.1.tar.gz", hash = "sha256:3865dbbbb8efb4bb5eaa72f1be7f3e0be00ea8b7f125c69cbd1f5fda926f37a2"},
 ]
 
 [[package]]
@@ -3470,6 +3603,34 @@ files = [
     {file = "xlsxwriter-3.2.9-py3-none-any.whl", hash = "sha256:9a5db42bc5dff014806c58a20b9eae7322a134abb6fce3c92c181bfb275ec5b3"},
     {file = "xlsxwriter-3.2.9.tar.gz", hash = "sha256:254b1c37a368c444eac6e2f867405cc9e461b0ed97a3233b2ac1e574efb4140c"},
 ]
+
+[[package]]
+name = "xsdata"
+version = "24.12"
+description = "Python XML Binding"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "xsdata-24.12-py3-none-any.whl", hash = "sha256:2656cfa7240d215a4f2ff30abeebee9afad1e72b805f3ed29ded518a7d3785ee"},
+    {file = "xsdata-24.12.tar.gz", hash = "sha256:67c16c032bbde82c064f6c28cdf6b4f8adcbd0498e2668a346ff8e52a3a200b4"},
+]
+
+[package.dependencies]
+click = {version = ">=5.0", optional = true, markers = "extra == \"cli\""}
+click-default-group = {version = ">=1.2", optional = true, markers = "extra == \"cli\""}
+docformatter = {version = ">=1.7.2", optional = true, markers = "extra == \"cli\""}
+jinja2 = {version = ">=2.10", optional = true, markers = "extra == \"cli\""}
+lxml = {version = ">=4.5.0", optional = true, markers = "extra == \"lxml\""}
+ruff = {version = ">=0.3.0", optional = true, markers = "extra == \"cli\""}
+toposort = {version = ">=1.5", optional = true, markers = "extra == \"cli\""}
+typing-extensions = ">=4.7.0"
+
+[package.extras]
+cli = ["click (>=5.0)", "click-default-group (>=1.2)", "docformatter (>=1.7.2)", "jinja2 (>=2.10)", "ruff (>=0.3.0)", "toposort (>=1.5)"]
+docs = ["markdown-exec[ansi]", "mkdocs", "mkdocs-gen-files", "mkdocs-literate-nav", "mkdocs-material", "mkdocs-minify-plugin", "mkdocstrings[python]", "pymdownx-superfence-filter-lines"]
+lxml = ["lxml (>=4.5.0)"]
+soap = ["requests"]
+test = ["pre-commit", "pytest", "pytest-benchmark", "pytest-cov"]
 
 [[package]]
 name = "xyzservices"

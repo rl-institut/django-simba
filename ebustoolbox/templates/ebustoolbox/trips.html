@@ -92,6 +92,8 @@
 {#  load the file drop zone functions and apply them to the drop zone and input field#}
 <script src="{% static 'ebustoolbox/js/file_drop_zone_handling.js' %}" onload="setDropHandler('drop_zone','{{ form.data_file.auto_id}}')">
 </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function() {
     // Wizard is loaded after this script. We have to wait for loading
@@ -106,11 +108,32 @@
     {% endif %}
   });
 
-  function validateAndSubmit() {
+  document.getElementById("{{ form.data_file.auto_id }}").addEventListener("change", async (e) => {
+    let input2 = document.getElementById("{{ form.data_file.auto_id }}");
+    const file = input2.files[0];
+    if (!file || !file.name.endsWith(".zip")){
+      use_gtfs.checked = false;
+      return;
+    }
+    const arrayBuffer = await file.arrayBuffer();
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    const filenames = Object.keys(zip.files);
+    use_gtfs = document.getElementById("{{ form.use_gtfs.auto_id }}");
+    if (filenames.some((x)=>x ==="trips.txt")){
+      use_gtfs.checked = true;
+      console.log("on file name")
+    } else {
+      use_gtfs.checked = false;
+      console.log("off")
+    }
+    });
+
+  async function validateAndSubmit() {
     // If form is not valid, stop validation early.
     if (!document.forms ["trips_form"].reportValidity()){
       return false
     }
+
     // disable the WizardNextButton
     const wizardNextButton = document.getElementById("WizardNextButton");
     // Disable the button
@@ -119,7 +142,25 @@
     disableButton(wizardNextButton);
     // If validation fails submit event will be prevented
     let input1 = document.getElementById("{{ form.existing_scenario.auto_id }}")
+
     let input2 = document.getElementById("{{ form.data_file.auto_id }}");
+
+    const file = input2.files[0];
+    if (!file || !file.name.endsWith(".zip")) return;
+    const arrayBuffer = await file.arrayBuffer();
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    const filenames = Object.keys(zip.files);
+    use_gtfs = document.getElementById("{{ form.use_gtfs.auto_id }}");
+    if (filenames.some((x)=>x ==="trips.txt")){
+      use_gtfs.checked = true;
+      console.log("on file name")
+    } else {
+      use_gtfs.checked = false;
+      console.log("off")
+    }
+
+
+
     let val1 = input1.value.trim();
     let val2 = input2.value.trim();
     let errorMessage = document.getElementById("error-message");

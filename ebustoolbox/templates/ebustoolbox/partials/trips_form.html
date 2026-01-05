@@ -76,6 +76,10 @@
                   max='100'
                 ></progress>
               </label>
+            {% if form.data_file.errors %}
+
+            <div class="text-red-500 border border rounded-md p-4 m-4 bg-red-100 " >{{form.data_file.errors}}</div>
+            {% endif %}
             <p class="pl-1 text-sm text-slate-500">{% translate 'oder ziehen und ablegen' %}</p>
             <div
               id="uploaded_file_id"
@@ -117,6 +121,7 @@
       </div>
     </div>
     <div class="col-span-full pt-4 border-t">
+      <gtfs-use class="">{{form.use_gtfs}}</gtfs-use>
       <scenario-and-checkbox class="flex  gap-6">
       <div class="w-full pb-6">
         <label for="{{ form.scenario_name.auto_id }}"
@@ -143,7 +148,7 @@
                 </svg>
               </div>
               <div class="inline text-sm text-slate-700 space-y-1 mx-2">
-                <label for="{{form.find_stations.auto_id}}"
+                <label for="{{form.find_stations.auto_id}}"trips
                        class="inline font-medium">{% translate 'Aktiviere die Suche nach Stationskoordinaten?' %}
 
               </label>

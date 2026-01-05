@@ -367,13 +367,15 @@ class TripsView(FormView):
         if form.is_valid():
             return self.form_valid(form)
         else:
+            print(form.errors)
             logger.debug("Invalid trips form provided")
-            context = self.get_context_data(**kwargs)
-            context["form"] = self.get_form_class()(self.request.POST, self.request.FILES)
+            context = self.get_context_data(request, **kwargs)
+            # context["form"] = self.get_form_class()(self.request.POST, self.request.FILES)
+            context["form"] = form
             return render(request, "ebustoolbox/partials/trips_form.html", context)
             # return render(request, "ebustoolbox/partials/trips_form.html", context)
 
-    def form_valid(self, form):
+    def form_valid(self, form: forms.TripsForm):
         """Handles successful form submission."""
         cleaned_data = form.cleaned_data
         task_id = self.kwargs.get("task_id", get_unique_task_id())
@@ -436,10 +438,21 @@ class TripsView(FormView):
                     task_id=progress_id,
                 )
             elif file_suffix == "zip":
-                async_result = tasks.init_db_with_trips.apply_async(
-                    (scenario.id, 3, {"x10_zip_file": files["data_file"]}, {}, progress.id),
-                    task_id=progress_id,
-                )
+                if form.cleaned_data["use_gtfs"]:
+                    print("gtfs")
+                    # GTFS Importer
+                    async_result = tasks.init_db_with_trips.apply_async(
+                        (scenario.id, 4, {"gtfs_zip_file": files["data_file"]}, {}, progress.id),
+                        task_id=progress_id,
+                    )
+                else:
+
+                    print("vdv")
+                    # VDV Importer
+                    async_result = tasks.init_db_with_trips.apply_async(
+                        (scenario.id, 3, {"x10_zip_file": files["data_file"]}, {}, progress.id),
+                        task_id=progress_id,
+                    )
             else:
                 progress.success = False
                 progress.running = False
