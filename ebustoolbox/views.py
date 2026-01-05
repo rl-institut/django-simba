@@ -1,7 +1,7 @@
+import datetime
+import dateutil.parser as parser
 import logging
 import traceback
-import dateutil.parser as parser
-import datetime
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from django.core import signing, mail, serializers
 from django.db.models import F, QuerySet, Sum, Value, FloatField, Q, Avg
 from django.db.models.functions import Cast, Coalesce
-from django.db.transaction import atomic
+from django.db.transaction import atomic, set_rollback
 from django.utils.translation import gettext as _
 from django.http import (
     HttpResponse,
@@ -33,6 +33,7 @@ from core.models import Progress, EnumProgress
 import core.deepcopy
 from celery.result import AsyncResult
 
+from ebusdjango.my_celery import app
 from django_mapengine.views import MapEngineMixin
 from temperatures.models import WeatherStation  # noqa
 from . import tasks, forms
@@ -47,7 +48,7 @@ from .forms import (
     ScenarioSelection,
     ManualTcoForm,
 )
-from .tasks import merge_scenario
+from .tasks import deepcopy_scenario, merge_scenario
 from .import_export import ScenarioJSONImporterExporter, visit_all_scenario_queries
 
 from .util import get_unique_task_id
@@ -77,7 +78,7 @@ from ebustoolbox.models import (
     EventType,
     Consumption,
     Trip,
-    SimulationRange,
+    SimulationTemperatures,
     VehicleTypeSelection,
     VehicleTypeMutation,
     StationMutation,
@@ -86,10 +87,6 @@ from ebustoolbox.models import (
     annotate_distance,
 )
 
-
-# import redis
-# r = redis.Redis.from_url(settings.REDIS_URL)
-# r.rpush('someKey', json.dumps({'i': (cache.get('key')), 'time': 0}))
 
 logger = logging.getLogger("custom")
 
@@ -106,12 +103,23 @@ def progress_scenario(request: HttpRequest, progress_id, template_name):
     status_code = 200
     hx_trigger = "running"
     result = AsyncResult(str(progress_id).encode())
-    if result.state in ["PENDING", "REVOKED", "FAILURE"]:
+    failed = result.state in ["REVOKED", "FAILURE"]
+    not_exists = result.state == "PENDING"
+    reserved = False
+    if not_exists:
+        for r in app.control.inspect().reserved().values():
+            ids = set(x["id"] for x in r)
+            if str(progress.task_id) in ids:
+                reserved = True
+    if reserved:
+        progress.status = "In Warteschlange"
+        progress.save()
+    if failed or (not_exists and not reserved):
         # the celery task is not running. The progress will not be updated. This has to be fixed.
         progress.refresh_from_db()
         if progress.running:
             progress.running = False
-            progress.status = "Abgebrochen"
+            progress.status = "Abgebrochen" if failed else "Aufgabe nicht gefunden"
             progress.errors.append(f"Task is {result.state}")
             progress.save()
 
@@ -316,6 +324,7 @@ def get_notifications(request, task_id: str, view: str):
     context = dict()
     context = {"notifications": notifications_dict}
     context["any_notification"] = notifications.exists()
+    context["viewname"] = view
     context["task_id"] = task_id
     context["hx_trigger"] = "htmx:afterSettle from:body throttle:1s"
 
@@ -325,7 +334,7 @@ def get_notifications(request, task_id: str, view: str):
 class TripsView(FormView):
     template_name = "ebustoolbox/trips.html"
     form_class = forms.TripsForm
-    success_name = "simba:vehicles"
+    success_name = "simba:filter_scenario"
 
     def get_context_data(self, request, **kwargs):
         context = super(TripsView, self).get_context_data(**kwargs)
@@ -348,8 +357,8 @@ class TripsView(FormView):
         if task_id and first != 1:
             progress_db = get_unique_progress_or_none(task_id)
             if progress_db and progress_db.success:
-                response = redirect(reverse("simba:vehicles", args=[str(task_id)]))
-                response["HX-Location"] = reverse("simba:vehicles", args=[str(task_id)])
+                response = redirect(reverse(self.success_name, args=[str(task_id)]))
+                response["HX-Location"] = reverse(self.success_name, args=[str(task_id)])
                 return response
         return self.render_to_response(self.get_context_data(request, **kwargs))
 
@@ -449,6 +458,7 @@ class TripsView(FormView):
                     progress_id == async_result.task_id
                 ), "Asynch result and Progress need to be equal for proper fetching of progress"
         elif scenario_uuid:
+            # TODO: IMPLEMENT RAW SCENARIO SOURCE
             if Scenario.objects.get(task_id=scenario_uuid) not in get_sorted_mutation_scenarios(
                 self.request.user
             ):
@@ -471,7 +481,7 @@ class TripsView(FormView):
             scenario.delete()
             scenario = copied_mutation
             response = HttpResponse()
-            response["HX-Redirect"] = reverse("simba:vehicles", args=[str(scenario.task_id)])
+            response["HX-Redirect"] = reverse(self.success_name, args=[str(scenario.task_id)])
             return response
 
         else:
@@ -480,7 +490,7 @@ class TripsView(FormView):
         if progress_db and progress_db.success:
             # Processing the scenario finished
             response = HttpResponse()
-            response["HX-Location"] = reverse("simba:vehicles", args=[str(task_id)])
+            response["HX-Location"] = reverse(self.success_name, args=[str(task_id)])
             return response
         response = HttpResponse()
         # Redirect to the same url with task_id added. this allows insertion of the
@@ -498,16 +508,171 @@ def get_scenario_and_assert_authorization(request, task_id) -> Scenario:
     return scenario
 
 
-class VehiclesView(ScenarioMixIn, TemplateView):
-    template_name = "ebustoolbox/vehicles.html"
-    success_name = "simba:stations"
+class FilterView(ScenarioMixIn, TemplateView):
+    template_name = "ebustoolbox/filter_scenario.html"
+    success_name = "simba:vehicles"
 
     @staticmethod
     def get_notifications(task_id):
         scenario = get_object_or_404(Scenario, task_id=task_id)
         # TODO: show only a subset of notifications or all notifications?
-        notifications = Notification.objects.filter(scenario=scenario)
+        # Show notifications of the schedule reading which are linked to the source
+        notifications = Notification.objects.filter(scenario=scenario.parent)
         return notifications
+
+    def get_context_data(self, request, **kwargs):
+        context = super(FilterView, self).get_context_data(**kwargs)
+        if self.request.method == "POST":
+            self.data = request.POST.copy()  # mutable
+        elif self.request.method == "GET":
+            self.data = request.GET.copy()  # mutable
+        else:
+            raise Http404()
+
+        context |= __class__.get_simulation_parameters_context(self.data, self.scenario)
+        return context
+
+    @staticmethod
+    def parse_start_end_utc_from_POST(data):
+        start_dt = parser.parse(f"{data['start-date']} {data['start-time']}")
+        start_dt_utc = start_dt.replace(tzinfo=pytz.UTC)
+        end_dt = parser.parse(f"{data['end-date']} {data['end-time']}")
+        end_dt_utc = end_dt.replace(tzinfo=pytz.UTC)
+        return start_dt_utc, end_dt_utc
+
+    @staticmethod
+    def get_simulation_parameters_context(data, scenario: Scenario) -> dict:
+        """Get context for Simulation Range"""
+        context = {}
+        trips = Trip.objects.filter(scenario=scenario.parent).order_by("departure_time")
+        start = trips.first().departure_time
+        end = trips.last().arrival_time
+        start_date = start.date().isoformat()
+        start_time = start.time().isoformat()
+        end_date = end.date().isoformat()
+        end_time = end.time().isoformat()
+        if data:
+            start, end = __class__.parse_start_end_utc_from_POST(data)
+            initial_start_date = start.date().isoformat()
+            initial_start_time = start.time().isoformat()
+            initial_end_date = end.date().isoformat()
+            initial_end_time = end.time().isoformat()
+            # NOTE: data is a query dict
+            data["start"], data["end"] = start, end
+            # SimulationFilterForm creates a filter for the parent data
+            simulation_parameters_form = forms.SimulationFilterForm(scenario=scenario, data=data)
+        else:
+            initial_start_date = start_date
+            initial_start_time = start_time
+            initial_end_date = end_date
+            initial_end_time = end_time
+
+            # SimulationFilterForm creates a filter for the scenario.parent data
+            simulation_parameters_form = forms.SimulationFilterForm(
+                scenario=scenario,
+                initial={
+                    "start": start,
+                    "end": end,
+                },
+            )
+        context |= {"min_date": start_date, "max_date": end_date}
+        context |= {
+            "start_date": initial_start_date,
+            "end_date": initial_end_date,
+        }
+        context |= {
+            "initial_start_time": initial_start_time,
+            "initial_end_time": initial_end_time,
+        }
+        context |= {
+            "task_id": scenario.task_id,
+            "simulation_parameters_form": simulation_parameters_form,
+        }
+        return context
+
+    def get(self, request, *args, **kwargs):
+        if Scenario.objects.filter(parent=self.scenario.parent).count() > 1:
+            # If the scenario has children, changing the source_scenario is not allowed
+            return redirect(reverse(self.success_name, args=[self.scenario.task_id]))
+
+        context = self.get_context_data(request, **kwargs)
+        form: forms.SimulationFilterForm = context["simulation_parameters_form"]
+        if form.is_valid():
+            with atomic():
+                __class__.delete_with_filter(self.scenario.parent, form)
+                context["simulation_parameters_form"] = forms.SimulationFilterForm(
+                    scenario=self.scenario, data=self.data
+                )
+                set_rollback(True)
+
+        return self.render_to_response(context)
+
+    def post(self, request, *args, **kwargs):
+        context = self.get_context_data(request, **kwargs)
+        form: forms.SimulationFilterForm = context["simulation_parameters_form"]
+        if form.is_valid():
+            with atomic():
+                __class__.delete_with_filter(self.scenario.parent, form)
+                rot_exists = Rotation.objects.filter(scenario=self.scenario.parent).exists()
+                if rot_exists:
+                    print("success")
+                    response = redirect(reverse(self.success_name, args=[self.scenario.task_id]))
+                    return response
+                else:
+                    form.add_error(
+                        field=None, error=_("Eine Simulation benötigt mindestens einen Umlauf")
+                    )
+                    set_rollback(True)
+        return self.render_to_response(context)
+
+    @staticmethod
+    def get_rotation_count(request, task_id):
+        scenario = get_scenario_and_assert_authorization(request, task_id)
+        q = request.GET.copy()  # mutable
+
+        start, end = __class__.parse_start_end_utc_from_POST(
+            q
+        )  # pass the QueryDict or a proper dict
+        q["start"], q["end"] = start, end
+
+        form = forms.SimulationFilterForm(scenario=scenario, data=q)
+        form.is_valid()
+        with atomic():
+            __class__.delete_with_filter(scenario.parent, form)
+            count = Rotation.objects.filter(scenario=scenario.parent).count()
+            set_rollback(True)
+        context = {"count": count, "errors": form.errors}
+        import time
+
+        time.sleep(1)
+        return render(request, "ebustoolbox/partials/rotation_count.html", context)
+
+    @staticmethod
+    def delete_with_filter(scenario, form: forms.SimulationFilterForm):
+        # Remove rotations from the timespan
+        start = form.cleaned_data["start"]
+        end = form.cleaned_data["end"]
+        tasks.trim_scenario(scenario, end - start, start)
+        # Used for clearing up depots without rotations
+        dep_ids = form.cleaned_data["depot_select"]
+        line_ids = form.cleaned_data["line_select"]
+        if line_ids:
+            Rotation.objects.filter(scenario=scenario).exclude(
+                trip__route__line_id__in=line_ids
+            ).delete()
+        if dep_ids:
+            depots = Station.objects.filter(
+                scenario=scenario, charge_type=EnumChargeType.DEPOT
+            ).exclude(id__in=dep_ids)
+            dep_ids = depots.values_list("id", flat=True)
+        else:
+            dep_ids = []
+        tasks.trim_depots(scenario, dep_ids)
+
+
+class VehiclesView(ScenarioMixIn, TemplateView):
+    template_name = "ebustoolbox/vehicles.html"
+    success_name = "simba:stations"
 
     def get_context_data(self, **kwargs):
         scenario = self.scenario
@@ -535,8 +700,11 @@ class VehiclesView(ScenarioMixIn, TemplateView):
                 ).count() > min_data_points:
                     weatherstation = ws
                     break
-        context |= self.get_simulation_parameters_context(data, scenario)
         context |= self.get_vehicles_context(data, scenario)
+        sim_temps, unused_variable = SimulationTemperatures.objects.get_or_create(scenario=scenario)
+        context["temperatures_form"] = forms.SimulationTemperaturesForm(
+            instance=sim_temps, data=data
+        )
         context |= dict(
             weatherstation=weatherstation,
             distance=getattr(weatherstation, "distance", None),
@@ -546,77 +714,6 @@ class VehiclesView(ScenarioMixIn, TemplateView):
             endDate=enddate.isoformat(),
         )
 
-        return context
-
-    @staticmethod
-    def get_simulation_parameters_context(data, scenario: Scenario) -> dict:
-        """Get context for Simulation Range"""
-        context = {}
-        trips = Trip.objects.filter(scenario=scenario.parent).order_by("departure_time")
-        start = trips.first().departure_time
-        end = trips.last().arrival_time
-        start_date = start.date().isoformat()
-        start_time = start.time().isoformat()
-        end_date = end.date().isoformat()
-        end_time = end.time().isoformat()
-        sim_range, unused_variable = SimulationRange.objects.get_or_create(scenario=scenario)
-        temperature_average = None
-        temperature_extreme = None
-        if data:
-            start, end = VehiclesView.parse_start_end_utc_from_POST(data)
-            initial_start_date = start.date().isoformat()
-            initial_start_time = start.time().isoformat()
-            initial_end_date = end.date().isoformat()
-            initial_end_time = end.time().isoformat()
-            temperature_average = data["temperature_average"]
-            temperature_extreme = data["temperature_extreme"]
-            simulation_parameters_form = forms.SimulationParameters(
-                data={
-                    "temperature_average": temperature_average,
-                    "start": start,
-                    "end": end,
-                    "temperature_extreme": temperature_extreme,
-                },
-                instance=SimulationRange.objects.get(scenario=scenario),
-            )
-        else:
-            if sim_range.start and sim_range.end:
-                assert SimulationRange.objects.filter(scenario=scenario).count() == 1
-                # Times are provided to the context not via form, since different widgets
-                # are used.
-                start, end = sim_range.start, sim_range.end
-                initial_start_date = sim_range.start.date().isoformat()
-                initial_start_time = sim_range.start.time().isoformat()
-                initial_end_date = sim_range.end.date().isoformat()
-                initial_end_time = sim_range.end.time().isoformat()
-                temperature_average = sim_range.temperature_average
-                temperature_extreme = sim_range.temperature_extreme
-            else:
-                initial_start_date = start_date
-                initial_start_time = start_time
-                initial_end_date = end_date
-                initial_end_time = end_time
-
-            simulation_parameters_form = forms.SimulationParameters(
-                initial={
-                    "start": start,
-                    "end": end,
-                },
-                instance=SimulationRange.objects.get(scenario=scenario),
-            )
-        context |= {"min_date": start_date, "max_date": end_date}
-        context |= {
-            "start_date": initial_start_date,
-            "end_date": initial_end_date,
-        }
-        context |= {
-            "initial_start_time": initial_start_time,
-            "initial_end_time": initial_end_time,
-        }
-        context |= {
-            "task_id": scenario.task_id,
-            "simulation_parameters_form": simulation_parameters_form,
-        }
         return context
 
     def get_vehicles_context(self, data, scenario: Scenario) -> dict:
@@ -692,27 +789,18 @@ class VehiclesView(ScenarioMixIn, TemplateView):
                 "selection": selection,
                 "vehicle_modification": modification,
             }
-
         context["vehicle_modification"] = vehicle_modification
         context["choice_vts"] = default_vehicle_types
 
         return context
 
-    @staticmethod
-    def parse_start_end_utc_from_POST(data):
-        start_dt = parser.parse(f"{data['start-date']} {data['start-time']}")
-        start_dt_utc = start_dt.replace(tzinfo=pytz.UTC)
-        end_dt = parser.parse(f"{data['end-date']} {data['end-time']}")
-        end_dt_utc = end_dt.replace(tzinfo=pytz.UTC)
-        return start_dt_utc, end_dt_utc
-
     def post(self, request, *args, **kwargs):
         forms = []
         scenario = self.scenario
         context = self.get_context_data(scenario=scenario, **kwargs)
-        simulation_parameters_form = context["simulation_parameters_form"]
+        simulation_parameters_form = context["temperatures_form"]
         if simulation_parameters_form.is_valid():
-            sim_range: SimulationRange = simulation_parameters_form.save()
+            sim_range: SimulationTemperatures = simulation_parameters_form.save()
             Temperatures.objects.filter(scenario=scenario).delete()
             # Create temperature instance
             Temperatures.create_constant_temperatures(scenario, sim_range.temperature_average)
@@ -1170,7 +1258,7 @@ class SummaryView(AuthorizedMixIn, TemplateView):
             context["progress"] = progress
             logger.info(f"Returning {progress=} in context")
 
-        sim_range = SimulationRange.objects.get(scenario=scenario)
+        start, end = data.get_start_end_time(scenario.parent)
         german_weekdays = {
             0: _("Mo"),
             1: _("Di"),
@@ -1181,14 +1269,13 @@ class SummaryView(AuthorizedMixIn, TemplateView):
             6: _("So"),
         }
         _format = "%d:%m:%Y, %H:%M"
-        start = sim_range.start
-        end = sim_range.end
         context["sim_duration"] = (
             f"{german_weekdays[start.weekday()]} {start.strftime(_format)} - "
             f"{german_weekdays[end.weekday()]} {end.strftime(_format)}"
         )
-        context["temperature_average"] = sim_range.temperature_average
-        context["temperature_extreme"] = sim_range.temperature_extreme
+        sim_temps = SimulationTemperatures.objects.get(scenario=scenario)
+        context["temperature_average"] = sim_temps.temperature_average
+        context["temperature_extreme"] = sim_temps.temperature_extreme
         parent_vehicle_types = VehicleType.objects.filter(scenario=scenario.parent)
 
         scenario_stations = Station.objects.filter(scenario=scenario).exclude(
@@ -1216,9 +1303,7 @@ class SummaryView(AuthorizedMixIn, TemplateView):
             is_electrified=False, is_electrifiable=True
         )
         context["excluded_stations"] = scenario_stations.filter(id__in=excluded_ids)
-        context["depots"] = Station.objects.filter(
-            scenario=scenario, charge_type=EnumChargeType.DEPOT
-        )
+        context["depot_wishes"] = DepotConfigurationWish.objects.filter(scenario=scenario)
         return context
 
     def post(self, request, *args, **kwargs):
@@ -1304,24 +1389,17 @@ class DashboardView(TemplateView):
         raise Http404()
 
 
-def get_depots(scenario):
+def get_depots(scenario, start: datetime.datetime, td: datetime.timedelta):
     # Get filtered depots by simrange
     parent = scenario.parent
-    sim_range = SimulationRange.objects.filter(scenario=scenario).first()
-    if sim_range:
-        # If a simulation range is given, only allow filtering of depots which service rotations
-        assert SimulationRange.objects.filter(scenario=scenario).count() == 1
-        td = sim_range.end - sim_range.start
-        rots = tasks.get_rotations_by_timespan(parent, td, sim_range.start)
-        station_ids = (
-            Trip.objects.filter(rotation__in=rots)
-            .values_list("route__departure_station", "route__arrival_station")
-            .distinct()
-        )
-        station_ids = set(x for pair in station_ids for x in pair)
-        depots_query = Station.objects.filter(id__in=station_ids)
-    else:
-        depots_query = Station.objects.filter(scenario=parent)
+    rots = tasks.get_rotations_by_timespan(parent, td, start)
+    station_ids = (
+        Trip.objects.filter(rotation__in=rots)
+        .values_list("route__departure_station", "route__arrival_station")
+        .distinct()
+    )
+    station_ids = set(x for pair in station_ids for x in pair)
+    depots_query = Station.objects.filter(id__in=station_ids)
     depots_query = depots_query.filter(charge_type=EnumChargeType.DEPOT).order_by("id")
     return depots_query
 
@@ -1791,7 +1869,10 @@ def export_scenario(request, task_id: str):
     # If a child was created delete it
     if child is not None:
         child.delete()
-    return HttpResponse(json_data, content_type="application/json")
+
+    response = HttpResponse(json_data, content_type="application/json")
+    response["Content-Disposition"] = "attachment; filename=scenario.json"
+    return response
 
 
 def import_scenario_tree(request):
@@ -1802,7 +1883,6 @@ def import_scenario_tree(request):
         return render(request, "ebustoolbox/import_scenario.html")
 
     if request.method == "POST":
-
         assert request.FILES["scenario_json"]
         importer = ScenarioJSONImporterExporter()
         importer.loads(in_memory_file=request.FILES["scenario_json"])
@@ -1895,6 +1975,60 @@ def import_scenario(request):
                 f"View <a href={reverse('simba:result', args=[task_id])}>results</a>"
             )
         return HttpResponse(
-            _(f"Scenario succesfully imported with task_id {task_id}. ") + redirect_suggestion
+            _(f"Scenario successfully imported with task_id {task_id}. ") + redirect_suggestion
         )
     return HttpResponseBadRequest(_("Use POST or GET"))
+
+
+def loadTester(request, task_id: str):
+    if not request.user.is_authenticated:
+        raise Http404()
+    if not request.user.is_superuser:
+        raise Http404()
+    scenarios = request.GET.getlist("scenario")
+    scenario = Scenario.objects.get(task_id=task_id)
+    context = {}
+    context["scenario"] = scenario
+    context["scenarios"] = scenarios
+    if request.method == "GET":
+        progresses = Progress.objects.filter(scenario=scenario, running=True)
+        context["progresses"] = progresses
+        return render(request, "ebustoolbox/load_test.html", context)
+    elif request.method == "POST":
+        repeats = int(request.POST.get("repeats", 0))
+        progresses = []
+        for i in range(repeats):
+            scenario.task_id = get_unique_task_id()
+            s, _ = deepcopy_scenario(scenario)
+            progress = Progress.objects.create(
+                scenario=s,
+                progress_type=EnumProgress.RUNNING_SIMULATION,
+                task_id=get_unique_task_id(),
+            )
+            progresses.append(progress)
+            try:
+                tasks.run_and_merge_scenarios.apply_async(
+                    (s.id, get_unique_task_id(), get_unique_task_id()),
+                    task_id=str(progress.task_id),
+                )
+            except Exception:
+                progress.errors.append(
+                    _(
+                        "Ein unerwarteter Fehler ist aufgetreten. Wenden Sie sich an ihren Administrator"
+                    )
+                )
+                progress.set_failed()
+                logger.error(traceback.format_exc())
+        context["progresses"] = progresses
+        return render(request, "ebustoolbox/load_test.html", context)
+    return HttpResponse("wrong method")
+
+
+def delete_scenario(request, task_id):
+    if request.method != "POST":
+        return HttpResponse(status=405)  # method not allowed
+    scenario = get_object_or_404(Scenario, task_id=task_id)
+    if scenario.manager and scenario.manager != request.user:
+        return HttpResponse(status=403)  # forbidden: only manager may delete scenario
+    scenario.delete()
+    return redirect(reverse("simba:dashboard"))

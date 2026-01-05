@@ -3,13 +3,15 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
 
-from . import models, tasks
+from . import models
 from .models import (
     AreaType,
     EnumChargeType,
     EnumVoltageLevel,
+    Line,
+    Station,
     VehicleType,
-    SimulationRange,
+    SimulationTemperatures,
     Scenario,
 )
 
@@ -75,37 +77,44 @@ class UploadFileForm(forms.Form):
     use_only_time = forms.BooleanField(initial=True, required=False)
 
 
-class DateRangeField(forms.DateField):
-    def to_python(self, value):
-        values = value.split(" - ")
-        from_date = super(DateRangeField, self).to_python(values[0])
-        to_date = super(DateRangeField, self).to_python(values[1])
-        return from_date, to_date
+class SimulationFilterForm(forms.Form):
+    start = forms.DateTimeField()
+    end = forms.DateTimeField()
+    depot_select = forms.ModelMultipleChoiceField(
+        queryset=Station.objects.none(),
+        label="Depotauswahl",
+        required=False,
+    )
+    line_select = forms.ModelMultipleChoiceField(
+        queryset=Line.objects.none(),
+        label="Linienauswahl",
+        required=False,
+    )
+    scenario: Scenario | None = None
+
+    def __init__(self, scenario, *args, **kwargs):
+        self.scenario = scenario
+        super().__init__(*args, **kwargs)
+        qs = Station.objects.filter(scenario=scenario.parent, charge_type=EnumChargeType.DEPOT)
+
+        self.fields["depot_select"].queryset = Station.objects.filter(
+            id__in=list(qs.values_list("id", flat=True))
+        )
+        self.fields["depot_select"].label_from_instance = lambda obj: f"{obj.name}"
+        qs = Line.objects.filter(scenario=scenario.parent)
+        self.fields["line_select"].queryset = Line.objects.filter(
+            id__in=list(qs.values_list("id", flat=True))
+        )
+        self.fields["line_select"].label_from_instance = lambda obj: f"{obj.name}"
 
 
-class SimulationParameters(forms.ModelForm):
+class SimulationTemperaturesForm(forms.ModelForm):
     temperature_average = forms.IntegerField(min_value=-20, max_value=40)
     temperature_extreme = forms.IntegerField(min_value=-20, max_value=40)
 
     class Meta:
-        model = SimulationRange
+        model = SimulationTemperatures
         exclude = ("scenario",)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def clean(self):
-        cleaned_data = super().clean()
-        if not (cleaned_data.get("start") and cleaned_data.get("end")):
-            raise ValidationError(_("Gib ein Start- und Endzeitpunkt an."))
-        if (
-            tasks.get_rotations_by_start_end(
-                self.instance.scenario.parent, cleaned_data["start"], cleaned_data["end"]
-            ).count()
-            == 0
-        ):
-            raise ValidationError(_("In dieser Zeitspanne starten keine Umläufe."))
-        return cleaned_data
 
 
 class TripsForm(forms.Form):

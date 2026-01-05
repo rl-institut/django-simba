@@ -6,7 +6,7 @@
   {% translate "WeBus - Depots" %}
 {% endblock title %}
 {% block wizard_navigation %}
-  {% with wiz_idx=5 %}{{ block.super }}{% endwith %}
+  {% with wiz_idx=6 %}{{ block.super }}{% endwith %}
 {% endblock wizard_navigation %}
 {% block wizard_content %}
   <main class="flex flex-col items-center flex-grow">
@@ -18,7 +18,7 @@
           {% with depot_form=form_dict.depot_config %}
             <!-- Accordion Item {{depot.id}} -->
             <section class="">
-              <div id='DepotContent{{ depot.id }}' data-value='{{depot.id}}' class="accordion-container" >
+              <div id='DepotContent{{ depot.id }}' data-value='{{depot.id}}' class="accordion-container overflow-hidden" >
                 <div class="rounded-lg bg-white shadow mb-0">
                   <button type='button'
                           onclick="toggleAccordion(this)"
@@ -39,7 +39,7 @@
                     </div>
                   </button>
                   <div id="content-{{ depot.id }}"
-                       class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out accordion-content">
+                       class="max-h-0 transition-all duration-300 ease-in-out accordion-content">
                     <!-- General Depot configuration -->
                     {% include "ebustoolbox/partials/depot_configuration_wish.html" %}
                   </div>
@@ -80,6 +80,23 @@
 
   }
 
+
+  // This allows the active panel to overflow after the transition completed.
+  // Otherwise tooltips which overflow would be hidden when they leave the div
+  window.addEventListener('load', e =>{
+    const containers = document.querySelectorAll('div.accordion-container');
+    containers.forEach((container) => {
+    container.addEventListener('transitionend', e => {
+          if (e.propertyName !== 'max-height') return;
+      if (e.target.style.maxHeight!=="0px")
+          // The panel was activated. make sure its allowed to overflow
+          // overflow-hidden is added when a panel is closed via toggleAccordion
+          container.classList.remove('overflow-hidden');
+      container.style.height = '';
+    });
+    });
+  });
+
   function toggleAccordion(button) {
     if (toggleAccordion.open == button ) {
       return
@@ -87,7 +104,6 @@
     const container = button.closest('div.accordion-container');
     index = container.dataset.value;
     const content = document.getElementById(`content-${index}`);
-    content.classList.toggle('overflow-hidden');
     const icon = document.getElementById(`icon-${index}`);
 
     if (toggleAccordion.open != undefined) {
@@ -112,6 +128,8 @@
 
     // Toggle the content's max-height for smooth opening and closing
     if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+      // while the container expands ensure that the overflow-is hidden
+      container.classList.add('overflow-hidden');
       content.style.maxHeight = '0';
       icon.innerHTML = upSVG;
     } else {
