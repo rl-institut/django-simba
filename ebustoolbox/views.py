@@ -1,7 +1,7 @@
+import datetime
+import dateutil.parser as parser
 import logging
 import traceback
-import dateutil.parser as parser
-import datetime
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
@@ -1869,7 +1869,10 @@ def export_scenario(request, task_id: str):
     # If a child was created delete it
     if child is not None:
         child.delete()
-    return HttpResponse(json_data, content_type="application/json")
+
+    response = HttpResponse(json_data, content_type="application/json")
+    response["Content-Disposition"] = "attachment; filename=scenario.json"
+    return response
 
 
 def import_scenario_tree(request):
@@ -1880,7 +1883,6 @@ def import_scenario_tree(request):
         return render(request, "ebustoolbox/import_scenario.html")
 
     if request.method == "POST":
-
         assert request.FILES["scenario_json"]
         importer = ScenarioJSONImporterExporter()
         importer.loads(in_memory_file=request.FILES["scenario_json"])
@@ -2020,3 +2022,13 @@ def loadTester(request, task_id: str):
         context["progresses"] = progresses
         return render(request, "ebustoolbox/load_test.html", context)
     return HttpResponse("wrong method")
+
+
+def delete_scenario(request, task_id):
+    if request.method != "POST":
+        return HttpResponse(status=405)  # method not allowed
+    scenario = get_object_or_404(Scenario, task_id=task_id)
+    if scenario.manager and scenario.manager != request.user:
+        return HttpResponse(status=403)  # forbidden: only manager may delete scenario
+    scenario.delete()
+    return redirect(reverse("simba:dashboard"))
