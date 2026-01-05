@@ -33,6 +33,7 @@ from core.models import Progress, EnumProgress
 import core.deepcopy
 from celery.result import AsyncResult
 
+from ebusdjango.my_celery import app
 from django_mapengine.views import MapEngineMixin
 from temperatures.models import WeatherStation  # noqa
 from . import tasks, forms
@@ -47,7 +48,7 @@ from .forms import (
     ScenarioSelection,
     ManualTcoForm,
 )
-from .tasks import merge_scenario
+from .tasks import deepcopy_scenario, merge_scenario
 from .import_export import ScenarioJSONImporterExporter, visit_all_scenario_queries
 
 from .util import get_unique_task_id
@@ -102,12 +103,23 @@ def progress_scenario(request: HttpRequest, progress_id, template_name):
     status_code = 200
     hx_trigger = "running"
     result = AsyncResult(str(progress_id).encode())
-    if result.state in ["PENDING", "REVOKED", "FAILURE"]:
+    failed = result.state in ["REVOKED", "FAILURE"]
+    not_exists = result.state == "PENDING"
+    reserved = False
+    if not_exists:
+        for r in app.control.inspect().reserved().values():
+            ids = set(x["id"] for x in r)
+            if str(progress.task_id) in ids:
+                reserved = True
+    if reserved:
+        progress.status = "In Warteschlange"
+        progress.save()
+    if failed or (not_exists and not reserved):
         # the celery task is not running. The progress will not be updated. This has to be fixed.
         progress.refresh_from_db()
         if progress.running:
             progress.running = False
-            progress.status = "Abgebrochen"
+            progress.status = "Abgebrochen" if failed else "Aufgabe nicht gefunden"
             progress.errors.append(f"Task is {result.state}")
             progress.save()
 
@@ -1291,9 +1303,7 @@ class SummaryView(AuthorizedMixIn, TemplateView):
             is_electrified=False, is_electrifiable=True
         )
         context["excluded_stations"] = scenario_stations.filter(id__in=excluded_ids)
-        context["depots"] = Station.objects.filter(
-            scenario=scenario, charge_type=EnumChargeType.DEPOT
-        )
+        context["depot_wishes"] = DepotConfigurationWish.objects.filter(scenario=scenario)
         return context
 
     def post(self, request, *args, **kwargs):
@@ -1965,9 +1975,53 @@ def import_scenario(request):
                 f"View <a href={reverse('simba:result', args=[task_id])}>results</a>"
             )
         return HttpResponse(
-            _(f"Scenario succesfully imported with task_id {task_id}. ") + redirect_suggestion
+            _(f"Scenario successfully imported with task_id {task_id}. ") + redirect_suggestion
         )
     return HttpResponseBadRequest(_("Use POST or GET"))
+
+
+def loadTester(request, task_id: str):
+    if not request.user.is_authenticated:
+        raise Http404()
+    if not request.user.is_superuser:
+        raise Http404()
+    scenarios = request.GET.getlist("scenario")
+    scenario = Scenario.objects.get(task_id=task_id)
+    context = {}
+    context["scenario"] = scenario
+    context["scenarios"] = scenarios
+    if request.method == "GET":
+        progresses = Progress.objects.filter(scenario=scenario, running=True)
+        context["progresses"] = progresses
+        return render(request, "ebustoolbox/load_test.html", context)
+    elif request.method == "POST":
+        repeats = int(request.POST.get("repeats", 0))
+        progresses = []
+        for i in range(repeats):
+            scenario.task_id = get_unique_task_id()
+            s, _ = deepcopy_scenario(scenario)
+            progress = Progress.objects.create(
+                scenario=s,
+                progress_type=EnumProgress.RUNNING_SIMULATION,
+                task_id=get_unique_task_id(),
+            )
+            progresses.append(progress)
+            try:
+                tasks.run_and_merge_scenarios.apply_async(
+                    (s.id, get_unique_task_id(), get_unique_task_id()),
+                    task_id=str(progress.task_id),
+                )
+            except Exception:
+                progress.errors.append(
+                    _(
+                        "Ein unerwarteter Fehler ist aufgetreten. Wenden Sie sich an ihren Administrator"
+                    )
+                )
+                progress.set_failed()
+                logger.error(traceback.format_exc())
+        context["progresses"] = progresses
+        return render(request, "ebustoolbox/load_test.html", context)
+    return HttpResponse("wrong method")
 
 
 def delete_scenario(request, task_id):
