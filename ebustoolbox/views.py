@@ -1905,12 +1905,13 @@ def import_scenario_tree(request):
         Scenario.objects.filter(id__in=scenario_ids).update(manager=request.user)
 
         core.deepcopy.reset_postgres_auto_increments([Scenario._meta.app_label])
-        return HttpResponse(
-            _(
-                f"Szenarios wurden erfolgreich importiert mit folgenden ids <br>"
-                f"{'<br>'.join([s.task_id for s in importer.object_data['Scenario']])}. "
-            )
-        )
+        context = {}
+        context["scenarios"] = importer.object_data["Scenario"]
+        context["mutation_scenario"] = [
+            s for s in context["scenarios"] if s.scenario_type == EnumScenarioType.MUTATION
+        ][0]
+        response = render(request, "ebustoolbox/imported_scenarios.html", context)
+        return response
     return HttpResponseBadRequest(_("Use POST or GET"))
 
 

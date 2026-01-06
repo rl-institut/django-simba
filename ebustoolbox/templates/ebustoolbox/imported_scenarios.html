@@ -1,0 +1,11 @@
+{% extends 'core/base.html'%}
+{% block content %}
+<h1> Szenarios wurden erfolgreich importiert</h1>
+<p>Die Szenarien haben folgende neue task ids</p>
+{% for scenario in scenarios %}
+Typ: {{scenario.scenario_type}}, TaskID: {{scenario.task_id}} <br>
+{% endfor %}
+
+<p>Wenn Sie die Simulation nocheinmal ausführen möchten klicken Sie hier.
+<a href="{% url 'simba:summary' mutation_scenario.task_id %}" class="underline text-blue-500">Summary</a></p>
+  {% endblock %}
