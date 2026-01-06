@@ -266,7 +266,7 @@ function findClosestDivider(total, divider, prev_divider) {
 }
 
 
-function foobar(capacity, block_length, prev_block_length, element) {
+function getBlockLength(capacity, block_length, prev_block_length, element) {
   let new_block_length = findClosestDivider(capacity, block_length, prev_block_length);
 
   if (new_block_length != block_length && !Number.isNaN(block_length) && block_length != "") {

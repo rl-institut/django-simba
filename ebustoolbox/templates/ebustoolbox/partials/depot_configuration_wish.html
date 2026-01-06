@@ -73,8 +73,8 @@
 <div id="area_informations_{{ depot.id }}" class="pt-6 pb-4 border-b border-slate-200">
   <div class="mb-4">
     <h2 class="block text-base font-semibold text-slate-800">{% translate "Flächendetails" %}</h2>
-      <p class='text-sm text-slate-800'>
-      Hier können Sie manuell die Flächen des Depots definieren. Die Kapazität entspricht der gesamten Anzahl an Ladeflächen für diesen Fahrzeugtyp. Ein Fahrzeugtyp kann nur eine Fläche nutzen und mehrere Fahrzeugtypen können sich keine Ladeflächen teilen. Sollten die Fläche ein Block bzw. Rechteck sein, wählen sie unter Anordnung 'Blockabstellung' aus. In diesem Fall wird der Rangiervorgang auf der Ladefläche berücksichtigt. Beachten Sie, dass die Mindeskapazität jeder einzelnen Fläche zwei betragen muss. Die Blocklänge gibt an, wieviele Busse hintereinander stehen und sich somit beim rangieren blockieren. Die Blocklänge muss nur angegeben werden wenn 'Blockabstellung' ausgewählt ist. In diesem Fall muss die Blocklänge ein ganzzahliger Teiler der Kapazität sein. Die Eingabemaske springt automatisch auf den nächstgelegenen erlaubten Wert, falls Sie einen nicht erlaubten Wert eingeben.
+      <p class='text-sm text-slate-600 '>
+        {% translate 'Hier können Sie manuell die Flächen des Depots definieren. Die Kapazität entspricht der gesamten Anzahl an Ladeflächen für diesen Fahrzeugtyp. Ein Fahrzeugtyp kann nur eine Fläche nutzen und mehrere Fahrzeugtypen können sich keine Ladeflächen teilen. Sollten die Fläche ein Block bzw. Rechteck sein, wählen sie unter Anordnung "Blockabstellung" aus. In diesem Fall wird der Rangiervorgang auf der Ladefläche berücksichtigt. Beachten Sie, dass die Mindeskapazität jeder einzelnen Fläche zwei betragen muss. Die Blocklänge gibt an, wieviele Busse hintereinander stehen und sich somit beim rangieren blockieren. Die Blocklänge muss nur angegeben werden wenn "Blockabstellung" ausgewählt ist. In diesem Fall muss die Blocklänge ein ganzzahliger Teiler der Kapazität sein. Die Eingabemaske springt automatisch auf den nächstgelegenen erlaubten Wert, falls Sie einen nicht erlaubten Wert eingeben.' %}
       </p>
   </div>
   {#          Iterate over all rows of ladepunkte and leistung#}
@@ -84,8 +84,8 @@
       <h1.5 class="block text-sm font-semibold text-slate-800">Fläche für Fahrzeugtyp: {{form.instance.vehicle_type.name}}</h1>
   </div>
     <!-- Use alpine js to toggle values of the block length. First we define a variable which can be used in the scope of the div. disable reflects if the block_length in put should be disabled -->
-    <div class="grid grid-cols-1 gap-6" id="pointsContainer_{{ depot.id }}" data-depot-id="{{ depot.id }}" x-data="{capacity: '', selected: '',prev_block_length: '1', block_length: '', get disable() {return this.selected !=='LINE'}}"
-      @checkblocklength="block_length=foobar(capacity, block_length, prev_block_length, $el); prev_block_length=block_length" >
+    <div class="grid grid-cols-1 gap-6" id="pointsContainer_{{ depot.id }}" data-depot-id="{{ depot.id }}" x-data="{timer: null, capacity: '', selected: '',prev_block_length: '1', block_length: '', get disable() {return this.selected !=='LINE'}}"
+      @checkblocklength="block_length=getBlockLength(capacity, block_length, prev_block_length, $el); prev_block_length=block_length" >
       <div class="flex flex-row gap-6 point-row" >
       <!-- First Column: Anzahl -->
       <div class="flex flex-1" >
@@ -126,7 +126,7 @@
             <div class="notification text-slate-800 bg-yellow-200 border rounded-md mr-2 text-xs p-1"
         x-transition:enter="animate-slide-in-top"
         x-transition:leave="animate-slide-out-top"
-              x-data='{show:false}' x-show="show" @blocklengthchanged="show = true;setTimeout(()=>show=false,2000)">
+              x-data='{show:false}' x-show="show" @blocklengthchanged="show = true;clearTimeout(timer); timer=setTimeout(()=>show=false,2000)">
               Die Blocklänge wurde automatisch auf einen Teiler der Kapazität gesetzt.
             </div>
             </div>

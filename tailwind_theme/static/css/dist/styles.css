@@ -1675,12 +1675,12 @@ select {
 
 @keyframes slide-out-top {
   0% {
-    opacity: 0.8;
+    opacity: 1;
     transform: translateY(0);
   }
 
   100% {
-    opacity: 1;
+    opacity: 0.8;
     transform: translateY(-100%);
   }
 }
@@ -2634,6 +2634,10 @@ select {
 
 .leading-relaxed {
   line-height: 1.625;
+}
+
+.leading-3 {
+  line-height: .75rem;
 }
 
 .tracking-tight {
