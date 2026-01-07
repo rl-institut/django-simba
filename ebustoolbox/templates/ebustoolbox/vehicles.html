@@ -585,13 +585,22 @@ containers.forEach((container) => {
     }
 
     plot_selected_consumption_over_temp(input_selection.value);
+
+    // Refresh plot when selecting dropdown
     listItems.forEach((item)=>{
       item.addEventListener("click",function () {
-        let selected_vehicle_type=item.getAttribute('data-dropdown-item');
-        plot_selected_consumption_over_temp(selected_vehicle_type);
+        let db_id=getSelectedVehicleTypeId(container);
+        plot_selected_consumption_over_temp(db_id);
         myChart.resize();
       })
     });
+
+    // Refresh plot when toggling dieselzusatz
+    container.querySelector("input[id*='has_diesel_heating']").addEventListener("click",function () {
+        let db_id=getSelectedVehicleTypeId(container);
+        plot_selected_consumption_over_temp(db_id);
+        myChart.resize();
+      });
 
     function resizeChart() {
       if (chartDom.offsetWidth > 0) {
