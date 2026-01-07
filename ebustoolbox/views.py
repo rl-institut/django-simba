@@ -348,6 +348,12 @@ class TripsView(FormView):
 
         scenarios = get_sorted_mutation_scenarios(self.request.user)
         context["scenarios"] = scenarios
+        import json
+        from django.core.serializers.json import DjangoJSONEncoder
+
+        context["scenarios_json"] = json.dumps(
+            list(scenarios.values("id", "task_id", "name")), cls=DjangoJSONEncoder
+        )
         context["requested"] = request.GET.get("s")
         return context
 

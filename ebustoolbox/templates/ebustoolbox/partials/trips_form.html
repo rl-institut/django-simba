@@ -104,7 +104,7 @@
               name="{{ form.existing_scenario.name }}"
               class="flex flex-wrap items-center w-full rounded-md bg-white px-3 py-1.5 text-left text-slate-800 border border-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6 cursor-pointer"
             >
-              <option value="">{% translate '-- Szenario auswählen --' %}</option>
+              <option value="">{% translate '-- Kein Szenario auswählen --' %}</option>
               {% for scenario in scenarios %}
                 <option
                   value="{{ scenario.task_id }}"
@@ -182,3 +182,9 @@
   </div>
   <button hidden id="hidden_button" onclick="validateAndSubmit()"></button>
 </form>
+<script>
+$(document).ready(function() {
+    $('#{{ form.existing_scenario.auto_id }}').select2();
+  console.log('select2');
+});
+</script>
