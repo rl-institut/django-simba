@@ -1,0 +1,20 @@
+{% extends 'core/base.html' %}
+
+
+{% block content %}
+<div>
+  You selected the following scenario {{scenario.name}} {{scenario.id}} {{scenario.task_id}}
+</div>
+  <form method="POST" enctype="multipart/form-data">{% csrf_token %}
+  <input type="number" min="1" name="repeats" >
+  <button class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400" type="submit">Start Simulation</button>
+</form>
+
+{% for progress in  progresses%}
+  <div id="simulationProgressAlert{{progress.id}}">
+  {% if progress %}
+    {% include "core/progress_poll.html" with progress_id=progress.task_id template_name="progress_simulation.html" %}
+  {% endif %}
+{% endfor %}
+
+{% endblock %}

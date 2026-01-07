@@ -27,7 +27,7 @@ from .models import (
     Area,
     AssocPlanProcess,
     AssocAreaProcess,
-    SimulationRange,
+    SimulationTemperatures,
     DepotSelection,
     VehicleTypeSelection,
     VehicleTypeMutation,
@@ -193,8 +193,8 @@ class AssocAreaProcessAdmin(admin.ModelAdmin):
     list_display = ("area", "process")
 
 
-@admin.register(SimulationRange)
-class SimulationRangeAdmin(admin.ModelAdmin):
+@admin.register(SimulationTemperatures)
+class SimulationTemperaturesAdmin(admin.ModelAdmin):
     list_display = ("scenario",)
 
 
