@@ -108,7 +108,7 @@ class SimulationFilterForm(forms.Form):
         self.fields["line_select"].label_from_instance = lambda obj: f"{obj.name}"
 
 
-class SimulationParameters(forms.ModelForm):
+class SimulationTemperaturesForm(forms.ModelForm):
     temperature_average = forms.IntegerField(min_value=-5, max_value=30)
     temperature_extreme = forms.IntegerField(min_value=-5, max_value=30)
 

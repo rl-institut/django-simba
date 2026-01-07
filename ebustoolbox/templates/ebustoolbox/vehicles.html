@@ -75,7 +75,7 @@
                     @input="const n = parseInt($event.target.value);
                           $event.target.value = Number.isNaN(n) ? '' : n;
                     "
-                    {% with simulation_parameters_form.temperature_average as form %}
+                    {% with temperatures_form.temperature_average as form %}
                           {{ form|widget_attrs}}
                            {% endwith %}
                            class="flex-1 bg-white mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
@@ -99,7 +99,7 @@
                     </template>
                     <template x-if="!loading && data !=null && data.quantile != undefined">
                       <div class="w-full inline">
-                      Die ausgewählte Temperatur liegt im <span x-text='parseFloat(data.quantile).toFixed(2)'></span> Quantil. Der Mittelwert der Messtation liegt bei
+                      Die ausgewählte Temperatur liegt im <span x-text='parseFloat(data.quantile).toFixed(2)'></span> Quantil. Der Mittelwert der Messtation liegt bei <span x-text='parseFloat(data.air_temperature_avg).toFixed(2)'></span>&deg;C
                       </div>
                     </template>
                     <div class="px-2 relative inline-block">
@@ -165,7 +165,7 @@
                     @input="const n = parseInt($event.target.value);
                           $event.target.value = Number.isNaN(n) ? '' : n;
                     "
-                {% with simulation_parameters_form.temperature_extreme as form %}
+                {% with temperatures_form.temperature_extreme as form %}
                           {{ form|widget_attrs}}
                            {% endwith %}
                            class="flex-1 bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
@@ -189,7 +189,7 @@
                     </template>
                     <template x-if="!loading && data !=null && data.quantile != undefined">
                       <div class="w-full inline">
-                      Die ausgewählte Temperatur liegt im <span x-text='parseFloat(data.quantile).toFixed(2)'></span> Quantil. Der Mittelwert der Messtation liegt bei
+                      Die ausgewählte Temperatur liegt im <span x-text='parseFloat(data.quantile).toFixed(2)'></span> Quantil. Der Mittelwert der Messtation liegt bei <span x-text='parseFloat(data.air_temperature_avg).toFixed(2)'></span>&deg;C
                       </div>
                     </template>
                     <div class="px-2 relative inline-block">
