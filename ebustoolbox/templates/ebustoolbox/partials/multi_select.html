@@ -1,0 +1,21 @@
+
+
+<div class="bg-white border border-black rounded-md h-full overflow-y-auto"
+  x-data="{ choices:
+        { {% for choice, label in field.field.choices %}'{{ choice }}': document.querySelector(`#{{field.auto_id}} option[value='{{choice}}']`),{% endfor %} }
+  , field_id: '{{ field.auto_id }}', }">
+    {% for choice, label in field.field.choices %}
+      <div class="flex gap-2 m-1">
+        <input type="checkbox"
+               id="{{ field.auto_id }}-{{ choice.instance.id }}"
+               x-model="choices['{{ choice }}'].selected"
+              @click="choices['{{choice}}'].selected=$el.checked"
+               class="col-start-1 row-start-1 appearance-none rounded border border-slate-400 checked:border-emerald-500 checked:bg-emerald-500 checked:focus:bg-emerald-500 checked:hover:bg-emerald-500 focus:ring-green-500 focus-ring:outline focus-ring:outline-2 focus-ring:outline-offset-2 focus-ring:outline-green-500">
+        <div class="text-sm text-slate-700 ">
+          <label for="{{ field.auto_id }}-{{ choice }}" class="font-medium">{{ label }}</label>
+        </div>
+      </div>
+    {% endfor %}
+</div>
+
+<div class="hidden">{{ field }}</div>

@@ -6,16 +6,10 @@
   {% block title %}{% translate 'WeBus - Fahrzeuge' %}{% endblock title %}
 
 {% block wizard_navigation %}
-  {% with wiz_idx=2 %}{{ block.super }}{% endwith %}
+  {% with wiz_idx=3 %}{{ block.super }}{% endwith %}
 {% endblock wizard_navigation %}
 {% block wizard_content %}
 
-<!-- ebustoolbox/templates/ebustoolbox/partials/notifications_multi.html -->
-<div id='multiNotificationDiv'
-hx-get='{% url "simba:notifications" task_id 'VehiclesView' %}'
-hx-swap='outerHTML'
-hx-trigger='load'
-></div>
 <main class="flex flex-col items-center flex-grow">
 
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
@@ -24,83 +18,6 @@ hx-trigger='load'
         method ="POST">
         {% csrf_token %}
         <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Fahrzeuge' %}</h1>
-
-    <section class="pb-12">
-      <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide">
-          {% translate 'Zeitspanne' %}
-        <div class="relative inline-block">
-          <!-- Info Icon -->
-          <span class="cursor-pointer group">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-            </svg>
-            <!-- Tooltip -->
-            <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                {% translate 'Die zeitliche Beschneidung ihrer Eingangsdaten führt zu einer schnelleren Simulation des reduzierten Systems.' %}
-            </div>
-            </span>
-          </div>
-          </h2>
-          <span class="block mb-6 text-sm text-slate-500">{% translate 'Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.' %}</span>
-          <fieldset class="flex items-center gap-4">
-            <span class="text-slate-600">{% translate 'Von' %}</span>
-            <!-- Start Date -->
-            <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-              <label for="start-date" class="sr-only">{% translate 'Startdatum' %}</label>
-              <input type="date"
-                     id="start-date"
-                     name="start-date"
-                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                     aria-label="Startdatum"
-                     min="{{ min_date }}"
-                     max="{{ max_date }}"
-                     value="{{ start_date }}"
-                     required>
-            </div>
-            <!-- Start Time -->
-            <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-              <label for="start-time" class="sr-only">{% translate 'Startzeit' %}</label>
-              <input type="time"
-                     id="start-time"
-                     name="start-time"
-                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                     aria-label="Startzeit"
-                     value="{{ initial_start_time }}"
-                     required>
-            </div>
-            <span class="text-slate-600">{% translate 'bis' %}</span>
-            <!-- End Date -->
-            <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-              <label for="end-date" class="sr-only">Enddatum</label>
-              <input type="date"
-                     id="end-date"
-                     name="end-date"
-                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                     aria-label="Enddatum"
-                     min="{{ min_date }}"
-                     max="{{ max_date }}"
-                     value="{{ end_date }}"
-                     required>
-            </div>
-            <!-- End Time -->
-            <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-              <label for="end-time" class="sr-only">{% translate 'Endzeit' %}</label>
-              <input type="time"
-                     id="end-time"
-                     name="end-time"
-                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                     aria-label="Endzeit"
-                     value="{{ initial_end_time }}"
-                     required>
-            </div>
-          </fieldset>
-          <!-- ToDo Bryan: Styling and positioning of errors -->
-          <div id="sim_range_errors">
-            <ul class="text-red-500 text-sm mt-2">
-              {% for error in simulation_parameters_form.errors.values %}<li>{{ error }}</li>{% endfor %}
-            </ul>
-          </div>
-        </section>
         <section class="pb-12">
           <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide"
               id="temperature-heading">
@@ -324,8 +241,7 @@ hx-trigger='load'
                 </svg>
                 <!-- Tooltip -->
             <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-              {% translate 'Folgende Fahrzeugtypen wurden in Ihrem Umlaufplan identifiziert. Für die Simulation sind technische Parameter notwendig die Sie hier zuordnen müssen.
-                Sie können Fahrzeugtypen aus einer Bibliothek übernehmen und verschiedene Werte manuell überschreiben.' %}
+              {% translate 'Folgende Fahrzeugtypen wurden in Ihrem Umlaufplan identifiziert. Für die Simulation sind technische Parameter notwendig die Sie hier zuordnen müssen. Sie können Fahrzeugtypen aus einer Bibliothek übernehmen und verschiedene Werte manuell überschreiben.' %}
                 </div>
               </span>
             </div>
@@ -340,7 +256,6 @@ hx-trigger='load'
 </main>
 {% endblock wizard_content %}
 {% block wizard_buttons %}
-  {% url 'simba:trips' scenario.task_id as prev_url %}
   {% with "SubmitButton" as buttonId %}{{ block.super }}{% endwith %}
 {% endblock wizard_buttons %}
 {% block script %}

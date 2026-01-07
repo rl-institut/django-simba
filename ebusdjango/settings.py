@@ -200,6 +200,11 @@ LOGGING = {
     },
     # Do not show logs with status 200 for map_engine
     "filters": {
+        "remove_progress": {
+            "()": "core.filters.FilterStatusCode",
+            "status_code": 200,
+            "search_text": "progress",
+        },
         "map_status_no_content": {
             "()": "core.filters.FilterStatusCode",
             "status_code": 204,
@@ -209,6 +214,7 @@ LOGGING = {
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
+            "filters": ["remove_progress"],
             "formatter": "simple",
         },
         "file": {

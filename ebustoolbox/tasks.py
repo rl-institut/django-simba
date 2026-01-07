@@ -45,7 +45,6 @@ import simba.optimizer_util
 import simba.station_optimization
 import simba.simulate
 import simba.util
-from core.deepcopy import reset_postgres_auto_increments
 from core.models import EnumProgress, Progress
 from simba.data_container import DataContainer
 from simba.schedule import Schedule as SimbaSchedule
@@ -78,7 +77,7 @@ from .models import (
     DefaultScenario,
     Depot,
     UserGroup,
-    SimulationRange,
+    SimulationTemperatures,
     DepotSelection,
     VehicleTypeMutation,
     VehicleTypeSelection,
@@ -879,6 +878,7 @@ def init_db_with_trips(
         schedule_reader: ScheduleReader = schedule_reader_factory(**file_paths, **cleaned_data)
         # The progress is linked to the child scenario.
         schedule_reader.set_observer(progress)
+        # This is going to be the mutation scenario
         scenario = Scenario.objects.get(id=scenario_id)
         progress.scenario = scenario
         progress.save()
@@ -893,8 +893,20 @@ def init_db_with_trips(
         scenario.scenario_type = EnumScenarioType.MUTATION
         parent.scenario_type = EnumScenarioType.SOURCE
         scenario.save()
-        transform_depot_stations(parent, scenario)
-        ScheduleStationMerger.transform_zero_duration_trips(parent, scenario)
+        parent.save()
+
+        parent.scenario_type = EnumScenarioType.SOURCE_FILE
+        parent.task_id = ebustoolbox.util.get_unique_task_id()
+        # Applying these fixes to the source file (applying it to the parent before copying it)
+        # Means we do not have to worry about it if we pick a scenario from the dropdown later
+        transform_depot_stations(parent)
+        ScheduleStationMerger.transform_zero_duration_trips(parent)
+        source_file_scenario, unused_variable = deepcopy_scenario(parent)
+        source_file_scenario.name += _(" [ohne Simulationsfilter]")
+        source_file_scenario.save()
+        parent.refresh_from_db()
+        parent.parent = source_file_scenario
+        parent.save()
         # Parent contains the trip data so check the consistency of the parent and not the mutation.
         if not (is_consistent(parent)):
             logger.error("Scenario does not seem to be consistent with assumptions")
@@ -923,18 +935,12 @@ def init_db_with_trips(
         progress.running = False
         progress.save()
 
-        # Make sure postgres auto increment is up to date
-        core.deepcopy.reset_postgres_auto_increments(["ebustoolbox"])
 
-
-# for some reason, creating the atomic savepoint in an outer atomic transaction fails.
-@atomic(savepoint=False)
 def trim_scenario(scenario, time_delta, start_time=None):
     rotations = get_rotations_by_timespan(scenario, time_delta, start_time)
     rotations_to_remove = Rotation.objects.filter(scenario=scenario).exclude(id__in=rotations)
     logger.info(f"Deleting {rotations_to_remove.count()} rotations out of sim range")
     rotations_to_remove.delete()
-    pass
 
 
 def get_rotations_by_start_end(scenario, start: datetime, end: datetime) -> QuerySet[Rotation]:
@@ -1032,7 +1038,7 @@ def run_and_merge_scenarios(
     # Swap the consumption so in the first run the max consumption is used
     swap_consumption_w_max_consumption(sizing_scenario)
     # If a LUT is used change the temperature to the extreme Temperature
-    sim_range = SimulationRange.objects.get(scenario_id=mutation_id)
+    sim_range = SimulationTemperatures.objects.get(scenario_id=mutation_id)
     Temperatures.objects.filter(scenario=sizing_scenario).delete()
     # Create temperature instance
     Temperatures.create_constant_temperatures(sizing_scenario, sim_range.temperature_extreme)
@@ -1056,7 +1062,7 @@ def run_and_merge_scenarios(
         )
 
     _run_ebus_toolchain.apply(
-        (sizing_scenario_task_id,), task_id=sizing_scenario_task_id, throw=True
+        (sizing_scenario_task_id, progress.task_id), task_id=sizing_scenario_task_id, throw=True
     )
 
     logger.info("Copying result of first Simulation as basis for the second.")
@@ -1086,7 +1092,9 @@ def run_and_merge_scenarios(
 
     assign_new_vehicles_to_db(average_scenario)
     _run_ebus_toolchain.apply(
-        (default_simulation_task_id,), task_id=default_simulation_task_id, throw=True
+        (default_simulation_task_id, progress.task_id),
+        task_id=default_simulation_task_id,
+        throw=True,
     )
     # default_simulation_scenario = merge_scenario(mutation_id, default_simulation_task_id)
     # run_toolchain_from_scenario(default_simulation_scenario, assign_vehicles=True)
@@ -1775,7 +1783,9 @@ def create_empty_child_scenario(parent_scenario: Scenario, task_id):
 def create_scenario_copy_for_user(mutation_scenario: Scenario):
     assert isinstance(mutation_scenario, Scenario)
     assert mutation_scenario.parent is not None
-    assert mutation_scenario.parent.parent is None
+    # Assert no deeper nesting than source file
+    if mutation_scenario.parent.parent:
+        assert mutation_scenario.parent.parent.parent is None
     mutation_scenario.task_id = ebustoolbox.util.get_unique_task_id()
     copied_scenario, stack = deepcopy_scenario(mutation_scenario)
 
@@ -1807,30 +1817,16 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     child, stack = deepcopy_scenario(parent_scenario)
     parent_scenario.refresh_from_db()
     child.parent = mutation
-    if parent_scenario.simba_options:
-        child.simba_options = parent_scenario.simba_options
-    else:
+    child.simba_options.update(mutation.simba_options)
+    if not child.simba_options:
         child.simba_options = vars(get_args(child))
     child.save()
 
     # Mutate child according to parent
     # Remove rotations from the timespan
-    sim_range = SimulationRange.objects.get(scenario=mutation)
-    time_delta = sim_range.end - sim_range.start
-    trim_scenario(child, time_delta, sim_range.start)
+    # trim_scenario(child, time_delta, sim_range.start)
     # # Used for clearing up depots without rotations
-    trim_depots(child, [])
-
-    depot_selections = DepotSelection.objects.filter(scenario=mutation)
-    assert depot_selections.count() <= 1, "Only a single depot selection is allowed per scenario"
-    depot_selection = depot_selections.first()
-    if depot_selection is not None:
-        # These depots were selected to remain
-        original_depot_ids = depot_selection.depots.all().values_list("id", flat=True)
-        copied_depot_ids = [stack[Station][org_id] for org_id in original_depot_ids]
-        all_depots = Station.objects.filter(scenario=child, charge_type=EnumChargeType.DEPOT)
-        depots_to_remove = all_depots.exclude(id__in=copied_depot_ids)
-        trim_depots(child, depots_to_remove)
+    # trim_depots(child, [])
 
     # Copy Temperatures
     temperatures_query = Temperatures.objects.filter(scenario=mutation)
@@ -1892,23 +1888,26 @@ def create_station_mutations(scenario):
 
 
 @shared_task(bind=True)
-def _run_ebus_toolchain(self, task_id):
+def _run_ebus_toolchain(self, task_id, progress_id=None):
     """Run the tool chain"""
     db_scenario: Scenario = Scenario.objects.get(task_id=task_id)
     assert is_consistent(db_scenario)
 
     # With multiple simulations the progress is linked through the parent to its child scenarios
-    progress = Progress.objects.filter(
-        scenario=db_scenario.parent, progress_type=EnumProgress.RUNNING_SIMULATION
-    ).first()
-    if not progress:
-        logger.warning(
-            "The toolchain did not find a progress belonging to the parent of the scenario. "
-            "Creating a Progress bound to the simulation scenario instead"
-        )
-        progress = Progress.objects.create(
-            scenario=db_scenario, progress_type=EnumProgress.RUNNING_SIMULATION, task_id=task_id
-        )
+    if not progress_id:
+        progress = Progress.objects.filter(
+            scenario=db_scenario.parent, progress_type=EnumProgress.RUNNING_SIMULATION
+        ).first()
+        if not progress:
+            logger.warning(
+                "The toolchain did not find a progress belonging to the parent of the scenario. "
+                "Creating a Progress bound to the simulation scenario instead"
+            )
+            progress = Progress.objects.create(
+                scenario=db_scenario, progress_type=EnumProgress.RUNNING_SIMULATION, task_id=task_id
+            )
+    else:
+        progress = Progress.objects.get(task_id=progress_id)
 
     # Clean up of previous notifications which can be produced during the simulation
     # without cleaning they might appear multiple times, from previous failed simulations
@@ -2279,7 +2278,6 @@ def run_simba(
     logger.info(f"Creating SimBA Events {datetime.now()}")
     create_event_output(scenario, db_scenario)
     logger.info(f"SimBA Events Created {datetime.now()}")
-    reset_postgres_auto_increments(apps=[Event._meta.app_label])
     return schedule, scenario
 
 
@@ -2876,7 +2874,6 @@ def find_and_make_depots(scenario):
         station.save()
 
 
-@atomic(savepoint=False)
 def trim_depots(scenario, depot_ids: list[int]):
     rot_before_count = Rotation.objects.filter(scenario=scenario).count()
     trip_before_count = Trip.objects.filter(scenario=scenario).count()
@@ -2907,6 +2904,8 @@ def trim_depots(scenario, depot_ids: list[int]):
         .delete()
     )
     (Route.objects.filter(scenario=scenario).annotate(count=Count("trip")).filter(count=0).delete())
+    Line.objects.filter(scenario=scenario, route__isnull=True).delete()
+    VehicleType.objects.filter(scenario=scenario, rotation__isnull=True).delete()
     logger.info(
         f"Before -> After trimming\n"
         f"rotations:{rot_before_count} -> {Rotation.objects.filter(scenario=scenario).count()}\n"
@@ -3014,7 +3013,7 @@ class ScheduleStationMerger:
 
     @classmethod
     @atomic()
-    def transform_zero_duration_trips(cls, parent: Scenario, child: Scenario) -> None:
+    def transform_zero_duration_trips(cls, source_scenario: Scenario) -> None:
         """
         Merge routes and trips with zero duration or distance
 
@@ -3027,7 +3026,7 @@ class ScheduleStationMerger:
         contain distance and duration. This is not handled specifically as edge case of already bad
         data.
 
-        :param parent: Source scenario
+        :param source_scenario: Source scenario
         :param child: Child scenario which is notified about changes
         """
 
@@ -3041,7 +3040,7 @@ class ScheduleStationMerger:
         new_routes = []
         delete_trips: set[int] = set()
 
-        routes = cls.get_problematic_routes(parent)
+        routes = cls.get_problematic_routes(source_scenario)
         # Merge trips and routes with all successive zero duration/distance trips.
         # The emerging stations are used for all routes which arrive
         # or depart from one of these multi-stations.
@@ -3103,7 +3102,7 @@ class ScheduleStationMerger:
                     # Saving stations as single calls is not very performant,
                     # but it allows for directly accessing the id.
                     # Since only few stations should be created, performance shouldn't be a problem
-                    station = Station(scenario=parent, name="Zusammengelegte Station: ")
+                    station = Station(scenario=source_scenario, name="Zusammengelegte Station: ")
                     station.save()
                     created_stations.add(station)
                     # Make this station reusable for all other trips which connect with this station
@@ -3165,19 +3164,18 @@ class ScheduleStationMerger:
             "oder ohne Distanz verknüpft sind:{}."
         )
 
-        for scenario in [parent, child]:
-            for new_station, original_stations in reversed_station.items():
-                Notification.objects.create(
-                    scenario=scenario,
-                    level=EnumNotificationLevels.WARNING,
-                    notification_type=EnumNotificationType.MERGED_STATIONS_FOR_INCONSISTENT_TRIPS,
-                    message=(
-                        message.format(
-                            escape(new_station.name),
-                            escape(", ".join([s.name for s in original_stations])),
-                        )
-                    )[:999],
-                )
+        for new_station, original_stations in reversed_station.items():
+            Notification.objects.create(
+                scenario=source_scenario,
+                level=EnumNotificationLevels.WARNING,
+                notification_type=EnumNotificationType.MERGED_STATIONS_FOR_INCONSISTENT_TRIPS,
+                message=(
+                    message.format(
+                        escape(new_station.name),
+                        escape(", ".join([s.name for s in original_stations])),
+                    )
+                )[:999],
+            )
 
         # After the stations were created we can change the routes
         logger.info(f"Creating new {len(new_routes)} Routes with merged stations")
@@ -3208,7 +3206,7 @@ class ScheduleStationMerger:
         )
 
         deleted_stations = str(
-            Station.objects.filter(scenario=parent)
+            Station.objects.filter(scenario=source_scenario)
             .annotate(departure_count=Count("route_departure_set__trip"))
             .annotate(arrival_count=Count("route_arrival_set__trip"))
             .filter(departure_count=0, arrival_count=0)
@@ -3217,14 +3215,14 @@ class ScheduleStationMerger:
 
         logger.info(f"Deleting orphaned Stations without trips {deleted_stations}")
 
-        if cls.get_problematic_routes(parent).count() > 0:
+        if cls.get_problematic_routes(source_scenario).count() > 0:
             logger.error(
                 "Removing zero duration or distance trips did not work for all trips/routes"
             )
 
 
 @atomic()
-def transform_depot_stations(parent: Scenario, child: Scenario) -> None:
+def transform_depot_stations(source_scenario: Scenario) -> None:
     """
     Duplicate depot stations and transform them into opportunity stations where necessary;
 
@@ -3232,11 +3230,11 @@ def transform_depot_stations(parent: Scenario, child: Scenario) -> None:
     at depots.
     This function determines if there are intermediate stops at depot stations,
     creates an opportunity station and switches this station into the appropriate routes.
-    :param parent: Source scenario
+    :param source_scenario: Source scenario
     :param child: Child scenario which is notified about changes
     """
-    depots = Station.objects.filter(scenario=parent, charge_type=EnumChargeType.DEPOT)
-    all_routes = Route.objects.filter(scenario=parent)
+    depots = Station.objects.filter(scenario=source_scenario, charge_type=EnumChargeType.DEPOT)
+    all_routes = Route.objects.filter(scenario=source_scenario)
     depot_arrival_routes = all_routes.filter(arrival_station__in=depots)
     depot_departure_routes = all_routes.filter(departure_station__in=depots)
     # Only the first and last trip of a block should departe/arrive in a depot station.
@@ -3248,7 +3246,7 @@ def transform_depot_stations(parent: Scenario, child: Scenario) -> None:
 
     # Get the ids of each rotations last trip
     last_trip_ids = list(
-        Rotation.objects.filter(scenario=parent)
+        Rotation.objects.filter(scenario=source_scenario)
         .annotate(last_trip_id=Subquery(last_trip_subquery.values("id")[:1]))
         .values_list("last_trip_id", flat=True)
     )
@@ -3256,11 +3254,11 @@ def transform_depot_stations(parent: Scenario, child: Scenario) -> None:
     first_trip_subquery = Trip.objects.filter(rotation=OuterRef("pk")).order_by("arrival_time")
     # Get the ids of each rotations first trip
     first_trip_ids = list(
-        Rotation.objects.filter(scenario=parent)
+        Rotation.objects.filter(scenario=source_scenario)
         .annotate(first_trip_id=Subquery(first_trip_subquery.values("id")[:1]))
         .values_list("first_trip_id", flat=True)
     )
-    relevant_trips = Trip.objects.filter(scenario=parent)
+    relevant_trips = Trip.objects.filter(scenario=source_scenario)
     trip_dict = {t.id: t for t in relevant_trips}
     new_stations = dict()
     changed_rotations = dict()
@@ -3343,18 +3341,17 @@ def transform_depot_stations(parent: Scenario, child: Scenario) -> None:
                 t.route_id = pk_lut[t.route_id]
         Trip.objects.bulk_update(changed_trips, fields=["route"])
 
-    for scenario in [parent, child]:
-        for rotation, stations in changed_rotations.items():
-            Notification.objects.create(
-                scenario=scenario,
-                level=EnumNotificationLevels.WARNING,
-                notification_type=EnumNotificationType.INTERMEDIATE_DEPOT_STOPS_TRANSFORMED,
-                message=(
-                    f"Für den Umlauf {escape(rotation.name)} wurden Zwischenhaltestellen "
-                    f"an den Depots {[escape(s.name) for s in stations]} erzeugt. "
-                    "Mehr Informationen finden Sie in der Hilfe."
-                )[:999],
-            )
+    for rotation, stations in changed_rotations.items():
+        Notification.objects.create(
+            scenario=source_scenario,
+            level=EnumNotificationLevels.WARNING,
+            notification_type=EnumNotificationType.INTERMEDIATE_DEPOT_STOPS_TRANSFORMED,
+            message=(
+                f"Für den Umlauf {escape(rotation.name)} wurden Zwischenhaltestellen "
+                f"an den Depots {[escape(s.name) for s in stations]} erzeugt. "
+                "Mehr Informationen finden Sie in der Hilfe."
+            )[:999],
+        )
     if len(changed_rotations) > 0:
         logger.warning(
             f"{changed_rotations.keys()} were transformed so they dont have intermediate stops at depot stations"
