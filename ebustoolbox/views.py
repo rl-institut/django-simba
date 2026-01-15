@@ -1291,7 +1291,13 @@ class SummaryView(AuthorizedMixIn, TemplateView):
             is_electrified=False, is_electrifiable=True
         )
         context["excluded_stations"] = scenario_stations.filter(id__in=excluded_ids)
-        context["depot_wishes"] = DepotConfigurationWish.objects.filter(scenario=scenario)
+
+        context["depot_wishes"] = (
+            DepotConfigurationWish.objects.filter(scenario=scenario)
+            .prefetch_related("areainformation_set")
+            .prefetch_related("areainformation_set__vehicle_type")
+        )
+
         return context
 
     def post(self, request, *args, **kwargs):
