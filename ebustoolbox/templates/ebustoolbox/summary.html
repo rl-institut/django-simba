@@ -498,16 +498,6 @@ hx-trigger='load'
                           <p class='pt-2' >
                             <span class="!text-slate-800 font-semibold">{% translate 'Fläche für' %} {{ area.vehicle_type.name }}</span>
                           </p>
-                          {% if area.block_length %}
-                          <p >
-                            <span >{% translate 'Blocklänge:' %}</span>
-                            <span >{{ area.block_length }} {% translate 'Fahrzeuge' %}</span>
-                          </p>
-                          {% endif %}
-                          <p >
-                            <span >{% translate 'Flächentyp:' %}</span>
-                            <span >{{ area.area_type }}</span>
-                          </p>
                           <p >
                             <span >{% translate 'Kapazität:' %}</span>
                             <span >{{ area.capacity }} {% translate 'Fahrzeuge' %}</span>
@@ -516,6 +506,16 @@ hx-trigger='load'
                             <span >{% translate 'Leistung pro Ladepunkt:' %}</span>
                             <span >{{ area.power }} kW</span>
                           </p>
+                          <p >
+                            <span >{% translate 'Flächentyp:' %}</span>
+                            <span >{{ area.get_area_type_display }}</span>
+                          </p>
+                          {% if area.block_length %}
+                          <p >
+                            <span >{% translate 'Blocklänge:' %}</span>
+                            <span >{{ area.block_length }} {% translate 'Fahrzeuge' %}</span>
+                          </p>
+                          {% endif %}
                           {% endfor %}
                         </div>
                       </details>
