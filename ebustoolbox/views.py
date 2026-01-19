@@ -87,7 +87,6 @@ from ebustoolbox.models import (
     annotate_distance,
 )
 
-
 logger = logging.getLogger("custom")
 
 

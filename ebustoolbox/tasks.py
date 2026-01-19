@@ -1955,7 +1955,6 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
             progress.status = "Elektrifziere notwendige Stationen"
             progress.save()
             try:
-
                 schedule, simba_scenario = run_simba(
                     schedule, args, db_scenario, mode=modes[1], scenario=simba_scenario
                 )
@@ -2981,7 +2980,6 @@ class ScheduleStationMerger:
     def expand_prev_trips(cls, prev_trip, merge_stations, delete_trips, rotation_trips):
         distance = 0
         while cls.is_problematic(prev_trip):
-
             distance += prev_trip.route.distance
             merge_stations.union(
                 [prev_trip.route.arrival_station, prev_trip.route.departure_station]
