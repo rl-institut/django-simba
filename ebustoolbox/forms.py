@@ -109,8 +109,8 @@ class SimulationFilterForm(forms.Form):
 
 
 class SimulationTemperaturesForm(forms.ModelForm):
-    temperature_average = forms.IntegerField(min_value=-20, max_value=40)
-    temperature_extreme = forms.IntegerField(min_value=-20, max_value=40)
+    temperature_average = forms.IntegerField(min_value=-5, max_value=30)
+    temperature_extreme = forms.IntegerField(min_value=-5, max_value=30)
 
     class Meta:
         model = SimulationTemperatures
