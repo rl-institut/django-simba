@@ -167,7 +167,7 @@ def get_or_create_child_vehicle_types(
             original_vehicle_type=parent_vt,
         ).exists():
             logger.info(
-                f"ScnearioId:{scenario.id} :{parent_vt} has no linked vehicle type. Creating a linked vehicle type"
+                f"S.ID:{scenario.id}: {parent_vt} has no linked vehicle type. Creating a linked vehicle type"
             )
             org_vt_id = parent_vt.id
             parent_vt.id = None
