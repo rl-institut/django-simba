@@ -165,7 +165,9 @@ def get_or_create_child_vehicle_types(
             scenario=scenario,
             original_vehicle_type=parent_vt,
         ).exists():
-            logger.info(f"{parent_vt} has no linked vehicle type. Creating a linked vehicle type")
+            logger.info(
+                f"S.ID:{scenario.id}: {parent_vt} has no linked vehicle type. Creating a linked vehicle type"
+            )
             org_vt_id = parent_vt.id
             parent_vt.id = None
             parent_vt.scenario = scenario
@@ -818,6 +820,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
             return self.forms_valid(forms, scenario)
 
         else:
+            logger.info(f"S.ID:{scenario.id}: At least one invalid VehicleForm.")
             for f in forms:
                 if not f.is_valid():
                     logger.info(f"{f.errors}")
@@ -854,7 +857,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
                 )
                 vt_selection.default_vehicle_type = d_vt
                 vt_selection.save()
-                logger.info(f"Used {d_vt.name} since user chose diesel heating")
+                logger.info(f"S.ID:{scenario.id}:Used {d_vt.name} since user chose diesel heating")
             instance = tasks.apply_vehicle_type(
                 target_vehicle_type=instance, source_vehicle_type=d_vt
             )
@@ -868,7 +871,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
             # If the user passed a constant consumption,
             # the vehicle type is delinked from the VehicleClass which has a consumption table.
             if vehicle_type_form.cleaned_data["consumption"] is not None:
-                logger.info(f"{mutated_vt=} will not use a consumption table")
+                logger.info(f"S.ID:{scenario.id}:{mutated_vt=} will not use a consumption table")
                 mutated_vt.save()
                 vc = VehicleClass.objects.filter(
                     scenario=mutated_vt.scenario,
@@ -878,10 +881,11 @@ class VehiclesView(ScenarioMixIn, TemplateView):
                 assert vc.count() == 1
                 vc = vc.first()
                 vc.vehicle_types.remove(mutated_vt)
-                logger.info(f"{vc=}, {vc.vehicle_types.all()=}")
+                logger.info(f"S.ID:{scenario.id}:{vc=}, {vc.vehicle_types.all()=}")
             else:
                 logger.info(
-                    f"{mutated_vt=} will use a consumption table. Constant consumption is deleted"
+                    f"S.ID:{scenario.id}:{mutated_vt=} will use a consumption table. "
+                    "Constant consumption is deleted"
                 )
                 mutated_vt.consumption = None
                 mutated_vt.save()
@@ -1255,7 +1259,7 @@ class SummaryView(AuthorizedMixIn, TemplateView):
         ).last()
         if progress:
             context["progress"] = progress
-            logger.info(f"Returning {progress=} in context")
+            logger.info(f"S.ID:{scenario.id}:Returning {progress=} in context")
 
         start, end = data.get_start_end_time(scenario.parent)
         german_weekdays = {
@@ -1426,7 +1430,7 @@ def merge_and_run(request: HttpRequest, task_id: str):
     # Users should not keep failed scenarios
     # This way the children of a scenario can be uniquely linked to their parent
     # (TODO: Discuss)
-    logger.info("Deleting failed previous child-scenarios")
+    logger.info(f"S.ID:{scenario.id}:Deleting failed previous child-scenarios")
     logger.info(str(Scenario.objects.filter(parent=scenario).delete()))
 
     if not request.user.is_superuser:
@@ -1453,7 +1457,7 @@ def merge_and_run(request: HttpRequest, task_id: str):
             progress_type=EnumProgress.RUNNING_SIMULATION,
             task_id=sim_task_id,
         )
-    logger.info("Running Toolchain.")
+    logger.info(f"S.ID:{scenario.id}:Running Toolchain.")
     sizing_task_id = get_unique_task_id()
     # create scenario from mutation and parent and simulate it
     try:
@@ -1523,7 +1527,7 @@ def run_simulation(request: HttpRequest, task_id: str):
             raise Http404
         # This triggers progress polling. If the toolchain is finished,
         # the progress view will be triggered with the task_id and progress type
-        logger.info("Running Toolchain.")
+        logger.info(f"S.ID:{scenario.id}:Running Toolchain.")
         if Rotation.objects.filter(scenario=scenario).count() == 1:
             return HttpResponse("The Scenario has no Rotations/blocks. Nothing to simulate")
         tasks.run_toolchain_from_scenario(scenario, assign_vehicles=True)

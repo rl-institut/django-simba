@@ -139,7 +139,8 @@ def place_not_found_stations(scenario):
     stations_without_geo = Station.objects.filter(scenario=scenario, geom__isnull=True)
     if Station.objects.filter(scenario=scenario, geom__isnull=False).count() < 2:
         logger.warning(
-            "Stations are placed randomly around Berlin, since less than two stations were located."
+            f"S.ID:{scenario.id}: Stations are placed randomly around Berlin, "
+            "since less than two stations were located."
         )
         for station in stations_without_geo:
             station.geom = Point(y=52.4 + random() * 0.3, x=13.0 + random() * 0.8, z=0)
