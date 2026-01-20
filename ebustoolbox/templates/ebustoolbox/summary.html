@@ -469,10 +469,56 @@ hx-trigger='load'
                     <span class="text-slate-800">{{ depot.default_power }} kW</span>
                   </p>
                     {% else %}
-                  <p class="flex">
-                      <span class="w-[16rem] text-slate-500">{% translate 'Manuelle Einstellung' %}</span>
-                  </p>
+                      <details class="group">
+                        <summary class="flex items-center cursor-pointer list-none hover:text-slate-600 transition-colors">
+                          <svg class="w-4 h-4 mr-2 text-slate-500 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                          </svg>
+                          <span class="text-slate-800 font-semibold">{% translate 'Manuelle Einstellungen' %}</span>
+                        </summary>
+                      <div class="pl-6 pt-2 flex flex-col gap-2 [&>p]:flex [&>p>span:first-child]:w-[16rem] [&>p>span:first-child]:text-slate-500 [&>p>span:nth-child(2)]:text-slate-800 ">
 
+                          <p class="flex" >
+                            <span >{% translate 'Reinigungsplätze:' %}</span>
+                            <span >{{ depot.cleaning_slots }} {% translate 'Fahrzeuge' %}</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Reinigungsdauer:' %}</span>
+                            <span >{{ depot.cleaning_duration }} min</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Rangierplätze:' %}</span>
+                            <span >{{ depot.shunting_slots }} {% translate 'Fahrzeuge' %}</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Rangierdauer:' %}</span>
+                            <span >{{ depot.shunting_duration }} min</span>
+                          </p>
+                          {% for area in depot.areainformation_set.all %}
+                          <p class='pt-2' >
+                            <span class="!text-slate-800 font-semibold">{% translate 'Fläche für' %} {{ area.vehicle_type.name }}</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Kapazität:' %}</span>
+                            <span >{{ area.capacity }} {% translate 'Fahrzeuge' %}</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Leistung pro Ladepunkt:' %}</span>
+                            <span >{{ area.power }} kW</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Flächentyp:' %}</span>
+                            <span >{{ area.get_area_type_display }}</span>
+                          </p>
+                          {% if area.block_length %}
+                          <p >
+                            <span >{% translate 'Blocklänge:' %}</span>
+                            <span >{{ area.block_length }} {% translate 'Fahrzeuge' %}</span>
+                          </p>
+                          {% endif %}
+                          {% endfor %}
+                        </div>
+                      </details>
                     {% endif %}
                 </div>
               </div>

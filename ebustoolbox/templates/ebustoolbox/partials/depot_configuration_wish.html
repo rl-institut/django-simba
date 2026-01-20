@@ -73,6 +73,9 @@
 <div id="area_informations_{{ depot.id }}" class="pt-6 pb-4 border-b border-slate-200">
   <div class="mb-4">
     <h2 class="block text-base font-semibold text-slate-800">{% translate "Flächendetails" %}</h2>
+      <p class='text-sm text-slate-600 '>
+        {% translate 'Hier parametrisieren Sie die Abstellflächen je Fahrzeugtyp. Falls eine Blockabstellung vorliegt, müssen Sie nicht nur die Kapazität der Fläche, sondern auch eine Blocklänge angeben. Die Blocklänge beschreibt, wieviele Busse hintereinander stehen und sich somit beim rangieren blockieren.' %}
+      </p>
   </div>
   {#          Iterate over all rows of ladepunkte and leistung#}
   {% for form in form_dict.area_information %}
@@ -81,8 +84,8 @@
       <h1.5 class="block text-sm font-semibold text-slate-800">Fläche für Fahrzeugtyp: {{form.instance.vehicle_type.name}}</h1>
   </div>
     <!-- Use alpine js to toggle values of the block length. First we define a variable which can be used in the scope of the div. disable reflects if the block_length in put should be disabled -->
-    <div class="grid grid-cols-1 gap-6" id="pointsContainer_{{ depot.id }}" data-depot-id="{{ depot.id }}" x-data="{capacity: '', selected: '',prev_block_length: '1', block_length: '', get disable() {return this.selected !=='LINE'}}"
-      @checkblocklength="block_length = (findClosestDivider(capacity, block_length, prev_block_length)); prev_block_length = block_length;" >
+    <div class="grid grid-cols-1 gap-6" id="pointsContainer_{{ depot.id }}" data-depot-id="{{ depot.id }}" x-data="{timer: null, capacity: '', selected: '',prev_block_length: '1', block_length: '', get disable() {return this.selected !=='LINE'}}"
+      @checkblocklength="block_length=getBlockLength(capacity, block_length, prev_block_length, $el); prev_block_length=block_length" >
       <div class="flex flex-row gap-6 point-row" >
       <!-- First Column: Anzahl -->
       <div class="flex flex-1" >
@@ -109,64 +112,37 @@
       {% include 'ebustoolbox/partials/tailwind_field.html' with field=field|attr:"x-model.fill:selected"|attr:"x-on::change:if (disable) block_length=''" tooltip=field.help_text unit=field.field.unit label=field.label %}
       {% endwith %}
       </div>
-        <div class="flex flex-1" >
+        <div class="flex flex-1 flex-col" >
       <!-- Depending on the state of this variable the input is disabled   -->
           {% with field=form.block_length %}
-          {% include 'ebustoolbox/partials/tailwind_field.html' with field=field|attr:"x-bind::disabled:disable"|attr:"x-model.fill:block_length"|attr:"x-bind::required:!disable"|attr:"@change:dispatchCheckBlockEvent($event)" tooltip=field.help_text unit=field.field.unit label=field.label %}
+          {% include 'ebustoolbox/partials/tailwind_field.html' with field=field|attr:"x-bind::disabled:disable"|attr:"x-model.fill:block_length"|attr:"x-bind::required:!disable"|attr:"@change:dispatchCheckBlockEvent($event)"|attr:"x-bind::placeholder:!capacity&&!disable?'Geben Sie erst die Kapazität an':' ' " tooltip=field.help_text unit=field.field.unit label=field.label %}
           {% endwith %}
+
+          {% comment %}
+          show a notification which explains why the block length is adjusted, 2s after timeout its hidden again
+          {% endcomment %}
+
+          <div class='overflow-hidden'>
+            <div class="notification text-slate-800 bg-yellow-200 border rounded-md mr-2 text-xs p-1"
+        x-transition:enter="animate-slide-in-top"
+        x-transition:leave="animate-slide-out-top"
+              x-data='{show:false}' x-show="show" @blocklengthchanged="show = true;clearTimeout(timer); timer=setTimeout(()=>show=false,2000)">
+              Die Blocklänge wurde automatisch auf einen Teiler der Kapazität gesetzt.
+            </div>
+            </div>
         </div>
     </div>
   </div>
+
 {% endfor %}
 </div>
 {% endif %}
-</div>
-
 
 <script>
-function dispatchCheckBlockEvent(event){
- event.target.dispatchEvent(new CustomEvent('checkblocklength', {bubbles: true}));
-}
-
-
-function findClosestDivider(total, divider, prev_divider) {
-  // We use the previous divider to determine, the direction the user used the stepper and enforce
-  // to find an element in this direction, so there is no lock in effect for needed steps > stepsize
-  total = parseInt(total);
-  divider = parseInt(divider);
-  divider = Math.min(total,divider);
-  divider = Math.max(1,divider);
-  if (total % divider == 0) return divider;
-  var bigger = divider;
-  while (bigger<total && total % bigger != 0) bigger++;
-  var smaller = divider;
-  while (smaller>0 && total % smaller != 0) smaller--;
-  // Set the default output to the bigger value
-  output = bigger;
-  // Use the smaller divider if it is closer to the target and not identical with the previous divider
-  if (divider - smaller< bigger-divider && prev_divider != smaller) output=smaller;
-  else {
-    // if the bigger divider is closer to the target but indentical we also use the smaller divider
-    if (prev_divider == bigger) output=smaller;
-  }
-  return output;
-}
-
-
-
-function addHTMX(button_id) {
-button = document.getElementById(button_id);
-button.setAttribute("hx-post", ".");
-button.setAttribute("hx-swap", "outerHTML ");
-form_container= button.closest(".depot-form-container");
-button.setAttribute("hx-target", "#"+form_container.id);
-button.setAttribute("hx-select", "#"+form_container.id);
-}
 addHTMX("button_{{depot_form.auto_generate.auto_id}}");
-</script>
 
-<script>
   document.addEventListener("htmx:afterRequest", () => {
     addHTMX("button_{{depot_form.auto_generate.auto_id}}");
   });
 </script>
+</div>
