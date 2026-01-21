@@ -16,9 +16,9 @@
             {% blocktranslate %}WeBus hilft Ihnen bei der Umstellung ihres Bussystems vom Dieselbetrieb auf den elektrischen Betrieb.
         Sie können den Einfluss verschiedener Fahrzeugparameter erproben, die Elektrifizierung von Endhaltestellen testen, entscheidende Parameter ihres Fahrzeugdepots bestimmen und vieles mehr.
         WeBus stellt ihnen hierzu eine Weboberfläche zur Verfügung, die ihr spezifisches System in einer Simulation berechnet.
-        Hierzu wird ein Modell erstellt welches, die beiden Open-Source-Tools SimBA und eFLIPs miteinander kombiniert.
+        Hierzu wird ein Modell erstellt, welches die beiden Open-Source-Tools SimBA und eFLIPS miteinander kombiniert.
 
-        In den folgenden Abschnitten finden sie Erklärungen zu den einzelnen Schritten, die nötig sind, um eine Simulation durchzuführen, Informationen zu technischen Hintergründen, so wie Erläuterungen zu den Ergebnissen der Simulation.
+        In den folgenden Abschnitten finden sie Erklärungen zu den Eingabeparametern, Informationen zu technischen Hintergründen, sowie Erläuterungen zu den Ergebnissen der Simulation.
           <!-- TODO needs styling -->
          <li class="list-inside list-disc py-1 text-slate-700">Sie möchten mehr über das Projekt erfahren?  WeBus. </li>
          <li class="list-inside list-disc py-1 text-slate-700">Sie haben einen Fehler gefunden oder vermissen ein Feature?  Kontakt. </li>
@@ -31,7 +31,7 @@
           </h2>
           <p class="text-base pb-4 leading-relaxed text-slate-600">
             {% blocktranslate %}
-        Für die Simulation von Ihrem Bussystem benötigt WeBus Eingangsdaten. Diese können in folgenden Formaten hochgeladen werden:
+        Für die Simulation Ihres Bussystems benötigt WeBus Eingangsdaten. Diese können in folgenden Formaten hochgeladen werden:
       </p>
         <li class="list-inside list-disc py-1 text-slate-700">VDV 452</li>
         <li class="list-inside list-disc py-1 text-slate-700">SimBA .csv</li>
@@ -115,7 +115,7 @@
         </p>
         <h4 class="text-m pb-1 pt-4 font-semibold">distance</h4>
         <p class="text-base pb-2 leading-relaxed text-slate-600">
-        Die Distanz zwischen Abfahrts- und Ziel-Station die der Bus zurücklegen muss in Metern.
+        Die Distanz zwischen Abfahrts- und Ziel-Station, die der Bus zurücklegen muss. Anzugeben in <b>Metern</b>.
         </p>
         <h4 class="text-m pb-1 pt-4 font-semibold">vehicle_type</h4>
         <p class="text-base pb-2 leading-relaxed text-slate-600">
@@ -133,7 +133,7 @@
         </p>
         <h4 class="text-m pb-1 pt-4 font-semibold">line</h4>
         <p class="text-base pb-2 leading-relaxed text-slate-600">
-        Die Linie zu der die Fahrt gehört. Dies ist eine optionale Angabe, die bei der Darstellung von Eingaben und Ergebnissen durch Filterung unterstützen kann.
+        Die Linie, zu der die Fahrt gehört. Dies ist eine optionale Angabe, die bei der Darstellung von Eingaben und Ergebnissen durch Filterung unterstützen kann.
         </p>
 
         <h4 class="text-m pb-1 pt-4 font-semibold">Beispiel</h4>
@@ -190,10 +190,10 @@
       Folgende Punkte müssen im Umlaufplan beachtet werden.
       <ul class="list-inside list-disc text-slate-700">
       <li class="py-1">Ein Umlauf kann nicht durch mehrere Fahrzeugtypen bedient werden.</li>
-      <li class="py-1">Ein Umlauf muss in einem Depot starten und Enden.</li>
+      <li class="py-1">Ein Umlauf muss in einem Depot starten und enden.</li>
       <li class="py-1">Das Depot, in dem ein Umlauf startet und endet, muss identisch sein.</li>
       <li class="py-1">Fahrten eines Umlaufes müssen nacheinander stattfinden. Fahrtzeiten dürfen sich <b>nicht</b> überschneiden.</li>
-      <li class="py-1">Fahrten müssen von der Station abfahren bei der sie kürzlich angekommen sind.</li>
+      <li class="py-1">Fahrten müssen von der Station abfahren, bei der sie kürzlich angekommen sind.</li>
       </ul>
         </p>
 
@@ -207,20 +207,20 @@
             <ul class="list-inside list-disc text-slate-700">
             <li class="py-1">Filtern nach Zeitspanne</li>
                 <ul class="list-inside list-disc pl-6">
-                  <li class="py-1">Nur Umläufe die innerhalb dieser Zeitspanne <b>starten</b>, werden simuliert</li>
+                  <li class="py-1">Nur Umläufe, die innerhalb dieser Zeitspanne <b>starten</b>, werden simuliert</li>
                 </ul>
               <li class="py-1">Filtern nach Depots</li>
                 <ul class="list-inside list-disc pl-6">
-                  <li class="py-1">Nur Umläufe die von diesem Depot starten werden simuliert</li>
+                  <li class="py-1">Nur Umläufe, die von diesem Depot starten, werden simuliert</li>
                 </ul>
             </ul>
 
       <p class="text-base pb-4 leading-relaxed text-slate-600">
-            Bei der Auswahl von Filtern wird sofort berechnet, welche Anzahl an Umläufen in diesem Umlaufplan verbleibt. Dies kann einige Sekunden dauern. Welche Depots und Linien mit der getätigten Auswahl bedient werden, können Sie sehen nachdem Sie den Button "aktuelle Auswahl anzeigen" geklickt haben. Der Filter kann durch den Button "Filter Löschen" auf den ungefilterten Startzustand gesetzt werden.
+            Bei der Auswahl von Filtern wird sofort berechnet, welche Anzahl an Umläufen in diesem Umlaufplan verbleibt. Dies kann einige Sekunden dauern. Welche Depots und Linien mit der getätigten Auswahl bedient werden, können Sie sehen, nachdem Sie den Button "aktuelle Auswahl anzeigen" geklickt haben. Der Filter kann durch den Button "Filter Löschen" auf den ungefilterten Startzustand gesetzt werden.
             <br>
-            <b>Nach dem Sie auf weiter geklickt haben, werden Daten aus dem Szenario gelöscht, welche nicht die verbleibenden Umläufe betreffen.</b>
+            <b>Nachdem Sie auf "Weiter" geklickt haben, werden Daten aus dem Szenario gelöscht, welche nicht die verbleibenden Umläufe betreffen.</b>
             <br>
-            Dieser Vorgang ist fürs bestehende Szenario nicht rückgängig zu machen. Sie können allerdings ein neues Szenario auf Basis der eingelesenen Datei oder des Quellszenarios erstellen.
+            Dieser Vorgang kann für das bestehende Szenario nicht rückgängig gemacht werden. Sie können allerdings ein neues Szenario auf Basis der eingelesenen Datei oder des Quellszenarios erstellen.
             Die Filterung verändert nicht die Quellszenarien. Die ursprünglichen Datensätze aus der Quelldatei können im Reiter "Szenarien" eingesehen werden. Ihnen wird automatisch der Namenssuffix "[ungefiltert]" gegeben.
             {% endblocktrans %}
             </p>
@@ -229,9 +229,9 @@
             <a href="#vehicles" id='vehicles' class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Fahrzeuge' %}</a>
             <p class="text-base pb-4 leading-relaxed text-slate-600">
               {% blocktrans %}
-          WeBus erkennt Fahrzeugtypen automatische aus dem Umlaufplan.
+          WeBus erkennt Fahrzeugtypen automatisch aus dem Umlaufplan.
           Diesen Fahrzeugtypen müssen technische Eigenschaften zugeordnet werden, sodass die Simulation ausgeführt werden kann.
-          Hierzu können sie jedem Fahrzeugtyp ihres Umlaufplans ein Fahrzeugtyp aus der Fahrzeugbibliothek von WeBus zuordnen.
+          Hierzu können sie jedem Fahrzeugtyp Ihres Umlaufplans ein Fahrzeugtyp aus der Fahrzeugbibliothek von WeBus zuordnen.
           Die Fahrzeugtypen besitzen verschiedene Eigenschaften wie Ladekurven, Batteriekapazitäten, Gewichte, geometrische Abmessungen und Verbrauchstabellen.
           Ausgewählte Parameter können Sie überschreiben.
           WeBus optimiert ihren Umlaufplan bezogen auf die Anzahl benötigter Fahrzeuge, indem die Fahrzeugdisposition Umläufe mit dem gleichen Fahrzeug bedient, wenn operative und energetische Randbedingungen es zulassen.
@@ -271,7 +271,7 @@
                   <tr>
                     <td>opportunity_charging_capable</td>
                     <td>[bool]</td>
-                    <td>Kann das Fahrzeug Zwischenladen?</td>
+                    <td>Kann das Fahrzeug zwischenladen?</td>
                     <td>True</td>
                     <td>Erforderlich</td>
                   </tr>
@@ -288,7 +288,7 @@
                     <td>battery_capacity_reserve</td>
                     <td>[kWh]</td>
                     <td>
-                      Welche Reserve-Batteriekapazität steht für Ausnahme Situationen zur Verfügung?
+                      Welche Reserve-Batteriekapazität steht für Ausnahmesituationen zur Verfügung?
                     </td>
                     <td>Werte zwischen 0 und 300</td>
                     <td>Erforderlich</td>
@@ -333,9 +333,9 @@
                     <td>consumption</td>
                     <td>[kWh/km]</td>
                     <td>Durchschnittlicher elektrischer Verbrauch pro km</td>
-                    <td>Werte im Bereich von 0,3 bis 4</td>
+                    <td>Werte im Bereich von 0,3 bis 3</td>
                     <td>
-                      Erforderlich wenn keine ausführliche Verbrauchstabelle vorhanden ist (siehe <a href="#consumption">Verbrauch</a>)
+                      Erforderlich, wenn keine ausführliche Verbrauchstabelle vorhanden ist (siehe <a href="#consumption">Verbrauch</a>)
                     </td>
                   </tr>
                   <tr>
@@ -344,7 +344,7 @@
                     <td>
                       Maximaler elektrischer Verbrauch pro km für den Auslegungsfall von Infrastruktur
                     </td>
-                    <td>Werte im Bereich von 0.3 bis 8</td>
+                    <td>Werte im Bereich von 0.5 bis 4</td>
                     <td>
                       Erforderlich wenn keine ausführliche Verbrauchstabelle vorhanden ist (siehe <a href="#consumption">Verbrauch</a>
                     </td>
@@ -355,7 +355,7 @@
                     <td>
                       Länge des Fahrzeugtyps, welche für die Depotauslegung genutzt wird.
                     </td>
-                    <td>Werte im Bereich von 5 bis 19</td>
+                    <td>Werte im Bereich von 5 bis 27</td>
                     <td>Optional</td>
                   </tr>
                   <tr>
@@ -400,7 +400,7 @@
                       <td>battery_type</td>
                       <td>[int]</td>
                       <td>
-                        Verweise auf BatteryType Objekte der Datenbank, welche weitere Informationen über die Fahrzeugbatterie speichern. Dies ermöglicht eine LCA Analyse.
+                        Verweise auf BatteryType Objekte der Datenbank, welche weitere Informationen über die Fahrzeugbatterie speichern.
                       </td>
                       <td>Keine Empfehlung</td>
                       <td>Optional</td>
@@ -416,7 +416,7 @@
               </h2>
               <p class="text-base pb-4 leading-relaxed text-slate-600">
                 {% blocktrans %}
-          Die Einstellungen in Temperaturen unterstüzt Sie bei der Auswahl geeigneter Verbräuche wenn Sie diese manuell auswählen möchten. Wenn aus dem hochgeladenen Umlaufplan geographische Informationen ausgelesen werden konnte,
+          Die Einstellungen in Temperaturen unterstüzen Sie bei der Auswahl geeigneter Verbräuche, wenn Sie diese manuell auswählen möchten. Wenn aus dem hochgeladenen Umlaufplan geographische Informationen ausgelesen werden konnten,
           wird eine Wetterstation des <a href="https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/">DWD</a> in der Nähe der Systemmitte gesucht und die Temperaturdaten des Jahres 2024 werden analysiert. Für die gewählten Temperaturen wird ein Verbrauchswert aus Basis des gewählten Fahrzeugtyps und der mittleren Geschwindigkeit der Fahrten abgeschätzt. Dieser Wert kann Ihnen als Indikator dienen, welchen Verbrauch die Simulation nutzen wird. Dieser Wert ist ein Schätzwert und kann sich in der nachfolgenden Simulation verändern. Wahlweise kann der Verbrauch des Fahrzeugs durch einen konstanten Wert überschrieben werden. Auf Fahrzeugtypen mit einem konstanten Verbrauch hat die Wahl der Temperaturen keinen Einfluss.
           </p>
           {% endblocktrans %}
@@ -432,8 +432,8 @@
           Die Ladesäulen werden "greedy" besetzt. Ein eintreffendes Fahrzeug nutzt also stets die Möglichkeit zu laden.
           Bei diesen Zwischenladungen wird kein komplexer Mechanismus genutzt, um Fahrzeugen das Laden zu untersagen, oder die Ladung vorzeitig abzubrechen.
           Dies erscheint für den realen Betrieb als unpraktikabel. In der Benutzeroberfläche werden vorerst nur Haltestellen mit mindestens 2 Minuten Standzeit angezeigt.
-          Stationen bei denen kein einziger Bus, mindestens einmal für mindestens 2 Minuten steht werden ausgeblendet.
-          Dies erlaubt die gezielt Elektrifizierung von Stationen die tatsächlich eine relevante Menge an Ladeleistung ins Fahrzeug einbringen können.
+          Stationen, bei denen kein einziger Bus mindestens einmal für mindestens 2 Minuten steht, werden ausgeblendet.
+          Dies erlaubt die gezielte Elektrifizierung von Stationen, die eine relevante Menge an Energie ins Fahrzeug einbringen können.
 
           <h4 class="text-m pb-1 pt-4 font-semibold">Elektrifizierung</h4>
           <p class="text-m pb-2 leading-relaxed text-slate-600">
@@ -442,18 +442,18 @@
 
           <h4 class="text-m pb-1 pt-4 font-semibold">Nicht-Elektrifzierung</h4>
           <p class="text-m pb-2 leading-relaxed text-slate-600">
-          Die Haltestelle wird als nicht elektrifiziert angenommen. Während der Simulation werde Fahrzeuge an diesen Haltestellen nicht laden. Dies ist der Standardwert für alle Haltestellen.
+          Die Haltestelle wird als nicht elektrifiziert angenommen. Während der Simulation werden Fahrzeuge an diesen Haltestellen nicht laden. Dies ist der Standardwert für alle Haltestellen.
           </p>
 
           <h4 class="text-m pb-1 pt-4 font-semibold">Automatisch</h4>
           <p class="text-m pb-2 leading-relaxed text-slate-600">
-          Diese Einstellung prüft, ob das zu untersuchende Bussystem fahrbar ist ohne Elektrifizierung von Haltestellen. Sollte ein Bussystem fahrbar werden, wenn Haltestellen elektrifiziert werden,
+          Diese Einstellung prüft, ob das zu untersuchende Bussystem ohne Elektrifizierung von Haltestellen funktioniert. Sollte ein Bussystem fahrbar werden, wenn Haltestellen elektrifiziert werden,
           nutzt die Simulation einen Optimierungsalgorithmus, um eine geringe Anzahl an Haltestellen zu elektrifizieren und so Fahrbarkeit zu erreichen.
           </p>
 
           <h4 class="text-m pb-1 pt-4 font-semibold">Empfehlung</h4>
           <p class="text-m pb-2 leading-relaxed text-slate-600">
-          Die Auswahl der richtigen Haltestellen die elektrifiziert werden müssen, um ein fahrbares Szenario zu erstellen, kann sehr komplex sein. Daher wird empfohlen folgendermaßen vorzugehen:
+          Die Auswahl der richtigen Haltestellen, die elektrifiziert werden müssen, um ein fahrbares Szenario zu erstellen, kann sehr komplex sein. Daher wird empfohlen folgendermaßen vorzugehen:
           </p>
           <ul class="list-disc">
           <li class="list-inside py-1 text-slate-700">Schalten Sie Stationen, die nicht elektrifiziert werden dürfen oder können, z.B. wegen Platzgründen, auf "nicht-elektrifizieren".</li>
@@ -462,8 +462,8 @@
           </ul>
 
           <p class="text-m pb-2 leading-relaxed text-slate-600">
-          Somit erreichen Sie optimale Startbedingungen um ein fahrbares Szenario zu erstellen.
-          In weiteren Iterationen können sie durchs wahlweise setzen von Elektrifizierung und Nicht-Elektrifizierung von Stationen, weitere Varianten erstellen.
+          Somit erreichen Sie optimale Startbedingungen, um ein fahrbares Szenario zu erstellen.
+          In weiteren Iterationen können sie durchs wahlweise setzen von Elektrifizierung und Nicht-Elektrifizierung von Stationen weitere Varianten erstellen.
           </p>
 
           <h2 class="pb-2 pt-4 text-2xl font-semibold">Erweiterte Optionen</h2>
@@ -596,11 +596,11 @@
           </p>
           <a id='station_optimization' href="#station_optimization" class="pb-2 pt-4 text-2xl font-semibold">Stationsoptimierung</a>
           <p class="text-base pb-4 leading-relaxed text-slate-600">
-          Sollte Ihr Bussystem mit den ausgewählten Fahrzeugtypen nicht fahrbar sein, so besteht die Möglichkeit das mittels Stationsoptimierung ein fahrbarer Zustand erreicht wird.
+          Sollte Ihr Bussystem mit den ausgewählten Fahrzeugtypen nicht fahrbar sein, so besteht die Möglichkeit, dass mittels Stationsoptimierung ein fahrbarer Zustand erreicht wird.
           Nicht fahrbar bedeutet in diesem Kontext: Ein voll geladener Bus kann einen Umlauf nicht bedienen, ohne dass der SoC des Fahrzeugs unter 0&nbsp;% fällt.
-         Wenn das Fahrzeug diesen Umlauf bedienen könnte, wenn es an Stationen die momentan nicht elektrifiziert sind, zwischenladen würde. So wird die Stationsoptimierung ausgeführt.
-          Hierbei werden nur Stationen untersucht die als elektrifizerbar markiert wurden. Dies geschieht, indem man auf der Seite "Stationen" die Station mit "automatisch" markiert.
-        Die Stationsoptimierung fügt sukzessive Stationen eine Elektrifizierung bei bis ein voll elektrifizierter Zustand erreicht ist. Wenn ein Umlauf selbst bei vollständiger Elektrifizierung nicht fahrbar wird, so werden für diesen Umlauf keine Stationen elektrifiziert. Die Elektrifizierung von Stationen passiert in einer Reihenfolge basierend auf einer Optimierungsheuristik. Stationen, die als besonders effektiv erkannt werden, werden zuerst elektrifiziert, weniger effektive Stationen werden danach elektrifiziert. Sobald Fahrbarkeit erreicht ist, wird die Optimierung abgebrochen.
+         Wenn das Fahrzeug diesen Umlauf bedienen könnte, wenn es an Stationen die momentan nicht elektrifiziert sind zwischenladen würde, so wird die Stationsoptimierung ausgeführt.
+          Hierbei werden nur Stationen untersucht, die als elektrifizerbar markiert wurden. Dies geschieht, indem auf der Seite "Stationen" die Station mit "automatisch" markiert wird.
+        Die Stationsoptimierung fügt sukzessive Stationen eine Elektrifizierung bei, bis ein voll elektrifizierter Zustand erreicht ist. Wenn ein Umlauf selbst bei vollständiger Elektrifizierung nicht fahrbar wird, so werden für diesen Umlauf keine Stationen elektrifiziert. Die Elektrifizierung von Stationen passiert basierend auf einer Optimierungsheuristik. Stationen, die als besonders effektiv erkannt werden, werden zuerst elektrifiziert, weniger effektive Stationen werden danach elektrifiziert. Sobald Fahrbarkeit erreicht ist, wird die Optimierung abgebrochen.
         Detaillierte Informationen zur Stationsoptimierung finden sie <a class="text-blue-600 hover:underline" href="https://github.com/rl-institut/SimBA">hier</a>.
           <p class="text-base pb-4 leading-relaxed text-slate-600">
           <!-- TODO: plots erklären. Import/Export/Downloads -->
@@ -611,7 +611,7 @@
                   <a id='results' href="#results" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Ergebnisse' %}</a>
                   <p class="text-base pb-4 leading-relaxed text-slate-600">
                     {% blocktrans %}
-          Im Folgenden finden Sie Erläuterungen zu den Kennzahlen und Grafiken die sie auf der Ergebnis-Seite finden.
+          Im Folgenden finden Sie Erläuterungen zu den Kennzahlen und Grafiken, die Sie auf der Ergebnis-Seite finden.
           <!-- TODO: plots erklären. Import/Export/Downloads -->
           {% endblocktrans %}
                   </p>
@@ -621,7 +621,7 @@
           WeBus bietet einen vereinfachten Zugang für die Simulation von zu elektrifizierenden Bussystemen. Hierzu wurde der Funktionsumfang der Weboberfläche auf die wichtigsten Aspekte reduziert. Sollten Sie spezielle Anforderungen an beispielsweise technische Eigenschaften der Fahrzeuge haben, so lassen sich diese in einem Expertenmodus bearbeiten.
           Hierzu sind folgende drei Schritte notwendig:
           <ol class="list-decimal">
-          <li class="list-inside list-disc py-1 text-slate-700">Exportieren Sie ihr Szenario, welches Sie anpassen möchten</li>
+          <li class="list-inside list-disc py-1 text-slate-700">Exportieren Sie Ihr Szenario, welches Sie anpassen möchten</li>
           <li class="list-inside list-disc py-1 text-slate-700">Passen Sie die Eigenschaften der verschiedenen Komponenten in der exportierten .json Datei an</li>
           <li class="list-inside list-disc py-1 text-slate-700">Importieren Sie die angepasste Datei. Sie können diese nun simulieren.</li>
           </ol>
