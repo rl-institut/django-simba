@@ -50,7 +50,7 @@ def get_charge_chart(station):
         return None
 
     ax = power_df.plot(
-        x=_("time_start"), y=_("Power"), xlabel=_("Zeit"), ylabel=_("Leistung [kW]"), legend=False
+        x="time_start", y="Power", xlabel=_("Zeit"), ylabel=_("Leistung [kW]"), legend=False
     )
     buffer = BytesIO()
     ax.figure.savefig(buffer, format="png")

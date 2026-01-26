@@ -23,6 +23,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import QuerySet, Sum, Case, When, Value, IntegerField, Func, F
 from django.db.models.functions import Now, Length
 from django.dispatch import receiver
+from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import make_aware
 
 from ebus_map.managers import MVTManager, X, Y
@@ -33,8 +34,10 @@ MINIMAL_TRIP_DURATION_S = 60  # seconds
 
 class EnumScenarioType(models.TextChoices):
     SOURCE = "SOURCE"
+    SOURCE_FILE = "SOURCE_FILE"
     MUTATION = "MUTATION"
     SIMULATION = "SIMULATION"
+    PUBLIC_DATA = "PUBLIC_DATA"
 
 
 class EnumSimulationType(models.TextChoices):
@@ -87,15 +90,15 @@ class Scenario(models.Model):
     name_short = models.TextField(blank=True, null=True)
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
 
-    scenario_type = models.CharField(choices=EnumScenarioType.choices, null=True)
-    description = models.TextField(blank=True, null=True)
+    scenario_type = models.CharField(choices=EnumScenarioType.choices, null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
 
     # Set to now() on the database side
     created = models.DateTimeField(auto_now_add=True, db_default=Now())
     task_id = models.UUIDField(default=None, null=False, unique=True)
     finished = models.DateTimeField(default=None, null=True, blank=True)
-    simba_options = models.JSONField(default=dict, null=True)
-    eflips_depot_options = models.JSONField(default=dict, null=True)
+    simba_options = models.JSONField(default=dict, null=True, blank=True)
+    eflips_depot_options = models.JSONField(default=dict, null=True, blank=True)
     tco_parameters = models.JSONField(
         default=dict,
         null=True,
@@ -116,6 +119,7 @@ class Scenario(models.Model):
             "pef_energy": 0.038,
             "pef_insurance": 0.02,
         },
+        blank=True,
     )
 
     manager = models.ForeignKey(
@@ -222,6 +226,7 @@ class BatteryType(models.Model):
     tco_parameters = models.JSONField(
         default=dict,
         null=True,
+        blank=True,
         db_default={"useful_life": 7, "procurement_cost": None, "cost_escalation": 0.01},
     )
 
@@ -362,16 +367,19 @@ class VehicleType(models.Model):
 
     @property
     def get_average_speed_kmh(self):
-        # Get all default vehicle types. Only Opportunity charging capable for now
-        # Expand the query for desired vehicle types which can be selected
-        rots = annotate_distance(Rotation.objects.filter(vehicle_type_id=self.id))
-        result = rots.aggregate(
-            distance=Sum("distance"),
-            duration=Sum(F("trip__arrival_time") - F("trip__departure_time")),
-        )
-        average_speed_kmh = (result["distance"] / 1000) / (
-            result["duration"].total_seconds() / 3600
-        )
+        try:
+            # Get all default vehicle types. Only Opportunity charging capable for now
+            # Expand the query for desired vehicle types which can be selected
+            rots = annotate_distance(Rotation.objects.filter(vehicle_type_id=self.id))
+            result = rots.aggregate(
+                distance=Sum("distance"),
+                duration=Sum(F("trip__arrival_time") - F("trip__departure_time")),
+            )
+            average_speed_kmh = (result["distance"] / 1000) / (
+                result["duration"].total_seconds() / 3600
+            )
+        except TypeError:
+            average_speed_kmh = 0
         return average_speed_kmh
 
     @property
@@ -381,12 +389,16 @@ class VehicleType(models.Model):
 
     @property
     def get_total_distance_km(self):
-        return (
-            Route.objects.filter(trip__rotation__vehicle_type_id=self.id).aggregate(
-                Sum("distance")
-            )["distance__sum"]
-            / 1000
-        )
+        try:
+            distance = (
+                Route.objects.filter(trip__rotation__vehicle_type_id=self.id).aggregate(
+                    Sum("distance")
+                )["distance__sum"]
+                / 1000
+            )
+        except TypeError:
+            distance = 0
+        return distance
 
     def get_charging_power(self, soc: float) -> float:
         """Get the charging power the vehicle type is capable of at a given soc"""
@@ -729,11 +741,13 @@ class Rotation(models.Model):
 
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
 
-    name = models.TextField(blank=False, null=True)
+    name = models.TextField(blank=True, null=True)
     vehicle_type = models.ForeignKey(VehicleType, null=False, blank=True, on_delete=models.CASCADE)
 
     # SimBA specific data to make SimBA simulations reproducible
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_DEFAULT, default=None, null=True)
+    vehicle = models.ForeignKey(
+        Vehicle, on_delete=models.SET_DEFAULT, default=None, null=True, blank=True
+    )
     allow_opportunity_charging = models.BooleanField(default=True, null=False)
 
     def get_distance(self):
@@ -1082,7 +1096,7 @@ class Station(models.Model):
         db_table = "Station"
 
     # Map Engine models need geom and name as first columns
-    geom = models.PointField(dim=3, srid=4326, null=True)  # without z elevation
+    geom = models.PointField(dim=3, srid=4326, null=True, blank=True)  # without z elevation
     name = models.TextField(null=False)
     name_short = models.TextField(null=True, blank=True)
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
@@ -1090,22 +1104,25 @@ class Station(models.Model):
     is_electrified = models.BooleanField(default=False)
     is_electrifiable = models.BooleanField(default=False)
     charge_type = models.CharField(
-        max_length=4, choices=EnumChargeType.choices, null=True, default=None
+        max_length=4, choices=EnumChargeType.choices, null=True, default=None, blank=True
     )
     voltage_level = models.CharField(
-        max_length=5, choices=EnumVoltageLevel.choices, null=True, default=None
+        max_length=5, choices=EnumVoltageLevel.choices, null=True, default=None, blank=True
     )
-    amount_charging_places = models.IntegerField(default=0, null=True)
-    power_per_charger = models.FloatField(default=None, null=True)
-    power_total = models.FloatField(default=None, null=True)
+    amount_charging_places = models.IntegerField(default=0, null=True, blank=True)
+    power_per_charger = models.FloatField(default=None, null=True, blank=True)
+    power_total = models.FloatField(default=None, null=True, blank=True)
 
     tco_parameters = models.JSONField(
         default=dict,
         null=True,
         db_default={"useful_life": 20, "procurement_cost": None, "cost_escalation": 0.02},
+        blank=True,
     )
 
-    charging_point_type = models.ForeignKey(ChargingPointType, null=True, on_delete=models.CASCADE)
+    charging_point_type = models.ForeignKey(
+        ChargingPointType, null=True, blank=True, on_delete=models.CASCADE
+    )
 
     stations = models.ManyToManyField("Route", through="AssocRouteStation")
     """Stations along this route. Ordered by `elapsed_distance`."""
@@ -1306,14 +1323,14 @@ class Route(models.Model):
         # do this in Django though.
 
     # Shape of the route with height data
-    geom = models.LineStringField(dim=3, srid=4326, null=True)
+    geom = models.LineStringField(dim=3, srid=4326, null=True, blank=True)
     distance = models.FloatField(default=None, null=False)
 
     objects = FastUpdateManager()
     name = models.TextField(default=None, null=False, blank=True)
     name_short = models.TextField(default=None, null=True, blank=True)
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
-    line = models.ForeignKey(Line, null=True, on_delete=models.CASCADE)
+    line = models.ForeignKey(Line, null=True, blank=True, on_delete=models.CASCADE)
     headsign = models.TextField(default=None, null=True, blank=True)
 
     departure_station = models.ForeignKey(
@@ -1351,7 +1368,7 @@ class AssocRouteStation(models.Model):
     elapsed_distance = models.FloatField(null=False)
     """The distance in m that the bus has traveled when it reached this stop."""
 
-    location = models.PointField(dim=3, srid=4326, null=True)
+    location = models.PointField(dim=3, srid=4326, null=True, blank=True)
     """An optional precise location of the this route's stop at the station. Use WGS84 coordinates (EPSG:4326)."""
 
 
@@ -1427,7 +1444,7 @@ class Trip(models.Model):
         max_length=9, choices=EnumTripType.choices, default=EnumTripType.PASSENGER_TRIP
     )
 
-    loaded_mass = models.FloatField(default=None, null=True)
+    loaded_mass = models.FloatField(default=None, null=True, blank=True)
 
     # If time resolution is minutes, there might be trips with 0 minutes duration. To resolve
     # division by 0, we use a minimal duration of 60 seconds
@@ -1600,12 +1617,12 @@ class Event(models.Model):
     objects = FastUpdateManager()
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     vehicle_type = models.ForeignKey(VehicleType, null=False, on_delete=models.CASCADE)
-    vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE)
+    vehicle = models.ForeignKey(Vehicle, null=True, blank=True, on_delete=models.CASCADE)
 
     #
-    station = models.ForeignKey(Station, null=True, on_delete=models.CASCADE)
-    trip = models.ForeignKey(Trip, null=True, on_delete=models.CASCADE)
-    area = models.ForeignKey("Area", null=True, on_delete=models.CASCADE)
+    station = models.ForeignKey(Station, null=True, blank=True, on_delete=models.CASCADE)
+    trip = models.ForeignKey(Trip, null=True, blank=True, on_delete=models.CASCADE)
+    area = models.ForeignKey("Area", null=True, blank=True, on_delete=models.CASCADE)
 
     subloc_no = models.IntegerField(null=True, blank=True)
     time_start = models.DateTimeField()
@@ -1619,7 +1636,7 @@ class Event(models.Model):
     )
     description = models.TextField(null=True, blank=True)
 
-    timeseries = models.JSONField(default=dict, null=True)
+    timeseries = models.JSONField(default=dict, null=True, blank=True)
 
     def save(self, *args, **kwargs):
         # Exactly one of the following has to be non-null
@@ -1699,7 +1716,7 @@ class Depot(models.Model):
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     name = models.TextField(null=False, blank=False)
     name_short = models.TextField(null=True, blank=True)
-    bounding_box = models.PolygonField(dim=2, srid=4326, null=True, default=None)
+    bounding_box = models.PolygonField(dim=2, srid=4326, null=True, blank=True, default=None)
     station = models.ForeignKey(Station, null=False, on_delete=models.CASCADE)  # Added in schema v3
 
     default_plan = models.OneToOneField("Plan", null=False, on_delete=models.CASCADE)
@@ -1728,11 +1745,11 @@ class Process(models.Model):
 
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE)
     name = models.TextField(null=False)
-    name_short = models.TextField(null=True)
-    duration = models.DurationField(null=True)
-    electric_power = models.FloatField(null=True)
+    name_short = models.TextField(null=True, blank=True)
+    duration = models.DurationField(null=True, blank=True)
+    electric_power = models.FloatField(null=True, blank=True)
     dispatchable = models.BooleanField(null=False)
-    availability = models.JSONField(default=dict, null=True)
+    availability = models.JSONField(default=dict, null=True, blank=True)
     plans = models.ManyToManyField(Plan, through="AssocPlanProcess")
 
 
@@ -1741,9 +1758,9 @@ class AreaType(models.TextChoices):
     The AreaType represents a certain type of area, which is used to define the location of a process.
     """
 
-    DIRECT_ONESIDE = "DIRECT_ONESIDE"
-    DIRECT_TWOSIDE = "DIRECT_TWOSIDE"
-    LINEAR = "LINE"
+    DIRECT_ONESIDE = "DIRECT_ONESIDE", _("Schrägabstellung")
+    DIRECT_TWOSIDE = "DIRECT_TWOSIDE", _("Schrägabstellung in Doppelreihe")
+    LINEAR = "LINE", _("Blockabstellung")
 
 
 class Area(models.Model):
@@ -1756,15 +1773,19 @@ class Area(models.Model):
 
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     depot = models.ForeignKey(Depot, null=False, on_delete=models.CASCADE)
-    vehicle_type = models.ForeignKey(VehicleType, null=True, on_delete=models.CASCADE)
-    name = models.TextField(null=True)
-    name_short = models.TextField(null=True)
-    area_type = models.CharField(max_length=14, choices=AreaType.choices, null=True, default=None)
-    bounding_box = models.PolygonField(dim=2, srid=4326, null=True, default=None)
-    row_count = models.IntegerField(null=True, default=None)
+    vehicle_type = models.ForeignKey(VehicleType, null=True, blank=True, on_delete=models.CASCADE)
+    name = models.TextField(null=True, blank=True)
+    name_short = models.TextField(null=True, blank=True)
+    area_type = models.CharField(
+        max_length=14, choices=AreaType.choices, null=True, blank=True, default=None
+    )
+    bounding_box = models.PolygonField(dim=2, srid=4326, null=True, blank=True, default=None)
+    row_count = models.IntegerField(null=True, blank=True, default=None)
     capacity = models.IntegerField(null=False)
     processes = models.ManyToManyField(Process, through="AssocAreaProcess")
-    charging_point_type = models.ForeignKey(ChargingPointType, null=True, on_delete=models.CASCADE)
+    charging_point_type = models.ForeignKey(
+        ChargingPointType, null=True, blank=True, on_delete=models.CASCADE
+    )
 
 
 class AssocPlanProcess(models.Model):
@@ -1795,11 +1816,9 @@ class AssocAreaProcess(models.Model):
     process = models.ForeignKey(Process, on_delete=models.CASCADE)
 
 
-class SimulationRange(models.Model):
+class SimulationTemperatures(models.Model):
     # Mutation Scenario
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
-    start = models.DateTimeField(null=True)
-    end = models.DateTimeField(null=True)
     temperature_average = models.FloatField(
         blank=True,
         default=10,
@@ -1814,33 +1833,21 @@ class SimulationRange(models.Model):
     )
 
 
+# Unused currently but maybe reactivated in the future?
 class DepotSelection(models.Model):
     # Mutation Scenario
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
     depots = models.ManyToManyField(Station)
 
 
-class ElectrificationOptions(models.Model):
-    # Mutation Scenario
-    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
-    gc_power_opps = models.PositiveIntegerField(
-        default=5000, null=False, validators=[MinValueValidator(1), MaxValueValidator(1000000)]
-    )
-
-    cs_power_opps = models.PositiveIntegerField(
-        default=150, null=False, validators=[MinValueValidator(1), MaxValueValidator(1000000)]
-    )
-    amount_charging_places = models.PositiveIntegerField(
-        default=2, null=False, validators=[MinValueValidator(1), MaxValueValidator(9999)]
-    )
-    station_optimization = models.BooleanField(null=False)
-    electrified_stations = models.ManyToManyField(Station)
-
-
 # Models for forms which do not mutate the scenario while in the wizard
 class VehicleTypeSelection(models.Model):
     default_vehicle_type = models.ForeignKey(
-        VehicleType, related_name="formdefaultvehicletype", null=True, on_delete=models.CASCADE
+        VehicleType,
+        related_name="formdefaultvehicletype",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
     )
     vehicle_type = models.ForeignKey(
         VehicleType, related_name="formvehicletype", null=False, on_delete=models.CASCADE
@@ -1848,52 +1855,30 @@ class VehicleTypeSelection(models.Model):
 
 
 class VehicleTypeMutation(models.Model):
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=True, blank=True, on_delete=models.CASCADE)
     original_vehicle_type = models.ForeignKey(
-        VehicleType, related_name="originalvehicletype", null=True, on_delete=models.CASCADE
+        VehicleType,
+        related_name="originalvehicletype",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
     )
     mutated_vehicle_type = models.ForeignKey(
-        VehicleType, related_name="mutatedvehicletype", null=True, on_delete=models.CASCADE
-    )
-
-
-class DepotMutation(models.Model):
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
-    original_depot = models.ForeignKey(
-        Depot, related_name="originaldepot", null=True, on_delete=models.CASCADE
-    )
-    mutated_original_depot = models.ForeignKey(
-        Depot, related_name="mutateddepot", null=True, on_delete=models.CASCADE
+        VehicleType,
+        related_name="mutatedvehicletype",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
     )
 
 
 class StationMutation(models.Model):
-    scenario = models.ForeignKey(Scenario, null=True, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(Scenario, null=True, blank=True, on_delete=models.CASCADE)
     original_station = models.ForeignKey(
-        Station, related_name="originalstation", null=True, on_delete=models.CASCADE
+        Station, related_name="originalstation", null=True, blank=True, on_delete=models.CASCADE
     )
     mutated_original_station = models.ForeignKey(
-        Station, related_name="mutatedstation", null=True, on_delete=models.CASCADE
-    )
-
-
-class EnumCalculationModes(models.TextChoices):
-    AUTOMATIC = "automatic"
-    CONSTANT_POWER = "constant_power"
-    MANUAL = "manual"
-
-
-class ScenarioWizardOptions(models.Model):
-    scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
-    station_calculation_mode = models.CharField(
-        max_length=20, choices=EnumCalculationModes.choices, null=True, default=None
-    )
-    tco_calculation_mode = models.CharField(
-        max_length=20, choices=EnumCalculationModes.choices, null=True, default=None
-    )
-
-    lca_calculation_mode = models.CharField(
-        max_length=20, choices=EnumCalculationModes.choices, null=True, default=None
+        Station, related_name="mutatedstation", null=True, blank=True, on_delete=models.CASCADE
     )
 
 
@@ -1935,9 +1920,13 @@ class AreaInformation(models.Model):
     )
     block_length = models.IntegerField(null=True, blank=True)
     vehicle_type = models.ForeignKey(VehicleType, null=False, on_delete=models.CASCADE, blank=True)
-    area_type = models.CharField(max_length=14, choices=AreaType.choices, null=True, default=None)
-    capacity = models.IntegerField(null=True)
-    power = models.FloatField(null=True)
+    # blank is false although null is true, since django would show an "empty" select.
+    # overriding this behavior is harder than accepting that admins by default have to set a value
+    area_type = models.CharField(
+        max_length=14, choices=AreaType.choices, null=True, blank=False, default=None
+    )
+    capacity = models.IntegerField(null=True, blank=True)
+    power = models.FloatField(null=True, blank=True)
 
 
 class EnumNotificationLevels(models.TextChoices):
@@ -1955,6 +1944,7 @@ class EnumNotificationType(models.TextChoices):
     MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING = "multi_dep_trips_in_block"
     MERGED_STATIONS_FOR_INCONSISTENT_TRIPS = "merged_station_trips_and_routes"
     INTERMEDIATE_DEPOT_STOPS_TRANSFORMED = "transformed_depot_stop_to_opp_station"
+    STATION_OPTIMIZATION_SKIPPED = "station_optimization_skipped"
     UNSTABLE_DEPOT_WARNING = "unstable_sim_w_shifting_socs"
     DELAYED_TRIP_WARNING = "delayed_trip"
     UNEXPECTED_ERROR = "unexpected_error"

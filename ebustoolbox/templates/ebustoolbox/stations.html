@@ -6,7 +6,7 @@
   {% block title %}{% translate 'WeBus - Endhaltestellen' %}{% endblock title %}
 
 {% block wizard_navigation %}
-  {% with wiz_idx=3 %}
+  {% with wiz_idx=4 %}
     {{ block.super }}
   {% endwith %}
 {% endblock wizard_navigation %}
@@ -175,7 +175,7 @@
         id="infoBox"
         class="relative flex gap-8 bg-white text-slate-500 p-6 mb-8 rounded border-l-4 border-slate-400"
       >
-        <button 
+        <button
           type="button"
           onclick="document.getElementById('infoBox').remove()"
           class="absolute top-2 right-4 text-slate-400 hover:text-slate-600 transition"
@@ -222,7 +222,7 @@
         <div id="defaultChargePowerHint" class="text-sm text-slate-500 leading-snug pt-1">{% translate 'Wird auf alle Stationen angewendet, außer individuell überschrieben.' %}</div>
       </div>
       <div class="flex flex-start flex-1">
-        <button 
+        <button
           type="button"
           class="px-6 py-2 bg-slate-200 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300"
           id="showStationsTable"
@@ -336,11 +336,32 @@
 {#                  </span>#}
                 </div>
               </th>
-              <th scope="col" class="w-5/12 py-4 pl-4 pr-3 text-left align-top">
-                <div  class="group inline-flex">
-                  <div class="text-left">
+                  <th scope="col" class="w-5/12 py-4 pl-4 pr-3 text-left align-top">
+                    <div  class="group inline-flex">
+                      <div class="text-left">
                         <span class="text-base font-semibold text-slate-800">{% translate 'Elektrifizierung' %}</span>
-                    <div id="countElectrifiedTotal" class="text-xs font-normal text-slate-500">(0 / 0)</div>
+                        <icon-and-tooltip >
+                          <div class="relative inline-block">
+                            <!-- Info Icon -->
+                            <span class="cursor-pointer group">
+                              <svg xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="2"
+                                stroke="currentColor"
+                                class="size-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                              </svg>
+                              <!-- Tooltip -->
+                              <div class="absolute left-0 top-full  z-10 mt-2 w-96 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                                {% translate 'Klicken Sie auf "Elektrifizieren", "Automatisch" oder "Nicht-elektr.". Dies elektrifiziert alle sichtbaren oder einzelne Stationen für die Simulation, überlässt die Entscheidung WeBus, oder schließt die Station(en) von der autoamtischen Elektrifzierung aus' %}
+                              </div>
+                            </span>
+                          </div>
+
+                        </icon-and-tooltip>
+
+                        <div id="countElectrifiedTotal" class="text-xs font-normal text-slate-500">(0 / 0)</div>
                   </div>
                   <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
 {#                  <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">#}
@@ -372,7 +393,7 @@
                         <path fill="#2E282A" d="M23.578,16.7319l-14,9.9165a1,1,0,0,1-1.395-1.3925l5.8867-8.34H9A1,1,0,0,1,8.4218,15.1l14-9.9165A1,1,0,0,1,23.8544,6.519l-3.981,6.5469L23.48,15.0386a1,1,0,0,1,.0981,1.6933ZM16,3a12.88,12.88,0,0,1,4.521.812A1,1,0,1,0,21.22,1.938,14.9992,14.9992,0,0,0,1.938,21.22a1,1,0,1,0,1.874-.6992A12.88,12.88,0,0,1,3,16,13.0144,13.0144,0,0,1,16,3Zm14.062,7.78a1,1,0,0,0-1.874.6992A12.88,12.88,0,0,1,29,16,13.0144,13.0144,0,0,1,16,29a12.88,12.88,0,0,1-4.521-.812,1,1,0,0,0-.6992,1.874A14.9992,14.9992,0,0,0,30.062,10.78Z"/>
                       </svg>
                     </span>
-                    
+
                     <span class="text-base font-semibold text-slate-800">{% translate 'Ladeleistung pro Punkt' %}</span>
                   </div>
                   <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
@@ -412,7 +433,7 @@
               <td class="px-4 py-3">
                 <div class="flex items-center space-x-2">
                   <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full all-station-btn"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full all-station-btn hover:shadow-lg"
                     data-value="elektrifizieren"
                   >
                     <span class="pr-2">
@@ -424,7 +445,7 @@
                     Elektrifizieren
                   </button>
                   <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full all-station-btn"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full all-station-btn hover:shadow-lg"
                     data-value="automatisch"
                   >
                     <span class="pr-2">
@@ -436,7 +457,7 @@
                     Automatisch
                   </button>
                   <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full all-station-btn"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full all-station-btn hover:shadow-lg"
                     data-value="nicht-elektrifizieren"
                   >
                     <span class="pr-2">
@@ -482,7 +503,7 @@
                 <div id="electrifyState" class="flex items-center space-x-2">
                   <input type="hidden"   {{form.is_electrified|widget_attrs}}>
                   <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-elektrifizieren"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-elektrifizieren hover:shadow-lg"
                     data-color="emerald"
                     data-value="elektrifizieren"
                     data-station-id="{{ station_id }}"
@@ -497,7 +518,7 @@
                   </button>
                   <input type="hidden"  {{form.is_electrifiable|widget_attrs}}>
                   <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-automatisch"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-automatisch hover:shadow-lg"
                     data-color="amber"
                     data-value="automatisch"
                     data-station-id="{{ station_id }}"
@@ -511,8 +532,11 @@
                         {% translate 'Automatisch' %}
                   </button>
                   {# Not electrified does not got an input since it is the default. The state is implied through the other two inputs. #}
+                      <!-- Placeholder for tailwind classes which are added through js magic. The tailwind does not pick up bg-${color}-100.
+                    This way the tailwind-cli picks them up. The other colors are already "known"  -->
+                    <div class="hidden bg-gray-100  text-gray-700 "></div>
                   <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-nicht-elektrifizieren"
+                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-nicht-elektrifizieren hover:shadow-lg"
                     data-color="gray"
                     data-value="nicht-elektrifizieren"
                     data-station-id="{{ station_id }}"
@@ -771,14 +795,14 @@
           // Reset all buttons in the row to their unselected state
           for (let btn of buttons) {
               const color = btn.getAttribute("data-color");
-              btn.classList.remove("shadow", "selected");
+              btn.classList.remove("shadow", "selected", "border-gray-700", "border-2", );
               btn.classList.replace(`bg-${color}-100`, "bg-white");
               btn.classList.replace(`text-${color}-700`, "text-slate-500");
           };
 
           // Apply selected styles to the clicked button
           const color = clickedButton.getAttribute("data-color");
-          clickedButton.classList.add("shadow", "selected");
+          clickedButton.classList.add("shadow", "selected", "border-gray-700","border-2", );
           clickedButton.classList.replace("bg-white", `bg-${color}-100`);
           clickedButton.classList.replace("text-slate-500", `text-${color}-700`);
       }

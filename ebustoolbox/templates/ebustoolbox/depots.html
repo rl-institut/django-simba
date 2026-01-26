@@ -1,4 +1,16 @@
 {% extends 'ebustoolbox/wizard.html' %}
+{% block header %}
+<script>
+function addHTMX(button_id) {
+  button = document.getElementById(button_id);
+  button.setAttribute("hx-post", ".");
+  button.setAttribute("hx-swap", "outerHTML ");
+  form_container= button.closest(".depot-form-container");
+  button.setAttribute("hx-target", "#"+form_container.id);
+  button.setAttribute("hx-select", "#"+form_container.id);
+}
+</script>
+{% endblock header %}
 {% load i18n %}
 {% load custom_filters %}
 {% load widget_tweaks %}
@@ -6,7 +18,7 @@
   {% translate "WeBus - Depots" %}
 {% endblock title %}
 {% block wizard_navigation %}
-  {% with wiz_idx=5 %}{{ block.super }}{% endwith %}
+  {% with wiz_idx=6 %}{{ block.super }}{% endwith %}
 {% endblock wizard_navigation %}
 {% block wizard_content %}
   <main class="flex flex-col items-center flex-grow">
@@ -18,7 +30,7 @@
           {% with depot_form=form_dict.depot_config %}
             <!-- Accordion Item {{depot.id}} -->
             <section class="">
-              <div id='DepotContent{{ depot.id }}' data-value='{{depot.id}}' class="accordion-container" >
+              <div id='DepotContent{{ depot.id }}' data-value='{{depot.id}}' class="accordion-container overflow-hidden" >
                 <div class="rounded-lg bg-white shadow mb-0">
                   <button type='button'
                           onclick="toggleAccordion(this)"
@@ -39,7 +51,7 @@
                     </div>
                   </button>
                   <div id="content-{{ depot.id }}"
-                       class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out accordion-content">
+                       class="max-h-0 transition-all duration-300 ease-in-out accordion-content">
                     <!-- General Depot configuration -->
                     {% include "ebustoolbox/partials/depot_configuration_wish.html" %}
                   </div>
@@ -80,6 +92,23 @@
 
   }
 
+
+  // This allows the active panel to overflow after the transition completed.
+  // Otherwise tooltips which overflow would be hidden when they leave the div
+  window.addEventListener('load', e =>{
+    const containers = document.querySelectorAll('div.accordion-container');
+    containers.forEach((container) => {
+    container.addEventListener('transitionend', e => {
+          if (e.propertyName !== 'max-height') return;
+      if (e.target.style.maxHeight!=="0px")
+          // The panel was activated. make sure its allowed to overflow
+          // overflow-hidden is added when a panel is closed via toggleAccordion
+          container.classList.remove('overflow-hidden');
+      container.style.height = '';
+    });
+    });
+  });
+
   function toggleAccordion(button) {
     if (toggleAccordion.open == button ) {
       return
@@ -87,7 +116,6 @@
     const container = button.closest('div.accordion-container');
     index = container.dataset.value;
     const content = document.getElementById(`content-${index}`);
-    content.classList.toggle('overflow-hidden');
     const icon = document.getElementById(`icon-${index}`);
 
     if (toggleAccordion.open != undefined) {
@@ -112,6 +140,8 @@
 
     // Toggle the content's max-height for smooth opening and closing
     if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+      // while the container expands ensure that the overflow-is hidden
+      container.classList.add('overflow-hidden');
       content.style.maxHeight = '0';
       icon.innerHTML = upSVG;
     } else {
@@ -148,7 +178,7 @@
   <script>
 
 function validateDepotContainers(){
-  console.log('validating');
+  console.log('Validating inputs');
   var containers = document.querySelectorAll("div[id^='DepotContent']");
   containers.forEach((container) => {
   var header = container.querySelector('button.accordion-header');
@@ -200,5 +230,52 @@ document.querySelectorAll('input, change, select').forEach(el => {
 debounce(validateDepotContainers,100)();
 
   </script>
+
+
+<script>
+function dispatchCheckBlockEvent(event){
+ event.target.dispatchEvent(new CustomEvent('checkblocklength', {bubbles: true}));
+}
+
+
+function findClosestDivider(total, divider, prev_divider) {
+  // We use the previous divider to determine, the direction the user used the stepper and enforce
+  // to find an element in this direction, so there is no lock in effect for needed steps > stepsize
+  total = parseInt(total);
+  divider = parseInt(divider);
+  divider = Math.min(total,divider);
+  min_value = 2;
+  divider = Math.max(min_value,divider);
+  if (total % divider == 0) return divider;
+  var bigger = divider;
+  while (bigger<total && total % bigger != 0) bigger++;
+  var smaller = divider;
+  while (smaller>min_value && total % smaller != 0) smaller--;
+  // Set the default output to the bigger value
+  output = bigger;
+  // Use the smaller divider if it is closer to the target and not identical with the previous divider
+  if (total % smaller == 0){
+  if (divider - smaller< bigger-divider && prev_divider != smaller ) output=smaller;
+  else {
+    // if the bigger divider is closer to the target but indentical we also use the smaller divider
+    if (prev_divider == bigger) output=smaller;
+  }
+  }
+
+  return output;
+}
+
+
+function getBlockLength(capacity, block_length, prev_block_length, element) {
+  let new_block_length = findClosestDivider(capacity, block_length, prev_block_length);
+
+  if (new_block_length != block_length && !Number.isNaN(block_length) && block_length != "") {
+    notification=element.querySelector(".notification")
+     notification.dispatchEvent(new CustomEvent('blocklengthchanged', {bubbles: false}));
+  }
+  return new_block_length;
+}
+
+</script>
 
 {% endblock script %}

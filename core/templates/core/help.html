@@ -1,7 +1,5 @@
 {% extends 'core/base.html' %}
-
 {% load i18n %}
-
 {% block title %}
   {% translate 'WeBus - Hilfe' %}
 {% endblock title %}
@@ -10,32 +8,35 @@
     <div class="w-full max-w-7xl sm:px-6 sm:pb-4 sm:pt-8 lg:px-8 lg:pt-12">
       <h1 class="pb-8 text-4xl font-semibold">{% translate 'Hilfe' %}</h1>
       <div class="max-w-2xl">
-        <h2 class="pb-2 pt-4 text-2xl font-semibold">
+        <section>
+          <h2 id='webus' class="pb-2 pt-4 text-2xl font-semibold">
           <a href="#webus">{% translate 'WeBus' %}</a>
         </h2>
         <p class="text-base pb-4 leading-relaxed text-slate-500">
           {% blocktranslate %}WeBus hilft Ihnen bei der Umstellung ihres Bussystems vom Dieselbetrieb auf den elektrischen Betrieb.
         Sie können den Einfluss verschiedener Fahrzeugparameter erproben, die Elektrifizierung von Endhaltestellen testen, entscheidende Parameter ihres Fahrzeugdepots bestimmen und vieles mehr.
         WeBus stellt ihnen hierzu eine Weboberfläche zur Verfügung, die ihr spezifisches System in einer Simulation berechnet.
-        Hierzu wird ein Modell erstellt welches, die beiden Open-Source-Tools SimBA und eFLIPs miteinander kombiniert.
+        Hierzu wird ein Modell erstellt, welches die beiden Open-Source-Tools SimBA und eFLIPS miteinander kombiniert.
 
-        In den folgenden Abschnitten finden sie Erklärungen zu den einzelnen Schritten, die nötig sind, um eine Simulation durchzuführen, Informationen zu technischen Hintergründen, so wie Erläuterungen zu den Ergebnissen der Simulation.
+        In den folgenden Abschnitten finden sie Erklärungen zu den Eingabeparametern, Informationen zu technischen Hintergründen, sowie Erläuterungen zu den Ergebnissen der Simulation.
           <!-- TODO needs styling -->
          <li class="list-inside list-disc py-1 text-slate-800">Sie möchten mehr über das Projekt erfahren?  WeBus. </li>
          <li class="list-inside list-disc py-1 text-slate-800">Sie haben einen Fehler gefunden oder vermissen ein Feature?  Kontakt. </li>
         {% endblocktranslate %}
         </p>
-        <h2 class="pb-2 pt-4 text-2xl font-semibold">
+        </section>
+        <section>
+          <h2 id='umlaufplan' class="pb-2 pt-4 text-2xl font-semibold">
           <a href="#umlaufplan">{% translate 'Umlaufplan' %}</a>
         </h2>
         <p class="text-base pb-4 leading-relaxed text-slate-500">
           {% blocktranslate %}
-        Für die Simulation von Ihrem Bussystem benötigt WeBus Eingangsdaten. Diese können in folgenden Formaten hochgeladen werden:
+        Für die Simulation Ihres Bussystems benötigt WeBus Eingangsdaten. Diese können in folgenden Formaten hochgeladen werden:
       </p>
         <li class="list-inside list-disc py-1 text-slate-800">VDV 452</li>
         <li class="list-inside list-disc py-1 text-slate-800">SimBA .csv</li>
 
-      <h3 class="pb-2 pt-4 text-xl font-semibold"><a href="#vdv_452">VDV 452</a></h3>
+      <h3 id='vdv_452' class="pb-2 pt-4 text-xl font-semibold"><a href="#vdv_452">VDV 452</a></h3>
       <p class="text-base pb-4 leading-relaxed text-slate-500">
       Die <a class="text-blue-600 hover:underline" href="https://www.vdv.de/downloads/4328/452V1%206%20SDS/forced">VDV Schrift 452</a> beschreibt eine Schnittstelle zum Austausch von verschiedenen Informationen,
       wie z.B. zu Sollfahrplänen, Liniennetz, Anschlussdefinitionen und Elektromobilität.
@@ -76,7 +77,7 @@
           <p class="text-base pb-4 leading-relaxed text-slate-500">
         Die Dateien müssen als .zip Datei hochgeladen werden und werden automatisch von WeBus verarbeitet. Es werden Dateigrößen bis {{max_file_size_mb}} MB erlaubt.
         </p>
-      <h3 class="pb-2 pt-4 text-xl font-semibold"><a href="#simba_schedule">SimBA Format</a></h3>
+      <h3 id='simba_schedule' class="pb-2 pt-4 text-xl font-semibold"><a href="#simba_schedule">SimBA Format</a></h3>
       <p class="text-base pb-4 leading-relaxed text-slate-500">
         WeBus erlaubt das .csv Dateiformat nach SimBA Spezifikation. Dies ist ein spezifisches Format für <a class="text-blue-600 hover:underline" href="https://github.com/rl-institut/SimBA">SimBA</a>. Die Formatspezifikation finden Sie <a class="text-blue-600 hover:underline" href='https://rli-simba.readthedocs.io/en/latest/simulation_parameters.html#schedule'>hier</a>. Für WeBus kann ein weiter reduziertes Format genutzt werden.
         WeBus erwartet eine .csv Datei mit Komma / ',' als Trennzeichen. Folgende Spaltennamen MÜSSEN enthalten sein.
@@ -162,7 +163,7 @@
                   <td class="border-b border-slate-200 px-4 py-2">UMLAUF_001</td>
                   <td class="border-b border-slate-200 px-4 py-2">M250</td>
                 </tr>
-                <tr class="hover:bg-slate-50">
+                <tr class="hover:bg-slate-100">
                   <td class="border-b border-slate-200 px-4 py-2">Hauptbahnhof</td>
                   <td class="border-b border-slate-200 px-4 py-2">2025-06-30T18:38:30+02:00</td>
                   <td class="border-b border-slate-200 px-4 py-2">Rathaus</td>
@@ -171,7 +172,7 @@
                   <td class="border-b border-slate-200 px-4 py-2">UMLAUF_001</td>
                   <td class="border-b border-slate-200 px-4 py-2">M250</td>
                 </tr>
-                <tr class="hover:bg-slate-50">
+                <tr class="hover:bg-slate-100">
                   <td class="border-b border-slate-200 px-4 py-2">Rathaus</td>
                   <td class="border-b border-slate-200 px-4 py-2">2025-06-30T18:42:30+02:00</td>
                   <td class="border-b border-slate-200 px-4 py-2">Depot Hauptstraße</td>
@@ -183,24 +184,53 @@
               </tbody>
             </table>
           </div>
-      <h3 class="pb-2 pt-4 text-xl font-semibold"><a href="#consistency">Konsistenz</a></h3>
+          <h3 id='consistency' class="pb-2 pt-4 text-xl font-semibold"><a href="#consistency">Konsistenz</a></h3>
       <p class="text-base pb-4 leading-relaxed text-slate-500">
       Für die erfolgreiche Simulation benötigt WeBus konsistente Daten. Ist dies nicht gegeben, kann das Hochladen der Datei fehlschlagen oder es kann zum Absturz der Simulation führen.
       Folgende Punkte müssen im Umlaufplan beachtet werden.
-      <li class="list-inside list-disc py-1 text-slate-800">Ein Umlauf kann nicht durch mehrere Fahrzeugtypen bedient werden.</li>
-      <li class="list-inside list-disc py-1 text-slate-800">Ein Umlauf muss in einem Depot starten und Enden.</li>
-      <li class="list-inside list-disc py-1 text-slate-800">Das Depot, in dem ein Umlauf startet und endet, muss identisch sein.</li>
-      <li class="list-inside list-disc py-1 text-slate-800">Fahrten eines Umlaufes müssen nacheinander stattfinden. Fahrtzeiten dürfen sich <b>nicht</b> überschneiden.</li>
-      <li class="list-inside list-disc py-1 text-slate-800">Fahrten müssen von der Station abfahren bei der sie kürzlich angekommen sind.</li>
+      <ul class="list-inside list-disc text-slate-800">
+      <li class="py-1">Ein Umlauf kann nicht durch mehrere Fahrzeugtypen bedient werden.</li>
+      <li class="py-1">Ein Umlauf muss in einem Depot starten und enden.</li>
+      <li class="py-1">Das Depot, in dem ein Umlauf startet und endet, muss identisch sein.</li>
+      <li class="py-1">Fahrten eines Umlaufes müssen nacheinander stattfinden. Fahrtzeiten dürfen sich <b>nicht</b> überschneiden.</li>
+      <li class="py-1">Fahrten müssen von der Station abfahren, bei der sie kürzlich angekommen sind.</li>
         </p>
 
       {% endblocktranslate %}
-          <h2 class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Fahrzeuge' %}</h2>
-          <p class="text-base pb-4 leading-relaxed text-slate-500">
+          </section>
+          <section>
+            <h2 id='filter' class="pb-2 pt-4 text-2xl font-semibold"><a href="#filter">{% translate 'Filter' %}</h2></a>
+            <p class="text-base pb-4 leading-relaxed text-slate-500">
+              {% blocktrans %}
+            WeBus erlaubt Ihnen eine vereinfachte Simulation von Teilen Ihres Bussystems, auch wenn Ihnen nur eine Datei des Umlaufplans vorliegt. Hierzu können Sie auf der Seite Filter eine Unterauswahl aus Umläufen und Depots treffen. Drei Filter stehen zur Verfügung.
+            <ul class="list-inside list-disc text-slate-700">
+            <li class="py-1">Filtern nach Zeitspanne</li>
+                <ul class="list-inside list-disc pl-6">
+                  <li class="py-1">Nur Umläufe, die innerhalb dieser Zeitspanne <b>starten</b>, werden simuliert</li>
+                </ul>
+              <li class="py-1">Filtern nach Depots</li>
+                <ul class="list-inside list-disc pl-6">
+                  <li class="py-1">Nur Umläufe, die von diesem Depot starten, werden simuliert</li>
+                </ul>
+            </ul>
+
+      <p class="text-base pb-4 leading-relaxed text-slate-500">
+            Bei der Auswahl von Filtern wird sofort berechnet, welche Anzahl an Umläufen in diesem Umlaufplan verbleibt. Dies kann einige Sekunden dauern. Welche Depots und Linien mit der getätigten Auswahl bedient werden, können Sie sehen, nachdem Sie den Button "aktuelle Auswahl anzeigen" geklickt haben. Der Filter kann durch den Button "Filter Löschen" auf den ungefilterten Startzustand gesetzt werden.
+            <br>
+            <b>Nachdem Sie auf "Weiter" geklickt haben, werden Daten aus dem Szenario gelöscht, welche nicht die verbleibenden Umläufe betreffen.</b>
+            <br>
+            Dieser Vorgang kann für das bestehende Szenario nicht rückgängig gemacht werden. Sie können allerdings ein neues Szenario auf Basis der eingelesenen Datei oder des Quellszenarios erstellen.
+            Die Filterung verändert nicht die Quellszenarien. Die ursprünglichen Datensätze aus der Quelldatei können im Reiter "Szenarien" eingesehen werden. Ihnen wird automatisch der Namenssuffix "[ungefiltert]" gegeben.
+            {% endblocktrans %}
+            </p>
+          </section>
+          <section>
+            <a href="#vehicles" id='vehicles' class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Fahrzeuge' %}</a>
+            <p class="text-base pb-4 leading-relaxed text-slate-500">
             {% blocktrans %}
-          WeBus erkennt Fahrzeugtypen automatische aus dem Umlaufplan.
+          WeBus erkennt Fahrzeugtypen automatisch aus dem Umlaufplan.
           Diesen Fahrzeugtypen müssen technische Eigenschaften zugeordnet werden, sodass die Simulation ausgeführt werden kann.
-          Hierzu können sie jedem Fahrzeugtyp ihres Umlaufplans ein Fahrzeugtyp aus der Fahrzeugbibliothek von WeBus zuordnen.
+          Hierzu können sie jedem Fahrzeugtyp Ihres Umlaufplans ein Fahrzeugtyp aus der Fahrzeugbibliothek von WeBus zuordnen.
           Die Fahrzeugtypen besitzen verschiedene Eigenschaften wie Ladekurven, Batteriekapazitäten, Gewichte, geometrische Abmessungen und Verbrauchstabellen.
           Ausgewählte Parameter können Sie überschreiben.
           WeBus optimiert ihren Umlaufplan bezogen auf die Anzahl benötigter Fahrzeuge, indem die Fahrzeugdisposition Umläufe mit dem gleichen Fahrzeug bedient, wenn operative und energetische Randbedingungen es zulassen.
@@ -222,166 +252,175 @@
                   <th class="border-b border-slate-200 px-4 py-2">Erforderlich</th>
                 </tr>
               </thead>
-              <tbody>
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">name</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[-]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Name des Fahrzeugtyps</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Keine Empfehlung</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Erforderlich</td>
-                </tr>
-
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">name_short</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[-]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Kurzname des Fahrzeugtyps</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Keine Empfehlung</td>
-                  <td class="border-b border-slate-200 px-4 py-2">optional</td>
-                </tr>
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">opportunity_charging_capable</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[bool]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Kann das Fahrzeug Zwischenladen?</td>
-                  <td class="border-b border-slate-200 px-4 py-2">True</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Erforderlich</td>
-                </tr>
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">battery_capacity</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[kWh]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Welche Batteriekapazität steht der Fahrt im Normalbetrieb zur Verfügung?</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Werte zwischen 50 und 800</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Erforderlich</td>
-                </tr>
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">battery_capacity_reserve</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[kWh]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Welche Reserve-Batteriekapazität steht für Ausnahme Situationen zur Verfügung?</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Werte zwischen 0 und 300</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Erforderlich</td>
-                </tr>
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">charging_efficiency</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[-]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Welche durchschnittliche Gesamtladeeffizienz hat der Fahrzeugtyp?</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Werte zwischen 0.8 und 0.99</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Erforderlich</td>
-                </tr>
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">minimum_charging_power</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[kW]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Unter welcher Ladeleistung ist die Ladung des Fahrzeugs nicht mehr möglich?</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Werte zwischen 0.8 und 0.99</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Erforderlich</td>
-                </tr>
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">charging_curve</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[-,kW]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Liste aus Wertepaaren bestehend aus SoC [0 bis 1] und Ladeleistungen [kW]. Werte unterhalb und oberhalb des minimalen bzw. maximalen SoCs werden als konstant betrachtet. Werte innerhalb werden linear interpoliert. </td>
-                  <td class="border-b border-slate-200 px-4 py-2">Abnehmende Leistung im oberen SoC-Bereich. Ladekurven, die nicht monoton fallend sind, werden nicht unterstützt.</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Erforderlich</td>
-                </tr>
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">v2g_curve</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[-,kW]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Liste aus Wertepaaren bestehend aus SoC [0 bis 1] und Entladeleistungen [kW] vom Fahrzeug ins Netz. Werte unterhalb und oberhalb des minimalen bzw. maximalen SoCs werden als konstant betrachtet. Werte innerhalb werden linear interpoliert. </td>
-                  <td class="border-b border-slate-200 px-4 py-2">Abnehmende Leistung im oberen SoC-Bereich.</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Optional</td>
-                </tr>
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">consumption</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[kWh/km]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Durchschnittlicher elektrischer Verbrauch pro km</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Werte im Bereich von 0,3 bis 4</td>
-                <td class="border-b border-slate-200 px-4 py-2">Erforderlich wenn keine ausführliche Verbrauchstabelle vorhanden ist (siehe <a href="#consumption">Verbrauch</a>)</td>
-                </tr>
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">max_consumption</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[kWh/km]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Maximaler elektrischer Verbrauch pro km für den Auslegungsfall von Infrastruktur</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Werte im Bereich von 0.3 bis 8</td>
-                <td class="border-b border-slate-200 px-4 py-2">Erforderlich wenn keine ausführliche Verbrauchstabelle vorhanden ist (siehe <a href="#consumption">Verbrauch</a></td>
-                </tr>
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">length</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[m]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Länge des Fahrzeugtyps, welche für die Depotauslegung genutzt wird.</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Werte im Bereich von 5 bis 19</td>
-                <td class="border-b border-slate-200 px-4 py-2">Optional</td>
-                </tr>
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">width</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[m]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Breite des Fahrzeugtyps, welche für die Depotauslegung genutzt wird.</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Werte im Bereich von 2 bis 3</td>
-                <td class="border-b border-slate-200 px-4 py-2">Optional</td>
-                </tr>
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">height</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[m]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Höhe des Fahrzeugtyps</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Werte im Bereich von 3 bis 4</td>
-                <td class="border-b border-slate-200 px-4 py-2">Optional</td>
-                </tr>
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">empty_mass</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[kg]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Leermasse des Fahrzeugtyps</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Werte im Bereich von 2&nbsp;000 bis 20&nbsp;000</td>
-                <td class="border-b border-slate-200 px-4 py-2">Optional</td>
-                </tr>
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">allowed_mass</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[kg]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Zulässiges Geschamtgewicht</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Werte im Bereich von 2&nbsp;500 bis 40&nbsp;000</td>
-                <td class="border-b border-slate-200 px-4 py-2">Optional</td>
-                </tr>
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">vehicle_classes</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[int]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Verweise auf Fahrzeugklassen der Datenbank, welche weitere Informationen über das Fahrzeug speichern. Dies ist erforderlich, wenn eine ausführliche Verbrauchstabelle genutzt werden soll (siehe <a href="#consumption">Verbrauch</a>)</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Keine Empfehlung</td>
-                <td class="border-b border-slate-200 px-4 py-2">Optional</td>
-
-                <tr class="hover:bg-slate-50">
-                  <td class="border-b border-slate-200 px-4 py-2">battery_type</td>
-                  <td class="border-b border-slate-200 px-4 py-2">[int]</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Verweise auf BatteryType Objekte der Datenbank, welche weitere Informationen über die Fahrzeugbatterie speichern. Dies ermöglicht eine LCA Analyse.</td>
-                  <td class="border-b border-slate-200 px-4 py-2">Keine Empfehlung</td>
-                <td class="border-b border-slate-200 px-4 py-2">Optional</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-            {% endblocktrans %}
-
-
-
-          <h2 class="text-2xl font-semibold pt-4 pb-2"><a href="#temperaturen">{% translate 'Temperaturen' %}</a></h2>
+              <tbody class="[&>tr:hover]:bg-slate-100 [&_td]:border-b [&_td]:border-slate-200 [&_td]:px-4 [&_td]:py-2">
+                  <tr class>
+                    <td>name</td>
+                    <td>[-]</td>
+                    <td>Name des Fahrzeugtyps</td>
+                    <td>Keine Empfehlung</td>
+                    <td>Erforderlich</td>
+                  </tr>
+                  <tr>
+                    <td>name_short</td>
+                    <td>[-]</td>
+                    <td>Kurzname des Fahrzeugtyps</td>
+                    <td>Keine Empfehlung</td>
+                    <td>optional</td>
+                  </tr>
+                  <tr>
+                    <td>opportunity_charging_capable</td>
+                    <td>[bool]</td>
+                    <td>Kann das Fahrzeug zwischenladen?</td>
+                    <td>True</td>
+                    <td>Erforderlich</td>
+                  </tr>
+                  <tr>
+                    <td>battery_capacity</td>
+                    <td>[kWh]</td>
+                    <td>
+                      Welche Batteriekapazität steht der Fahrt im Normalbetrieb zur Verfügung?
+                    </td>
+                    <td>Werte zwischen 50 und 800</td>
+                    <td>Erforderlich</td>
+                  </tr>
+                  <tr>
+                    <td>battery_capacity_reserve</td>
+                    <td>[kWh]</td>
+                    <td>
+                      Welche Reserve-Batteriekapazität steht für Ausnahmesituationen zur Verfügung?
+                    </td>
+                    <td>Werte zwischen 0 und 300</td>
+                    <td>Erforderlich</td>
+                  </tr>
+                  <tr>
+                    <td>charging_efficiency</td>
+                    <td>[-]</td>
+                    <td>Welche durchschnittliche Gesamtladeeffizienz hat der Fahrzeugtyp?</td>
+                    <td>Werte zwischen 0.8 und 0.99</td>
+                    <td>Erforderlich</td>
+                  </tr>
+                  <tr>
+                    <td>minimum_charging_power</td>
+                    <td>[kW]</td>
+                    <td>
+                      Unter welcher Ladeleistung ist die Ladung des Fahrzeugs nicht mehr möglich?
+                    </td>
+                    <td>Werte zwischen 0.8 und 0.99</td>
+                    <td>Erforderlich</td>
+                  </tr>
+                  <tr>
+                    <td>charging_curve</td>
+                    <td>[-,kW]</td>
+                    <td>
+                      Liste aus Wertepaaren bestehend aus SoC [0 bis 1] und Ladeleistungen [kW]. Werte unterhalb und oberhalb des minimalen bzw. maximalen SoCs werden als konstant betrachtet. Werte innerhalb werden linear interpoliert.
+                    </td>
+                    <td>
+                      Abnehmende Leistung im oberen SoC-Bereich. Ladekurven, die nicht monoton fallend sind, werden nicht unterstützt.
+                    </td>
+                    <td>Erforderlich</td>
+                  </tr>
+                  <tr>
+                    <td>v2g_curve</td>
+                    <td>[-,kW]</td>
+                    <td>
+                      Liste aus Wertepaaren bestehend aus SoC [0 bis 1] und Entladeleistungen [kW] vom Fahrzeug ins Netz. Werte unterhalb und oberhalb des minimalen bzw. maximalen SoCs werden als konstant betrachtet. Werte innerhalb werden linear interpoliert.
+                    </td>
+                    <td>Abnehmende Leistung im oberen SoC-Bereich.</td>
+                    <td>Optional</td>
+                  </tr>
+                  <tr>
+                    <td>consumption</td>
+                    <td>[kWh/km]</td>
+                    <td>Durchschnittlicher elektrischer Verbrauch pro km</td>
+                    <td>Werte im Bereich von 0,3 bis 3</td>
+                    <td>
+                      Erforderlich, wenn keine ausführliche Verbrauchstabelle vorhanden ist (siehe <a href="#consumption">Verbrauch</a>)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>max_consumption</td>
+                    <td>[kWh/km]</td>
+                    <td>
+                      Maximaler elektrischer Verbrauch pro km für den Auslegungsfall von Infrastruktur
+                    </td>
+                    <td>Werte im Bereich von 0.5 bis 4</td>
+                    <td>
+                      Erforderlich wenn keine ausführliche Verbrauchstabelle vorhanden ist (siehe <a href="#consumption">Verbrauch</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>length</td>
+                    <td>[m]</td>
+                    <td>
+                      Länge des Fahrzeugtyps, welche für die Depotauslegung genutzt wird.
+                    </td>
+                    <td>Werte im Bereich von 5 bis 27</td>
+                    <td>Optional</td>
+                  </tr>
+                  <tr>
+                    <td>width</td>
+                    <td>[m]</td>
+                    <td>
+                      Breite des Fahrzeugtyps, welche für die Depotauslegung genutzt wird.
+                    </td>
+                    <td>Werte im Bereich von 2 bis 3</td>
+                    <td>Optional</td>
+                  </tr>
+                  <tr>
+                    <td>height</td>
+                    <td>[m]</td>
+                    <td>Höhe des Fahrzeugtyps</td>
+                    <td>Werte im Bereich von 3 bis 4</td>
+                    <td>Optional</td>
+                  </tr>
+                  <tr class="hover:bg-slate-50">
+                    <td>empty_mass</td>
+                    <td>[kg]</td>
+                    <td>Leermasse des Fahrzeugtyps</td>
+                    <td>Werte im Bereich von 2&nbsp;000 bis 20&nbsp;000</td>
+                    <td>Optional</td>
+                  </tr>
+                  <tr>
+                    <td>allowed_mass</td>
+                    <td>[kg]</td>
+                    <td>Zulässiges Geschamtgewicht</td>
+                    <td>Werte im Bereich von 2&nbsp;500 bis 40&nbsp;000</td>
+                    <td>Optional</td>
+                  </tr>
+                  <tr class="hover:bg-slate-50">
+                    <td>vehicle_classes</td>
+                    <td>[int]</td>
+                    <td>
+                      Verweise auf Fahrzeugklassen der Datenbank, welche weitere Informationen über das Fahrzeug speichern. Dies ist erforderlich, wenn eine ausführliche Verbrauchstabelle genutzt werden soll (siehe <a href="#consumption">Verbrauch</a>)
+                    </td>
+                    <td>Keine Empfehlung</td>
+                    <td>Optional</td>
+                    <tr>
+                      <td>battery_type</td>
+                      <td>[int]</td>
+                      <td>
+                        Verweise auf BatteryType Objekte der Datenbank, welche weitere Informationen über die Fahrzeugbatterie speichern.
+                      </td>
+                      <td>Keine Empfehlung</td>
+                      <td>Optional</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+                          {% endblocktrans %}
+            </section>
+            <section>
+              <h2 id="temperaturen" class="text-2xl font-semibold pt-4 pb-2">
+                <a href="#temperaturen">{% translate 'Temperaturen' %}</a>
+              </h2>
           <p class="text-base pb-4 leading-relaxed text-slate-500">
           {% blocktrans %}
-          Die Einstellungen in Temperaturen unterstüzt Sie bei der Auswahl geeigneter Verbräuche wenn Sie diese manuell auswählen möchten. Wenn aus dem hochgeladenen Umlaufplan geographische Informationen ausgelesen werden konnte,
+          Die Einstellungen in Temperaturen unterstüzen Sie bei der Auswahl geeigneter Verbräuche, wenn Sie diese manuell auswählen möchten. Wenn aus dem hochgeladenen Umlaufplan geographische Informationen ausgelesen werden konnten,
           wird eine Wetterstation des <a href="https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/">DWD</a> in der Nähe der Systemmitte gesucht und die Temperaturdaten des Jahres 2024 werden analysiert. Für die gewählten Temperaturen wird ein Verbrauchswert aus Basis des gewählten Fahrzeugtyps und der mittleren Geschwindigkeit der Fahrten abgeschätzt. Dieser Wert kann Ihnen als Indikator dienen, welchen Verbrauch die Simulation nutzen wird. Dieser Wert ist ein Schätzwert und kann sich in der nachfolgenden Simulation verändern. Wahlweise kann der Verbrauch des Fahrzeugs durch einen konstanten Wert überschrieben werden. Auf Fahrzeugtypen mit einem konstanten Verbrauch hat die Wahl der Temperaturen keinen Einfluss.
-          ' %}</p>
+          </p>
           {% endblocktrans %}
-
+              </section>
+              <section>
           <h2 class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Endhaltestellen' %}</h2>
           <p class="text-base pb-4 leading-relaxed text-slate-500">
           {% blocktrans %}
@@ -392,8 +431,8 @@
           Die Ladesäulen werden "greedy" besetzt. Ein eintreffendes Fahrzeug nutzt also stets die Möglichkeit zu laden.
           Bei diesen Zwischenladungen wird kein komplexer Mechanismus genutzt, um Fahrzeugen das Laden zu untersagen, oder die Ladung vorzeitig abzubrechen.
           Dies erscheint für den realen Betrieb als unpraktikabel. In der Benutzeroberfläche werden vorerst nur Haltestellen mit mindestens 2 Minuten Standzeit angezeigt.
-          Stationen bei denen kein einziger Bus, mindestens einmal für mindestens 2 Minuten steht werden ausgeblendet.
-          Dies erlaubt die gezielt Elektrifizierung von Stationen die tatsächlich eine relevante Menge an Ladeleistung ins Fahrzeug einbringen können.
+          Stationen, bei denen kein einziger Bus mindestens einmal für mindestens 2 Minuten steht, werden ausgeblendet.
+          Dies erlaubt die gezielte Elektrifizierung von Stationen, die eine relevante Menge an Energie ins Fahrzeug einbringen können.
 
 
           <h4 class="text-m pb-1 pt-4 font-semibold" >Elektrifizierung</h4>
@@ -414,17 +453,17 @@
 
           <h4 class="text-m pb-1 pt-4 font-semibold" >Empfehlung</h4>
           <p class="text-m pb-2 leading-relaxed text-slate-500">
-          Die Auswahl der richtigen Haltestellen die elektrifiziert werden müssen, um ein fahrbares Szenario zu erstellen, kann sehr komplex sein. Daher wird empfohlen folgendermaßen vorzugehen:
+          Die Auswahl der richtigen Haltestellen, die elektrifiziert werden müssen, um ein fahrbares Szenario zu erstellen, kann sehr komplex sein. Daher wird empfohlen folgendermaßen vorzugehen:
           </p>
           <ul class="list-disc">
-          <li class="list-inside py-1 text-slate-800">Schalten Sie Stationen, die nicht elektrifiziert werden dürfen oder können, z.B. wegen Platzgründen, auf "nicht-elektrifizieren".</li>
-          <li class="list-inside py-1 text-slate-800">Schalten Sie Stationen, die definitiv elektrifiziert werden sollen, auf "elektrifiziert" und stellen die Parameter entsprechend ein.</li>
-          <li class="list-inside py-1 text-slate-800">Schalten Sie alle anderen Stationen auf "automatisch".</li>
+          <li class="list-inside py-1 text-slate-700">Schalten Sie Stationen, die nicht elektrifiziert werden dürfen oder können, z.B. wegen Platzgründen, auf "nicht-elektrifizieren".</li>
+          <li class="list-inside py-1 text-slate-700">Schalten Sie Stationen, die definitiv elektrifiziert werden sollen, auf "elektrifiziert" und stellen die Parameter entsprechend ein.</li>
+          <li class="list-inside py-1 text-slate-700">Schalten Sie alle anderen Stationen auf "automatisch".</li>
           </ul>
 
           <p class="text-m pb-2 leading-relaxed text-slate-500">
-          Somit erreichen Sie optimale Startbedingungen um ein fahrbares Szenario zu erstellen.
-          In weiteren Iterationen können sie durchs wahlweise setzen von Elektrifizierung und Nicht-Elektrifizierung von Stationen, weitere Varianten erstellen.
+          Somit erreichen Sie optimale Startbedingungen, um ein fahrbares Szenario zu erstellen.
+          In weiteren Iterationen können sie durchs wahlweise setzen von Elektrifizierung und Nicht-Elektrifizierung von Stationen weitere Varianten erstellen.
           </p>
 
           <h2 class="pb-2 pt-4 text-2xl font-semibold">Erweiterte Optionen</h2>
@@ -536,17 +575,20 @@
             </table>
           </div>
           {% endblocktrans %}
-          <a href="#depots" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Kosten' %}</a>
-          <p class="text-base pb-4 leading-relaxed text-slate-500">
+            </section>
+            <section>
+              <a id='costs' href="#costs" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Kosten' %}</a>
+              <p class="text-base pb-4 leading-relaxed text-slate-500">
             {% translate 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.' %}
           </p>
           <a href="#depots" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Depots' %}</a>
           <p class="text-base pb-4 leading-relaxed text-slate-500">
             {% translate 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.' %}
           </p>
-
-          <a href="#optimization" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Optimierung' %}</a>
-          <p class="text-base pb-4 leading-relaxed text-slate-500">
+                </section>
+                <section>
+                  <a id='optimization' href="#optimization" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Optimierung' %}</a>
+                  <p class="text-base pb-4 leading-relaxed text-slate-500">
             {% blocktrans %}
           WeBus kann ihr Bussystem optimieren. Zwei Optimierungsmethoden werden standardmäßig angewandt
           </p>
@@ -554,9 +596,9 @@
           <p class="text-base pb-4 leading-relaxed text-slate-500">
           Sollte Ihr Bussystem mit den ausgewählten Fahrzeugtypen nicht fahrbar sein, so besteht die Möglichkeit das mittels Stationsoptimierung ein fahrbarer Zustand erreicht wird.
           Nicht fahrbar bedeutet in diesem Kontext: Ein voll geladener Bus kann einen Umlauf nicht bedienen, ohne dass der SoC des Fahrzeugs unter 0&nbsp;% fällt.
-         Wenn das Fahrzeug diesen Umlauf bedienen könnte, wenn es an Stationen die momentan nicht elektrifiziert sind, zwischenladen würde. So wird die Stationsoptimierung ausgeführt.
-          Hierbei werden nur Stationen untersucht die als elektrifizerbar markiert wurden. Dies geschieht, indem man auf der Seite "Stationen" die Station mit "automatisch" markiert.
-        Die Stationsoptimierung fügt sukzessive Stationen eine Elektrifizierung bei bis ein voll elektrifizierter Zustand erreicht ist. Wenn ein Umlauf selbst bei vollständiger Elektrifizierung nicht fahrbar wird, so werden für diesen Umlauf keine Stationen elektrifiziert. Die Elektrifizierung von Stationen passiert in einer Reihenfolge basierend auf einer Optimierungsheuristik. Stationen, die als besonders effektiv erkannt werden, werden zuerst elektrifiziert, weniger effektive Stationen werden danach elektrifiziert. Sobald Fahrbarkeit erreicht ist, wird die Optimierung abgebrochen.
+         Wenn das Fahrzeug diesen Umlauf bedienen könnte, wenn es an Stationen die momentan nicht elektrifiziert sind zwischenladen würde, so wird die Stationsoptimierung ausgeführt.
+          Hierbei werden nur Stationen untersucht, die als elektrifizerbar markiert wurden. Dies geschieht, indem auf der Seite "Stationen" die Station mit "automatisch" markiert wird.
+        Die Stationsoptimierung fügt sukzessive Stationen eine Elektrifizierung bei, bis ein voll elektrifizierter Zustand erreicht ist. Wenn ein Umlauf selbst bei vollständiger Elektrifizierung nicht fahrbar wird, so werden für diesen Umlauf keine Stationen elektrifiziert. Die Elektrifizierung von Stationen passiert basierend auf einer Optimierungsheuristik. Stationen, die als besonders effektiv erkannt werden, werden zuerst elektrifiziert, weniger effektive Stationen werden danach elektrifiziert. Sobald Fahrbarkeit erreicht ist, wird die Optimierung abgebrochen.
         Detaillierte Informationen zur Stationsoptimierung finden sie <a class="text-blue-600 hover:underline" href="https://github.com/rl-institut/SimBA">hier</a>.
           <p class="text-base pb-4 leading-relaxed text-slate-500">
           <!-- TODO: plots erklären. Import/Export/Downloads -->
@@ -566,7 +608,7 @@
           <a href="#results" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Ergebnisse' %}</a>
           <p class="text-base pb-4 leading-relaxed text-slate-500">
             {% blocktrans %}
-          Im Folgenden finden Sie Erläuterungen zu den Kennzahlen und Grafiken die sie auf der Ergebnis-Seite finden.
+          Im Folgenden finden Sie Erläuterungen zu den Kennzahlen und Grafiken, die Sie auf der Ergebnis-Seite finden.
           <!-- TODO: plots erklären. Import/Export/Downloads -->
           {% endblocktrans %}
           </p>
@@ -581,8 +623,8 @@
           <li class="list-inside list-disc py-1 text-slate-800">Importieren Sie die angepasste Datei. Sie können diese nun simulieren.</li>
           </ol>
           {% endblocktrans %}
-          </p>
-        </div>
-      </div>
-    </main>
-  {% endblock content %}
+                  </section>
+                </div>
+              </div>
+            </main>
+          {% endblock content %}
