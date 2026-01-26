@@ -17,7 +17,6 @@ from sqlalchemy.orm import Session
 from ebustoolbox.models import (
     Scenario,
     Event,
-    SimulationRange,
     get_longest_distance_rotation,
     get_shortest_distance_rotation,
     Vehicle,
@@ -317,7 +316,7 @@ def recent_memoizer(function, scenario_id, _dcache1=dict(), _result_cache2=dict(
             last_simulations.append((scenario_id, scenario.finished))
             for function_key, all_f_args in _dcache1.copy().items():
                 f_args_w_scenario_id = filter(lambda x: x[0] == scenario_id, all_f_args)
-                logger.debug("Deleting deprecated scenario ", scenario_id)
+                logger.debug(f"S.ID:{scenario_id}:Deleting deprecated scenario ", scenario_id)
                 for f_args in f_args_w_scenario_id:
                     try:
                         _dcache1[function_key].remove(f_args)
@@ -1293,14 +1292,9 @@ def get_soc_gantt_as_json(task_id: str):
 
 
 def get_start_end_time(scenario: Scenario) -> tuple[datetime.datetime, datetime.datetime]:
-    """Get the time_start and the time_end of the simulation_range"""
-    if scenario.parent:
-        sim_range = SimulationRange.objects.get(scenario=scenario.parent)
-        time_start = sim_range.start
-        time_end = sim_range.end
-    else:
-        # Fallback if a scenario should be plotted without a parent and a simulation range
-        trips = Trip.objects.filter(scenario=scenario).order_by("departure_time")
-        time_start = trips.first().departure_time
-        time_end = trips.last().arrival_time
+    """Get the time_start and the time_end of the scenario"""
+    # Fallback if a scenario should be plotted without a parent and a simulation range
+    trips = Trip.objects.filter(scenario=scenario).order_by("departure_time")
+    time_start = trips.first().departure_time
+    time_end = trips.last().arrival_time
     return time_start, time_end

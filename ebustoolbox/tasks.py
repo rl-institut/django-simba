@@ -45,7 +45,6 @@ import simba.optimizer_util
 import simba.station_optimization
 import simba.simulate
 import simba.util
-from core.deepcopy import reset_postgres_auto_increments
 from core.models import EnumProgress, Progress
 from simba.data_container import DataContainer
 from simba.schedule import Schedule as SimbaSchedule
@@ -78,7 +77,7 @@ from .models import (
     DefaultScenario,
     Depot,
     UserGroup,
-    SimulationRange,
+    SimulationTemperatures,
     DepotSelection,
     VehicleTypeMutation,
     VehicleTypeSelection,
@@ -224,46 +223,6 @@ def consumption_file_to_db(consumption_path: Path, django_scenario: Scenario) ->
     )
 
 
-# TODO: Do somewhere else?
-def filter_inconsistent_trips_and_rotations(simba_schedule):
-    # Some filter functions to handle messy bvg input
-    counter = 0
-    del_rots = []
-    for key, rotation in simba_schedule.rotations.items():
-        depart_times = [t.departure_time for t in rotation.trips]
-        arrival_times = [t.arrival_time for t in rotation.trips]
-        start = 0
-        while True:
-            for i, __ in enumerate(rotation.trips[start:]):
-                i = i + start
-                if (
-                    depart_times.count(rotation.trips[i].departure_time) > 1
-                    or arrival_times.count(rotation.trips[i].arrival_time) > 1
-                ):
-                    break
-            else:
-                rotation.trips = list(sorted(rotation.trips, key=lambda x: x.departure_time))
-                break
-            counter += 1
-            rotation.trips.pop(i)
-            depart_times = [t.departure_time for t in rotation.trips]
-            arrival_times = [t.arrival_time for t in rotation.trips]
-            start = i
-
-        if (
-            rotation.trips[0].departure_name not in simba_schedule.stations
-            or rotation.trips[-1].arrival_name not in simba_schedule.stations
-        ):
-            del_rots.append(key)
-    logger.info(
-        f"Deleting {len(del_rots)} rotations since they dont start or end at electrified station:{del_rots}"
-    )
-    for rot_id in del_rots:
-        del simba_schedule.rotations[rot_id]
-    if counter > 0:
-        logger.info(f"{counter} trips deleted")
-
-
 def temperatures_to_db(
     temperature_file_path: Path,
     django_scenario: Scenario,
@@ -356,7 +315,7 @@ def get_schedule_from_db(
             schedule.rotations[rot.id].vehicle_id = rot.vehicle.to_simba_name()
     elif any(rot.vehicle for rot in rot_query):
         logger.warning(
-            "Some rotations in the database contain vehicles, others do not. "
+            f"S.ID:{django_scenario.id}:Some rotations in the database contain vehicles, others do not. "
             "Database assignments will be ignored."
         )
 
@@ -485,14 +444,22 @@ def validate_trip_lut_consumption_inputs(trip, loaded_mass, level_of_loading, wa
         )
         if warning_dict["missing_loaded_mass"]:
             warning_dict["missing_loaded_mass"] = False
-            logger.warning(text + "\n This message is only shown once as warning.")
+            logger.warning(
+                f"S.ID:{trip.scenario.id}:"
+                + text
+                + "\n This message is only shown once as warning."
+            )
         else:
             logger.debug(text)
     if 1 < level_of_loading or 0 > level_of_loading:
         text = f"Level of loading is out of [0,1] range for {trip.id=}"
         if warning_dict["level_of_loading_out_of_range"]:
             warning_dict["level_of_loading_out_of_range"] = False
-            logger.warning(text + "\n This message is only shown once as warning.")
+            logger.warning(
+                f"S.ID:{trip.scenario.id}:"
+                + text
+                + "\n This message is only shown once as warning."
+            )
         else:
             logger.debug(text)
     return warning_dict
@@ -508,7 +475,9 @@ def validate_lut_consumption_inputs(temperatures, calc_allowed_load, rot, warnin
         )
         if warning_dict["missing_temperature"]:
             warning_dict["missing_temperature"] = False
-            logger.warning(text + "\n This message is only shown once as warning.")
+            logger.warning(
+                f"S.ID:{rot.scenario.id}:" + text + "\n This message is only shown once as warning."
+            )
         else:
             logger.debug(text)
 
@@ -520,7 +489,9 @@ def validate_lut_consumption_inputs(temperatures, calc_allowed_load, rot, warnin
         )
         if warning_dict["missing_allowed_load"]:
             warning_dict["missing_allowed_load"] = False
-            logger.warning(text + "\n This message is only shown once as warning.")
+            logger.warning(
+                f"S.ID:{rot.scenario.id}:" + text + "\n This message is only shown once as warning."
+            )
         else:
             logger.debug(text)
 
@@ -653,7 +624,9 @@ def get_args(django_scenario) -> Namespace:
     :type django_scenario: models.Scenario
     :return:
     """
-    logger.debug(f"Setting default arguments for scenario {django_scenario.id}")
+    logger.debug(
+        f"S.ID:{django_scenario.id}:Setting default arguments for scenario {django_scenario.id}"
+    )
     # Get parser from SimBA
     parser = simba.util.get_parser()
     # Read the parse values, in this case the default values
@@ -662,7 +635,10 @@ def get_args(django_scenario) -> Namespace:
     p = get_static_file_path(__package__, "examples/default_optimizer.cfg")
     args.optimizer_config_path = str(p)
     if not p.is_file():
-        logger.info("default_optimizer.cfg not found. Optimizer config will use default values.")
+        logger.info(
+            f"S.ID:{django_scenario.id}:default_optimizer.cfg not found. "
+            "Optimizer config will use default values."
+        )
     # Overwrite args with scenario specific data
     if django_scenario.simba_options is not None:
         logger.debug(
@@ -806,7 +782,9 @@ def update_electrified_stations_db(electrified_stations, scenario):
 
         else:
             power_per_charger = ele_station.get("cs_power_deps_oppb")
-            logger.warning(f"Station {station.name} does not have a power per charger")
+            logger.warning(
+                f"S.ID:{scenario.id}:Station {station.name} does not have a power per charger"
+            )
             if power_per_charger is None:
                 assert station.power_per_charger is None
 
@@ -815,7 +793,9 @@ def update_electrified_stations_db(electrified_stations, scenario):
             "gc_power", scenario.simba_options.get("gc_power_" + charge_type)
         )
         if station.power_total is None:
-            logger.warning(f"Station {station.name} does not have a power_total Value")
+            logger.warning(
+                f"S.ID:{scenario.id}:Station {station.name} does not have a power_total Value"
+            )
         station.save()
     Notification.objects.bulk_create(notifications)
 
@@ -848,7 +828,7 @@ def get_parent(scenario):
     parent.save()
 
     child = create_empty_child_scenario(parent, task_id=task_id)
-    parent.name = "Parent of " + parent.name
+    # parent.name = "Parent of " + parent.name
     parent.save()
 
     return parent, child
@@ -879,6 +859,7 @@ def init_db_with_trips(
         schedule_reader: ScheduleReader = schedule_reader_factory(**file_paths, **cleaned_data)
         # The progress is linked to the child scenario.
         schedule_reader.set_observer(progress)
+        # This is going to be the mutation scenario
         scenario = Scenario.objects.get(id=scenario_id)
         progress.scenario = scenario
         progress.save()
@@ -893,11 +874,25 @@ def init_db_with_trips(
         scenario.scenario_type = EnumScenarioType.MUTATION
         parent.scenario_type = EnumScenarioType.SOURCE
         scenario.save()
-        transform_depot_stations(parent, scenario)
-        ScheduleStationMerger.transform_zero_duration_trips(parent, scenario)
+        parent.save()
+
+        parent.scenario_type = EnumScenarioType.SOURCE_FILE
+        parent.task_id = ebustoolbox.util.get_unique_task_id()
+        # Applying these fixes to the source file (applying it to the parent before copying it)
+        # Means we do not have to worry about it if we pick a scenario from the dropdown later
+        transform_depot_stations(parent)
+        ScheduleStationMerger.transform_zero_duration_trips(parent)
+        source_file_scenario, unused_variable = deepcopy_scenario(parent)
+        source_file_scenario.name += _(" [ohne Simulationsfilter]")
+        source_file_scenario.save()
+        parent.refresh_from_db()
+        parent.parent = source_file_scenario
+        parent.save()
         # Parent contains the trip data so check the consistency of the parent and not the mutation.
         if not (is_consistent(parent)):
-            logger.error("Scenario does not seem to be consistent with assumptions")
+            logger.error(
+                f"S.ID:{scenario.id}:Scenario does not seem to be consistent with assumptions"
+            )
             raise Exception("Scenario does not seem to be consistent with assumptions")
         parent.save()
         progress.save()
@@ -923,18 +918,14 @@ def init_db_with_trips(
         progress.running = False
         progress.save()
 
-        # Make sure postgres auto increment is up to date
-        core.deepcopy.reset_postgres_auto_increments(["ebustoolbox"])
 
-
-# for some reason, creating the atomic savepoint in an outer atomic transaction fails.
-@atomic(savepoint=False)
 def trim_scenario(scenario, time_delta, start_time=None):
     rotations = get_rotations_by_timespan(scenario, time_delta, start_time)
     rotations_to_remove = Rotation.objects.filter(scenario=scenario).exclude(id__in=rotations)
-    logger.info(f"Deleting {rotations_to_remove.count()} rotations out of sim range")
+    logger.info(
+        f"S.ID:{scenario.id}:Deleting {rotations_to_remove.count()} rotations out of sim range"
+    )
     rotations_to_remove.delete()
-    pass
 
 
 def get_rotations_by_start_end(scenario, start: datetime, end: datetime) -> QuerySet[Rotation]:
@@ -1027,24 +1018,24 @@ def run_and_merge_scenarios(
     sizing_scenario = merge_scenario(mutation_id, sizing_scenario_task_id)
     sizing_scenario.manager = Scenario.objects.get(id=mutation_id).manager
     sizing_scenario.save()
-    from core.models import ProgressEnum
+    from core.models import EnumProgress
 
     sizing_progress = Progress.objects.create(
         scenario=sizing_scenario,
         task_id=uuid4(),
-        progress_type=ProgressEnum.RUNNING_SIMULATION,
+        progress_type=EnumProgress.RUNNING_SIMULATION,
         running=True,
     )
     SimulationType.objects.create(scenario=sizing_scenario, sim_type=EnumSimulationType.SIZING)
     # Swap the consumption so in the first run the max consumption is used
     swap_consumption_w_max_consumption(sizing_scenario)
     # If a LUT is used change the temperature to the extreme Temperature
-    sim_range = SimulationRange.objects.get(scenario_id=mutation_id)
+    sim_range = SimulationTemperatures.objects.get(scenario_id=mutation_id)
     Temperatures.objects.filter(scenario=sizing_scenario).delete()
     # Create temperature instance
     Temperatures.create_constant_temperatures(sizing_scenario, sim_range.temperature_extreme)
 
-    logger.info("Simulating scenario with high consumption")
+    logger.info(f"S.ID:{sizing_scenario.id}:Simulating scenario with high consumption")
     # Run the sizing scenario with these applied changes
     assign_new_vehicles_to_db(sizing_scenario)
 
@@ -1063,10 +1054,12 @@ def run_and_merge_scenarios(
         )
 
     _run_ebus_toolchain.apply(
-        (sizing_scenario_task_id,), task_id=sizing_scenario_task_id, throw=True
+        (sizing_scenario_task_id, progress.task_id), task_id=sizing_scenario_task_id, throw=True
     )
 
-    logger.info("Copying result of first Simulation as basis for the second.")
+    logger.info(
+        f"S.ID:{sizing_scenario.id}:Copying result of first Simulation as basis for the second."
+    )
     # The sizing scenario is supposed to be the basis of the average scenario
     # Create a copy of the scenario
     sizing_scenario.task_id = default_simulation_task_id
@@ -1077,10 +1070,12 @@ def run_and_merge_scenarios(
     average_progress = Progress.objects.create(
         scenario=average_scenario,
         task_id=uuid4(),
-        progress_type=ProgressEnum.RUNNING_SIMULATION,
+        progress_type=EnumProgress.RUNNING_SIMULATION,
         running=True,
     )
-    logger.info(f"Simulating scenario {average_scenario.task_id} with average consumption")
+    logger.info(
+        f"S.ID:{average_scenario.id}:Simulating scenario {average_scenario.task_id} with average consumption"
+    )
     # Swap the consumptions back
     swap_consumption_w_max_consumption(average_scenario)
     # Apply the average temperature
@@ -1099,12 +1094,17 @@ def run_and_merge_scenarios(
 
     assign_new_vehicles_to_db(average_scenario)
     _run_ebus_toolchain.apply(
-        (default_simulation_task_id,), task_id=default_simulation_task_id, throw=True
+        (default_simulation_task_id, progress.task_id),
+        task_id=default_simulation_task_id,
+        throw=True,
     )
     # Give each scenario a Progress which succeeded
     sizing_progress.set_success()
     average_progress.set_success()
     progress.set_success()
+    scenario = Scenario.objects.get(id=mutation_id)
+    scenario.finished = timezone.now()
+    scenario.save()
 
 
 def swap_consumption_w_max_consumption(scenario: Scenario) -> None:
@@ -1321,7 +1321,7 @@ def create_spiceev_scenario_dict(scenario: Scenario, split_vehicles=False) -> di
                 if max_cs is not None and new_idx + 1 >= max_cs:
                     # max number of CS of station exceeded
                     logger.warning(
-                        f"SpiceEV scenario generation: Station {station} "
+                        f"S.ID:{scenario.id}:SpiceEV scenario generation: Station {station} "
                         f"exceeds maximum number of charging stations ({max_cs})."
                     )
                     # disable further warnings
@@ -1467,7 +1467,7 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False, split_vehicles=F
                 time_start=next_event.time_end,
             ).exists():
                 logger.warning(
-                    "Multiple standby departure events back-to-back for "
+                    f"S.ID:{scenario.id}:Multiple standby departure events back-to-back for "
                     f"{event.vehicle_id} at {next_event.time_end.isoformat()}"
                 )
             # use standby departure time, with some buffer
@@ -1532,7 +1532,7 @@ def replace_event_timeseries(event: Event, soc_ts: list, interval: timedelta) ->
     # start and end soc must remain the same
     if not (abs(soc_ts[0] - event.soc_start) < EPS):
         logger.error(
-            "Depot Charging Simulation diverged\n"
+            f"S.ID:{event.scenario.id}:Depot Charging Simulation diverged\n"
             f"Delta of {abs(soc_ts[0] - event.soc_start)} at {event}.\n"
             f"{event.soc_start} Start Soc\n Timeseries:\n{abbreviate_list(soc_ts, fmt='.2e')}"
         )
@@ -1540,7 +1540,7 @@ def replace_event_timeseries(event: Event, soc_ts: list, interval: timedelta) ->
         Event.objects.bulk_update([event], fields=["soc_start"])
     if not (abs(soc_ts[-1] - event.soc_end) < EPS):
         logger.error(
-            "Depot Charging Simulation diverged\n"
+            f"S.ID:{event.scenario.id}:Depot Charging Simulation diverged\n"
             f"Delta of {abs(soc_ts[-1] - event.soc_end)} at {event}.\n"
             f"{event.soc_end} END SOC\n Timeseries:\n{abbreviate_list(soc_ts, fmt='.2e')}"
         )
@@ -1650,7 +1650,7 @@ def apply_depot_strategy(scenario: Scenario, strategy: str, split_vehicles=False
             event_list.append(next_event)
 
     Event.objects.bulk_update(event_list, ["timeseries", "time_start", "time_end"])
-    logger.info(f"{events.count()} depot charging events updated")
+    logger.info(f"S.ID:{scenario.id}:{events.count()} depot charging events updated")
 
 
 def apply_depot_and_area_wishes(mutation: Scenario, child: Scenario, stack: dict) -> None:
@@ -1789,7 +1789,9 @@ def create_empty_child_scenario(parent_scenario: Scenario, task_id):
 def create_scenario_copy_for_user(mutation_scenario: Scenario):
     assert isinstance(mutation_scenario, Scenario)
     assert mutation_scenario.parent is not None
-    assert mutation_scenario.parent.parent is None
+    # Assert no deeper nesting than source file
+    if mutation_scenario.parent.parent:
+        assert mutation_scenario.parent.parent.parent is None
     mutation_scenario.task_id = ebustoolbox.util.get_unique_task_id()
     copied_scenario, stack = deepcopy_scenario(mutation_scenario)
 
@@ -1821,30 +1823,16 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     child, stack = deepcopy_scenario(parent_scenario)
     parent_scenario.refresh_from_db()
     child.parent = mutation
-    if parent_scenario.simba_options:
-        child.simba_options = parent_scenario.simba_options
-    else:
+    child.simba_options.update(mutation.simba_options)
+    if not child.simba_options:
         child.simba_options = vars(get_args(child))
     child.save()
 
     # Mutate child according to parent
     # Remove rotations from the timespan
-    sim_range = SimulationRange.objects.get(scenario=mutation)
-    time_delta = sim_range.end - sim_range.start
-    trim_scenario(child, time_delta, sim_range.start)
+    # trim_scenario(child, time_delta, sim_range.start)
     # # Used for clearing up depots without rotations
-    trim_depots(child, [])
-
-    depot_selections = DepotSelection.objects.filter(scenario=mutation)
-    assert depot_selections.count() <= 1, "Only a single depot selection is allowed per scenario"
-    depot_selection = depot_selections.first()
-    if depot_selection is not None:
-        # These depots were selected to remain
-        original_depot_ids = depot_selection.depots.all().values_list("id", flat=True)
-        copied_depot_ids = [stack[Station][org_id] for org_id in original_depot_ids]
-        all_depots = Station.objects.filter(scenario=child, charge_type=EnumChargeType.DEPOT)
-        depots_to_remove = all_depots.exclude(id__in=copied_depot_ids)
-        trim_depots(child, depots_to_remove)
+    # trim_depots(child, [])
 
     # Copy Temperatures
     temperatures_query = Temperatures.objects.filter(scenario=mutation)
@@ -1864,10 +1852,10 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     )
     # Some stations are not electrified or excluded -->possible need for optimization
     if all_stations.count() > electrified_stations.count() + excluded_stations.count():
-        logger.info("Mode is set to optimization.")
+        logger.info(f"S.ID:{mutation.id}:Mode is set to optimization.")
         child.simba_options["modes"] = "sim,station_optimization"
     else:
-        logger.info("Mode is set to NO optimization.")
+        logger.info(f"S.ID:{mutation.id}:Mode is set to NO optimization.")
         child.simba_options["modes"] = "sim"
 
     apply_vehicle_mutation(mutation, child, stack)
@@ -1906,27 +1894,27 @@ def create_station_mutations(scenario):
 
 
 @shared_task(bind=True)
-def _run_ebus_toolchain(self, task_id):
+def _run_ebus_toolchain(self, task_id, progress_id=None):
     """Run the tool chain"""
     db_scenario: Scenario = Scenario.objects.get(task_id=task_id)
     assert is_consistent(db_scenario)
 
     # With multiple simulations the progress is linked through the parent to its child scenarios
-    progress = Progress.objects.filter(
-        scenario=db_scenario.parent, progress_type=EnumProgress.RUNNING_SIMULATION
-    ).first()
-    if not progress:
-        logger.warning(
-            "The toolchain did not find a progress belonging to the parent of the scenario. "
-            "Using or creating a Progress bound to the simulation scenario instead"
-        )
+    if not progress_id:
         progress = Progress.objects.filter(
-            scenario=db_scenario, progress_type=EnumProgress.RUNNING_SIMULATION
+            scenario=db_scenario.parent, progress_type=EnumProgress.RUNNING_SIMULATION
         ).first()
         if not progress:
+            logger.warning(
+                f"S.ID:{db_scenario.id}:"
+                "The toolchain did not find a progress belonging to the parent of the scenario. "
+                "Creating a Progress bound to the simulation scenario instead"
+            )
             progress = Progress.objects.create(
                 scenario=db_scenario, progress_type=EnumProgress.RUNNING_SIMULATION, task_id=task_id
             )
+    else:
+        progress = Progress.objects.get(task_id=progress_id)
 
     # Clean up of previous notifications which can be produced during the simulation
     # without cleaning they might appear multiple times, from previous failed simulations
@@ -1940,7 +1928,7 @@ def _run_ebus_toolchain(self, task_id):
     ).delete()
 
     try:
-        logger.info(f"Getting schedule from db {datetime.now()}")
+        logger.info(f"S.ID:{db_scenario.id}:Getting schedule from db {datetime.now()}")
         schedule, args = get_schedule_from_db(db_scenario)
 
         # in the first run Depots can stay un electrified since simba does not do depot calculations
@@ -1974,7 +1962,6 @@ def _run_ebus_toolchain(self, task_id):
             progress.status = "Elektrifziere notwendige Stationen"
             progress.save()
             try:
-
                 schedule, simba_scenario = run_simba(
                     schedule, args, db_scenario, mode=modes[1], scenario=simba_scenario
                 )
@@ -1998,7 +1985,7 @@ def _run_ebus_toolchain(self, task_id):
                 # if the optimizer could not achieve full electrification
                 create_negative_block_notifications(db_scenario)
         else:
-            logger.info("Station optimization was skipped")
+            logger.info(f"S.ID:{db_scenario.id}:Station optimization was skipped")
 
         progress.current_work += 1
         progress.status = _("Berechne das Depot")
@@ -2008,7 +1995,7 @@ def _run_ebus_toolchain(self, task_id):
             run_eflips(db_scenario, delete_existing_depot=True, progress=progress)
         except UnstableSimulationException as e:
             # TODO: handle it and pass information to user
-            logger.error("The simulation is unstable")
+            logger.error(f"S.ID:{db_scenario.id}:The simulation is unstable")
             logger.error(traceback.format_exception(e))
             notification = Notification(
                 scenario=db_scenario.parent or db_scenario,
@@ -2024,7 +2011,7 @@ def _run_ebus_toolchain(self, task_id):
             notifications.append(notification)
         except DelayedTripException as e:
             # TODO: handle it and pass information to user
-            logger.error("There are delays in the Simulation")
+            logger.error(f"S.ID:{db_scenario.id}:There are delays in the Simulation")
             logger.error(traceback.format_exception(e))
             # TODO: @TU what notification should the user receive
             notification = Notification(
@@ -2035,7 +2022,7 @@ def _run_ebus_toolchain(self, task_id):
                 message=_("Manche Fahrzeuge können nur verspätet abfahren"),
             )
         except Exception as e:
-            logger.error("Eflips raised an unexpected Exception")
+            logger.error(f"S.ID:{db_scenario.id}:Eflips raised an unexpected Exception")
             logger.error(traceback.format_exception(e))
             notification = Notification(
                 scenario=db_scenario.parent or db_scenario,
@@ -2112,7 +2099,7 @@ def check_event_soc_consistency(db_scenario: Scenario):
 
     Consistency in this case is that soc_end values are identical to the next events soc_start of the same vehicle.
     """
-    logger.info(50 * "#" + "\nChecking event consistency")
+    logger.info(f"S.ID:{db_scenario.id}:" + 50 * "#" + "\nChecking event consistency")
     consistent = True
     for vehicle in Vehicle.objects.filter(scenario=db_scenario):
         events = list(Event.objects.filter(vehicle=vehicle).order_by("time_start"))
@@ -2122,7 +2109,7 @@ def check_event_soc_consistency(db_scenario: Scenario):
             if not event.soc_end == next_event.soc_start:
                 delta = event.soc_end - next_event.soc_start
                 logger.warning(
-                    f"SOC does not align between events for {vehicle=} for "
+                    f"S.ID:{db_scenario.id}:SOC does not align between events for {vehicle=} for "
                     # f"events {events[i]} and {events[i+1]}"
                     f"\n DELTA = {delta}\n"
                     f"\n{event.id} {event.event_type} and {next_event.id} {next_event.event_type}"
@@ -2131,11 +2118,11 @@ def check_event_soc_consistency(db_scenario: Scenario):
 
             if not events[i].time_end == events[i + 1].time_start:
                 logger.warning(
-                    f"Times do not align for Events {events[i].id} and {events[i+1].id} "
+                    f"S.ID:{db_scenario.id}:Times do not align for Events {events[i].id} and {events[i+1].id} "
                 )
                 consistent = False
     if consistent:
-        logger.info(50 * "#" + "\nEvents did not show inconsistencies")
+        logger.info(f"S.ID:{db_scenario.id}:" + 50 * "#" + "\nEvents did not show inconsistencies")
 
 
 def electrify_depot_station_w_default(db_scenario):
@@ -2144,7 +2131,9 @@ def electrify_depot_station_w_default(db_scenario):
     }
     max_vehicles = Rotation.objects.filter(scenario=db_scenario).count()
     for depot in Depot.objects.filter(scenario=db_scenario):
-        logger.warning("Overwriting Depot Station data. This data should be provided by eflips")
+        logger.warning(
+            f"S.ID:{db_scenario.id}:Overwriting Depot Station data. This data should be provided by eflips"
+        )
         station = depot.station
         config: DepotConfigurationWish = configs[station.id]
         if config.auto_generate:
@@ -2282,7 +2271,7 @@ def run_simba(
 ) -> tuple[SimbaSchedule, "SimbaScenario"]:
     assert mode in IMPLEMENTED_MODES, f"{mode} is not implemented in simba"
 
-    logger.info(f"Running Simba {datetime.now()} with mode {mode}")
+    logger.info(f"S.ID:{db_scenario.id}:Running Simba {datetime.now()} with mode {mode}")
     # TODO don't overwrite output on multiple function calls
     args.output_directory = Path(settings.UPLOAD_PATH) / str(db_scenario.task_id)
     args.attach_vehicle_soc = True
@@ -2308,10 +2297,9 @@ def run_simba(
         case _:
             raise NotImplementedError
 
-    logger.info(f"Creating SimBA Events {datetime.now()}")
+    logger.info(f"S.ID:{db_scenario.id}:Creating SimBA Events {datetime.now()}")
     create_event_output(scenario, db_scenario)
-    logger.info(f"SimBA Events Created {datetime.now()}")
-    reset_postgres_auto_increments(apps=[Event._meta.app_label])
+    logger.info(f"S.ID:{db_scenario.id}:SimBA Events Created {datetime.now()}")
     return schedule, scenario
 
 
@@ -2359,7 +2347,7 @@ def depot_rotation_to_eflips_input(db_rotation, db_scenario, input_for_eflips, r
 
 
 def run_eflips(scenario, delete_existing_depot, progress) -> None:
-    logger.info(f"Running eFLIPS {datetime.now()}")
+    logger.info(f"S.ID:{scenario.id}:Running eFLIPS {datetime.now()}")
     # Constructing the database URL manually
     db_url = create_db_url()
     depot_configs = DepotConfigurationWish.objects.filter(scenario=scenario).prefetch_related(
@@ -2372,7 +2360,7 @@ def run_eflips(scenario, delete_existing_depot, progress) -> None:
     if not Depot.objects.filter(scenario=scenario).exists():
         progress.status = _("Optimiere das Depot Layout")
         progress.save()
-        logger.info("Eflips starts generating an optimal depot layout")
+        logger.info(f"S.ID:{scenario.id}:Eflips starts generating an optimal depot layout")
         generate_optimal_depot_layout(
             depot_config_wishes=eflips_configs,
             scenario=scenario,
@@ -2380,7 +2368,7 @@ def run_eflips(scenario, delete_existing_depot, progress) -> None:
             delete_existing_depot=delete_existing_depot,
         )
     else:
-        logger.info("Eflips is reusing the existing depot layout")
+        logger.info(f"S.ID:{scenario.id}:Eflips is reusing the existing depot layout")
         #
 
     progress.status = _("Simuliere das Depot")
@@ -2712,7 +2700,7 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario) -> list[Ev
             ],
         }
         if None in timeseries["soc"]:
-            logger.warning("None Values found in timeseries")
+            logger.warning(f"S.ID:{db_scenario.id}:None Values found in timeseries")
             forward_fill_last_value(timeseries["soc"])
         # grab current vehicle SoC at timestep
         soc_start = timeseries["soc"][0]
@@ -2899,7 +2887,7 @@ def find_and_make_depots(scenario):
         arrival_sorted = sorted(trips, key=lambda x: x.arrival_time)
         depot_stations.add(arrival_sorted[-1].route.arrival_station)
 
-    logger.info(f"{len(depot_stations)} Depot Stations found")
+    logger.info(f"S.ID:{scenario.id}:{len(depot_stations)} Depot Stations found")
 
     for station in depot_stations:
         station.is_electrified = True
@@ -2908,7 +2896,6 @@ def find_and_make_depots(scenario):
         station.save()
 
 
-@atomic(savepoint=False)
 def trim_depots(scenario, depot_ids: list[int]):
     rot_before_count = Rotation.objects.filter(scenario=scenario).count()
     trip_before_count = Trip.objects.filter(scenario=scenario).count()
@@ -2921,7 +2908,7 @@ def trim_depots(scenario, depot_ids: list[int]):
         )
         if station.exists():
             station = station.first()
-            logger.info(f"Deleting station {station.name}")
+            logger.info(f"S.ID:{scenario.id}:Deleting station {station.name}")
             Rotation.objects.filter(
                 scenario=scenario, trip__route__arrival_station=station
             ).delete()
@@ -2930,7 +2917,7 @@ def trim_depots(scenario, depot_ids: list[int]):
             ).delete()
             station.delete()
         else:
-            logger.info(f"Station with id {dep_id} not found in scenario")
+            logger.info(f"S.ID:{scenario.id}:Station with id {dep_id} not found in scenario")
     (
         Station.objects.filter(scenario=scenario)
         .annotate(departure_count=Count("route_departure_set__trip"))
@@ -2939,8 +2926,10 @@ def trim_depots(scenario, depot_ids: list[int]):
         .delete()
     )
     (Route.objects.filter(scenario=scenario).annotate(count=Count("trip")).filter(count=0).delete())
+    Line.objects.filter(scenario=scenario, route__isnull=True).delete()
+    VehicleType.objects.filter(scenario=scenario, rotation__isnull=True).delete()
     logger.info(
-        f"Before -> After trimming\n"
+        f"S.ID:{scenario.id}:Before -> After trimming\n"
         f"rotations:{rot_before_count} -> {Rotation.objects.filter(scenario=scenario).count()}\n"
         f"trips: {trip_before_count} ->{Trip.objects.filter(scenario=scenario).count()}\n"
         f"routes: {route_before_count} ->{Route.objects.filter(scenario=scenario).count()}\n"
@@ -3014,7 +3003,6 @@ class ScheduleStationMerger:
     def expand_prev_trips(cls, prev_trip, merge_stations, delete_trips, rotation_trips):
         distance = 0
         while cls.is_problematic(prev_trip):
-
             distance += prev_trip.route.distance
             merge_stations.union(
                 [prev_trip.route.arrival_station, prev_trip.route.departure_station]
@@ -3046,7 +3034,7 @@ class ScheduleStationMerger:
 
     @classmethod
     @atomic()
-    def transform_zero_duration_trips(cls, parent: Scenario, child: Scenario) -> None:
+    def transform_zero_duration_trips(cls, source_scenario: Scenario) -> None:
         """
         Merge routes and trips with zero duration or distance
 
@@ -3059,7 +3047,7 @@ class ScheduleStationMerger:
         contain distance and duration. This is not handled specifically as edge case of already bad
         data.
 
-        :param parent: Source scenario
+        :param source_scenario: Source scenario
         :param child: Child scenario which is notified about changes
         """
 
@@ -3073,11 +3061,13 @@ class ScheduleStationMerger:
         new_routes = []
         delete_trips: set[int] = set()
 
-        routes = cls.get_problematic_routes(parent)
+        routes = cls.get_problematic_routes(source_scenario)
         # Merge trips and routes with all successive zero duration/distance trips.
         # The emerging stations are used for all routes which arrive
         # or depart from one of these multi-stations.
-
+        child = None
+        if source_scenario.scenario_set.count() == 1:
+            child = source_scenario.scenario_set.first()
         for route in routes:
             route: Route
             for trip in route.trip_set.all():
@@ -3085,7 +3075,10 @@ class ScheduleStationMerger:
                 # Trip is already marked to be deleted. Skip it
                 if trip.id in delete_trips:
                     continue
-                logger.debug(f"Handling problematic trip {trip}")
+                logger.info(
+                    f"S.ID:{source_scenario.id}:Handling problematic trip "
+                    f"{trip} in source scenario for child {child}"
+                )
                 delete_trips.add(trip.id)
                 cls.get_rotations_trips(trip.rotation, rotation_trip_dict)
                 rotation_trips = rotation_trip_dict[trip.rotation]
@@ -3135,7 +3128,7 @@ class ScheduleStationMerger:
                     # Saving stations as single calls is not very performant,
                     # but it allows for directly accessing the id.
                     # Since only few stations should be created, performance shouldn't be a problem
-                    station = Station(scenario=parent, name="Zusammengelegte Station: ")
+                    station = Station(scenario=source_scenario, name="Zusammengelegte Station: ")
                     station.save()
                     created_stations.add(station)
                     # Make this station reusable for all other trips which connect with this station
@@ -3197,19 +3190,18 @@ class ScheduleStationMerger:
             "oder ohne Distanz verknüpft sind:{}."
         )
 
-        for scenario in [parent, child]:
-            for new_station, original_stations in reversed_station.items():
-                Notification.objects.create(
-                    scenario=scenario,
-                    level=EnumNotificationLevels.WARNING,
-                    notification_type=EnumNotificationType.MERGED_STATIONS_FOR_INCONSISTENT_TRIPS,
-                    message=(
-                        message.format(
-                            escape(new_station.name),
-                            escape(", ".join([s.name for s in original_stations])),
-                        )
-                    )[:999],
-                )
+        for new_station, original_stations in reversed_station.items():
+            Notification.objects.create(
+                scenario=source_scenario,
+                level=EnumNotificationLevels.WARNING,
+                notification_type=EnumNotificationType.MERGED_STATIONS_FOR_INCONSISTENT_TRIPS,
+                message=(
+                    message.format(
+                        escape(new_station.name),
+                        escape(", ".join([s.name for s in original_stations])),
+                    )
+                )[:999],
+            )
 
         # After the stations were created we can change the routes
         logger.info(f"Creating new {len(new_routes)} Routes with merged stations")
@@ -3240,7 +3232,7 @@ class ScheduleStationMerger:
         )
 
         deleted_stations = str(
-            Station.objects.filter(scenario=parent)
+            Station.objects.filter(scenario=source_scenario)
             .annotate(departure_count=Count("route_departure_set__trip"))
             .annotate(arrival_count=Count("route_arrival_set__trip"))
             .filter(departure_count=0, arrival_count=0)
@@ -3249,14 +3241,14 @@ class ScheduleStationMerger:
 
         logger.info(f"Deleting orphaned Stations without trips {deleted_stations}")
 
-        if cls.get_problematic_routes(parent).count() > 0:
+        if cls.get_problematic_routes(source_scenario).count() > 0:
             logger.error(
                 "Removing zero duration or distance trips did not work for all trips/routes"
             )
 
 
 @atomic()
-def transform_depot_stations(parent: Scenario, child: Scenario) -> None:
+def transform_depot_stations(source_scenario: Scenario) -> None:
     """
     Duplicate depot stations and transform them into opportunity stations where necessary;
 
@@ -3264,11 +3256,11 @@ def transform_depot_stations(parent: Scenario, child: Scenario) -> None:
     at depots.
     This function determines if there are intermediate stops at depot stations,
     creates an opportunity station and switches this station into the appropriate routes.
-    :param parent: Source scenario
+    :param source_scenario: Source scenario
     :param child: Child scenario which is notified about changes
     """
-    depots = Station.objects.filter(scenario=parent, charge_type=EnumChargeType.DEPOT)
-    all_routes = Route.objects.filter(scenario=parent)
+    depots = Station.objects.filter(scenario=source_scenario, charge_type=EnumChargeType.DEPOT)
+    all_routes = Route.objects.filter(scenario=source_scenario)
     depot_arrival_routes = all_routes.filter(arrival_station__in=depots)
     depot_departure_routes = all_routes.filter(departure_station__in=depots)
     # Only the first and last trip of a block should departe/arrive in a depot station.
@@ -3280,7 +3272,7 @@ def transform_depot_stations(parent: Scenario, child: Scenario) -> None:
 
     # Get the ids of each rotations last trip
     last_trip_ids = list(
-        Rotation.objects.filter(scenario=parent)
+        Rotation.objects.filter(scenario=source_scenario)
         .annotate(last_trip_id=Subquery(last_trip_subquery.values("id")[:1]))
         .values_list("last_trip_id", flat=True)
     )
@@ -3288,11 +3280,11 @@ def transform_depot_stations(parent: Scenario, child: Scenario) -> None:
     first_trip_subquery = Trip.objects.filter(rotation=OuterRef("pk")).order_by("arrival_time")
     # Get the ids of each rotations first trip
     first_trip_ids = list(
-        Rotation.objects.filter(scenario=parent)
+        Rotation.objects.filter(scenario=source_scenario)
         .annotate(first_trip_id=Subquery(first_trip_subquery.values("id")[:1]))
         .values_list("first_trip_id", flat=True)
     )
-    relevant_trips = Trip.objects.filter(scenario=parent)
+    relevant_trips = Trip.objects.filter(scenario=source_scenario)
     trip_dict = {t.id: t for t in relevant_trips}
     new_stations = dict()
     changed_rotations = dict()
@@ -3375,18 +3367,17 @@ def transform_depot_stations(parent: Scenario, child: Scenario) -> None:
                 t.route_id = pk_lut[t.route_id]
         Trip.objects.bulk_update(changed_trips, fields=["route"])
 
-    for scenario in [parent, child]:
-        for rotation, stations in changed_rotations.items():
-            Notification.objects.create(
-                scenario=scenario,
-                level=EnumNotificationLevels.WARNING,
-                notification_type=EnumNotificationType.INTERMEDIATE_DEPOT_STOPS_TRANSFORMED,
-                message=(
-                    f"Für den Umlauf {escape(rotation.name)} wurden Zwischenhaltestellen "
-                    f"an den Depots {[escape(s.name) for s in stations]} erzeugt. "
-                    "Mehr Informationen finden Sie in der Hilfe."
-                )[:999],
-            )
+    for rotation, stations in changed_rotations.items():
+        Notification.objects.create(
+            scenario=source_scenario,
+            level=EnumNotificationLevels.WARNING,
+            notification_type=EnumNotificationType.INTERMEDIATE_DEPOT_STOPS_TRANSFORMED,
+            message=(
+                f"Für den Umlauf {escape(rotation.name)} wurden Zwischenhaltestellen "
+                f"an den Depots {[escape(s.name) for s in stations]} erzeugt. "
+                "Mehr Informationen finden Sie in der Hilfe."
+            )[:999],
+        )
     if len(changed_rotations) > 0:
         logger.warning(
             f"{changed_rotations.keys()} were transformed so they dont have intermediate stops at depot stations"

@@ -40,7 +40,7 @@ def set_scenario_progress(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("ebustoolbox", "0080_remove_electrificationoptions_electrified_stations_and_more"),
+        ("ebustoolbox", "0082_alter_scenario_scenario_type_simulationtemperatures_and_more"),
     ]
 
     operations = [

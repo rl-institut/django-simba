@@ -139,7 +139,8 @@ def place_not_found_stations(scenario):
     stations_without_geo = Station.objects.filter(scenario=scenario, geom__isnull=True)
     if Station.objects.filter(scenario=scenario, geom__isnull=False).count() < 2:
         logger.warning(
-            "Stations are placed randomly around Berlin, since less than two stations were located."
+            f"S.ID:{scenario.id}: Stations are placed randomly around Berlin, "
+            "since less than two stations were located."
         )
         for station in stations_without_geo:
             station.geom = Point(y=52.4 + random() * 0.3, x=13.0 + random() * 0.8, z=0)
@@ -273,7 +274,9 @@ class SimbaScheduleReader(ScheduleReader):
                     trip.route_id = new_id
                 Trip.objects.bulk_create(trips)
 
-            if settings.SEARCH_STATION_LOCATIONS:
+            if isinstance(scenario.simba_options, dict) and scenario.simba_options.get(
+                "find_stations"
+            ):
                 self.set_progress(4, _("Finde Stationen"))
                 add_station_locations(Station.objects.filter(scenario=scenario))
 

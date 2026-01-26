@@ -34,6 +34,7 @@ MINIMAL_TRIP_DURATION_S = 60  # seconds
 
 class EnumScenarioType(models.TextChoices):
     SOURCE = "SOURCE"
+    SOURCE_FILE = "SOURCE_FILE"
     MUTATION = "MUTATION"
     SIMULATION = "SIMULATION"
     PUBLIC_DATA = "PUBLIC_DATA"
@@ -129,6 +130,11 @@ class Scenario(models.Model):
     def get_default_pk(cls):
         default_scenario = DefaultScenario.objects.first().scenario
         return default_scenario.pk
+
+    def data_export_allowed(self):
+        if self.scenario_type in [EnumScenarioType.SOURCE, EnumScenarioType.SOURCE_FILE]:
+            return False
+        return True
 
 
 @receiver(models.signals.pre_delete, sender=Scenario)
@@ -366,16 +372,19 @@ class VehicleType(models.Model):
 
     @property
     def get_average_speed_kmh(self):
-        # Get all default vehicle types. Only Opportunity charging capable for now
-        # Expand the query for desired vehicle types which can be selected
-        rots = annotate_distance(Rotation.objects.filter(vehicle_type_id=self.id))
-        result = rots.aggregate(
-            distance=Sum("distance"),
-            duration=Sum(F("trip__arrival_time") - F("trip__departure_time")),
-        )
-        average_speed_kmh = (result["distance"] / 1000) / (
-            result["duration"].total_seconds() / 3600
-        )
+        try:
+            # Get all default vehicle types. Only Opportunity charging capable for now
+            # Expand the query for desired vehicle types which can be selected
+            rots = annotate_distance(Rotation.objects.filter(vehicle_type_id=self.id))
+            result = rots.aggregate(
+                distance=Sum("distance"),
+                duration=Sum(F("trip__arrival_time") - F("trip__departure_time")),
+            )
+            average_speed_kmh = (result["distance"] / 1000) / (
+                result["duration"].total_seconds() / 3600
+            )
+        except TypeError:
+            average_speed_kmh = 0
         return average_speed_kmh
 
     @property
@@ -385,12 +394,16 @@ class VehicleType(models.Model):
 
     @property
     def get_total_distance_km(self):
-        return (
-            Route.objects.filter(trip__rotation__vehicle_type_id=self.id).aggregate(
-                Sum("distance")
-            )["distance__sum"]
-            / 1000
-        )
+        try:
+            distance = (
+                Route.objects.filter(trip__rotation__vehicle_type_id=self.id).aggregate(
+                    Sum("distance")
+                )["distance__sum"]
+                / 1000
+            )
+        except TypeError:
+            distance = 0
+        return distance
 
     def get_charging_power(self, soc: float) -> float:
         """Get the charging power the vehicle type is capable of at a given soc"""
@@ -1750,9 +1763,9 @@ class AreaType(models.TextChoices):
     The AreaType represents a certain type of area, which is used to define the location of a process.
     """
 
-    DIRECT_ONESIDE = "DIRECT_ONESIDE", _("Direkt einseitig")
-    DIRECT_TWOSIDE = "DIRECT_TWOSIDE", _("Direkt Zweiseitig")
-    LINEAR = "LINE", _("Linie")
+    DIRECT_ONESIDE = "DIRECT_ONESIDE", _("Schrägabstellung")
+    DIRECT_TWOSIDE = "DIRECT_TWOSIDE", _("Schrägabstellung in Doppelreihe")
+    LINEAR = "LINE", _("Blockabstellung")
 
 
 class Area(models.Model):
@@ -1808,11 +1821,9 @@ class AssocAreaProcess(models.Model):
     process = models.ForeignKey(Process, on_delete=models.CASCADE)
 
 
-class SimulationRange(models.Model):
+class SimulationTemperatures(models.Model):
     # Mutation Scenario
     scenario = models.ForeignKey(Scenario, null=False, on_delete=models.CASCADE)
-    start = models.DateTimeField(null=True, blank=True)
-    end = models.DateTimeField(null=True, blank=True)
     temperature_average = models.FloatField(
         blank=True,
         default=10,
@@ -1914,8 +1925,10 @@ class AreaInformation(models.Model):
     )
     block_length = models.IntegerField(null=True, blank=True)
     vehicle_type = models.ForeignKey(VehicleType, null=False, on_delete=models.CASCADE, blank=True)
+    # blank is false although null is true, since django would show an "empty" select.
+    # overriding this behavior is harder than accepting that admins by default have to set a value
     area_type = models.CharField(
-        max_length=14, choices=AreaType.choices, null=True, blank=True, default=None
+        max_length=14, choices=AreaType.choices, null=True, blank=False, default=None
     )
     capacity = models.IntegerField(null=True, blank=True)
     power = models.FloatField(null=True, blank=True)

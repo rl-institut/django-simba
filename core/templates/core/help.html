@@ -550,7 +550,7 @@
             {% blocktrans %}
           WeBus kann ihr Bussystem optimieren. Zwei Optimierungsmethoden werden standardmäßig angewandt
           </p>
-          <a href="#station_optimization" class="pb-2 pt-4 text-2xl font-semibold">Stationsoptimierung</a>
+        <a href="#station_optimization" class="pb-2 pt-4 text-2xl font-semibold">Stationsoptimierung</a>
           <p class="text-base pb-4 leading-relaxed text-slate-600">
           Sollte Ihr Bussystem mit den ausgewählten Fahrzeugtypen nicht fahrbar sein, so besteht die Möglichkeit das mittels Stationsoptimierung ein fahrbarer Zustand erreicht wird.
           Nicht fahrbar bedeutet in diesem Kontext: Ein voll geladener Bus kann einen Umlauf nicht bedienen, ohne dass der SoC des Fahrzeugs unter 0&nbsp;% fällt.
@@ -558,10 +558,27 @@
           Hierbei werden nur Stationen untersucht die als elektrifizerbar markiert wurden. Dies geschieht, indem man auf der Seite "Stationen" die Station mit "automatisch" markiert.
         Die Stationsoptimierung fügt sukzessive Stationen eine Elektrifizierung bei bis ein voll elektrifizierter Zustand erreicht ist. Wenn ein Umlauf selbst bei vollständiger Elektrifizierung nicht fahrbar wird, so werden für diesen Umlauf keine Stationen elektrifiziert. Die Elektrifizierung von Stationen passiert in einer Reihenfolge basierend auf einer Optimierungsheuristik. Stationen, die als besonders effektiv erkannt werden, werden zuerst elektrifiziert, weniger effektive Stationen werden danach elektrifiziert. Sobald Fahrbarkeit erreicht ist, wird die Optimierung abgebrochen.
         Detaillierte Informationen zur Stationsoptimierung finden sie <a class="text-blue-600 hover:underline" href="https://github.com/rl-institut/SimBA">hier</a>.
-          <p class="text-base pb-4 leading-relaxed text-slate-600">
-          <!-- TODO: plots erklären. Import/Export/Downloads -->
           {% endblocktrans %}
+        </p>
 
+          <a href="#import_export" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Import/Export' %}</a>
+          <p class="text-base pb-4 leading-relaxed text-slate-600">
+          {% url 'simba:JSON_import_scenario_tree'   as import_url %}
+          {% url 'simba:dashboard'   as dashboard_url %}
+            {% blocktrans %}
+          Ihre Szenarien können Sie über das <a href="{{dashboard_url}}" class='text-blue-600 hover:underline'">Szenario-Dashboard</a> exportieren.
+          Der Export von Daten ist bei Szenarienmöglich die bereits gefiltert und in der Berabeitung sind oder deren Simulation abgeschlossen ist.
+          Klicken Sie hierfür auf den Knopf mit drei Punkten, neben einem Szenario. Der Export enthält sämtliche Daten des Szenarios inklusive des Szenarios das aus der Quelldatei erzeugt wurde. Teilen Sie Daten-Exports nur mit Menschen, denen Sie vollständige Einsicht in Ihr Szenario gestatten möchten.
+          Wenn Sie auf "Daten exportieren" klicken, laden sie ein Szenario herunter, was für den Import in WeBus geeignet ist.
+          Der Import kann über die <a href="{{import_url}}" class='text-blue-600 hover:underline'">Import</a> Seite stattfinden.
+          Diese Seite kann nur im eingeloggten Zustand aufgerufen werden.
+          Nachdem Sie die Datei aus dem Export hochgeladen haben, wird Sie Ihnen im <a href="{{dashboard_url}}" class='text-blue-600 hover:underline'">Szenario-Dashboard</a> angezeigt.
+          Sie können nun Varianten davon erstellen.
+          Der <a href="#expert_mode" class='text-blue-600 hover:underline'">Expertenmodus</a> erlaubt Ihnen die Datei vor dem importieren zu Verändern.<br>
+          Sollten Sie nur Interesse an den Ergebnissen einer Simulation haben, so können Sie bei Szenarien, welche "abgeschlossen" sind, über den Knopf mit den drei Punkten durch Auswahl "Ergebnisse exportieren" die Ergebnisse ihres Szenarios exportieren.
+          Die Ergebnisse umfassen zwei .json Dateien, die die Simulation für das Durchschnittsszenario und das Extremszenario abbilden.
+          Die Daten können vielfältigt weitergenutzt werden, beispielsweise für eigene Visualisierungsmethoden.
+          {% endblocktrans %}
           </p>
           <a href="#results" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Ergebnisse' %}</a>
           <p class="text-base pb-4 leading-relaxed text-slate-600">
@@ -576,9 +593,9 @@
           WeBus bietet einen vereinfachten Zugang für die Simulation von zu elektrifizierenden Bussystemen. Hierzu wurde der Funktionsumfang der Weboberfläche auf die wichtigsten Aspekte reduziert. Sollten Sie spezielle Anforderungen an beispielsweise technische Eigenschaften der Fahrzeuge haben, so lassen sich diese in einem Expertenmodus bearbeiten.
           Hierzu sind folgende drei Schritte notwendig:
           <ol class="list-decimal">
-          <li class="list-inside list-disc py-1 text-slate-700">Exportieren Sie ihr Szenario, welches Sie anpassen möchten</li>
-          <li class="list-inside list-disc py-1 text-slate-700">Passen Sie die Eigenschaften der verschiedenen Komponenten in der exportierten .json Datei an</li>
-          <li class="list-inside list-disc py-1 text-slate-700">Importieren Sie die angepasste Datei. Sie können diese nun simulieren.</li>
+          <li class="list-inside list-disc py-1 text-slate-700">Exportieren Sie ihr Szenario, welches Sie anpassen möchten, mittels "Daten exportieren". Eine Anleitung finden Sie <a href="#import_export" class="text-blue-600 hover:underline">hier</a> </li>
+          <li class="list-inside list-disc py-1 text-slate-700">Passen Sie die Eigenschaften der verschiedenen Komponenten in der exportierten .json Datei an. Hierzu sind die Daten im Szenario vom typ "MUTATION" entscheidend. Sämtliche Einstellungen die Sie in WeBus vornehmen, werden an diesem Szenario getätigt."</li>
+          <li class="list-inside list-disc py-1 text-slate-700">Importieren Sie die angepasste Datei. Sie können diese nun simulieren. Da der Eingabefluss nicht für den Expertenmodus ausgelegt ist, sollten Sie direkt zur Zusammenfassung/Summary springen um hier die Simulation zu starten.</li>
           </ol>
           {% endblocktrans %}
           </p>
