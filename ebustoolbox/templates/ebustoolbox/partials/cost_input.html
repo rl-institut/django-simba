@@ -1,4 +1,4 @@
-{% load i18n static %}
+{% load l10n i18n static %}
 
 {% block imports %}
   <link href="{%  static 'ebustoolbox/css/costs.css' %}" rel="stylesheet">
@@ -26,7 +26,7 @@
       <input
         {{ input }}
         type="number"
-        value="{{ initial }}"
+        value="{{ initial|unlocalize }}"
         for="{{name}}"
         class="block min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
       >
