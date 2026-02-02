@@ -1092,12 +1092,12 @@ class CostsView(ScenarioMixIn, TemplateView):
                     "fuel_cost": 1,
                     "maint_cost": 1,
                     "maint_cost_diesel": 1,
-                    "maint_inf_cost": 1,  # renamed from maint_infr_cost
+                    "maint_infr_cost": 1,
                     "taxes": 1,
                     "insurance": 1,
                     "pef_general": 0.01,
-                    "pef_staff_cost": 0.01,  # renamed from pef_wages
-                    "pef_energy_cost": 0.01,  # renamed from pef_energy
+                    "pef_wages": 0.01,
+                    "pef_energy": 0.01,
                     "pef_insurance": 0.01,
                     # not needed, but useful when restoring/loading values
                     "useful_life_chargepoint_depot": 1,
@@ -1107,7 +1107,6 @@ class CostsView(ScenarioMixIn, TemplateView):
                     "cost_escalation_chargepoint": 0.01,
                 }
 
-                self.scenario.tco_parameters = dict()
                 for param, scale in scenario_parameters.items():
                     try:
                         self.scenario.tco_parameters[param] = form_data[param] * scale

@@ -38,6 +38,8 @@ from eflips.depot.api import (  # noqa
     simulate_scenario,
     generate_optimal_depot_layout,
 )
+from eflips.tco import calculate_tco
+
 import core.deepcopy
 from ebusdjango.util import get_static_file_path
 import ebustoolbox.util
@@ -2051,6 +2053,13 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
         progress.current_work += 1
         progress.save()
 
+        # Calculate TCO. Needs vehicle (driving events) to be set.
+        logger.info(f"S.ID:{db_scenario.id}:Running eFLIPS TCO {datetime.now()}")
+        progress.current_work += 1
+        progress.status = _("Berechne TCO")
+        progress.save()
+        tco_result = eflips_calculate_tco(db_scenario)
+
         check_event_soc_consistency(db_scenario)
         db_scenario.refresh_from_db()
         db_scenario.finished = timezone.now()
@@ -2348,6 +2357,14 @@ def run_eflips(scenario, delete_existing_depot, progress) -> None:
         ignore_unstable_simulation=False,
         ignore_delayed_trips=False,
     )
+
+
+def eflips_calculate_tco(scenario: Scenario):
+    db_url = create_db_url()
+    # scenario.tco_parameters["const_energy_consumption"] = dict()  # vehicle ID -> value
+    # scenario.tco_parameters["pef_fuel"] = 0  # dummy, not part of TCO table
+    # scenario.save(update_fields=["tco_parameters"])
+    return calculate_tco(scenario.id, db_url)
 
 
 def create_db_url():

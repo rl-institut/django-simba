@@ -100,7 +100,6 @@ class Scenario(models.Model):
     simba_options = models.JSONField(default=dict, null=True, blank=True)
     eflips_depot_options = models.JSONField(default=dict, null=True, blank=True)
     tco_parameters = models.JSONField(
-        default=dict,
         null=True,
         db_default={
             "project_duration": 20,
@@ -224,7 +223,6 @@ class BatteryType(models.Model):
     # defined in eFLIPS-LCA
     chemistry = models.JSONField(null=False, default=dict)
     tco_parameters = models.JSONField(
-        default=dict,
         null=True,
         blank=True,
         db_default={"useful_life": 7, "procurement_cost": None, "cost_escalation": 0.01},
@@ -330,7 +328,6 @@ class VehicleType(models.Model):
     allowed_mass = models.FloatField(default=None, null=True)
 
     tco_parameters = models.JSONField(
-        default=dict,
         null=True,
         blank=True,
         db_default={
@@ -427,7 +424,6 @@ class ChargingPointType(models.Model):
     name = models.TextField(null=False, blank=False)
     name_short = models.TextField(null=True, blank=False, default=name)
     tco_parameters = models.JSONField(
-        default=dict,
         null=True,
         db_default={"useful_life": 20, "procurement_cost": None, "cost_escalation": 0.02},
     )
@@ -1114,7 +1110,6 @@ class Station(models.Model):
     power_total = models.FloatField(default=None, null=True, blank=True)
 
     tco_parameters = models.JSONField(
-        default=dict,
         null=True,
         db_default={"useful_life": 20, "procurement_cost": None, "cost_escalation": 0.02},
         blank=True,
