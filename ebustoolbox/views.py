@@ -1098,6 +1098,7 @@ class CostsView(ScenarioMixIn, TemplateView):
                     "pef_general": 0.01,
                     "pef_wages": 0.01,
                     "pef_energy": 0.01,
+                    "pef_fuel": 0.01,
                     "pef_insurance": 0.01,
                     # not needed, but useful when restoring/loading values
                     "useful_life_chargepoint_depot": 1,
@@ -1118,13 +1119,13 @@ class CostsView(ScenarioMixIn, TemplateView):
                 for station in self.scenario.station_set.all():
                     if station.charge_type == EnumChargeType.DEPOT.value:
                         station.tco_parameters = {
-                            "useful_life": form_data["useful_life_chargepoint_depot"],
+                            "useful_life": int(form_data["useful_life_chargepoint_depot"]),
                             "procurement_cost": form_data["procurement_cost_chargepoint_depot"],
                             "cost_escalation": form_data["cost_escalation_chargepoint"] / 100,
                         }
                     elif station.charge_type == EnumChargeType.OPPORTUNITY.value:
                         station.tco_parameters = {
-                            "useful_life": form_data["useful_life_chargepoint_opp"],
+                            "useful_life": int(form_data["useful_life_chargepoint_opp"]),
                             "procurement_cost": form_data["procurement_cost_chargepoint_opp"],
                             "cost_escalation": form_data["cost_escalation_chargepoint"] / 100,
                         }
@@ -1145,7 +1146,7 @@ class CostsView(ScenarioMixIn, TemplateView):
                 # multiple vehicle types allowed -> multiple values in form
                 for idx, vehicle_type in enumerate(context["vehicle_types"]):
                     vehicle_type.tco_parameters = {
-                        "useful_life": float(request.POST.getlist("costs-useful_life_bus")[idx]),
+                        "useful_life": int(request.POST.getlist("costs-useful_life_bus")[idx]),
                         "procurement_cost": float(
                             request.POST.getlist("costs-procurement_cost_bus")[idx]
                         ),
@@ -1161,7 +1162,7 @@ class CostsView(ScenarioMixIn, TemplateView):
                     battery_type = vehicle_type.battery_type
                     if battery_type is not None:
                         battery_type.tco_parameters = {
-                            "useful_life": float(
+                            "useful_life": int(
                                 request.POST.getlist("costs-useful_life_battery")[idx]
                             ),
                             "procurement_cost": float(

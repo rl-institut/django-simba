@@ -2058,7 +2058,7 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
         progress.current_work += 1
         progress.status = _("Berechne TCO")
         progress.save()
-        tco_result = eflips_calculate_tco(db_scenario)
+        eflips_calculate_tco(db_scenario)  # unused result
 
         check_event_soc_consistency(db_scenario)
         db_scenario.refresh_from_db()
@@ -2361,9 +2361,22 @@ def run_eflips(scenario, delete_existing_depot, progress) -> None:
 
 def eflips_calculate_tco(scenario: Scenario):
     db_url = create_db_url()
-    # scenario.tco_parameters["const_energy_consumption"] = dict()  # vehicle ID -> value
-    # scenario.tco_parameters["pef_fuel"] = 0  # dummy, not part of TCO table
-    # scenario.save(update_fields=["tco_parameters"])
+    # get vehicle type energy consumptions
+    for vt in scenario.vehicletype_set.all():
+        if vt.consumption is not None:
+            # consumption set directly
+            vt.tco_parameters["const_energy_consumption"] = vt.consumption
+        else:
+            # vehicle type consumption not set: calculate from driving events
+            energy_kwh = sum(
+                [
+                    e.get_energy_delta()
+                    for e in Event.objects.filter(vehicle_type=vt, event_type="DRIVING")
+                ]
+            )
+            distance = vt.get_total_distance_km
+            vt.tco_parameters["const_energy_consumption"] = -energy_kwh / distance  # [kWh / km]
+        vt.save(update_fields=["tco_parameters"])
     return calculate_tco(scenario.id, db_url)
 
 

@@ -114,8 +114,9 @@ class Scenario(models.Model):
             "taxes": 0.0,
             "insurance": 0.0,
             "pef_general": 0.02,
-            "pef_wages": 0.025,
-            "pef_energy": 0.038,
+            "pef_wages": 0.02,
+            "pef_energy": 0.02,
+            "pef_fuel": 0.02,
             "pef_insurance": 0.02,
         },
         blank=True,
@@ -225,7 +226,7 @@ class BatteryType(models.Model):
     tco_parameters = models.JSONField(
         null=True,
         blank=True,
-        db_default={"useful_life": 7, "procurement_cost": None, "cost_escalation": 0.01},
+        db_default={"useful_life": 7, "procurement_cost": 0, "cost_escalation": 0.01},
     )
 
 
@@ -332,8 +333,8 @@ class VehicleType(models.Model):
         blank=True,
         db_default={
             "useful_life": 14,
-            "procurement_cost": None,
-            "procurement_cost_diesel": None,
+            "procurement_cost": 550000,
+            "procurement_cost_diesel": 250000,
             "cost_escalation": 0.02,
         },
     )
@@ -347,8 +348,8 @@ class VehicleType(models.Model):
         if not self.tco_parameters:
             self.tco_parameters = {
                 "useful_life": 14,
-                "procurement_cost": None,
-                "procurement_cost_diesel": None,
+                "procurement_cost": 550000,
+                "procurement_cost_diesel": 250000,
                 "cost_escalation": 0.02,
             }
 
@@ -425,7 +426,7 @@ class ChargingPointType(models.Model):
     name_short = models.TextField(null=True, blank=False, default=name)
     tco_parameters = models.JSONField(
         null=True,
-        db_default={"useful_life": 20, "procurement_cost": None, "cost_escalation": 0.02},
+        db_default={"useful_life": 20, "procurement_cost": 0, "cost_escalation": 0.02},
     )
 
 
@@ -1111,7 +1112,7 @@ class Station(models.Model):
 
     tco_parameters = models.JSONField(
         null=True,
-        db_default={"useful_life": 20, "procurement_cost": None, "cost_escalation": 0.02},
+        db_default={"useful_life": 20, "procurement_cost": 0, "cost_escalation": 0.02},
         blank=True,
     )
 

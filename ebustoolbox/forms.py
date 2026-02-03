@@ -283,6 +283,7 @@ class ManualTcoForm(forms.Form):
     pef_general = forms.FloatField(initial=0.02, min_value=0, required=False)
     pef_wages = forms.FloatField(initial=0.02, min_value=0, required=False)
     pef_energy = forms.FloatField(initial=0.02, min_value=0, required=False)
+    pef_fuel = forms.FloatField(initial=0.02, min_value=0, required=False)
     pef_insurance = forms.FloatField(initial=0.02, min_value=0, required=False)
     cost_escalation_bus = forms.FloatField(initial=0.02, min_value=0, required=False)
     cost_escalation_battery = forms.FloatField(initial=0.01, min_value=0, required=False)
