@@ -36,3 +36,7 @@ def get_reserved():
 
 def get_result(task_id):
     return AsyncResult(task_id, app=app)
+
+
+def kill(task_id):
+    app.control.revoke(task_id, terminate=True, signal="SIGTERM")

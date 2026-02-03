@@ -33,6 +33,7 @@ from core.models import Progress, EnumProgress
 import core.deepcopy
 from celery.result import AsyncResult
 
+from ebusdjango.my_celery import app
 from django_mapengine.views import MapEngineMixin
 from temperatures.models import WeatherStation  # noqa
 from . import tasks, forms
@@ -43,11 +44,9 @@ from .forms import (
     DepotConfigurationWishForm,
     VehicleTypeForm,
     VehicleTypeSelectionForm,
-    FileUploadForm,
-    ScenarioSelection,
     ManualTcoForm,
 )
-from .tasks import merge_scenario
+from .tasks import deepcopy_scenario, merge_scenario
 from .import_export import ScenarioJSONImporterExporter, visit_all_scenario_queries
 
 from .util import get_unique_task_id
@@ -86,7 +85,6 @@ from ebustoolbox.models import (
     annotate_distance,
 )
 
-
 logger = logging.getLogger("custom")
 
 
@@ -102,12 +100,23 @@ def progress_scenario(request: HttpRequest, progress_id, template_name):
     status_code = 200
     hx_trigger = "running"
     result = AsyncResult(str(progress_id).encode())
-    if result.state in ["PENDING", "REVOKED", "FAILURE"]:
+    failed = result.state in ["REVOKED", "FAILURE"]
+    not_exists = result.state == "PENDING"
+    reserved = False
+    if not_exists:
+        for r in app.control.inspect().reserved().values():
+            ids = set(x["id"] for x in r)
+            if str(progress.task_id) in ids:
+                reserved = True
+    if reserved:
+        progress.status = "In Warteschlange"
+        progress.save()
+    if failed or (not_exists and not reserved):
         # the celery task is not running. The progress will not be updated. This has to be fixed.
         progress.refresh_from_db()
         if progress.running:
             progress.running = False
-            progress.status = "Abgebrochen"
+            progress.status = "Abgebrochen" if failed else "Aufgabe nicht gefunden"
             progress.errors.append(f"Task is {result.state}")
             progress.save()
 
@@ -154,7 +163,9 @@ def get_or_create_child_vehicle_types(
             scenario=scenario,
             original_vehicle_type=parent_vt,
         ).exists():
-            logger.info(f"{parent_vt} has no linked vehicle type. Creating a linked vehicle type")
+            logger.info(
+                f"S.ID:{scenario.id}: {parent_vt} has no linked vehicle type. Creating a linked vehicle type"
+            )
             org_vt_id = parent_vt.id
             parent_vt.id = None
             parent_vt.scenario = scenario
@@ -807,6 +818,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
             return self.forms_valid(forms, scenario)
 
         else:
+            logger.info(f"S.ID:{scenario.id}: At least one invalid VehicleForm.")
             for f in forms:
                 if not f.is_valid():
                     logger.info(f"{f.errors}")
@@ -843,7 +855,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
                 )
                 vt_selection.default_vehicle_type = d_vt
                 vt_selection.save()
-                logger.info(f"Used {d_vt.name} since user chose diesel heating")
+                logger.info(f"S.ID:{scenario.id}:Used {d_vt.name} since user chose diesel heating")
             instance = tasks.apply_vehicle_type(
                 target_vehicle_type=instance, source_vehicle_type=d_vt
             )
@@ -857,7 +869,7 @@ class VehiclesView(ScenarioMixIn, TemplateView):
             # If the user passed a constant consumption,
             # the vehicle type is delinked from the VehicleClass which has a consumption table.
             if vehicle_type_form.cleaned_data["consumption"] is not None:
-                logger.info(f"{mutated_vt=} will not use a consumption table")
+                logger.info(f"S.ID:{scenario.id}:{mutated_vt=} will not use a consumption table")
                 mutated_vt.save()
                 vc = VehicleClass.objects.filter(
                     scenario=mutated_vt.scenario,
@@ -867,10 +879,11 @@ class VehiclesView(ScenarioMixIn, TemplateView):
                 assert vc.count() == 1
                 vc = vc.first()
                 vc.vehicle_types.remove(mutated_vt)
-                logger.info(f"{vc=}, {vc.vehicle_types.all()=}")
+                logger.info(f"S.ID:{scenario.id}:{vc=}, {vc.vehicle_types.all()=}")
             else:
                 logger.info(
-                    f"{mutated_vt=} will use a consumption table. Constant consumption is deleted"
+                    f"S.ID:{scenario.id}:{mutated_vt=} will use a consumption table. "
+                    "Constant consumption is deleted"
                 )
                 mutated_vt.consumption = None
                 mutated_vt.save()
@@ -1013,7 +1026,26 @@ class CostsView(ScenarioMixIn, TemplateView):
 
         context = super().get_context_data(**kwargs)
         # Todo define which scenarios can be picked
-        selectable_scenarios = Scenario.objects.filter(id__gte=590)
+        scenarios = Scenario.objects.filter(scenario_type=EnumScenarioType.MUTATION)
+        selectable_scenarios = get_user_scenario_qs(self.request.user, scenarios)
+        costs_scenario_selection = {
+            scenario.id: {
+                "id": scenario.id,
+                "name": scenario.name,
+                "params": {
+                    "scenario": scenario.tco_parameters,
+                    "vehicles": {
+                        vt.name: {
+                            "vehicle_type": vt.tco_parameters,
+                            "battery": vt.battery_type.tco_parameters if vt.battery_type else None,
+                        }
+                        for vt in scenario.vehicletype_set.all()
+                    },
+                },
+            }
+            for scenario in selectable_scenarios
+        }
+        context["costs_scenario_selection"] = costs_scenario_selection
         costs_form = forms.CostInputModeForm(data=data, prefix="costsRadio")
         context["cost_mode_form"] = costs_form
         # Radio Button Values
@@ -1021,13 +1053,11 @@ class CostsView(ScenarioMixIn, TemplateView):
         for choice in forms.CostInputModeForm.CHOICES:
             val = choice[0]
             context["radio_values"][val] = choice[0]
-        context["costs_fileUpload"] = FileUploadForm(data=data)
-        form = ScenarioSelection(data=data, queryset=selectable_scenarios)
-        context["costs_scenario_selection"] = form
         context["costs_manual"] = ManualTcoForm(data=data, prefix="costs")
         # get all vehicle types in scenario to show cost params for each type
         scenario = Scenario.objects.get(task_id=kwargs["task_id"])
-        context["vehicle_types"] = scenario.vehicletype_set.all()
+        # retain order for associated TCO (returned as list)
+        context["vehicle_types"] = scenario.vehicletype_set.order_by("id")
 
         return context
 
@@ -1043,25 +1073,110 @@ class CostsView(ScenarioMixIn, TemplateView):
         match form.cleaned_data["input_mode"]:
             case "no_input":
                 pass
-            case "file_upload":
-                file_form = context["costs_fileUpload"]
-                if not file_form.is_valid():
-                    logger.debug("Invalid Costs File Form provided")
-                    return self.render_to_response(context)
-                raise NotImplementedError("file upload is not yet implemented")
-            case "reference_scenario":
-                scenario_selection = context["costs_scenario_selection"]
-                if not scenario_selection.is_valid():
-                    logger.debug("Invalid Costs Scenario Selection provided")
-                    return self.render_to_response(context)
-                raise NotImplementedError("scenario_selection is not yet implemented")
             case "manual":
                 manual_form = context["costs_manual"]
                 if not manual_form.is_valid():
                     logger.debug("Invalid Cost Manual Form provided")
                     return self.render_to_response(context)
-                # TODO: actually do something with manual inputs, like saving them in DB
-                pass
+                form_data = manual_form.cleaned_data
+                # save TCO parameters to their respective models
+                # some parameters are defined per instance (for example, cost per vehicle type)
+                # Scenario TCO
+                # parameter name -> scale (for percentages)
+                scenario_parameters = {
+                    "project_duration": 1,
+                    "interest_rate": 1,
+                    "inflation_rate": 0.01,
+                    "staff_cost": 1,
+                    "energy_cost": 1,
+                    "fuel_cost": 1,
+                    "maint_cost": 1,
+                    "maint_cost_diesel": 1,
+                    "maint_inf_cost": 1,  # renamed from maint_infr_cost
+                    "taxes": 1,
+                    "insurance": 1,
+                    "pef_general": 0.01,
+                    "pef_staff_cost": 0.01,  # renamed from pef_wages
+                    "pef_energy_cost": 0.01,  # renamed from pef_energy
+                    "pef_insurance": 0.01,
+                    # not needed, but useful when restoring/loading values
+                    "useful_life_chargepoint_depot": 1,
+                    "procurement_cost_chargepoint_depot": 1,
+                    "useful_life_chargepoint_opp": 1,
+                    "procurement_cost_chargepoint_opp": 1,
+                    "cost_escalation_chargepoint": 0.01,
+                }
+
+                self.scenario.tco_parameters = dict()
+                for param, scale in scenario_parameters.items():
+                    try:
+                        self.scenario.tco_parameters[param] = form_data[param] * scale
+                    except KeyError:
+                        logger.warning(f"TCO Scenario: Parameter {param} not found")
+                self.scenario.save(update_fields=["tco_parameters"])
+
+                # Station TCO
+                for station in self.scenario.station_set.all():
+                    if station.charge_type == EnumChargeType.DEPOT.value:
+                        station.tco_parameters = {
+                            "useful_life": form_data["useful_life_chargepoint_depot"],
+                            "procurement_cost": form_data["procurement_cost_chargepoint_depot"],
+                            "cost_escalation": form_data["cost_escalation_chargepoint"] / 100,
+                        }
+                    elif station.charge_type == EnumChargeType.OPPORTUNITY.value:
+                        station.tco_parameters = {
+                            "useful_life": form_data["useful_life_chargepoint_opp"],
+                            "procurement_cost": form_data["procurement_cost_chargepoint_opp"],
+                            "cost_escalation": form_data["cost_escalation_chargepoint"] / 100,
+                        }
+                    else:
+                        logger.warning(
+                            f"Station {station.name} has unknown "
+                            f"charge type: {station.charge_type}"
+                        )
+                        continue
+                    station.save(update_fields=["tco_parameters"])
+                    # charging point type has identical parameters?
+                    cp_type = station.charging_point_type
+                    if cp_type is not None:
+                        cp_type.tco_parameters = station.tco_parameters
+                        cp_type.save(update_fields=["tco_parameters"])
+
+                # VehicleType/BatteryType TCO
+                # multiple vehicle types allowed -> multiple values in form
+                for idx, vehicle_type in enumerate(context["vehicle_types"]):
+                    vehicle_type.tco_parameters = {
+                        "useful_life": float(request.POST.getlist("costs-useful_life_bus")[idx]),
+                        "procurement_cost": float(
+                            request.POST.getlist("costs-procurement_cost_bus")[idx]
+                        ),
+                        "procurement_cost_diesel": float(
+                            request.POST.getlist("costs-procurement_cost_diesel")[idx]
+                        ),
+                        "cost_escalation": float(
+                            request.POST.getlist("costs-cost_escalation_bus")[idx]
+                        )
+                        / 100,
+                    }
+                    vehicle_type.save(update_fields=["tco_parameters"])
+                    battery_type = vehicle_type.battery_type
+                    if battery_type is not None:
+                        battery_type.tco_parameters = {
+                            "useful_life": float(
+                                request.POST.getlist("costs-useful_life_battery")[idx]
+                            ),
+                            "procurement_cost": float(
+                                request.POST.getlist("costs-procurement_cost_battery")[idx]
+                            ),
+                            "cost_escalation": float(
+                                request.POST.getlist("costs-cost_escalation_battery")[idx]
+                            )
+                            / 100,
+                        }
+                        battery_type.save(update_fields=["tco_parameters"])
+                    else:
+                        logger.warning(f"VehicleType {vehicle_type.name} has no associated battery")
+
             case _:
                 raise NotImplementedError(f"Mode {form.cleaned_data['input_mode']}")
         return redirect(reverse(self.success_name, args=[kwargs["task_id"]]))
@@ -1244,7 +1359,7 @@ class SummaryView(AuthorizedMixIn, TemplateView):
         ).last()
         if progress:
             context["progress"] = progress
-            logger.info(f"Returning {progress=} in context")
+            logger.info(f"S.ID:{scenario.id}:Returning {progress=} in context")
 
         start, end = data.get_start_end_time(scenario.parent)
         german_weekdays = {
@@ -1291,9 +1406,12 @@ class SummaryView(AuthorizedMixIn, TemplateView):
             is_electrified=False, is_electrifiable=True
         )
         context["excluded_stations"] = scenario_stations.filter(id__in=excluded_ids)
-        context["depots"] = Station.objects.filter(
-            scenario=scenario, charge_type=EnumChargeType.DEPOT
+        context["depot_wishes"] = (
+            DepotConfigurationWish.objects.filter(scenario=scenario)
+            .prefetch_related("areainformation_set")
+            .prefetch_related("areainformation_set__vehicle_type")
         )
+
         return context
 
     def post(self, request, *args, **kwargs):
@@ -1412,7 +1530,7 @@ def merge_and_run(request: HttpRequest, task_id: str):
     # Users should not keep failed scenarios
     # This way the children of a scenario can be uniquely linked to their parent
     # (TODO: Discuss)
-    logger.info("Deleting failed previous child-scenarios")
+    logger.info(f"S.ID:{scenario.id}:Deleting failed previous child-scenarios")
     logger.info(str(Scenario.objects.filter(parent=scenario).delete()))
 
     if not request.user.is_superuser:
@@ -1439,7 +1557,7 @@ def merge_and_run(request: HttpRequest, task_id: str):
             progress_type=EnumProgress.RUNNING_SIMULATION,
             task_id=sim_task_id,
         )
-    logger.info("Running Toolchain.")
+    logger.info(f"S.ID:{scenario.id}:Running Toolchain.")
     sizing_task_id = get_unique_task_id()
     # create scenario from mutation and parent and simulate it
     try:
@@ -1509,7 +1627,7 @@ def run_simulation(request: HttpRequest, task_id: str):
             raise Http404
         # This triggers progress polling. If the toolchain is finished,
         # the progress view will be triggered with the task_id and progress type
-        logger.info("Running Toolchain.")
+        logger.info(f"S.ID:{scenario.id}:Running Toolchain.")
         if Rotation.objects.filter(scenario=scenario).count() == 1:
             return HttpResponse("The Scenario has no Rotations/blocks. Nothing to simulate")
         tasks.run_toolchain_from_scenario(scenario, assign_vehicles=True)
@@ -1963,9 +2081,53 @@ def import_scenario(request):
                 f"View <a href={reverse('simba:result', args=[task_id])}>results</a>"
             )
         return HttpResponse(
-            _(f"Scenario succesfully imported with task_id {task_id}. ") + redirect_suggestion
+            _(f"Scenario successfully imported with task_id {task_id}. ") + redirect_suggestion
         )
     return HttpResponseBadRequest(_("Use POST or GET"))
+
+
+def loadTester(request, task_id: str):
+    if not request.user.is_authenticated:
+        raise Http404()
+    if not request.user.is_superuser:
+        raise Http404()
+    scenarios = request.GET.getlist("scenario")
+    scenario = Scenario.objects.get(task_id=task_id)
+    context = {}
+    context["scenario"] = scenario
+    context["scenarios"] = scenarios
+    if request.method == "GET":
+        progresses = Progress.objects.filter(scenario=scenario, running=True)
+        context["progresses"] = progresses
+        return render(request, "ebustoolbox/load_test.html", context)
+    elif request.method == "POST":
+        repeats = int(request.POST.get("repeats", 0))
+        progresses = []
+        for i in range(repeats):
+            scenario.task_id = get_unique_task_id()
+            s, _ = deepcopy_scenario(scenario)
+            progress = Progress.objects.create(
+                scenario=s,
+                progress_type=EnumProgress.RUNNING_SIMULATION,
+                task_id=get_unique_task_id(),
+            )
+            progresses.append(progress)
+            try:
+                tasks.run_and_merge_scenarios.apply_async(
+                    (s.id, get_unique_task_id(), get_unique_task_id()),
+                    task_id=str(progress.task_id),
+                )
+            except Exception:
+                progress.errors.append(
+                    _(
+                        "Ein unerwarteter Fehler ist aufgetreten. Wenden Sie sich an ihren Administrator"
+                    )
+                )
+                progress.set_failed()
+                logger.error(traceback.format_exc())
+        context["progresses"] = progresses
+        return render(request, "ebustoolbox/load_test.html", context)
+    return HttpResponse("wrong method")
 
 
 def delete_scenario(request, task_id):

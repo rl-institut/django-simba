@@ -109,8 +109,8 @@ class SimulationFilterForm(forms.Form):
 
 
 class SimulationTemperaturesForm(forms.ModelForm):
-    temperature_average = forms.IntegerField(min_value=-20, max_value=40)
-    temperature_extreme = forms.IntegerField(min_value=-20, max_value=40)
+    temperature_average = forms.IntegerField(min_value=-5, max_value=30)
+    temperature_extreme = forms.IntegerField(min_value=-5, max_value=30)
 
     class Meta:
         model = SimulationTemperatures
@@ -247,26 +247,12 @@ class StationExcludedForm(forms.Form):
 class CostInputModeForm(forms.Form):
     CHOICES = [
         ("no_input", "Keine Eingabe"),
-        ("file_upload", "Datei hochladen"),
-        ("reference_scenario", "Werte aus anderem Szenario übernehmen"),
         ("manual", "Manuelle Eingabe"),
     ]
     input_mode = forms.ChoiceField(
         widget=forms.RadioSelect,
         choices=CHOICES,
     )
-
-
-class FileUploadForm(forms.Form):
-    file = forms.FileField(required=True)
-
-
-class ScenarioSelection(forms.Form):
-    scenario = forms.ModelChoiceField(queryset=Scenario.objects.all())
-
-    def __init__(self, *args, queryset, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["scenario"].queryset = queryset
 
 
 class ManualTcoForm(forms.Form):
@@ -285,22 +271,22 @@ class ManualTcoForm(forms.Form):
     procurement_cost_chargepoint_opp = forms.FloatField(initial=0, min_value=0)  # €
 
     # diesel comparison: non-changeable
-    fuel_cost = forms.FloatField(initial=1.5, disabled=True)  # €/l
-    maint_cost_diesel = forms.FloatField(initial=0.14, disabled=True)  # €/km
-    procurement_cost_diesel = forms.IntegerField(initial=250000, disabled=True)  # €
+    fuel_cost = forms.FloatField(initial=1.5)  # €/l
+    maint_cost_diesel = forms.FloatField(initial=0.14)  # €/km
+    procurement_cost_diesel = forms.IntegerField(initial=250000)  # €
 
     # expert options (optional)
-    interest_rate = forms.FloatField(initial=4, min_value=0, required=False)
-    inflation_rate = forms.FloatField(initial=2, min_value=0, required=False)
+    interest_rate = forms.FloatField(initial=0.04, min_value=0, required=False)
+    inflation_rate = forms.FloatField(initial=0.02, min_value=0, required=False)
     taxes = forms.FloatField(initial=0, min_value=0, required=False)  # € (vehicle tax)
     insurance = forms.FloatField(initial=2000, min_value=0, required=False)  # €/a
-    pef_general = forms.FloatField(initial=2, min_value=0, required=False)
-    pef_staff_cost = forms.FloatField(initial=2, min_value=0, required=False)
-    pef_energy_cost = forms.FloatField(initial=2, min_value=0, required=False)
-    pef_insurance = forms.FloatField(initial=2, min_value=0, required=False)
-    cost_escalation_bus = forms.FloatField(initial=2, min_value=0, required=False)
-    cost_escalation_battery = forms.FloatField(initial=1, min_value=0, required=False)
-    cost_escalation_chargepoint = forms.FloatField(initial=2, min_value=0, required=False)
+    pef_general = forms.FloatField(initial=0.02, min_value=0, required=False)
+    pef_staff_cost = forms.FloatField(initial=0.02, min_value=0, required=False)
+    pef_energy_cost = forms.FloatField(initial=0.02, min_value=0, required=False)
+    pef_insurance = forms.FloatField(initial=0.02, min_value=0, required=False)
+    cost_escalation_bus = forms.FloatField(initial=0.02, min_value=0, required=False)
+    cost_escalation_battery = forms.FloatField(initial=0.01, min_value=0, required=False)
+    cost_escalation_chargepoint = forms.FloatField(initial=0.02, min_value=0, required=False)
 
 
 class DepotConfigurationWishForm(forms.ModelForm):
@@ -410,9 +396,11 @@ class AreaInformationForm(forms.ModelForm):
         model = models.AreaInformation
         exclude = ["scenario", "depot_configuration_wish", "vehicle_type"]
         help_texts = {
-            "capacity": _("Anzahl der Ladeplätze für diesen Fahrzeugtyp"),
+            "capacity": _("Anzahl der Ladeplätze für diesen Fahrzeugtyp. Mindestanzahl = 2"),
             "power": _("max. Ladeleistung der Ladesäule"),
-            "block_length": _("Anzahl hintereinanderliegender Parkplätze"),
+            "block_length": _(
+                "Anzahl hintereinanderliegender Parkplätze. Dies muss ein ganzzahliger Teiler der Kapazität sein."
+            ),
             "area_type": _("Form in der die Ladeplätze angelegt sind"),
         }
         labels = {
@@ -434,14 +422,18 @@ class AreaInformationForm(forms.ModelForm):
         cleaned_data = super().clean()
         if cleaned_data.get("area_type") == AreaType.LINEAR:
             if cleaned_data.get("capacity") is None:
-                self.errors["capacity"].append(
-                    _("Für diesen Flächentyp muss ein Kapazität angegeben werden")
+                self.add_error(
+                    "capacity", _("Für diesen Flächentyp muss ein Kapazität >=2 angegeben werden")
                 )
                 raise ValidationError("Block length cant be None")
 
             if cleaned_data.get("capacity") % cleaned_data.get("block_length") != 0:
-                self.errors["block_length"].append(
-                    _("Die Anzahl muss ein ganzahliger Teiler der Ladeplätze Anzahl sein.")
+                self.add_error(
+                    "block_length",
+                    _(
+                        "Die Anzahl muss ein ganzahliger Teiler der Ladeplätze Anzahl sein "
+                        "und größer oder gleich 2 sein."
+                    ),
                 )
                 raise ValidationError("Block length must be an integer divider of Capacity")
         return cleaned_data

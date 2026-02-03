@@ -1365,6 +1365,10 @@ select {
   width: 33.333333%;
 }
 
+.w-4\/5 {
+  width: 80%;
+}
+
 .w-40 {
   width: 10rem;
 }
@@ -1673,6 +1677,22 @@ select {
   animation: slide-in-top 0.4s ease-out forwards;
 }
 
+@keyframes slide-out-top {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0.8;
+    transform: translateY(-100%);
+  }
+}
+
+.animate-slide-out-top {
+  animation: slide-out-top 0.4s ease-out forwards;
+}
+
 .cursor-default {
   cursor: default;
 }
@@ -1705,6 +1725,10 @@ select {
 
 .list-disc {
   list-style-type: disc;
+}
+
+.list-none {
+  list-style-type: none;
 }
 
 .appearance-none {
@@ -1802,6 +1826,11 @@ select {
        column-gap: 0.375rem;
 }
 
+.gap-x-14 {
+  -moz-column-gap: 3.5rem;
+       column-gap: 3.5rem;
+}
+
 .gap-x-6 {
   -moz-column-gap: 1.5rem;
        column-gap: 1.5rem;
@@ -1809,6 +1838,10 @@ select {
 
 .gap-y-2 {
   row-gap: 0.5rem;
+}
+
+.gap-y-4 {
+  row-gap: 1rem;
 }
 
 .-space-x-px > :not([hidden]) ~ :not([hidden]) {
@@ -2096,11 +2129,6 @@ select {
   background-color: rgb(255 251 235 / var(--tw-bg-opacity, 1));
 }
 
-.bg-black {
-  --tw-bg-opacity: 1;
-  background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1));
-}
-
 .bg-blue-200 {
   --tw-bg-opacity: 1;
   background-color: rgb(191 219 254 / var(--tw-bg-opacity, 1));
@@ -2222,6 +2250,11 @@ select {
 .bg-white {
   --tw-bg-opacity: 1;
   background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
+}
+
+.bg-yellow-200 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(254 240 138 / var(--tw-bg-opacity, 1));
 }
 
 .bg-yellow-50 {
@@ -2626,6 +2659,11 @@ select {
 
 .tracking-wide {
   letter-spacing: 0.025em;
+}
+
+.\!text-slate-800 {
+  --tw-text-opacity: 1 !important;
+  color: rgb(30 41 59 / var(--tw-text-opacity, 1)) !important;
 }
 
 .text-amber-700 {
@@ -3348,6 +3386,11 @@ progress::-moz-progress-bar {
   color: rgb(100 116 139 / var(--tw-text-opacity, 1));
 }
 
+.hover\:text-slate-600:hover {
+  --tw-text-opacity: 1;
+  color: rgb(71 85 105 / var(--tw-text-opacity, 1));
+}
+
 .hover\:text-slate-700:hover {
   --tw-text-opacity: 1;
   color: rgb(51 65 85 / var(--tw-text-opacity, 1));
@@ -3670,6 +3713,11 @@ progress::-moz-progress-bar {
   background-color: rgb(241 245 249 / var(--tw-bg-opacity, 1));
 }
 
+.group[open] .group-open\:rotate-90 {
+  --tw-rotate: 90deg;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
 .group:hover .group-hover\:visible {
   visibility: visible;
 }
@@ -3832,6 +3880,10 @@ progress::-moz-progress-bar {
 
   .sm\:pl-0 {
     padding-left: 0px;
+  }
+
+  .sm\:pr-10 {
+    padding-right: 2.5rem;
   }
 
   .sm\:pr-9 {
@@ -4146,4 +4198,46 @@ progress::-moz-progress-bar {
        -moz-appearance: auto;
             appearance: auto;
   }
+}
+
+.\[\&\>p\>span\:first-child\]\:w-\[16rem\]>p>span:first-child {
+  width: 16rem;
+}
+
+.\[\&\>p\>span\:first-child\]\:text-slate-500>p>span:first-child {
+  --tw-text-opacity: 1;
+  color: rgb(100 116 139 / var(--tw-text-opacity, 1));
+}
+
+.\[\&\>p\>span\:nth-child\(2\)\]\:text-slate-800>p>span:nth-child(2) {
+  --tw-text-opacity: 1;
+  color: rgb(30 41 59 / var(--tw-text-opacity, 1));
+}
+
+.\[\&\>p\]\:flex>p {
+  display: flex;
+}
+
+.\[\&\>tr\:hover\]\:bg-slate-100>tr:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(241 245 249 / var(--tw-bg-opacity, 1));
+}
+
+.\[\&_td\]\:border-b td {
+  border-bottom-width: 1px;
+}
+
+.\[\&_td\]\:border-slate-200 td {
+  --tw-border-opacity: 1;
+  border-color: rgb(226 232 240 / var(--tw-border-opacity, 1));
+}
+
+.\[\&_td\]\:px-4 td {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.\[\&_td\]\:py-2 td {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }

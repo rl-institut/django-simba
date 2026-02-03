@@ -144,5 +144,6 @@ urlpatterns = [
     path("result/<uuid:task_id>/soc_hist/", views.get_binned_soc_data, name="soc_hist"),
     path("result/<uuid:task_id>/depot_power/", views.get_power_draw_and_occ, name="eflips_power"),
     path("result/<uuid:task_id>/gantt/", views.get_gantt, name="gantt"),
+    path("load_test/<uuid:task_id>/", views.loadTester, name="loadtest"),
     path("delete/<uuid:task_id>", views.delete_scenario, name="delete"),
 ]

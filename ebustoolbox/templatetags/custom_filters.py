@@ -75,3 +75,8 @@ def get_item(obj, key):
 def get_attr(obj, key):
     """Safely gets an attribute from an object."""
     return getattr(obj, key, None)
+
+
+@register.filter
+def multiply(a, b):
+    return a*b
