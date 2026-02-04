@@ -121,6 +121,7 @@ class Scenario(models.Model):
         },
         blank=True,
     )
+    tco_result = models.JSONField(default=None, null=True, blank=True)
 
     manager = models.ForeignKey(
         User, on_delete=models.SET_NULL, default=None, null=True, blank=True, related_name="+"

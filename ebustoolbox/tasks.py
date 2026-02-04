@@ -2058,7 +2058,9 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
         progress.current_work += 1
         progress.status = _("Berechne TCO")
         progress.save()
-        eflips_calculate_tco(db_scenario)  # unused result
+        tco_result = eflips_calculate_tco(db_scenario)  # on error: all values 1
+        db_scenario.tco_result = tco_result
+        db_scenario.save(update_fields=["tco_result"])
 
         check_event_soc_consistency(db_scenario)
         db_scenario.refresh_from_db()
