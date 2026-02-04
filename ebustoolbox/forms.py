@@ -247,8 +247,6 @@ class StationExcludedForm(forms.Form):
 class CostInputModeForm(forms.Form):
     CHOICES = [
         ("no_input", "Keine Eingabe"),
-        ("file_upload", "Datei hochladen"),
-        ("reference_scenario", "Werte aus anderem Szenario übernehmen"),
         ("manual", "Manuelle Eingabe"),
     ]
     input_mode = forms.ChoiceField(
@@ -257,24 +255,12 @@ class CostInputModeForm(forms.Form):
     )
 
 
-class FileUploadForm(forms.Form):
-    file = forms.FileField(required=True)
-
-
-class ScenarioSelection(forms.Form):
-    scenario = forms.ModelChoiceField(queryset=Scenario.objects.all())
-
-    def __init__(self, *args, queryset, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["scenario"].queryset = queryset
-
-
 class ManualTcoForm(forms.Form):
     project_duration = forms.IntegerField(initial=20, min_value=1)  # years
     staff_cost = forms.FloatField(initial=30, min_value=0)  # €/h
     energy_cost = forms.FloatField(initial=0.18, min_value=0)  # €/kWh
     maint_cost = forms.FloatField(initial=0.07, min_value=0)  # €/km
-    maint_inf_cost = forms.FloatField(initial=1000, min_value=0)  # €/a
+    maint_infr_cost = forms.FloatField(initial=1000, min_value=0)  # €/a
     useful_life_bus = forms.IntegerField(initial=14, min_value=0)  # years
     procurement_cost_bus = forms.IntegerField(initial=550000, min_value=0)  # €
     useful_life_battery = forms.IntegerField(initial=7, min_value=0)  # years
@@ -285,22 +271,23 @@ class ManualTcoForm(forms.Form):
     procurement_cost_chargepoint_opp = forms.FloatField(initial=0, min_value=0)  # €
 
     # diesel comparison: non-changeable
-    fuel_cost = forms.FloatField(initial=1.5, disabled=True)  # €/l
-    maint_cost_diesel = forms.FloatField(initial=0.14, disabled=True)  # €/km
-    procurement_cost_diesel = forms.IntegerField(initial=250000, disabled=True)  # €
+    fuel_cost = forms.FloatField(initial=1.5)  # €/l
+    maint_cost_diesel = forms.FloatField(initial=0.14)  # €/km
+    procurement_cost_diesel = forms.IntegerField(initial=250000)  # €
 
     # expert options (optional)
-    interest_rate = forms.FloatField(initial=4, min_value=0, required=False)
-    inflation_rate = forms.FloatField(initial=2, min_value=0, required=False)
+    interest_rate = forms.FloatField(initial=0.04, min_value=0, required=False)
+    inflation_rate = forms.FloatField(initial=0.02, min_value=0, required=False)
     taxes = forms.FloatField(initial=0, min_value=0, required=False)  # € (vehicle tax)
     insurance = forms.FloatField(initial=2000, min_value=0, required=False)  # €/a
-    pef_general = forms.FloatField(initial=2, min_value=0, required=False)
-    pef_staff_cost = forms.FloatField(initial=2, min_value=0, required=False)
-    pef_energy_cost = forms.FloatField(initial=2, min_value=0, required=False)
-    pef_insurance = forms.FloatField(initial=2, min_value=0, required=False)
-    cost_escalation_bus = forms.FloatField(initial=2, min_value=0, required=False)
-    cost_escalation_battery = forms.FloatField(initial=1, min_value=0, required=False)
-    cost_escalation_chargepoint = forms.FloatField(initial=2, min_value=0, required=False)
+    pef_general = forms.FloatField(initial=0.02, min_value=0, required=False)
+    pef_wages = forms.FloatField(initial=0.02, min_value=0, required=False)
+    pef_energy = forms.FloatField(initial=0.02, min_value=0, required=False)
+    pef_fuel = forms.FloatField(initial=0.02, min_value=0, required=False)
+    pef_insurance = forms.FloatField(initial=0.02, min_value=0, required=False)
+    cost_escalation_bus = forms.FloatField(initial=0.02, min_value=0, required=False)
+    cost_escalation_battery = forms.FloatField(initial=0.01, min_value=0, required=False)
+    cost_escalation_chargepoint = forms.FloatField(initial=0.02, min_value=0, required=False)
 
 
 class DepotConfigurationWishForm(forms.ModelForm):

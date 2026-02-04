@@ -40,9 +40,9 @@
               </span>
             </div>
           </h2>
-          <div class="grid grid-cols-1 w-4/5 sm:grid-cols-2 gap-x-14 gap-y-4 sm:w-full sm:pr-10 ">
-            <div >
-              <h3 class="flex items-center gap-2 pb-2 text-l font-semibold tracking-wide"
+          <div class="grid grid-cols-1 w-4/5 sm:grid-cols-2 gap-x-14 gap-y-4 sm:max-w-[60%] sm:pr-10 ">
+          <div class="max-w-[80%]">
+              <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-800 tracking-wide"
                   id="temperature-heading">
                 {% translate 'Durchschnittstemperatur' %}
                 <div class="relative inline-block">
@@ -64,12 +64,10 @@
                 </div>
               </h3>
               <div class="w-full">
-              <div  class="mt-2" x-data="{value:'', data: '', loading: true}"
-              >
-                {% comment %}
-                 Use alpine to get rid of decimal places using comma or dot
-                {% endcomment %}
-                  <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
+                <div class="mt-2" x-data="{value:'', data: '', loading: true}"
+  >
+
+                  <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-emerald-400 focus-within:focus-visible:outline-2">
                     <input
                     x-model.fill="value"
                     @input="const n = parseInt($event.target.value);
@@ -78,18 +76,18 @@
                     {% with temperatures_form.temperature_average as form %}
                           {{ form|widget_attrs}}
                            {% endwith %}
-                           class="flex-1 bg-white mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                           class="flex-1 bg-white mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                            placeholder="Gib eine Temperatur ein."
                            aria-describedby="temperature-heading temperature-unit"
                           @change="loading = true;"
                           @change.debounce.200ms='data = await fetchQuantile($el.value); loading=false; refreshPageHints();'
                           x-init='data = await fetchQuantile($el.value); loading=false;'
                   >
-                    <div id="temperature-unit" class="shrink-0 select-none text-slate-500">°C</div>
+                    <div id="temperature-unit" class="shrink-0 select-none text-sm text-slate-500">°C</div>
                   </div>
 
                 <div class="flex" >
-                  <div id="AvgTemperatureHint"  class="flex mt-1 text-sm text-slate-600 italic transition-opacity duration-200 ease-in-out">
+                  <div id="AvgTemperatureHint"  class="flex mt-1 text-sm text-slate-500 italic transition-opacity duration-200 ease-in-out">
                     {% comment %}
                       show spinner cause data is being fetched and no error
                     {% endcomment %}
@@ -131,8 +129,8 @@
                 </div>
               </div>
             </div>
-            <div >
-              <h3 class="flex items-center gap-2 pb-2 text-l font-semibold tracking-wide"
+          <div class="max-w-[80%]">
+              <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-800 tracking-wide"
                   id="temperature-heading">
                 {% translate 'Extremtemperatur' %}
                 <div class="relative inline-block">
@@ -154,12 +152,8 @@
                 </div>
               </h3>
               <div class="w-full">
-              <div  class="mt-2" x-data="{value:'', data: '', loading: true}"
-              >
-                {% comment %}
-                 Use alpine to get rid of decimal places using comma or dot
-                {% endcomment %}
-                  <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
+              <div  class="mt-2" x-data="{value:'', data: '', loading: true}">
+                  <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-emerald-400 focus-within:focus-visible:outline-2">
                   <input
                     x-model.fill="value"
                     @input="const n = parseInt($event.target.value);
@@ -179,7 +173,7 @@
                   </div>
 
                 <div class="flex " >
-                  <div id="ExtremeTemperatureHint"  class="flex mt-1 text-sm text-slate-600 italic transition-opacity duration-200 ease-in-out">
+                  <div id="ExtremeTemperatureHint"  class="flex mt-1 text-sm text-slate-500 italic transition-opacity duration-200 ease-in-out">
                     {% comment %}
                       show spinner cause data is being fetched and no error
                     {% endcomment %}
@@ -221,8 +215,8 @@
                 </div>
 
               </div>
-            </div>
-          </div>
+        </div>
+        </div>
         </div>
       </section>
       <section class="pb-12">
@@ -662,10 +656,10 @@ function validateVehicleContainers(){
     }
     if (isValid){
       header.classList.remove("transition-colors", "duration-100", "bg-transparent");
-      header.classList.add("transition-colors", "duration-100", "bg-green-200");
+      header.classList.add("transition-colors", "duration-100", "bg-emerald-200");
       errorDiv.classList.add("hidden");
     } else {
-      header.classList.remove("transition-colors", "duration-100", "bg-green-200");
+      header.classList.remove("transition-colors", "duration-100", "bg-emerald-200");
       header.classList.add("transition-colors", "duration-100", "bg-transparent");
     }
   };

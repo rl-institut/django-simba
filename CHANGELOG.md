@@ -20,6 +20,9 @@ Template:
 
 ## [x.x.x] - Unreleased
 ### Changed
+- [(#292)](https://github.com/rl-institut/django-simba/pull/292)
+- Overall design update
+- Hide stations table by default for better UX
 
 
 - [(#323)](https://github.com/rl-institut/django-simba/pull/323)

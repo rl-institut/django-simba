@@ -44,8 +44,6 @@ from .forms import (
     DepotConfigurationWishForm,
     VehicleTypeForm,
     VehicleTypeSelectionForm,
-    FileUploadForm,
-    ScenarioSelection,
     ManualTcoForm,
 )
 from .tasks import deepcopy_scenario, merge_scenario
@@ -1039,7 +1037,26 @@ class CostsView(ScenarioMixIn, TemplateView):
 
         context = super().get_context_data(**kwargs)
         # Todo define which scenarios can be picked
-        selectable_scenarios = Scenario.objects.filter(id__gte=590)
+        scenarios = Scenario.objects.filter(scenario_type=EnumScenarioType.MUTATION)
+        selectable_scenarios = get_user_scenario_qs(self.request.user, scenarios)
+        costs_scenario_selection = {
+            scenario.id: {
+                "id": scenario.id,
+                "name": scenario.name,
+                "params": {
+                    "scenario": scenario.tco_parameters,
+                    "vehicles": {
+                        vt.name: {
+                            "vehicle_type": vt.tco_parameters,
+                            "battery": vt.battery_type.tco_parameters if vt.battery_type else None,
+                        }
+                        for vt in scenario.vehicletype_set.all()
+                    },
+                },
+            }
+            for scenario in selectable_scenarios
+        }
+        context["costs_scenario_selection"] = costs_scenario_selection
         costs_form = forms.CostInputModeForm(data=data, prefix="costsRadio")
         context["cost_mode_form"] = costs_form
         # Radio Button Values
@@ -1047,13 +1064,11 @@ class CostsView(ScenarioMixIn, TemplateView):
         for choice in forms.CostInputModeForm.CHOICES:
             val = choice[0]
             context["radio_values"][val] = choice[0]
-        context["costs_fileUpload"] = FileUploadForm(data=data)
-        form = ScenarioSelection(data=data, queryset=selectable_scenarios)
-        context["costs_scenario_selection"] = form
         context["costs_manual"] = ManualTcoForm(data=data, prefix="costs")
         # get all vehicle types in scenario to show cost params for each type
         scenario = Scenario.objects.get(task_id=kwargs["task_id"])
-        context["vehicle_types"] = scenario.vehicletype_set.all()
+        # retain order for associated TCO (returned as list)
+        context["vehicle_types"] = scenario.vehicletype_set.order_by("id")
 
         return context
 
@@ -1069,25 +1084,110 @@ class CostsView(ScenarioMixIn, TemplateView):
         match form.cleaned_data["input_mode"]:
             case "no_input":
                 pass
-            case "file_upload":
-                file_form = context["costs_fileUpload"]
-                if not file_form.is_valid():
-                    logger.debug("Invalid Costs File Form provided")
-                    return self.render_to_response(context)
-                raise NotImplementedError("file upload is not yet implemented")
-            case "reference_scenario":
-                scenario_selection = context["costs_scenario_selection"]
-                if not scenario_selection.is_valid():
-                    logger.debug("Invalid Costs Scenario Selection provided")
-                    return self.render_to_response(context)
-                raise NotImplementedError("scenario_selection is not yet implemented")
             case "manual":
                 manual_form = context["costs_manual"]
                 if not manual_form.is_valid():
                     logger.debug("Invalid Cost Manual Form provided")
                     return self.render_to_response(context)
-                # TODO: actually do something with manual inputs, like saving them in DB
-                pass
+                form_data = manual_form.cleaned_data
+                # save TCO parameters to their respective models
+                # some parameters are defined per instance (for example, cost per vehicle type)
+                # Scenario TCO
+                # parameter name -> scale (for percentages)
+                scenario_parameters = {
+                    "project_duration": 1,
+                    "interest_rate": 1,
+                    "inflation_rate": 0.01,
+                    "staff_cost": 1,
+                    "energy_cost": 1,
+                    "fuel_cost": 1,
+                    "maint_cost": 1,
+                    "maint_cost_diesel": 1,
+                    "maint_infr_cost": 1,
+                    "taxes": 1,
+                    "insurance": 1,
+                    "pef_general": 0.01,
+                    "pef_wages": 0.01,
+                    "pef_energy": 0.01,
+                    "pef_fuel": 0.01,
+                    "pef_insurance": 0.01,
+                    # not needed, but useful when restoring/loading values
+                    "useful_life_chargepoint_depot": 1,
+                    "procurement_cost_chargepoint_depot": 1,
+                    "useful_life_chargepoint_opp": 1,
+                    "procurement_cost_chargepoint_opp": 1,
+                    "cost_escalation_chargepoint": 0.01,
+                }
+
+                for param, scale in scenario_parameters.items():
+                    try:
+                        self.scenario.tco_parameters[param] = form_data[param] * scale
+                    except KeyError:
+                        logger.warning(f"TCO Scenario: Parameter {param} not found")
+                self.scenario.save(update_fields=["tco_parameters"])
+
+                # Station TCO
+                for station in self.scenario.station_set.all():
+                    if station.charge_type == EnumChargeType.DEPOT.value:
+                        station.tco_parameters = {
+                            "useful_life": int(form_data["useful_life_chargepoint_depot"]),
+                            "procurement_cost": form_data["procurement_cost_chargepoint_depot"],
+                            "cost_escalation": form_data["cost_escalation_chargepoint"] / 100,
+                        }
+                    elif station.charge_type == EnumChargeType.OPPORTUNITY.value:
+                        station.tco_parameters = {
+                            "useful_life": int(form_data["useful_life_chargepoint_opp"]),
+                            "procurement_cost": form_data["procurement_cost_chargepoint_opp"],
+                            "cost_escalation": form_data["cost_escalation_chargepoint"] / 100,
+                        }
+                    else:
+                        logger.warning(
+                            f"Station {station.name} has unknown "
+                            f"charge type: {station.charge_type}"
+                        )
+                        continue
+                    station.save(update_fields=["tco_parameters"])
+                    # charging point type has identical parameters?
+                    cp_type = station.charging_point_type
+                    if cp_type is not None:
+                        cp_type.tco_parameters = station.tco_parameters
+                        cp_type.save(update_fields=["tco_parameters"])
+
+                # VehicleType/BatteryType TCO
+                # multiple vehicle types allowed -> multiple values in form
+                for idx, vehicle_type in enumerate(context["vehicle_types"]):
+                    vehicle_type.tco_parameters = {
+                        "useful_life": int(request.POST.getlist("costs-useful_life_bus")[idx]),
+                        "procurement_cost": float(
+                            request.POST.getlist("costs-procurement_cost_bus")[idx]
+                        ),
+                        "procurement_cost_diesel": float(
+                            request.POST.getlist("costs-procurement_cost_diesel")[idx]
+                        ),
+                        "cost_escalation": float(
+                            request.POST.getlist("costs-cost_escalation_bus")[idx]
+                        )
+                        / 100,
+                    }
+                    vehicle_type.save(update_fields=["tco_parameters"])
+                    battery_type = vehicle_type.battery_type
+                    if battery_type is not None:
+                        battery_type.tco_parameters = {
+                            "useful_life": int(
+                                request.POST.getlist("costs-useful_life_battery")[idx]
+                            ),
+                            "procurement_cost": float(
+                                request.POST.getlist("costs-procurement_cost_battery")[idx]
+                            ),
+                            "cost_escalation": float(
+                                request.POST.getlist("costs-cost_escalation_battery")[idx]
+                            )
+                            / 100,
+                        }
+                        battery_type.save(update_fields=["tco_parameters"])
+                    else:
+                        logger.warning(f"VehicleType {vehicle_type.name} has no associated battery")
+
             case _:
                 raise NotImplementedError(f"Mode {form.cleaned_data['input_mode']}")
         return redirect(reverse(self.success_name, args=[kwargs["task_id"]]))
