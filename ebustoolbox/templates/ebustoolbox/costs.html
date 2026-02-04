@@ -22,13 +22,19 @@
       {% translate "Kosten" %}
     </h1>
     <section class="pb-12">
-      <fieldset class="pb-8">
+      <fieldset class="pb-8 flex" style="justify-content: center">
         <div class="mt-6">
-          <!-- Option 1 -->
+          <!-- Option 1: no settings -->
           <div class="flex items-center h-12">
-            <input id="costsAutomatic" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.no_input }}" type="radio" checked class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
+            <input
+              id="costsAutomatic"
+              type="radio"
+              name="{{ cost_mode_form.input_mode.html_name }}"
+              value="{{ radio_values.no_input }}"
+              class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
+            >
             <div class="flex items-center gap-2">
-                <label for="costsAutomatic" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Keine Eingabe' %}</label>
+              <label for="costsAutomatic" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Keine Eingabe' %}</label>
               <div class="relative inline-block">
                 <!-- Info Icon -->
                 <span class="cursor-pointer group">
@@ -37,66 +43,42 @@
                   </svg>
                   <!-- Tooltip -->
                   <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      {% translate 'Bottom Left-Aligned Tooltip' %}
+                    {% translate 'Keine Kostenparameter setzen' %}
                   </div>
                 </span>
               </div>
             </div>
           </div>
-          <!-- Option 2 -->
+          <!-- Option 2: manual settings -->
           <div class="flex items-center h-12">
-            <input id="costsFile" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.file_upload }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
-            <div class="flex items-center gap-2">
-                <label for="costsFile" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Datei hochladen' %}</label>
-              <div class="relative inline-block">
-                <!-- Info Icon -->
-                <span class="cursor-pointer group">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
-                  </svg>
-                  <!-- Tooltip -->
-                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      {% translate 'Bottom Left-Aligned Tooltip' %}
-                  </div>
-                </span>
-              </div>
-            </div>
-            <div class="ml-4 flex-grow hidden" id="file-upload">
-              <div class="flex items-center rounded-md bg-white px-1 py-1 outline outline-1 -outline-offset-1 outline-slate-400">
-                <input
-                        type="file"
-                  {{ costs_fileUpload.file|widget_attrs }}
-                  class="block w-full text-sm text-slate-800 file:mr-4 file:py-1 file:px-4 file:rounded-md file:border-0 file:bg-slate-800 file:text-white hover:file:bg-black"
-                >
-              </div>
-            </div>
-          </div>
-          <!-- Option 3 -->
-          <div class="flex items-center h-12">
-            <input id="costsScenario" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.reference_scenario }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
-              <label for="costsScenario" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Werte aus anderem Szenario übernehmen' %}</label>
-            <div class="ml-4 flex-grow hidden" id="dropdown-select">
-              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
-                <select
-                        {{ costs_scenario_selection.scenario|widget_attrs }}
-                        class="block w-full rounded-md bg-white py-1.5 px-3 text-left text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                >
-                    <option value="">{% translate 'Szenario auswählen' %}</option>
-                  {% for choice in  costs_scenario_selection.scenario.field.queryset %}
-                    <option value="{{ choice.id }}">{{ choice.name }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-            </div>
-          </div>
-          <!-- Option 4 -->
-          <div class="flex items-center h-12">
-            <input id="costsManually" name="{{ cost_mode_form.input_mode.html_name }}" value="{{ radio_values.manual }}" type="radio" class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500">
-              <label for="costsManually" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Manuelle Eingabe' %}</label>
+            <input
+              id="costsManually"
+              type="radio" checked
+              name="{{ cost_mode_form.input_mode.html_name }}"
+              value="{{ radio_values.manual }}"
+              class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
+            >
+            <label for="costsManually" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Manuelle Eingabe' %}</label>
           </div>
         </div>
       </fieldset>
-            <div id="costsInputs" class="hidden">
+      <div id="costsInputs" style="visibility:hidden">
+        <div style="padding:1rem">
+          <label
+            class="block text-sm/6 font-normal text-slate-800"
+            for="select-from-scenario"
+          >{% translate 'Aus Szenario übernehmen' %}</label>
+          <select
+            id="select-from-scenario"
+            class="flex flex-wrap items-center w-full rounded-md bg-white px-3 py-1.5 text-left text-slate-800 border border-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6 cursor-pointer"
+            onchange="updateCostValues(this);"
+          >
+            <option value="">{% translate 'Auswählen...' %}</option>
+            {% for cost in costs_scenario_selection.values %}
+              <option value={{ cost.id }}>{{ cost.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
         <!-- required manual inputs: general -->
         <div
           id="acc-req-general"
@@ -120,14 +102,14 @@
               </span>
             </button>
             <div id="acc-content-req-general"
-                 class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                 class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
               <div class="accordion-cost-content">
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Zeithorizont" tooltip="Berechnungsdauer für die TCO. Gesamtsystemkosten und jährliche Kosten werden innerhalb dieses Zeitraums berechnet" unit="Jahre" input=costs_manual.project_duration|widget_attrs initial=costs_manual.project_duration.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Personalkosten" tooltip="Personalkosten pro Betriebsstunde für ein Fahrzeug. Üblicherweise Arbeitgeberkosten für die Busfahrer:in, evtl. zzgl. Schaffner:in" unit="€/h" input=costs_manual.staff_cost|widget_attrs initial=costs_manual.staff_cost.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Stromkosten" tooltip="Stromkosten pro kWh inklusive aller Gebühren" unit="€/kWh" input=costs_manual.energy_cost|widget_attrs initial=costs_manual.energy_cost.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten E-Fahrzeug" tooltip="Wartungskosten für ein Elektrofahrzeug, pro Fahrzeugkilometer" unit="€/km" input=costs_manual.maint_cost|widget_attrs initial=costs_manual.maint_cost.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten Ladeinfrastruktur" tooltip="Durchschnittliche Wartungskosten für eine Ladesäule über ein Jahr" unit="€/a" input=costs_manual.maint_inf_cost|widget_attrs initial=costs_manual.maint_inf_cost.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Zeithorizont" tooltip="Berechnungsdauer für die TCO. Gesamtsystemkosten und jährliche Kosten werden innerhalb dieses Zeitraums berechnet" unit="Jahre" input=costs_manual.project_duration|widget_attrs initial=scenario.tco_parameters.project_duration|default:costs_manual.project_duration.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Personalkosten" tooltip="Personalkosten pro Betriebsstunde für ein Fahrzeug. Üblicherweise Arbeitgeberkosten für die Busfahrer:in, evtl. zzgl. Schaffner:in" unit="€/h" input=costs_manual.staff_cost|widget_attrs initial=scenario.tco_parameters.staff_cost|default:costs_manual.staff_cost.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Stromkosten" tooltip="Stromkosten pro kWh inklusive aller Gebühren" unit="€/kWh" input=costs_manual.energy_cost|widget_attrs initial=scenario.tco_parameters.energy_cost|default:costs_manual.energy_cost.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten E-Fahrzeug" tooltip="Wartungskosten für ein Elektrofahrzeug, pro Fahrzeugkilometer" unit="€/km" input=costs_manual.maint_cost|widget_attrs initial=scenario.tco_parameters.maint_cost|default:costs_manual.maint_cost.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten Ladeinfrastruktur" tooltip="Durchschnittliche Wartungskosten für eine Ladesäule über ein Jahr" unit="€/a" input=costs_manual.maint_infr_cost|widget_attrs initial=scenario.tco_parameters.maint_infr_cost|default:costs_manual.maint_infr_cost.initial %}
                 </div>
               </div>
             </div>
@@ -155,13 +137,13 @@
               </span>
             </button>
             <div id="acc-content-req-charging"
-                 class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                 class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
               <div class="accordion-cost-content">
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Lebensdauer Depot-Ladepunkt" tooltip="Durchschnittliche Lebensdauer für einen Depot-Ladepunkt" unit="Jahre" input=costs_manual.useful_life_chargepoint_depot|widget_attrs initial=costs_manual.useful_life_chargepoint_depot.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Depot-Ladepunkt" tooltip="Durchschnittlicher Kaufpreis für einen Depot-Ladepunkt, inklusive anteiliger Leistungselektronik und anteiligem Netzanschluss. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst." unit="€" input=costs_manual.procurement_cost_chargepoint_depot|widget_attrs initial=costs_manual.procurement_cost_chargepoint_depot.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Lebensdauer Opportunity-Ladepunkt" tooltip="Durchschnittliche Lebensdauer für einen Opportunity-Ladepunkt." unit="Jahre" input=costs_manual.useful_life_chargepoint_opp|widget_attrs initial=costs_manual.useful_life_chargepoint_opp.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Opportunity-Ladepunkt" tooltip="Durchschnittlicher Kaufpreis für einen Opportunity-Ladepunkt, inklusive anteiliger Leistungselektronik und anteiligem Netzanschluss. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst." unit="€" input=costs_manual.procurement_cost_chargepoint_opp|widget_attrs initial=costs_manual.procurement_cost_chargepoint_opp.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Lebensdauer Depot-Ladepunkt" tooltip="Durchschnittliche Lebensdauer für einen Depot-Ladepunkt" unit="Jahre" input=costs_manual.useful_life_chargepoint_depot|widget_attrs initial=scenario.tco_parameters.useful_life_chargepoint_depot|default:costs_manual.useful_life_chargepoint_depot.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Depot-Ladepunkt" tooltip="Durchschnittlicher Kaufpreis für einen Depot-Ladepunkt, inklusive anteiliger Leistungselektronik und anteiligem Netzanschluss. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst." unit="€" input=costs_manual.procurement_cost_chargepoint_depot|widget_attrs initial=scenario.tco_parameters.procurement_cost_chargepoint_depot|default:costs_manual.procurement_cost_chargepoint_depot.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Lebensdauer Opportunity-Ladepunkt" tooltip="Durchschnittliche Lebensdauer für einen Opportunity-Ladepunkt." unit="Jahre" input=costs_manual.useful_life_chargepoint_opp|widget_attrs initial=scenario.tco_parameters.useful_life_chargepoint_opp|default:costs_manual.useful_life_chargepoint_opp.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Opportunity-Ladepunkt" tooltip="Durchschnittlicher Kaufpreis für einen Opportunity-Ladepunkt, inklusive anteiliger Leistungselektronik und anteiligem Netzanschluss. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst." unit="€" input=costs_manual.procurement_cost_chargepoint_opp|widget_attrs initial=scenario.tco_parameters.procurement_cost_chargepoint_opp|default:costs_manual.procurement_cost_chargepoint_opp.initial %}
                 </div>
               </div>
             </div>
@@ -189,11 +171,11 @@
               </span>
             </button>
             <div id="acc-content-req-diesel"
-                 class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                 class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
               <div class="accordion-cost-content">
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Dieselkosten" unit="€" input=costs_manual.fuel_cost|widget_attrs initial=costs_manual.fuel_cost.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten Diesel-Fahrzeug" unit="€/km" tooltip="Wartungskosten für ein Dieselfahrzeug, pro Fahrzeugkilometer" input=costs_manual.maint_cost_diesel|widget_attrs initial=costs_manual.maint_cost_diesel.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Dieselkosten" unit="€" input=costs_manual.fuel_cost|widget_attrs initial=scenario.tco_parameters.fuel_cost|default:costs_manual.fuel_cost.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten Diesel-Fahrzeug" unit="€/km" tooltip="Wartungskosten für ein Dieselfahrzeug, pro Fahrzeugkilometer" input=costs_manual.maint_cost_diesel|widget_attrs initial=scenario.tco_parameters.maint_cost_diesel|default:costs_manual.maint_cost_diesel.initial %}
                 </div>
               </div>
             </div>
@@ -222,14 +204,14 @@
                 </span>
               </button>
               <div id="acc-content-req-vt-{{vehicle_type}}"
-                   class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                   class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
                 <div class="accordion-cost-content">
                   <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                    {% include "ebustoolbox/partials/cost_input.html" with label="Fahrzeuglebensdauer" tooltip="Durchschnittliche Lebensdauer für ein Fahrzeug dieses Fahrzeugtyps" unit="Jahre" input=costs_manual.useful_life_bus|widget_attrs initial=costs_manual.useful_life_bus.initial %}
-                    {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis" tooltip="Durchschnittlicher Kaufpreis für ein Fahrzeug dieses Typs. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst" unit="€" input=costs_manual.procurement_cost_bus|widget_attrs initial=costs_manual.procurement_cost_bus.initial %}
-                    {% include "ebustoolbox/partials/cost_input.html" with label="Batterielebensdauer" tooltip="Durchschnittliche Lebensdauer für eine Batterie dieses Typs" unit="Jahre" input=costs_manual.useful_life_battery|widget_attrs initial=costs_manual.useful_life_battery.initial %}
-                    {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Batterie" tooltip="Durchschnittlicher Kaufpreis für eine Batterie dieses Typs, angegeben pro kWh. Wenn unbekannt, Fahrzeugkaufpreis inkl. Batterie angeben und hier 0 (dann kann ein Batterietausch aber nicht abgebildet werden)" unit="€/kWh"  input=costs_manual.procurement_cost_battery|widget_attrs initial=costs_manual.procurement_cost_battery.initial %}
-                    {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis (Dieselbus)" tooltip="Durchschnittlicher Kaufpreis für einen äquivalenten Dieselbus" unit="€" input=costs_manual.procurement_cost_diesel|widget_attrs initial=costs_manual.procurement_cost_diesel.initial %}
+                    {% include "ebustoolbox/partials/cost_input.html" with label="Fahrzeuglebensdauer" tooltip="Durchschnittliche Lebensdauer für ein Fahrzeug dieses Fahrzeugtyps" unit="Jahre" name=vehicle_type.name input=costs_manual.useful_life_bus|widget_attrs initial=vehicle_type.tco_parameters.useful_life|default:costs_manual.useful_life_bus.initial %}
+                    {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis" tooltip="Durchschnittlicher Kaufpreis für ein Fahrzeug dieses Typs. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst" unit="€" name=vehicle_type.name input=costs_manual.procurement_cost_bus|widget_attrs initial=vehicle_type.tco_parameters.procurement_cost|default:costs_manual.procurement_cost_bus.initial %}
+                    {% include "ebustoolbox/partials/cost_input.html" with label="Batterielebensdauer" tooltip="Durchschnittliche Lebensdauer für eine Batterie dieses Typs" unit="Jahre" name=vehicle_type.name input=costs_manual.useful_life_battery|widget_attrs initial=vehicle_type.battery_type.tco_parameters.useful_life|default:costs_manual.procurement_cost_battery.initial %}
+                    {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Batterie" tooltip="Durchschnittlicher Kaufpreis für eine Batterie dieses Typs, angegeben pro kWh. Wenn unbekannt, Fahrzeugkaufpreis inkl. Batterie angeben und hier 0 (dann kann ein Batterietausch aber nicht abgebildet werden)" unit="€/kWh"  name=vehicle_type.name input=costs_manual.procurement_cost_battery|widget_attrs initial=vehicle_type.battery_type.tco_parameters.procurement_cost|default:costs_manual.procurement_cost_battery.initial %}
+                    {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis (Dieselbus)" tooltip="Durchschnittlicher Kaufpreis für einen äquivalenten Dieselbus" unit="€" name=vehicle_type.name input=costs_manual.procurement_cost_diesel|widget_attrs initial=vehicle_type.tco_parameters.procurement_cost_diesel|default:costs_manual.procurement_cost_diesel.initial %}
                   </div>
                 </div>
               </div>
@@ -258,25 +240,26 @@
               </span>
             </button>
             <div id="acc-content-optional"
-                 class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                 class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
               <div class="accordion-cost-content">
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Zinssatz" unit="ppa" tooltip="Zinssatz für Investitionen und Kredite" input=costs_manual.interest_rate|widget_attrs initial=costs_manual.interest_rate.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Inflation" unit="ppa" tooltip="Inflationsrate, Teuerung aller Güter bei gleichbleibendem Wert" input=costs_manual.inflation_rate|widget_attrs initial=costs_manual.inflation_rate.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Kfz-Steuer" tooltip="Durchschnittliche Kraftfahrzeugsteuer pro Jahr" unit="€" input=costs_manual.taxes|widget_attrs initial=costs_manual.taxes.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Versicherung für Fahrzeug" tooltip="Durchschnittliche jährliche Versicherungskosten, pro Fahrzeug" unit="€/a" input=costs_manual.insurance|widget_attrs initial=costs_manual.insurance.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – allgemein" tooltip="Generelle Preissteigerung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_general|widget_attrs initial=costs_manual.pef_general.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Arbeitslohn" tooltip="Preissteigerung für Arbeitslohn pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_staff_cost|widget_attrs initial=costs_manual.pef_staff_cost.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Strom" tooltip="Preissteigerung für Stromkosten pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_energy_cost|widget_attrs initial=costs_manual.pef_energy_cost.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Versicherung" tooltip="Preissteigerung für Versicherung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_insurance|widget_attrs initial=costs_manual.pef_insurance.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Ladepunkt" tooltip="Preissteigerung für Ladepunkt dieses Typs pro Jahr. Dient der Anpassung der Preise für Ersatzladepunkte im Betrachtungszeitraum" unit="%" input=costs_manual.cost_escalation_chargepoint|widget_attrs initial=costs_manual.cost_escalation_chargepoint.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Zinssatz" unit="ppa" tooltip="Zinssatz für Investitionen und Kredite" input=costs_manual.interest_rate|widget_attrs initial=scenario.tco_parameters.interest_rate|default:costs_manual.interest_rate.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Inflation" unit="ppa" tooltip="Inflationsrate, Teuerung aller Güter bei gleichbleibendem Wert" input=costs_manual.inflation_rate|widget_attrs initial=scenario.tco_parameters.inflation_rate|default:costs_manual.inflation_rate.initial|multiply:100 %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Kfz-Steuer" tooltip="Durchschnittliche Kraftfahrzeugsteuer pro Jahr" unit="€" input=costs_manual.taxes|widget_attrs initial=scenario.tco_parameters.taxes|default:costs_manual.taxes.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Versicherung für Fahrzeug" tooltip="Durchschnittliche jährliche Versicherungskosten, pro Fahrzeug" unit="€/a" input=costs_manual.insurance|widget_attrs initial=scenario.tco_parameters.insurance|default:costs_manual.insurance.initial %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – allgemein" tooltip="Generelle Preissteigerung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_general|widget_attrs initial=scenario.tco_parameters.pef_general|default:costs_manual.pef_general.initial|multiply:100 %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Arbeitslohn" tooltip="Preissteigerung für Arbeitslohn pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_wages|widget_attrs initial=scenario.tco_parameters.pef_wages|default:costs_manual.pef_wages.initial|multiply:100 %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Strom" tooltip="Preissteigerung für Stromkosten pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_energy|widget_attrs initial=scenario.tco_parameters.pef_energy|default:costs_manual.pef_energy.initial|multiply:100 %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Diesel" tooltip="Preissteigerung für Dieselkosten pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant." unit="%" input=costs_manual.pef_fuel|widget_attrs initial=scenario.tco_parameters.pef_fuel|default:costs_manual.pef_fuel.initial|multiply:100 %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Versicherung" tooltip="Preissteigerung für Versicherung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_insurance|widget_attrs initial=scenario.tco_parameters.pef_insurance|default:costs_manual.pef_insurance.initial|multiply:100 %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Ladepunkt" tooltip="Preissteigerung für Ladepunkt dieses Typs pro Jahr. Dient der Anpassung der Preise für Ersatzladepunkte im Betrachtungszeitraum" unit="%" input=costs_manual.cost_escalation_chargepoint|widget_attrs initial=scenario.tco_parameters.cost_escalation_chargepoint|default:costs_manual.cost_escalation_chargepoint.initial|default:costs_manual.cost_escalation_chargepoint.initial|multiply:100 %}
                 </div>
                 {% for vehicle_type in vehicle_types %}
                   <fieldset>
                     <legend>{% translate 'Fahrzeugtyp' %} {{ vehicle_type.name }}</legend>
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                      {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Fahrzeug" tooltip="Preissteigerung für Fahrzeuge pro Jahr. Dient der Anpassung der Preise für Ersatzfahrzeuge im Betrachtungszeitraum" unit="%" input=costs_manual.cost_escalation_bus|widget_attrs initial=costs_manual.cost_escalation_bus.initial %}
-                      {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Batterie" tooltip="Preissteigerung für Batterie pro Jahr. Dient der Anpassung der Preise für Ersatzbatterien im Betrachtungszeitraum" unit="%" input=costs_manual.cost_escalation_battery|widget_attrs initial=costs_manual.cost_escalation_battery.initial %}
+                      {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Fahrzeug" tooltip="Preissteigerung für Fahrzeuge pro Jahr. Dient der Anpassung der Preise für Ersatzfahrzeuge im Betrachtungszeitraum" unit="%" name=vehicle_type.name input=costs_manual.cost_escalation_bus|widget_attrs initial=vehicle_type.tco_parameters.cost_escalation|default:costs_manual.cost_escalation_bus.initial|multiply:100 %}
+                      {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Batterie" tooltip="Preissteigerung für Batterie pro Jahr. Dient der Anpassung der Preise für Ersatzbatterien im Betrachtungszeitraum" unit="%" name=vehicle_type.name input=costs_manual.cost_escalation_battery|widget_attrs initial=vehicle_type.battery_type.tco_parameters.cost_escalation|default:costs_manual.cost_escalation_battery.initial|multiply:100 %}
                     </div>
                   </fieldset>
                 {% endfor %}
@@ -300,10 +283,49 @@
 {% endblock wizard_buttons %}
 
 {% block script %}
+{{ costs_scenario_selection|json_script:"cost_params" }}
 <script>
+  const costParams = JSON.parse(document.getElementById('cost_params').textContent);
+  function updateValue(input, value) {
+    input.value = v;
+    // visual indicator, remove after 5 seconds
+    input.classList.add('bg-emerald-300');
+    setTimeout(_ => input.classList.remove('bg-emerald-300'), 5000);
+  }
+
+  function updateCostValues(select) {
+    // update manual costs with parameters from other scenario
+    if (!select.value)
+      return;
+    let params = costParams[select.value].params;
+    // scenario parameters
+    for ([k, v] of Object.entries(params.scenario)) {
+      let inp = document.getElementById('id_costs-' + k);
+      if (inp) {
+        updateValue(inp, v);
+      }
+    }
+    // vehicle type parameters
+    for ([vt_name, tco] of Object.entries(params.vehicles)) {
+      let vt_inp = $('input[for="' + vt_name + '"]');
+      if (vt_inp.length == 0)
+        continue;  // vehicle type does not exist in this scenario
+      for ([k, v] of Object.entries(tco.vehicle_type)) {
+        let inp = vt_inp.filter('#id_costs-' + k + '_bus');
+        if (inp.length) {
+          updateValue(inp[0], v);
+        }
+      }
+      for ([k, v] of Object.entries(tco.battery || {})) {
+        let inp = vt_inp.filter('#id_costs-' + k + '_battery');
+        if (inp.length) {
+          updateValue(inp[0], v);
+        }
+      }
+    }
+  }
+
   // Show and hide inputs based on selected option
-  const fileUpload = document.getElementById('file-upload');
-  const dropdownSelect = document.getElementById('dropdown-select');
   const costsInputs = document.getElementById('costsInputs');
 
   const radioButtons = document.querySelectorAll('input[name^="costsRadio"]');
@@ -313,44 +335,16 @@
   });
 
   function showCostForRadio(radio) {
-    fileUpload.classList.toggle('hidden', radio.id !== 'costsFile');
-    childrenInputs(fileUpload).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'costsFile'));
-
-    dropdownSelect.classList.toggle('hidden', radio.id !== 'costsScenario');
-    childrenInputs(dropdownSelect).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'costsScenario'));
-
-    costsInputs.classList.toggle('hidden', radio.id !== 'costsManually');
+    costsInputs.style.visibility = radio.id == 'costsManually' ? 'visible' : 'hidden';
     childrenInputs(costsInputs).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'costsManually'));
   }
   // show section for initially selected
   showCostForRadio(document.querySelector('input[name^="costsRadio"]:checked'));
 
-  // Show and hide inputs based on selected option for Umweltparameter
-  const envFileUpload = document.getElementById('env-file-upload');
-  const envDropdownSelect = document.getElementById('env-dropdown-select');
-  const envInputs = document.getElementById('envInputs');
-
   const envRadioButtons = document.querySelectorAll('input[name^="envRadio"]');
 
-  const formAreas = [envFileUpload, envDropdownSelect, envInputs, fileUpload, dropdownSelect, costsInputs];
   // unrequire all form inputs at the start
-  formAreas.forEach((area)=>
-      childrenInputs(area).forEach((inputDiv) => toggleAttribute(inputDiv, "required", false))
-  )
-
-  envRadioButtons.forEach(radio => {
-      radio.addEventListener('change', () => {
-          envFileUpload.classList.toggle('hidden', radio.id !== 'envFile');
-          childrenInputs(envFileUpload).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'envFile'));
-
-          envDropdownSelect.classList.toggle('hidden', radio.id !== 'envScenario');
-          childrenInputs(envDropdownSelect).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'envScenario'));
-
-          envInputs.classList.toggle('hidden', radio.id !== 'envManually');
-          childrenInputs(envInputs).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'envManually'));
-
-      });
-  });
+  childrenInputs(costsInputs).forEach((inputDiv) => toggleAttribute(inputDiv, "required", false));
 
   function childrenInputs(element){
     if (element)
@@ -376,6 +370,17 @@
   const upSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd"/></svg>';
 
   function toggleAccordion(button) {
+    if (toggleAccordion.open == button ) {
+      // clicked same accordion: skip
+      return
+    }
+    if (toggleAccordion.open != undefined) {
+      // close prior accordion
+      let old_button = toggleAccordion.open;
+      toggleAccordion.open = undefined;
+      old_button.click();
+    }
+
     const container = button.closest('div.accordion-container');
     const index = container.dataset.value;
     const content = document.getElementById(`acc-content-${index}`);
@@ -406,6 +411,17 @@
       content.setAttribute('timeout', timeout);
     }
   }
-  //toggleAccordion(document.getElementById("acc-btn-req-general"));
+  let man_inp = document.getElementById('costsManually');
+  if (man_inp) {
+    let button = document.querySelector(".accordion-header");
+    if (man_inp.checked)
+      toggleAccordion(button); // find first accordion header and toggle open
+    man_inp.onchange = e => {
+      console.log(e);
+      if (e.target.checked) {
+        toggleAccordion(button);
+      }
+    }
+  }
 </script>
 {% endblock script %}
