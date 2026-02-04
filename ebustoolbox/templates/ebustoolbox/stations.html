@@ -167,6 +167,7 @@
 
   <section class="pb-12">
     <form
+      x-data='{showDetail: false}'
       type="submit"
       method ="POST">
       {% csrf_token %}
@@ -225,14 +226,15 @@
         <button
           type="button"
           class="px-6 py-2 bg-slate-200 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300"
+          @click='showDetail = !showDetail'
           id="showStationsTable"
-        >
-          {% translate 'Einzelne Stationen anpassen' %}
+              x-text='!showDetail ? `{% translate "Optional: Einzelne Stationen anpassen" %}` : `{% translate "Zurück zu global" %}`'
+            >
         </button>
       </div>
     </div>
 
-    <div id="stations-details" class="w-full">
+    <div id="stations-details" class="w-full" x-show="showDetail" x-cloak>
       <div class="flex items-center  space-x-4">
         <div class="w-3/12 pt-4 bg-black'">
           <button type="button" id="bulkEditingButton"
@@ -1130,25 +1132,5 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 </script>
-<script>
-  // Toggle stations details table
-  document.addEventListener('DOMContentLoaded', () => {
-    const btn = document.querySelector('#showStationsTable');
-    const panel = document.querySelector('#stations-details');
-    if (!btn || !panel) return;
 
-    const labelShow = 'Einzelne Stationen anpassen';
-    const labelHide = 'Zurück zu global';
-
-    btn.setAttribute('aria-controls', panel.id);
-    btn.setAttribute('aria-expanded', String(!panel.classList.contains('hidden')));
-
-    btn.addEventListener('click', () => {
-      const isHidden = panel.classList.contains('hidden');
-      panel.classList.toggle('hidden');
-      btn.setAttribute('aria-expanded', String(isHidden));
-      btn.textContent = isHidden ? labelHide : labelShow;
-    });
-  });
-</script>
 {% endblock script %}
