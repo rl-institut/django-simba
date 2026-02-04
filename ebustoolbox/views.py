@@ -1085,7 +1085,7 @@ class CostsView(ScenarioMixIn, TemplateView):
                 # parameter name -> scale (for percentages)
                 scenario_parameters = {
                     "project_duration": 1,
-                    "interest_rate": 1,
+                    "interest_rate": 0.01,
                     "inflation_rate": 0.01,
                     "staff_cost": 1,
                     "energy_cost": 1,

@@ -231,8 +231,8 @@
                  class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
               <div class="accordion-cost-content">
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Zinssatz" unit="ppa" tooltip="Zinssatz für Investitionen und Kredite" input=costs_manual.interest_rate|widget_attrs initial=scenario.tco_parameters.interest_rate|default:costs_manual.interest_rate.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Inflation" unit="ppa" tooltip="Inflationsrate, Teuerung aller Güter bei gleichbleibendem Wert" input=costs_manual.inflation_rate|widget_attrs initial=scenario.tco_parameters.inflation_rate|default:costs_manual.inflation_rate.initial|multiply:100 %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Zinssatz" unit="%" tooltip="Zinssatz für Investitionen und Kredite" input=costs_manual.interest_rate|widget_attrs initial=scenario.tco_parameters.interest_rate|default:costs_manual.interest_rate.initial|multiply:100 %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label="Inflation" unit="%" tooltip="Inflationsrate, Teuerung aller Güter bei gleichbleibendem Wert" input=costs_manual.inflation_rate|widget_attrs initial=scenario.tco_parameters.inflation_rate|default:costs_manual.inflation_rate.initial|multiply:100 %}
                   {% include "ebustoolbox/partials/cost_input.html" with label="Kfz-Steuer" tooltip="Durchschnittliche Kraftfahrzeugsteuer pro Jahr" unit="€" input=costs_manual.taxes|widget_attrs initial=scenario.tco_parameters.taxes|default:costs_manual.taxes.initial %}
                   {% include "ebustoolbox/partials/cost_input.html" with label="Versicherung für Fahrzeug" tooltip="Durchschnittliche jährliche Versicherungskosten, pro Fahrzeug" unit="€/a" input=costs_manual.insurance|widget_attrs initial=scenario.tco_parameters.insurance|default:costs_manual.insurance.initial %}
                   {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – allgemein" tooltip="Generelle Preissteigerung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_general|widget_attrs initial=scenario.tco_parameters.pef_general|default:costs_manual.pef_general.initial|multiply:100 %}
@@ -286,10 +286,17 @@
     if (!select.value)
       return;
     let params = costParams[select.value].params;
+    let perc_params = [  // percentage values, need to be multiplied by 100
+      'interest_rate', 'inflation_rate',
+      'pef_general', 'pef_wages', 'pef_energy', 'pef_fuel', 'pef_insurance',
+      'cost_escalation_chargepoint', 'cost_escalation_bus', 'cost_escalation_battery',
+    ];
     // scenario parameters
     for ([k, v] of Object.entries(params.scenario)) {
       let inp = document.getElementById('id_costs-' + k);
       if (inp) {
+        if (perc_params.includes(k))
+          v *= 100;
         updateValue(inp, v);
       }
     }
@@ -301,12 +308,16 @@
       for ([k, v] of Object.entries(tco.vehicle_type)) {
         let inp = vt_inp.filter('#id_costs-' + k + '_bus');
         if (inp.length) {
+          if (k == 'cost_escalation')
+            v *= 100;
           updateValue(inp[0], v);
         }
       }
       for ([k, v] of Object.entries(tco.battery || {})) {
         let inp = vt_inp.filter('#id_costs-' + k + '_battery');
         if (inp.length) {
+          if (k == 'cost_escalation')
+            v *= 100;
           updateValue(inp[0], v);
         }
       }
