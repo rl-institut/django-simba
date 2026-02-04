@@ -161,7 +161,7 @@
                     <td class="whitespace-nowrap px-3 py-3 text-sm text-slate-500" sortval="{{ scenario.created|date:'Ymd' }}"</td>{{ scenario.created|date:"j.n.Y" }}</td>
                     <td class="whitespace-nowrap px-3 py-3">
                       <a
-                        href="{% url 'simba:trips' %}?s='{{scenario.variante}}'"
+                        href="{% url 'simba:trips' %}?s={{scenario.variante}}"
                         class="cursor-pointer px-4 py-2 bg-slate-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 active:bg-slate-300 transition-all duration-300"
                         role="button"
                         aria-label="Variante erstellen"

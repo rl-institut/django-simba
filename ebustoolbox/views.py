@@ -1697,13 +1697,16 @@ def get_dashboard(request):
 
         # Give each scenario a reference to its "variante".
         # For Mutations its a reference to itself.
-        # Simulations point to their parent mutation
-        # switch scenario.scenario_type:
+        # For Source Files its also a reference to themselves since they are handled differently
+        # Simulations used to get a reference to their parents but they are not shown in the dashboard
+        # Simulations are instead linked through their mutation/parent, since results show
+        # two scenarios (extreme and average)
+
+        scenario.variante = scenario.id
         match scenario.scenario_type:
             case EnumScenarioType.MUTATION:
-                scenario.variante = scenario.id
+                pass
             case EnumScenarioType.SOURCE_FILE:
-                scenario.variante = scenario.id
                 scenario.state = "ready_for_copy"
             case _:
                 logger.error(
