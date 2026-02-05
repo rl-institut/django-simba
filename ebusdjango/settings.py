@@ -160,12 +160,15 @@ GRAPH_MODELS = {
     "group_models": True,
     "app_labels": ["ebustoolbox"],
 }
-#
+
 # Turn on hashing and compression for whitenoise
 STORAGES = {
     # ...
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
     "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 # Password validation
