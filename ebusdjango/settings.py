@@ -163,8 +163,9 @@ GRAPH_MODELS = {
 #
 # Turn on hashing and compression for whitenoise
 STORAGES = {
+    # ...
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
     },
 }
 # Password validation
