@@ -128,6 +128,12 @@ def progress_scenario(request: HttpRequest, progress_id, template_name):
         hx_trigger = "notRunning"
     if progress.success:
         hx_trigger = "success"
+        if request.session.get(str(progress.scenario.task_id), None) is None:
+            context["first_success"] = True
+            request.session[str(progress.scenario.task_id)] = int(
+                datetime.datetime.now().timestamp()
+            )
+
         if progress.progress_type == EnumProgress.RUNNING_SIMULATION:
             mutation_scenario = progress.scenario
             children = Scenario.objects.filter(parent=mutation_scenario)
