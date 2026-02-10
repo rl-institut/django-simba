@@ -1301,12 +1301,17 @@ def get_start_end_time(scenario: Scenario) -> tuple[datetime.datetime, datetime.
 
 
 def get_cumulative_energy(task_id: str):
-    rotations_data = Rotation.objects.filter(scenario__task_id=task_id).annotate(
-        energy_kwh=ExpressionWrapper(
-            (Max('trip__event__soc_start') - Min('trip__event__soc_end')) * Max('vehicle_type__battery_capacity'),
-            output_field=FloatField()
+    rotations_data = (
+        Rotation.objects.filter(scenario__task_id=task_id)
+        .annotate(
+            energy_kwh=ExpressionWrapper(
+                (Max("trip__event__soc_start") - Min("trip__event__soc_end"))
+                * Max("vehicle_type__battery_capacity"),
+                output_field=FloatField(),
+            )
         )
-    ).values_list('energy_kwh', flat=True)
+        .values_list("energy_kwh", flat=True)
+    )
 
     energy_list = sorted([round(float(e), 2) for e in rotations_data if e is not None])
     total = len(energy_list)
@@ -1318,21 +1323,17 @@ def get_cumulative_energy(task_id: str):
     x_coords = sorted(unique_data.keys())
     y_coords = [unique_data[x] for x in x_coords]
 
-    return {
-        "x": x_coords,
-        "y": y_coords,
-        "total_rotations": total
-    }
+    return {"x": x_coords, "y": y_coords, "total_rotations": total}
 
 
 def get_rotation_table_data(task_id: str):
     rotations = Rotation.objects.filter(scenario__task_id=task_id).annotate(
-        max_soc=Max('trip__event__soc_start'),
-        min_soc=Min('trip__event__soc_end'),
-        cap=Max('vehicle_type__battery_capacity'),
-        total_dist_m=Sum('trip__route__distance'),
-        start_t=Min('trip__departure_time'),
-        end_t=Max('trip__arrival_time'),
+        max_soc=Max("trip__event__soc_start"),
+        min_soc=Min("trip__event__soc_end"),
+        cap=Max("vehicle_type__battery_capacity"),
+        total_dist_m=Sum("trip__route__distance"),
+        start_t=Min("trip__departure_time"),
+        end_t=Max("trip__arrival_time"),
     )
 
     rows = []
@@ -1351,15 +1352,17 @@ def get_rotation_table_data(task_id: str):
         if r.start_t and r.end_t:
             duration_h = (r.end_t - r.start_t).total_seconds() / 3600.0
 
-        rows.append({
-            "id": r.id,
-            "name": r.name or f"ID: {r.id}",
-            "vehicle": r.vehicle_type.name_short or r.vehicle_type.name,
-            "distance": round(dist_km, 2),
-            "consumption": round(energy_kwh, 2),
-            "efficiency": round(efficiency, 3),
-            "duration": round(duration_h, 2),
-            "soc_spread_pct": round(soc_delta * 100, 1)
-        })
+        rows.append(
+            {
+                "id": r.id,
+                "name": r.name or f"ID: {r.id}",
+                "vehicle": r.vehicle_type.name_short or r.vehicle_type.name,
+                "distance": round(dist_km, 2),
+                "consumption": round(energy_kwh, 2),
+                "efficiency": round(efficiency, 3),
+                "duration": round(duration_h, 2),
+                "soc_spread_pct": round(soc_delta * 100, 1),
+            }
+        )
 
     return rows

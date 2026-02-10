@@ -2150,4 +2150,3 @@ def get_cumulative_energy(request, task_id: str):
 def get_rotation_table_data(request, task_id: str):
     response_data = data.get_rotation_table_data(task_id)
     return JsonResponse(response_data, safe=False)
-
