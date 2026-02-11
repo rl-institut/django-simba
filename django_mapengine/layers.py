@@ -265,6 +265,15 @@ def get_layer_by_id(layer_id: str) -> setup.ModelAPI:
 
 
 def get_all_layers() -> List[MapLayer]:
+    """
+    Return region, static and cluster layers as list
+
+    Returns
+    -------
+    List[MapLayer]
+        List of all region, static and cluster layers
+    """
+    # Order is important! Last items are shown on top!
     layers = list(get_region_layers())
     for static_layer in get_static_layers():
         layers.extend(static_layer.get_map_layers())
