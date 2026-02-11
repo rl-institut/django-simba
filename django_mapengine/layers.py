@@ -263,20 +263,23 @@ def get_layer_by_id(layer_id: str) -> setup.ModelAPI:
                 return mvt
     raise KeyError(f"Layer {layer_id=} not found.")
 
+def get_station_badge_layer() -> MapLayer:
+    return MapLayer(
+        id="station-badge",
+        source_layer="station",  # <-- the MVT layer name
+        source="stations_mvt",
+        style=settings.MAP_ENGINE_LAYER_STYLES["station-badge"],
+    )
+
 
 def get_all_layers() -> List[MapLayer]:
-    """
-    Return region, static and cluster layers as list
-
-    Returns
-    -------
-    List[MapLayer]
-        List of all region, static and cluster layers
-    """
-    # Order is important! Last items are shown on top!
     layers = list(get_region_layers())
     for static_layer in get_static_layers():
         layers.extend(static_layer.get_map_layers())
     for cluster_layer in get_cluster_layers():
         layers.extend(cluster_layer.get_map_layers())
+
+    # Add station badge layer
+    layers.append(get_station_badge_layer())
+
     return layers

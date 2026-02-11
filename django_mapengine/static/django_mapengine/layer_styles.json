@@ -17,6 +17,23 @@
       ]
     }
   },
+  "station-badge": {
+  "type": "symbol",
+    "source-layer": "station",
+  "layout": {
+    "text-field": "01",
+    "text-font": ["Open Sans Bold"],
+    "text-size": 11,
+    "text-offset": [0.9, -0.9],
+    "text-anchor": "center"
+  },
+  "paint": {
+    "text-color": "#ffffff",
+    "text-halo-color": "#ef4444",
+    "text-halo-width": 8,
+    "text-halo-blur": 0
+  }
+},
   "region-fill": {
     "type": "fill",
     "paint": {
