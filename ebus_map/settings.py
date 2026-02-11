@@ -16,7 +16,8 @@ MAP_ENGINE_API_MVTS = {
     "stations_mvt": [
         # create layer called station, from app ebus_map with the model data from station
         setup.MVTAPI("station", "ebustoolbox", "station"),
-        # setup.MVTAPI("routes", "ebustoolbox", "route"),
+        setup.MVTAPI("station-badge-bg", "ebustoolbox", "station"),
+        setup.MVTAPI("station-badge", "ebustoolbox", "station"),
     ],
     "routes_mvt": [
         # setup.MVTAPI("station", "ebustoolbox", "station"),
@@ -29,7 +30,7 @@ MAP_ENGINE_API_CLUSTERS = [
 ]
 
 MAP_ENGINE_STYLES_FOLDER = "django_mapengine/static/django_mapengine/"
-MAP_ENGINE_LAYERS_AT_STARTUP = ["station", "routes"]  # "myexamplemultipolygon"]
+MAP_ENGINE_LAYERS_AT_STARTUP = ["station", "routes", "station-badge", "station-badge-bg"]  # "myexamplemultipolygon"]
 # These zoom levels define, where the specific features, e.g. points, lines choropleths (?) are
 # visible
 MAP_ENGINE_MIN_ZOOM = 1

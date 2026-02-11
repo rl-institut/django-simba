@@ -17,21 +17,30 @@
       ]
     }
   },
-  "station-badge": {
+"station-badge-bg": {
+  "type": "circle",
+  "source-layer": "station",
+  "paint": {
+    "circle-radius": 8,
+    "circle-color": "#10b981",
+    "circle-stroke-color": "#059669",
+    "circle-stroke-width": 2,
+    "circle-translate": [13, -13],
+    "circle-translate-anchor": "viewport"
+  }
+},
+"station-badge": {
   "type": "symbol",
-    "source-layer": "station",
+  "source-layer": "station",
   "layout": {
-    "text-field": "01",
+    "text-field": "{acp}",
     "text-font": ["Open Sans Bold"],
-    "text-size": 11,
-    "text-offset": [0.9, -0.9],
+    "text-size": 14,
+    "text-offset": [0.9,-0.9],
     "text-anchor": "center"
   },
   "paint": {
-    "text-color": "#ffffff",
-    "text-halo-color": "#ef4444",
-    "text-halo-width": 8,
-    "text-halo-blur": 0
+    "text-color": "#fff"
   }
 },
   "region-fill": {
