@@ -161,7 +161,7 @@
                       <!-- More Button Component (JS in components/buttons.html) -->
                       <button
                         type="button"
-                        class="mr-8 menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                        class="mr-8 menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 overflow-visible"
                         aria-expanded="false"
                         aria-haspopup="true"
                         aria-label="Optionen sehen"
@@ -173,7 +173,18 @@
 
                       <!-- Dropdown Menu -->
                       <div
-                        class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none hidden transition-transform duration-100 transform scale-95"
+                        class="menu-dropdown absolute z-10 w-56 bg-white
+                      right-0
+                      {% if forloop.last %}
+                      {% comment %}
+                      Position the last row dropdown menu above, so it is clearly visible
+                      {% endcomment %}
+                      origin-bottom-right
+                      -top-4
+                      {% else %}
+                      origin-top-right mt-2
+                      {% endif %}
+                      rounded-md shadow-lg ring-1 ring-black/5 focus:outline-none hidden transition-transform duration-100 transform scale-95"
                         role="menu"
                         aria-orientation="vertical"
                       >
