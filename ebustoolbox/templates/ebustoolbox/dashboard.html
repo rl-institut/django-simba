@@ -64,19 +64,6 @@
                     </button>
                   </th>
                   <th scope="col" class="px-3 py-4 text-left text-sm font-semibold text-slate-500">
-                    <button href="#" class="group inline-flex" onclick="sortTable(3);">
-                      <span>
-                        CO<sub>2</sub>{% translate '-Reduzierung' %}
-                      </span>
-                      <!-- Sorting Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
-                      <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
-                        <svg class="invisible ml-2 size-5 flex-none rounded text-slate-400 group-hover:visible group-focus:visible" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                          <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-                        </svg>
-                      </span>
-                    </button>
-                  </th>
-                  <th scope="col" class="px-3 py-4 text-left text-sm font-semibold text-slate-500">
                     <button href="#" class="group inline-flex" onclick="sortTable(4);">
                       {% translate 'Erstellung' %}
                       <!-- Sorting Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
@@ -158,7 +145,6 @@
                       {% endif %}
                     </td>
                     <td class="whitespace-nowrap px-3 py-3 text-sm text-slate-500" sortval="-">-</td>
-                    <td class="whitespace-nowrap px-3 py-3 text-sm text-slate-500" sortval="-">-</td>
                     <td class="whitespace-nowrap px-3 py-3 text-sm text-slate-500" sortval="{{ scenario.created|date:'Ymd' }}"</td>{{ scenario.created|date:"j.n.Y" }}</td>
                     <td class="whitespace-nowrap px-3 py-3">
                       <a
@@ -175,7 +161,7 @@
                       <!-- More Button Component (JS in components/buttons.html) -->
                       <button
                         type="button"
-                        class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                        class="mr-8 menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
                         aria-expanded="false"
                         aria-haspopup="true"
                         aria-label="Optionen sehen"
