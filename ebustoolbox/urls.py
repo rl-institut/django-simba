@@ -15,7 +15,6 @@ from ebustoolbox.views import (
     model_export_json,
     merge_and_run,
     run_simulation,
-    DashboardView,
     get_dashboard,
     compare,
     export_scenario,
@@ -38,11 +37,6 @@ urlpatterns = [
         name="costs",
     ),
     path("dashboard/", get_dashboard, name="dashboard"),
-    path(
-        "dashboard/",
-        DashboardView.as_view(),
-        name="dashboard2",
-    ),
     path(
         "depots/<uuid:task_id>/",
         DepotsView.as_view(),

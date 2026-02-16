@@ -64,7 +64,7 @@
                     </button>
                   </th>
                   <th scope="col" class="px-3 py-4 text-left text-sm font-semibold text-slate-500">
-                    <button href="#" class="group inline-flex" onclick="sortTable(4);">
+                    <button href="#" class="group inline-flex" onclick="sortTable(3);">
                       {% translate 'Erstellung' %}
                       <!-- Sorting Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
                       <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
@@ -249,7 +249,7 @@
   // track sorting of table
   // 0: no sort (default), 1: asc, 2: desc
   // column name, status, cost, emission, created
-  var _sorting = [0,0,0,0,0];
+  var _sorting = [0,0,0,0];
   function sortTable(sortIndex) {
     let table = document.getElementById('table');
     let rows = table.rows;
