@@ -9,10 +9,6 @@
   {% endwith %}
 {% endblock wizard_navigation %}
 
-{% block header %}
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-{% endblock header %}
 
 {% block wizard_content %}
 
@@ -128,14 +124,6 @@ hx-trigger='load'
             <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
               <div>
                 <p>{{ sim_duration}}</p>
-              </div>
-              <div>
-                <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-                  </svg>
-                  {% translate 'Editieren' %}
-                </a>
               </div>
             </div>
           </div>
@@ -591,11 +579,4 @@ hx-trigger='load'
   });
 </script>
 
-<script>
-  // Empty Leaflet Map
-  var map = L.map('map', {
-      center: [51.505, -0.09],
-      zoom: 13
-  });
-</script>
 {% endblock script %}

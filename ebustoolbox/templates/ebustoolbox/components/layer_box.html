@@ -13,7 +13,7 @@
             >
                 <img
                 id="basemap-icon"
-                src="/static/django_mapengine/images/layer_ctrl_satellite.svg"
+                src="{% static "django_mapengine/images/layer_ctrl_satellite.svg" %}"
                 alt="Satellitenansicht"
                 class="rounded-md w-12 h-12"
                 >
@@ -44,7 +44,7 @@
             const depotLayer = [
                 {
                     label: 'Depots',
-                    icon: "{% static '/ebus_map/depot.png' %}",
+                    icon: "{% static 'ebus_map/depot.png' %}",
                     toggleFunction: () => updateFilter()
                 }
             ];
@@ -62,7 +62,7 @@
                 },
                 {
                     label: 'Nie elektrifiziert',
-                    icon: "{% static '/ebus_map/bus_station_never_electrified.png' %}",
+                    icon: "{% static 'ebus_map/bus_station_never_electrified.png' %}",
                     toggleFunction: () => updateFilter()
                 }
             ];

@@ -128,6 +128,11 @@ def progress_scenario(request: HttpRequest, progress_id, template_name):
         hx_trigger = "notRunning"
     if progress.success:
         hx_trigger = "success"
+        if request.session.get(str(progress.scenario.task_id), None) is None:
+            context["first_success"] = True
+            request.session[str(progress.scenario.task_id)] = int(
+                datetime.datetime.now().timestamp()
+            )
 
     response = render(request, f"core/{template_name}", context)
     response["HX-Trigger"] = hx_trigger
