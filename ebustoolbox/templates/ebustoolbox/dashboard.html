@@ -294,13 +294,14 @@
       }
     };
 
+    // When clicking button, toggle dropdrown close
     document.querySelectorAll(".menu-button").forEach(button => {
       button.addEventListener("click", (e) => {
         e.stopPropagation();
         toggleDropdown(button);
       });
     });
-
+    // When clicking outside of dropdrown close it
     document.addEventListener("click", (e) => {
       document.querySelectorAll(".menu-dropdown").forEach(menu => {
         if (!menu.contains(e.target) && !menu.previousElementSibling.contains(e.target)) {
