@@ -25,7 +25,7 @@
     </div>
     <div class="w-full">
       <div class="mt-8 flow-root">
-        <div class="table-container max-w-full overflow-x-auto overflow-y-visible">
+        <div class="table-container max-w-full overflow-y-visible">
           <div class="inline-block min-w-full py-2 align-middle">
             <table id="table" class="min-w-full divide-y divide-slate-300">
               <thead>
@@ -175,15 +175,7 @@
                       <div
                         class="menu-dropdown absolute z-10 w-56 bg-white
                       right-0
-                      {% if forloop.last %}
-                      {% comment %}
-                      Position the last row dropdown menu above, so it is clearly visible
-                      {% endcomment %}
-                      origin-bottom-right
-                      -top-4
-                      {% else %}
                       origin-top-right mt-2
-                      {% endif %}
                       rounded-md shadow-lg ring-1 ring-black/5 focus:outline-none hidden transition-transform duration-100 transform scale-95"
                         role="menu"
                         aria-orientation="vertical"
@@ -289,17 +281,15 @@
   document.addEventListener("DOMContentLoaded", () => {
     const toggleDropdown = (btn) => {
       const dropdown = btn.nextElementSibling;
-      const isOpen = dropdown.classList.contains("block");
+      const isOpen = !dropdown.classList.contains("hidden");
 
       document.querySelectorAll(".menu-dropdown").forEach(menu => {
         menu.classList.add("hidden");
-        menu.classList.remove("block");
         menu.previousElementSibling.setAttribute("aria-expanded", "false");
       });
 
       if (!isOpen) {
         dropdown.classList.remove("hidden");
-        dropdown.classList.add("block");
         btn.setAttribute("aria-expanded", "true");
       }
     };
@@ -315,7 +305,6 @@
       document.querySelectorAll(".menu-dropdown").forEach(menu => {
         if (!menu.contains(e.target) && !menu.previousElementSibling.contains(e.target)) {
           menu.classList.add("hidden");
-          menu.classList.remove("block");
           menu.previousElementSibling.setAttribute("aria-expanded", "false");
         }
       });

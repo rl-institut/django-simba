@@ -1021,6 +1021,10 @@ select {
   z-index: 20;
 }
 
+.z-\[1000\] {
+  z-index: 1000;
+}
+
 .col-span-full {
   grid-column: 1 / -1;
 }
