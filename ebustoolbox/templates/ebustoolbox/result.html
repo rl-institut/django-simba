@@ -1089,9 +1089,6 @@
                             lineStyle: {
                                 width: 3
                             },
-                            emphasis: {
-                                focus: 'series',
-                            }
                         },
                         {
                             name: 'Belegung ladend',
@@ -1101,9 +1098,6 @@
                             lineStyle: {
                                 width: 3
                             },
-                            emphasis: {
-                                focus: 'series',
-                            }
                         },
                         {
                             name: 'Belegung total',
@@ -1113,9 +1107,6 @@
                             lineStyle: {
                                 width: 3
                             },
-                            emphasis: {
-                                focus: 'series',
-                            }
                         }
                     ]
                 };
@@ -1543,6 +1534,7 @@
                             const durationFormatted = formatFractionToHHmm(durationFraction);
 
                             let html = `${marker}<strong>${eventType}</strong><br>`;
+                            html += `<strong>Name: </strong>${params.name}<br>`;
                             html += `<strong>Fahrzeugtyp: </strong>${vehicleType || 'N/A'}<br>`;
 
                             // Only show Rotation/Route/Station if the data exists
@@ -1557,7 +1549,7 @@
                             }
                             html += `<strong>Startzeit: </strong> ${formatDate(startTime)}<br>`;
                             html += `<strong>Endzeit: </strong> ${formatDate(endTime)}<br>`;
-                            html += `<strong>Dauer: </strong> ${durationFormatted} <strong>h</strong>`;
+                            html += `<strong>Dauer: </strong> ${durationFormatted} h`;
 
                             return html;
                         }
@@ -1787,6 +1779,9 @@
                             const routeName = params.value[6];
                             const rotationName = params.value[7];
                             const stationName = params.data[8];
+                            const startTime = new Date(params.value[1]);
+                            const endTime = new Date(params.value[2]);
+                            const durationMs = (endTime-startTime)/1000;
 
                             const formatDate = (date) => {
                                 const d = new Date(date);
@@ -1794,10 +1789,16 @@
                                 return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
                             };
 
-                            const startFormatted = formatDate(params.value[1]);
-                            const endFormatted = formatDate(params.value[2]);
+                            const durationFraction = durationMs / (60 * 60);
+                            const formatFractionToHHmm = (fraction) => {
+                                const hours = Math.floor(fraction);
+                                const minutes = Math.round((fraction % 1) * 60);
+                                const pad = n => String(n).padStart(2, '0');
+                                return `${pad(hours)}:${pad(minutes)}`;
+                            };
+                            const durationFormatted = formatFractionToHHmm(durationFraction);
 
-                            let html = `<strong>${params.name}</strong><br>`;
+                            let html = `<strong>Name: </strong>${params.name}<br>`;
                             html += `<strong>Fahrzeugtyp: </strong>${vehicleType || 'N/A'}<br>`;
 
                             // Only show Rotation/Route/Station if the data exists
@@ -1811,10 +1812,14 @@
                                 html += `<strong>Linie: </strong>${routeName}<br>`;
                             }
 
-                             html += `${startFormatted} → ${endFormatted}<br/>
-                                    SoC: ${socStart}% → ${socEnd}%`;
+                            html += `<strong>Startzeit: </strong> ${formatDate(startTime)}<br>`;
+                            html += `<strong>Endzeit: </strong> ${formatDate(endTime)}<br>`;
+                            html += `<strong>Dauer: </strong> ${durationFormatted} h<br>`;
 
-                             return html;
+                            html += `<strong>Start-SoC: </strong> ${socStart}%<br>`;
+                            html += `<strong>End-Soc: </strong> ${socEnd}%<br>`;
+
+                            return html;
                         }
                     },
                     visualMap: {
