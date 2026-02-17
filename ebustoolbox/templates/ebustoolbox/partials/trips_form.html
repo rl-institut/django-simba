@@ -13,14 +13,14 @@
 
   {% csrf_token %}
   <div class="sm:pt-8 sm:pb-4 lg:pt-6 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <h1 class="pb-6 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Umlaufplan' %}</h1>
+    <h1 class="pb-6 text-2xl text-slate-500 font-light tracking-wide uppercase">{% translate 'Umlaufplan' %}</h1>
     <span class="block mb-6 text-sm text-slate-500">{% translate 'Laden Sie ihren Umlaufplan hoch. Alternativ können Sie den Umlaufplan aus einem existierendem Szenario auswählen.' %}</span>
 
     <div id="error-message" style="display:None">{% translate 'Lade eine Datei aus oder wähle ein Szenario aus.' %}</div>
     <div class="grid grid-cols-12 gap-4">
       <div class="col-span-full pb-4">
         <div class="flex justify-between">
-          <label for="" class="flex items-center gap-2 text-sm font-medium text-slate-800">
+          <label for="" class="flex items-center gap-2 text-sm font-semibold text-slate-800">
             {% translate 'Neue Datei' %}
             <div class="relative inline-block">
               <!-- Info Icon with group -->
@@ -40,7 +40,7 @@
             </div>
           </label>
           <a href="{% static 'ebustoolbox/examples/trips_example.csv' %}">
-          <button type="button" class="text-sm font-semibold text-emerald-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-green-600 focus-within:ring-offset-2 hover:text-emerald-600 transition-all duration-300"
+          <button type="button" class="text-sm font-semibold text-emerald-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-emerald-600 focus-within:ring-offset-2 hover:text-emerald-600 transition-all duration-300"
                   title="Beispieldatei herunterladen">
             <span class="flex items-center gap-2" >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
@@ -89,11 +89,11 @@
     </div>
     <div class="col-span-full pt-4 pb-8">
       <div class="flex items-center gap-4">
-        <div class="text-sm text-slate-600">
+        <div class="text-sm text-slate-500">
           {% translate 'oder aus bestehendem Szenario' %}
         </div>
         <div class="flex-grow">
-          <label id="listbox-label" class="block text-sm font-medium text-slate-800">
+          <label id="listbox-label" class="block text-sm font-semibold text-slate-800">
 
           </label>
 
@@ -102,7 +102,7 @@
             <select
               id="{{ form.existing_scenario.auto_id }}"
               name="{{ form.existing_scenario.name }}"
-              class="flex flex-wrap items-center w-full rounded-md bg-white px-3 py-1.5 text-left text-slate-800 border border-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6 cursor-pointer"
+              class="flex flex-wrap items-center w-full rounded-md bg-white px-3 py-1.5 text-left text-slate-800 border border-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6 cursor-pointer"
             >
               <option value="">{% translate '-- Szenario auswählen --' %}</option>
               {% for scenario in scenarios %}
@@ -120,10 +120,10 @@
       <scenario-and-checkbox class="flex  gap-6">
       <div class="w-full pb-6">
         <label for="{{ form.scenario_name.auto_id }}"
-          class="block text-sm/6 font-medium text-slate-900">{% translate 'Szenario-Name' %}</label>
+          class="block text-sm/6 font-semibold text-slate-900">{% translate 'Szenario-Name' %}</label>
         <div class="mt-2">
           <input type="text" {{ form.scenario_name|widget_attrs }}
-            class="bg-white w-full px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-emerald-400 sm:text-sm/6"
+            class="bg-white w-full px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 sm:text-sm/6"
             placeholder={% translate "Szenario-Name eingeben" %}>
         </div>
       </div>
@@ -165,14 +165,14 @@
     </scenario-and-checkbox>
       <div class="w-full">
         <div class="flex justify-between">
-          <label for="{{ form.description.auto_id }}" class="block text-sm/6 font-medium text-slate-800">
+          <label for="{{ form.description.auto_id }}" class="block text-sm font-semibold text-slate-800">
             {% translate 'Beschreibung' %}
-            <span class="text-slate-500 pl-2" id="description-optional">{% translate '(Optional)' %}</span>
+            <span class="text-slate-500 font-normal pl-2" id="description-optional">{% translate '(Optional)' %}</span>
           </label>
         </div>
         <div class="mt-2">
           <textarea type="text" {{ form.description|widget_attrs }} rows="3"
-            class="bg-white w-full px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-emerald-400 sm:text-sm/6"
+            class="bg-white w-full px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 sm:text-sm/6"
             placeholder="{% translate "Beschreiben Sie Ihr Szenario..." %}"
             aria-describedby="description-optional">{% if form.description.value %}{{ form.description.value }}{% endif %}</textarea>
         </div>

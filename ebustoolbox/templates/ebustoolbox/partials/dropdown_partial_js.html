@@ -62,9 +62,9 @@ dropdown_containers.forEach((container) => {
   // Remove the highlight from all items and apply it to the selected item
   function highlightSelectedItem() {
     listItems.forEach(li => {
-      li.classList.remove('bg-green-100');
+      li.classList.remove('bg-emerald-100');
       if (li.getAttribute('data-dropdown-item') === selectedItem) {
-        li.classList.add('bg-green-100');
+        li.classList.add('bg-emerald-100');
       }
     });
   }

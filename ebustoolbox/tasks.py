@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import List
 from django import conf
 import environ
-from uuid import UUID as UUIDType
+from uuid import UUID as UUIDType, uuid4
 from celery import shared_task, uuid
 import math
 import zipfile as zf
@@ -38,6 +38,8 @@ from eflips.depot.api import (  # noqa
     simulate_scenario,
     generate_optimal_depot_layout,
 )
+from eflips.tco import calculate_tco
+
 import core.deepcopy
 from ebusdjango.util import get_static_file_path
 import ebustoolbox.util
@@ -828,7 +830,7 @@ def get_parent(scenario):
     parent.save()
 
     child = create_empty_child_scenario(parent, task_id=task_id)
-    parent.name = "Parent of " + parent.name
+    # parent.name = "Parent of " + parent.name
     parent.save()
 
     return parent, child
@@ -1018,8 +1020,15 @@ def run_and_merge_scenarios(
     sizing_scenario = merge_scenario(mutation_id, sizing_scenario_task_id)
     sizing_scenario.manager = Scenario.objects.get(id=mutation_id).manager
     sizing_scenario.save()
-    SimulationType.objects.create(scenario=sizing_scenario, sim_type=EnumSimulationType.SIZING)
+    from core.models import EnumProgress
 
+    sizing_progress = Progress.objects.create(
+        scenario=sizing_scenario,
+        task_id=uuid4(),
+        progress_type=EnumProgress.RUNNING_SIMULATION,
+        running=True,
+    )
+    SimulationType.objects.create(scenario=sizing_scenario, sim_type=EnumSimulationType.SIZING)
     # Swap the consumption so in the first run the max consumption is used
     swap_consumption_w_max_consumption(sizing_scenario)
     # If a LUT is used change the temperature to the extreme Temperature
@@ -1060,6 +1069,12 @@ def run_and_merge_scenarios(
     sizing_scenario.refresh_from_db()
     assert sizing_scenario.task_id != default_simulation_task_id
 
+    average_progress = Progress.objects.create(
+        scenario=average_scenario,
+        task_id=uuid4(),
+        progress_type=EnumProgress.RUNNING_SIMULATION,
+        running=True,
+    )
     logger.info(
         f"S.ID:{average_scenario.id}:Simulating scenario {average_scenario.task_id} with average consumption"
     )
@@ -1085,9 +1100,13 @@ def run_and_merge_scenarios(
         task_id=default_simulation_task_id,
         throw=True,
     )
-    # default_simulation_scenario = merge_scenario(mutation_id, default_simulation_task_id)
-    # run_toolchain_from_scenario(default_simulation_scenario, assign_vehicles=True)
+    # Give each scenario a Progress which succeeded
+    sizing_progress.set_success()
+    average_progress.set_success()
     progress.set_success()
+    scenario = Scenario.objects.get(id=mutation_id)
+    scenario.finished = timezone.now()
+    scenario.save()
 
 
 def swap_consumption_w_max_consumption(scenario: Scenario) -> None:
@@ -2015,9 +2034,8 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
                 message=_("Ein unerwarteter Fehler ist aufgetreten! "),
             )
             notifications.append(notification)
-            progress.refresh_from_db()
-            progress.errors.append(str(e))
-            progress.set_failed()
+            # Let all progress no of the failed simulation
+            set_scenario_progress_failed(db_scenario, e)
             raise
         finally:
             Notification.objects.bulk_create(notifications)
@@ -2051,16 +2069,40 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
         progress.current_work += 1
         progress.save()
 
+        # Calculate TCO. Needs vehicle (driving events) to be set.
+        logger.info(f"S.ID:{db_scenario.id}:Running eFLIPS TCO {datetime.now()}")
+        progress.current_work += 1
+        progress.status = _("Berechne TCO")
+        progress.save()
+        tco_result = eflips_calculate_tco(db_scenario)  # on error: all values 1
+        db_scenario.tco_result = tco_result
+        db_scenario.save(update_fields=["tco_result"])
+
         check_event_soc_consistency(db_scenario)
         db_scenario.refresh_from_db()
         db_scenario.finished = timezone.now()
         db_scenario.save()
     except Exception as e:
         logger.error(traceback.format_exc())
-        progress.refresh_from_db()
-        progress.errors.append(str(e))
-        progress.set_failed()
+        # Let all progress no of the failed simulation
+        set_scenario_progress_failed(db_scenario, e)
         raise
+
+
+def set_scenario_progress_failed(scenario: Scenario, exception: Exception | None = None):
+    mutation_progress = Progress.objects.filter(
+        scneario=scenario.parent, progress_type=EnumProgress.RUNNING_SIMULATION
+    ).first()
+    if mutation_progress:
+        mutation_progress.errors.append(str(exception))
+        mutation_progress.set_failed()
+    # Also set simulation specific scenario progress to failed
+    simulation_scenario_progress = Progress.objects.filter(
+        scneario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
+    ).first()
+    if simulation_scenario_progress:
+        simulation_scenario_progress.errors.append(str(exception))
+        simulation_scenario_progress.set_failed()
 
 
 def check_event_soc_consistency(db_scenario: Scenario):
@@ -2348,6 +2390,27 @@ def run_eflips(scenario, delete_existing_depot, progress) -> None:
         ignore_unstable_simulation=False,
         ignore_delayed_trips=False,
     )
+
+
+def eflips_calculate_tco(scenario: Scenario):
+    db_url = create_db_url()
+    # get vehicle type energy consumptions
+    for vt in scenario.vehicletype_set.all():
+        if vt.consumption is not None:
+            # consumption set directly
+            vt.tco_parameters["const_energy_consumption"] = vt.consumption
+        else:
+            # vehicle type consumption not set: calculate from driving events
+            energy_kwh = sum(
+                [
+                    e.get_energy_delta()
+                    for e in Event.objects.filter(vehicle_type=vt, event_type="DRIVING")
+                ]
+            )
+            distance = vt.get_total_distance_km
+            vt.tco_parameters["const_energy_consumption"] = -energy_kwh / distance  # [kWh / km]
+        vt.save(update_fields=["tco_parameters"])
+    return calculate_tco(scenario.id, db_url)
 
 
 def create_db_url():

@@ -100,7 +100,6 @@ class Scenario(models.Model):
     simba_options = models.JSONField(default=dict, null=True, blank=True)
     eflips_depot_options = models.JSONField(default=dict, null=True, blank=True)
     tco_parameters = models.JSONField(
-        default=dict,
         null=True,
         db_default={
             "project_duration": 20,
@@ -115,12 +114,14 @@ class Scenario(models.Model):
             "taxes": 0.0,
             "insurance": 0.0,
             "pef_general": 0.02,
-            "pef_wages": 0.025,
-            "pef_energy": 0.038,
+            "pef_wages": 0.02,
+            "pef_energy": 0.02,
+            "pef_fuel": 0.02,
             "pef_insurance": 0.02,
         },
         blank=True,
     )
+    tco_result = models.JSONField(default=None, null=True, blank=True)
 
     manager = models.ForeignKey(
         User, on_delete=models.SET_NULL, default=None, null=True, blank=True, related_name="+"
@@ -130,6 +131,11 @@ class Scenario(models.Model):
     def get_default_pk(cls):
         default_scenario = DefaultScenario.objects.first().scenario
         return default_scenario.pk
+
+    def data_export_allowed(self):
+        if self.scenario_type in [EnumScenarioType.SOURCE, EnumScenarioType.SOURCE_FILE]:
+            return False
+        return True
 
 
 @receiver(models.signals.pre_delete, sender=Scenario)
@@ -224,10 +230,9 @@ class BatteryType(models.Model):
     # defined in eFLIPS-LCA
     chemistry = models.JSONField(null=False, default=dict)
     tco_parameters = models.JSONField(
-        default=dict,
         null=True,
         blank=True,
-        db_default={"useful_life": 7, "procurement_cost": None, "cost_escalation": 0.01},
+        db_default={"useful_life": 7, "procurement_cost": 0, "cost_escalation": 0.01},
     )
 
 
@@ -330,13 +335,12 @@ class VehicleType(models.Model):
     allowed_mass = models.FloatField(default=None, null=True)
 
     tco_parameters = models.JSONField(
-        default=dict,
         null=True,
         blank=True,
         db_default={
             "useful_life": 14,
-            "procurement_cost": None,
-            "procurement_cost_diesel": None,
+            "procurement_cost": 550000,
+            "procurement_cost_diesel": 250000,
             "cost_escalation": 0.02,
         },
     )
@@ -350,8 +354,8 @@ class VehicleType(models.Model):
         if not self.tco_parameters:
             self.tco_parameters = {
                 "useful_life": 14,
-                "procurement_cost": None,
-                "procurement_cost_diesel": None,
+                "procurement_cost": 550000,
+                "procurement_cost_diesel": 250000,
                 "cost_escalation": 0.02,
             }
 
@@ -427,9 +431,8 @@ class ChargingPointType(models.Model):
     name = models.TextField(null=False, blank=False)
     name_short = models.TextField(null=True, blank=False, default=name)
     tco_parameters = models.JSONField(
-        default=dict,
         null=True,
-        db_default={"useful_life": 20, "procurement_cost": None, "cost_escalation": 0.02},
+        db_default={"useful_life": 20, "procurement_cost": 0, "cost_escalation": 0.02},
     )
 
 
@@ -1114,9 +1117,8 @@ class Station(models.Model):
     power_total = models.FloatField(default=None, null=True, blank=True)
 
     tco_parameters = models.JSONField(
-        default=dict,
         null=True,
-        db_default={"useful_life": 20, "procurement_cost": None, "cost_escalation": 0.02},
+        db_default={"useful_life": 20, "procurement_cost": 0, "cost_escalation": 0.02},
         blank=True,
     )
 

@@ -30,9 +30,12 @@
         </div>
               <div class='mt-6'>
         {% if progress.success %}
+          {% if first_success is not None %}
+          <meta http-equiv="refresh" content="3;url={%  url 'simba:result' default_scenario.task_id %}">
+          <p>{% translate 'Sie werden in wenigen Sekunden zu den Ergebnissen weitergeleitet.' %}</p>
+          {% endif %}
 {#          a new scenario was created which has a new task_id identical to the progress task_id#}
-          <a class="text-blue-600 hover:underline" href="{%  url 'simba:result' default_scenario.task_id %}" >{% translate 'Zu den Ergebnissen für das Standard-Szenario' %}</a><br>
-        <a class="text-blue-600 hover:underline" href="{%  url 'simba:result' sizing_scenario.task_id %}" >{% translate 'Zu den Ergebnissen für das Auslegungs-Szenario' %}</a>
+          <a class="text-blue-600 hover:underline" href="{%  url 'simba:result' progress.scenario.task_id %}" >{% translate 'Zu den Ergebnissen der Simluation' %}</a><br>
         {% else %}
         </div>
         <div class="flex gap-1 mt-2 text-sm text-blue-800">

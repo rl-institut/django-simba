@@ -3,9 +3,9 @@
 <div class="container max-w-xl mx-auto rounded-lg overflow-hidden">
   <!-- Tabs -->
   <div class="mt-2 px-4 pt-3">
-    <div class="flex space-x-2 p-1 rounded-full text-sm text-white font-medium">
+    <div class="flex space-x-2 p-1 rounded-full text-sm text-white font-semibold">
       <button type="button"
-        class="tab-link flex-grow px-2 py-1 bg-slate-800 rounded-full border border-slate-800"
+        class="tab-link flex-grow px-2 py-1 bg-slate-800 rounded-full border border-slate-800 active"
         onclick="openTab(event, 'info')"
       >Info</button>
       <button type="button"
@@ -19,7 +19,7 @@
   <div class="tab-content bg-white px-4 py-4">
     <div class="tab-pane fade" id="tab-info">
       {% if is_electrified %}
-        <table class="w-full text-sm text-left text-slate-700">
+        <table class="w-full text-sm text-left text-slate-800">
           <tbody>
             <tr class="border-b border-slate-200">
               <td class="py-1">Anschlusstyp</td>
@@ -46,12 +46,12 @@
           </tbody>
         </table>
       {% else %}
-        <p class="text-sm text-slate-800 font-medium pb-1">Nicht elektrifiziert.</p>
+        <p class="text-sm text-slate-800 font-semibold pb-1">Nicht elektrifiziert.</p>
       {% endif %}
     </div>
 
     <div class="tab-pane fade" id="tab-plot" style="display:none">
-      <p class="text-sm text-slate-700">Koordinaten: {{ geom.y|floatformat:"4" }}, {{ geom.x|floatformat:"4" }}</p>
+      <p class="text-sm text-slate-800">Koordinaten: {{ geom.y|floatformat:"4" }}, {{ geom.x|floatformat:"4" }}</p>
       {% if plot %}
         <img class="popup-image mt-2 border rounded" src="data:image/png;base64,{{ plot|safe }}">
       {% endif %}

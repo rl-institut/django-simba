@@ -15,7 +15,6 @@ from ebustoolbox.views import (
     model_export_json,
     merge_and_run,
     run_simulation,
-    DashboardView,
     get_dashboard,
     compare,
     export_scenario,
@@ -39,11 +38,6 @@ urlpatterns = [
     ),
     path("dashboard/", get_dashboard, name="dashboard"),
     path(
-        "dashboard/",
-        DashboardView.as_view(),
-        name="dashboard2",
-    ),
-    path(
         "depots/<uuid:task_id>/",
         DepotsView.as_view(),
         name="depots",
@@ -65,7 +59,7 @@ urlpatterns = [
         name="summary",
     ),
     path(
-        "notifications/<uuid:task_id>/<str:view>",
+        "notifications/<uuid:task_id>/<str:view>/",
         get_notifications,
         name="notifications",
     ),
@@ -100,7 +94,7 @@ urlpatterns = [
         name="JSON_export_scenario_tree",
     ),
     path(
-        "export/<uuid:task_id>/",
+        "export/",
         export_scenario,
         name="JSON_export_scenario",
     ),
@@ -145,5 +139,5 @@ urlpatterns = [
     path("result/<uuid:task_id>/depot_power/", views.get_power_draw_and_occ, name="eflips_power"),
     path("result/<uuid:task_id>/gantt/", views.get_gantt, name="gantt"),
     path("load_test/<uuid:task_id>/", views.loadTester, name="loadtest"),
-    path("delete/<uuid:task_id>", views.delete_scenario, name="delete"),
+    path("delete/<uuid:task_id>/", views.delete_scenario, name="delete"),
 ]

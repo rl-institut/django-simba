@@ -6,7 +6,7 @@
 
 <div class="flex-grow">
   <div class="flex items-center gap-2">
-      <label class="block text-sm/6 font-medium text-slate-800">{% blocktrans %}{{ label }}{% endblocktrans %}</label>
+      <label class="block text-sm/6 font-semibold text-slate-800">{% blocktrans %}{{ label }}{% endblocktrans %}</label>
     <div class="relative inline-block">
       {% if tooltip %}
         <!-- Info Icon -->
@@ -28,7 +28,7 @@
         type="number"
         value="{{ initial|unlocalize }}"
         for="{{name}}"
-        class="block min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+        class="block bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
       >
       <div class="shrink-0 select-none text-sm text-slate-500">{% blocktrans %}{{ unit }}{% endblocktrans %}</div>
     </div>

@@ -1043,21 +1043,39 @@ def get_dist_hist_as_json(task_id: str):
 
 
 def get_power_draw_and_occ_as_json(task_id: str):
-    # Get the scenario from Django ORM
     scenario = Scenario.objects.get(task_id=task_id)
 
-    # Query the Area table using SQLAlchemy
     all_areas = scenario.area_set.all()
     all_area_ids = [area.id for area in all_areas]
 
     time_start, time_end = get_start_end_time(scenario)
 
     with Session(SqlAlchemyEngine.get_engine()) as session:
-        prepared_data = power_and_occupancy(
+        df = power_and_occupancy(
             all_area_ids, session, sim_start_time=time_start, sim_end_time=time_end
         )
 
-    return prepared_data.to_dict(orient="records")
+    # ---- KPIs -------------------------------------------------
+    max_charging = int(df["occupancy_charging"].max())
+    max_total = int(df["occupancy_total"].max())
+    peak_power = float(df["power"].max())
+
+    # assume power in kW, time in uniform steps
+    df = df.sort_values("time")
+    dt_hours = (df["time"].iloc[1] - df["time"].iloc[0]).total_seconds() / 3600.0
+
+    total_energy = float((df["power"] * dt_hours).sum())
+    # ----------------------------------------------------------
+
+    return {
+        "data": df.to_dict(orient="records"),
+        "kpis": {
+            "max_charging": max_charging,
+            "max_total": max_total,
+            "peak_power_kw": round(peak_power, 1),
+            "energy_kwh": round(total_energy, 1),
+        },
+    }
 
 
 def get_gantt(scenario_id: str):

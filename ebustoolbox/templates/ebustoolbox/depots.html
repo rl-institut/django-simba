@@ -23,7 +23,7 @@ function addHTMX(button_id) {
 {% block wizard_content %}
   <main class="flex flex-col items-center flex-grow">
     <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-      <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Depots' %}</h1>
+      <h1 class="pb-12 text-2xl text-slate-500 font-light tracking-wide uppercase">{% translate 'Depots' %}</h1>
       <form type="sumbit" method="POST">
         {% csrf_token %}
         {% for depot, form_dict in forms.items %}
@@ -64,7 +64,7 @@ function addHTMX(button_id) {
       </form>
     </div>
   </main>
-  <div class="hidden bg-green-200"></div>
+  <div class="hidden bg-emerald-200"></div>
 {% endblock wizard_content %}
 {% block wizard_buttons %}
   {% url 'simba:costs' scenario.task_id as prev_url %}
@@ -185,13 +185,13 @@ function validateDepotContainers(){
   var inputs = container.querySelectorAll('input');
   for (let i=0; i<inputs.length; i++){
     if (!inputs[i].checkValidity()) {
-        header.classList.remove("transition-colors", "duration-100", "bg-green-200");
+        header.classList.remove("transition-colors", "duration-100", "bg-emerald-200");
         header.classList.add( 'bg-gradient-to-r' ,'from-slate-100', 'to-slate-200') ;
       return;
     }
   }
         header.classList.remove( 'bg-gradient-to-r' ,'from-slate-100', 'to-slate-200') ;
-        header.classList.add("transition-colors", "duration-100", "bg-green-200");
+        header.classList.add("transition-colors", "duration-100", "bg-emerald-200");
   });
 }
 

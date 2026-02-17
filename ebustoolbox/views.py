@@ -49,7 +49,7 @@ from .forms import (
 from .tasks import deepcopy_scenario, merge_scenario
 from .import_export import ScenarioJSONImporterExporter, visit_all_scenario_queries
 
-from .util import get_unique_task_id
+from .util import get_unique_task_id, to_zip
 
 from ebus_map.managers import X, Y
 
@@ -128,15 +128,11 @@ def progress_scenario(request: HttpRequest, progress_id, template_name):
         hx_trigger = "notRunning"
     if progress.success:
         hx_trigger = "success"
-        if progress.progress_type == EnumProgress.RUNNING_SIMULATION:
-            mutation_scenario = progress.scenario
-            children = Scenario.objects.filter(parent=mutation_scenario)
-            assert (
-                children.count() == 2
-            ), "There should only be two children. A sizing and a default scenario"
-            sizing_scenario = children.get(simulationtype__sim_type=EnumSimulationType.SIZING)
-            default_scenario = children.get(simulationtype__sim_type=EnumSimulationType.DEFAULT)
-            context |= {"sizing_scenario": sizing_scenario, "default_scenario": default_scenario}
+        if request.session.get(str(progress.scenario.task_id), None) is None:
+            context["first_success"] = True
+            request.session[str(progress.scenario.task_id)] = int(
+                datetime.datetime.now().timestamp()
+            )
 
     response = render(request, f"core/{template_name}", context)
     response["HX-Trigger"] = hx_trigger
@@ -189,7 +185,7 @@ def get_user_vehicle_types(user) -> QuerySet[VehicleType]:
     return VehicleType.objects.filter(scenario=default_scenario, opportunity_charging_capable=True)
 
 
-def get_sorted_mutation_scenarios(user) -> QuerySet[Scenario]:
+def get_sorted_selectable_scenarios(user) -> QuerySet[Scenario]:
     """Get a QuerySet of scenarios which are accessible by the user and the default scenario
 
     The QuerySet is ordered by User Scenarios, UserGroup Scenarios and lastly the default Scenario
@@ -201,11 +197,14 @@ def get_sorted_mutation_scenarios(user) -> QuerySet[Scenario]:
             manager__is_superuser=True,
         )
         return data_scenarios
-    scenario_qs = Scenario.objects.filter(scenario_type=EnumScenarioType.MUTATION).annotate(
+    scenario_qs = Scenario.objects.filter(
+        scenario_type__in=[EnumScenarioType.MUTATION, EnumScenarioType.SOURCE_FILE]
+    ).annotate(
         order_id=Cast(F("manager_id"), FloatField()) - user.id,
     )
 
     user_scenarios = get_user_scenario_qs(user, scenario_qs=scenario_qs)
+
     # Get the Scenario related to the scenarios which contain default data
     data_scenarios = Scenario.objects.filter(
         manager__is_superuser=True,
@@ -345,7 +344,7 @@ class TripsView(FormView):
             progress_db = get_unique_progress_or_none(kwargs.get("task_id"))
             context["progress_id"] = progress_db.task_id if progress_db else None
 
-        scenarios = get_sorted_mutation_scenarios(self.request.user)
+        scenarios = get_sorted_selectable_scenarios(self.request.user)
         context["scenarios"] = scenarios
         context["requested"] = request.GET.get("s")
         return context
@@ -372,7 +371,7 @@ class TripsView(FormView):
             return render(request, "ebustoolbox/partials/trips_form.html", context)
             # return render(request, "ebustoolbox/partials/trips_form.html", context)
 
-    def form_valid(self, form):
+    def form_valid(self, form):  # noqa
         """Handles successful form submission."""
         cleaned_data = form.cleaned_data
         task_id = self.kwargs.get("task_id", get_unique_task_id())
@@ -383,7 +382,6 @@ class TripsView(FormView):
         if self.request.user.is_authenticated:
             manager = self.request.user
         # If schedule reading failed before a scenario already exists
-        print((task_id, manager))
         scenario = Scenario.objects.create(task_id=task_id, manager=manager)
         scenario.name = cleaned_data["scenario_name"]
         scenario.description = cleaned_data["description"]
@@ -457,32 +455,50 @@ class TripsView(FormView):
                     progress_id == async_result.task_id
                 ), "Asynch result and Progress need to be equal for proper fetching of progress"
         elif scenario_uuid:
-            # TODO: IMPLEMENT RAW SCENARIO SOURCE
-            if Scenario.objects.get(task_id=scenario_uuid) not in get_sorted_mutation_scenarios(
+            if Scenario.objects.get(task_id=scenario_uuid) not in get_sorted_selectable_scenarios(
                 self.request.user
             ):
                 raise Http404
-            mutation_scenario = Scenario.objects.get(task_id=scenario_uuid)
-            assert mutation_scenario.scenario_type in [
+            selected_scenario = Scenario.objects.get(task_id=scenario_uuid)
+            assert selected_scenario.scenario_type in [
                 EnumScenarioType.MUTATION,
+                EnumScenarioType.SOURCE_FILE,
                 EnumScenarioType.PUBLIC_DATA,
             ]
             if self.request.user.is_authenticated:
-                mutation_scenario.manager = self.request.user
+                selected_scenario.manager = self.request.user
             else:
-                mutation_scenario.manager = None
-            copied_mutation = tasks.create_scenario_copy_for_user(mutation_scenario)
-            copied_mutation.name = scenario.name
-            copied_mutation.name_short = scenario.name_short
-            copied_mutation.scenario_type = EnumScenarioType.MUTATION
-            copied_mutation.description = scenario.description
-            copied_mutation.save()
-            scenario.delete()
-            scenario = copied_mutation
-            response = HttpResponse()
-            response["HX-Redirect"] = reverse(self.success_name, args=[str(scenario.task_id)])
-            return response
-
+                selected_scenario.manager = None
+            if selected_scenario.scenario_type != EnumScenarioType.SOURCE_FILE:
+                copied_mutation = tasks.create_scenario_copy_for_user(selected_scenario)
+                copied_mutation.name = scenario.name
+                copied_mutation.name_short = scenario.name_short
+                if selected_scenario.scenario_type != EnumScenarioType.SOURCE_FILE:
+                    copied_mutation.scenario_type = EnumScenarioType.MUTATION
+                else:
+                    copied_mutation.scenario_type = EnumScenarioType.SOURCE
+                copied_mutation.description = scenario.description
+                copied_mutation.save()
+                scenario.delete()
+                scenario = copied_mutation
+                response = HttpResponse()
+                response["HX-Redirect"] = reverse(self.success_name, args=[str(scenario.task_id)])
+                return response
+            else:
+                assert selected_scenario.scenario_type == EnumScenarioType.SOURCE_FILE
+                prev_id = selected_scenario.id
+                selected_scenario.task_id = get_unique_task_id()
+                source_scenario, unused_variable = deepcopy_scenario(selected_scenario)
+                source_scenario.scenario_type = EnumScenarioType.SOURCE
+                source_scenario.parent_id = prev_id
+                source_scenario.save()
+                scenario.parent = source_scenario
+                scenario.simba_options = vars(tasks.get_args(scenario))
+                scenario.scenario_type = EnumScenarioType.MUTATION
+                scenario.save()
+                response = HttpResponse()
+                response["HX-Redirect"] = reverse(self.success_name, args=[str(scenario.task_id)])
+                return response
         else:
             raise NotImplementedError
         progress_db = Progress.objects.filter(task_id=progress_id).first()
@@ -1092,12 +1108,13 @@ class CostsView(ScenarioMixIn, TemplateView):
                     "fuel_cost": 1,
                     "maint_cost": 1,
                     "maint_cost_diesel": 1,
-                    "maint_inf_cost": 1,  # renamed from maint_infr_cost
+                    "maint_infr_cost": 1,
                     "taxes": 1,
                     "insurance": 1,
                     "pef_general": 0.01,
-                    "pef_staff_cost": 0.01,  # renamed from pef_wages
-                    "pef_energy_cost": 0.01,  # renamed from pef_energy
+                    "pef_wages": 0.01,
+                    "pef_energy": 0.01,
+                    "pef_fuel": 0.01,
                     "pef_insurance": 0.01,
                     # not needed, but useful when restoring/loading values
                     "useful_life_chargepoint_depot": 1,
@@ -1107,7 +1124,6 @@ class CostsView(ScenarioMixIn, TemplateView):
                     "cost_escalation_chargepoint": 0.01,
                 }
 
-                self.scenario.tco_parameters = dict()
                 for param, scale in scenario_parameters.items():
                     try:
                         self.scenario.tco_parameters[param] = form_data[param] * scale
@@ -1119,13 +1135,13 @@ class CostsView(ScenarioMixIn, TemplateView):
                 for station in self.scenario.station_set.all():
                     if station.charge_type == EnumChargeType.DEPOT.value:
                         station.tco_parameters = {
-                            "useful_life": form_data["useful_life_chargepoint_depot"],
+                            "useful_life": int(form_data["useful_life_chargepoint_depot"]),
                             "procurement_cost": form_data["procurement_cost_chargepoint_depot"],
                             "cost_escalation": form_data["cost_escalation_chargepoint"] / 100,
                         }
                     elif station.charge_type == EnumChargeType.OPPORTUNITY.value:
                         station.tco_parameters = {
-                            "useful_life": form_data["useful_life_chargepoint_opp"],
+                            "useful_life": int(form_data["useful_life_chargepoint_opp"]),
                             "procurement_cost": form_data["procurement_cost_chargepoint_opp"],
                             "cost_escalation": form_data["cost_escalation_chargepoint"] / 100,
                         }
@@ -1146,7 +1162,7 @@ class CostsView(ScenarioMixIn, TemplateView):
                 # multiple vehicle types allowed -> multiple values in form
                 for idx, vehicle_type in enumerate(context["vehicle_types"]):
                     vehicle_type.tco_parameters = {
-                        "useful_life": float(request.POST.getlist("costs-useful_life_bus")[idx]),
+                        "useful_life": int(request.POST.getlist("costs-useful_life_bus")[idx]),
                         "procurement_cost": float(
                             request.POST.getlist("costs-procurement_cost_bus")[idx]
                         ),
@@ -1162,7 +1178,7 @@ class CostsView(ScenarioMixIn, TemplateView):
                     battery_type = vehicle_type.battery_type
                     if battery_type is not None:
                         battery_type.tco_parameters = {
-                            "useful_life": float(
+                            "useful_life": int(
                                 request.POST.getlist("costs-useful_life_battery")[idx]
                             ),
                             "procurement_cost": float(
@@ -1457,11 +1473,19 @@ class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
     def get_context_data(self, **kwargs):
         context = super(ResultView, self).get_context_data(**kwargs)
         task_id = kwargs.get("task_id")
-        if task_id is None:
-            raise Http404
-        task_id = str(task_id)
+        scenario = get_object_or_404(Scenario, task_id=task_id)
         context["task_id"] = task_id
         scenario = get_object_or_404(Scenario, task_id=task_id)
+        context["avg_scenario"] = Scenario.objects.filter(
+            parent=scenario,
+            scenario_type=EnumScenarioType.SIMULATION,
+            simulationtype__sim_type=EnumSimulationType.DEFAULT,
+        ).first()
+        context["ext_scenario"] = Scenario.objects.filter(
+            parent=scenario,
+            scenario_type=EnumScenarioType.SIMULATION,
+            simulationtype__sim_type=EnumSimulationType.SIZING,
+        ).first()
         context["scenario"] = scenario
         notifications = Notification.objects.filter(scenario=scenario)
         context["notifications"] = tasks.get_notfications_dict(notifications)
@@ -1469,32 +1493,6 @@ class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
         # Update mapengine_setup JS sees the center
         context["mapengine_setup"] = {**context["mapengine_setup"], "center": center}
         return context
-
-
-class DashboardView(TemplateView):
-    empty_template_name = "ebustoolbox/dashboard-empty-state.html"
-    template_name = "ebustoolbox/dashboard.html"
-
-    def get_context_data(self, **kwargs):
-        context = {}
-        if not self.request.user.is_authenticated:
-            raise Http404()
-        scenarios = Scenario.objects.filter(manager=self.request.user)
-        context["scenarios"] = scenarios
-        if len(scenarios) == 0:
-            self.render_to_response(context)
-        return context
-
-    @login_required(login_url="/login/")
-    def get(self, request, *args, **kwargs):
-        context = self.get_context_data(**kwargs)
-        if len(context["scenarios"]) == 0:
-            return render(request, template_name=self.empty_template_name, context=context)
-
-        return render(request, template_name=self.template_name, context=context)
-
-    def post(self, request, *args, **kwargs):
-        raise Http404()
 
 
 def get_depots(scenario, start: datetime.datetime, td: datetime.timedelta):
@@ -1522,7 +1520,7 @@ def cancel_upload(request: HttpRequest, task_id: str):
 def merge_and_run(request: HttpRequest, task_id: str):
     scenario = get_scenario_and_assert_authorization(request, task_id)
 
-    simulation_progess = Progress.objects.filter(
+    simulation_progress = Progress.objects.filter(
         scenario=scenario,
         progress_type=EnumProgress.RUNNING_SIMULATION,
     )
@@ -1535,37 +1533,34 @@ def merge_and_run(request: HttpRequest, task_id: str):
 
     if not request.user.is_superuser:
         # Delete failed scenarios
-        if simulation_progess.filter(running=True).exists():
+        if simulation_progress.filter(running=True).exists():
             error_text = _("Starting multiple Simulations from the same source is not allowed")
             logger.info(error_text)
             return HttpResponseForbidden(error_text)
 
-        if simulation_progess.filter(success=True).exists():
+        if simulation_progress.filter(success=True).exists():
             error_text = _("Starting a Simulation which was sucessfully simulated is not allowed")
             logger.info(error_text)
             return HttpResponseForbidden(error_text)
 
     sim_task_id = get_unique_task_id()
-    prev_progress = simulation_progess.first()
-    if prev_progress:
-        prev_progress.task_id = sim_task_id
-        prev_progress.save()
-        progress = prev_progress
-    else:
-        progress = Progress.objects.create(
-            scenario=scenario,
-            progress_type=EnumProgress.RUNNING_SIMULATION,
-            task_id=sim_task_id,
-        )
+
+    simulation_progress.delete()
+    progress = Progress.objects.create(
+        scenario=scenario,
+        progress_type=EnumProgress.RUNNING_SIMULATION,
+        task_id=get_unique_task_id(),
+    )
     logger.info(f"S.ID:{scenario.id}:Running Toolchain.")
     sizing_task_id = get_unique_task_id()
     # create scenario from mutation and parent and simulate it
     try:
         async_result = tasks.run_and_merge_scenarios.apply_async(
             (scenario.id, sim_task_id, sizing_task_id),
-            task_id=str(sim_task_id),
+            task_id=str(progress.task_id),
         )
-        assert async_result.task_id == sim_task_id, "Task ids are expected to be equal"
+        assert async_result.task_id == progress.task_id, "Task ids are expected to be equal"
+        assert async_result.task_id != sim_task_id, "Task ids are expected to be equal"
     except Exception:
         progress.errors.append(
             _("Ein unerwarteter Fehler ist aufgetreten. Wenden Sie sich an ihren Administrator")
@@ -1573,11 +1568,8 @@ def merge_and_run(request: HttpRequest, task_id: str):
         progress.set_failed()
         logger.error(traceback.format_exc())
 
-    progress.refresh_from_db()
-    progress.task_id = sim_task_id
-    progress.save(update_fields=["task_id"])
     context = {}
-    context["progress_id"] = sim_task_id
+    context["progress_id"] = progress.task_id
     context["scenario"] = scenario
     context["template_name"] = "progress_simulation.html"
     context["progress"] = progress
@@ -1658,24 +1650,21 @@ def get_dashboard(request):
     # show all scenarios of a user
     # what about staff?
     base_qs = Scenario.objects.filter(
-        scenario_type__in=[EnumScenarioType.SIMULATION, EnumScenarioType.MUTATION]
+        scenario_type__in=[EnumScenarioType.MUTATION, EnumScenarioType.SOURCE_FILE]
     )
-    scenarios = get_user_scenario_qs(request.user, scenario_qs=base_qs).prefetch_related(
-        "scenario_set"
+    scenarios = (
+        get_user_scenario_qs(request.user, scenario_qs=base_qs)
+        .prefetch_related("scenario_set")
+        .reverse()
     )
     # get task status from task_id for each scenario
     scenario_list = list()
     for scenario in scenarios:
-        # Also show mutation scenarios, but only if they have not been simulated yet
-        if scenario.scenario_type == EnumScenarioType.MUTATION:
-            if scenario.scenario_set.count() == 0:
-                scenario.state = "idle"
-                scenario_list.append(scenario)
-            continue
-        # The progress is linked to the mutation sceanario.
-        # The progress task_id is set to the resulting (simulation-) scenario task_id
-        progress = Progress.objects.filter(task_id=scenario.task_id)
-        # TODO: use scenario state enum or class constants
+        # The progress task_id is now unique.
+        # During run and merge each simulation gets progress which is set
+        progress = Progress.objects.filter(
+            scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
+        )
         if progress.filter(success=True).exists():
             scenario.state = "success"
         elif progress.filter(running=True).exists():
@@ -1686,6 +1675,25 @@ def get_dashboard(request):
         else:
             # no progress: still in setup
             scenario.state = "idle"
+
+        # Give each scenario a reference to its "variante".
+        # For Mutations its a reference to itself.
+        # For Source Files its also a reference to themselves since they are handled differently
+        # Simulations used to get a reference to their parents but they are not shown in the dashboard
+        # Simulations are instead linked through their mutation/parent, since results show
+        # two scenarios (extreme and average)
+
+        scenario.variante = scenario.id
+        match scenario.scenario_type:
+            case EnumScenarioType.MUTATION:
+                pass
+            case EnumScenarioType.SOURCE_FILE:
+                scenario.state = "ready_for_copy"
+            case _:
+                logger.error(
+                    f"Dashboard lookup of variante for scenario {scenario} failed unexpectedly"
+                )
+
         scenario_list.append(scenario)
 
     if scenarios:
@@ -1700,7 +1708,7 @@ def compare(request):
     # allows for optional request parameter "s", which should be a scenario ID a user has access to
     # this scenario will then be shown in the first column of the comparison page
     base_qs = Scenario.objects.filter(
-        scenario_type=EnumScenarioType.SIMULATION, finished__isnull=False
+        scenario_type=EnumScenarioType.MUTATION, finished__isnull=False
     )
     scenarios = get_user_scenario_qs(request.user, scenario_qs=base_qs)
     scenario_dict = dict()
@@ -1708,14 +1716,21 @@ def compare(request):
         if not scenario.finished:
             # filter after union not supported
             continue
-        stations = scenario.station_set.all()
+        sim_scenario = Scenario.objects.filter(
+            parent=scenario, simulationtype__sim_type=EnumSimulationType.DEFAULT
+        ).first()
+        if not sim_scenario:
+            # Missing Simulation Scenario. Can't compare and continue
+            continue
+        # TODO compare with the right child scenario
+        stations = sim_scenario.station_set.all()
         num_electrified_opps = stations.filter(charge_type=EnumChargeType.OPPORTUNITY).count()
         # sum up charging places at depots, defaults to 0 for null values
         num_cs_deps = stations.filter(charge_type=EnumChargeType.DEPOT).aggregate(
             cs=Coalesce(Sum("amount_charging_places"), 0)
         )["cs"]
-        rotations = scenario.rotation_set.all()
-        events = scenario.event_set.all()
+        rotations = sim_scenario.rotation_set.all()
+        events = sim_scenario.event_set.all()
         # calculate charged energy for all events
         events = events.annotate(
             charged=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity")
@@ -1728,11 +1743,11 @@ def compare(request):
             sum_charged=Coalesce(Sum("charged"), 0.0)
         )["sum_charged"]
 
-        scenario_dict[scenario.id] = {
-            _("Name"): scenario.name,
-            _("Erstellt"): scenario.created.strftime("%d.%m.%Y"),
-            _("Fahrzeuge"): scenario.vehicle_set.count(),
-            _("Umläufe"): scenario.rotation_set.count(),
+        scenario_dict[sim_scenario.id] = {
+            _("Name"): sim_scenario.name,
+            _("Erstellt"): sim_scenario.created.strftime("%d.%m.%Y"),
+            _("Fahrzeuge"): sim_scenario.vehicle_set.count(),
+            _("Umläufe"): sim_scenario.rotation_set.count(),
             _("Gesamtkilometer"): round(sum([r.get_distance() / 1000 for r in rotations])),
             _("Anzahl elektrifizierte Endhaltestellen"): num_electrified_opps,
             _("Geladene Energie an Endhaltestellen"): round(energy_opps),
@@ -1883,7 +1898,7 @@ def get_dist_hist(request, task_id: str):
 def get_power_draw_and_occ(request, task_id: str):
     response_data = data.get_power_draw_and_occ_as_json(task_id)
 
-    return JsonResponse({"data": response_data})
+    return JsonResponse(response_data)
 
 
 def get_gantt(request, task_id: str):
@@ -1913,9 +1928,12 @@ def export_scenario_tree(request, task_id: str):
     default_scenario = DefaultScenario.objects.first()
     if default_scenario and scenario == default_scenario.scenario:
         return HttpResponseForbidden(_("Das Default Scenario darf nicht heruntergeladen werden."))
-    if scenario.scenario_type == EnumScenarioType.SOURCE:
+    if (
+        scenario.scenario_type == EnumScenarioType.SOURCE_FILE
+        or scenario.scenario_type == EnumScenarioType.SOURCE
+    ):
         return HttpResponseForbidden(
-            _("Das Source Scenarios dürfen nicht mit allen Nachfolgern heruntergeladen werden.")
+            _("Das Scenario ohne Filter darf nicht mit allen Nachfolgern heruntergeladen werden.")
         )
 
     # Limit export so we can be sure load is not exploding.
@@ -1954,30 +1972,47 @@ def export_scenario_tree(request, task_id: str):
     for scenario in scenarios:
         visit_all_scenario_queries(exporter, scenario)
     json_data = exporter.renderJSON()
-    return HttpResponse(json_data, content_type="application/json")
+    response = HttpResponse(json_data, content_type="application/json")
+    response["Content-Disposition"] = f"attachment; filename=scenario_{scenario.name}_data.json"
+    return response
 
 
-def export_scenario(request, task_id: str):
+def export_scenario(request):
     """Allow admins and authorized users to download a json export of their scenario"""
     # Raise an exception if user is not authorized for this task_id
-    permission = AuthorizedMixIn.get_permission(request.user, task_id)
-    if not permission:
-        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
-    scenario = Scenario.objects.get(task_id=task_id)
-    child = None
-    if scenario.scenario_type == EnumScenarioType.MUTATION:
-        task_id = get_unique_task_id()
-        child = merge_scenario(scenario.id, task_id)
-        scenario = child
-    exporter = ScenarioJSONImporterExporter()
-    visit_all_scenario_queries(exporter, scenario)
-    json_data = exporter.renderJSON()
-    # If a child was created delete it
-    if child is not None:
-        child.delete()
+    task_ids = [_id for _id in request.GET.getlist("task_id")]
+    if not task_ids:
+        return Http404(_("Sie müssen mindestens eine task_id als GET Request angeben"))
 
-    response = HttpResponse(json_data, content_type="application/json")
-    response["Content-Disposition"] = "attachment; filename=scenario.json"
+    for task_id in task_ids:
+        permission = AuthorizedMixIn.get_permission(request.user, task_id)
+        if not permission:
+            return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
+
+    data = {}
+    for task_id in task_ids:
+        scenario = Scenario.objects.get(task_id=task_id)
+        child = None
+        if scenario.scenario_type == EnumScenarioType.MUTATION:
+            task_id = get_unique_task_id()
+            child = merge_scenario(scenario.id, task_id)
+            scenario = child
+        exporter = ScenarioJSONImporterExporter()
+        visit_all_scenario_queries(exporter, scenario)
+        json_data = exporter.renderJSON()
+        data[f"scenario_{scenario.simulationtype_set.first().sim_type}_{task_id[:3]}.json"] = (
+            json_data
+        )
+        # If a child was created delete it
+        if child is not None:
+            child.delete()
+    if len(task_ids) == 1:
+        response = HttpResponse(json_data, content_type="application/json")
+        response["Content-Disposition"] = f"attachment; filename=scenario_{scenario.name}.json"
+    else:
+        zipped_bytes = to_zip(list(data.keys()), list(data.values()))
+        response = HttpResponse(zipped_bytes.getvalue(), content_type="application/json")
+        response["Content-Disposition"] = "attachment; filename=scenarios.zip"
     return response
 
 
