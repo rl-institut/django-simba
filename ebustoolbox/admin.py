@@ -40,15 +40,15 @@ from .models import (
 
 class DataScenarioFilter(admin.SimpleListFilter):
     title = "Data Scenarios"
-    parameter_name = "scenario_type"
+    parameter_name = "only_public_data"
 
     def lookups(self, request, model_admin):
-        return [(EnumScenarioType.PUBLIC_DATA, "Public Data Scenarios"), ("all", "All Scenarios")]
+        return [("True", "Only Public Data Scenarios"), ("False", "All Scenarios")]
 
     def queryset(self, request, queryset):
-        if self.value() == "all":
-            return queryset
-        return queryset.filter(scenario_type=EnumScenarioType.PUBLIC_DATA)
+        if self.value() == "True":
+            return queryset.filter(scenario_type=EnumScenarioType.PUBLIC_DATA)
+        return queryset
 
 
 class ScenarioAdmin(admin.ModelAdmin):
