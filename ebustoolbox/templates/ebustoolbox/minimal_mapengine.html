@@ -43,5 +43,16 @@
                 buttonElement.addEventListener('click', function() {
                     $('#map-overlay').show();
                 });
+
+                //change curser on station/depot icons
+                map.on('load', () => {
+                  map.on('mouseenter', 'station', () => {
+                    map.getCanvas().style.cursor = 'pointer';
+                  });
+
+                  map.on('mouseleave', 'station', () => {
+                    map.getCanvas().style.cursor = '';
+                  });
+                });
             });
         </script>

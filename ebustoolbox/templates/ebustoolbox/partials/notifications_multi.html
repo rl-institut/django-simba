@@ -1,6 +1,4 @@
 {% load i18n %}
-
-<!-- It can be adapted. If for example there is no error, remove error text and icon, keep only warnings and infos -->
 <div class="overflow-hidden">
   <div
     class="w-full rounded-md border border-blue-200 bg-blue-50 mb-4 animate-slide-in-top"
@@ -26,7 +24,7 @@
       <div id='notificationSummary'
         hx-on:afterSettle="console.log('bob')"
         class="flex flex-wrap items-center gap-x-6 gap-y-2 ">
-        {% if  notifications.error %}
+        {% if notifications.error %}
         <div id="errorCount"  class="flex items-center gap-1 text-red-700 notification-summary">
           <svg class="size-4 text-red-500" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd"/>
@@ -44,7 +42,6 @@
         </div>
 
         {% endif %}
-
 
         {% if  notifications.info %}
         <div id="infoCount"  class="flex items-center gap-1 text-blue-700 notification-summary">
@@ -118,7 +115,5 @@
         </div>
       </div>
     </div>
-
-
   </div>
 </div>

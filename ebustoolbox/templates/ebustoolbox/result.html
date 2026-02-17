@@ -49,7 +49,7 @@
           id="dropdownMenu"
         >
           <div class="py-1" role="none">
-            <a href="{% url 'simba:JSON_export_scenario' task_id=task_id %}" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
+            <a href="{% url 'simba:JSON_export_scenario' %}?{% for child  in scenario.scenario_set.all %}task_id={{child.task_id}}&{% endfor %}" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
@@ -57,7 +57,7 @@
                 {% translate 'Ergebnisse exportieren' %}
               </span>
             </a>
-            <a href="{% url 'simba:summary' task_id=scenario.parent.task_id %}" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
+            <a href="{% url 'simba:summary' task_id=scenario.task_id %}" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm3.75 11.625a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
               </svg>
@@ -65,7 +65,7 @@
                 {% translate 'Zusammenfassung sehen' %}
               </span>
             </a>
-            <a href="{% url 'simba:trips' %}?s={{ scenario.parent.id }}" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
+            <a href="{% url 'simba:trips' %}?s={{ scenario.id }}" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
@@ -147,8 +147,8 @@
             tabindex="-1"
           >
             <div class="py-1" role="none">
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
+              <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
+              <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
             </div>
           </div>
         </div>
@@ -161,7 +161,7 @@
               <button
                 type="button"
                 id="dieselToggle"
-                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
                 role="switch"
                 aria-checked="false"
                 aria-labelledby="dieselToggleLabel"
@@ -183,7 +183,7 @@
               </div>
             </div>
           </div>
-          <p class="flex justify-center w-4/12 text-base font-normal text-slate-600">{% translate 'Gesamtkosten' %}</p>
+          <p class="flex justify-center w-4/12 text-base font-normal text-slate-500">{% translate 'Gesamtkosten' %}</p>
           <div class="flex flex-grow justify-end w-4/12">
             <div class="w-[10rem]">
               <label id="listbox-label" class="hidden">
@@ -270,7 +270,7 @@
           <!-- Fahrzeuge -->
           <div class="w-full md:w-1/2 xl:w-1/4 p-4 border-b xl:border-b-0 xl:border-r border-slate-300">
             <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">{% translate 'Fahrzeuge' %}</p>
-            <div class="flex justify-center gap-8 xl:gap-4">
+            <div class="flex justify-around">
               <div class="flex flex-col items-center">
                 <div class="flex items-center gap-2">
                   <span class="text-xl font-semibold text-slate-800">1.200.000</span>
@@ -291,7 +291,7 @@
           <!-- Infrastruktur Endhaltestellen -->
           <div class="w-full md:w-1/2 xl:w-1/4 p-4 border-b md:border-b-0 xl:border-r border-slate-300">
             <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">{% translate 'Infrastruktur Endhaltestellen' %}</p>
-            <div class="flex justify-center gap-8 xl:gap-4">
+            <div class="flex justify-around">
               <div class="flex flex-col items-center">
                 <div class="flex items-center gap-2">
                   <span class="text-xl font-semibold text-slate-800">500.000</span>
@@ -312,7 +312,7 @@
           <!-- Infrastruktur Depots -->
           <div class="w-full md:w-1/2 xl:w-1/4 p-4">
             <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">{% translate 'Infrastruktur Depots' %}</p>
-            <div class="flex justify-center gap-8 xl:gap-4">
+            <div class="flex justify-around">
               <div class="flex flex-col items-center">
                 <div class="flex items-center gap-2">
                   <span class="text-xl font-semibold text-slate-800">800.000</span>
@@ -334,14 +334,14 @@
       <div class="bg-white rounded-lg shadow-md mb-12">
         <div class="p-8">
           <nav class="-mb-px flex space-x-8 border-b border-slate-300" aria-label="Tabs" id="costsTabs">
-            <a href="#" class="costs-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="costs-tab-1" aria-current="page">{% translate 'Kostenverlauf' %}</a>
-            <a href="#" class="costs-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="costs-tab-2">{% translate 'Tab 2' %}</a>
+            <a href="#" class="costs-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-semibold tracking-wide text-slate-800" data-tab-button="costs-tab-1" aria-current="page">{% translate 'Kostenverlauf' %}</a>
+            <a href="#" class="costs-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-semibold tracking-wide text-slate-800" data-tab-button="costs-tab-2">{% translate 'Tab 2' %}</a>
           </nav>
           <div id="costs-tab-contents" class="mt-4">
             <div class="costs-tab-content" data-tab="costs-tab-1">
               <div class="flex justify-end">
                 <div class="w-[20rem]">
-                  <label id="kostenverlauf-label" class="block text-sm font-medium text-slate-800">
+                  <label id="kostenverlauf-label" class="block text-sm font-semibold text-slate-800">
                     {% translate 'Ansicht' %}
                   </label>
                   <div class="relative mt-2">
@@ -396,8 +396,8 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
               </div>
             </div>
           </div>
@@ -405,25 +405,25 @@
         <div class="bg-white rounded-lg shadow-md mb-12">
           <div class="p-8">
             <div class="flex justify-center">
-              <p class="text-base font-normal text-slate-600 pb-4">CO<sub>2</sub>{% translate '-Bilanz' %}</p>
+              <p class="text-base font-normal text-slate-500 pb-4">CO<sub>2</sub>{% translate '-Bilanz' %}</p>
             </div>
             <div class="flex justify-center">
               <div class="flex items-end gap-2">
                 <span class="text-4xl font-bold text-slate-800">- 70</span>
-                <span class="text-base font-normal text-slate-600">% CO<sub>2</sub>{% translate '-Emissionen' %}</span>
+                <span class="text-base font-normal text-slate-500">% CO<sub>2</sub>{% translate '-Emissionen' %}</span>
               </div>
             </div>
             <div class="flex justify-center">
               <div class="w-full lg:w-3/4 flex flex-col gap-4 py-8">
                 <div class="flex items-center gap-4">
-                  <span class="text-end text-sm text-slate-600 flex-grow">{% translate 'Vor Elektrifizierung' %}</span>
+                  <span class="text-end text-sm text-slate-500 flex-grow">{% translate 'Vor Elektrifizierung' %}</span>
                   <div class="flex items-center gap-2 w-3/4">
                     <div class="h-2 flex-grow bg-slate-200 rounded-full"></div>
-                    <span class="text-sm font-medium text-slate-800">10.000 t</span>
+                    <span class="text-sm font-semibold text-slate-800">10.000 t</span>
                   </div>
                 </div>
                 <div class="flex items-center gap-4">
-                  <span class="text-end text-sm text-slate-600 flex-grow">{% translate 'Nach Elektrifizierung' %}</span>
+                  <span class="text-end text-sm text-slate-500 flex-grow">{% translate 'Nach Elektrifizierung' %}</span>
                   <div class="flex items-center gap-2 w-3/4">
                     <div class="h-2 w-[30%] bg-blue-600 rounded-full"></div>
                     <span class="text-sm font-bold text-blue-600">3.000 t</span>
@@ -435,7 +435,7 @@
             <div class="flex justify-end pt-4">
               <button
                 id="detailsButton"
-                class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-full transition-all"
+                class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-full transition-all"
                 aria-expanded="false"
                 aria-controls="detailsContent"
               >
@@ -454,7 +454,7 @@
               </button>
             </div>
             <!-- Hidden Content -->
-            <div id="detailsContent" class="hidden mt-4 pt-8 text-sm text-slate-600 border-t border-slate-200">
+            <div id="detailsContent" class="hidden mt-4 pt-8 text-sm text-slate-500 border-t border-slate-200">
               <p>Details zur CO<sub>2</sub>-Bilanz: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce accumsan nisi at elit tincidunt fermentum.</p>
             </div>
           </div>
@@ -483,8 +483,8 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
               </div>
             </div>
           </div>
@@ -494,16 +494,16 @@
       <div class="bg-white rounded-lg shadow-md mb-12">
         <div class="p-8">
           <nav class="-mb-px flex space-x-8 border-b border-slate-300" aria-label="Tabs" id="socTabs">
-            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-1" aria-current="page">
+            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-semibold tracking-wide text-slate-800" data-tab-button="soc-tab-1" aria-current="page">
               {% translate 'Anzahl Fahrzeuge nach SoC' %}
             </a>
-            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-2">
+            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-semibold tracking-wide text-slate-800" data-tab-button="soc-tab-2">
               {% translate 'Fahrzeugaktivitäten' %}
             </a>
-            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-3">
+            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-semibold tracking-wide text-slate-800" data-tab-button="soc-tab-3">
               {% translate 'Fahrzeuganzahlen' %}
             </a>
-            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-4">
+            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-semibold tracking-wide text-slate-800" data-tab-button="soc-tab-4">
               {% translate 'Fahrplanwirkungsgrade' %}
             </a>
           </nav>
@@ -547,8 +547,8 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
               </div>
             </div>
           </div>
@@ -672,7 +672,8 @@
 
         <div class="pb-8">
           <!-- Hidden input to pass task ID to javascript -->
-          <input type="hidden" id="task-id" value="{{ task_id }}">
+          <input type="hidden" id="task-id-avg" value="{{ avg_scenario.task_id }}">
+          <input type="hidden" id="task-id-ext" value="{{ ext_scenario.task_id }}">
 
           <!-- Different containers for each chart -->
           <div class="flex gap-8 mb-12">
@@ -687,6 +688,52 @@
             <div id="lineChart" class="chart-container h-[480px]"></div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
+            <p class="text-center text-lg font-bold text-slate-800 pb-4">
+                {% translate 'Depot Ladeleistung und Belegung' %}
+              </p>
+              <div class="flex justify-between mt-4">
+                <div class="w-1/4 px-2 pb-4 text-center border-r border-slate-300">
+                  <p class="text-slate-800">
+                    <span id="depot-max-charging"
+                          class="text-xl 2xl:text-2xl font-semibold">--</span>
+                  </p>
+                  <p class="text-sm text-slate-500">
+                    {% translate 'Max. gleichzeitig ladende Fahrzeuge' %}
+                  </p>
+                </div>
+
+                <div class="w-1/4 px-2 pb-4 text-center border-r border-slate-300">
+                  <p class="text-slate-800">
+                    <span id="depot-max-total"
+                          class="text-xl 2xl:text-2xl font-semibold">--</span>
+                  </p>
+                  <p class="text-sm text-slate-500">
+                    {% translate 'Max. Fahrzeuge im Depot gesamt' %}
+                  </p>
+                </div>
+
+                <div class="w-1/4 px-2 pb-4 text-center border-r border-slate-300">
+                  <p class="text-slate-800">
+                    <span id="depot-peak-power"
+                          class="text-xl 2xl:text-2xl font-semibold">--</span>
+                    <span class="text-sm 2xl:text-base font-normal">kW</span>
+                  </p>
+                  <p class="text-sm text-slate-500">
+                    {% translate 'Spitzenleistung' %}
+                  </p>
+                </div>
+
+                <div class="w-1/4 px-2 pb-4 text-center">
+                  <p class="text-slate-800">
+                    <span id="depot-energy"
+                          class="text-xl 2xl:text-2xl font-semibold">--</span>
+                    <span class="text-sm 2xl:text-base font-normal">kWh</span>
+                  </p>
+                  <p class="text-sm text-slate-500">
+                    {% translate 'Geladene Energie' %}
+                  </p>
+                </div>
+              </div>
             <div id="DepotlineChart" class="chart-container h-[480px]"></div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
@@ -747,7 +794,7 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'URL kopieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'URL kopieren' %}</a>
               </div>
             </div>
           </div>
@@ -788,12 +835,13 @@
     '#bc9e8b',
     '#d4d6dc'
 ];
-    // eCharts functionality
-    const taskId = document.getElementById("task-id").value;
-    //console.log("Simulation ID:", taskId);
-
+  // eCharts functionality
+  const taskIdAvg = document.getElementById("task-id-avg").value;
+  const taskIdExt = document.getElementById("task-id-ext").value;
+  //console.log("Simulation ID:", taskIdAvg);
+  // TODO: Use appropriate task ids for plots, depending on which scenario type should be shown
   function fetchAndRenderPieChart(chartName, chartId, titleText) {
-        return fetch(`/simba/result/${taskId}/${chartName}/`)
+        return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
                 // Filter out categories with zero values
@@ -847,7 +895,7 @@
 
     function fetchAndRenderLineChart(chartName, chartId, titleText) {
 
-        return fetch(`/simba/result/${taskId}/${chartName}/`)
+        return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
         .then(response => response.json())
         .then(data => {
 
@@ -941,10 +989,19 @@
         });
     }
   function fetchAndRenderDepotChart(chartName, chartId, titleText) {
-        return fetch(`/simba/result/${taskId}/${chartName}/`)
+        return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
             .then(response => response.json())
             .then(responseData => {
                 const rawData = responseData.data;
+
+                const kpis = responseData.kpis;
+
+                // KPIs
+                document.getElementById("depot-max-charging").textContent = kpis.max_charging;
+                document.getElementById("depot-max-total").textContent = kpis.max_total;
+                document.getElementById("depot-peak-power").textContent = kpis.peak_power_kw;
+                document.getElementById("depot-energy").textContent = kpis.energy_kwh;
+
 
                 // Extract x and y arrays
                 const times = rawData.map(row => row.time);
@@ -957,7 +1014,6 @@
                 const options = {
                     color: ['#4269d0', '#6cc5b0', '#ff725c'],
                     title: {
-                        text: titleText,
                         left: 'center',
                         textStyle: {
                             fontSize: 16,
@@ -1098,7 +1154,7 @@
       };
 
 
-  return fetch(`/simba/result/${taskId}/${chartName}/`)
+  return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
                 const categories = data.categories;  // Array of bus categories
@@ -1303,7 +1359,7 @@
             .catch(error => console.error('Error loading Gantt data:', error));
     }
     function fetchAndRenderGanttChartSOC(chartName, chartId, titleText) {
-        return fetch(`/simba/result/${taskId}/${chartName}/`)
+        return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
 
@@ -1550,7 +1606,7 @@
     }
     function fetchAndRenderStats(chartName, chartId, titleText) {
 
-        fetch(`/simba/result/${taskId}/${chartName}/`)
+        fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
 
@@ -1575,7 +1631,7 @@
             });
     };
     function fetchAndRenderStackedHistogram(chartName, chartId, titleText) {
-        return fetch(`/simba/result/${taskId}/${chartName}/`)
+        return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
@@ -1644,7 +1700,7 @@
             });
     }
     function fetchAndRenderHistogram(chartName, chartId, titleText) {
-      return fetch(`/simba/result/${taskId}/${chartName}/`)
+      return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
         .then(response => response.json())
         .then(data => {
           if (data.error) {
@@ -1695,7 +1751,7 @@
             .catch(error => console.error('Error fetching histogram data:', error));
     }
     function fetchAndRenderSoCHistogram(chartName, chartID) {
-        fetch(`/simba/result/${taskId}/${chartName}/`)  // Replace with the actual URL
+        fetch(`/simba/result/${taskIdAvg}/${chartName}/`)  // Replace with the actual URL
       .then((res) => res.json())
       .then((result) => {
         const rawData = result.data;
@@ -1920,13 +1976,13 @@
     document.addEventListener("DOMContentLoaded", function() {
 
         const el = document.getElementById("dataFetchedFinished");
-      if (taskId) {
+      if (taskIdAvg) {
         const chartPromises =[
         // Render the charts
         fetchAndRenderPieChart("critical_rotations", "chartContainer", "Kritische und nicht kritische Umläufe"),
         fetchAndRenderPieChart("bustype", "busTypeChartContainer", "Verteilung Fahrzeugtyp"),
         fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit"),
-        fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Ladeleistung und Belegung"),
+        fetchAndRenderDepotChart("depot_power", "DepotlineChart", ""),
 
         fetchAndRenderStats("stats", "_", "_"),
         fetchAndRenderGanttChart("gantt","ganttChart","_"),
@@ -2091,7 +2147,7 @@ document.querySelectorAll('.costs-tab').forEach((tab) => {
   tab.classList.toggle('border-transparent', !isActive);
   tab.classList.toggle('text-slate-500', !isActive);
   tab.classList.toggle('hover:border-slate-300', !isActive);
-  tab.classList.toggle('hover:text-slate-700', !isActive);
+  tab.classList.toggle('hover:text-slate-800', !isActive);
 });
 };
 
@@ -2229,7 +2285,7 @@ switchCostsTab('costs-tab-1');
         tab.classList.toggle('border-transparent', !isActive);
         tab.classList.toggle('text-slate-500', !isActive);
         tab.classList.toggle('hover:border-slate-300', !isActive);
-        tab.classList.toggle('hover:text-slate-700', !isActive);
+        tab.classList.toggle('hover:text-slate-800', !isActive);
       });
     };
 

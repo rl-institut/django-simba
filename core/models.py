@@ -44,8 +44,10 @@ class Progress(models.Model):
 
     def get_progress(self):
         """Return a progress, which should be between 0 and 100."""
+        if self.success:
+            return 100
         try:
-            return self.current_work / self.total_work * 100
+            return min(max(0, self.current_work / self.total_work * 100), 100)
         except ZeroDivisionError:
             return 0
 

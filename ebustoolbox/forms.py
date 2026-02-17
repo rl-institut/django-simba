@@ -260,7 +260,7 @@ class ManualTcoForm(forms.Form):
     staff_cost = forms.FloatField(initial=30, min_value=0)  # €/h
     energy_cost = forms.FloatField(initial=0.18, min_value=0)  # €/kWh
     maint_cost = forms.FloatField(initial=0.07, min_value=0)  # €/km
-    maint_inf_cost = forms.FloatField(initial=1000, min_value=0)  # €/a
+    maint_infr_cost = forms.FloatField(initial=1000, min_value=0)  # €/a
     useful_life_bus = forms.IntegerField(initial=14, min_value=0)  # years
     procurement_cost_bus = forms.IntegerField(initial=550000, min_value=0)  # €
     useful_life_battery = forms.IntegerField(initial=7, min_value=0)  # years
@@ -281,8 +281,9 @@ class ManualTcoForm(forms.Form):
     taxes = forms.FloatField(initial=0, min_value=0, required=False)  # € (vehicle tax)
     insurance = forms.FloatField(initial=2000, min_value=0, required=False)  # €/a
     pef_general = forms.FloatField(initial=0.02, min_value=0, required=False)
-    pef_staff_cost = forms.FloatField(initial=0.02, min_value=0, required=False)
-    pef_energy_cost = forms.FloatField(initial=0.02, min_value=0, required=False)
+    pef_wages = forms.FloatField(initial=0.02, min_value=0, required=False)
+    pef_energy = forms.FloatField(initial=0.02, min_value=0, required=False)
+    pef_fuel = forms.FloatField(initial=0.02, min_value=0, required=False)
     pef_insurance = forms.FloatField(initial=0.02, min_value=0, required=False)
     cost_escalation_bus = forms.FloatField(initial=0.02, min_value=0, required=False)
     cost_escalation_battery = forms.FloatField(initial=0.01, min_value=0, required=False)
