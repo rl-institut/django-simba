@@ -6,6 +6,7 @@
 
 {% block content %}
 <header class="flex flex-col items-center bg-white">
+  <link href="{%  static 'ebustoolbox/css/result_styles.css' %}" rel="stylesheet">
   <div class="sm:py-8 lg:pt-12 lg:pb-8 sm:px-6 lg:px-8 w-full max-w-[120rem]">
     <div class="flex justify-between">
       <h1 class="text-2xl font-semibold">{{ scenario.name }}</h1>
@@ -753,23 +754,37 @@
           </div>
         <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto max-w-4xl">
             <div id="table-scroll-container" class="h-[480px] overflow-y-auto relative">
-                <table id="rotationTable" class="w-3/4 mx-auto table-auto border-collapse bg-white shadow-sm">
+                <table id="rotationTable" class="w-full table-fixed border-collapse bg-white">
                     <thead class="sticky top-0 z-20 bg-slate-50 shadow-sm">
                         <tr class="divide-x divide-slate-200 border-b border-slate-200">
-                            <th class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('name')">{% translate 'Name' %}</th>
-                            <th class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('vehicle')">{% translate 'Typ' %}</th>
-                            <th class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('distance')">km</th>
-                            <th class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('consumption')">kWh</th>
-                            <th class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('efficiency')">kWh/km</th>
-                             <th class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('duration')">Dauer</th>
-                            <th class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('soc_spread_pct')">Δ SoC</th>
+                            <th data-column="name" class="sortable edge-pad-left px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/4" onclick="sortTable('name')">
+                                {% translate 'Name' %}
+                            </th>
+                            <th data-column="vehicle" class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortTable('vehicle')">
+                                {% translate 'Typ' %}
+                            </th>
+                            <th data-column="distance" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('distance')">
+                                km
+                            </th>
+                            <th data-column="consumption" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('consumption')">
+                                kWh
+                            </th>
+                            <th data-column="efficiency" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('efficiency')">
+                                kWh/km
+                            </th>
+                            <th data-column="duration" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('duration')">
+                                {% translate 'Dauer' %}
+                            </th>
+                            <th data-column="soc_spread_pct" class="sortable edge-pad-right px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortTable('soc_spread_pct')">
+                                Δ SoC
+                            </th>
                         </tr>
                     </thead>
                     <tbody id="rotationTableBody" class="divide-y divide-slate-200 bg-white">
                         </tbody>
                 </table>
             </div>
-          </div>
+        </div>
         </div>
         <div class="flex flex-col">
         <div id="map-section" class="flex justify-between items-center pb-2">
@@ -1851,7 +1866,7 @@
     }
 
     function fetchAndRenderCumulativeChart(chartName, chartId, titleText) {
-      return fetch(`/simba/result/${taskId}/${chartName}/`)
+      return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
         .then(response => response.json())
         .then(data => {
           const chartDom = document.getElementById(chartId);
@@ -1940,19 +1955,24 @@
 
     function renderTable(data) {
         const tbody = document.getElementById('rotationTableBody');
+        if (!tbody) return;
+
         tbody.innerHTML = data.map(row => `
             <tr class="hover:bg-slate-50 transition-colors duration-75">
-                <td class="px-4 py-2 text-xs font-medium text-slate-900">${row.name}</td>
-                <td class="px-4 py-2 text-xs text-slate-500">${row.vehicle}</td>
+                <td class="edge-pad-left px-4 py-2 text-xs font-medium text-slate-900 truncate max-w-[180px]" title="${row.name}">
+                    ${row.name}
+                </td>
+                <td class="px-4 py-2 text-xs text-slate-500 truncate max-w-[120px]" title="${row.vehicle}">
+                    ${row.vehicle}
+                </td>
                 <td class="px-4 py-2 text-xs text-right text-slate-600">${row.distance}</td>
                 <td class="px-4 py-2 text-xs text-right text-slate-600">${row.consumption}</td>
                 <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${row.efficiency}</td>
                 <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${formatDuration(row.duration)}</td>
-                <td class="px-4 py-2 text-xs text-right ${row.soc_spread_pct > 80 ? 'text-red-600 font-bold' : 'text-slate-600'}">${row.soc_spread_pct}%</td>
+                <td class="edge-pad-right px-4 py-2 text-xs text-right font-mono text-slate-600">${row.soc_spread_pct}%</td>
             </tr>
         `).join('');
     }
-
     function sortTable(column) {
         if (currentSortColumn === column) {
             sortDirection *= -1;
@@ -1961,10 +1981,23 @@
             currentSortColumn = column;
         }
 
+        document.querySelectorAll('th.sortable').forEach(th => {
+            th.classList.remove('asc', 'desc');
+            if (th.dataset.column === column) {
+                th.classList.add(sortDirection === 1 ? 'asc' : 'desc');
+            }
+        });
+
         rotationData.sort((a, b) => {
             let valA = a[column];
             let valB = b[column];
-            if (typeof valA === 'string') return valA.localeCompare(valB) * sortDirection;
+
+            if (valA == null) return 1;
+            if (valB == null) return -1;
+
+            if (typeof valA === 'string') {
+                return valA.localeCompare(valB) * sortDirection;
+            }
             return (valA - valB) * sortDirection;
         });
 
@@ -1991,7 +2024,7 @@
         fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap"),
         fetchAndRenderGanttChartSOC("soc_gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit"),
         fetchAndRenderCumulativeChart("cumulative_coverage", "cumulative-coverage", "Anteil erfüllbarer Umläufe"),
-        loadRotationTable(taskId)];
+        loadRotationTable(taskIdAvg)];
 
         Promise.allSettled(chartPromises).then((results)=>{
           const allSuccessful = results.every(r => r.status === "fulfilled");
