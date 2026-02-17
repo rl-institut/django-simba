@@ -1904,7 +1904,7 @@ def get_dist_hist(request, task_id: str):
 def get_power_draw_and_occ(request, task_id: str):
     response_data = data.get_power_draw_and_occ_as_json(task_id)
 
-    return JsonResponse({"data": response_data})
+    return JsonResponse(response_data)
 
 
 def get_soc_gantt(request, task_id: str):
