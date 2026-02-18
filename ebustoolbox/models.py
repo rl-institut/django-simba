@@ -1141,7 +1141,7 @@ class Station(models.Model):
         "power_total_ann": F("power_total"),
         "num_arrivals": CountBusServices(),
         "is_depot": IsDepot(),
-        "acp": F("amount_charging_places")
+        "acp": F("amount_charging_places"),
     }
 
     vector_tiles = MVTManager(
@@ -1157,7 +1157,7 @@ class Station(models.Model):
             "power_total_ann",
             "num_arrivals",
             "is_depot",
-            "acp"
+            "acp",
         ],
     )
 
