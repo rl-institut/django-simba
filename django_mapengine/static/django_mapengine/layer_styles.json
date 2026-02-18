@@ -22,8 +22,8 @@
   "source-layer": "station",
   "paint": {
     "circle-radius": 8,
-    "circle-color": "#10b981",
-    "circle-stroke-color": "#059669",
+    "circle-color": "#FFF",
+    "circle-stroke-color": "#FFF",
     "circle-stroke-width": 2,
     "circle-translate": [13, -13],
     "circle-translate-anchor": "viewport"
@@ -40,7 +40,7 @@
     "text-anchor": "center"
   },
   "paint": {
-    "text-color": "#fff"
+    "text-color": "#000"
   }
 },
   "region-fill": {
