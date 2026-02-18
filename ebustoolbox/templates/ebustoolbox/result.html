@@ -767,6 +767,7 @@
             <div id="SpeedHistogramChart" class="chart-container h-[480px]"></div>
           </div>
         <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
+            <div id="filterContainerCumulative"></div>
             <div id="cumulative-coverage" class="chart-container h-[480px]"></div>
           </div>
         <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto max-w-4xl">
@@ -2173,70 +2174,126 @@
 
     }
 
-    function fetchAndRenderCumulativeChart(chartName, chartId, titleText) {
-      return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
-        .then(response => response.json())
-        .then(data => {
-          const chartDom = document.getElementById(chartId);
-          const chart = echarts.init(chartDom);
+    function computeCDF(rawData, selectedTypes) {
+        const filtered = rawData.filter(d => selectedTypes.includes(d.type));
+        if (filtered.length === 0) return { x: [], y: [] };
 
-          const option = {
-            title: {
-              text: titleText,
-              left: 'center',
-              textStyle: { fontWeight: 'lighter', color: '#1e293b', fontSize: 16 }
-            },
-            tooltip: {
-              trigger: 'axis',
-              backgroundColor: 'rgba(255, 255, 255, 0.9)',
-              borderWidth: 0,
-              shadowBlur: 10,
-              shadowColor: 'rgba(0, 0, 0, 0.1)',
-              textStyle: { color: '#334155' },
-              formatter: function (params) {
-                const entry = params[0].value;
-                const energy = entry[0];
-                const percentage = entry[1];
-                return `<b>${percentage}%</b> der Umläufe sind mit einem <b>${energy} kWh</b> Akku erfüllbar.`;
-              }
-            },
-            grid: { left: '10%', right: '10%', bottom: '15%', containLabel: true },
-            xAxis: {
-              type: 'value',
-              name: 'Energiebedarf (kWh)',
-              nameLocation: 'middle',
-              nameGap: 35,
-              splitLine: { show: false }
-            },
-            yAxis: {
-              type: 'value',
-              name: '% der Umläufe',
-              max: 100,
-              axisLabel: { formatter: '{value}%' },
-              splitLine: { lineStyle: { type: 'dashed', color: '#e2e8f0' } }
-            },
-            series: [{
-              name: 'Kumulativ',
-              type: 'line',
-              data: data.x.map((x, i) => [x, data.y[i]]),
-              smooth: true,
-              showSymbol: false,
-              symbol: 'circle',
-              symbolSize: 8,
-              itemStyle: { color: '#059669' },
-              lineStyle: { color: '#059669', width: 3 },
-              areaStyle: {
-                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                  { offset: 0, color: 'rgba(5, 150, 105, 0.3)' },
-                  { offset: 1, color: 'rgba(5, 150, 105, 0)' }
-                ])
-              }
-            }]
-          };
+        filtered.sort((a, b) => a.energy - b.energy);
 
-          chart.setOption(option);
-          window.addEventListener('resize', chart.resize);
+        const total = filtered.length;
+        const uniquePoints = new Map();
+
+        filtered.forEach((item, index) => {
+            const percentage = ((index + 1) / total) * 100;
+            uniquePoints.set(item.energy, Number(percentage.toFixed(1)));
         });
+
+        const xCoords = Array.from(uniquePoints.keys()).sort((a, b) => a - b);
+        const yCoords = xCoords.map(x => uniquePoints.get(x));
+
+        return { x: xCoords, y: yCoords };
+    }
+
+    function fetchAndRenderCumulativeChart(chartName, chartId, titleText) {
+        const filterContainerId = "filterContainerCumulative";
+
+        return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
+            .then(response => response.json())
+            .then(data => {
+                const chartDom = document.getElementById(chartId);
+                const chart = echarts.init(chartDom);
+
+                chart._rawData = data.raw_data;
+                chart._allTypes = data.unique_types;
+                chart._selectedTypesString = "";
+                chart._isAllSelected = true;
+
+                const option = {
+                    title: {
+                        text: titleText,
+                        left: 'center',
+                        textStyle: { fontWeight: 'lighter', color: '#1e293b', fontSize: 16 }
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        borderWidth: 0,
+                        shadowBlur: 10,
+                        shadowColor: 'rgba(0, 0, 0, 0.1)',
+                        textStyle: { color: '#334155' },
+                        formatter: function (params) {
+                            const entry = params[0].value;
+                            const energy = entry[0];
+                            const percentage = entry[1];
+
+                            if (chart._isAllSelected) {
+                                // Tooltip when all Vehicle types are selected
+                                return `<b>${percentage}%</b> der Umläufe sind mit einem <b>${energy} kWh</b> Akku erfüllbar.`;
+                            } else {
+                                // Tooltip when subset of Vehicletypes is selected
+                                const typeNames = chart._selectedTypesString || "ausgewählten Typen";
+                                return `<b>${percentage}%</b> der Umläufe der Typen <b>${typeNames}</b> sind mit einem <b>${energy} kWh</b> Akku erfüllbar.`;
+                            }
+                        }
+                    },
+                    grid: { left: '10%', right: '10%', bottom: '15%', containLabel: true },
+                    xAxis: {
+                        type: 'value',
+                        name: 'Energiebedarf (kWh)',
+                        nameLocation: 'middle',
+                        nameGap: 35,
+                        splitLine: { show: false }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: '% der Umläufe',
+                        max: 100,
+                        axisLabel: { formatter: '{value}%' },
+                        splitLine: { lineStyle: { type: 'dashed', color: '#e2e8f0' } }
+                    },
+                    series: [{
+                        name: 'Kumulativ',
+                        type: 'line',
+                        smooth: true,
+                        showSymbol: false,
+                        itemStyle: { color: '#059669' },
+                        lineStyle: { color: '#059669', width: 3 },
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: 'rgba(5, 150, 105, 0.3)' },
+                                { offset: 1, color: 'rgba(5, 150, 105, 0)' }
+                            ])
+                        },
+                        data: []
+                    }]
+                };
+
+                const applyFilter = () => {
+                    const container = document.getElementById(filterContainerId);
+                    if (!container) return;
+
+                    const selectedTypes = Array.from(container.querySelectorAll('input[type="checkbox"]:checked'))
+                        .map(cb => cb.value)
+                        .filter(val => val !== 'on' && val !== '');
+
+                    chart._isAllSelected = selectedTypes.length === chart._allTypes.length;
+                    chart._selectedTypesString = selectedTypes.join(', ');
+
+                    const cdf = computeCDF(chart._rawData, selectedTypes);
+
+                    chart.setOption({
+                        series: [{
+                            data: cdf.x.map((x, i) => [x, cdf.y[i]])
+                        }]
+                    });
+                };
+
+                createVehicleTypeFilter(data.unique_types, chart, filterContainerId, applyFilter);
+                chart.setOption(option);
+                applyFilter();
+
+                window.addEventListener('resize', chart.resize);
+            });
     }
 
     function loadRotationTable(taskId) {
@@ -2330,7 +2387,7 @@
         fetchAndRenderStackedHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen"),
         fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten"),
         fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap"),
-        fetchAndRenderGanttChartSOC("soc_gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit"),
+        fetchAndRenderGanttChartSOC("gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit"),
         fetchAndRenderCumulativeChart("cumulative_coverage", "cumulative-coverage", "Anteil erfüllbarer Umläufe"),
         loadRotationTable(taskIdAvg)];
 

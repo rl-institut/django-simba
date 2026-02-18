@@ -1145,29 +1145,31 @@ def get_start_end_time(scenario: Scenario) -> tuple[datetime.datetime, datetime.
 
 
 def get_cumulative_energy(task_id: str):
-    rotations_data = (
+    rotations = (
         Rotation.objects.filter(scenario__task_id=task_id)
         .annotate(
             energy_kwh=ExpressionWrapper(
                 (Max("trip__event__soc_start") - Min("trip__event__soc_end"))
                 * Max("vehicle_type__battery_capacity"),
                 output_field=FloatField(),
-            )
+            ),
+            v_type=F("vehicle_type__name")  # Assuming 'name' is the field
         )
-        .values_list("energy_kwh", flat=True)
+        .values("energy_kwh", "v_type")
     )
 
-    energy_list = sorted([round(float(e), 2) for e in rotations_data if e is not None])
-    total = len(energy_list)
+    # Return raw list so JS can filter and calculate CDF
+    raw_data = [
+        {"energy": round(float(r["energy_kwh"]), 2), "type": r["v_type"]}
+        for r in rotations if r["energy_kwh"] is not None
+    ]
 
-    unique_data = {}
-    for i, val in enumerate(energy_list, start=1):
-        unique_data[val] = round((i / total) * 100, 1)
+    unique_types = list(set(r["type"] for r in raw_data))
 
-    x_coords = sorted(unique_data.keys())
-    y_coords = [unique_data[x] for x in x_coords]
-
-    return {"x": x_coords, "y": y_coords, "total_rotations": total}
+    return {
+        "raw_data": raw_data,
+        "unique_types": unique_types
+    }
 
 
 def get_rotation_table_data(task_id: str):
