@@ -1153,7 +1153,7 @@ def get_cumulative_energy(task_id: str):
                 * Max("vehicle_type__battery_capacity"),
                 output_field=FloatField(),
             ),
-            v_type=F("vehicle_type__name")  # Assuming 'name' is the field
+            v_type=F("vehicle_type__name"),  # Assuming 'name' is the field
         )
         .values("energy_kwh", "v_type")
     )
@@ -1161,15 +1161,13 @@ def get_cumulative_energy(task_id: str):
     # Return raw list so JS can filter and calculate CDF
     raw_data = [
         {"energy": round(float(r["energy_kwh"]), 2), "type": r["v_type"]}
-        for r in rotations if r["energy_kwh"] is not None
+        for r in rotations
+        if r["energy_kwh"] is not None
     ]
 
     unique_types = list(set(r["type"] for r in raw_data))
 
-    return {
-        "raw_data": raw_data,
-        "unique_types": unique_types
-    }
+    return {"raw_data": raw_data, "unique_types": unique_types}
 
 
 def get_rotation_table_data(task_id: str):
