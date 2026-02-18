@@ -1805,7 +1805,7 @@ def usergroups(request):
 
 def render_critical_rotations(request, task_id: str):
     """Returns raw JSON data for critical rotations (critical vs. non-critical)"""
-    vehicle_name_dict, unused_variable = data.get_all_buses_labeled(task_id)
+    vehicle_name_dict = data.get_all_buses_labeled(task_id)[0]
     buses = list(vehicle_name_dict.keys())
 
     s = Scenario.objects.get(task_id=task_id)
@@ -1877,12 +1877,6 @@ def get_power_draw(request, task_id: str):
     return JsonResponse({"data": response_data})
 
 
-def get_gantt_data(request, task_id: str):
-    categories, gantt_data = data.get_event_gantt_as_json(task_id)
-
-    return JsonResponse({"categories": categories, "data": gantt_data})
-
-
 def get_stats(request, task_id: str):
     response_data = data.get_stats_as_json(task_id)
 
@@ -1907,10 +1901,14 @@ def get_power_draw_and_occ(request, task_id: str):
     return JsonResponse(response_data)
 
 
-def get_soc_gantt(request, task_id: str):
-    vehicles, records = data.get_soc_gantt_as_json(task_id)
+def get_gantt(request, task_id: str):
+    scenario = Scenario.objects.get(task_id=task_id)
 
-    return JsonResponse({"vehicles": vehicles, "records": records})
+    records = data.recent_memoizer(data.get_gantt, scenario.id)(scenario.id).to_dict(
+        orient="records"
+    )
+
+    return JsonResponse({"data": records})
 
 
 def export_scenario_tree(request, task_id: str):

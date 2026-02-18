@@ -591,11 +591,26 @@
                 <div class="w-full lg:w-1/2 p-4 border-b border-slate-300">
                 <p class="text-center text-lg font-normal text-slate-800 pb-4">{% translate 'Szenario' %}</p>
                     <div class="flex justify-between mt-4">
-                        <div class="w-1/3 px-2 pb-4 text-center border-r border-slate-300">
-                            <p class="text-slate-800">
-                                <span id="num_stations" class="text-xl 2xl:text-2xl font-semibold">--</span>
+                        <div class="w-1/3 px-2 pb-4 text-center border-r border-slate-300 overflow-visible relative z-10">
+                            <p class="text-slate-800 flex items-center justify-center">
+                                <span id="num_stations_value" class="text-xl 2xl:text-2xl font-semibold">--</span>
+                                <span class="group relative inline-block ml-2 cursor-pointer z-50">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke-width="2"
+                                      stroke="currentColor"
+                                      class="size-4">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                                    </svg>
+                                    <span  id="list_electrified_stations"  class="pointer-events-none absolute left-1/2 top-[120%] z-[9999] w-96 -translate-x-1/2 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                        {% translate 'Lade Stationen...' %}
+                                    </span>
+                                </span>
                             </p>
-                    <p class="text-sm text-slate-500">{% translate 'Elektrifizierte Stationen /' %}<br>{% translate 'Gesamtzahl Stationen' %}</p>
+                            <p class="text-sm text-slate-500">
+                                {% translate 'Elektrifizierte Stationen /' %}<br>{% translate 'Gesamtzahl Stationen' %}
+                            </p>
                         </div>
                         <div class="w-1/3 px-2 pb-4 text-center border-r border-slate-300">
                             <p class="text-slate-800">
@@ -738,9 +753,11 @@
             <div id="DepotlineChart" class="chart-container h-[480px]"></div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
+            <div id="filterContainerEvents"></div>
             <div id="ganttChart" class="chart-container h-[480px]"></div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
+            <div id="filterContainerSoC"></div>
             <div id="soc-gantt" class="chart-containe h-[480px]"></div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
@@ -1109,9 +1126,6 @@
                             lineStyle: {
                                 width: 3
                             },
-                            emphasis: {
-                                focus: 'series',
-                            }
                         },
                         {
                             name: 'Belegung ladend',
@@ -1121,9 +1135,6 @@
                             lineStyle: {
                                 width: 3
                             },
-                            emphasis: {
-                                focus: 'series',
-                            }
                         },
                         {
                             name: 'Belegung total',
@@ -1133,9 +1144,6 @@
                             lineStyle: {
                                 width: 3
                             },
-                            emphasis: {
-                                focus: 'series',
-                            }
                         }
                     ]
                 };
@@ -1146,6 +1154,317 @@
                 console.error('Error fetching or rendering chart:', error);
             });
     }
+
+    //shared utilities between the Gantt Plots:
+    function prepareGanttData(ganttData){
+        const vehicleMap = {};
+        const readableNameMap = {};
+
+        ganttData.forEach(item => {
+            const vehicleId = item.vehicle_id;
+            const vehicleType = item.vehicle_type;
+            const startTime = item.start;
+
+            if (!readableNameMap[vehicleId]) {
+                readableNameMap[vehicleId] = item.name;
+            }
+
+            if (!vehicleMap[vehicleId]) {
+                vehicleMap[vehicleId] = {
+                    id: vehicleId,
+                    type: vehicleType,
+                    minTime: startTime,
+                    originalId: vehicleId
+                };
+
+            } else {
+                // Find the absolute minimum start time for the vehicle
+                if (startTime < vehicleMap[vehicleId].minTime) {
+                    vehicleMap[vehicleId].minTime = startTime;
+                }
+            }
+        });
+
+        // Convert map to a sortable array
+        const sortedVehicles = Object.values(vehicleMap);
+
+        // Sort: Primary key is Vehicle Type (alphabetical), secondary is Min Time
+        sortedVehicles.sort((a, b) => {
+            // Primary sort: Vehicle Type (Alphabetical)
+            if (a.type < b.type) return -1;
+            if (a.type > b.type) return 1;
+
+            // Secondary sort: Earliest Start Time (Ascending)
+            return a.minTime - b.minTime;
+        });
+
+        //Construct y-axis lables
+        const typeCounters = {};
+        sortedVehicles.forEach(v => {
+            if (!typeCounters[v.type]) typeCounters[v.type] = 1; // start numbering at 1 per type
+            v.busNumber = typeCounters[v.type]++;
+        });
+
+        const newIndexMap = sortedVehicles.reduce((map, v, index) => {
+            map[v.id] = index;
+            return map;
+        }, {});
+
+        ganttData.forEach(item => {
+            item.originalVehicleId = item.vehicle_id; // keep the original ID
+            const newIndex = newIndexMap[item.vehicle_id];
+            item.vehicle = newIndex; // this is the Y-axis index for plotting
+        });
+
+        const totalVehicles = sortedVehicles.length;
+        const visibleTracks = 10;
+        const visiblePercent = (visibleTracks / totalVehicles) * 100;
+
+        const uniqueVehicleTypes = Array.from(new Set(sortedVehicles.map(v => v.type)));
+
+        return {
+            ganttData,
+            sortedVehicles,
+            uniqueVehicleTypes,
+            visiblePercent
+        };
+    }
+
+    function buildYAxisConfig(vehicles) {
+        const uniqueTypes = Array.from(new Set(vehicles.map(v => v.type)));
+        const vehicleTypeColors = ['#4269d0', '#8baafd', '#021d66', '#032b99', '#b6c9fe'];
+
+        const rich = {};
+        uniqueTypes.forEach((type, i) => {
+            rich[type] = {
+                backgroundColor: vehicleTypeColors[i % vehicleTypeColors.length],
+                color: '#fff',
+                padding: [3, 5],
+                borderRadius: 3,
+                margin: [0, 5, 0, 0]
+            };
+        });
+
+        return {
+            type: 'category',
+            inverse: true,
+            data: vehicles.map(v => `Bus ${v.busNumber}`),
+            axisLabel: {
+                interval: 0,
+                formatter: function(value, index) {
+                    const vehicle = vehicles[index];
+                    if (!vehicle) return value;
+
+                    const type = vehicle.type || 'Unknown';
+                    const truncated = type.length > 15 ? type.slice(0, 15) + '…' : type;
+
+                    return `{${type}|${truncated}} ${value}`;
+                },
+                rich: rich
+            },
+            axisTick: { show: false },
+            splitLine: { show: false }
+        };
+    }
+
+    function buildTimeXAxisConfig() {
+        return {
+            type: 'time',
+            splitNumber: 4,
+            axisLabel: {
+                formatter: function (val) {
+                    const date = new Date(val);
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const isoDate = date.toISOString().slice(0, 10);
+
+                    return `${isoDate} ${hours}:${minutes}`;
+                },
+                rotate: 0
+            }
+        };
+    }
+
+    function createVehicleTypeFilter(types, chartInstance, containerId, applyFilterFn) {
+        const container = document.getElementById(containerId);
+        if (!container) {
+            return;
+        }
+
+        container.innerHTML = '<h4>Fahrzeugtyp filtern:</h4>';
+
+        const allCheckbox = document.createElement('input');
+        allCheckbox.type = 'checkbox';
+        allCheckbox.id = `${containerId}-filterAll`;
+        allCheckbox.checked = true;
+
+        allCheckbox.addEventListener('change', () => {
+            const isChecked = allCheckbox.checked;
+
+            const individualCheckboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]:not(#${allCheckbox.id})`);
+
+            individualCheckboxes.forEach(cb => {
+                cb.checked = isChecked;
+            });
+
+            applyFilterFn(chartInstance);
+        });
+
+        const allLabel = document.createElement('label');
+        allLabel.htmlFor = `${containerId}-filterAll`;
+        allLabel.textContent = 'Alle anzeigen';
+
+        container.appendChild(allCheckbox);
+        container.appendChild(allLabel);
+        container.appendChild(document.createElement('br'));
+
+        types.forEach(type => {
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `${containerId}-filter-${type}`;
+            checkbox.value = type;
+            checkbox.checked = true;
+            checkbox.addEventListener('change', () => {
+                const filterAllId = `${containerId}-filterAll`;
+
+                if (!checkbox.checked) {
+                    document.getElementById(filterAllId).checked = false;
+                } else {
+                    const individualCheckboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]:not(#${filterAllId})`);
+                    const allChecked = Array.from(individualCheckboxes).every(cb => cb.checked);
+                    if (allChecked) {
+                        document.getElementById(filterAllId).checked = true;
+                    }
+                }
+                applyFilterFn(chartInstance);
+            });
+
+            const label = document.createElement('label');
+            label.htmlFor = `${containerId}-filter-${type}`;
+            label.textContent = type;
+
+            container.appendChild(checkbox);
+            container.appendChild(label);
+            container.appendChild(document.createElement('br'));
+        });
+    }
+
+    function applyUnifiedFilter(chartInstance, uniqueVehicleTypes, sortedVehicles, ganttData, EVENT_COLORS, LEGEND_LABELS, containerId) {
+
+        const normId = id => Number(id);
+        const normType = t => (t == null ? '' : String(t).trim().toLowerCase());
+
+        const selectedTypes = Array.from(document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`))
+            .map(cb => cb.value)
+            .filter(val => val !== 'on')
+            .map(normType);
+
+        const showAll = document.getElementById(`${containerId}-filterAll`).checked
+            || selectedTypes.length === uniqueVehicleTypes.length;
+
+        let vehiclesToKeep;
+        if (showAll) {
+            vehiclesToKeep = sortedVehicles.slice();
+        } else {
+            vehiclesToKeep = sortedVehicles.filter(v => selectedTypes.includes(normType(v.type)));
+        }
+
+        const newIndexMap = vehiclesToKeep.reduce((map, v, index) => {
+            map[normId(v.id)] = index;
+            return map;
+        }, {});
+
+        const filteredGanttData = [];
+
+        ganttData.forEach(item => {
+            const originalVehicleId = item.originalVehicleId;
+
+            if (originalVehicleId && Object.hasOwn(newIndexMap, originalVehicleId)) {
+                const newIndex = newIndexMap[originalVehicleId];
+                const newItem = { ...item };
+                newItem.vehicle = newIndex;
+
+                if (newItem.value) {
+                    const newValue = [...newItem.value];
+                    newValue[0] = newIndex;
+                    newItem.value = newValue;
+                }
+
+                filteredGanttData.push(newItem);
+            }
+        });
+
+        const baseSeriesOption = chartInstance.getOption().series[0] || {};
+        const baseRenderItem = baseSeriesOption.renderItem;
+        const baseEncode = baseSeriesOption.encode;
+
+        let newSeries;
+        const isSocChart = chartInstance.getOption().series.length === 1 && !EVENT_COLORS; // Check for single series and lack of EVENT_COLORS
+
+        if (isSocChart) {
+            let seriesData = filteredGanttData.map(d => [
+                d.vehicle,                    // 0: new y-axis category index
+                +new Date(d.start),           // 1: start time
+                +new Date(d.end),             // 2: end time
+                d.soc_start,
+                d.soc_end,
+                d.vehicle_type,
+                d.route_name,
+                d.rotation_name
+            ]);
+
+            seriesData.sort((a, b) => {
+                if (a[0] !== b[0]) return a[0] - b[0];
+                return a[1] - b[1];
+            });
+
+            newSeries = [{
+                type: 'custom',
+                renderItem: baseRenderItem,
+                encode: baseEncode,
+                data: seriesData
+            }];
+
+        } else {
+            newSeries = Object.keys(EVENT_COLORS).map(eventType => {
+
+                const seriesData = filteredGanttData
+                    .filter(d => d.event_type === eventType)
+                    .map(d => [
+                        d.vehicle,                    // 0
+                        +new Date(d.start),           // 1
+                        +new Date(d.end),             // 2
+                        d.event_type,                 // 3
+                        d.vehicle_type,               // 4
+                        d.route_name,                 // 5
+                        d.rotation_name,              // 6
+                        d.station_name                // 7
+                    ]);
+
+
+                seriesData.sort((a, b) => {
+                    if (a[0] !== b[0]) return a[0] - b[0];
+                    return a[1] - b[1];
+                });
+
+                return {
+                  name: LEGEND_LABELS[eventType],
+                  type: 'custom',
+                  renderItem: baseRenderItem,
+                  encode: baseEncode,
+                  data: seriesData
+                };
+            });
+        }
+
+        const newYAxisConfig = buildYAxisConfig(vehiclesToKeep);
+
+        chartInstance.setOption({
+            yAxis: newYAxisConfig,
+            series: newSeries
+        }, { replaceMerge: ['series', 'yAxis'] });
+    }
+
     function fetchAndRenderGanttChart(chartName, chartId, titleText) {
 
         const EVENT_COLORS = {
@@ -1172,28 +1491,17 @@
   return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
-                const categories = data.categories;  // Array of bus categories
-                const ganttData = data.data;         // Array of Gantt data
 
+                const {
+                    ganttData,
+                    sortedVehicles,
+                    uniqueVehicleTypes,
+                    visiblePercent
+                } = prepareGanttData(data.data);
 
-                const totalVehicles = categories.length;
-                const visibleTracks = 10;
-                const visiblePercent = (visibleTracks / totalVehicles) * 100;
+                const EVENT_TYPE_INDEX = 3;
 
-                // Prepare ECharts option
                 const option = {
-                    tooltip: {
-                        formatter: function (params) {
-                            const eventType = params.value[5];  // event_type is at index 5
-                            const color = EVENT_COLORS[eventType] || '#000';
-
-                            const marker = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
-                            const startTime = new Date(params.value[1]);
-                            const endTime = new Date(params.value[2]);
-
-                            return `${marker}${params.name}: ${startTime.toISOString()} - ${endTime.toISOString()} (${params.value[3]} ms)`;
-                        }
-                    },
                     title: {
                         text: 'Bus-Einsatz-Zeitplan',
                         left: 'center'
@@ -1236,19 +1544,23 @@
                     ],
                     tooltip: {
                         formatter: function (params) {
-                            const eventType = params.value[5];
+                            const eventType = params.data[3];
+                            const vehicleType = params.data[4];
+                            const routeName = params.data[5];
+                            const rotationName = params.data[6];
+                            const stationName = params.data[7];
                             const color = EVENT_COLORS[eventType] || '#000';
 
                             const marker = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
                             const startTime = new Date(params.value[1]);
                             const endTime = new Date(params.value[2]);
-                            const durationMs = params.value[3];
+                            const durationMs = (endTime-startTime)/1000;
 
                             const formatDate = (date) => {
                                 const pad = n => String(n).padStart(2, '0');
                                 return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
                             };
-
+                            //console.log(params)
                             const durationFraction = durationMs / (60 * 60);
                             const formatFractionToHHmm = (fraction) => {
                                 const hours = Math.floor(fraction);
@@ -1258,7 +1570,25 @@
                             };
                             const durationFormatted = formatFractionToHHmm(durationFraction);
 
-                            return `${marker}${params.name}<br>${formatDate(startTime)} - Dauer: ${durationFormatted} h`;
+                            let html = `${marker}<strong>${eventType}</strong><br>`;
+                            html += `<strong>Name: </strong>${params.name}<br>`;
+                            html += `<strong>Fahrzeugtyp: </strong>${vehicleType || 'N/A'}<br>`;
+
+                            // Only show Rotation/Route/Station if the data exists
+                            if (stationName) {
+                            html += `<strong>Ort: </strong> ${stationName}<br>`;
+                            }
+                            if (rotationName) {
+                            html += `<strong>Umlauf: </strong> ${rotationName}<br>`;
+                            }
+                            if (routeName) {
+                            html += `<strong>Linie: </strong>${routeName}<br>`;
+                            }
+                            html += `<strong>Startzeit: </strong> ${formatDate(startTime)}<br>`;
+                            html += `<strong>Endzeit: </strong> ${formatDate(endTime)}<br>`;
+                            html += `<strong>Dauer: </strong> ${durationFormatted} h`;
+
+                            return html;
                         }
                     },
                     legend : {
@@ -1273,119 +1603,84 @@
                       left: 60,
                       containLabel: true
                     },
-                    xAxis: {
-                        type: 'time',
-                        splitNumber: 4,  // Try to limit to 6 ticks across the chart
-                        axisLabel: {
-                            formatter: function (val) {
-                                const date = new Date(val);
-                                const hours = String(date.getHours()).padStart(2, '0');
-                                const minutes = String(date.getMinutes()).padStart(2, '0');
-
-                                const isoDate = date.toISOString().slice(0, 10);
-                                const time = `${hours}:${minutes}`;
-
-                                const totalZoomRange = chart.getModel().getComponent('xAxis').axis.scale._extent;
-                                const zoomWindow = totalZoomRange[1] - totalZoomRange[0];
-
-                                if (zoomWindow > 3 * 24 * 3600 * 1000) {
-                                    return isoDate;
-                                } else if (zoomWindow > 6 * 3600 * 1000) {
-                                    return `${isoDate} ${time}`;
-                                } else {
-                                    return time;
-                                }
-                            },
-                            rotate: 0  // You can override this below
-                        }
-                    },
-                    yAxis: {
-                        type: 'category',
-                        inverse: true,
-                        data: categories,
-                        // Ensure enough space for each category (bus)
-                        axisLabel: {
-                            interval: 0,  // Display all bus labels
-                            formatter: function (value) {
-                                return value;  // Keep the category labels (bus names) as they are
-                            }
-                        },
-                        axisTick: {
-                            show: false  // Hide ticks to save space
-                        },
-                        splitLine: {
-                            show: false  // Hide grid lines between categories
-                        }
-                    },
+                    xAxis: buildTimeXAxisConfig(),
+                    yAxis: buildYAxisConfig(sortedVehicles),
                     series: Object.keys(EVENT_COLORS).map(eventType => ({
                       name: LEGEND_LABELS[eventType],
                       type: 'custom',
-                      renderItem: function (params, api) {
-                          const categoryIndex = api.value(0);
-                          const start = api.coord([api.value(1), categoryIndex]);
-                          const end = api.coord([api.value(2), categoryIndex]);
+                        renderItem: function (params, api) {
+                            const categoryIndex = api.value(0);
+                            const startCoord = api.coord([api.value(1), categoryIndex]);
+                            const endCoord   = api.coord([api.value(2), categoryIndex]);
 
-                          const size = api.size([0, 1]);
-                          const dynamicHeight = size[1] * 0.8;
+                            const eventTypeKey = api.value(EVENT_TYPE_INDEX);
 
-                          const rectShape = echarts.graphic.clipRectByRect(
-                              {
-                                  x: start[0],
-                                  y: start[1] - dynamicHeight / 2,
-                                  width: end[0] - start[0],
-                                  height: dynamicHeight
-                              },
-                              {
-                                  x: params.coordSys.x,
-                                  y: params.coordSys.y,
-                                  width: params.coordSys.width,
-                                  height: params.coordSys.height
-                              }
-                          );
+                            const height = api.size([0, 1])[1] * 0.8;
 
-                          const color = EVENT_COLORS[eventType] || "#000000";
-
-                          return rectShape && {
-                              type: 'rect',
-                              transition: ['shape'],
-                              shape: rectShape,
-                              style: api.style({ fill: color })
-                          };
-                      },
-                      itemStyle: {
-                        color: EVENT_COLORS[eventType],
-                        opacity: 0.8
-                      },
+                            return {
+                                  type: 'rect',
+                                  shape: {
+                                    x: startCoord[0],
+                                    y: startCoord[1] - height / 2,
+                                    width: endCoord[0] - startCoord[0],
+                                    height
+                                  },
+                                  style: {
+                                    ...api.style(),
+                                    fill: EVENT_COLORS[eventTypeKey]
+                                  }
+                            };
+                        },
                       encode: {
                           x: [1, 2],
                           y: 0,
-                          itemName: 5
+                          itemName: 4
                       },
                       data: ganttData
                           .filter(d => d.event_type === eventType)
-                          .map(d => [...d.value, d.name, d.event_type])
+                          .map(d => [
+                                d.vehicle,
+                                +new Date(d.start),           // 1: start
+                                +new Date(d.end),             // 2: end
+                                d.event_type,
+                                d.vehicle_type,
+                                d.route_name,
+                                d.rotation_name,
+                                d.station_name
+                            ])
                   }))
+
                 };
 
-                // Initialize ECharts instance and set option
                 const chart = echarts.init(document.getElementById(chartId), 'ebusPalette');
                 chart.setOption(option);
-            })
-            .catch(error => console.error('Error loading Gantt data:', error));
+                createVehicleTypeFilter(
+                    uniqueVehicleTypes,
+                    chart,
+                    "filterContainerEvents",
+                    (instance) => applyUnifiedFilter(instance,
+                        uniqueVehicleTypes,
+                        sortedVehicles,
+                        ganttData,
+                        EVENT_COLORS,
+                        LEGEND_LABELS,
+                        "filterContainerEvents")
+                );
+          })
+          .catch(error => console.error('Error loading Gantt data:', error));
     }
+
     function fetchAndRenderGanttChartSOC(chartName, chartId, titleText) {
         return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
 
-                const vehicles = data.vehicles;
-                const records = data.records;
-
-                const vehicleIndex = Object.fromEntries(vehicles.map((v, i) => [v, i]));
-
-                const totalVehicles = vehicles.length;
-                const visibleTracks = 10;
-                const visiblePercent = (visibleTracks / totalVehicles) * 100;
+                const {
+                    ganttData,
+                    sortedVehicles,
+                    uniqueVehicleTypes,
+                    visiblePercent
+                } = prepareGanttData(data.data);
 
                 const viridisAnchors = [
                   '#440154', // dark purple
@@ -1427,35 +1722,30 @@
                   return interpolateColor(anchors[index], anchors[index + 1], factor);
                 }
 
-
                 const series = {
                     type: 'custom',
                     renderItem: function (params, api) {
                         const categoryIndex = api.value(0);
-                        const start = api.coord([api.value(1), categoryIndex]);
-                        const end = api.coord([api.value(2), categoryIndex]);
-                        const height = api.size([0, 1])[1] * 0.8; // Control bar height
+                        const startCoord = api.coord([api.value(1), categoryIndex]);
+                        const endCoord   = api.coord([api.value(2), categoryIndex]);
 
-                        // Calculate gradient color based on soc_start and soc_end
-                        const colorStart = socToColor(api.value(3));  // Color at start of SoC
-                        const colorEnd = socToColor(api.value(4));    // Color at end of SoC
+                        const height = api.size([0, 1])[1] * 0.8;
 
                         return {
                             type: 'rect',
                             shape: {
-                                x: start[0],
-                                y: start[1] - height / 2,
-                                width: end[0] - start[0],
-                                height: height
+                                x: startCoord[0],
+                                y: startCoord[1] - height / 2,
+                                width: endCoord[0] - startCoord[0],
+                                height
                             },
                             style: {
-                                // Use a linear gradient between the two colors
                                 fill: {
                                     type: 'linear',
-                                    x: 0, y: 0, x2: 1, y2: 0, // Horizontal gradient
+                                    x: 0, y: 0, x2: 1, y2: 0,
                                     colorStops: [
-                                        { offset: 0, color: colorStart },
-                                        { offset: 1, color: colorEnd }
+                                        { offset: 0, color: socToColor(api.value(3)) },
+                                        { offset: 1, color: socToColor(api.value(4)) }
                                     ]
                                 }
                             }
@@ -1465,39 +1755,19 @@
                         x: [1, 2], // Start, End times
                         y: 0       // Category index for vehicle
                     },
-                    // Data for each vehicle's SoC record
-                    data: records.map(d => [
-                        vehicleIndex[d.vehicle],           // Vehicle index
-                        +new Date(d.start),                // Start time in milliseconds
-                        +new Date(d.end),                  // End time in milliseconds
-                        d.soc_start,                       // soc_start value
-                        d.soc_end                          // soc_end value
+                    data: ganttData.map(d => [
+                        d.vehicle,                    // 0: y-axis category
+                        +new Date(d.start),           // 1: start
+                        +new Date(d.end),             // 2: end
+                        d.soc_start,
+                        d.soc_end,
+                        d.vehicle_type,
+                        d.route_name,
+                        d.rotation_name,
+                        d.station_name
                     ])
                 };
-
-                // Set up the chart options
-                const chart = echarts.init(document.getElementById(chartId), 'ebusPalette'); // Use chartId passed
-
-                chart.setOption({
-                    tooltip: {
-                        formatter: function (params) {
-                            const socStart = (params.value[3] * 100).toFixed(2);
-                            const socEnd = (params.value[4] * 100).toFixed(2);
-
-                            const formatDate = (date) => {
-                                const d = new Date(date);
-                                const pad = n => String(n).padStart(2, '0');
-                                return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-                            };
-
-                            const startFormatted = formatDate(params.value[1]);
-                            const endFormatted = formatDate(params.value[2]);
-
-                            return `${vehicles[params.value[0]]}<br/>
-                                    ${startFormatted} → ${endFormatted}<br/>
-                                    SoC: ${socStart}% → ${socEnd}%`;
-                        }
-                    },
+                const option = {
                     title: {
                         text: titleText,
                         left: 'center'
@@ -1538,10 +1808,62 @@
                             moveOnMouseWheel: true
                         }
                     ],
+                    tooltip: {
+                        formatter: function (params) {
+                            const socStart = (params.value[3] * 100).toFixed(2);
+                            const socEnd = (params.value[4] * 100).toFixed(2);
+                            const vehicleType = params.value[5];
+                            const routeName = params.value[6];
+                            const rotationName = params.value[7];
+                            const stationName = params.data[8];
+                            const startTime = new Date(params.value[1]);
+                            const endTime = new Date(params.value[2]);
+                            const durationMs = (endTime-startTime)/1000;
+
+                            const formatDate = (date) => {
+                                const d = new Date(date);
+                                const pad = n => String(n).padStart(2, '0');
+                                return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                            };
+
+                            const durationFraction = durationMs / (60 * 60);
+                            const formatFractionToHHmm = (fraction) => {
+                                const hours = Math.floor(fraction);
+                                const minutes = Math.round((fraction % 1) * 60);
+                                const pad = n => String(n).padStart(2, '0');
+                                return `${pad(hours)}:${pad(minutes)}`;
+                            };
+                            const durationFormatted = formatFractionToHHmm(durationFraction);
+
+                            let html = `<strong>Name: </strong>${params.name}<br>`;
+                            html += `<strong>Fahrzeugtyp: </strong>${vehicleType || 'N/A'}<br>`;
+
+                            // Only show Rotation/Route/Station if the data exists
+                            if (stationName) {
+                            html += `<strong>Ort: </strong> ${stationName}<br>`;
+                            }
+                            if (rotationName) {
+                                html += `<strong>Umlauf: </strong> ${rotationName}<br>`;
+                            }
+                            if (routeName) {
+                                html += `<strong>Linie: </strong>${routeName}<br>`;
+                            }
+
+                            html += `<strong>Startzeit: </strong> ${formatDate(startTime)}<br>`;
+                            html += `<strong>Endzeit: </strong> ${formatDate(endTime)}<br>`;
+                            html += `<strong>Dauer: </strong> ${durationFormatted} h<br>`;
+
+                            html += `<strong>Start-SoC: </strong> ${socStart}%<br>`;
+                            html += `<strong>End-Soc: </strong> ${socEnd}%<br>`;
+
+                            return html;
+                        }
+                    },
                     visualMap: {
                         type: 'continuous',
                         min: 0,
                         max: 1,
+                        dimension: 3,
                         calculable: false,
                         orient: 'horizontal',
                         left: 'center',
@@ -1569,51 +1891,25 @@
                         right: 160,
                         containLabel: true,
                     },
-                    xAxis: {
-                        type: 'time',
-                        splitNumber: 4,  // Try to limit to 6 ticks across the chart
-                        axisLabel: {
-                            formatter: function (val) {
-                                const date = new Date(val);
-                                const hours = String(date.getHours()).padStart(2, '0');
-                                const minutes = String(date.getMinutes()).padStart(2, '0');
-
-                                const isoDate = date.toISOString().slice(0, 10);
-                                const time = `${hours}:${minutes}`;
-
-                                const totalZoomRange = chart.getModel().getComponent('xAxis').axis.scale._extent;
-                                const zoomWindow = totalZoomRange[1] - totalZoomRange[0];
-
-                                if (zoomWindow > 3 * 24 * 3600 * 1000) {
-                                    return isoDate;
-                                } else if (zoomWindow > 6 * 3600 * 1000) {
-                                    return `${isoDate} ${time}`;
-                                } else {
-                                    return time;
-                                }
-                            },
-                            rotate: 0  // You can override this below
-                        }
-                    },
-                    yAxis: {
-                        type: 'category',
-                        data: vehicles,
-                        // Ensure enough space for each category (bus)
-                        axisLabel: {
-                            interval: 0,  // Display all bus labels
-                            formatter: function (value) {
-                                return "Bus " + value;
-                            }
-                        },
-                        axisTick: {
-                            show: false  // Hide ticks to save space
-                        },
-                        splitLine: {
-                            show: false  // Hide grid lines between categories
-                        }
-                    },
+                    xAxis: buildTimeXAxisConfig(),
+                    yAxis: buildYAxisConfig(sortedVehicles),
                     series: [series]
-                });
+                };
+
+                const chart = echarts.init(document.getElementById(chartId), 'ebusPalette');
+                chart.setOption(option);
+                createVehicleTypeFilter(
+                    uniqueVehicleTypes,
+                    chart,
+                    "filterContainerSoC",
+                    (instance) => applyUnifiedFilter(instance,
+                        uniqueVehicleTypes,
+                        sortedVehicles,
+                        ganttData,
+                        null,
+                        null,
+                        "filterContainerSoC")
+                );
             })
             .catch(error => {
                 console.error('Error fetching or rendering SOC Gantt chart:', error);
@@ -1629,7 +1925,7 @@
                 document.getElementById('shortest_rotation').textContent = data.shortest_rotation;
                 document.getElementById('total_dist').textContent = data.total_dist;
 
-                document.getElementById('num_stations').textContent = data.num_stations;
+                document.getElementById('num_stations_value').textContent = data.num_stations;
                 document.getElementById('num_busses').textContent = data.num_busses;
                 document.getElementById('most_frequented').textContent = data.most_frequented;
 
@@ -1640,6 +1936,18 @@
                 document.getElementById('depots-anzahl-stellplaetze').textContent = data.num_busses;
                 document.getElementById('depots-energie').textContent = data.depot_energy;
                 document.getElementById('depots-spitzenleistung').textContent = data.peak_depot_power;
+
+                const tooltipElement = document.getElementById('list_electrified_stations');
+
+                if (data.electrified_stations_list && Array.isArray(data.electrified_stations_list)) {
+                    const listHtml = data.electrified_stations_list
+                        .map(station => `<li>${station}</li>`)
+                        .join('');
+                    tooltipElement.innerHTML = `<ul class="text-left list-disc pl-4">${listHtml}</ul>`;
+                } else {
+                    tooltipElement.textContent = "Keine Station elektrifiziert";
+                }
+
             })
             .catch(error => {
                 console.error('Error fetching statistics:', error);
