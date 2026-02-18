@@ -2173,3 +2173,9 @@ def delete_scenario(request, task_id):
         return HttpResponse(status=403)  # forbidden: only manager may delete scenario
     scenario.delete()
     return redirect(reverse("simba:dashboard"))
+
+def get_tco(request, task_id):
+
+    response_data = data.get_tco(task_id)
+
+    return JsonResponse(response_data)
