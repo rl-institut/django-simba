@@ -132,6 +132,11 @@ class Scenario(models.Model):
         default_scenario = DefaultScenario.objects.first().scenario
         return default_scenario.pk
 
+    def data_export_allowed(self):
+        if self.scenario_type in [EnumScenarioType.SOURCE, EnumScenarioType.SOURCE_FILE]:
+            return False
+        return True
+
 
 @receiver(models.signals.pre_delete, sender=Scenario)
 def auto_delete_results_on_delete(sender, instance, **kwargs):

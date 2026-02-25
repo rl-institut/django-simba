@@ -14,8 +14,8 @@
           type="text"
           name="scenario-search"
           id="scenario-search"
-          class="block w-full bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emeral-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-          placeholder={% translate "Nach Szenarien suchen" %}
+          class="block w-full bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+          placeholder='{% translate "Nach Szenarien suchen" %}'
           oninput="searchScenario(this);"
         >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 pointer-events-none">
@@ -25,7 +25,7 @@
     </div>
     <div class="w-full">
       <div class="mt-8 flow-root">
-        <div class="table-container max-w-full overflow-x-auto overflow-y-visible">
+        <div class="table-container max-w-full overflow-y-visible">
           <div class="inline-block min-w-full py-2 align-middle">
             <table id="table" class="min-w-full divide-y divide-slate-300">
               <thead>
@@ -65,17 +65,6 @@
                   </th>
                   <th scope="col" class="px-3 py-4 text-left text-sm font-semibold text-slate-500">
                     <button href="#" class="group inline-flex" onclick="sortTable(3);">
-                      CO<sub>2</sub{% translate '-Reduzierung' %}>
-                      <!-- Sorting Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
-                      <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
-                        <svg class="invisible ml-2 size-5 flex-none rounded text-slate-400 group-hover:visible group-focus:visible" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                          <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-                        </svg>
-                      </span>
-                    </button>
-                  </th>
-                  <th scope="col" class="px-3 py-4 text-left text-sm font-semibold text-slate-500">
-                    <button href="#" class="group inline-flex" onclick="sortTable(4);">
                       {% translate 'Erstellung' %}
                       <!-- Sorting Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
                       <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
@@ -96,13 +85,20 @@
               <tbody class="divide-y divide-slate-200 bg-white">
                 {% for scenario in scenarios %}
                   <tr class="px-2 scenario-row" name="{{ scenario.name }}">
-                    <td class="whitespace-nowrap px-3 py-4 text-sm font-bold text-black underline decoration-transparent hover:decoration-black transition-all duration-300" sortval="{{ scenario.name }}">
-                      <a href="{% url 'simba:result' scenario.task_id %}" class="flex items-center" {% if scenario.description %}title="{{ scenario.description }}"{% endif %}>
-                        <span class="mr-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 15.75-2.489-2.489m0 0a3.375 3.375 0 1 0-4.773-4.773 3.375 3.375 0 0 0 4.774 4.774ZM21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                          </svg>
-                        {{ scenario.name }}
+                    <td class="px-3 py-4 text-sm font-bold text-black underline decoration-transparent  transition-all duration-300" sortval="{{ scenario.name }}">
+                      {% if scenario.state == 'success' %}
+                        <a href="{% url 'simba:result' scenario.task_id %}" class="flex items-center hover:decoration-black " {% if scenario.description %}title="{{ scenario.description }}"{% endif %}>
+                      {% elif scenario.state == 'ready_for_copy' %}
+                        <a class="flex pointer-events-none  items-center" {% if scenario.description %}title="{{ scenario.description }}"{% endif %}>
+                      {% else %}
+                        <a href="{% url 'simba:vehicles' scenario.task_id %}" class="flex items-center hover:decoration-black " {% if scenario.description %}title="{{ scenario.description }}"{% endif %}>
+                      {% endif %}
+                    <span class="mr-2 break-words whitespace-normal">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 15.75-2.489-2.489m0 0a3.375 3.375 0 1 0-4.773-4.773 3.375 3.375 0 0 0 4.774 4.774ZM21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                      </svg>
+                    {{ scenario.name }}
+                      </span>
                       </a>
                     </td>
                     <td class="whitespace-nowrap px-3 py-3" sortval="{{ scenario.state }}">
@@ -149,12 +145,11 @@
                       {% endif %}
                     </td>
                     <td class="whitespace-nowrap px-3 py-3 text-sm text-slate-500" sortval="-">-</td>
-                    <td class="whitespace-nowrap px-3 py-3 text-sm text-slate-500" sortval="-">-</td>
                     <td class="whitespace-nowrap px-3 py-3 text-sm text-slate-500" sortval="{{ scenario.created|date:'Ymd' }}"</td>{{ scenario.created|date:"j.n.Y" }}</td>
                     <td class="whitespace-nowrap px-3 py-3">
                       <a
-                        href="{% url 'simba:trips' %}?s={{scenario.parent.id}}"
-                class="cursor-pointer px-4 py-2 bg-slate-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-emeral-500 focus:ring-offset-2 active:bg-slate-300 transition-all duration-300"
+                        href="{% url 'simba:trips' %}?s={{scenario.variante}}"
+                        class="cursor-pointer px-4 py-2 bg-slate-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 active:bg-slate-300 transition-all duration-300"
                         role="button"
                         aria-label="Variante erstellen"
                         >
@@ -166,7 +161,7 @@
                       <!-- More Button Component (JS in components/buttons.html) -->
                       <button
                         type="button"
-                        class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                        class="mr-8 menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 overflow-visible"
                         aria-expanded="false"
                         aria-haspopup="true"
                         aria-label="Optionen sehen"
@@ -178,12 +173,26 @@
 
                       <!-- Dropdown Menu -->
                       <div
-                        class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none hidden transition-transform duration-100 transform scale-95"
+                        class="menu-dropdown absolute z-10 w-56 bg-white
+                      right-0
+                      origin-top-right mt-2
+                      rounded-md shadow-lg ring-1 ring-black/5 focus:outline-none hidden transition-transform duration-100 transform scale-95"
                         role="menu"
                         aria-orientation="vertical"
                       >
                         <div class="py-1" role="none">
-                          <a href="{% url 'simba:JSON_export_scenario' task_id=scenario.task_id %}" class="flex items-center px-4 py-2 text-sm text-slate-500" role="menuitem">
+                        {% if scenario.data_export_allowed %}
+                        <a title="{% translate 'Die exportierten Daten können verändert und importiert werden.' %}" href="{% url 'simba:JSON_export_scenario_tree' task_id=scenario.task_id %}" class="flex items-center px-4 py-2 text-sm text-slate-600" role="menuitem">
+                            <span class="mr-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                              </svg>
+                            </span>
+                          {% translate 'Daten exportieren' %}
+                          </a>
+                        {% endif %}
+                        {% if scenario.state == 'success' %}
+                        <a href="{% url 'simba:JSON_export_scenario' %}?{% for child in scenario.scenario_set.all %}task_id={{child.task_id}}&{% endfor %}" class="flex items-center px-4 py-2 text-sm text-slate-600" role="menuitem">
                             <span class="mr-2">
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -191,6 +200,7 @@
                             </span>
                           {% translate 'Ergebnisse exportieren' %}
                           </a>
+                        {% endif %}
                           <form method="post" action="{% url 'simba:delete' task_id=scenario.task_id %}">
                             {% csrf_token %}
                             <a href="#" class="flex items-center px-4 py-2 text-sm text-slate-500" role="menuitem" onclick="delete_callback(event);">
@@ -223,7 +233,7 @@
     let searchString = input.value;
     for (let row of document.getElementsByClassName('scenario-row')) {
       // show row if search string is too short or if search string is part of scenario name (case-insensitive)
-      let visible = searchString.length < 3 || row.getAttribute('name').toLowerCase().includes(searchString.toLowerCase());
+      let visible = searchString.length < 1 || row.getAttribute('name').toLowerCase().includes(searchString.toLowerCase());
       row.style.display = visible? '' : 'none';
     }
   }
@@ -231,7 +241,7 @@
   // track sorting of table
   // 0: no sort (default), 1: asc, 2: desc
   // column name, status, cost, emission, created
-  var _sorting = [0,0,0,0,0];
+  var _sorting = [0,0,0,0];
   function sortTable(sortIndex) {
     let table = document.getElementById('table');
     let rows = table.rows;
@@ -271,33 +281,31 @@
   document.addEventListener("DOMContentLoaded", () => {
     const toggleDropdown = (btn) => {
       const dropdown = btn.nextElementSibling;
-      const isOpen = dropdown.classList.contains("block");
+      const isOpen = !dropdown.classList.contains("hidden");
 
       document.querySelectorAll(".menu-dropdown").forEach(menu => {
         menu.classList.add("hidden");
-        menu.classList.remove("block");
         menu.previousElementSibling.setAttribute("aria-expanded", "false");
       });
 
       if (!isOpen) {
         dropdown.classList.remove("hidden");
-        dropdown.classList.add("block");
         btn.setAttribute("aria-expanded", "true");
       }
     };
 
+    // When clicking button, toggle dropdrown close
     document.querySelectorAll(".menu-button").forEach(button => {
       button.addEventListener("click", (e) => {
         e.stopPropagation();
         toggleDropdown(button);
       });
     });
-
+    // When clicking outside of dropdrown close it
     document.addEventListener("click", (e) => {
       document.querySelectorAll(".menu-dropdown").forEach(menu => {
         if (!menu.contains(e.target) && !menu.previousElementSibling.contains(e.target)) {
           menu.classList.add("hidden");
-          menu.classList.remove("block");
           menu.previousElementSibling.setAttribute("aria-expanded", "false");
         }
       });

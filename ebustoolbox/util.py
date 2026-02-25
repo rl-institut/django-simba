@@ -72,6 +72,22 @@ class ZipFileException(Exception):
     pass
 
 
+def to_zip(file_names: list[str] | str, write_data=list[str] | str) -> BytesIO:
+    """Returns a zipped BytesIO Buffer objects from a list of file_names, and write data"""
+    if not isinstance(file_names, list):
+        file_names = [file_names]
+
+    if not isinstance(write_data, list):
+        write_data = [write_data]
+
+    assert len(write_data) == len(file_names), "Same number of write_data as filenames needed"
+    zip_buffer = BytesIO()
+    with zf.ZipFile(zip_buffer, "w", zf.ZIP_DEFLATED) as zip_file:
+        for file_name, content in zip(file_names, write_data):
+            zip_file.writestr(file_name, content)
+    return zip_buffer
+
+
 def validate_zip(
     zip_file: zf.ZipFile,
     max_files: int,
