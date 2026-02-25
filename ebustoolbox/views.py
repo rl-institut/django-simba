@@ -2174,6 +2174,7 @@ def delete_scenario(request, task_id):
     scenario.delete()
     return redirect(reverse("simba:dashboard"))
 
+
 def get_tco(request, task_id):
 
     response_data = data.get_tco(task_id)
