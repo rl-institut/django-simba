@@ -23,7 +23,7 @@
   "paint": {
     "circle-radius": 8,
     "circle-color": "#FFF",
-    "circle-stroke-color": "#FFF",
+    "circle-stroke-color": "#abbaaf",
     "circle-stroke-width": 2,
     "circle-translate": [13, -13],
     "circle-translate-anchor": "viewport"
