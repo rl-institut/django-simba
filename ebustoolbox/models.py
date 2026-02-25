@@ -21,7 +21,7 @@ from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import QuerySet, Sum, Case, When, Value, IntegerField, Func, F
-from django.db.models.functions import Now, Length
+from django.db.models.functions import Now, Length, Coalesce
 from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import make_aware
@@ -1146,7 +1146,11 @@ class Station(models.Model):
         "power_total_ann": F("power_total"),
         "num_arrivals": CountBusServices(),
         "is_depot": IsDepot(),
-        "acp": F("amount_charging_places"),
+        "acp": Coalesce(
+            F("amount_charging_places"),
+            Value(0),
+            output_field=models.IntegerField()
+        ),
     }
 
     vector_tiles = MVTManager(

@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from rest_framework_mvt.views import BaseMVTView
 
-
+from django.apps import apps
 @dataclass
 class MVTLayer:
     name: str
@@ -28,6 +28,25 @@ class MVTView(BaseMVTView):
 
     def get(self, request, *args, **kwargs):
         params = request.GET.dict()
+
+        if "task_id" in params:
+            # app registry to find the model across apps
+            Scenario = apps.get_model("ebustoolbox", "Scenario")
+            try:
+                current_scenario = Scenario.objects.get(task_id=params["task_id"])
+
+                # Find the associated child scenario
+                # filter by parent and take the most recent one created
+                child_scenario = Scenario.objects.filter(
+                    parent=current_scenario
+                ).order_by('-created').first()
+
+                if child_scenario:
+                    params["task_id"] = str(child_scenario.task_id)
+
+            except (Scenario.DoesNotExist, ValueError):
+                pass
+
         mvt = b""
         status = 400
 
