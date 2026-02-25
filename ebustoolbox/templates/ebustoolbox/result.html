@@ -375,7 +375,7 @@
       </div>
       <div class="flex flex-col">
         <div class="flex justify-between items-center pb-2">
-          <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Umwelt' %}</h2>
+          <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Kosten' %}</h2>
           <!-- Wrapper for each ellipsis and dropdown -->
           <div class="relative inline-block text-left">
             <button type="button"
@@ -404,59 +404,7 @@
         </div>
         <div class="bg-white rounded-lg shadow-md mb-12">
           <div class="p-8">
-            <div class="flex justify-center">
-              <p class="text-base font-normal text-slate-500 pb-4">CO<sub>2</sub>{% translate '-Bilanz' %}</p>
-            </div>
-            <div class="flex justify-center">
-              <div class="flex items-end gap-2">
-                <span class="text-4xl font-bold text-slate-800">- 70</span>
-                <span class="text-base font-normal text-slate-500">% CO<sub>2</sub>{% translate '-Emissionen' %}</span>
-              </div>
-            </div>
-            <div class="flex justify-center">
-              <div class="w-full lg:w-3/4 flex flex-col gap-4 py-8">
-                <div class="flex items-center gap-4">
-                  <span class="text-end text-sm text-slate-500 flex-grow">{% translate 'Vor Elektrifizierung' %}</span>
-                  <div class="flex items-center gap-2 w-3/4">
-                    <div class="h-2 flex-grow bg-slate-200 rounded-full"></div>
-                    <span class="text-sm font-semibold text-slate-800">10.000 t</span>
-                  </div>
-                </div>
-                <div class="flex items-center gap-4">
-                  <span class="text-end text-sm text-slate-500 flex-grow">{% translate 'Nach Elektrifizierung' %}</span>
-                  <div class="flex items-center gap-2 w-3/4">
-                    <div class="h-2 w-[30%] bg-blue-600 rounded-full"></div>
-                    <span class="text-sm font-bold text-blue-600">3.000 t</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <!-- Toggle Button -->
-            <div class="flex justify-end pt-4">
-              <button
-                id="detailsButton"
-                class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-full transition-all"
-                aria-expanded="false"
-                aria-controls="detailsContent"
-              >
-                <span>{% translate 'Details sehen' %}</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width="1.5"
-                  stroke="currentColor"
-                  class="size-4 transition-transform duration-300"
-                  id="detailsArrow"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                </svg>
-              </button>
-            </div>
-            <!-- Hidden Content -->
-            <div id="detailsContent" class="hidden mt-4 pt-8 text-sm text-slate-500 border-t border-slate-200">
-              <p>Details zur CO<sub>2</sub>-Bilanz: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce accumsan nisi at elit tincidunt fermentum.</p>
-            </div>
+                  <div id="tco-bar" class="chart-container h-[480px]"></div>
           </div>
         </div>
       </div>
@@ -2136,6 +2084,67 @@
 
     }
 
+    async function fetchAndRenderTCOBars(chartName, chartID) {
+        const res = await fetch(`/simba/result/${taskIdAvg}/${chartName}/`);
+        const result = await res.json();
+
+        // Mapping for translations
+        const labelMapping = {
+            "INFRASTRUCTURE": "Infrastruktur",
+            "STAFF": "Personal",
+            "BATTERY": "Batterie",
+            "MAINTENANCE": "Wartung",
+            "VEHICLE": "Fahrzeug",
+            "ENERGY": "Energie",
+            "OTHER": "Sonstiges"
+        };
+
+        const categories = Object.keys(result);
+        const translatedCategories = categories.map(key => labelMapping[key] || key);
+
+        const option = {
+            title: { text: 'Gesamtbetriebskosten (TCO)', left: 'center' },
+            tooltip: {
+                trigger: 'item',
+                formatter: (params) => {
+                    const val = params.value.toLocaleString('de-DE', { minimumFractionDigits: 2 });
+                    return `
+                        <div style="font-weight: bold; border-bottom: 1px solid #ccc; margin-bottom: 5px;">
+                            ${params.name}
+                        </div>
+                        <span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${params.color};"></span>
+                        ${params.seriesName}: <b>${val} €/km</b>
+                    `;
+                }
+            },
+            legend: {
+                top: '10%',
+                data: translatedCategories
+            },
+            grid: { left: '5%', right: '5%', bottom: '10%', top: '25%', containLabel: true },
+            xAxis: {
+                type: 'category',
+                data: ['Aktuelles Szenario'],
+                axisLabel: { fontWeight: 'bold' }
+            },
+            yAxis: {
+                type: 'value',
+                name: 'Kosten (€/km)',
+                nameGap: 25
+            },
+            series: categories.map((key) => ({
+                name: labelMapping[key] || key,
+                type: 'bar',
+                stack: 'total',
+                barWidth: "40%",
+                emphasis: { focus: 'series' },
+                data: [result[key]]
+            }))
+        };
+
+        const chart = echarts.init(document.getElementById(chartID), 'ebusPalette');
+        chart.setOption(option);
+    }
 
     // Ensure the DOM is fully loaded before running
     document.addEventListener("DOMContentLoaded", function() {
@@ -2154,7 +2163,8 @@
         fetchAndRenderStackedHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen"),
         fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten"),
         fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap"),
-        fetchAndRenderGanttChartSOC("gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit")
+        fetchAndRenderGanttChartSOC("gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit"),
+        fetchAndRenderTCOBars('tco', 'tco-bar')
         ];
 
         Promise.allSettled(chartPromises).then((results)=>{
@@ -2419,20 +2429,7 @@ switchCostsTab('costs-tab-1');
   });
 </script>
 
-<!-- Details Button Functionality -->
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const detailsButton = document.getElementById("detailsButton");
-    const detailsContent = document.getElementById("detailsContent");
-    const detailsArrow = document.getElementById("detailsArrow");
 
-    detailsButton.addEventListener("click", function () {
-      const isExpanded = detailsContent.classList.toggle("hidden");
-      detailsArrow.style.transform = isExpanded ? "rotate(0deg)" : "rotate(180deg)";
-      detailsButton.setAttribute("aria-expanded", !isExpanded);
-    });
-  });
-</script>
 
 <!-- SOC Tabs Functionality -->
 <script>

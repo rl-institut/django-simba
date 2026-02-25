@@ -1146,14 +1146,9 @@ def get_start_end_time(scenario: Scenario) -> tuple[datetime.datetime, datetime.
 
 def get_tco(task_id):
     try:
-        # Get the parent scenario
-        parent_scenario = Scenario.objects.get(task_id=task_id)
-
-        children = Scenario.objects.filter(parent_id=parent_scenario.id)
-        results = [c.tco_result for c in children]
-        for result in results:
-            print(result)
-        return {"tco_result": result}
+        s = Scenario.objects.get(task_id=task_id)
+        result = s.tco_result
+        return result
 
     except Scenario.DoesNotExist:
         return {"error": "Scenario or child scenario not found"}
