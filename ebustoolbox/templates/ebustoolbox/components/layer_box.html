@@ -178,6 +178,7 @@
                 const isDepotChecked = document.getElementById('layer-0').checked;
                 const isElectrifiedChecked = document.getElementById('layer-1').checked;
                 const isStationChecked = document.getElementById('layer-2').checked;
+                const acpFilter = ['>', ['to-number', ['get', 'acp']], 0];
 
                 const layersToCheck = ['station'];
                 const allLayersLoaded = layersToCheck.every(layer => map.getLayer(layer));
@@ -224,8 +225,8 @@
 
                     // Apply the filter to the stations layer
                     map.setFilter('station', filter);
-                    map.setFilter('station-badge', filter);
-                    map.setFilter('station-badge-bg', filter);
+                    map.setFilter('station-badge', ['all', acpFilter, filter]);
+                    map.setFilter('station-badge-bg', ['all', acpFilter, filter]);
                 }
             }
 
