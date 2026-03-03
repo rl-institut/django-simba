@@ -1274,13 +1274,16 @@
                     series: Object.keys(EVENT_COLORS).map(eventType => ({
                       name: LEGEND_LABELS[eventType],
                       type: 'custom',
+                      itemStyle: {
+                            color: EVENT_COLORS[eventType]
+                        },
                         renderItem: function (params, api) {
                             const categoryIndex = api.value(0);
                             const startCoord = api.coord([api.value(1), categoryIndex]);
                             const endCoord   = api.coord([api.value(2), categoryIndex]);
 
                             const eventTypeKey = api.value(EVENT_TYPE_INDEX);
-
+                            const color = api.visual('color');
                             const height = api.size([0, 1])[1] * 0.8;
 
                             return {
@@ -1292,8 +1295,7 @@
                                     height
                                   },
                                   style: {
-                                    ...api.style(),
-                                    fill: EVENT_COLORS[eventTypeKey]
+                                    fill: color
                                   }
                             };
                         },
