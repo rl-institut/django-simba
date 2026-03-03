@@ -134,6 +134,16 @@ urlpatterns = [
         views.render_critical_rotations,
         name="critical_rotations",
     ),
+    path(
+        "result/<uuid:task_id>/cumulative_coverage/",
+        views.get_cumulative_energy,
+        name="get_cumulative_energy",
+    ),
+    path(
+        "result/<uuid:task_id>/rotation_table/",
+        views.get_rotation_table_data,
+        name="get_rotation_table_data",
+    ),
     path("result/<uuid:task_id>/bustype/", views.render_bustype, name="bustype"),
     path("result/<uuid:task_id>/soc_hist/", views.get_binned_soc_data, name="soc_hist"),
     path("result/<uuid:task_id>/depot_power/", views.get_power_draw_and_occ, name="eflips_power"),

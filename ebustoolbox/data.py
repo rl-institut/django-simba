@@ -8,7 +8,7 @@ import datetime
 
 import numpy as np
 import sqlalchemy
-from django.db.models import Prefetch, Sum, F, FloatField, ExpressionWrapper
+from django.db.models import Prefetch, Sum, F, FloatField, ExpressionWrapper, Max, Min
 from django.db.models.functions import Coalesce, Extract
 from django.utils.translation import gettext as _
 from sqlalchemy.orm import Session
@@ -1142,3 +1142,71 @@ def get_start_end_time(scenario: Scenario) -> tuple[datetime.datetime, datetime.
     time_start = trips.first().departure_time
     time_end = trips.last().arrival_time
     return time_start, time_end
+
+
+def get_cumulative_energy(task_id: str):
+    rotations = (
+        Rotation.objects.filter(scenario__task_id=task_id)
+        .annotate(
+            energy_kwh=ExpressionWrapper(
+                (Max("trip__event__soc_start") - Min("trip__event__soc_end"))
+                * Max("vehicle_type__battery_capacity"),
+                output_field=FloatField(),
+            ),
+            v_type=F("vehicle_type__name"),  # Assuming 'name' is the field
+        )
+        .values("energy_kwh", "v_type")
+    )
+
+    # Return raw list so JS can filter and calculate CDF
+    raw_data = [
+        {"energy": round(float(r["energy_kwh"]), 2), "type": r["v_type"]}
+        for r in rotations
+        if r["energy_kwh"] is not None
+    ]
+
+    unique_types = list(set(r["type"] for r in raw_data))
+
+    return {"raw_data": raw_data, "unique_types": unique_types}
+
+
+def get_rotation_table_data(task_id: str):
+    rotations = Rotation.objects.filter(scenario__task_id=task_id).annotate(
+        max_soc=Max("trip__event__soc_start"),
+        min_soc=Min("trip__event__soc_end"),
+        cap=Max("vehicle_type__battery_capacity"),
+        total_dist_m=Sum("trip__route__distance"),
+        start_t=Min("trip__departure_time"),
+        end_t=Max("trip__arrival_time"),
+    )
+
+    rows = []
+    for r in rotations:
+        m_soc = r.max_soc if r.max_soc is not None else 0
+        l_soc = r.min_soc if r.min_soc is not None else 0
+        capacity = r.cap if r.cap is not None else 0
+
+        soc_delta = m_soc - l_soc
+        energy_kwh = soc_delta * capacity
+        dist_km = (r.total_dist_m or 0) / 1000.0
+
+        efficiency = energy_kwh / dist_km if dist_km > 0 else 0
+
+        duration_h = 0
+        if r.start_t and r.end_t:
+            duration_h = (r.end_t - r.start_t).total_seconds() / 3600.0
+
+        rows.append(
+            {
+                "id": r.id,
+                "name": r.name or f"ID: {r.id}",
+                "vehicle": r.vehicle_type.name_short or r.vehicle_type.name,
+                "distance": round(dist_km, 2),
+                "consumption": round(energy_kwh, 2),
+                "efficiency": round(efficiency, 3),
+                "duration": round(duration_h, 2),
+                "soc_spread_pct": round(soc_delta * 100, 1),
+            }
+        )
+
+    return rows
