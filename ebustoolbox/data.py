@@ -1213,10 +1213,6 @@ def get_rotation_table_data(task_id: str):
 
 
 def get_tco(task_id):
-    try:
-        s = Scenario.objects.get(task_id=task_id)
-        result = s.tco_result
-        return result
-
-    except Scenario.DoesNotExist:
-        return {"error": "Scenario or child scenario not found"}
+    s = Scenario.objects.get(task_id=task_id)
+    result = s.tco_result
+    return result
