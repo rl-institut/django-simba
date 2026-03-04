@@ -26,8 +26,6 @@ from ebustoolbox.models import (
     Trip,
     Route,
     EnumChargeType,
-    EnumScenarioType,
-    EnumSimulationType,
 )
 
 import pandas as pd
@@ -1049,11 +1047,7 @@ def get_power_draw_and_occ_as_json(task_id: str):
     avgScenario = Scenario.objects.get(task_id=task_id)
 
     # Find the associated "extreme"/sizing scenario
-    extrScenario = Scenario.objects.filter(
-        parent=avgScenario.parent,
-        scenario_type=EnumScenarioType.SIMULATION,
-        simulationtype__sim_type=EnumSimulationType.SIZING,
-    ).first()
+    extrScenario = avgScenario.get_sizing_scenario()
 
     all_areas = extrScenario.area_set.all()
     all_area_ids = [area.id for area in all_areas]

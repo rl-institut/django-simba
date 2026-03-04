@@ -39,14 +39,10 @@ class MVTView(BaseMVTView):
                 current_scenario = Scenario.objects.get(task_id=params["task_id"])
 
                 # Find the associated "extreme"/sizing scenario
-                child_scenario = Scenario.objects.filter(
-                    parent = current_scenario,
-                    scenario_type = EnumScenarioType.SIMULATION,
-                    simulationtype__sim_type = EnumSimulationType.SIZING,
-                ).first()
+                extScenario = current_scenario.get_sizing_scenario()
 
-                if child_scenario:
-                    params["task_id"] = str(child_scenario.task_id)
+                if extScenario:
+                    params["task_id"] = str(extScenario.task_id)
 
             except (Scenario.DoesNotExist, ValueError):
                 pass

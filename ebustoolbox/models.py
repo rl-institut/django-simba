@@ -218,6 +218,16 @@ class Scenario(models.Model):
             return False
         return True
 
+    def get_sizing_scenario(self):
+        scenario_parent = self
+        if self.scenario_type == EnumScenarioType.SIMULATION:
+            scenario_parent = self.parent
+        return Scenario.objects.filter(
+            parent=scenario_parent,
+            scenario_type=EnumScenarioType.SIMULATION,
+            simulationtype__sim_type=EnumSimulationType.SIZING,
+        ).first()
+
 
 @receiver(models.signals.pre_delete, sender=Scenario)
 def auto_delete_results_on_delete(sender, instance, **kwargs):
