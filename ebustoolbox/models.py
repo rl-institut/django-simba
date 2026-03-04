@@ -42,6 +42,9 @@ from ebus_map.managers import MVTManager, X, Y
 from simba.ids import INCLINE, LEVEL_OF_LOADING, SPEED, T_AMB, CONSUMPTION
 
 
+MINIMAL_TRIP_DURATION_S = 60  # seconds
+
+
 class PeakConcurrency(Expression):
     """
     A registry-safe expression to find peak concurrent events
@@ -120,9 +123,6 @@ class PeakConcurrency(Expression):
 
     def set_source_expressions(self, exprs):
         pass
-
-
-MINIMAL_TRIP_DURATION_S = 60  # seconds
 
 
 class EnumScenarioType(models.TextChoices):
@@ -1274,7 +1274,7 @@ class Station(models.Model):
         # circular import
         from .util import get_charge_chart
 
-        obj = cls.objects.get(id=id)
+        obj = cls.objects.annotate(**cls.annotations).get(id=id)
         data = vars(obj)
         data["title"] = obj.name_short or obj.name
         plot = get_charge_chart(obj)

@@ -8,6 +8,9 @@ from rest_framework.serializers import ValidationError
 from rest_framework_mvt.views import BaseMVTView
 
 from django.apps import apps
+
+from ebustoolbox.models import EnumScenarioType, EnumSimulationType
+
 @dataclass
 class MVTLayer:
     name: str
@@ -35,11 +38,12 @@ class MVTView(BaseMVTView):
             try:
                 current_scenario = Scenario.objects.get(task_id=params["task_id"])
 
-                # Find the associated child scenario
-                # filter by parent and take the most recent one created
+                # Find the associated "extreme"/sizing scenario
                 child_scenario = Scenario.objects.filter(
-                    parent=current_scenario
-                ).order_by('-created').first()
+                    parent = current_scenario,
+                    scenario_type = EnumScenarioType.SIMULATION,
+                    simulationtype__sim_type = EnumSimulationType.SIZING,
+                ).first()
 
                 if child_scenario:
                     params["task_id"] = str(child_scenario.task_id)

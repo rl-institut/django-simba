@@ -38,11 +38,19 @@
                 <td class="py-1">Leistung pro Anschluss</td>
                 <td class="py-1 font-semibold">{{ power_per_charger|floatformat:"0" }} kW</td>
               </tr>
-              <tr>
+              <tr class="border-b border-slate-200">
                 <td class="py-1">Gesamtleistung</td>
                 <td class="py-1 font-semibold">{{ power_total|floatformat:"0" }} kW</td>
               </tr>
             {% endif %}
+            <tr class="border-b border-slate-200">
+              <td class="py-1">Min. Ladepunkte</td>
+              <td class="py-1 font-semibold">{{ acp }}</td>
+            </tr>
+            <tr class="border-b border-slate-200">
+              <td class="py-1">Anfahrten</td>
+              <td class="py-1 font-semibold">{{ num_arrivals }}</td>
+            </tr>
           </tbody>
         </table>
       {% else %}
