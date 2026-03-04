@@ -369,54 +369,51 @@
             <div id="lineChart" class="chart-container h-[480px]"></div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
-            <p class="text-center text-lg font-bold text-slate-800 pb-4">
-                {% translate 'Depot Ladeleistung und Belegung' %}
-              </p>
-              <div class="flex justify-between mt-4">
-                <div class="w-1/4 px-2 pb-4 text-center border-r border-slate-300">
-                  <p class="text-slate-800">
-                    <span id="depot-max-charging"
-                          class="text-xl 2xl:text-2xl font-semibold">--</span>
-                  </p>
-                  <p class="text-sm text-slate-500">
-                    {% translate 'Max. gleichzeitig ladende Fahrzeuge' %}
-                  </p>
-                </div>
+  <p class="text-center text-lg font-bold text-slate-800 pb-4">
+    {% translate 'Depot Ladeleistung und Belegung' %}
+  </p>
+  <div class="flex mt-4">
+    <div class="flex-1 px-2 pb-4 text-center border-r border-slate-300">
+      <p class="text-slate-800">
+        <span id="depot-max-charging" class="text-xl 2xl:text-2xl font-semibold">--</span>
+      </p>
+      <p class="text-sm text-slate-500">
+        {% translate 'Max. gleichzeitig ladende Fahrzeuge' %}
+      </p>
+    </div>
 
-                <div class="w-1/4 px-2 pb-4 text-center border-r border-slate-300">
-                  <p class="text-slate-800">
-                    <span id="depot-max-total"
-                          class="text-xl 2xl:text-2xl font-semibold">--</span>
-                  </p>
-                  <p class="text-sm text-slate-500">
-                    {% translate 'Max. Fahrzeuge im Depot gesamt' %}
-                  </p>
-                </div>
+    <div class="flex-1 px-2 pb-4 text-center border-r border-slate-300">
+      <p class="text-slate-800">
+        <span id="depot-max-total" class="text-xl 2xl:text-2xl font-semibold">--</span>
+      </p>
+      <p class="text-sm text-slate-500">
+        {% translate 'Max. Fahrzeuge im Depot gesamt' %}
+      </p>
+    </div>
 
-                <div class="w-1/4 px-2 pb-4 text-center border-r border-slate-300">
-                  <p class="text-slate-800">
-                    <span id="depot-peak-power"
-                          class="text-xl 2xl:text-2xl font-semibold">--</span>
-                    <span class="text-sm 2xl:text-base font-normal">kW</span>
-                  </p>
-                  <p class="text-sm text-slate-500">
-                    {% translate 'Spitzenleistung' %}
-                  </p>
-                </div>
+    <div class="flex-1 px-2 pb-4 text-center border-r border-slate-300">
+      <p class="text-slate-800">
+        <span id="depot-peak-power" class="text-xl 2xl:text-2xl font-semibold">--</span>
+        <span class="text-sm 2xl:text-base font-normal">kW</span>
+      </p>
+      <p class="text-sm text-slate-500">
+        {% translate 'Spitzenleistung' %}
+      </p>
+    </div>
 
-                <div class="w-1/4 px-2 pb-4 text-center">
-                  <p class="text-slate-800">
-                    <span id="depot-energy"
-                          class="text-xl 2xl:text-2xl font-semibold">--</span>
-                    <span class="text-sm 2xl:text-base font-normal">kWh</span>
-                  </p>
-                  <p class="text-sm text-slate-500">
-                    {% translate 'Geladene Energie' %}
-                  </p>
-                </div>
-              </div>
-            <div id="DepotlineChart" class="chart-container h-[480px]"></div>
-          </div>
+    <div class="flex-1 px-2 pb-4 text-center">
+      <p class="text-slate-800">
+        <span id="depot-energy" class="text-xl 2xl:text-2xl font-semibold">--</span>
+        <span class="text-sm 2xl:text-base font-normal">kWh</span>
+      </p>
+      <p class="text-sm text-slate-500">
+        {% translate 'Geladene Energie' %}
+      </p>
+    </div>
+  </div>
+
+  <div id="DepotlineChart" class="chart-container h-[480px]"></div>
+</div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
             <div id="filterContainerEvents"></div>
             <div id="ganttChart" class="chart-container h-[480px]"></div>
