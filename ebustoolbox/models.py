@@ -20,17 +20,8 @@ from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.db.models import (
-    QuerySet,
-    Sum,
-    Case,
-    When,
-    Value,
-    IntegerField,
-    Func,
-    F,
-    Expression,
-)
+from django.db.models import QuerySet, Sum, Case, When, Value, IntegerField, Func, F, Expression
+
 from django.db.models.sql.compiler import SQLCompiler
 
 from django.db.models.functions import Now, Length, Coalesce
