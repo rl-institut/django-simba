@@ -21,9 +21,7 @@ from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import QuerySet, Sum, Case, When, Value, IntegerField, Func, F, Expression
-
 from django.db.models.sql.compiler import SQLCompiler
-
 from django.db.models.functions import Now, Length, Coalesce
 from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
@@ -31,7 +29,6 @@ from django.utils.timezone import make_aware
 
 from ebus_map.managers import MVTManager, X, Y
 from simba.ids import INCLINE, LEVEL_OF_LOADING, SPEED, T_AMB, CONSUMPTION
-
 
 MINIMAL_TRIP_DURATION_S = 60  # seconds
 
