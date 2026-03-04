@@ -2178,5 +2178,14 @@ def delete_scenario(request, task_id):
 def get_tco(request, task_id):
 
     response_data = data.get_tco(task_id)
-
     return JsonResponse(response_data)
+
+
+def get_cumulative_energy(request, task_id: str):
+    response_data = data.get_cumulative_energy(task_id)
+    return JsonResponse(response_data)
+
+
+def get_rotation_table_data(request, task_id: str):
+    response_data = data.get_rotation_table_data(task_id)
+    return JsonResponse(response_data, safe=False)

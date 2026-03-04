@@ -6,6 +6,7 @@
 
 {% block content %}
 <header class="flex flex-col items-center bg-white">
+  <link href="{%  static 'ebustoolbox/css/result_styles.css' %}" rel="stylesheet">
   <div class="sm:py-8 lg:pt-12 lg:pb-8 sm:px-6 lg:px-8 w-full max-w-[120rem]">
     <div class="flex justify-between">
       <h1 class="text-2xl font-semibold">{{ scenario.name }}</h1>
@@ -83,7 +84,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
           </svg>
-          <span>{% translate 'Kosten + Umwelt' %}</span>
+          <span>{% translate 'Kosten' %}</span>
         </span>
       </a>
       <a href="#bus-section" class="px-4 py-2 bg-slate-50 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
@@ -713,6 +714,43 @@
           <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
             <div id="SpeedHistogramChart" class="chart-container h-[480px]"></div>
           </div>
+        <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
+            <div id="filterContainerCumulative"></div>
+            <div id="cumulative-coverage" class="chart-container h-[480px]"></div>
+          </div>
+        <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto max-w-4xl">
+            <div id="table-scroll-container" class="h-[480px] overflow-y-auto relative">
+                <table id="rotationTable" class="w-full table-fixed border-collapse bg-white">
+                    <thead class="sticky top-0 z-20 bg-slate-50 shadow-sm">
+                        <tr class="divide-x divide-slate-200 border-b border-slate-200">
+                            <th data-column="name" class="sortable edge-pad-left px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/4" onclick="sortTable('name')">
+                                {% translate 'Name' %}
+                            </th>
+                            <th data-column="vehicle" class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortTable('vehicle')">
+                                {% translate 'Typ' %}
+                            </th>
+                            <th data-column="distance" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('distance')">
+                                km
+                            </th>
+                            <th data-column="consumption" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('consumption')">
+                                kWh
+                            </th>
+                            <th data-column="efficiency" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('efficiency')">
+                                kWh/km
+                            </th>
+                            <th data-column="duration" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('duration')">
+                                {% translate 'Dauer' %}
+                            </th>
+                            <th data-column="soc_spread_pct" class="sortable edge-pad-right px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortTable('soc_spread_pct')">
+                                Δ SoC
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="rotationTableBody" class="divide-y divide-slate-200 bg-white">
+                        </tbody>
+                </table>
+            </div>
+        </div>
         </div>
         <div class="flex flex-col">
         <div id="map-section" class="flex justify-between items-center pb-2">
@@ -2146,6 +2184,202 @@
         chart.setOption(option);
     }
 
+    function computeCDF(rawData, selectedTypes) {
+        const filtered = rawData.filter(d => selectedTypes.includes(d.type));
+        if (filtered.length === 0) return { x: [], y: [] };
+
+        filtered.sort((a, b) => a.energy - b.energy);
+
+        const total = filtered.length;
+        const uniquePoints = new Map();
+
+        filtered.forEach((item, index) => {
+            const percentage = ((index + 1) / total) * 100;
+            uniquePoints.set(item.energy, Number(percentage.toFixed(1)));
+        });
+
+        const xCoords = Array.from(uniquePoints.keys()).sort((a, b) => a - b);
+        const yCoords = xCoords.map(x => uniquePoints.get(x));
+
+        return { x: xCoords, y: yCoords };
+    }
+
+    function fetchAndRenderCumulativeChart(chartName, chartId, titleText) {
+        const filterContainerId = "filterContainerCumulative";
+
+        return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
+            .then(response => response.json())
+            .then(data => {
+                const chartDom = document.getElementById(chartId);
+                const chart = echarts.init(chartDom);
+
+                chart._rawData = data.raw_data;
+                chart._allTypes = data.unique_types;
+                chart._selectedTypesString = "";
+                chart._isAllSelected = true;
+
+                const option = {
+                    title: {
+                        text: titleText,
+                        left: 'center',
+                        textStyle: { fontWeight: 'lighter', color: '#1e293b', fontSize: 16 }
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        borderWidth: 0,
+                        shadowBlur: 10,
+                        shadowColor: 'rgba(0, 0, 0, 0.1)',
+                        textStyle: { color: '#334155' },
+                        formatter: function (params) {
+                            const entry = params[0].value;
+                            const energy = entry[0];
+                            const percentage = entry[1];
+
+                            if (chart._isAllSelected) {
+                                // Tooltip when all Vehicle types are selected
+                                return `<b>${percentage}%</b> der Umläufe sind mit einem <b>${energy} kWh</b> Akku erfüllbar.`;
+                            } else {
+                                // Tooltip when subset of Vehicletypes is selected
+                                const typeNames = chart._selectedTypesString || "ausgewählten Typen";
+                                return `<b>${percentage}%</b> der Umläufe der Typen <b>${typeNames}</b> sind mit einem <b>${energy} kWh</b> Akku erfüllbar.`;
+                            }
+                        }
+                    },
+                    grid: { left: '10%', right: '10%', bottom: '15%', containLabel: true },
+                    xAxis: {
+                        type: 'value',
+                        name: 'Energiebedarf (kWh)',
+                        nameLocation: 'middle',
+                        nameGap: 35,
+                        splitLine: { show: false }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: '% der Umläufe',
+                        max: 100,
+                        axisLabel: { formatter: '{value}%' },
+                        splitLine: { lineStyle: { type: 'dashed', color: '#e2e8f0' } }
+                    },
+                    series: [{
+                        name: 'Kumulativ',
+                        type: 'line',
+                        smooth: true,
+                        showSymbol: false,
+                        itemStyle: { color: '#059669' },
+                        lineStyle: { color: '#059669', width: 3 },
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: 'rgba(5, 150, 105, 0.3)' },
+                                { offset: 1, color: 'rgba(5, 150, 105, 0)' }
+                            ])
+                        },
+                        data: []
+                    }]
+                };
+
+                const applyFilter = () => {
+                    const container = document.getElementById(filterContainerId);
+                    if (!container) return;
+
+                    const selectedTypes = Array.from(container.querySelectorAll('input[type="checkbox"]:checked'))
+                        .map(cb => cb.value)
+                        .filter(val => val !== 'on' && val !== '');
+
+                    chart._isAllSelected = selectedTypes.length === chart._allTypes.length;
+                    chart._selectedTypesString = selectedTypes.join(', ');
+
+                    const cdf = computeCDF(chart._rawData, selectedTypes);
+
+                    chart.setOption({
+                        series: [{
+                            data: cdf.x.map((x, i) => [x, cdf.y[i]])
+                        }]
+                    });
+                };
+
+                createVehicleTypeFilter(data.unique_types, chart, filterContainerId, applyFilter);
+                chart.setOption(option);
+                applyFilter();
+
+                window.addEventListener('resize', chart.resize);
+            });
+    }
+
+    function loadRotationTable(taskId) {
+        fetch(`/simba/result/${taskId}/rotation_table/`)
+            .then(response => response.json())
+            .then(data => {
+                rotationData = data;
+                renderTable(rotationData);
+            });
+    }
+
+    let rotationData = [];
+    let sortDirection = 1;
+    let currentSortColumn = '';
+
+    function formatDuration(decimalHours) {
+        const totalMinutes = Math.floor(decimalHours * 60);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+
+        // Pad with leading zeros (e.g., 01:05 instead of 1:5)
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('rotationTableBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = data.map(row => `
+            <tr class="hover:bg-slate-50 transition-colors duration-75">
+                <td class="edge-pad-left px-4 py-2 text-xs font-medium text-slate-900 truncate max-w-[180px]" title="${row.name}">
+                    ${row.name}
+                </td>
+                <td class="px-4 py-2 text-xs text-slate-500 truncate max-w-[120px]" title="${row.vehicle}">
+                    ${row.vehicle}
+                </td>
+                <td class="px-4 py-2 text-xs text-right text-slate-600">${row.distance}</td>
+                <td class="px-4 py-2 text-xs text-right text-slate-600">${row.consumption}</td>
+                <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${row.efficiency}</td>
+                <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${formatDuration(row.duration)}</td>
+                <td class="edge-pad-right px-4 py-2 text-xs text-right font-mono text-slate-600">${row.soc_spread_pct}%</td>
+            </tr>
+        `).join('');
+    }
+    function sortTable(column) {
+        if (currentSortColumn === column) {
+            sortDirection *= -1;
+        } else {
+            sortDirection = 1;
+            currentSortColumn = column;
+        }
+
+        document.querySelectorAll('th.sortable').forEach(th => {
+            th.classList.remove('asc', 'desc');
+            if (th.dataset.column === column) {
+                th.classList.add(sortDirection === 1 ? 'asc' : 'desc');
+            }
+        });
+
+        rotationData.sort((a, b) => {
+            let valA = a[column];
+            let valB = b[column];
+
+            if (valA == null) return 1;
+            if (valB == null) return -1;
+
+            if (typeof valA === 'string') {
+                return valA.localeCompare(valB) * sortDirection;
+            }
+            return (valA - valB) * sortDirection;
+        });
+
+        renderTable(rotationData);
+    }
+
+
     // Ensure the DOM is fully loaded before running
     document.addEventListener("DOMContentLoaded", function() {
 
@@ -2164,7 +2398,9 @@
         fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten"),
         fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap"),
         fetchAndRenderGanttChartSOC("gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit"),
-        fetchAndRenderTCOBars('tco', 'tco-bar')
+        fetchAndRenderTCOBars('tco', 'tco-bar'),
+	fetchAndRenderCumulativeChart("cumulative_coverage", "cumulative-coverage", "Anteil erfüllbarer Umläufe"),
+        loadRotationTable(taskIdAvg)
         ];
 
         Promise.allSettled(chartPromises).then((results)=>{
