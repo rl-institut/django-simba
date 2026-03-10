@@ -617,10 +617,41 @@
                     }
                 },
                 grid: {
-                  left: 40,
-                  right: 200,
-                  containLabel: true
+                    left: 40,
+                    right: 220,
+                    bottom: 60,
+                    containLabel: true
                 },
+
+                dataZoom: [
+                    {
+                        type: 'slider',
+                        filterMode: 'empty',
+                        showDataShadow: false,
+                        bottom: 10,
+                        labelFormatter: ''
+                    },
+                    {
+                        type: 'inside',
+                        filterMode: 'empty'
+                    },
+                    {
+                        type: 'slider',
+                        yAxisIndex: 0,
+                        filterMode: 'empty',
+                        showDataShadow: false,
+                        showDetail: false,
+                        width: 20,
+                        right: 155,
+                        top: 50,
+                        bottom: 75,
+                        startValue: seriesData.reduce((min, series) => {
+                            const seriesMin = Math.min(...series.data.map(d => d[1]));
+                            return Math.min(min, seriesMin);
+                        }, 0),
+                        endValue: 1.0,
+                    }
+                ],
                 tooltip: {
                     trigger: 'axis',
                     formatter: function (params) {
@@ -639,30 +670,19 @@
                     }
                 },
                 xAxis: {
-                    type: 'time',
+                    ...buildTimeXAxisConfig(),
                     name: 'Zeit',
-                    splitNumber: 8,
-                    axisLabel: {
-                        formatter: function (value) {
-                            const date = new Date(value);
-                            const yyyy = date.getFullYear();
-                            const mm = String(date.getMonth() + 1).padStart(2, '0'); // Months start at 0
-                            const dd = String(date.getDate()).padStart(2, '0');
-                            const hh = String(date.getHours()).padStart(2, '0');
-                            const min = String(date.getMinutes()).padStart(2, '0');
-                            return `${yyyy}-${mm}-${dd} - ${hh}:${min}`;
-                        },
-                        rotate: 0
-                    }
                 },
                 yAxis: {
                     type: 'value',
                     name: 'SOC (%)',
-                    min: -0.2,
+                    min: function(value) {
+                        return value.min < 0 ? Math.floor(value.min * 100) / 100 : 0;
+                    },
                     max: 1.0,
                     axisLabel: {
-                        formatter: function (value) {
-                            return value * 100; // Format x-axis labels
+                        formatter: function(value) {
+                            return value * 100;
                         }
                     }
                 },
