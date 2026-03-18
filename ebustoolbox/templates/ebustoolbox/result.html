@@ -5,6 +5,57 @@
   {% block title %}{% translate 'WeBus - Ergebnisse' %}{% endblock title %}
 
 {% block content %}
+<style>
+  html body button.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 16px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #9E9E9E;
+    background: transparent;
+    color: #212121;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    box-sizing: border-box;
+    outline: none;
+    transition: background 0.1s;
+  }
+  html body button.chip:hover {
+    background: #F5F5F5;
+  }
+  html body button.chip.selected {
+    border-width: 0;
+    background: #E8EAF6;
+    color: #3949AB;
+    font-weight: 500;
+  }
+  html body button.chip.all:not(.selected) {
+    border-style: dashed;
+  }
+  html body button.chip .chip-check {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    display: block;
+    visibility: hidden;
+  }
+  html body button.chip.selected .chip-check {
+    visibility: visible;
+  }
+  .chip-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding-left: 16px;
+  }
+</style>
 <header class="flex flex-col items-center bg-white">
   <link href="{%  static 'ebustoolbox/css/result_styles.css' %}" rel="stylesheet">
   <div class="sm:py-8 lg:pt-12 lg:pb-8 sm:px-6 lg:px-8 w-full max-w-[120rem]">
@@ -951,82 +1002,75 @@
         };
     }
 
-    function createVehicleTypeFilter(types, chartInstance, containerId, applyFilterFn) {
-        const container = document.getElementById(containerId);
-        if (!container) {
-            return;
-        }
+// Store state per container so applyUnifiedFilter can read it
+const chipState = {}; // global, defined once outside all functions
 
-        container.innerHTML = '<h4>Fahrzeugtyp filtern:</h4>';
+function createVehicleTypeFilter(types, chartInstance, containerId, applyFilterFn) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
 
-        const allCheckbox = document.createElement('input');
-        allCheckbox.type = 'checkbox';
-        allCheckbox.id = `${containerId}-filterAll`;
-        allCheckbox.checked = true;
+    chipState[containerId] = new Set(types);
+    const state = chipState[containerId];
 
-        allCheckbox.addEventListener('change', () => {
-            const isChecked = allCheckbox.checked;
+    const CHECK_SVG = `<svg class="chip-check" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
 
-            const individualCheckboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]:not(#${allCheckbox.id})`);
+    function makeChip(label, type) {
+        const btn = document.createElement('button');
+        btn.className = 'chip' + (type === '__all__' ? ' all' : '');
+        btn.innerHTML = CHECK_SVG + `<span>${label}</span>`;
+        btn._type = type;
+        return btn;
+    }
 
-            individualCheckboxes.forEach(cb => {
-                cb.checked = isChecked;
-            });
+    function updateChip(btn) {
+        const selected = btn._type === '__all__'
+            ? state.size === types.length
+            : state.has(btn._type);
+        btn.classList.toggle('selected', selected);
+    }
 
+    function render() {
+        container.innerHTML = '';
+        container.className = 'chip-container';
+
+        const allBtn = makeChip('Alle', '__all__');
+        allBtn.addEventListener('click', () => {
+            if (state.size === types.length) state.clear();
+            else types.forEach(t => state.add(t));
+            container.querySelectorAll('.chip').forEach(updateChip);
             applyFilterFn(chartInstance);
         });
-
-        const allLabel = document.createElement('label');
-        allLabel.htmlFor = `${containerId}-filterAll`;
-        allLabel.textContent = 'Alle anzeigen';
-
-        container.appendChild(allCheckbox);
-        container.appendChild(allLabel);
-        container.appendChild(document.createElement('br'));
+        updateChip(allBtn);
+        container.appendChild(allBtn);
 
         types.forEach(type => {
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.id = `${containerId}-filter-${type}`;
-            checkbox.value = type;
-            checkbox.checked = true;
-            checkbox.addEventListener('change', () => {
-                const filterAllId = `${containerId}-filterAll`;
-
-                if (!checkbox.checked) {
-                    document.getElementById(filterAllId).checked = false;
-                } else {
-                    const individualCheckboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]:not(#${filterAllId})`);
-                    const allChecked = Array.from(individualCheckboxes).every(cb => cb.checked);
-                    if (allChecked) {
-                        document.getElementById(filterAllId).checked = true;
-                    }
-                }
+            const chip = makeChip(type.length > 22 ? type.slice(0, 22) + '…' : type, type);
+            chip.title = type;
+            chip.addEventListener('click', () => {
+                state.has(type) ? state.delete(type) : state.add(type);
+                container.querySelectorAll('.chip').forEach(updateChip);
                 applyFilterFn(chartInstance);
             });
-
-            const label = document.createElement('label');
-            label.htmlFor = `${containerId}-filter-${type}`;
-            label.textContent = type;
-
-            container.appendChild(checkbox);
-            container.appendChild(label);
-            container.appendChild(document.createElement('br'));
+            updateChip(chip);
+            container.appendChild(chip);
         });
     }
 
-    function applyUnifiedFilter(chartInstance, uniqueVehicleTypes, sortedVehicles, ganttData, EVENT_COLORS, LEGEND_LABELS, containerId) {
+    render();
+}
 
-        const normId = id => Number(id);
-        const normType = t => (t == null ? '' : String(t).trim().toLowerCase());
 
-        const selectedTypes = Array.from(document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`))
-            .map(cb => cb.value)
-            .filter(val => val !== 'on')
-            .map(normType);
+function applyUnifiedFilter(chartInstance, uniqueVehicleTypes, sortedVehicles, ganttData, EVENT_COLORS, LEGEND_LABELS, containerId) {
 
-        const showAll = document.getElementById(`${containerId}-filterAll`).checked
-            || selectedTypes.length === uniqueVehicleTypes.length;
+  const normId = id => Number(id);
+  const normType = t => (t == null ? '' : String(t).trim().toLowerCase());
+
+  // Read directly from chip state instead of checkbox DOM queries
+  const state = chipState[containerId];
+  const selectedTypes = state ? Array.from(state).map(normType) : uniqueVehicleTypes.map(normType);
+  const showAll = !state || state.size === uniqueVehicleTypes.length;
 
         let vehiclesToKeep;
         if (showAll) {
@@ -1278,27 +1322,27 @@
                             color: EVENT_COLORS[eventType]
                         },
                         renderItem: function (params, api) {
-                            const categoryIndex = api.value(0);
-                            const startCoord = api.coord([api.value(1), categoryIndex]);
-                            const endCoord   = api.coord([api.value(2), categoryIndex]);
+    const categoryIndex = api.value(0);
+    const startCoord = api.coord([api.value(1), categoryIndex]);
+    const endCoord   = api.coord([api.value(2), categoryIndex]);
+    const height = api.size([0, 1])[1] * 0.8;
 
-                            const eventTypeKey = api.value(EVENT_TYPE_INDEX);
-                            const color = api.visual('color');
-                            const height = api.size([0, 1])[1] * 0.8;
+    const eventType = api.value(3); // ← read event type from data
+    const color = EVENT_COLORS[eventType] || '#ccc'; // ← look up color directly
 
-                            return {
-                                  type: 'rect',
-                                  shape: {
-                                    x: startCoord[0],
-                                    y: startCoord[1] - height / 2,
-                                    width: endCoord[0] - startCoord[0],
-                                    height
-                                  },
-                                  style: {
-                                    fill: color
-                                  }
-                            };
-                        },
+    return {
+        type: 'rect',
+        shape: {
+            x: startCoord[0],
+            y: startCoord[1] - height / 2,
+            width: endCoord[0] - startCoord[0],
+            height
+        },
+        style: {
+            fill: color // ← always explicit, never from api.visual()
+        }
+    };
+},
                       encode: {
                           x: [1, 2],
                           y: 0,

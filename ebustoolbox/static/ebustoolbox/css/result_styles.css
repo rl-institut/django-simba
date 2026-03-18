@@ -63,3 +63,48 @@ th.sortable.desc::after {
     color: #059669;
     opacity: 1;
 }
+
+.chip-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding-left: 16px;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 16px;
+    border-width: 1px;        /* ← add this explicitly */
+    border-style: solid;      /* ← and this */
+    border-color: #9E9E9E;    /* ← and this */
+    background: transparent;
+    color: #212121;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    box-sizing: border-box;
+    outline: none;
+    transition: background 0.1s;
+}
+
+.chip.selected {
+    border-width: 0;           /* ← intentionally no border when selected */
+    background: #E8EAF6;
+    color: #3949AB;
+    font-weight: 500;
+}
+
+.chip.all:not(.selected) {
+    border-style: dashed;
+}
+
+button.chip {
+    border-width: 1px !important;
+}
