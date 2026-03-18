@@ -1714,46 +1714,13 @@ def compare(request):
     scenario_dict = dict()
     for scenario in scenarios:
         if not scenario.finished:
-            # filter after union not supported
             continue
         sim_scenario = Scenario.objects.filter(
             parent=scenario, simulationtype__sim_type=EnumSimulationType.DEFAULT
         ).first()
         if not sim_scenario:
-            # Missing Simulation Scenario. Can't compare and continue
             continue
-        # TODO compare with the right child scenario
-        stations = sim_scenario.station_set.all()
-        num_electrified_opps = stations.filter(charge_type=EnumChargeType.OPPORTUNITY).count()
-        # sum up charging places at depots, defaults to 0 for null values
-        num_cs_deps = stations.filter(charge_type=EnumChargeType.DEPOT).aggregate(
-            cs=Coalesce(Sum("amount_charging_places"), 0)
-        )["cs"]
-        rotations = sim_scenario.rotation_set.all()
-        events = sim_scenario.event_set.all()
-        # calculate charged energy for all events
-        events = events.annotate(
-            charged=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity")
-        )
-        # sum up charged energy by event type. Default value 0 in case of null values
-        energy_opps = events.filter(event_type=EventType.CHARGING_OPPORTUNITY).aggregate(
-            sum_charged=Coalesce(Sum("charged"), 0.0)
-        )["sum_charged"]
-        energy_deps = events.filter(event_type=EventType.CHARGING_DEPOT).aggregate(
-            sum_charged=Coalesce(Sum("charged"), 0.0)
-        )["sum_charged"]
-
-        scenario_dict[sim_scenario.id] = {
-            _("Name"): sim_scenario.name,
-            _("Erstellt"): sim_scenario.created.strftime("%d.%m.%Y"),
-            _("Fahrzeuge"): sim_scenario.vehicle_set.count(),
-            _("Umläufe"): sim_scenario.rotation_set.count(),
-            _("Gesamtkilometer"): round(sum([r.get_distance() / 1000 for r in rotations])),
-            _("Anzahl elektrifizierte Endhaltestellen"): num_electrified_opps,
-            _("Geladene Energie an Endhaltestellen"): round(energy_opps),
-            _("Anzahl Ladeplätze in allen Depots"): num_cs_deps,
-            _("Geladene Energie an Depots [kWh]"): round(energy_deps),
-        }
+        scenario_dict[sim_scenario.id] = data.get_scenario_kpis(sim_scenario)
 
     return render(
         request,

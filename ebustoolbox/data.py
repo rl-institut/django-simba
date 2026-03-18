@@ -419,9 +419,11 @@ def get_distances_as_dataframe(scenario_id, buses):
     :rtype: pandas.DataFrame
     """
     result_df = recent_memoizer(get_all_trip_info, scenario_id)(scenario_id)
-
     result_df = result_df.groupby(["R_id", "V_id"])["total_distance"].sum().reset_index()
-    filtered_df = result_df.query(f"V_id in {buses}")
+    if buses is not None:
+        filtered_df = result_df.query(f"V_id in {buses}")
+    else:
+        filtered_df = result_df
     return filtered_df
 
 
@@ -833,39 +835,32 @@ def get_power_draw_as_json(request, task_id: str):
 
     return charging_status
 
-
-def get_stats_as_json(task_id: str):
-    scenario = Scenario.objects.get(task_id=task_id)
-
-    filter_dict = dict(task_id=task_id)
-
-    vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
-    buses = list(vehicle_name_dict.keys())
-
-    if buses:  # In Presim buses will be None, if later no buses are selected, it will be empty
-        filter_dict["vehicle__id__in"] = buses
+def get_scenario_kpis(scenario: Scenario) -> dict:
+    """
+    Compute all numeric KPIs for a given scenario object.
+    Respects simulation time bounds.
+    Used by both get_stats_as_json and the compare view.
+    """
+    filter_dict = dict(task_id=scenario.task_id)
 
     longest_rot = get_number_longest_rot(filter_dict.copy())
     shortest_rot = get_number_shortest_rot(filter_dict.copy())
     num_busses = get_number_of_buses(filter_dict.copy())
-    most_freq = get_frequently_served_station(task_id)
+    most_freq = get_frequently_served_station(scenario.task_id)
 
-    dist_df = get_distances_as_dataframe(scenario.id, buses)
+    dist_df = get_distances_as_dataframe(scenario.id, buses=None)
     total_dist = round(dist_df["total_distance"].sum() / 1000, 0)
 
     stations = scenario.station_set.all()
     depots = scenario.depot_set.all()
     num_electrified_opps = stations.filter(charge_type=EnumChargeType.OPPORTUNITY).count()
-    events = scenario.event_set.select_related("vehicle_type").all()
 
     time_start, time_end = get_start_end_time(scenario)
-    # Filter events to the simulation range
+    events = scenario.event_set.select_related("vehicle_type").all()
     events = events.filter(time_start__gte=time_start, time_end__lte=time_end)
 
-    # calculate charged energy for all events
     events = events.annotate(
         charged=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity"),
-        # Convert the duration to seconds and then divide by 3600 to get hours
         duration_seconds=Extract(F("time_end") - F("time_start"), "epoch"),
         duration_hours=(F("duration_seconds") / 3600),
         charging_power=ExpressionWrapper(
@@ -873,7 +868,6 @@ def get_stats_as_json(task_id: str):
         ),
     )
 
-    # Calculate sum of charged energy for different event types
     energy_opps = events.filter(event_type=EventType.CHARGING_OPPORTUNITY).aggregate(
         sum_charged=Coalesce(Sum("charged"), 0.0)
     )["sum_charged"]
@@ -882,15 +876,9 @@ def get_stats_as_json(task_id: str):
         sum_charged=Coalesce(Sum("charged"), 0.0)
     )["sum_charged"]
 
-    # Aggregate total installed power
-    # first, for vehicles with non-null amount of charging spaces
-    stations = scenario.station_set.all()
+    # Installed power at opp stations with known charger count
     opp_stations = stations.filter(charge_type=EnumChargeType.OPPORTUNITY)
-    electrified_stations_list = list(opp_stations.values_list("name", flat=True))
-
     installed_power = opp_stations.annotate(
-        charger_count=F("amount_charging_places"),
-        charger_power=F("power_per_charger"),
         installed_power=ExpressionWrapper(
             F("amount_charging_places") * F("power_per_charger"), output_field=FloatField()
         ),
@@ -898,33 +886,23 @@ def get_stats_as_json(task_id: str):
         "total_installed_power"
     ]
 
-    # Some stations may not have a specified amount of chargers,
-    # the maximum amount of simultaneously charging buses is determined
-    charging_events = events.filter(event_type=EventType.CHARGING_OPPORTUNITY).select_related(
-        "station"
-    )
-    charging_events = charging_events.filter(time_start__gte=time_start, time_end__lte=time_end)
-
+    charging_events = events.filter(event_type=EventType.CHARGING_OPPORTUNITY).select_related("station")
     stations_with_null_amount = opp_stations.filter(
         amount_charging_places__isnull=True,
     ).prefetch_related(Prefetch("event_set", queryset=charging_events, to_attr="charging_events"))
 
     station_peak_chargers = {}
-
     for station in stations_with_null_amount:
         timeline = []
         for event in station.charging_events:
-            timeline.append((event.time_start, +1))  # Charger starts
-            timeline.append((event.time_end, -1))  # Charger ends
-
-        # Sort timeline
+            timeline.append((event.time_start, +1))
+            timeline.append((event.time_end, -1))
         timeline.sort()
         concurrent = 0
         peak = 0
-        for unused_variable, delta in timeline:
+        for _time, delta in timeline:
             concurrent += delta
             peak = max(peak, concurrent)
-
         station_peak_chargers[station.id] = peak
 
     fallback_power = sum(
@@ -937,38 +915,71 @@ def get_stats_as_json(task_id: str):
 
     # Average consumption
     driving_events = events.filter(event_type=EventType.DRIVING)
+    total_energy_used = driving_events.aggregate(sum_energy=Coalesce(Sum("charged"), 0.0))["sum_energy"]
+    average_consumption = total_energy_used / total_dist if total_dist else 0
 
-    total_energy_used = driving_events.aggregate(sum_energy=Coalesce(Sum("charged"), 0.0))[
-        "sum_energy"
-    ]
+    depot_data = get_power_draw_and_occ_as_json(scenario.task_id)
+    all_depot_kpis = depot_data["all"]["data"]
 
-    average_consumption = total_energy_used / total_dist
+    num_cs_deps = stations.filter(charge_type=EnumChargeType.DEPOT).aggregate(
+        cs=Coalesce(Sum("amount_charging_places"), 0)
+    )["cs"]
 
-    # Query the Area table using SQLAlchemy
-    all_areas = scenario.area_set.all()
-    all_area_ids = [area.id for area in all_areas]
-    with Session(SqlAlchemyEngine.get_engine()) as session:
-        prepared_data = power_and_occupancy(all_area_ids, session)
-
-    # Extract the 'power' column and find the maximum value
-    peak_power_kw = prepared_data["power"].max()
-
-    resp = {
-        "longest_rotation": longest_rot,
-        "shortest_rotation": shortest_rot,
-        "total_dist": total_dist,
-        "num_stations": f"{num_electrified_opps} / {stations.count() - depots.count()}",
-        "num_busses": num_busses,
-        "most_frequented": most_freq,
-        "total_consumption": np.round(energy_deps + energy_opps, 0),
-        "avg_consumption": np.abs(np.round(average_consumption, 3)),
-        "installed_power": np.round(total_installed_power, 0),
-        "depot_energy": np.round(energy_deps, 0),
-        "peak_depot_power": np.round(peak_power_kw, 0),
-        "electrified_stations_list": electrified_stations_list,
+    result = {
+        _("Name"): scenario.name,
+        _("Erstellt"): scenario.created.strftime("%d.%m.%Y"),
+        _("Umläufe"): scenario.rotation_set.count(),
+        _("Längste Umlauf [min]"): longest_rot,
+        _("Kürzeste Umlauf [min]"): shortest_rot,
+        _("Gesamtkilometer"): total_dist,
+        _("Anzahl elektrifizierte Endhaltestellen"): f"{num_electrified_opps} / {stations.count() - depots.count()}",
+        _("Häufigste Haltestelle"): most_freq,
+        _("Gesamtverbrauch [kWh]"): np.round(energy_deps + energy_opps, 0),
+        _("Durchschnittsverbrauch [kWh/km]"): np.abs(np.round(average_consumption, 3)),
+        _("Installierte Leistung [kW]"): np.round(total_installed_power, 0),
+        _("Geladene Energie an Endhaltestellen [kWh]"): np.round(energy_opps, 0),
+        _("Anzahl Ladeplätze in allen Depots"): num_cs_deps,
+        # All-depot aggregates
+        _("Spitzenlast alle Depots [kW]"): all_depot_kpis["peak_power_kw"],
+        _("Gesamtenergie alle Depots [kWh]"): all_depot_kpis["energy_kwh"],
+        _("Max. gleichzeitig ladende Busse (alle Depots)"): all_depot_kpis["max_charging"],
+        _("Max. gleichzeitig anwesende Busse (alle Depots)"): all_depot_kpis["max_total"],
     }
 
-    return resp
+    # Per-depot KPIs — dynamic rows
+    for depot_id, depot_entry in depot_data.items():
+        if depot_id == "all":
+            continue
+        name = depot_entry["name"]
+        kpis = depot_entry["data"]
+        result[_("Spitzenlast %(name)s [kW]") % {"name": name}] = kpis["peak_power_kw"]
+        result[_("Gesamtenergie %(name)s [kWh]") % {"name": name}] = kpis["energy_kwh"]
+        result[_("Max. ladende Busse %(name)s") % {"name": name}] = kpis["max_charging"]
+        result[_("Max. anwesende Busse %(name)s") % {"name": name}] = kpis["max_total"]
+
+    return result
+def get_stats_as_json(task_id: str):
+    scenario = Scenario.objects.get(task_id=task_id)
+
+    kpis = get_scenario_kpis(scenario)
+
+    opp_stations = scenario.station_set.filter(charge_type=EnumChargeType.OPPORTUNITY)
+    electrified_stations_list = list(opp_stations.values_list("name", flat=True))
+
+    return {
+        "longest_rotation": kpis[_("Längste Umlauf [min]")],
+        "shortest_rotation": kpis[_("Kürzeste Umlauf [min]")],
+        "total_dist": kpis[_("Gesamtkilometer")],
+        "num_stations": kpis[_("Anzahl elektrifizierte Endhaltestellen")],
+        "num_busses": kpis[_("Fahrzeuge")],
+        "most_frequented": kpis[_("Häufigste Haltestelle")],
+        "total_consumption": kpis[_("Gesamtverbrauch [kWh]")],
+        "avg_consumption": kpis[_("Durchschnittsverbrauch [kWh/km]")],
+        "installed_power": kpis[_("Installierte Leistung [kW]")],
+        "depot_energy": kpis[_("Geladene Energie an Depots [kWh]")],
+        "peak_depot_power": kpis[_("Spitzenlast Depot [kW]")],
+        "electrified_stations_list": electrified_stations_list,
+    }
 
 
 def get_speed_hist_as_json(task_id: str):
@@ -1044,39 +1055,49 @@ def get_dist_hist_as_json(task_id: str):
 
 def get_power_draw_and_occ_as_json(task_id: str):
     scenario = Scenario.objects.get(task_id=task_id)
-
-    all_areas = scenario.area_set.all()
-    all_area_ids = [area.id for area in all_areas]
-
     time_start, time_end = get_start_end_time(scenario)
 
+    result = {}
+
     with Session(SqlAlchemyEngine.get_engine()) as session:
-        df = power_and_occupancy(
+        # --- aggregated (all depots combined) ---
+        all_area_ids = list(scenario.area_set.values_list("id", flat=True))
+        df_all = power_and_occupancy(
             all_area_ids, session, sim_start_time=time_start, sim_end_time=time_end
         )
+        result["all"] = {
+            "name": None,
+            "data": _power_occ_kpis(df_all),
+        }
 
-    # ---- KPIs -------------------------------------------------
-    max_charging = int(df["occupancy_charging"].max())
-    max_total = int(df["occupancy_total"].max())
-    peak_power = float(df["power"].max())
+        # --- per depot ---
+        for depot in scenario.depot_set.all():
+            area_ids = list(depot.area_set.values_list("id", flat=True))
+            if not area_ids:
+                continue
+            df = power_and_occupancy(
+                area_ids, session, sim_start_time=time_start, sim_end_time=time_end
+            )
+            result[depot.id] = {
+                "name": depot.name,
+                "data": _power_occ_kpis(df),
+            }
 
-    # assume power in kW, time in uniform steps
+    return result
+
+
+def _power_occ_kpis(df: pd.DataFrame) -> dict:
+    """Extract KPIs from a power_and_occupancy dataframe."""
     df = df.sort_values("time")
     dt_hours = (df["time"].iloc[1] - df["time"].iloc[0]).total_seconds() / 3600.0
-
     total_energy = float((df["power"] * dt_hours).sum())
-    # ----------------------------------------------------------
 
     return {
-        "data": df.to_dict(orient="records"),
-        "kpis": {
-            "max_charging": max_charging,
-            "max_total": max_total,
-            "peak_power_kw": round(peak_power, 1),
-            "energy_kwh": round(total_energy, 1),
-        },
+        "max_charging": int(df["occupancy_charging"].max()),
+        "max_total": int(df["occupancy_total"].max()),
+        "peak_power_kw": round(float(df["power"].max()), 1),
+        "energy_kwh": round(total_energy, 1),
     }
-
 
 def get_gantt(scenario_id: str):
     # Get all events for the scenario, ordered
