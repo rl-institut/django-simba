@@ -45,7 +45,7 @@ class SignUpForm(UserCreationForm):
         """
         email = self.cleaned_data["email"]
         if User.objects.filter(username=email.lower()).exists():
-            raise forms.ValidationError(email.lower() + _("existiert bereits."))
+            raise forms.ValidationError(email.lower() + _(" existiert bereits."))
         return email
 
 

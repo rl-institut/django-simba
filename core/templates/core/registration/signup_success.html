@@ -2,9 +2,27 @@
 {% load i18n %}
 {% block title %}{% translate 'Fast geschafft' %}{% endblock %}
 {% block content %}
-<div>
-{% blocktranslate %}
-Wir haben eine E-Mail mit dem Bestätigungscode an {{ email }} versendet. Klicken Sie auf den Link in der E-Mail, um die Registrierung abzuschließen.
-{% endblocktranslate %}
-</div>
+<main class="flex-grow flex flex-col items-center justify-center text-center sm:px-6 lg:px-8">
+  <div class="flex min-h-full min-w-[32rem] flex-col justify-center pt-0 pb-12 sm:px-6 lg:px-8">
+  {% if not user.is_authenticated %}
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+      <h1 class="text-center text-2xl/9 font-bold tracking-tight text-slate-800">{% translate 'Fast geschafft!' %}</h1>
+      <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
+        <div class="bg-white px-6 py-12 shadow-lg sm:rounded-lg sm:px-12">
+          <span class="block text-sm/6 font-semibold text-slate-800">
+            {% blocktranslate %}
+              Wir haben eine E-Mail mit dem Bestätigungscode an {{ email }} versendet. Klicken Sie auf den Link in der E-Mail, um die Registrierung abzuschließen.
+            {% endblocktranslate %}
+          </span>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <p>{% translate 'Sie sind bereits angemeldet.' %}</p>
+    <p>{% translate 'Eine Weiterleitung erfolgt in 3 Sekunden.' %}</p>
+    <p><a class="btn btn--cta btn--medium" href="/">{% translate 'Startseite' %}</a></p>
+    <meta http-equiv="refresh" content="3;url=/" />
+  {% endif %}
+  </div>
+</main>
 {% endblock %}

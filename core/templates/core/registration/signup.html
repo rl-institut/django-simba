@@ -1,42 +1,56 @@
 {% extends 'core/base.html' %}
 {% load i18n %}
-  {% block title %}{% translate 'Registrieren' %}{% endblock %}
+{% block title %}{% translate 'Registrieren' %}{% endblock %}
 {% block content %}
-<div class="grid-x grid-padding-x">
-  <div class="cell medium-6 medium-offset-3">
-    <h2>{% translate 'Registrierung' %}</h2>
-    <form method="post">
-      {% csrf_token %}
-      {% for field in form.hidden_fields %}{{ field }}{% endfor %}
-      {% for field in form.visible_fields %}
-        {% if field.name != "accepts_terms" %}
-          <p>
-            {{ field.label }}{{ field }}
-            {% for error in field.errors %}
-              <p style="color: red">{{ error }}</p>
-            {% endfor %}
-          </p>
-        {% endif %}
-      {% endfor %}
-      <p>
-        <label>
-          {% url 'privacy' as privacy_url %}
-          <input type="checkbox" required name="accepts_terms" id="id_accepts_terms">{% blocktranslate %}
-            Ich habe die <a target="_blank" rel="noopener noreferrer" href="{{ privacy_url }}"> Datenschutzerklärung</a> gelesen und bin mit dieser einverstanden.*
-          {% endblocktranslate %}
-        </label>
-      </p>
+<main class="flex-grow flex flex-col items-center justify-center text-center sm:px-6 lg:px-8">
+  <div class="flex min-h-full min-w-[32rem] flex-col justify-center pt-0 pb-12 sm:px-6 lg:px-8">
+  {% if not user.is_authenticated %}
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+      <h1 class="text-center text-2xl/9 font-bold tracking-tight text-slate-800">{% translate 'Registrieren' %}</h1>
+    </div>
 
-      {% if form.non_field_errors %}
-      <div class="cell large-8">
+    <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
+      <div class="bg-white px-6 py-12 shadow-lg sm:rounded-lg sm:px-12">
         {% for err in form.non_field_errors %}
-          <p class="cell large-8">{{ err }}</p>
+          <p class='mt-1 text-red-500 text-xs break-words'>{{ err }}</p>
         {% endfor %}
+        <form class="space-y-6" method="POST">
+          {% csrf_token %}
+          {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+          {% for field in form.visible_fields %}
+            {% if field.name != "accepts_terms" %}
+              <div>
+                <label for="id_{{field.name}}" class="block text-sm/6 font-semibold text-slate-800">{{ field.label }}</label>
+                <div class="mt-2">
+                  {{ field }}
+                </div>
+                {% for error in field.errors %}
+                  <p class='mt-1 text-red-500 text-xs break-words'>{{ error }}</p>
+                {% endfor %}
+              </div>
+            {% endif %}
+          {% endfor %}
+          <div>
+            {% url 'core:privacy' as privacy_url %}
+            {{ form.accepts_terms }}
+            <label for="id_accepts_terms">
+              {% blocktranslate %}
+                Ich habe die <a class="text-slate-800 underline" target="_blank" rel="noopener noreferrer" href="{{ privacy_url }}"> Datenschutzerklärung</a> gelesen und bin mit dieser einverstanden.*
+              {% endblocktranslate %}
+            </label>
+          </div>
+          <div>
+            <input type="submit" value="Registrieren" class="w-full px-6 py-2 bg-slate-800 text-white text-base font-semibold rounded-full tracking-wide hover:bg-black hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-900 transition-all duration-300">
+          </div>
+        </form>
       </div>
-      {% endif %}
-
-      <button class="button" type="submit">Registrieren</button>
-    </form>
+    </div>
+  {% else %}
+    <p>{% translate 'Sie sind bereits angemeldet.' %}</p>
+    <p>{% translate 'Eine Weiterleitung erfolgt in 3 Sekunden.' %}</p>
+    <p><a class="btn btn--cta btn--medium" href="/">{% translate 'Startseite' %}</a></p>
+    <meta http-equiv="refresh" content="3;url=/" />
+  {% endif %}
   </div>
-</div>
+</main>
 {% endblock %}
