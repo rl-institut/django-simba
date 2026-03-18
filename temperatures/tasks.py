@@ -55,10 +55,10 @@ def import_data(uploaded_file: InMemoryUploadedFile):
                     if re.fullmatch(file_pattern, filename):
                         # Turn byte stream into utf8 encoded string file
                         file_stream = StringIO(inner_zip.read(filename).decode("utf-8"))
-                        logger.info("handling", filename)
+                        logger.info(f"handling {filename}")
                         handle_file(file_stream, stations)
             elif re.fullmatch(file_pattern, filename):
-                logger.info("handling", filename)
+                logger.info(f"handling {filename}")
                 file_stream = StringIO(zip_file.read(filename).decode("utf-8"))
                 handle_file(file_stream, stations)
             else:

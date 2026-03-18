@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
 from django.core import signing, mail
+from django.views.generic import TemplateView
 from django.http import HttpResponse, Http404
 from django.shortcuts import render, redirect
 from django.template.loader import render_to_string
@@ -122,3 +123,12 @@ def test_email(request):
             fail_silently=False,
         )
     return redirect(request.GET.get("path", "/"))
+
+
+class HelpView(TemplateView):
+    template_name = "core/help.html"
+
+    def get_context_data(self, **kwargs) -> dict:
+        context = super().get_context_data(**kwargs)
+        context["max_file_size_mb"] = settings.MAX_FILE_SIZE_B >> 20
+        return context

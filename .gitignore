@@ -11,5 +11,6 @@ media/
 venv/
 **/node_modules/
 .env
+staticfiles/
 info.log
 data/

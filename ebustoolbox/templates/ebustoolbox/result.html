@@ -6,6 +6,7 @@
 
 {% block content %}
 <header class="flex flex-col items-center bg-white">
+  <link href="{%  static 'ebustoolbox/css/result_styles.css' %}" rel="stylesheet">
   <div class="sm:py-8 lg:pt-12 lg:pb-8 sm:px-6 lg:px-8 w-full max-w-[120rem]">
     <div class="flex justify-between">
       <h1 class="text-2xl font-semibold">{{ scenario.name }}</h1>
@@ -49,7 +50,7 @@
           id="dropdownMenu"
         >
           <div class="py-1" role="none">
-            <a href="#" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
+            <a href="{% url 'simba:JSON_export_scenario' %}?{% for child  in scenario.scenario_set.all %}task_id={{child.task_id}}&{% endfor %}" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
@@ -57,7 +58,7 @@
                 {% translate 'Ergebnisse exportieren' %}
               </span>
             </a>
-            <a href="#" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
+            <a href="{% url 'simba:summary' task_id=scenario.task_id %}" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm3.75 11.625a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
               </svg>
@@ -65,22 +66,12 @@
                 {% translate 'Zusammenfassung sehen' %}
               </span>
             </a>
-            <a href="#" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
+            <a href="{% url 'simba:trips' %}?s={{ scenario.id }}" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
               <span>
                 {% translate 'Als Variante verwenden' %}
-              </span>
-            </a>
-          </div>
-          <div class="py-1" role="none">
-            <a href="#" class="flex gap-4 px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 focus:outline-none" role="menuitem">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-              </svg>
-              <span>
-                {% translate 'Szenario Löschen' %}
               </span>
             </a>
           </div>
@@ -93,7 +84,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
           </svg>
-          <span>{% translate 'Kosten + Umwelt' %}</span>
+          <span>{% translate 'Kosten' %}</span>
         </span>
       </a>
       <a href="#bus-section" class="px-4 py-2 bg-slate-50 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
@@ -135,341 +126,6 @@
 <main class="flex flex-col items-center flex-grow">
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-[120rem]">
     <div class="flex flex-col">
-      <div id="costs-section" class="flex justify-between items-center pb-2">
-        <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Kosten' %}</h2>
-        <!-- Wrapper for each ellipsis and dropdown -->
-        <div class="relative inline-block text-left">
-          <button type="button"
-            class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
-            aria-expanded="false"
-            aria-haspopup="true"
-            aria-label="Optionen sehen"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-              stroke-width="1.5" stroke="currentColor" class="size-6">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-            </svg>
-          </button>
-          <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
-            role="menu"
-            aria-orientation="vertical"
-            tabindex="-1"
-          >
-            <div class="py-1" role="none">
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="bg-white rounded-lg shadow-md mb-12">
-        <!-- Toggle and Dropdown -->
-        <div class="flex justify-between items-start pt-4 px-4">
-          <div class="flex items-center w-4/12 gap-4">
-            <div class="flex items-center gap-2">
-              <button
-                type="button"
-                id="dieselToggle"
-                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
-                role="switch"
-                aria-checked="false"
-                aria-labelledby="dieselToggleLabel"
-              >
-                <span aria-hidden="true" class="pointer-events-none inline-block size-5 translate-x-0 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
-              </button>
-              <div class="flex items-center gap-2">
-                <span class="ml-2 text-sm font-normal text-slate-500" id="dieselToggleLabel">{% translate 'Relativ zu Dieselszenario' %}</span>
-                <div class="relative inline-block">
-                  <span class="cursor-pointer group">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#00856C" class="size-4">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
-                    </svg>
-                    <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      {% translate 'Relativer Vergleich mit Diesel-Szenario.' %}
-                    </div>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <p class="flex justify-center w-4/12 text-base font-normal text-slate-600">{% translate 'Gesamtkosten' %}</p>
-          <div class="flex flex-grow justify-end w-4/12">
-            <div class="w-[10rem]">
-              <label id="listbox-label" class="hidden">
-                {% translate 'Label' %}
-              </label>
-              <div class="relative">
-                <!-- Button that toggles the dropdown -->
-                <button
-                  id="assignedToButton"
-                  type="button"
-                  class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pl-3 pr-2 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 sm:text-sm/6"
-                  aria-haspopup="listbox"
-                  aria-expanded="false"
-                  aria-labelledby="listbox-label"
-                >
-                  <span id="assignedToLabel" class="col-start-1 row-start-1 truncate pr-6">{% translate '1 Jahr' %}</span>
-                  <svg class="col-start-1 row-start-1 size-5 self-center justify-self-end text-slate-500 sm:size-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
-                    <path fill-rule="evenodd" d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
-                  </svg>
-                </button>
-
-                <!-- Dropdown list -->
-                <ul
-                  id="assignedToList"
-                  class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm hidden"
-                  tabindex="-1"
-                  role="listbox"
-                  aria-labelledby="listbox-label"
-                >
-                  <li
-                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-emerald-400 hover:text-black"
-                    role="option"
-                    data-dropdown-item="Item 2"
-                  >
-                    <span class="block truncate font-normal">{% translate '2 Jahre' %}</span>
-                  </li>
-                  <li
-                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-emerald-400 hover:text-black"
-                    role="option"
-                    data-dropdown-item="Item 3"
-                  >
-                    <span class="block truncate font-normal">{% translate '3 Jahre' %}</span>
-                  </li>
-                  <li
-                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-emerald-400 hover:text-black"
-                    role="option"
-                    data-dropdown-item="Item 4"
-                  >
-                    <span class="block truncate font-normal">{% translate '4 Jahre' %}</span>
-                  </li>
-                  <li
-                    class="relative cursor-pointer select-none py-2 pl-3 pr-9 text-slate-800 hover:bg-emerald-400 hover:text-black"
-                    role="option"
-                    data-dropdown-item="Item 5"
-                  >
-                    <span class="block truncate font-normal">{% translate '5 Jahre' %}</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="text-center p-4">
-          <p class="text-4xl font-bold text-slate-800">
-            <span class="text-4xl font-bold text-slate-800">
-              4.000.000
-            </span>
-            <span class="text-lg font-normal text-slate-800">
-              €
-            </span>
-          </p>
-        </div>
-        <div class="flex flex-wrap bg-slate-50">
-          <!-- Energie -->
-          <div class="w-full md:w-1/2 xl:w-1/4 p-4 border-b xl:border-b-0 xl:border-r border-slate-300">
-            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">{% translate 'Energie' %}</p>
-            <div class="flex justify-center items-center gap-2">
-              <span class="text-xl font-semibold text-slate-800">1.000.000</span>
-              <span class="text-sm font-normal text-slate-800">€</span>
-            </div>
-            <p class="text-center text-sm tracking-wide text-slate-500">{% translate 'Variable Kosten' %}</p>
-          </div>
-
-          <!-- Fahrzeuge -->
-          <div class="w-full md:w-1/2 xl:w-1/4 p-4 border-b xl:border-b-0 xl:border-r border-slate-300">
-            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">{% translate 'Fahrzeuge' %}</p>
-            <div class="flex justify-center gap-8 xl:gap-4">
-              <div class="flex flex-col items-center">
-                <div class="flex items-center gap-2">
-                  <span class="text-xl font-semibold text-slate-800">1.200.000</span>
-                  <span class="text-sm font-normal text-slate-800">€</span>
-                </div>
-                <p class="text-sm tracking-wide text-slate-500">{% translate 'Fixkosten' %}</p>
-              </div>
-              <div class="flex flex-col items-center">
-                <div class="flex items-center gap-2">
-                  <span class="text-xl font-semibold text-slate-800">400.000</span>
-                  <span class="text-sm font-normal text-slate-800">€</span>
-                </div>
-                <p class="text-sm tracking-wide text-slate-500">{% translate 'Variable Kosten' %}</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Infrastruktur Endhaltestellen -->
-          <div class="w-full md:w-1/2 xl:w-1/4 p-4 border-b md:border-b-0 xl:border-r border-slate-300">
-            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">{% translate 'Infrastruktur Endhaltestellen' %}</p>
-            <div class="flex justify-center gap-8 xl:gap-4">
-              <div class="flex flex-col items-center">
-                <div class="flex items-center gap-2">
-                  <span class="text-xl font-semibold text-slate-800">500.000</span>
-                  <span class="text-sm font-normal text-slate-800">€</span>
-                </div>
-                <p class="text-sm tracking-wide text-slate-500">{% translate 'Fixkosten' %}</p>
-              </div>
-              <div class="flex flex-col items-center">
-                <div class="flex items-center gap-2">
-                  <span class="text-xl font-semibold text-slate-800">100.000</span>
-                  <span class="text-sm font-normal text-slate-800">€</span>
-                </div>
-                <p class="text-sm tracking-wide text-slate-500">{% translate 'Variable Kosten' %}</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Infrastruktur Depots -->
-          <div class="w-full md:w-1/2 xl:w-1/4 p-4">
-            <p class="text-sm font-normal text-slate-500 tracking-wide text-center pb-4">{% translate 'Infrastruktur Depots' %}</p>
-            <div class="flex justify-center gap-8 xl:gap-4">
-              <div class="flex flex-col items-center">
-                <div class="flex items-center gap-2">
-                  <span class="text-xl font-semibold text-slate-800">800.000</span>
-                  <span class="text-sm font-normal text-slate-800">€</span>
-                </div>
-                <p class="text-sm tracking-wide text-slate-500">{% translate 'Fixkosten' %}</p>
-              </div>
-              <div class="flex flex-col items-center">
-                <div class="flex items-center gap-2">
-                  <span class="text-xl font-semibold text-slate-800">150.000</span>
-                  <span class="text-sm font-normal text-slate-800">€</span>
-                </div>
-                <p class="text-sm tracking-wide text-slate-500">{% translate 'Variable Kosten' %}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="bg-white rounded-lg shadow-md mb-12">
-        <div class="p-8">
-          <nav class="-mb-px flex space-x-8 border-b border-slate-300" aria-label="Tabs" id="costsTabs">
-            <a href="#" class="costs-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="costs-tab-1" aria-current="page">{% translate 'Kostenverlauf' %}</a>
-            <a href="#" class="costs-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="costs-tab-2">{% translate 'Tab 2' %}</a>
-          </nav>
-          <div id="costs-tab-contents" class="mt-4">
-            <div class="costs-tab-content" data-tab="costs-tab-1">
-              <div class="flex justify-end">
-                <div class="w-[20rem]">
-                  <label id="kostenverlauf-label" class="block text-sm font-medium text-slate-800">
-                    {% translate 'Ansicht' %}
-                  </label>
-                  <div class="relative mt-2">
-                    <!-- Button that toggles the dropdown -->
-                    <button
-                      id="assignedToButton"
-                      type="button"
-                      class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pl-3 pr-2 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 sm:text-sm/6"
-                      aria-haspopup="listbox"
-                      aria-expanded="false"
-                      aria-labelledby="kostenverlauf-label"
-                    >
-                      <span id="assignedToLabel" class="col-start-1 row-start-1 truncate pr-6">{% translate 'Zeitlauf' %}</span>
-                      <svg class="col-start-1 row-start-1 size-5 self-center justify-self-end text-slate-500 sm:size-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
-                        <path fill-rule="evenodd" d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
-                      </svg>
-                    </button>
-                    <!-- Add Dropdown list -->
-                  </div>
-                </div>
-              </div>
-              <div class="flex justify-between items-start gap-4 h-[400px]">
-                <div id="kostenverlaufChart" class="w-full h-[400px]"></div>
-              </div>
-            </div>
-            <div class="costs-tab-content" data-tab="costs-tab-2">
-              {% translate 'Content 2' %}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="flex flex-col">
-        <div class="flex justify-between items-center pb-2">
-          <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Umwelt' %}</h2>
-          <!-- Wrapper for each ellipsis and dropdown -->
-          <div class="relative inline-block text-left">
-            <button type="button"
-              class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
-              aria-expanded="false"
-              aria-haspopup="true"
-              aria-label="Optionen sehen"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                stroke-width="1.5" stroke="currentColor" class="size-6">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-              </svg>
-            </button>
-            <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
-              role="menu"
-              aria-orientation="vertical"
-              tabindex="-1"
-            >
-              <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="bg-white rounded-lg shadow-md mb-12">
-          <div class="p-8">
-            <div class="flex justify-center">
-              <p class="text-base font-normal text-slate-600 pb-4">CO<sub>2</sub>{% translate '-Bilanz' %}</p>
-            </div>
-            <div class="flex justify-center">
-              <div class="flex items-end gap-2">
-                <span class="text-4xl font-bold text-slate-800">- 70</span>
-                <span class="text-base font-normal text-slate-600">% CO<sub>2</sub>{% translate '-Emissionen' %}</span>
-              </div>
-            </div>
-            <div class="flex justify-center">
-              <div class="w-full lg:w-3/4 flex flex-col gap-4 py-8">
-                <div class="flex items-center gap-4">
-                  <span class="text-end text-sm text-slate-600 flex-grow">{% translate 'Vor Elektrifizierung' %}</span>
-                  <div class="flex items-center gap-2 w-3/4">
-                    <div class="h-2 flex-grow bg-slate-200 rounded-full"></div>
-                    <span class="text-sm font-medium text-slate-800">10.000 t</span>
-                  </div>
-                </div>
-                <div class="flex items-center gap-4">
-                  <span class="text-end text-sm text-slate-600 flex-grow">{% translate 'Nach Elektrifizierung' %}</span>
-                  <div class="flex items-center gap-2 w-3/4">
-                    <div class="h-2 w-[30%] bg-blue-600 rounded-full"></div>
-                    <span class="text-sm font-bold text-blue-600">3.000 t</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <!-- Toggle Button -->
-            <div class="flex justify-end pt-4">
-              <button
-                id="detailsButton"
-                class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-full transition-all"
-                aria-expanded="false"
-                aria-controls="detailsContent"
-              >
-                <span>{% translate 'Details sehen' %}</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width="1.5"
-                  stroke="currentColor"
-                  class="size-4 transition-transform duration-300"
-                  id="detailsArrow"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                </svg>
-              </button>
-            </div>
-            <!-- Hidden Content -->
-            <div id="detailsContent" class="hidden mt-4 pt-8 text-sm text-slate-600 border-t border-slate-200">
-              <p>Details zur CO<sub>2</sub>-Bilanz: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce accumsan nisi at elit tincidunt fermentum.</p>
-            </div>
-          </div>
-        </div>
-      </div>
       <div class="flex flex-col">
         <div id="bus-section" class="flex justify-between items-center pb-2">
           <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Fahrzeuge' %}</h2>
@@ -493,8 +149,8 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
               </div>
             </div>
           </div>
@@ -504,16 +160,16 @@
       <div class="bg-white rounded-lg shadow-md mb-12">
         <div class="p-8">
           <nav class="-mb-px flex space-x-8 border-b border-slate-300" aria-label="Tabs" id="socTabs">
-            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-1" aria-current="page">
+            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-semibold tracking-wide text-slate-800" data-tab-button="soc-tab-1" aria-current="page">
               {% translate 'Anzahl Fahrzeuge nach SoC' %}
             </a>
-            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-2">
+            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-semibold tracking-wide text-slate-800" data-tab-button="soc-tab-2">
               {% translate 'Fahrzeugaktivitäten' %}
             </a>
-            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-3">
+            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-semibold tracking-wide text-slate-800" data-tab-button="soc-tab-3">
               {% translate 'Fahrzeuganzahlen' %}
             </a>
-            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-medium tracking-wide text-slate-800" data-tab-button="soc-tab-4">
+            <a href="#" class="soc-tab whitespace-nowrap tab border-b-4 border-slate-800 px-4 py-4 text-sm font-semibold tracking-wide text-slate-800" data-tab-button="soc-tab-4">
               {% translate 'Fahrplanwirkungsgrade' %}
             </a>
           </nav>
@@ -557,8 +213,8 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
               </div>
             </div>
           </div>
@@ -600,11 +256,26 @@
                 <div class="w-full lg:w-1/2 p-4 border-b border-slate-300">
                 <p class="text-center text-lg font-normal text-slate-800 pb-4">{% translate 'Szenario' %}</p>
                     <div class="flex justify-between mt-4">
-                        <div class="w-1/3 px-2 pb-4 text-center border-r border-slate-300">
-                            <p class="text-slate-800">
-                                <span id="num_stations" class="text-xl 2xl:text-2xl font-semibold">--</span>
+                        <div class="w-1/3 px-2 pb-4 text-center border-r border-slate-300 overflow-visible relative z-10">
+                            <p class="text-slate-800 flex items-center justify-center">
+                                <span id="num_stations_value" class="text-xl 2xl:text-2xl font-semibold">--</span>
+                                <span class="group relative inline-block ml-2 cursor-pointer z-50">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke-width="2"
+                                      stroke="currentColor"
+                                      class="size-4">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                                    </svg>
+                                    <span  id="list_electrified_stations"  class="pointer-events-none absolute left-1/2 top-[120%] z-[9999] w-96 -translate-x-1/2 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                        {% translate 'Lade Stationen...' %}
+                                    </span>
+                                </span>
                             </p>
-                    <p class="text-sm text-slate-500">{% translate 'Elektrifizierte Stationen /' %}<br>{% translate 'Gesamtzahl Stationen' %}</p>
+                            <p class="text-sm text-slate-500">
+                                {% translate 'Elektrifizierte Stationen /' %}<br>{% translate 'Gesamtzahl Stationen' %}
+                            </p>
                         </div>
                         <div class="w-1/3 px-2 pb-4 text-center border-r border-slate-300">
                             <p class="text-slate-800">
@@ -682,7 +353,8 @@
 
         <div class="pb-8">
           <!-- Hidden input to pass task ID to javascript -->
-          <input type="hidden" id="task-id" value="{{ task_id }}">
+          <input type="hidden" id="task-id-avg" value="{{ avg_scenario.task_id }}">
+          <input type="hidden" id="task-id-ext" value="{{ ext_scenario.task_id }}">
 
           <!-- Different containers for each chart -->
           <div class="flex gap-8 mb-12">
@@ -697,12 +369,60 @@
             <div id="lineChart" class="chart-container h-[480px]"></div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
+            <p class="text-center text-lg font-bold text-slate-800 pb-4">
+                {% translate 'Depot Ladeleistung und Belegung' %}
+              </p>
+              <div class="flex justify-between mt-4">
+                <div class="w-1/4 px-2 pb-4 text-center border-r border-slate-300">
+                  <p class="text-slate-800">
+                    <span id="depot-max-charging"
+                          class="text-xl 2xl:text-2xl font-semibold">--</span>
+                  </p>
+                  <p class="text-sm text-slate-500">
+                    {% translate 'Max. gleichzeitig ladende Fahrzeuge' %}
+                  </p>
+                </div>
+
+                <div class="w-1/4 px-2 pb-4 text-center border-r border-slate-300">
+                  <p class="text-slate-800">
+                    <span id="depot-max-total"
+                          class="text-xl 2xl:text-2xl font-semibold">--</span>
+                  </p>
+                  <p class="text-sm text-slate-500">
+                    {% translate 'Max. Fahrzeuge im Depot gesamt' %}
+                  </p>
+                </div>
+
+                <div class="w-1/4 px-2 pb-4 text-center border-r border-slate-300">
+                  <p class="text-slate-800">
+                    <span id="depot-peak-power"
+                          class="text-xl 2xl:text-2xl font-semibold">--</span>
+                    <span class="text-sm 2xl:text-base font-normal">kW</span>
+                  </p>
+                  <p class="text-sm text-slate-500">
+                    {% translate 'Spitzenleistung' %}
+                  </p>
+                </div>
+
+                <div class="w-1/4 px-2 pb-4 text-center">
+                  <p class="text-slate-800">
+                    <span id="depot-energy"
+                          class="text-xl 2xl:text-2xl font-semibold">--</span>
+                    <span class="text-sm 2xl:text-base font-normal">kWh</span>
+                  </p>
+                  <p class="text-sm text-slate-500">
+                    {% translate 'Geladene Energie' %}
+                  </p>
+                </div>
+              </div>
             <div id="DepotlineChart" class="chart-container h-[480px]"></div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
+            <div id="filterContainerEvents"></div>
             <div id="ganttChart" class="chart-container h-[480px]"></div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
+            <div id="filterContainerSoC"></div>
             <div id="soc-gantt" class="chart-containe h-[480px]"></div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
@@ -711,6 +431,43 @@
           <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
             <div id="SpeedHistogramChart" class="chart-container h-[480px]"></div>
           </div>
+        <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
+            <div id="filterContainerCumulative"></div>
+            <div id="cumulative-coverage" class="chart-container h-[480px]"></div>
+          </div>
+        <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto max-w-4xl">
+            <div id="table-scroll-container" class="h-[480px] overflow-y-auto relative">
+                <table id="rotationTable" class="w-full table-fixed border-collapse bg-white">
+                    <thead class="sticky top-0 z-20 bg-slate-50 shadow-sm">
+                        <tr class="divide-x divide-slate-200 border-b border-slate-200">
+                            <th data-column="name" class="sortable edge-pad-left px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/4" onclick="sortTable('name')">
+                                {% translate 'Name' %}
+                            </th>
+                            <th data-column="vehicle" class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortTable('vehicle')">
+                                {% translate 'Typ' %}
+                            </th>
+                            <th data-column="distance" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('distance')">
+                                km
+                            </th>
+                            <th data-column="consumption" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('consumption')">
+                                kWh
+                            </th>
+                            <th data-column="efficiency" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('efficiency')">
+                                kWh/km
+                            </th>
+                            <th data-column="duration" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('duration')">
+                                {% translate 'Dauer' %}
+                            </th>
+                            <th data-column="soc_spread_pct" class="sortable edge-pad-right px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortTable('soc_spread_pct')">
+                                Δ SoC
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="rotationTableBody" class="divide-y divide-slate-200 bg-white">
+                        </tbody>
+                </table>
+            </div>
+        </div>
         </div>
         <div class="flex flex-col">
         <div id="map-section" class="flex justify-between items-center pb-2">
@@ -735,7 +492,7 @@
               tabindex="-1"
             >
               <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100" role="menuitem">{% translate 'URL kopieren' %}</a>
+                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'URL kopieren' %}</a>
               </div>
             </div>
           </div>
@@ -776,12 +533,13 @@
     '#bc9e8b',
     '#d4d6dc'
 ];
-    // eCharts functionality
-    const taskId = document.getElementById("task-id").value;
-    //console.log("Simulation ID:", taskId);
-
+  // eCharts functionality
+  const taskIdAvg = document.getElementById("task-id-avg").value;
+  const taskIdExt = document.getElementById("task-id-ext").value;
+  //console.log("Simulation ID:", taskIdAvg);
+  // TODO: Use appropriate task ids for plots, depending on which scenario type should be shown
   function fetchAndRenderPieChart(chartName, chartId, titleText) {
-        return fetch(`/simba/result/${taskId}/${chartName}/`)
+        return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
                 // Filter out categories with zero values
@@ -833,9 +591,9 @@
             });
     }
 
-    function fetchAndRenderLineChart(chartName, chartId, titleText, xKey, yKey) {
+    function fetchAndRenderLineChart(chartName, chartId, titleText) {
 
-        return fetch(`/simba/result/${taskId}/${chartName}/`)
+        return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
         .then(response => response.json())
         .then(data => {
 
@@ -871,19 +629,32 @@
                     trigger: 'axis',
                     formatter: function (params) {
                         const timestamp = params[0].value[0]; // Unix timestamp
-                        const soc = params[0].value[1] *100 ; // SOC value
+                        const soc = params[0].value[1] * 100; // SOC value
                         const date = new Date(timestamp);
-                        return `${date.toLocaleString()} : ${soc.toFixed(2)}%`; // Format the tooltip
+                        const formattedDate = date.toLocaleString('en-GB', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false
+                        });
+                        return `<strong>${formattedDate}</strong><br/>${params[0].marker} ${params[0].seriesName}: ${soc.toFixed(2)}%`;
                     }
                 },
                 xAxis: {
                     type: 'time',
                     name: 'Zeit',
-                    splitNumber: 4,
+                    splitNumber: 8,
                     axisLabel: {
                         formatter: function (value) {
                             const date = new Date(value);
-                            return date.toLocaleString(); // Format x-axis labels
+                            const yyyy = date.getFullYear();
+                            const mm = String(date.getMonth() + 1).padStart(2, '0'); // Months start at 0
+                            const dd = String(date.getDate()).padStart(2, '0');
+                            const hh = String(date.getHours()).padStart(2, '0');
+                            const min = String(date.getMinutes()).padStart(2, '0');
+                            return `${yyyy}-${mm}-${dd} - ${hh}:${min}`;
                         },
                         rotate: 0
                     }
@@ -915,11 +686,20 @@
             chart.setOption(options);
         });
     }
-  function fetchAndRenderDepotChart(chartName, chartId, titleText, xKey, yKey) {
-        return fetch(`/simba/result/${taskId}/${chartName}/`)
+  function fetchAndRenderDepotChart(chartName, chartId, titleText) {
+        return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
             .then(response => response.json())
             .then(responseData => {
                 const rawData = responseData.data;
+
+                const kpis = responseData.kpis;
+
+                // KPIs
+                document.getElementById("depot-max-charging").textContent = kpis.max_charging;
+                document.getElementById("depot-max-total").textContent = kpis.max_total;
+                document.getElementById("depot-peak-power").textContent = kpis.peak_power_kw;
+                document.getElementById("depot-energy").textContent = kpis.energy_kwh;
+
 
                 // Extract x and y arrays
                 const times = rawData.map(row => row.time);
@@ -932,7 +712,6 @@
                 const options = {
                     color: ['#4269d0', '#6cc5b0', '#ff725c'],
                     title: {
-                        text: titleText,
                         left: 'center',
                         textStyle: {
                             fontSize: 16,
@@ -945,20 +724,10 @@
                     },
                     tooltip: {
                         trigger: 'axis',
-                        formatter: function (params) {
-                            // params is an array of series values at the hovered x-value
-                            const dateStr = params[0].axisValue;  // assuming all share the same x-axis value (time)
-                            const date = new Date(dateStr);
-                            const formattedDate = date.toLocaleString('en-GB', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                hour12: false
-                            });
-
-                            let tooltipContent = `<strong>${formattedDate}</strong><br/>`;
+                        formatter: function(params) {
+                            const dateStr = params[0].axisValue; // already your x-axis label
+                            // optional: parse into Date object if you want, else just show it
+                            let tooltipContent = `<strong>${dateStr}</strong><br/>`;
                             params.forEach(item => {
                                 let value = item.value;
                                 if (item.seriesName === 'Ladeleistung (kW)') {
@@ -971,7 +740,24 @@
                     },
                     xAxis: {
                         type: 'category',
-                        data: times
+                        name: 'Zeit',
+                        data: times.map(ts => {
+                            const date = new Date(ts);
+                            const yyyy = date.getFullYear();
+                            const mm = String(date.getMonth() + 1).padStart(2, '0');
+                            const dd = String(date.getDate()).padStart(2, '0');
+                            const hh = String(date.getHours()).padStart(2, '0');
+                            const min = String(date.getMinutes()).padStart(2, '0');
+                            return `${yyyy}-${mm}-${dd} - ${hh}:${min}`;
+                        }),
+                        axisLabel: {
+                            rotate: 0,
+                            interval: function(index) {
+                                const total = times.length;
+                                const step = Math.ceil(total / 8);
+                                return index % step === 0;
+                            }
+                        }
                     },
                     legend: {
                       orient: 'vertical',
@@ -1006,9 +792,6 @@
                             lineStyle: {
                                 width: 3
                             },
-                            emphasis: {
-                                focus: 'series',
-                            }
                         },
                         {
                             name: 'Belegung ladend',
@@ -1018,9 +801,6 @@
                             lineStyle: {
                                 width: 3
                             },
-                            emphasis: {
-                                focus: 'series',
-                            }
                         },
                         {
                             name: 'Belegung total',
@@ -1030,9 +810,6 @@
                             lineStyle: {
                                 width: 3
                             },
-                            emphasis: {
-                                focus: 'series',
-                            }
                         }
                     ]
                 };
@@ -1043,6 +820,317 @@
                 console.error('Error fetching or rendering chart:', error);
             });
     }
+
+    //shared utilities between the Gantt Plots:
+    function prepareGanttData(ganttData){
+        const vehicleMap = {};
+        const readableNameMap = {};
+
+        ganttData.forEach(item => {
+            const vehicleId = item.vehicle_id;
+            const vehicleType = item.vehicle_type;
+            const startTime = item.start;
+
+            if (!readableNameMap[vehicleId]) {
+                readableNameMap[vehicleId] = item.name;
+            }
+
+            if (!vehicleMap[vehicleId]) {
+                vehicleMap[vehicleId] = {
+                    id: vehicleId,
+                    type: vehicleType,
+                    minTime: startTime,
+                    originalId: vehicleId
+                };
+
+            } else {
+                // Find the absolute minimum start time for the vehicle
+                if (startTime < vehicleMap[vehicleId].minTime) {
+                    vehicleMap[vehicleId].minTime = startTime;
+                }
+            }
+        });
+
+        // Convert map to a sortable array
+        const sortedVehicles = Object.values(vehicleMap);
+
+        // Sort: Primary key is Vehicle Type (alphabetical), secondary is Min Time
+        sortedVehicles.sort((a, b) => {
+            // Primary sort: Vehicle Type (Alphabetical)
+            if (a.type < b.type) return -1;
+            if (a.type > b.type) return 1;
+
+            // Secondary sort: Earliest Start Time (Ascending)
+            return a.minTime - b.minTime;
+        });
+
+        //Construct y-axis lables
+        const typeCounters = {};
+        sortedVehicles.forEach(v => {
+            if (!typeCounters[v.type]) typeCounters[v.type] = 1; // start numbering at 1 per type
+            v.busNumber = typeCounters[v.type]++;
+        });
+
+        const newIndexMap = sortedVehicles.reduce((map, v, index) => {
+            map[v.id] = index;
+            return map;
+        }, {});
+
+        ganttData.forEach(item => {
+            item.originalVehicleId = item.vehicle_id; // keep the original ID
+            const newIndex = newIndexMap[item.vehicle_id];
+            item.vehicle = newIndex; // this is the Y-axis index for plotting
+        });
+
+        const totalVehicles = sortedVehicles.length;
+        const visibleTracks = 10;
+        const visiblePercent = (visibleTracks / totalVehicles) * 100;
+
+        const uniqueVehicleTypes = Array.from(new Set(sortedVehicles.map(v => v.type)));
+
+        return {
+            ganttData,
+            sortedVehicles,
+            uniqueVehicleTypes,
+            visiblePercent
+        };
+    }
+
+    function buildYAxisConfig(vehicles) {
+        const uniqueTypes = Array.from(new Set(vehicles.map(v => v.type)));
+        const vehicleTypeColors = ['#4269d0', '#8baafd', '#021d66', '#032b99', '#b6c9fe'];
+
+        const rich = {};
+        uniqueTypes.forEach((type, i) => {
+            rich[type] = {
+                backgroundColor: vehicleTypeColors[i % vehicleTypeColors.length],
+                color: '#fff',
+                padding: [3, 5],
+                borderRadius: 3,
+                margin: [0, 5, 0, 0]
+            };
+        });
+
+        return {
+            type: 'category',
+            inverse: true,
+            data: vehicles.map(v => `Bus ${v.busNumber}`),
+            axisLabel: {
+                interval: 0,
+                formatter: function(value, index) {
+                    const vehicle = vehicles[index];
+                    if (!vehicle) return value;
+
+                    const type = vehicle.type || 'Unknown';
+                    const truncated = type.length > 15 ? type.slice(0, 15) + '…' : type;
+
+                    return `{${type}|${truncated}} ${value}`;
+                },
+                rich: rich
+            },
+            axisTick: { show: false },
+            splitLine: { show: false }
+        };
+    }
+
+    function buildTimeXAxisConfig() {
+        return {
+            type: 'time',
+            splitNumber: 4,
+            axisLabel: {
+                formatter: function (val) {
+                    const date = new Date(val);
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const isoDate = date.toISOString().slice(0, 10);
+
+                    return `${isoDate} ${hours}:${minutes}`;
+                },
+                rotate: 0
+            }
+        };
+    }
+
+    function createVehicleTypeFilter(types, chartInstance, containerId, applyFilterFn) {
+        const container = document.getElementById(containerId);
+        if (!container) {
+            return;
+        }
+
+        container.innerHTML = '<h4>Fahrzeugtyp filtern:</h4>';
+
+        const allCheckbox = document.createElement('input');
+        allCheckbox.type = 'checkbox';
+        allCheckbox.id = `${containerId}-filterAll`;
+        allCheckbox.checked = true;
+
+        allCheckbox.addEventListener('change', () => {
+            const isChecked = allCheckbox.checked;
+
+            const individualCheckboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]:not(#${allCheckbox.id})`);
+
+            individualCheckboxes.forEach(cb => {
+                cb.checked = isChecked;
+            });
+
+            applyFilterFn(chartInstance);
+        });
+
+        const allLabel = document.createElement('label');
+        allLabel.htmlFor = `${containerId}-filterAll`;
+        allLabel.textContent = 'Alle anzeigen';
+
+        container.appendChild(allCheckbox);
+        container.appendChild(allLabel);
+        container.appendChild(document.createElement('br'));
+
+        types.forEach(type => {
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `${containerId}-filter-${type}`;
+            checkbox.value = type;
+            checkbox.checked = true;
+            checkbox.addEventListener('change', () => {
+                const filterAllId = `${containerId}-filterAll`;
+
+                if (!checkbox.checked) {
+                    document.getElementById(filterAllId).checked = false;
+                } else {
+                    const individualCheckboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]:not(#${filterAllId})`);
+                    const allChecked = Array.from(individualCheckboxes).every(cb => cb.checked);
+                    if (allChecked) {
+                        document.getElementById(filterAllId).checked = true;
+                    }
+                }
+                applyFilterFn(chartInstance);
+            });
+
+            const label = document.createElement('label');
+            label.htmlFor = `${containerId}-filter-${type}`;
+            label.textContent = type;
+
+            container.appendChild(checkbox);
+            container.appendChild(label);
+            container.appendChild(document.createElement('br'));
+        });
+    }
+
+    function applyUnifiedFilter(chartInstance, uniqueVehicleTypes, sortedVehicles, ganttData, EVENT_COLORS, LEGEND_LABELS, containerId) {
+
+        const normId = id => Number(id);
+        const normType = t => (t == null ? '' : String(t).trim().toLowerCase());
+
+        const selectedTypes = Array.from(document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`))
+            .map(cb => cb.value)
+            .filter(val => val !== 'on')
+            .map(normType);
+
+        const showAll = document.getElementById(`${containerId}-filterAll`).checked
+            || selectedTypes.length === uniqueVehicleTypes.length;
+
+        let vehiclesToKeep;
+        if (showAll) {
+            vehiclesToKeep = sortedVehicles.slice();
+        } else {
+            vehiclesToKeep = sortedVehicles.filter(v => selectedTypes.includes(normType(v.type)));
+        }
+
+        const newIndexMap = vehiclesToKeep.reduce((map, v, index) => {
+            map[normId(v.id)] = index;
+            return map;
+        }, {});
+
+        const filteredGanttData = [];
+
+        ganttData.forEach(item => {
+            const originalVehicleId = item.originalVehicleId;
+
+            if (originalVehicleId && Object.hasOwn(newIndexMap, originalVehicleId)) {
+                const newIndex = newIndexMap[originalVehicleId];
+                const newItem = { ...item };
+                newItem.vehicle = newIndex;
+
+                if (newItem.value) {
+                    const newValue = [...newItem.value];
+                    newValue[0] = newIndex;
+                    newItem.value = newValue;
+                }
+
+                filteredGanttData.push(newItem);
+            }
+        });
+
+        const baseSeriesOption = chartInstance.getOption().series[0] || {};
+        const baseRenderItem = baseSeriesOption.renderItem;
+        const baseEncode = baseSeriesOption.encode;
+
+        let newSeries;
+        const isSocChart = chartInstance.getOption().series.length === 1 && !EVENT_COLORS; // Check for single series and lack of EVENT_COLORS
+
+        if (isSocChart) {
+            let seriesData = filteredGanttData.map(d => [
+                d.vehicle,                    // 0: new y-axis category index
+                +new Date(d.start),           // 1: start time
+                +new Date(d.end),             // 2: end time
+                d.soc_start,
+                d.soc_end,
+                d.vehicle_type,
+                d.route_name,
+                d.rotation_name
+            ]);
+
+            seriesData.sort((a, b) => {
+                if (a[0] !== b[0]) return a[0] - b[0];
+                return a[1] - b[1];
+            });
+
+            newSeries = [{
+                type: 'custom',
+                renderItem: baseRenderItem,
+                encode: baseEncode,
+                data: seriesData
+            }];
+
+        } else {
+            newSeries = Object.keys(EVENT_COLORS).map(eventType => {
+
+                const seriesData = filteredGanttData
+                    .filter(d => d.event_type === eventType)
+                    .map(d => [
+                        d.vehicle,                    // 0
+                        +new Date(d.start),           // 1
+                        +new Date(d.end),             // 2
+                        d.event_type,                 // 3
+                        d.vehicle_type,               // 4
+                        d.route_name,                 // 5
+                        d.rotation_name,              // 6
+                        d.station_name                // 7
+                    ]);
+
+
+                seriesData.sort((a, b) => {
+                    if (a[0] !== b[0]) return a[0] - b[0];
+                    return a[1] - b[1];
+                });
+
+                return {
+                  name: LEGEND_LABELS[eventType],
+                  type: 'custom',
+                  renderItem: baseRenderItem,
+                  encode: baseEncode,
+                  data: seriesData
+                };
+            });
+        }
+
+        const newYAxisConfig = buildYAxisConfig(vehiclesToKeep);
+
+        chartInstance.setOption({
+            yAxis: newYAxisConfig,
+            series: newSeries
+        }, { replaceMerge: ['series', 'yAxis'] });
+    }
+
     function fetchAndRenderGanttChart(chartName, chartId, titleText) {
 
         const EVENT_COLORS = {
@@ -1066,31 +1154,20 @@
       };
 
 
-  return fetch(`/simba/result/${taskId}/${chartName}/`)
+  return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
-                const categories = data.categories;  // Array of bus categories
-                const ganttData = data.data;         // Array of Gantt data
 
+                const {
+                    ganttData,
+                    sortedVehicles,
+                    uniqueVehicleTypes,
+                    visiblePercent
+                } = prepareGanttData(data.data);
 
-                const totalVehicles = categories.length;
-                const visibleTracks = 10;
-                const visiblePercent = (visibleTracks / totalVehicles) * 100;
+                const EVENT_TYPE_INDEX = 3;
 
-                // Prepare ECharts option
                 const option = {
-                    tooltip: {
-                        formatter: function (params) {
-                            const eventType = params.value[5];  // event_type is at index 5
-                            const color = EVENT_COLORS[eventType] || '#000';
-
-                            const marker = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
-                            const startTime = new Date(params.value[1]);
-                            const endTime = new Date(params.value[2]);
-
-                            return `${marker}${params.name}: ${startTime.toISOString()} - ${endTime.toISOString()} (${params.value[3]} ms)`;
-                        }
-                    },
                     title: {
                         text: 'Bus-Einsatz-Zeitplan',
                         left: 'center'
@@ -1133,19 +1210,23 @@
                     ],
                     tooltip: {
                         formatter: function (params) {
-                            const eventType = params.value[5];
+                            const eventType = params.data[3];
+                            const vehicleType = params.data[4];
+                            const routeName = params.data[5];
+                            const rotationName = params.data[6];
+                            const stationName = params.data[7];
                             const color = EVENT_COLORS[eventType] || '#000';
 
                             const marker = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
                             const startTime = new Date(params.value[1]);
                             const endTime = new Date(params.value[2]);
-                            const durationMs = params.value[3];
+                            const durationMs = (endTime-startTime)/1000;
 
                             const formatDate = (date) => {
                                 const pad = n => String(n).padStart(2, '0');
                                 return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
                             };
-
+                            //console.log(params)
                             const durationFraction = durationMs / (60 * 60);
                             const formatFractionToHHmm = (fraction) => {
                                 const hours = Math.floor(fraction);
@@ -1155,7 +1236,25 @@
                             };
                             const durationFormatted = formatFractionToHHmm(durationFraction);
 
-                            return `${marker}${params.name}<br>${formatDate(startTime)} - Dauer: ${durationFormatted} h`;
+                            let html = `${marker}<strong>${eventType}</strong><br>`;
+                            html += `<strong>Name: </strong>${params.name}<br>`;
+                            html += `<strong>Fahrzeugtyp: </strong>${vehicleType || 'N/A'}<br>`;
+
+                            // Only show Rotation/Route/Station if the data exists
+                            if (stationName) {
+                            html += `<strong>Ort: </strong> ${stationName}<br>`;
+                            }
+                            if (rotationName) {
+                            html += `<strong>Umlauf: </strong> ${rotationName}<br>`;
+                            }
+                            if (routeName) {
+                            html += `<strong>Linie: </strong>${routeName}<br>`;
+                            }
+                            html += `<strong>Startzeit: </strong> ${formatDate(startTime)}<br>`;
+                            html += `<strong>Endzeit: </strong> ${formatDate(endTime)}<br>`;
+                            html += `<strong>Dauer: </strong> ${durationFormatted} h`;
+
+                            return html;
                         }
                     },
                     legend : {
@@ -1170,119 +1269,86 @@
                       left: 60,
                       containLabel: true
                     },
-                    xAxis: {
-                        type: 'time',
-                        splitNumber: 4,  // Try to limit to 6 ticks across the chart
-                        axisLabel: {
-                            formatter: function (val) {
-                                const date = new Date(val);
-                                const hours = String(date.getHours()).padStart(2, '0');
-                                const minutes = String(date.getMinutes()).padStart(2, '0');
-
-                                const isoDate = date.toISOString().slice(0, 10);
-                                const time = `${hours}:${minutes}`;
-
-                                const totalZoomRange = chart.getModel().getComponent('xAxis').axis.scale._extent;
-                                const zoomWindow = totalZoomRange[1] - totalZoomRange[0];
-
-                                if (zoomWindow > 3 * 24 * 3600 * 1000) {
-                                    return isoDate;
-                                } else if (zoomWindow > 6 * 3600 * 1000) {
-                                    return `${isoDate} ${time}`;
-                                } else {
-                                    return time;
-                                }
-                            },
-                            rotate: 0  // You can override this below
-                        }
-                    },
-                    yAxis: {
-                        type: 'category',
-                        inverse: true,
-                        data: categories,
-                        // Ensure enough space for each category (bus)
-                        axisLabel: {
-                            interval: 0,  // Display all bus labels
-                            formatter: function (value) {
-                                return value;  // Keep the category labels (bus names) as they are
-                            }
-                        },
-                        axisTick: {
-                            show: false  // Hide ticks to save space
-                        },
-                        splitLine: {
-                            show: false  // Hide grid lines between categories
-                        }
-                    },
+                    xAxis: buildTimeXAxisConfig(),
+                    yAxis: buildYAxisConfig(sortedVehicles),
                     series: Object.keys(EVENT_COLORS).map(eventType => ({
                       name: LEGEND_LABELS[eventType],
                       type: 'custom',
-                      renderItem: function (params, api) {
-                          const categoryIndex = api.value(0);
-                          const start = api.coord([api.value(1), categoryIndex]);
-                          const end = api.coord([api.value(2), categoryIndex]);
-
-                          const size = api.size([0, 1]);
-                          const dynamicHeight = size[1] * 0.8;
-
-                          const rectShape = echarts.graphic.clipRectByRect(
-                              {
-                                  x: start[0],
-                                  y: start[1] - dynamicHeight / 2,
-                                  width: end[0] - start[0],
-                                  height: dynamicHeight
-                              },
-                              {
-                                  x: params.coordSys.x,
-                                  y: params.coordSys.y,
-                                  width: params.coordSys.width,
-                                  height: params.coordSys.height
-                              }
-                          );
-
-                          const color = EVENT_COLORS[eventType] || "#000000";
-
-                          return rectShape && {
-                              type: 'rect',
-                              transition: ['shape'],
-                              shape: rectShape,
-                              style: api.style({ fill: color })
-                          };
-                      },
                       itemStyle: {
-                        color: EVENT_COLORS[eventType],
-                        opacity: 0.8
-                      },
+                            color: EVENT_COLORS[eventType]
+                        },
+                        renderItem: function (params, api) {
+                            const categoryIndex = api.value(0);
+                            const startCoord = api.coord([api.value(1), categoryIndex]);
+                            const endCoord   = api.coord([api.value(2), categoryIndex]);
+
+                            const eventTypeKey = api.value(EVENT_TYPE_INDEX);
+                            const color = api.visual('color');
+                            const height = api.size([0, 1])[1] * 0.8;
+
+                            return {
+                                  type: 'rect',
+                                  shape: {
+                                    x: startCoord[0],
+                                    y: startCoord[1] - height / 2,
+                                    width: endCoord[0] - startCoord[0],
+                                    height
+                                  },
+                                  style: {
+                                    fill: color
+                                  }
+                            };
+                        },
                       encode: {
                           x: [1, 2],
                           y: 0,
-                          itemName: 5
+                          itemName: 4
                       },
                       data: ganttData
                           .filter(d => d.event_type === eventType)
-                          .map(d => [...d.value, d.name, d.event_type])
+                          .map(d => [
+                                d.vehicle,
+                                +new Date(d.start),           // 1: start
+                                +new Date(d.end),             // 2: end
+                                d.event_type,
+                                d.vehicle_type,
+                                d.route_name,
+                                d.rotation_name,
+                                d.station_name
+                            ])
                   }))
+
                 };
 
-                // Initialize ECharts instance and set option
                 const chart = echarts.init(document.getElementById(chartId), 'ebusPalette');
                 chart.setOption(option);
-            })
-            .catch(error => console.error('Error loading Gantt data:', error));
+                createVehicleTypeFilter(
+                    uniqueVehicleTypes,
+                    chart,
+                    "filterContainerEvents",
+                    (instance) => applyUnifiedFilter(instance,
+                        uniqueVehicleTypes,
+                        sortedVehicles,
+                        ganttData,
+                        EVENT_COLORS,
+                        LEGEND_LABELS,
+                        "filterContainerEvents")
+                );
+          })
+          .catch(error => console.error('Error loading Gantt data:', error));
     }
+
     function fetchAndRenderGanttChartSOC(chartName, chartId, titleText) {
-        return fetch(`/simba/result/${taskId}/${chartName}/`)
+        return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
 
-                const vehicles = data.vehicles;
-                const records = data.records;
-
-                const vehicleIndex = Object.fromEntries(vehicles.map((v, i) => [v, i]));
-
-                const totalVehicles = vehicles.length;
-                const visibleTracks = 10;
-                const visiblePercent = (visibleTracks / totalVehicles) * 100;
+                const {
+                    ganttData,
+                    sortedVehicles,
+                    uniqueVehicleTypes,
+                    visiblePercent
+                } = prepareGanttData(data.data);
 
                 const viridisAnchors = [
                   '#440154', // dark purple
@@ -1324,35 +1390,30 @@
                   return interpolateColor(anchors[index], anchors[index + 1], factor);
                 }
 
-
                 const series = {
                     type: 'custom',
                     renderItem: function (params, api) {
                         const categoryIndex = api.value(0);
-                        const start = api.coord([api.value(1), categoryIndex]);
-                        const end = api.coord([api.value(2), categoryIndex]);
-                        const height = api.size([0, 1])[1] * 0.8; // Control bar height
+                        const startCoord = api.coord([api.value(1), categoryIndex]);
+                        const endCoord   = api.coord([api.value(2), categoryIndex]);
 
-                        // Calculate gradient color based on soc_start and soc_end
-                        const colorStart = socToColor(api.value(3));  // Color at start of SoC
-                        const colorEnd = socToColor(api.value(4));    // Color at end of SoC
+                        const height = api.size([0, 1])[1] * 0.8;
 
                         return {
                             type: 'rect',
                             shape: {
-                                x: start[0],
-                                y: start[1] - height / 2,
-                                width: end[0] - start[0],
-                                height: height
+                                x: startCoord[0],
+                                y: startCoord[1] - height / 2,
+                                width: endCoord[0] - startCoord[0],
+                                height
                             },
                             style: {
-                                // Use a linear gradient between the two colors
                                 fill: {
                                     type: 'linear',
-                                    x: 0, y: 0, x2: 1, y2: 0, // Horizontal gradient
+                                    x: 0, y: 0, x2: 1, y2: 0,
                                     colorStops: [
-                                        { offset: 0, color: colorStart },
-                                        { offset: 1, color: colorEnd }
+                                        { offset: 0, color: socToColor(api.value(3)) },
+                                        { offset: 1, color: socToColor(api.value(4)) }
                                     ]
                                 }
                             }
@@ -1362,39 +1423,19 @@
                         x: [1, 2], // Start, End times
                         y: 0       // Category index for vehicle
                     },
-                    // Data for each vehicle's SoC record
-                    data: records.map(d => [
-                        vehicleIndex[d.vehicle],           // Vehicle index
-                        +new Date(d.start),                // Start time in milliseconds
-                        +new Date(d.end),                  // End time in milliseconds
-                        d.soc_start,                       // soc_start value
-                        d.soc_end                          // soc_end value
+                    data: ganttData.map(d => [
+                        d.vehicle,                    // 0: y-axis category
+                        +new Date(d.start),           // 1: start
+                        +new Date(d.end),             // 2: end
+                        d.soc_start,
+                        d.soc_end,
+                        d.vehicle_type,
+                        d.route_name,
+                        d.rotation_name,
+                        d.station_name
                     ])
                 };
-
-                // Set up the chart options
-                const chart = echarts.init(document.getElementById(chartId), 'ebusPalette'); // Use chartId passed
-
-                chart.setOption({
-                    tooltip: {
-                        formatter: function (params) {
-                            const socStart = (params.value[3] * 100).toFixed(2);
-                            const socEnd = (params.value[4] * 100).toFixed(2);
-
-                            const formatDate = (date) => {
-                                const d = new Date(date);
-                                const pad = n => String(n).padStart(2, '0');
-                                return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-                            };
-
-                            const startFormatted = formatDate(params.value[1]);
-                            const endFormatted = formatDate(params.value[2]);
-
-                            return `${vehicles[params.value[0]]}<br/>
-                                    ${startFormatted} → ${endFormatted}<br/>
-                                    SoC: ${socStart}% → ${socEnd}%`;
-                        }
-                    },
+                const option = {
                     title: {
                         text: titleText,
                         left: 'center'
@@ -1435,10 +1476,62 @@
                             moveOnMouseWheel: true
                         }
                     ],
+                    tooltip: {
+                        formatter: function (params) {
+                            const socStart = (params.value[3] * 100).toFixed(2);
+                            const socEnd = (params.value[4] * 100).toFixed(2);
+                            const vehicleType = params.value[5];
+                            const routeName = params.value[6];
+                            const rotationName = params.value[7];
+                            const stationName = params.data[8];
+                            const startTime = new Date(params.value[1]);
+                            const endTime = new Date(params.value[2]);
+                            const durationMs = (endTime-startTime)/1000;
+
+                            const formatDate = (date) => {
+                                const d = new Date(date);
+                                const pad = n => String(n).padStart(2, '0');
+                                return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                            };
+
+                            const durationFraction = durationMs / (60 * 60);
+                            const formatFractionToHHmm = (fraction) => {
+                                const hours = Math.floor(fraction);
+                                const minutes = Math.round((fraction % 1) * 60);
+                                const pad = n => String(n).padStart(2, '0');
+                                return `${pad(hours)}:${pad(minutes)}`;
+                            };
+                            const durationFormatted = formatFractionToHHmm(durationFraction);
+
+                            let html = `<strong>Name: </strong>${params.name}<br>`;
+                            html += `<strong>Fahrzeugtyp: </strong>${vehicleType || 'N/A'}<br>`;
+
+                            // Only show Rotation/Route/Station if the data exists
+                            if (stationName) {
+                            html += `<strong>Ort: </strong> ${stationName}<br>`;
+                            }
+                            if (rotationName) {
+                                html += `<strong>Umlauf: </strong> ${rotationName}<br>`;
+                            }
+                            if (routeName) {
+                                html += `<strong>Linie: </strong>${routeName}<br>`;
+                            }
+
+                            html += `<strong>Startzeit: </strong> ${formatDate(startTime)}<br>`;
+                            html += `<strong>Endzeit: </strong> ${formatDate(endTime)}<br>`;
+                            html += `<strong>Dauer: </strong> ${durationFormatted} h<br>`;
+
+                            html += `<strong>Start-SoC: </strong> ${socStart}%<br>`;
+                            html += `<strong>End-Soc: </strong> ${socEnd}%<br>`;
+
+                            return html;
+                        }
+                    },
                     visualMap: {
                         type: 'continuous',
                         min: 0,
                         max: 1,
+                        dimension: 3,
                         calculable: false,
                         orient: 'horizontal',
                         left: 'center',
@@ -1466,51 +1559,25 @@
                         right: 160,
                         containLabel: true,
                     },
-                    xAxis: {
-                        type: 'time',
-                        splitNumber: 4,  // Try to limit to 6 ticks across the chart
-                        axisLabel: {
-                            formatter: function (val) {
-                                const date = new Date(val);
-                                const hours = String(date.getHours()).padStart(2, '0');
-                                const minutes = String(date.getMinutes()).padStart(2, '0');
-
-                                const isoDate = date.toISOString().slice(0, 10);
-                                const time = `${hours}:${minutes}`;
-
-                                const totalZoomRange = chart.getModel().getComponent('xAxis').axis.scale._extent;
-                                const zoomWindow = totalZoomRange[1] - totalZoomRange[0];
-
-                                if (zoomWindow > 3 * 24 * 3600 * 1000) {
-                                    return isoDate;
-                                } else if (zoomWindow > 6 * 3600 * 1000) {
-                                    return `${isoDate} ${time}`;
-                                } else {
-                                    return time;
-                                }
-                            },
-                            rotate: 0  // You can override this below
-                        }
-                    },
-                    yAxis: {
-                        type: 'category',
-                        data: vehicles,
-                        // Ensure enough space for each category (bus)
-                        axisLabel: {
-                            interval: 0,  // Display all bus labels
-                            formatter: function (value) {
-                                return value;  // Keep the category labels (bus names) as they are
-                            }
-                        },
-                        axisTick: {
-                            show: false  // Hide ticks to save space
-                        },
-                        splitLine: {
-                            show: false  // Hide grid lines between categories
-                        }
-                    },
+                    xAxis: buildTimeXAxisConfig(),
+                    yAxis: buildYAxisConfig(sortedVehicles),
                     series: [series]
-                });
+                };
+
+                const chart = echarts.init(document.getElementById(chartId), 'ebusPalette');
+                chart.setOption(option);
+                createVehicleTypeFilter(
+                    uniqueVehicleTypes,
+                    chart,
+                    "filterContainerSoC",
+                    (instance) => applyUnifiedFilter(instance,
+                        uniqueVehicleTypes,
+                        sortedVehicles,
+                        ganttData,
+                        null,
+                        null,
+                        "filterContainerSoC")
+                );
             })
             .catch(error => {
                 console.error('Error fetching or rendering SOC Gantt chart:', error);
@@ -1518,7 +1585,7 @@
     }
     function fetchAndRenderStats(chartName, chartId, titleText) {
 
-        fetch(`/simba/result/${taskId}/${chartName}/`)
+        fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
 
@@ -1526,7 +1593,7 @@
                 document.getElementById('shortest_rotation').textContent = data.shortest_rotation;
                 document.getElementById('total_dist').textContent = data.total_dist;
 
-                document.getElementById('num_stations').textContent = data.num_stations;
+                document.getElementById('num_stations_value').textContent = data.num_stations;
                 document.getElementById('num_busses').textContent = data.num_busses;
                 document.getElementById('most_frequented').textContent = data.most_frequented;
 
@@ -1537,13 +1604,25 @@
                 document.getElementById('depots-anzahl-stellplaetze').textContent = data.num_busses;
                 document.getElementById('depots-energie').textContent = data.depot_energy;
                 document.getElementById('depots-spitzenleistung').textContent = data.peak_depot_power;
+
+                const tooltipElement = document.getElementById('list_electrified_stations');
+
+                if (data.electrified_stations_list && Array.isArray(data.electrified_stations_list)) {
+                    const listHtml = data.electrified_stations_list
+                        .map(station => `<li>${station}</li>`)
+                        .join('');
+                    tooltipElement.innerHTML = `<ul class="text-left list-disc pl-4">${listHtml}</ul>`;
+                } else {
+                    tooltipElement.textContent = "Keine Station elektrifiziert";
+                }
+
             })
             .catch(error => {
                 console.error('Error fetching statistics:', error);
             });
     };
     function fetchAndRenderStackedHistogram(chartName, chartId, titleText) {
-        return fetch(`/simba/result/${taskId}/${chartName}/`)
+        return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
@@ -1612,7 +1691,7 @@
             });
     }
     function fetchAndRenderHistogram(chartName, chartId, titleText) {
-      return fetch(`/simba/result/${taskId}/${chartName}/`)
+      return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
         .then(response => response.json())
         .then(data => {
           if (data.error) {
@@ -1663,7 +1742,7 @@
             .catch(error => console.error('Error fetching histogram data:', error));
     }
     function fetchAndRenderSoCHistogram(chartName, chartID) {
-        fetch(`/simba/result/${taskId}/${chartName}/`)  // Replace with the actual URL
+        fetch(`/simba/result/${taskIdAvg}/${chartName}/`)  // Replace with the actual URL
       .then((res) => res.json())
       .then((result) => {
         const rawData = result.data;
@@ -1762,25 +1841,222 @@
 
     }
 
+    function computeCDF(rawData, selectedTypes) {
+        const filtered = rawData.filter(d => selectedTypes.includes(d.type));
+        if (filtered.length === 0) return { x: [], y: [] };
+
+        filtered.sort((a, b) => a.energy - b.energy);
+
+        const total = filtered.length;
+        const uniquePoints = new Map();
+
+        filtered.forEach((item, index) => {
+            const percentage = ((index + 1) / total) * 100;
+            uniquePoints.set(item.energy, Number(percentage.toFixed(1)));
+        });
+
+        const xCoords = Array.from(uniquePoints.keys()).sort((a, b) => a - b);
+        const yCoords = xCoords.map(x => uniquePoints.get(x));
+
+        return { x: xCoords, y: yCoords };
+    }
+
+    function fetchAndRenderCumulativeChart(chartName, chartId, titleText) {
+        const filterContainerId = "filterContainerCumulative";
+
+        return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
+            .then(response => response.json())
+            .then(data => {
+                const chartDom = document.getElementById(chartId);
+                const chart = echarts.init(chartDom);
+
+                chart._rawData = data.raw_data;
+                chart._allTypes = data.unique_types;
+                chart._selectedTypesString = "";
+                chart._isAllSelected = true;
+
+                const option = {
+                    title: {
+                        text: titleText,
+                        left: 'center',
+                        textStyle: { fontWeight: 'lighter', color: '#1e293b', fontSize: 16 }
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        borderWidth: 0,
+                        shadowBlur: 10,
+                        shadowColor: 'rgba(0, 0, 0, 0.1)',
+                        textStyle: { color: '#334155' },
+                        formatter: function (params) {
+                            const entry = params[0].value;
+                            const energy = entry[0];
+                            const percentage = entry[1];
+
+                            if (chart._isAllSelected) {
+                                // Tooltip when all Vehicle types are selected
+                                return `<b>${percentage}%</b> der Umläufe sind mit einem <b>${energy} kWh</b> Akku erfüllbar.`;
+                            } else {
+                                // Tooltip when subset of Vehicletypes is selected
+                                const typeNames = chart._selectedTypesString || "ausgewählten Typen";
+                                return `<b>${percentage}%</b> der Umläufe der Typen <b>${typeNames}</b> sind mit einem <b>${energy} kWh</b> Akku erfüllbar.`;
+                            }
+                        }
+                    },
+                    grid: { left: '10%', right: '10%', bottom: '15%', containLabel: true },
+                    xAxis: {
+                        type: 'value',
+                        name: 'Energiebedarf (kWh)',
+                        nameLocation: 'middle',
+                        nameGap: 35,
+                        splitLine: { show: false }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: '% der Umläufe',
+                        max: 100,
+                        axisLabel: { formatter: '{value}%' },
+                        splitLine: { lineStyle: { type: 'dashed', color: '#e2e8f0' } }
+                    },
+                    series: [{
+                        name: 'Kumulativ',
+                        type: 'line',
+                        smooth: true,
+                        showSymbol: false,
+                        itemStyle: { color: '#059669' },
+                        lineStyle: { color: '#059669', width: 3 },
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: 'rgba(5, 150, 105, 0.3)' },
+                                { offset: 1, color: 'rgba(5, 150, 105, 0)' }
+                            ])
+                        },
+                        data: []
+                    }]
+                };
+
+                const applyFilter = () => {
+                    const container = document.getElementById(filterContainerId);
+                    if (!container) return;
+
+                    const selectedTypes = Array.from(container.querySelectorAll('input[type="checkbox"]:checked'))
+                        .map(cb => cb.value)
+                        .filter(val => val !== 'on' && val !== '');
+
+                    chart._isAllSelected = selectedTypes.length === chart._allTypes.length;
+                    chart._selectedTypesString = selectedTypes.join(', ');
+
+                    const cdf = computeCDF(chart._rawData, selectedTypes);
+
+                    chart.setOption({
+                        series: [{
+                            data: cdf.x.map((x, i) => [x, cdf.y[i]])
+                        }]
+                    });
+                };
+
+                createVehicleTypeFilter(data.unique_types, chart, filterContainerId, applyFilter);
+                chart.setOption(option);
+                applyFilter();
+
+                window.addEventListener('resize', chart.resize);
+            });
+    }
+
+    function loadRotationTable(taskId) {
+        fetch(`/simba/result/${taskId}/rotation_table/`)
+            .then(response => response.json())
+            .then(data => {
+                rotationData = data;
+                renderTable(rotationData);
+            });
+    }
+
+    let rotationData = [];
+    let sortDirection = 1;
+    let currentSortColumn = '';
+
+    function formatDuration(decimalHours) {
+        const totalMinutes = Math.floor(decimalHours * 60);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+
+        // Pad with leading zeros (e.g., 01:05 instead of 1:5)
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('rotationTableBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = data.map(row => `
+            <tr class="hover:bg-slate-50 transition-colors duration-75">
+                <td class="edge-pad-left px-4 py-2 text-xs font-medium text-slate-900 truncate max-w-[180px]" title="${row.name}">
+                    ${row.name}
+                </td>
+                <td class="px-4 py-2 text-xs text-slate-500 truncate max-w-[120px]" title="${row.vehicle}">
+                    ${row.vehicle}
+                </td>
+                <td class="px-4 py-2 text-xs text-right text-slate-600">${row.distance}</td>
+                <td class="px-4 py-2 text-xs text-right text-slate-600">${row.consumption}</td>
+                <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${row.efficiency}</td>
+                <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${formatDuration(row.duration)}</td>
+                <td class="edge-pad-right px-4 py-2 text-xs text-right font-mono text-slate-600">${row.soc_spread_pct}%</td>
+            </tr>
+        `).join('');
+    }
+    function sortTable(column) {
+        if (currentSortColumn === column) {
+            sortDirection *= -1;
+        } else {
+            sortDirection = 1;
+            currentSortColumn = column;
+        }
+
+        document.querySelectorAll('th.sortable').forEach(th => {
+            th.classList.remove('asc', 'desc');
+            if (th.dataset.column === column) {
+                th.classList.add(sortDirection === 1 ? 'asc' : 'desc');
+            }
+        });
+
+        rotationData.sort((a, b) => {
+            let valA = a[column];
+            let valB = b[column];
+
+            if (valA == null) return 1;
+            if (valB == null) return -1;
+
+            if (typeof valA === 'string') {
+                return valA.localeCompare(valB) * sortDirection;
+            }
+            return (valA - valB) * sortDirection;
+        });
+
+        renderTable(rotationData);
+    }
+
 
     // Ensure the DOM is fully loaded before running
     document.addEventListener("DOMContentLoaded", function() {
 
         const el = document.getElementById("dataFetchedFinished");
-      if (taskId) {
+      if (taskIdAvg) {
         const chartPromises =[
         // Render the charts
         fetchAndRenderPieChart("critical_rotations", "chartContainer", "Kritische und nicht kritische Umläufe"),
         fetchAndRenderPieChart("bustype", "busTypeChartContainer", "Verteilung Fahrzeugtyp"),
-        fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit", "time_end", "soc_end_prc"),
-        fetchAndRenderDepotChart("depot_power", "DepotlineChart", "Depot Ladeleistung und Belegung", "time_end", "soc_end_prc"),
+        fetchAndRenderLineChart("soc", "lineChart", "Bus SOC über Zeit"),
+        fetchAndRenderDepotChart("depot_power", "DepotlineChart", ""),
 
         fetchAndRenderStats("stats", "_", "_"),
         fetchAndRenderGanttChart("gantt","ganttChart","_"),
         fetchAndRenderStackedHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen"),
         fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten"),
         fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap"),
-        fetchAndRenderGanttChartSOC("soc_gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit")];
+        fetchAndRenderGanttChartSOC("gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit"),
+        fetchAndRenderCumulativeChart("cumulative_coverage", "cumulative-coverage", "Anteil erfüllbarer Umläufe"),
+        loadRotationTable(taskIdAvg)];
 
         Promise.allSettled(chartPromises).then((results)=>{
           const allSuccessful = results.every(r => r.status === "fulfilled");
@@ -1936,7 +2212,7 @@ document.querySelectorAll('.costs-tab').forEach((tab) => {
   tab.classList.toggle('border-transparent', !isActive);
   tab.classList.toggle('text-slate-500', !isActive);
   tab.classList.toggle('hover:border-slate-300', !isActive);
-  tab.classList.toggle('hover:text-slate-700', !isActive);
+  tab.classList.toggle('hover:text-slate-800', !isActive);
 });
 };
 
@@ -2074,7 +2350,7 @@ switchCostsTab('costs-tab-1');
         tab.classList.toggle('border-transparent', !isActive);
         tab.classList.toggle('text-slate-500', !isActive);
         tab.classList.toggle('hover:border-slate-300', !isActive);
-        tab.classList.toggle('hover:text-slate-700', !isActive);
+        tab.classList.toggle('hover:text-slate-800', !isActive);
       });
     };
 
@@ -2088,5 +2364,21 @@ switchCostsTab('costs-tab-1');
     // Initialize with the first tab active
     switchSocTab('soc-tab-1');
   });
+</script>
+
+<script>
+  /* tabs in map popups functionality */
+  function openTab(e, tab_id) {
+    let tab_contents = document.getElementsByClassName("tab-pane");
+    for (let content of tab_contents) {
+      content.style.display = "none";
+    }
+    let tab_links = document.getElementsByClassName("tab-link");
+    for (let tab_link of tab_links) {
+      tab_link.classList.remove("active");
+    }
+    document.getElementById("tab-" + tab_id).style.display = "block";
+    e.currentTarget.classList.add("active");
+  }
 </script>
 {% endblock script %}

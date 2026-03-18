@@ -1,20 +1,23 @@
-{% extends 'ebustoolbox/wizard.html' %}summary htm
+{% extends 'ebustoolbox/wizard.html' %}
 {% load i18n %}
 
   {% block title %}{% translate 'WeBus - Zusammenfassung' %}{% endblock title %}
 
 {% block wizard_navigation %}
-  {% with wiz_idx=6 %}
+  {% with wiz_idx=7 %}
     {{ block.super }}
   {% endwith %}
 {% endblock wizard_navigation %}
 
-{% block header %}
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-{% endblock header %}
 
 {% block wizard_content %}
+
+<!-- ebustoolbox/templates/ebustoolbox/partials/notifications_multi.html -->
+<div id='multiNotificationDiv'
+hx-get='{% url "simba:notifications" task_id 'SummaryView' %}'
+hx-swap='outerHTML'
+hx-trigger='load'
+></div>
   <div
     class="rounded-md bg-yellow-50 p-4"
     role="alert"
@@ -42,52 +45,25 @@
       </div>
     </div>
   </div>
-
   <!-- Use alert when simulating -->
   <div class="flex justify-center pt-8">
-    <button id="simulateButton" hx-get="{% url "simba:merge_and_run" scenario.task_id %}" hx-target="#simulationProgressAlert" s
-        class="px-6 py-2 w-[16rem] bg-emerald-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-emerald-300 hover:shadow-lg active:bg-emerald-500 transition-all duration-300 cursor-pointer"
-        {% if progress.running or progress.success %}disabled{% endif %}>
-        <div class="flex align-center gap-4">
-          <svg width="24" height="24" version="1.1" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-            <path d="m85.938 83.984h-70.312c-1.0781 0-1.9531-0.875-1.9531-1.9531v-76.172c0-1.0781 0.875-1.9531 1.9531-1.9531h70.312c1.0781 0 1.9531 0.875 1.9531 1.9531v76.172c0 1.0781-0.875 1.9531-1.9531 1.9531zm-68.359-3.9062h66.406v-72.266h-66.406z"/>
-            <path d="m85.938 64.453h-70.312c-1.0781 0-1.9531-0.875-1.9531-1.9531v-41.016c0-1.0781 0.875-1.9531 1.9531-1.9531h70.312c1.0781 0 1.9531 0.875 1.9531 1.9531v41.016c0 1.0781-0.875 1.9531-1.9531 1.9531zm-68.359-3.9062h66.406v-37.109h-66.406z"/>
-            <path d="m37.109 97.656h-13.672c-1.0781 0-1.9531-0.875-1.9531-1.9531v-13.672c0-1.0781 0.875-1.9531 1.9531-1.9531h13.672c1.0781 0 1.9531 0.875 1.9531 1.9531v13.672c0 1.0781-0.875 1.9531-1.9531 1.9531zm-11.719-3.9062h9.7656v-9.7656h-9.7656z"/>
-            <path d="m78.125 97.656h-13.672c-1.0781 0-1.9531-0.875-1.9531-1.9531v-13.672c0-1.0781 0.875-1.9531 1.9531-1.9531h13.672c1.0781 0 1.9531 0.875 1.9531 1.9531v13.672c0 1.0781-0.875 1.9531-1.9531 1.9531zm-11.719-3.9062h9.7656v-9.7656h-9.7656z"/>
-            <path d="m29.297 78.125c-3.2305 0-5.8594-2.6289-5.8594-5.8594s2.6289-5.8594 5.8594-5.8594 5.8594 2.6289 5.8594 5.8594-2.6289 5.8594-5.8594 5.8594zm0-7.8125c-1.0781 0-1.9531 0.875-1.9531 1.9531s0.875 1.9531 1.9531 1.9531 1.9531-0.875 1.9531-1.9531-0.875-1.9531-1.9531-1.9531z"/>
-            <path d="m72.266 78.125c-3.2305 0-5.8594-2.6289-5.8594-5.8594s2.6289-5.8594 5.8594-5.8594 5.8594 2.6289 5.8594 5.8594-2.6289 5.8594-5.8594 5.8594zm0-7.8125c-1.0781 0-1.9531 0.875-1.9531 1.9531s0.875 1.9531 1.9531 1.9531 1.9531-0.875 1.9531-1.9531-0.875-1.9531-1.9531-1.9531z"/>
-            <path d="m60.547 74.219h-19.531c-1.0781 0-1.9531-0.875-1.9531-1.9531s0.875-1.9531 1.9531-1.9531h19.531c1.0781 0 1.9531 0.875 1.9531 1.9531s-0.875 1.9531-1.9531 1.9531z"/>
-            <path d="m91.254 54.688h-5.3164c-1.0781 0-1.9531-0.875-1.9531-1.9531v-17.578c0-1.0781 0.875-1.9531 1.9531-1.9531h5.3164c3.5312 0 6.4023 2.8711 6.4023 6.4023v8.6797c0 3.5312-2.8711 6.4023-6.4023 6.4023zm-3.3633-3.9062h3.3633c1.375 0 2.4961-1.1211 2.4961-2.4961v-8.6797c0-1.375-1.1211-2.4961-2.4961-2.4961h-3.3633z"/>
-            <path d="m15.625 54.688h-5.3164c-3.5312 0-6.4023-2.8711-6.4023-6.4023v-8.6797c0-3.5312 2.8711-6.4023 6.4023-6.4023h5.3164c1.0781 0 1.9531 0.875 1.9531 1.9531v17.578c0 1.0781-0.875 1.9531-1.9531 1.9531zm-5.3164-17.578c-1.375 0-2.4961 1.1211-2.4961 2.4961v8.6797c0 1.375 1.1211 2.4961 2.4961 2.4961h3.3633v-13.672z"/>
-            <path d="m39.062 46.484c-0.56641 0-1.125-0.24609-1.5117-0.71484-0.68359-0.83594-0.55859-2.0664 0.27344-2.75l18.621-15.234c0.83594-0.68359 2.0664-0.55859 2.75 0.27344 0.68359 0.83594 0.55859 2.0664-0.27344 2.75l-18.621 15.234c-0.36328 0.29688-0.80078 0.44141-1.2383 0.44141z"/>
-            <path d="m40.758 56.641c-0.56641 0-1.125-0.24609-1.5117-0.71484-0.68359-0.83594-0.55859-2.0664 0.27344-2.75l18.621-15.234c0.83594-0.68359 2.0664-0.55859 2.75 0.27344 0.68359 0.83594 0.55859 2.0664-0.27344 2.75l-18.621 15.234c-0.36719 0.29688-0.80469 0.44141-1.2383 0.44141z"/>
-          </svg>
-        <span class="text-slate-800 font-semibold">{% translate 'Simulation starten' %}</span>
-        </div>
-    </button>
+<div id='simulateButton'
+        hx-select="#simulateButton"
+        hx-get='.'
+        hx-trigger='startSim from:body, success from:body, notRunning from:body'
+        hx-swap='innerHTML'
+        >
+  {% include "ebustoolbox/partials/simulate_scenario_button.html" %}
+      </div>
   </div>
-
-  <div>
-    <div id="runner"
-        {#Trigger "notRunning" sent from server inside the header if the submitted file is not handled anymore#}
-        hx-trigger="notRunning from:body">
-    </div>
-  </div>
-
-  <script>
-      // Clicking the simulate button disables it. It will be enabled again if htmx sends notRunning
-      $("#simulateButton").click(function () {
-        $(this).attr("disabled", "disabled");
-      });
-      htmx.on('#runner', 'htmx:trigger', function (evt) {
-        console.log("notRunning");
-        {#hx is triggered when "notRunning" is sent from progress poll#}
-        const button=document.getElementById("simulateButton")
-        button.disabled = false;
-        button.innerHTML ={% translate '"Erneut Simulieren"' %}
-      })
-  </script>
-
+<script>
+  document.body.addEventListener("htmx:afterSwap", function (evt) {
+    // Trigger button refresh when the button was clicked
+        if (evt.detail.target.id == "simulationProgressAlert") {
+      htmx.trigger(document.body, "startSim");
+    }
+  });
+</script>
   <div id="simulationProgressAlert">
   {% if progress %}
     {% include "core/progress_poll.html" with progress_id=progress.task_id template_name="progress_simulation.html" %}
@@ -102,7 +78,7 @@
       <div class="inline-flex items-center p-1 gap-1 bg-slate-200 rounded-full">
         <button
           id="tab-summary"
-          class="tab-button px-4 py-2 rounded-full bg-slate-800 text-white text-sm font-medium focus:outline-none"
+          class="tab-button px-4 py-2 rounded-full bg-slate-800 text-white text-sm font-semibold focus:outline-none"
           data-tab="summary"
         >
           <span class="flex items-center gap-2">
@@ -114,7 +90,7 @@
         </button>
         <button
           id="tab-map"
-          class="tab-button px-4 py-2 rounded-full bg-white text-slate-800 text-sm font-medium focus:outline-none"
+          class="tab-button px-4 py-2 rounded-full bg-white text-slate-800 text-sm font-semibold focus:outline-none"
           data-tab="map"
         >
           <span class="flex items-center gap-2">
@@ -126,43 +102,34 @@
         </button>
       </div>
     </div>
-    <section class="tab-content pt-12" id="content-summary">
+    <section class="tab-content pt-12 " id="content-summary">
       <div class="pt-8">
         <div class="pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Szenarioname' %}</p>
+          <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Szenarioname' %}</p>
           <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
-            <div>
               <p>{{ scenario.name }}</p>
-            </div>
           </div>
         </div>
         <div class="pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Beschreibung' %}</p>
-          <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
-            <div>
-              {% if scenario.description %}<p>{{ scenario.description }}</p>
+            <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Beschreibung' %}</p>
+            <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
+              <div>
+                {% if scenario.description %}<p>{{ scenario.description }}</p>
                 {% else %}<p class="w-[18rem] text-slate-500">{% translate 'Keine Beschreibung' %}</p>{% endif %}
+              </div>
+            </div>
+          </div>
+          <div class="pb-8 space-y-2">
+            <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Zeitspanne' %}</p>
+            <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
+              <div>
+                <p>{{ sim_duration}}</p>
+              </div>
             </div>
           </div>
         </div>
         <div class="pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Zeitspanne' %}</p>
-          <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
-            <div>
-              <p>{{ sim_duration}}</p>
-            </div>
-            <div>
-              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-                </svg>
-                  {% translate 'Editieren' %}
-              </a>
-            </div>
-          </div>
-        </div>
-        <div class="pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Temperatur' %}</p>
+            <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Temperatur' %}</p>
           <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div>
               {% blocktranslate %}
@@ -171,7 +138,7 @@
               {% endblocktranslate %}
             </div>
             <div>
-              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -181,37 +148,18 @@
           </div>
         </div>
         <div class="flex flex-col pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Fahrzeugtypen' %}</p>
+            <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Fahrzeugtypen' %}</p>
           {%  for vehicle_type in vehicle_types %}
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
-              <p class="text-slate-800 font-semibold uppercase">{{ vehicle_type.name }}</p>
-              <div class="pt-4 pl-4">
-                <div class="inline-flex items-center gap-1 pb-2">
-                    <span class="text-slate-800 font-semibold">{% translate 'Default' %}</span>
+                <div class="flex">
+              <p class="text-slate-800 font-semibold uppercase pr-2">{{ vehicle_type.name }}</p>
+                  {% if vehicle_type.lines %}
+              <div class="relative inline-flex">
                   <span>({{ vehicle_type.lines|length}} {% translate 'Linie(n)' %}</span>
-                {% if vehicle_type.lines %}
-                  <span class="relative inline-flex items-center">
+                  <span class="px-1 relative inline-flex ">
                     <span class="cursor-pointer group">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="#00856C"
-                        class="size-5"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                        />
-                      </svg>
+                      {% include "ebustoolbox/partials/eye_icon_svg.html" %}
                       <!-- Tooltip -->
                       <div
                         class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none"
@@ -222,77 +170,31 @@
                       </div>
                     </span>
                   </span>
-                {% endif %}
-                  <span>)</span>
-                </div>
-                <div class="flex flex-col pl-4 font-normal border-l gap-2">
-                  <p class="flex">
-                      <span class="w-[16rem] text-slate-500">{% translate 'Anzahl Fahrzeuge:' %}</span>
-                    <span class="text-slate-800">not implemented</span>
-                  </p>
-                  <p class="flex">
-                      <span class="w-[16rem] text-slate-500">{% translate 'Gesamtkilometer:' %}</span>
-                    <span class="text-slate-800">not implemented</span>
-                  </p>
-                  <p class="flex">
-                      <span class="w-[16rem] text-slate-500">{% translate 'Nutz. Batteriekapazität:' %}</span>
-                    <span class="text-slate-800">{{ vehicle_type.battery_capacity }} kW</span>
-                  </p>
-                </div>
               </div>
-              <div class="pt-4 pl-4">
+                {% endif %}
                 <div class="inline-flex items-center gap-1 pb-2">
-                  <span class="text-slate-800 font-semibold">Gruppe 1 (not implemented)</span>
-                  <span>(4 Linien</span>
-                  <span class="relative inline-flex items-center">
-                    <span class="cursor-pointer group">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="#00856C"
-                        class="size-5"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                        />
-                      </svg>
-                      <!-- Tooltip -->
-                      <div
-                        class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none"
-                      >
-                        Linien 102, 104
-                      </div>
-                    </span>
-                  </span>
                   <span>)</span>
                 </div>
+            </div>
+              <div class="pt-2">
                 <div class="flex flex-col pl-4 font-normal border-l gap-2">
                   <p class="flex">
-                      <span class="w-[16rem] text-slate-500">{% translate 'Anzahl Fahrzeuge:' %}</span>
-                    <span class="text-slate-800">30</span>
+                      <span class="w-[16rem] text-slate-500">{% translate 'Gesamtkilometer:' %}</span>
+                    <span class="text-slate-800">{{vehicle_type.get_total_distance_km_from_parent|floatformat:2}} km</span>
                   </p>
                   <p class="flex">
-                      <span class="w-[16rem] text-slate-500">{% translate 'Gesamtkilometer:' %}</span>
-                    <span class="text-slate-800">503,6 km</span>
+                      <span class="w-[16rem] text-slate-500">{% translate 'Durchschnittsgeschwindigkeit:' %}</span>
+                    <span class="text-slate-800">{{vehicle_type.get_average_speed_kmh_from_parent|floatformat:2}} km/h</span>
                   </p>
                   <p class="flex">
                       <span class="w-[16rem] text-slate-500">{% translate 'Nutz. Batteriekapazität:' %}</span>
-                    <span class="text-slate-800">500 kW</span>
+                    <span class="text-slate-800">{{ vehicle_type.battery_capacity|floatformat:2 }} kW</span>
                   </p>
                 </div>
               </div>
             </div>
             <div>
-              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -304,7 +206,7 @@
         </div>
 
         <div class="pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Endhaltestellen' %}</p>
+            <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Endhaltestellen' %}</p>
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
               <div class="flex flex-col font-normal gap-2">
@@ -387,7 +289,7 @@
                   </div>
                 </div>
                 <div class="flex items-center">
-                    <span class="w-[18rem] text-slate-500">{% translate 'Elektrifizierung nicht aktiviert:' %}</span>
+                    <span class="w-[18rem] text-slate-500">{% translate 'Elektrifizierung nicht möglich:' %}</span>
                   <div class="flex items-center gap-2">
                       <span class="text-slate-800">{{ excluded_stations|length }} {% translate 'Stationen' %}</span>
                                     {% if excluded_stations %}
@@ -428,7 +330,7 @@
               </div>
             </div>
             <div>
-              <a href="{%  url "simba:stations" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:stations" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -438,8 +340,9 @@
           </div>
         </div>
 
+        {% if costs %}
         <div class="pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Kostenparameter' %}</p>
+            <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Kostenparameter' %}</p>
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
               <div class="flex flex-col font-normal gap-2">
@@ -470,7 +373,7 @@
               </div>
             </div>
             <div>
-              <a href="{%  url "simba:costs" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:costs" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -479,9 +382,12 @@
             </div>
           </div>
         </div>
+        {%  endif %}
 
+
+        {% if lca %}
         <div class="pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Umweltparameter' %}</p>
+            <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Umweltparameter' %}</p>
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
               <div class="flex flex-col font-normal gap-2">
@@ -512,7 +418,7 @@
               </div>
             </div>
             <div>
-              <a href="{%  url "simba:costs" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:costs" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -521,44 +427,82 @@
             </div>
           </div>
         </div>
+        {%  endif %}
 
         <div class="flex flex-col pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Depots' %}</p>
-          {% for depot in depots %}
+            <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Depots' %}</p>
+          {% for depot in depot_wishes %}
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
-              <p class="text-slate-800 font-semibold uppercase">{{ depot.name }}</p>
+              <p class="text-slate-800 font-semibold uppercase">{{ depot.station.name }}</p>
               <div class="pt-4 pl-4">
                 <div class="flex flex-col pl-4 font-normal border-l gap-2">
+                    {% if depot.auto_generate %}
                   <p class="flex">
-                      <span class="w-[16rem] text-slate-500">{% translate 'Anzahl Ladepunkte:' %}</span>
-                    <span class="text-slate-800">{{ depot.amount_charging_places }}</span>
+                      <span class="w-[16rem] text-slate-500">{% translate 'Ladepunkte pro Fahrzeugtyp:' %}</span>
+                    <span class="text-slate-800">{{ depot.standard_block_length }}</span>
                   </p>
                   <p class="flex">
                       <span class="w-[16rem] text-slate-500">{% translate 'Leistung pro Punkt:' %}</span>
-                    <span class="text-slate-800">{{ depot.power_per_charger }} kW</span>
+                    <span class="text-slate-800">{{ depot.default_power }} kW</span>
                   </p>
+                    {% else %}
+                      <details class="group">
+                        <summary class="flex items-center cursor-pointer list-none hover:text-slate-500 transition-colors">
+                          <svg class="w-4 h-4 mr-2 text-slate-500 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                          </svg>
+                          <span class="text-slate-800 font-semibold">{% translate 'Manuelle Einstellungen' %}</span>
+                        </summary>
+                      <div class="pl-6 pt-2 flex flex-col gap-2 [&>p]:flex [&>p>span:first-child]:w-[16rem] [&>p>span:first-child]:text-slate-500 [&>p>span:nth-child(2)]:text-slate-800 ">
+
+                          <p class="flex" >
+                            <span >{% translate 'Reinigungsplätze:' %}</span>
+                            <span >{{ depot.cleaning_slots }} {% translate 'Fahrzeuge' %}</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Reinigungsdauer:' %}</span>
+                            <span >{{ depot.cleaning_duration }} min</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Rangierplätze:' %}</span>
+                            <span >{{ depot.shunting_slots }} {% translate 'Fahrzeuge' %}</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Rangierdauer:' %}</span>
+                            <span >{{ depot.shunting_duration }} min</span>
+                          </p>
+                          {% for area in depot.areainformation_set.all %}
+                          <p class='pt-2' >
+                            <span class="!text-slate-800 font-semibold">{% translate 'Fläche für' %} {{ area.vehicle_type.name }}</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Kapazität:' %}</span>
+                            <span >{{ area.capacity }} {% translate 'Fahrzeuge' %}</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Leistung pro Ladepunkt:' %}</span>
+                            <span >{{ area.power }} kW</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Flächentyp:' %}</span>
+                            <span >{{ area.get_area_type_display }}</span>
+                          </p>
+                          {% if area.block_length %}
+                          <p >
+                            <span >{% translate 'Blocklänge:' %}</span>
+                            <span >{{ area.block_length }} {% translate 'Fahrzeuge' %}</span>
+                          </p>
+                          {% endif %}
+                          {% endfor %}
+                        </div>
+                      </details>
+                    {% endif %}
                 </div>
-              </div>
-              <div class="pt-4 pl-4">
-                <div class="flex flex-col pl-4 font-normal border-l gap-2">
-                  <p class="flex">
-                      <span class="w-[16rem] text-slate-500">{% translate 'Anzahl Ladepunkte:' %}</span>
-                    <span class="text-slate-800">not implemented</span>
-                  </p>
-                  <p class="flex">
-                      <span class="w-[16rem] text-slate-500">{% translate 'Leistung pro Punkt [kW]:' %}</span>
-                    <span class="text-slate-800">not implemented</span>
-                  </p>
-                </div>
-                <p class="flex pt-4">
-                    <span class="w-[16rem] text-slate-500">{% translate 'Ladeleistung:' %}</span>
-                  <span class="text-slate-800 pl-4">{{ depot.power_total }} kVA</span>
-                </p>
               </div>
             </div>
             <div>
-              <a href="{% url 'simba:depots' scenario.task_id %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{% url 'simba:depots' scenario.task_id %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -579,12 +523,37 @@
 {% endblock wizard_content %}
 
 {% block wizard_buttons %}
-  {% url 'simba:depots' task_id as prev_url %}
 
-  {% translate "Simulation starten" as next_text %}
-  {% with buttonId="simulateButton" %}
-    {{ block.super }}
-  {% endwith %}
+
+<nav>
+  <div class="mx-auto max-w-7xl px-2 pt-4 pb-8 sm:px-6 lg:px-8">
+    <div class="flex justify-end gap-4">
+        <a href="{% url 'simba:depots' task_id %}
+" class="flex px-6 py-2 bg-slate-200 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
+          <span class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+            </svg>
+            <span>{% translate 'Zurück' %}</span>
+          </span>
+        </a>
+
+
+  <div class="flex justify-center">
+<div id='wizardNextButton'
+        hx-select="#wizardNextButton"
+        hx-get='.'
+        hx-trigger='startSim from:body, success from:body, notRunning from:body'
+        hx-swap='innerHTML'
+        >
+  {% include "ebustoolbox/partials/simulate_scenario_button.html" %}
+      </div>
+  </div>
+
+    </div>
+  </div>
+</nav>
+
 {% endblock wizard_buttons %}
 
 {% block script %}
@@ -610,11 +579,4 @@
   });
 </script>
 
-<script>
-  // Empty Leaflet Map
-  var map = L.map('map', {
-      center: [51.505, -0.09],
-      zoom: 13
-  });
-</script>
 {% endblock script %}

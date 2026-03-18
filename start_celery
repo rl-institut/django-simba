@@ -4,4 +4,4 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-poetry run celery -A ebusdjango worker -l info
+poetry run celery -A ebusdjango worker -l info --concurrency=${CELERY_WORKER_NR:-8}

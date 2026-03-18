@@ -3,13 +3,15 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
 
-from . import models, tasks
+from . import models
 from .models import (
+    AreaType,
     EnumChargeType,
     EnumVoltageLevel,
-    ElectrificationOptions,
+    Line,
+    Station,
     VehicleType,
-    SimulationRange,
+    SimulationTemperatures,
     Scenario,
 )
 
@@ -75,48 +77,44 @@ class UploadFileForm(forms.Form):
     use_only_time = forms.BooleanField(initial=True, required=False)
 
 
-class DateRangeField(forms.DateField):
-    def to_python(self, value):
-        values = value.split(" - ")
-        from_date = super(DateRangeField, self).to_python(values[0])
-        to_date = super(DateRangeField, self).to_python(values[1])
-        return from_date, to_date
+class SimulationFilterForm(forms.Form):
+    start = forms.DateTimeField()
+    end = forms.DateTimeField()
+    depot_select = forms.ModelMultipleChoiceField(
+        queryset=Station.objects.none(),
+        label="Depotauswahl",
+        required=False,
+    )
+    line_select = forms.ModelMultipleChoiceField(
+        queryset=Line.objects.none(),
+        label="Linienauswahl",
+        required=False,
+    )
+    scenario: Scenario | None = None
 
-
-class SimulationParameters(forms.ModelForm):
-    temperature_average = forms.IntegerField(min_value=-20, max_value=40)
-    temperature_extreme = forms.IntegerField(min_value=-20, max_value=40)
-
-    class Meta:
-        model = SimulationRange
-        exclude = ("scenario",)
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, scenario, *args, **kwargs):
+        self.scenario = scenario
         super().__init__(*args, **kwargs)
+        qs = Station.objects.filter(scenario=scenario.parent, charge_type=EnumChargeType.DEPOT)
 
-    def clean(self):
-        cleaned_data = super().clean()
-        if not (cleaned_data.get("start") and cleaned_data.get("end")):
-            raise ValidationError(_("Gib ein Start- und Endzeitpunkt an."))
-        if (
-            tasks.get_rotations_by_start_end(
-                self.instance.scenario.parent, cleaned_data["start"], cleaned_data["end"]
-            ).count()
-            == 0
-        ):
-            raise ValidationError(_("In dieser Zeitspanne starten keine Umläufe."))
-        return cleaned_data
+        self.fields["depot_select"].queryset = Station.objects.filter(
+            id__in=list(qs.values_list("id", flat=True))
+        )
+        self.fields["depot_select"].label_from_instance = lambda obj: f"{obj.name}"
+        qs = Line.objects.filter(scenario=scenario.parent)
+        self.fields["line_select"].queryset = Line.objects.filter(
+            id__in=list(qs.values_list("id", flat=True))
+        )
+        self.fields["line_select"].label_from_instance = lambda obj: f"{obj.name}"
 
 
-class ElectrificationOptionsForm(forms.ModelForm):
+class SimulationTemperaturesForm(forms.ModelForm):
+    temperature_average = forms.IntegerField(min_value=-5, max_value=30)
+    temperature_extreme = forms.IntegerField(min_value=-5, max_value=30)
+
     class Meta:
-        model = ElectrificationOptions
-        exclude = ("scenario", "electrified_stations")
-        help_texts = {
-            "gc_power_opps": _("Grid connector power in kVA"),
-            "cs_power_opps": _("Charging point power in kW"),
-            "amount_charging_places": _("Number of charging points per electrified station"),
-        }
+        model = SimulationTemperatures
+        exclude = ("scenario",)
 
 
 class TripsForm(forms.Form):
@@ -124,8 +122,9 @@ class TripsForm(forms.Form):
     existing_scenario = forms.UUIDField(required=False)
     scenario_name = forms.CharField(max_length=100)
     description = forms.CharField(max_length=100, required=False)
+    find_stations = forms.BooleanField(required=False)
 
-    # TODO use clean method instead
+    # TODO: use clean method instead
     def is_valid(self):
         if not super().is_valid():
             return False
@@ -158,7 +157,7 @@ class TripsForm(forms.Form):
 
 class VehicleTypeSelectionForm(forms.ModelForm):
     class Meta:
-        exclude = ["vehicle_type"]
+        fields = ["default_vehicle_type"]
         model = models.VehicleTypeSelection
 
     def __init__(self, *args, vehicle_type=None, choices_queryset=None, **kwargs):
@@ -248,8 +247,6 @@ class StationExcludedForm(forms.Form):
 class CostInputModeForm(forms.Form):
     CHOICES = [
         ("no_input", "Keine Eingabe"),
-        ("file_upload", "Datei hochladen"),
-        ("reference_scenario", "Werte aus anderem Szenario übernehmen"),
         ("manual", "Manuelle Eingabe"),
     ]
     input_mode = forms.ChoiceField(
@@ -258,43 +255,186 @@ class CostInputModeForm(forms.Form):
     )
 
 
-class FileUploadForm(forms.Form):
-    file = forms.FileField(required=True)
-
-
-class ScenarioSelection(forms.Form):
-    scenario = forms.ModelChoiceField(queryset=Scenario.objects.all())
-
-    def __init__(self, *args, queryset, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["scenario"].queryset = queryset
-
-
 class ManualTcoForm(forms.Form):
-    co2_emissions = forms.FloatField(required=True)
-    energy_consumption = forms.FloatField(required=True)
-    resources_consumption = forms.FloatField(required=True)
-    years = forms.IntegerField(required=True)
+    project_duration = forms.IntegerField(initial=20, min_value=1)  # years
+    staff_cost = forms.FloatField(initial=30, min_value=0)  # €/h
+    energy_cost = forms.FloatField(initial=0.18, min_value=0)  # €/kWh
+    maint_cost = forms.FloatField(initial=0.07, min_value=0)  # €/km
+    maint_infr_cost = forms.FloatField(initial=1000, min_value=0)  # €/a
+    useful_life_bus = forms.IntegerField(initial=14, min_value=0)  # years
+    procurement_cost_bus = forms.IntegerField(initial=550000, min_value=0)  # €
+    useful_life_battery = forms.IntegerField(initial=7, min_value=0)  # years
+    procurement_cost_battery = forms.FloatField(initial=0, min_value=0)  # €/kWh
+    useful_life_chargepoint_depot = forms.IntegerField(initial=7, min_value=0)  # years
+    procurement_cost_chargepoint_depot = forms.FloatField(initial=0, min_value=0)  # €
+    useful_life_chargepoint_opp = forms.IntegerField(initial=7, min_value=0)  # years
+    procurement_cost_chargepoint_opp = forms.FloatField(initial=0, min_value=0)  # €
+
+    # diesel comparison: non-changeable
+    fuel_cost = forms.FloatField(initial=1.5)  # €/l
+    maint_cost_diesel = forms.FloatField(initial=0.14)  # €/km
+    procurement_cost_diesel = forms.IntegerField(initial=250000)  # €
+
+    # expert options (optional)
+    interest_rate = forms.FloatField(initial=0.04, min_value=0, required=False)
+    inflation_rate = forms.FloatField(initial=0.02, min_value=0, required=False)
+    taxes = forms.FloatField(initial=0, min_value=0, required=False)  # € (vehicle tax)
+    insurance = forms.FloatField(initial=2000, min_value=0, required=False)  # €/a
+    pef_general = forms.FloatField(initial=0.02, min_value=0, required=False)
+    pef_wages = forms.FloatField(initial=0.02, min_value=0, required=False)
+    pef_energy = forms.FloatField(initial=0.02, min_value=0, required=False)
+    pef_fuel = forms.FloatField(initial=0.02, min_value=0, required=False)
+    pef_insurance = forms.FloatField(initial=0.02, min_value=0, required=False)
+    cost_escalation_bus = forms.FloatField(initial=0.02, min_value=0, required=False)
+    cost_escalation_battery = forms.FloatField(initial=0.01, min_value=0, required=False)
+    cost_escalation_chargepoint = forms.FloatField(initial=0.02, min_value=0, required=False)
 
 
-class ManualLcaForm(forms.Form):
-    co2_emissions = forms.FloatField(required=True)
-    energy_consumption = forms.FloatField(required=True)
-    resources_consumption = forms.FloatField(required=True)
-    years = forms.IntegerField(required=True)
-
-
-class DepotInfoForm(forms.ModelForm):
+class DepotConfigurationWishForm(forms.ModelForm):
     """All inputs which are given once per depot"""
 
     class Meta:
-        model = models.Station
-        fields = ["power_total"]
+        model = models.DepotConfigurationWish
+        exclude = ["scenario", "station"]
+        help_texts = {
+            "auto_generate": _(
+                "Ein Algorithmus bestimmt die benötigte Größe des Depots, "
+                "sowie technische Parameter, automatisch für Sie."
+            ),
+            "default_power": _("max. Ladeleistung pro Ladepunkt"),
+            "standard_block_length": _("Länge des Blocks"),
+            "cleaning_slots": _("Anzahl der Plätze für gleichzeitige Reinigung"),
+            "shunting_slots": _("Anzahl an Rangierplätzen"),
+            "cleaning_duration": _("Dauer der Reinigung in Minuten"),
+            "shunting_duration": _("Dauer des Rangierens in Minuten"),
+        }
+
+        labels = {
+            "auto_generate": _("Automatische Berechnung"),
+            "default_power": _("Standard Ladeleistung"),
+            "standard_block_length": _("Standard Blocklänge"),
+            "cleaning_slots": _("Reinigungsplätze"),
+            "shunting_slots": _("Rangierkapazität"),
+            "cleaning_duration": _("Reinigungsdauer"),
+            "shunting_duration": _("Rangierdauer"),
+        }
+
+    # Custom mapping used to add unit to field in __init__
+    units = {
+        "default_power": _("kW"),
+        "standard_block_length": _("[-]"),
+        "cleaning_slots": _("[-]"),
+        "shunting_slots": _("[-]"),
+        "cleaning_duration": _("Minuten"),
+        "shunting_duration": _("Minuten"),
+    }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, field in self.fields.items():
+            field.unit = self.units.get(name)
+
+        auto_generate = True
+        if self.instance:
+            auto_generate = self.instance.auto_generate
+
+        if auto_generate:
+            self.fields["default_power"].widget.attrs.update({"min": 1.0, "required": True})
+            self.fields["standard_block_length"].widget.attrs.update({"min": 1.0, "required": True})
+        else:
+            self.fields["cleaning_slots"].widget.attrs.update({"min": 1.0, "required": True})
+            self.fields["shunting_slots"].widget.attrs.update({"min": 1.0, "required": True})
+            self.fields["cleaning_duration"].widget.attrs.update({"min": 1.0, "required": True})
+            self.fields["shunting_duration"].widget.attrs.update({"min": 1.0, "required": True})
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get("auto_generate"):
+            if not cleaned_data.get("default_power"):
+                raise ValidationError(
+                    "If auto generate is true, the DepotConfigurationWish needs a power"
+                )
+            if (
+                cleaned_data.get("cleaning_slots")
+                or cleaned_data.get("shunting_slots")
+                or cleaned_data.get("cleaning_duration")
+                or cleaned_data.get("shunting_duration")
+            ):
+                raise ValidationError("More data then expected")
+
+            cleaned_data["cleaning_slots"] = None
+            cleaned_data["shunting_slots"] = None
+            cleaned_data["cleaning_duration"] = None
+            cleaned_data["shunting_duration"] = None
+
+        else:
+            if cleaned_data.get("default_power"):
+                raise ValidationError(
+                    "If auto generate is false, the DepotConfigurationWish must not have power"
+                )
+            if cleaned_data.get("standard_block_length"):
+                raise ValidationError(
+                    "If auto generate is false, "
+                    "the DepotConfigurationWish must not have a standard block length"
+                )
+            if (
+                not cleaned_data.get("cleaning_slots")
+                or not cleaned_data.get("shunting_slots")
+                or not cleaned_data.get("cleaning_duration")
+                or not cleaned_data.get("shunting_duration")
+            ):
+                raise ValidationError("Missing Data")
+            cleaned_data["default_power"] = None
+            cleaned_data["standard_block_length"] = None
+        return cleaned_data
 
 
-class DepotChargingAreaForm(forms.Form):
-    """All inputs which can be given multiple times per depot, eg, multiple
+class AreaInformationForm(forms.ModelForm):
+    """All inputs which can be given multiple times per depot, e.g, multiple
     charging areas with various numbers of chargers and charging powers"""
 
-    amount_charging_places = forms.IntegerField(required=True, initial=20)
-    power_per_charger = forms.IntegerField(required=True, initial=150)
+    class Meta:
+        model = models.AreaInformation
+        exclude = ["scenario", "depot_configuration_wish", "vehicle_type"]
+        help_texts = {
+            "capacity": _("Anzahl der Ladeplätze für diesen Fahrzeugtyp. Mindestanzahl = 2"),
+            "power": _("max. Ladeleistung der Ladesäule"),
+            "block_length": _(
+                "Anzahl hintereinanderliegender Parkplätze. Dies muss ein ganzzahliger Teiler der Kapazität sein."
+            ),
+            "area_type": _("Form in der die Ladeplätze angelegt sind"),
+        }
+        labels = {
+            "capacity": _("Kapazität"),
+            "power": _("Leistung"),
+            "block_length": _("Blocklänge"),
+            "area_type": _("Anordnung"),
+        }
+        units = {"capacity": _("-")}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["capacity"].widget.attrs.update({"min": 2.0, "max": 10_000, "required": True})
+        self.fields["power"].widget.attrs.update({"min": 1.0, "required": True})
+        self.fields["area_type"].required = True
+        self.fields["block_length"].widget.attrs.update({"min": 2.0, "required": True})
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get("area_type") == AreaType.LINEAR:
+            if cleaned_data.get("capacity") is None:
+                self.add_error(
+                    "capacity", _("Für diesen Flächentyp muss ein Kapazität >=2 angegeben werden")
+                )
+                raise ValidationError("Block length cant be None")
+
+            if cleaned_data.get("capacity") % cleaned_data.get("block_length") != 0:
+                self.add_error(
+                    "block_length",
+                    _(
+                        "Die Anzahl muss ein ganzahliger Teiler der Ladeplätze Anzahl sein "
+                        "und größer oder gleich 2 sein."
+                    ),
+                )
+                raise ValidationError("Block length must be an integer divider of Capacity")
+        return cleaned_data

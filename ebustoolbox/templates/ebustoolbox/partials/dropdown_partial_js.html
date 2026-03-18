@@ -1,0 +1,73 @@
+<script>
+// < !--Functionality for simple dropdown-- >
+var dropdown_containers = document.querySelectorAll(".dropdown-container");
+dropdown_containers.forEach((container) => {
+  const button = container.querySelector('.dropdown-button');
+  const label = container.querySelector('.dropdown-placeholder');
+  const list = container.querySelector('.dropdown-choices');
+  const listItems = list.querySelectorAll('[role="option"]');
+  const input = container.querySelector('select');
+  let selectedItem = '';
+
+  // Toggle the dropdown on button click
+  button.addEventListener('click', () => {
+    const isExpanded = button.getAttribute('aria-expanded') === 'true';
+    button.setAttribute('aria-expanded', String(!isExpanded));
+    list.classList.toggle('hidden');
+
+    // Whenever it opens, ensure the selected item is highlighted
+    if (!isExpanded) {
+      highlightSelectedItem();
+    }
+  });
+  var initial = null;
+  for (const option of input.options) {
+    if (option.selected){
+      initial=option.value;
+  }
+  }
+  // After refreshing the select might have an input. this value is prioritized in comparison to db initial value
+  if (input.value !="") initial=input.value;
+  // Handle clicks on list items
+  listItems.forEach(item => {
+    const value = item.getAttribute('data-dropdown-item');
+    item.addEventListener('click', () => {
+      const name = item.getAttribute('data-dropdown-name');
+      // The label gets the readable form
+      label.textContent = name;
+      // The input gets the value/id
+      input.value = value;
+      input.dispatchEvent(new Event("input"));
+      // Highlight the newly selected item
+      highlightSelectedItem();
+
+      // Close dropdown
+      list.classList.add('hidden');
+      button.setAttribute('aria-expanded', 'false');
+    });
+    // If the input is selected already, e.g. when refreshing the page, preselect the item
+    if (value==initial){
+      item.click();
+    }
+  });
+
+  // Close dropdown if user clicks outside
+  document.addEventListener('click', e => {
+    if (!button.contains(e.target) && !list.contains(e.target)) {
+      button.setAttribute('aria-expanded', 'false');
+      list.classList.add('hidden');
+    }
+  });
+
+  // Remove the highlight from all items and apply it to the selected item
+  function highlightSelectedItem() {
+    listItems.forEach(li => {
+      li.classList.remove('bg-emerald-100');
+      if (li.getAttribute('data-dropdown-item') === selectedItem) {
+        li.classList.add('bg-emerald-100');
+      }
+    });
+  }
+});
+
+</script>

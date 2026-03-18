@@ -2,12 +2,14 @@ import time
 from copy import copy
 from datetime import datetime, timedelta
 from typing import Iterable
+import io
+import zipfile
 
 import pandas as pd
 from django.conf import settings
 from django.db.models import F
 from django.http import HttpRequest
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 
 import django.apps
 import core.deepcopy
@@ -22,6 +24,8 @@ from .import_export import visit_all_scenario_queries, ScenarioJSONImporterExpor
 from . import tasks
 from .forms import UploadFileForm
 from .models import (
+    DepotConfigurationWish,
+    Notification,
     Route,
     Scenario,
     UploadedFile,
@@ -39,8 +43,7 @@ from .models import (
     EnumChargeType,
 )
 from .tasks import run_simba_scenario
-from .util import get_unique_task_id
-
+from .util import get_unique_task_id, validate_zip, ZipFileException
 
 TMP_UPLOAD = settings.UPLOAD_PATH + "/temp"
 TMP_STATICFILES_DIRS = settings.STATICFILES_DIRS + [settings.BASE_DIR / TMP_UPLOAD]
@@ -165,9 +168,19 @@ def build_scenario():
     # Empty request, since no files are used for this simulation.
     request = HttpRequest()
 
-    django_scenario, simba_schedule, args = tasks.input_files_to_database(
-        form.cleaned_data, request
-    )
+    django_scenario = tasks.input_files_to_database(form.cleaned_data, request)
+
+    simba_schedule, args = tasks.get_schedule_from_db(django_scenario)
+    for vt in VehicleType.objects.filter(scenario=django_scenario):
+        # NOTE: Eflips needs masses for calculation
+        vt.allowed_mass = 20_000
+        vt.empty_mass = 10_000
+        vt.width = 3
+        vt.length = 12
+        vt.height = 10
+        query = Consumption.objects.filter(vehicle_class=VehicleClass.objects.get(vehicletype=vt))
+        assert query.exists()
+        vt.save()
 
     for station in Station.objects.filter(scenario=django_scenario):
         if station.amount_charging_places is None:
@@ -177,6 +190,17 @@ def build_scenario():
         if station.power_total is None:
             station.power_total = django_scenario.simba_options["gc_power_opps"]
         station.save()
+        if station.charge_type == EnumChargeType.DEPOT:
+            DepotConfigurationWish.objects.create(
+                scenario=django_scenario,
+                station=station,
+                auto_generate=True,
+                default_power=150,
+                standard_block_length=3,
+            )
+    django_scenario.task_id = get_unique_task_id()
+    Temperatures.create_constant_temperatures(django_scenario, 20)
+
     return django_scenario, simba_schedule, args
 
 
@@ -200,8 +224,8 @@ class WriteReadScenarioToDatabase(TestCase):
         vehicle = Rotation.objects.filter(scenario=django_scenario).first().vehicle
         vehicle_type = vehicle.vehicle_type
         consumption_table = Consumption.objects.get(vehicle_class__vehicletype=vehicle_type)
-
         station = Station.objects.get(scenario=django_scenario, name="Station-0")
+
         vehicle_type.charging_curve[1][1] = vehicle_type.charging_curve[0][1] * 0.8
         vehicle_type.save()
 
@@ -297,19 +321,22 @@ class WriteReadScenarioToDatabase(TestCase):
 
 class ModelTests(TestCase):
     def test_scenario_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         self.assertEqual(str(scenario.name), "Test Scenario")
 
     def test_uploaded_file_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         uploaded_file = UploadedFile.objects.create(scenario=scenario, file="test.txt")
         self.assertEqual(str(uploaded_file.file), "test.txt")
 
     def test_vehicle_type_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
+            width=2.5,
+            length=12,
+            height=3,
             charging_curve=[[0, 0], [1, 3]],
             opportunity_charging_capable=True,
             battery_capacity=100,
@@ -318,10 +345,13 @@ class ModelTests(TestCase):
         self.assertEqual(str(vehicle_type.name), "Test Type")
 
     def test_vehicle_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
+            width=2.5,
+            length=12,
+            height=3,
             charging_curve=[[0, 0], [1, 3]],
             opportunity_charging_capable=True,
             battery_capacity=100,
@@ -333,10 +363,13 @@ class ModelTests(TestCase):
         self.assertEqual(str(vehicle), "Test Vehicle")
 
     def test_rotation_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
+            width=2.5,
+            length=12,
+            height=3,
             charging_curve=[[0.0, 150], [1.0, 150]],
             opportunity_charging_capable=True,
             battery_capacity=100,
@@ -351,17 +384,20 @@ class ModelTests(TestCase):
         self.assertEqual(str(rotation.name), "Test Rotation")
 
     def test_station_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         station = Station.objects.create(
             geom="POINT(0 0 0)", name="Test Station", scenario=scenario
         )
         self.assertEqual(str(station.name), "Test Station")
 
     def test_trip_creation(self):
-        scenario = Scenario.objects.create(name="Test Scenario")
+        scenario = Scenario.objects.create(name="Test Scenario", task_id=get_unique_task_id())
         vehicle_type = VehicleType.objects.create(
             name="Test Type",
             scenario=scenario,
+            width=2.5,
+            length=12,
+            height=3,
             charging_curve=[[0.0, 150], [1.0, 150]],
             opportunity_charging_capable=True,
             battery_capacity=100,
@@ -402,9 +438,9 @@ class ModelTests(TestCase):
 class ScenarioTestCase(TestCase):
     def setUp(self):
         # Create test instances of your model
-        Scenario.objects.create(name="Instance 1")
+        Scenario.objects.create(name="Instance 1", task_id=get_unique_task_id())
         time.sleep(0.01)
-        Scenario.objects.create(name="Instance 2")
+        Scenario.objects.create(name="Instance 2", task_id=get_unique_task_id())
 
     def test_model_creation(self):
         instance_1 = Scenario.objects.get(name="Instance 1")
@@ -412,10 +448,22 @@ class ScenarioTestCase(TestCase):
         self.assertGreater(instance_2.created, instance_1.created)
         self.assertIsNone(instance_1.finished)
         self.assertIsInstance(instance_1.simba_options, dict)
-        self.assertIsNone(instance_1.task_id)
 
 
 class SimulationTestCase(TransactionTestCase):
+    def test_flex_band_off(self):
+        django_scenario, simba_schedule, args = build_scenario()
+        args.skip_flex_report = False
+        django_scenario.options = vars(args)
+        django_scenario.save()
+        django_scenario.refresh_from_db()
+        # switching the flex_report_on does not work
+        assert django_scenario.options["skip_flex_report"] is False
+        # Even though the flag is set in the database, simba will ignore it
+        simba_schedule, simba_scenario = run_simba_scenario(django_scenario)
+        # no flex_band calculations are found
+        assert simba_scenario.flex_bands is None, "Flex bands should be turned off"
+
     def create_depot_simulation(self):
         # PROBLEM: test scenario has no CHARGING_DEPOT events, just DRIVING and STANDBY_DEPARTURE
         # => can't test depot charging with this
@@ -438,19 +486,6 @@ class SimulationTestCase(TransactionTestCase):
         )
         return django_scenario
 
-    def test_flex_band_off(self):
-        django_scenario, simba_schedule, args = build_scenario()
-        args.skip_flex_report = False
-        django_scenario.options = vars(args)
-        django_scenario.save()
-        django_scenario.refresh_from_db()
-        # switching the flex_report_on does not work
-        assert django_scenario.options["skip_flex_report"] is False
-        # Even though the flag is set in the database, simba will ignore it
-        simba_schedule, simba_scenario = run_simba_scenario(django_scenario)
-        # no flex_band calculations are found
-        assert simba_scenario.flex_bands is None, "Flex bands should be turned off"
-
     def test_simulate_depot_strategy(self):
         django_scenario = self.create_depot_simulation()
         spiceev_scenario_dict = tasks.create_spiceev_scenario_dict(django_scenario)
@@ -471,39 +506,109 @@ class SimulationTestCase(TransactionTestCase):
             .last()
         )
         num_ts = len(event.timeseries["time"])
+        interval = timedelta(minutes=tasks.get_args(django_scenario).interval)
         # check start/end soc
         assert event.soc_start != event.soc_end
-        with self.assertRaises(AssertionError):
-            tasks.replace_event_timeseries(event, [event.soc_start] * num_ts)
-        with self.assertRaises(AssertionError):
-            tasks.replace_event_timeseries(event, [event.soc_end] * num_ts)
+        soc_end = event.soc_end
+        with self.assertLogs(logger="custom") as cm:
+            tasks.replace_event_timeseries(event, [event.soc_start] * num_ts, interval)
+            # Check if any log entry contains the substring
+            self.assertTrue(
+                any("Depot Charging Simulation diverged" in message for message in cm.output),
+                "Error log not found",
+            )
+        event.soc_end = soc_end
+        with self.assertLogs(logger="custom") as cm:
+            tasks.replace_event_timeseries(event, [event.soc_end] * num_ts, interval)
+            self.assertTrue(
+                any("Depot Charging Simulation diverged" in message for message in cm.output),
+                "Error log not found",
+            )
 
         # check length of timeseries
         assert num_ts > 2
         with self.assertRaises(AssertionError):
-            tasks.replace_event_timeseries(event, [event.soc_start, event.soc_end])
+            tasks.replace_event_timeseries(event, [event.soc_start, event.soc_end], interval)
 
         # check None values
         with self.assertRaises(AssertionError):
             tasks.replace_event_timeseries(
-                event, [event.soc_start, None] + [event.soc_end] * (num_ts - 2)
+                event, [event.soc_start, None] + [event.soc_end] * (num_ts - 2), interval
             )
 
         # success
         tasks.replace_event_timeseries(
-            event, [event.soc_start] + [0] * (num_ts - 2) + [event.soc_end]
+            event, [event.soc_start] + [0] * (num_ts - 2) + [event.soc_end], interval
         )
         assert event.timeseries["soc"][1] == 0
 
-    def test_apply_depot_strategy(self):
+    def test_apply_depot_strategy_basic(self):
         # basic test
         django_scenario = self.create_depot_simulation()
+        tasks.apply_depot_strategy(django_scenario, "greedy")
+        # only one charging event per vehicle, so split_vehicles does not do much
+        tasks.apply_depot_strategy(django_scenario, "balanced", split_vehicles=True)
+
+    def test_apply_depot_strategy_standby_departure(self):
+        # is standby departure used for charging as well?
+        django_scenario = self.create_depot_simulation()
+        # find first depot charging
+        charge_evt = (
+            django_scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT)
+            .order_by("time_start")
+            .first()
+        )
+        # find next event
+        next_evt = django_scenario.event_set.get(
+            vehicle=charge_evt.vehicle, time_start=charge_evt.time_end
+        )
+        # adjust next event, so a standby departure event fits
+        adjusted_start_time = next_evt.time_start.replace(
+            hour=next_evt.time_start.hour + 1, minute=0
+        )
+        assert adjusted_start_time < next_evt.time_end
+        next_evt.time_start = adjusted_start_time
+        next_evt.soc_start = charge_evt.soc_end
+        next_evt.save(update_fields=["time_start", "soc_start"])
+        # insert standby departure event
+        standby_evt = Event.objects.create(
+            scenario=django_scenario,
+            vehicle_type=charge_evt.vehicle_type,
+            vehicle=charge_evt.vehicle,
+            station=charge_evt.station,
+            trip=charge_evt.trip,
+            area=charge_evt.area,
+            subloc_no=charge_evt.subloc_no,
+            time_start=charge_evt.time_end,
+            time_end=adjusted_start_time,
+            soc_start=charge_evt.soc_end,
+            soc_end=charge_evt.soc_end,
+            event_type=EventType.STANDBY_DEPARTURE,
+            description="dummy standby departure",
+            timeseries={"time": list(), "soc": list()},
+        )
+        original_standby_duration = standby_evt.get_duration()
+        # run simulation
         tasks.apply_depot_strategy(django_scenario, "balanced")
+        # simulation should stretch charging into standby departure, adjusting times
+        charge_evt.refresh_from_db()
+        standby_evt.refresh_from_db()
+        next_evt.refresh_from_db()
+        # basic sanity checks
+        self.assertEqual(charge_evt.time_end, standby_evt.time_start)
+        self.assertEqual(standby_evt.time_end, next_evt.time_start)
+        self.assertEqual(charge_evt.soc_end, standby_evt.soc_start)
+        self.assertEqual(standby_evt.soc_end, next_evt.soc_start)
+        self.assertEqual(standby_evt.soc_start, standby_evt.soc_end)
+        # standby duration should be shorter
+        adjusted_standby_duration = standby_evt.get_duration()
+        assert adjusted_standby_duration < original_standby_duration
 
 
 class ConsumptionTestCase(TransactionTestCase):
     def test_missing_temperature(self):
         django_scenario, simba_schedule, args = build_scenario()
+        Temperatures.objects.filter(scenario=django_scenario).delete()
         missing_temp_text = (
             "uses a consumption LUT for consumption calculation but the scenario "
             "has no Temperature object for temperature lookup. Default value for "
@@ -525,8 +630,9 @@ class ConsumptionTestCase(TransactionTestCase):
                 any(missing_temp_text in message for message in cm.output),
                 "Expected log message not found in output",
             )
-        temp.id += 1
+        temp.id = None
         temp.save()
+        assert Temperatures.objects.filter(scenario=django_scenario).count() == 2
         # Two temperatures for the same scenario should raise an exception
         self.assertRaises(Exception, tasks.get_schedule_from_db, django_scenario=django_scenario)
 
@@ -665,7 +771,7 @@ class ConsumptionTestCase(TransactionTestCase):
         assert sum_consumption_new != sum_consumption
 
     def test_get_consumption(self):
-        scenario = Scenario.objects.create(name="my scenario")
+        scenario = Scenario.objects.create(name="my scenario", task_id=get_unique_task_id())
         vehicle_class = VehicleClass.objects.create(name="my vehicle class", scenario=scenario)
         consumption_instance = Consumption.objects.create(
             name="My Consumption",
@@ -841,7 +947,7 @@ class AllowOppChargingTestCase(TestCase):
             vt.opportunity_charging_capable = True
             vt.save()
 
-        tasks.is_consistent(django_scenario)
+        assert tasks.is_consistent(django_scenario)
         sched, scen = run_simba_scenario(django_scenario)
         assert (
             Event.objects.filter(
@@ -919,7 +1025,7 @@ class TemperaturesTestCase(TestCase):
         temp2 = 0
         temp3 = 100
         t_instance = Temperatures(
-            scenario=Scenario.objects.get(pk=Scenario.get_default_pk()),
+            scenario=Scenario.objects.create(name="Scenario", task_id=get_unique_task_id()),
             name="First Temperatures",
             use_only_time=False,
             datetimes=[date1, date2, date3],
@@ -975,10 +1081,113 @@ class TemperaturesTestCase(TestCase):
         self.assertRaises(AttributeError, t_instance.save)
 
 
+class ZeroDurationTripTest(TestCase):
+    def test_merging_stations(self):
+        """Insert some zero duration trips and zero distance trips and check they are merged"""
+        django_scenario, simba_schedule, args = build_scenario()
+        rotations = list(Rotation.objects.filter(scenario=django_scenario))
+
+        # Mutate some trips so they have intermediate stops in depots
+        rotation = rotations[1]
+        trips = list(
+            Trip.objects.filter(rotation=rotation)
+            .order_by("arrival_time")
+            .select_related("route", "route__arrival_station", "route__departure_station")
+        )
+        assert (
+            len(trips) > 4
+        ), "The test needs a rotation with at least 3 trips, to properly test handling of intermediate depots stops"
+        trips[1].arrival_time = trips[1].departure_time
+        print(trips[1].route.arrival_station)
+        print(trips[1].route.departure_station)
+        trips[1].save()
+        trips[2].route.distance = 0
+        trips[2].route.save()
+        print(trips[2].route.arrival_station)
+        print(trips[2].route.departure_station)
+
+        # Split the rotations of the source but also notify the child
+        # for testing passing the same scenario works
+        assert Notification.objects.filter(scenario=django_scenario).count() == 0
+        tasks.ScheduleStationMerger.transform_zero_duration_trips(django_scenario)
+        cleaned_trips = list(Trip.objects.filter(rotation=rotation).order_by("arrival_time"))
+        cleaned_ids = [t.id for t in cleaned_trips]
+        assert trips[1].id not in cleaned_ids
+        assert trips[2].id not in cleaned_ids
+        assert trips[3].id in cleaned_ids
+        assert trips[0].id in cleaned_ids
+
+        cleaned_stations_ids = Station.objects.filter(scenario=django_scenario).values_list(
+            "id", flat=True
+        )
+        # Check that old stations dont exist anymore
+        assert trips[1].route.arrival_station.id not in cleaned_stations_ids
+        assert trips[1].route.departure_station.id not in cleaned_stations_ids
+        assert trips[2].route.arrival_station.id not in cleaned_stations_ids
+        assert trips[3].route.departure_station.id not in cleaned_stations_ids
+
+        # Make sure other stations still exist
+        assert trips[3].route.arrival_station.id in cleaned_stations_ids
+        assert trips[0].route.departure_station.id in cleaned_stations_ids
+
+        assert Notification.objects.filter(scenario=django_scenario).count() > 0
+
+
+class RotationSplitTest(TransactionTestCase):
+    def test_intermediate_depot_trip(self):
+        """Insert some intermediate stops at depots and check if they are transformed"""
+        django_scenario, simba_schedule, args = build_scenario()
+        rotations = list(Rotation.objects.filter(scenario=django_scenario))
+
+        # Mutate some trips so they have intermediate stops in depots
+        rotation = rotations[1]
+        trips = list(Trip.objects.filter(rotation=rotation).order_by("arrival_time"))
+        assert (
+            len(trips) > 2
+        ), "The test needs a rotation with at least 3 trips, to properly test handling of intermediate depots stops"
+        station = trips[0].route.arrival_station
+        # First trip route ends up in depot
+        station.charge_type = EnumChargeType.DEPOT
+        station.save()
+
+        station = trips[-1].route.departure_station
+        # Last trip route starts up in depot
+        station.charge_type = EnumChargeType.DEPOT
+        station.save()
+
+        # Intermediate trip route ends in depot, next one starts in depot
+        station = trips[1].route.arrival_station
+        # Last trip route starts up in depot
+        station.charge_type = EnumChargeType.DEPOT
+        station.save()
+        # Split the rotations of the source but also notifiy the child
+        # for testing passing the same scenario works
+        assert Notification.objects.filter(scenario=django_scenario).count() == 0
+        tasks.transform_depot_stations(django_scenario)
+
+        # Refetch trips which should be updated
+        trips = list(Trip.objects.filter(rotation=rotation).order_by("arrival_time"))
+
+        assert Notification.objects.filter(scenario=django_scenario).count() > 0
+
+        # Routes end in stations which are not of type depot anymore
+        route = trips[0].route
+        assert route.arrival_station.charge_type != EnumChargeType.DEPOT
+
+        route = trips[-1].route
+        assert route.departure_station.charge_type != EnumChargeType.DEPOT
+
+        route = trips[1].route
+        assert route.arrival_station.charge_type != EnumChargeType.DEPOT
+
+        route = trips[2].route
+        assert route.departure_station.charge_type != EnumChargeType.DEPOT
+
+
 class SerializerTest(TransactionTestCase):
     def test_serializer(self):
         count_before = count_all_rows()
-        django_scenario, _, _ = build_scenario()
+        django_scenario, unused_variable, unused_variable_2 = build_scenario()
         django_scenario.task_id = get_unique_task_id()
         django_scenario.save()
         tasks.run_toolchain_from_scenario(django_scenario, assign_vehicles=True)
@@ -1044,3 +1253,70 @@ class ScheduleReaderTest(TestCase):
                 new_count = Trip.objects.filter(scenario=scenario).count()
                 assert count_trips == new_count, f"{count_trips}/ {new_count}"
             scenario.delete()
+
+
+class ZipValidationTest(SimpleTestCase):
+    @override_settings(DEBUG="True")
+    @override_settings(LOG_LEVEL="DEBUG")
+    def test_zip_validation(self):
+        # Test Exception raising for malformed zips
+        # small dummy payload (~200 KB)
+        # to large uncompressed
+        payload_size = 100
+        allowed_size = payload_size - 1
+        payload = b"A" * payload_size
+        prev = io.BytesIO()
+        with zipfile.ZipFile(prev, "w", compression=zipfile.ZIP_DEFLATED) as z:
+            z.writestr("payload.txt", payload)
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, 99, allowed_size, 99)
+
+        # To many files
+        payload = b"A"
+        prev = io.BytesIO()
+        allowed_file_nr = 1
+        with zipfile.ZipFile(prev, "w", compression=zipfile.ZIP_DEFLATED) as z:
+            for i in range(allowed_file_nr + 1):
+                z.writestr(f"payload{i}.txt", payload)
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, allowed_file_nr, 100, 99)
+
+        # To deeply nested files
+        payload = b"A"
+        allowed_nesting = 2
+        # recursively wrap previous zip
+        for i in range(allowed_nesting + 1):
+            new_buf = io.BytesIO()
+            with zipfile.ZipFile(new_buf, "w", compression=zipfile.ZIP_DEFLATED) as z:
+                z.writestr(f"layer_{i-1}.zip", prev.getvalue())
+            prev = new_buf
+
+        with zipfile.ZipFile(prev, "r", compression=zipfile.ZIP_DEFLATED) as z:
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, 99, 100, allowed_nesting)
+
+        # test positive validation
+        payload_size = 20
+        payload = b"A" * payload_size
+        allowed_file_nr = 3
+        allowed_size = allowed_file_nr * payload_size
+        allowed_nesting = 2
+        prev = io.BytesIO()
+
+        with zipfile.ZipFile(prev, "w", compression=zipfile.ZIP_DEFLATED) as z:
+            for i in range(allowed_file_nr):
+                z.writestr(f"payload{i}.txt", payload)
+        for i in range(allowed_nesting):
+            new_buf = io.BytesIO()
+            with zipfile.ZipFile(new_buf, "w", compression=zipfile.ZIP_DEFLATED) as z:
+                z.writestr(f"layer_{i-1}.zip", prev.getvalue())
+            prev = new_buf
+
+        with zipfile.ZipFile(prev, "r", compression=zipfile.ZIP_DEFLATED) as z:
+            validate_zip(z, allowed_file_nr, allowed_size, allowed_nesting)
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, allowed_file_nr - 1, allowed_size, allowed_nesting)
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, allowed_file_nr, allowed_size - 1, allowed_nesting)
+            with self.assertRaises(ZipFileException):
+                validate_zip(z, allowed_file_nr, allowed_size, allowed_nesting - 1)

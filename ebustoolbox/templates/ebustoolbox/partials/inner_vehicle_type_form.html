@@ -1,0 +1,250 @@
+{% load i18n %}
+{% load custom_filters %}
+<div class="flex gap-8 px-4 py-5 sm:p-6 ">
+  <div class="flex-grow flex-row ">
+    <!-- Tab content -->
+    <div class="flex-col ">
+      <div class="flex gap-8 pb-4">
+        <div class="flex-col flex-1">
+          <!-- Left block xlb -->
+          <!--Start Checkbox for dieselzusatzheizung  -->
+          <dieselCheckboxk>
+          <div class="flex-grow pb-6">
+            <div class="flex gap-2 items-center diesel-checkbox">
+              <div class="group grid size-4 grid-cols-1">
+                <input type="checkbox"
+                       {% with modification.vehicle_modification.has_diesel_heating as form %}
+                       {{ form|widget_attrs }}
+                       {% if form.initial %}checked{% endif %}
+                       {% endwith %}
+                       aria-describedby="description-{{ vt_id }}"
+                       class="col-start-1 row-start-1 appearance-none rounded border border-slate-400 checked:border-emerald-500 checked:bg-emerald-500 checked:focus:bg-emerald-500 checked:hover:bg-emerald-500 focus:ring-emerald-500 focus-ring:outline focus-ring:outline-2 focus-ring:outline-offset-2 focus-ring:outline-emerald-500">
+                <svg class="pointer-events-none size-3.5 self-center justify-self-center stroke-white"
+                     viewBox="0 0 14 14"
+                     fill="none">
+                  <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path class="opacity-0" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+              <div class="text-sm text-slate-800 space-y-1">
+                <label for="{{ vt_id }}enableDieselHeating"
+                       data-value="enabledDieselCheckbox"
+                       class="font-normal">{% translate 'Fahrzeugtyp mit Dieselzusatzheizung ausstatten' %}</label>
+                <label for="{{ vt_id }}enableDieselHeating"
+                       data-value="disabledDieselCheckbox"
+                       class="font-normal   opacity-70">
+                  {% translate 'Fahrzeugtyp besitzt keine Variante mit Dieselzusatzheizung' %}
+                </label>
+              </div>
+            </div>
+          </div>
+          </dieselCheckboxk>
+          <!--End Checkbox for dieselzusatzheizung  -->
+          <!-- Start Batteriekapazität -->
+          <batteryCapacity>
+          <div class="flex items-center gap-2">
+            <label for="{{ modification.vehicle_modification.battery_capacity.auto_id }}"
+                   id="batteryCapacityLabel{{ vt_id }}"
+                   class="block text-sm/6 font-semibold text-slate-800">
+              {% translate "Nutzbare Batteriekapazität" %}
+            </label>
+            <div class="relative inline-block">
+              <!-- Info Icon -->
+              <span class="cursor-pointer group">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke-width="2"
+                     stroke="currentColor"
+                     class="size-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                </svg>
+                <!-- Tooltip -->
+                <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                  {{ modification.vehicle_modification.battery_capacity.help_text }}
+                </div>
+              </span>
+            </div>
+          </div>
+          <div class="mt-2">
+            <div class="flex w-6/12 items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-slate-400 focus-within:focus-visible:outline-2">
+              <input {{ modification.vehicle_modification.battery_capacity|widget_attrs }}
+                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                     placeholder="500"
+                     aria-labelledby="batteryCapacityLabel batteryCapacityUnit">
+              <div id="batteryCapacityUnit{{ vt_id }}"
+                   class="shrink-0 select-none text-sm text-slate-500">{% translate "kWh" %}</div>
+            </div>
+          </div>
+          </batteryCapacity>
+          <!-- Ende Batteriekapazität -->
+          <customConsumptionCheckbox>
+          <div class="flex gap-2 pt-2 items-center">
+            <div class="group grid size-4 grid-cols-1">
+              <input id="enableCustomConsumption{{ vt_id }}"
+                     name="{{ vt_id }}enableCustomConsumption"
+                     aria-describedby="description-{{ vt_id }}"
+                     type="checkbox"
+                     {% if modification.vehicle_modification.consumption.initial is not None %}checked{% endif %}
+                     class="col-start-1 row-start-1 appearance-none rounded border border-slate-400 checked:border-emerald-500 checked:bg-emerald-500 checked:focus:bg-emerald-500 checked:hover:bg-emerald-500 focus:ring-emerald-500 focus-ring:outline focus-ring:outline-2 focus-ring:outline-offset-2 focus-ring:outline-emerald-500">
+              <svg class="pointer-events-none size-3.5 self-center justify-self-center stroke-white"
+                   viewBox="0 0 14 14"
+                   fill="none">
+                <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <path class="opacity-0" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+            <div class="text-sm text-slate-800">
+              <label for="{{ vt_id }}enableCustomConsumption" class="font-normal">
+                {% translate 'Energieverbrauch des gewählten Fahrzeugs überschreiben.' %}
+              </label>
+            </div>
+          </div>
+          </customConsumptionCheckbox>
+          <!-- Constant Consumption input -->
+          <div class="text-sm text-slate-500 pt-1 pb-1 pl-6">
+            {% translate '(Ignoriert die globale Umgebungstemperatur für diesen Fahrzeugtyp)' %}
+          </div>
+        </div>
+
+    <!-- Start chart/plot -->
+    <div id="busTypeHiddenSection{{ vt_id }}" class="flex-1 bg-slate-100">
+      <div id="ChartPlaceholder{{ vt_id }}"
+           class="flex flex-col justify-center items-center text-sm text-slate-500 h-full">
+        <div>{% translate 'Wählen Sie einen Bus aus.' %}</div>
+        <div>{% translate 'Hier wird Ihnen die Ladekurve des Fahrzeugs angezeigt.' %}</div>
+      </div>
+      <div id="stateOfChargeChart{{ vt_id }}"
+           class="flex justify-center bg-slate-100"></div>
+    </div>
+    <!-- end chart/plot -->
+      </div>
+      <!-- Left block xlb -->
+      <div class="flex gap-8">
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <label for="{{ modification.vehicle_modification.consumption.auto_id }}"
+                   id="consumptionLabel{{ vt_id }}"
+                   class="block text-sm/6 font-semibold text-slate-800">{% translate "Energieverbrauch" %}</label>
+            <div class="relative inline-block">
+              <!-- Info Icon -->
+              <span class="cursor-pointer group">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke-width="2"
+                     stroke="currentColor"
+                     class="size-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                </svg>
+                <!-- Tooltip -->
+                <div class="absolute left-1/2 bottom-full z-10 mb-2 -translate-x-1/2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                  {{ modification.vehicle_modification.consumption.help_text }}
+                </div>
+              </span>
+            </div>
+          </div>
+          <div class="mt-2">
+            <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-slate-400 focus-within:focus-visible:outline-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              <!--Pseudo Input to show Consumption from selected VehicleType -->
+              <input {% if modification.vehicle_modification.consumption.initial is None %}type="text"{% endif %}
+                     {{ modification.vehicle_modification.consumption|widget_attrs }}
+                     {% if modification.vehicle_modification.consumption.initial is None %}disabled{% endif %}
+                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6 disabled:bg-gray-200"
+                     placeholder='{% if modification.selection.instance.default_vehicle_type is not None %}{{ modification.selection.instance.default_vehicle_type.consumption }} {% else %} {% translate "Wählen Sie ein Fahrzeug aus" %} {% endif %}'>
+              <div id="consumptionUnit{{ vt_id }}"
+                   class="shrink-0 select-none text-sm text-slate-500">{% translate "kWh/km" %}</div>
+            </div>
+            <div class="flex">
+              <div class="hidden avg-consumption-hint flex mt-1 text-sm text-slate-500 italic transition-opacity duration-200 ease-in-out">
+                <!-- Next div is queried for class= text and filled with temperature fetch. -->
+                <div class="flex text"></div>
+                <div class="px-2 relative inline-block">
+                  <!-- Info Icon -->
+                  <span class="cursor-pointer group">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke-width="2"
+                         stroke="currentColor"
+                         class="size-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                    </svg>
+                    <!-- Tooltip for Temperature Quantile-->
+                    <div class="absolute left-0 bottom-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                      {% translate 'Für den gewählten Fahrzeugtyp bei durchschnittlicher Fahrgeschwindigkeit des Szenarios und der gewählten Durchschnittstemperatur.' %}
+                    </div>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- End of Constant Consumption input -->
+        <!-- Constant Extreme Consumption input -->
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <label for="{{ modification.vehicle_modification.max_consumption.auto_id }}"
+                   id="consumptionLabel{{ vt_id }}"
+                   class="block text-sm/6 font-semibold text-slate-800">
+              {% translate 'Extremer Energieverbrauch' %}
+            </label>
+            <div class="relative inline-block">
+              <!-- Info Icon -->
+              <span class="cursor-pointer group">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke-width="2"
+                     stroke="currentColor"
+                     class="size-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                </svg>
+                <!-- Tooltip -->
+                <div class="absolute left-1/2 bottom-full z-10 mb-2 -translate-x-1/2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                  {{ modification.vehicle_modification.max_consumption.help_text }}
+                </div>
+              </span>
+            </div>
+          </div>
+          <div class="mt-2">
+            <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-slate-400 focus-within:focus-visible:outline-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              <!--Pseudo Input to show Consumption from selected VehicleType -->
+              <input {% if modification.vehicle_modification.max_consumption.initial is None %}type="text"{% endif %}
+                     {{ modification.vehicle_modification.max_consumption|widget_attrs }}
+                     {% if modification.vehicle_modification.max_consumption.initial is None %}disabled{% endif %}
+                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6 disabled:bg-gray-200"
+                     placeholder="{% if modification.selection.instance.default_vehicle_type is not None %}{{ modification.selection.instance.default_vehicle_type.max_consumption }}               {% else %}  Wählen Sie ein Fahrzeug aus {% endif %}">
+              <div id="maxconsumptionUnit{{ vt_id }}"
+                   class="shrink-0 select-none text-sm text-slate-500">kWh/km</div>
+            </div>
+          </div>
+          <div class="flex">
+            <div class="hidden extreme-consumption-hint flex mt-1 text-sm text-slate-500 italic transition-opacity duration-200 ease-in-out">
+              <!-- Next div is queried for class= text and filled with temperature fetch. -->
+              <div class="flex text"></div>
+              <div class="px-2 relative inline-block">
+                <!-- Info Icon -->
+                <span class="cursor-pointer group">
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                       fill="none"
+                       viewBox="0 0 24 24"
+                       stroke-width="2"
+                       stroke="currentColor"
+                       class="size-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                  </svg>
+                  <!-- Tooltip for Temperature Quantile-->
+                  <div class="absolute left-0 bottom-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                    {% translate 'Für den gewählten Fahrzeugtyp bei durchschnittlicher Fahrgeschwindigkeit des Szenarios und der gewählten Extremtemperatur.' %}
+                  </div>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- End of Constant Consumption input -->
+      </div>
+    </div>
+  </div>
+</div>

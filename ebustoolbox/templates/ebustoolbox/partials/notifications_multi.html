@@ -1,0 +1,119 @@
+{% load i18n %}
+<div class="overflow-hidden">
+  <div
+    class="w-full rounded-md border border-blue-200 bg-blue-50 mb-4 animate-slide-in-top"
+    x-data="{noNotifications : true, expanded:false}"
+    x-transition:enter='animate-slide-in-top'
+    x-cloak
+    hx-swap='none'
+    hx-select-oob="#notificationSummary,#notificationDetails"
+    hx-trigger='{% if hx_trigger %}{{hx_trigger}}{% else %}load{% endif %}'
+    hx-get='{% url "simba:notifications" task_id viewname %}'
+    x-show="!noNotifications"
+    x-on:htmx:after-settle="noNotifications = (!document.querySelector('.notification-summary')) "
+    x-effect="if (noNotifications){expanded = false}"
+  >
+    <button
+      id="MultiNotificationButton"
+      type="button"
+      class="w-full text-left p-4 flex justify-between items-start text-sm font-medium text-blue-800 hover:bg-blue-100 transition"
+      :aria-expanded="expanded"
+      @click='expanded = !expanded'
+    >
+
+      <div id='notificationSummary'
+        hx-on:afterSettle="console.log('bob')"
+        class="flex flex-wrap items-center gap-x-6 gap-y-2 ">
+        {% if notifications.error %}
+        <div id="errorCount"  class="flex items-center gap-1 text-red-700 notification-summary">
+          <svg class="size-4 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd"/>
+          </svg>
+          <span  id="errorSummary" >{{notifications.error|length}} Fehler</span> <!-- e.g. "7 Fehler" -->
+        </div>
+        {% endif %}
+
+        {% if notifications.warning %}
+        <div id="warningCount"  class="flex items-center gap-1 text-yellow-700 notification-summary">
+          <svg class="size-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
+          </svg>
+          <span id="warningSummary" >{{notifications.warning|length}} Warnungen</span>
+        </div>
+
+        {% endif %}
+
+        {% if  notifications.info %}
+        <div id="infoCount"  class="flex items-center gap-1 text-blue-700 notification-summary">
+          <svg class="size-4 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clip-rule="evenodd" />
+          </svg>
+          <span id="infoSummary" >{{notifications.info|length}} Hinweise</span>
+        </div>
+
+        {% endif %}
+      </div>
+      <span class="text-blue-600 underline ml-4 whitespace-nowrap" data-label
+        x-text="expanded ? 'Details ausblenden' : 'Details einblenden'"
+      ></span>
+    </button>
+    <div class="overflow-hidden">
+      <div
+        class="overflow-full rounded-b-md animate-slide-in-top"
+        x-show="expanded"
+      >
+        <div id='notificationDetails'>
+          <div class="p-4 bg-white border-t border-blue-100 space-y-4 text-sm text-blue-900">
+            {% if notifications.error %}
+            <div id="errorNotifications"  class="notification">
+              <div class="flex items-center gap-2 font-semibold text-red-700">
+                <svg class="size-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd"/>
+                </svg>
+
+                <span>{% blocktranslate %}Fehler{% endblocktranslate %}</span>
+              </div >
+              <ul class="list-disc list-inside mt-1 space-y-1 text-red-800">
+                {% for item in notifications.error %}
+                <li id="errorListItem"  class="notification-list-item">{{item.message}}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+
+            {% if notifications.warning %}
+            <div   id="warningNotifications"  class="notification">
+              <div class="flex items-center gap-2 font-semibold text-yellow-700">
+                <svg class="size-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
+                </svg>
+                <span>{% blocktranslate %}Warnungen{% endblocktranslate %}</span>
+              </div>
+              <ul class="list-disc list-inside mt-1 space-y-1 text-yellow-900">
+                {% for item in notifications.warning %}
+                <li id="warningListItem"  class="notification-list-item" >{{item.message}}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+            {% if notifications.info %}
+            <div   id="infoNotifications" class="notification">
+              <div class="flex items-center gap-2 font-semibold text-blue-700">
+                <svg class="size-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clip-rule="evenodd" />
+                </svg>
+                <span>{% blocktranslate %}Hinweise{% endblocktranslate %}</span>
+              </div>
+              <ul class="list-disc list-inside mt-1 space-y-1 text-blue-900">
+                {% for item in notifications.info %}
+                <li id="infoListItem"  class="notification-list-item" >{{item.message}}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

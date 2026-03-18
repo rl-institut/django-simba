@@ -8,37 +8,39 @@
   hx-encoding="multipart/form-data"
   hx-trigger="submit"
   hx-swap="outerHTML"
+  x-data = "{scheduleFile: '', get isSimbaSchedule() {return this.scheduleFile.split('.').pop() =='csv'}}"
 >
 
   {% csrf_token %}
-  <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Umlaufplan' %}</h1>
+  <div class="sm:pt-8 sm:pb-4 lg:pt-6 sm:px-6 lg:px-8 w-full max-w-7xl">
+    <h1 class="pb-6 text-2xl text-slate-500 font-light tracking-wide uppercase">{% translate 'Umlaufplan' %}</h1>
     <span class="block mb-6 text-sm text-slate-500">{% translate 'Laden Sie ihren Umlaufplan hoch. Alternativ können Sie den Umlaufplan aus einem existierendem Szenario auswählen.' %}</span>
 
-{# ToDo @Bryan add styling and position div to your liking #}
     <div id="error-message" style="display:None">{% translate 'Lade eine Datei aus oder wähle ein Szenario aus.' %}</div>
     <div class="grid grid-cols-12 gap-4">
       <div class="col-span-full pb-4">
         <div class="flex justify-between">
-          <label for="" class="flex items-center gap-2 text-sm font-medium text-slate-800">
+          <label for="" class="flex items-center gap-2 text-sm font-semibold text-slate-800">
             {% translate 'Neue Datei' %}
             <div class="relative inline-block">
               <!-- Info Icon with group -->
               <span class="cursor-pointer group">
+                <a target="_blank" and rel="noopener noreferrer" href="{% url "core:help" %}#umlaufplan">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                      stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round"
                         d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/>
                 </svg>
+                </a>
                 <!-- Tooltip -->
                 <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                  {% translate 'Bottom Left-Aligned Tooltip' %}
+                  {% translate 'Lade eine Datei hoch die Ihren Umlaufplan abbildet. Für unterstütze Dateiformate klicken Sie hier.' %}
                 </div>
               </span>
             </div>
           </label>
           <a href="{% static 'ebustoolbox/examples/trips_example.csv' %}">
-          <button type="button" class="text-sm font-semibold text-emerald-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-green-600 focus-within:ring-offset-2 hover:text-emerald-600 transition-all duration-300"
+          <button type="button" class="text-sm font-semibold text-emerald-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-emerald-600 focus-within:ring-offset-2 hover:text-emerald-600 transition-all duration-300"
                   title="Beispieldatei herunterladen">
             <span class="flex items-center gap-2" >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
@@ -65,7 +67,7 @@
                   class="relative w-full cursor-pointer text-sm font-semibold text-emerald-700">
                 <span>{% translate 'Datei hochladen' %}</span>
                 {# this sets the id=form.data_file.auto_id #}
-                <input {{ form.data_file|widget_attrs }} type="file" class="sr-only" accept=".csv" onchange="updateFileName(this)">
+                <input @change='scheduleFile=$event.target.value' {{ form.data_file|widget_attrs }} type="file" class="sr-only" accept=".csv,.zip" onchange="updateFileName(this)">
                 {# progress bar during upload #}
                 <progress
                   id='progress'
@@ -87,11 +89,11 @@
     </div>
     <div class="col-span-full pt-4 pb-8">
       <div class="flex items-center gap-4">
-        <div class="text-sm text-slate-600">
+        <div class="text-sm text-slate-500">
           {% translate 'oder aus bestehendem Szenario' %}
         </div>
         <div class="flex-grow">
-          <label id="listbox-label" class="block text-sm font-medium text-slate-800">
+          <label id="listbox-label" class="block text-sm font-semibold text-slate-800">
 
           </label>
 
@@ -100,7 +102,7 @@
             <select
               id="{{ form.existing_scenario.auto_id }}"
               name="{{ form.existing_scenario.name }}"
-              class="flex flex-wrap items-center w-full rounded-md bg-white px-3 py-1.5 text-left text-slate-800 border border-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6 cursor-pointer"
+              class="flex flex-wrap items-center w-full rounded-md bg-white px-3 py-1.5 text-left text-slate-800 border border-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6 cursor-pointer"
             >
               <option value="">{% translate '-- Szenario auswählen --' %}</option>
               {% for scenario in scenarios %}
@@ -115,26 +117,63 @@
       </div>
     </div>
     <div class="col-span-full pt-4 border-t">
+      <scenario-and-checkbox class="flex  gap-6">
       <div class="w-full pb-6">
         <label for="{{ form.scenario_name.auto_id }}"
-          class="block text-sm/6 font-medium text-slate-900">{% translate 'Szenario-Name' %}</label>
+          class="block text-sm/6 font-semibold text-slate-900">{% translate 'Szenario-Name' %}</label>
         <div class="mt-2">
           <input type="text" {{ form.scenario_name|widget_attrs }}
-            class="bg-white w-full px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-emerald-400 sm:text-sm/6"
+            class="bg-white w-full px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 sm:text-sm/6"
             placeholder={% translate "Szenario-Name eingeben" %}>
         </div>
       </div>
+      <checkbox-finder class='flex items-center'  x-show="isSimbaSchedule">
+            <div class="flex gap-4 items-center ">
+              <div class="group grid size-4 grid-cols-1">
+                <input type="checkbox"
+                       {{ form.find_stations|widget_attrs }}
+                       {% if form.find_stations.initial %}checked{% endif %}
+                       aria-describedby="description-{{ vt_id }}"
+                       class="col-start-1 row-start-1 size-6 appearance-none rounded border border-slate-400 checked:border-emerald-500 checked:bg-emerald-500 checked:focus:bg-emerald-500 checked:hover:bg-emerald-500 focus:ring-green-500 focus-ring:outline focus-ring:outline-2 focus-ring:outline-offset-2 focus-ring:outline-green-500">
+                <svg class="pointer-events-none size-3.5 self-center justify-self-center stroke-white"
+                     viewBox="0 0 14 14"
+                     fill="none">
+                  <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path class="opacity-0" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+              <div class="inline text-sm text-slate-700 space-y-1 mx-2">
+                <label for="{{form.find_stations.auto_id}}"
+                       class="inline font-medium">{% translate 'Aktiviere die Suche nach Stationskoordinaten?' %}
+
+              </label>
+
+                <!-- Info Icon -->
+                <span class="relative cursor-pointer group">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4 inline">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                  </svg>
+                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                            {% blocktrans %}Stationskoordinaten sind optional und werden nur für Kartendarstellungen der Ergebnisse genutzt.{% endblocktrans %}
+                  </div>
+                </span>
+              </div>
+            </div>
+
+      </checkbox-finder >
+
+    </scenario-and-checkbox>
       <div class="w-full">
         <div class="flex justify-between">
-          <label for="{{ form.description.auto_id }}" class="block text-sm/6 font-medium text-slate-800">
+          <label for="{{ form.description.auto_id }}" class="block text-sm font-semibold text-slate-800">
             {% translate 'Beschreibung' %}
-            <span class="text-slate-500 pl-2" id="description-optional">{% translate '(Optional)' %}</span>
+            <span class="text-slate-500 font-normal pl-2" id="description-optional">{% translate '(Optional)' %}</span>
           </label>
         </div>
         <div class="mt-2">
-          <textarea type="text" {{ form.description|widget_attrs }} rows="4"
-            class="bg-white w-full px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-emerald-400 sm:text-sm/6"
-            placeholder={% translate "Beschreiben Sie Ihr Szenario..." %}
+          <textarea type="text" {{ form.description|widget_attrs }} rows="3"
+            class="bg-white w-full px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 sm:text-sm/6"
+            placeholder="{% translate "Beschreiben Sie Ihr Szenario..." %}"
             aria-describedby="description-optional">{% if form.description.value %}{{ form.description.value }}{% endif %}</textarea>
         </div>
       </div>

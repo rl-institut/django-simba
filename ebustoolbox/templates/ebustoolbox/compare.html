@@ -5,29 +5,28 @@
 
 {% block content %}
 <main class="flex flex-col items-center flex-grow">
-  <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <h1 class="text-4xl font-semibold mb-6">{% translate "Szenarienvergleich" %}</h1>
+  <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-[120rem]">
+    <h1 class="text-2xl font-semibold mb-6">{% translate "Szenarienvergleich" %}</h1>
   {% if scenarios %}
-    <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-      <div class="flex flex-col">
-        <div class="mt-4 shadow border border-slate-100 rounded-lg overflow-auto">
-          <div class="bg-white rounded-lg shadow-md overflow-x-auto">
-            <table id="table" class="w-full text-left border-collapse">
-              <thead class="bg-slate-100 text-slate-800 text-sm">
-                <tr>
-                  <th class="px-4 py-4 font-medium"> </th>
-                </tr>
-              </thead>
-              <tbody class="text-sm text-slate-700">
-              </tbody>
-            </table>
-          </div>
+    <div class="flex flex-col">
+      <div id="cmp-addContainer" class="flex justify-end h-12"></div>
+      <div class="mt-4 shadow border border-slate-100 rounded-lg overflow-auto">
+        <div class="bg-white rounded-lg shadow-md overflow-x-auto">
+          <table id="table" class="table-fixed w-full text-left border-collapse">
+            <thead class="bg-slate-100 text-slate-800 text-sm">
+              <tr>
+                <th class="px-4 py-4 border-r border-slate-300 w-64 min-w-[16rem]">&nbsp;</th>
+              </tr>
+            </thead>
+            <tbody class="text-sm text-slate-800">
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   {% else %}
     {% translate "Keine Szenarien vorhanden zum Vergleichen." %}
-    <a href="{% url 'simba:trips' %}" class="px-4 py-1 border-2 border-emerald-400 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-emerald-400 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-400 active:bg-emerald-500 transition-all duration-300">
+    <a href="{% url 'simba:trips' %}" class="px-4 py-1 border-2 border-emerald-400 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-emerald-400 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-400 active:bg-emerald-500 transition-all duration-300">
       {% translate "+ Szenario erstellen" %}
     </a>
   {% endif %}
@@ -45,11 +44,15 @@
   const table = document.getElementById('table');
 
   // table styles
-  const columnHeaderStyle = ['px-4', 'py-4', 'font-medium', 'text-center'];
-  const headerBtnStyle = ['size-5', 'shrink-0', 'rounded-full', 'border-2', 'border-slate-300'];
+  const columnHeaderStyle = ['px-4', 'py-4', 'border-slate-300'];
+  const buttonHeaderStyle = ['px-4', 'py-4', 'text-right'];
+  const headerDivStyle = ['flex', 'gap-2', 'items-center', 'justify-end', 'font-semibold'];
+  const headerBtnStyle = ['px-2', 'py-1', 'rounded-full', 'border-2', 'font-semibold', 'border-emerald-400', 'hover:bg-emerald-400', 'hover:text-black', 'focus:outline-none', 'focus:ring-2', 'focus:ring-offset-2', 'focus:ring-emerald-400', 'active:bg-emerald-500', 'transition-all', 'duration-300'];
+  const selectStyle = ['pl-2', 'pr-8', 'py-1', 'border-slate-300', 'bg-white', 'text-slate-800', 'text-sm', 'focus:outline-none', 'focus:ring-2', 'focus:ring-offset-2', 'focus:ring-emerald-400'];
   const rowStyle = ['border-t'];
-  const rowKeyStyle = ['px-4', 'py-3', 'text-slate-500'];
-  const rowValueStyle = ['px-4', 'py-3', 'text-center'];
+  const rowKeyStyle = ['px-4', 'py-3', 'text-slate-500', 'border-r', 'w-64','min-w-[16rem]', 'text-left'];
+  const rowValueStyle = ['px-4', 'py-3', 'text-right'];
+  const rowStringStyle = ['px-4', 'py-3', 'text-left'];
 
   // keep track which scenarios are not displayed yet
   var availableScenarios = new Set(Object.keys(scenarios));
@@ -64,51 +67,52 @@
       let tr = table.tBodies[0].insertRow();
       tr.classList.add(...rowStyle);
       let td = tr.insertCell(0);
-      td.classList.add(...rowKeyStyle);
+      td.classList.add(...rowKeyStyle, 'bg-slate-50');
       td.textContent = key;
     }
 
     {
-      // add empty column (always last column)
-      let th = table.rows[0].insertCell();  // insertCell always TD, not TH
-      th.classList.add(...columnHeaderStyle);
-      for (let i=1; i<table.rows.length; i++)
-        (table.rows[i].insertCell()).classList.add(...rowValueStyle);
-      // add new scenario button in last column
-      var addBtn = document.createElement('BUTTON');
-      addBtn.id = 'cmp-addBtn';
-      addBtn.classList.add(...headerBtnStyle);
-      addBtn.textContent = '+';
-      // only show if there are more scenarios to compare
-      addBtn.style.display = availableScenarios.size?'':'none';
-      th.appendChild(addBtn);
+      // add native select element
+      const addContainer = document.getElementById('cmp-addContainer');
 
-      addBtn.onclick = _ => {
-        // add button click: create selection with remaining scenarios, hide button
-        addBtn.style.display = 'none';
-        let select = document.createElement('SELECT');
-        select.id = 'cmp-select';
-        th.appendChild(select);
-        let option = document.createElement('option');
-        option.value = '0';
-        option.textContent = '--- Szenario auswählen ---';
-        select.appendChild(option);
-        // options for each available scenario
-        // sort by numeric scenario ID
-        let sorted_ids = Array(...availableScenarios).sort(
-          (a, b) => a.localeCompare(b, undefined, { numeric: true }));
-        for (let scenario_id of sorted_ids) {
-          option = document.createElement('option');
-          option.value = scenario_id;
-          option.textContent = scenarios[scenario_id].Name;
-          select.appendChild(option);
+      // Create a wrapper div to maintain consistent height
+      const selectWrapper = document.createElement('div');
+      selectWrapper.classList.add('inline-block', 'h-8'); // Fixed height to prevent layout shift
+
+      const select = document.createElement('select');
+      select.id = 'cmp-select';
+      select.classList.add(
+        'pl-4', 'pr-8', 'py-1', 'rounded-full', 'border-none', 'font-semibold',
+        'bg-emerald-100', 'hover:bg-emerald-200', 'text-slate-800', 'hover:text-slate-800', 'hover:border-emerald-200',
+        'focus:outline-none', 'focus:ring-2', 'focus:ring-offset-2', 'focus:ring-emerald-300', 'active:bg-white', 'focus:bg-white', 'focus:border-emerald-300',
+        'transition-all', 'duration-300', 'cursor-pointer', 'h-10', 'pr-24',
+        'appearance-none',
+      );
+
+      // Add default option
+      const defaultOption = document.createElement('option');
+      defaultOption.value = '';
+      defaultOption.textContent = '+ Szenario';
+      defaultOption.disabled = true;
+      defaultOption.selected = true;
+      select.appendChild(defaultOption);
+
+      // Populate with available scenarios
+      updateSelectOptions(select);
+
+      // Handle selection
+      select.addEventListener('change', (e) => {
+        const selectedScenarioId = e.target.value;
+        if (selectedScenarioId) {
+          addColumn(selectedScenarioId);
+          // Reset select to default state
+          e.target.value = '';
+          updateSelectOptions(select);
         }
-        select.onchange = _ => {
-          // scenario selected: add new column before last
-          addColumn(select.value);  // may also make addBtn visible again, depending on availableScenarios
-          th.removeChild(select);
-        }
-      }
+      });
+
+      selectWrapper.appendChild(select);
+      addContainer.appendChild(selectWrapper);
     }
 
     if (requested && scenarios[requested]) {
@@ -119,40 +123,65 @@
     }
   };
 
+  function updateSelectOptions(select) {
+    // Clear existing options except the first (default) one
+    while (select.children.length > 1) {
+      select.removeChild(select.lastChild);
+    }
+
+    // Add available scenarios
+    Array.from(availableScenarios)
+      .sort((a,b) => a.localeCompare(b, undefined, { numeric: true }))
+      .forEach(id => {
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = scenarios[id].Name;
+        select.appendChild(option);
+      });
+
+    // Show/hide select based on available scenarios
+    select.style.display = availableScenarios.size ? '' : 'none';
+  }
+
   function addColumn(scenario_id) {
     // add new scenario column to comparison
     // add as second-to-last column
-    let scenario = scenarios[scenario_id];
-    numColumns = table.rows[0].childElementCount;
-    let th = table.rows[0].insertCell(numColumns-1);
-    th.classList.add(...columnHeaderStyle);
-    let headerDiv = document.createElement('DIV');
+    const scenario = scenarios[scenario_id];
+
+    // — append a new <th> to the end of the header row
+    const headerRow = table.tHead.rows[0];
+    const th = headerRow.insertCell();           // no index ⇒ append
+    th.classList.add(...columnHeaderStyle, 'w-64', 'max-w-64');
+
+    // build title + remove‑button exactly as before…
+    const headerDiv = document.createElement('div');
     headerDiv.setAttribute('scenario', scenario_id);
-    headerDiv.style.display = 'flex';
-    let headerSpan = document.createElement('SPAN');
-    headerSpan.textContent = scenario.Name;
-    headerDiv.appendChild(headerSpan);
-    if (scenario_id != requested) {
-      // add minus button, except for requested scenario
-      let headerBtn = document.createElement('BUTTON');
-      headerBtn.textContent = '-';
-      headerBtn.classList.add(...headerBtnStyle);
-      headerBtn.onclick = _ => deleteColumn(scenario_id);
-      headerDiv.appendChild(headerBtn);
+    headerDiv.classList.add(...headerDivStyle);
+    headerDiv.innerHTML = `<span class="inline-block truncate whitespace-nowrap" title="${scenario.Name}">${scenario.Name}</span>`;
+    if (scenario_id !== requested) {
+      const btn = document.createElement('button');
+      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#64748b" class="size-4"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>';
+      btn.onclick = () => deleteColumn(scenario_id);
+      headerDiv.appendChild(btn);
     }
     th.appendChild(headerDiv);
 
-    // write values in rows
-    let values = Object.values(scenario);
-    for (let i=1; i<values.length; i++) {
-      td = table.rows[i].insertCell(numColumns-1);
+    // — append one <td> per body‑row
+    for (let row of table.tBodies[0].rows) {
+      const td = row.insertCell(); // append
+      const val = row.rowIndex
+        ? Object.values(scenario)[row.rowIndex]
+        : '';
+      td.textContent = val;
       td.classList.add(...rowValueStyle);
-      td.textContent = values[i];
     }
 
     availableScenarios.delete(scenario_id);
-    // show add button (again) if there are other scenarios to compare to
-    document.getElementById('cmp-addBtn').style.display = availableScenarios.size?'':'none';
+    // Update select options
+    const select = document.getElementById('cmp-select');
+    if (select) {
+      updateSelectOptions(select);
+    }
   }
 
   function deleteColumn(scenario_id) {
@@ -169,13 +198,22 @@
     for (let row of table.rows)
       row.deleteCell(index);
     availableScenarios.add(scenario_id);
-    // show add button again
-    document.getElementById('cmp-addBtn').style.display = '';
-    // remove select if visible
-    let select = document.getElementById('cmp-select');
-    if (select)
-      select.remove();
+
+    // Update select options
+    const select = document.getElementById('cmp-select');
+    if (select) {
+      updateSelectOptions(select);
+    }
   }
 
+  function isDate(str) {
+    // check if string is a valid date in format DD.MM.YYYY
+    if (!/^\d{2}\.\d{2}\.\d{4}$/.test(str)) return false;
+    const [day, mon, yr] = str.split(".").map(Number);
+    const d = new Date(yr, mon - 1, day);
+    return d.getFullYear() === yr
+      && d.getMonth()     === mon - 1
+      && d.getDate()      === day;
+  }
 </script>
 {% endblock script %}

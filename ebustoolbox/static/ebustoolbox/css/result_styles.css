@@ -1,0 +1,65 @@
+﻿#table th+th,
+#table td+td {
+    border-left: 1px solid rgba(203, 213, 225);
+}
+
+/* Scrollbar Styling */
+#table-scroll-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+#table-scroll-container::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+#table-scroll-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+#table-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #059669;
+}
+
+/* Ensure the header has enough height and relative positioning for the icon */
+th.sortable {
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    position: relative;
+    /* Required for absolute positioning of the icon if needed */
+    padding-right: 25px !important;
+    /* Make room for the arrow so it doesn't overlap text */
+}
+
+th.sortable:hover {
+    color: #059669 !important;
+    background-color: #f8fafc;
+}
+
+/* The Sort Indicator */
+th.sortable::after {
+    content: '↕';
+    position: absolute;
+    right: 8px;
+    /* Fixed distance from the right border of the cell */
+    top: 50%;
+    transform: translateY(-50%);
+    color: #cbd5e1;
+    /* slate-300 */
+    font-size: 0.9em;
+    opacity: 0.7;
+}
+
+/* Specific arrows when active */
+th.sortable.asc::after {
+    content: '↑';
+    color: #059669;
+    opacity: 1;
+}
+
+th.sortable.desc::after {
+    content: '↓';
+    color: #059669;
+    opacity: 1;
+}

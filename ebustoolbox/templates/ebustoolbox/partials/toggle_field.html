@@ -1,0 +1,58 @@
+  <div class="hidden">
+    {{field}}
+  </div>
+  <button type="button" onclick="toggleButton(this)"
+    data-value={{field.auto_id}}
+    id="button_{{ field.auto_id }}" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
+      {% if field.value %}bg-emerald-500{% else %}bg-slate-200{% endif %}
+    transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2" role="switch" aria-checked="true" aria-labelledby="toggle{{field.auto_id}}">
+    <span aria-hidden="true" class="pointer-events-none inline-block size-5
+      {% if field.value %}translate-x-5{% else %} translate-x-0 {% endif %}
+      transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+  </button>
+  <div class="flex items-center gap-2">
+    <span class="ml-3 text-sm">
+      <span id="toggle{{field.auto_id}}" class="font-semibold text-slate-900">{{label}}</span>
+    </span>
+    <div class="relative inline-block">
+      <!-- Info Icon -->
+      <span class="cursor-pointer group">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z">
+          </path>
+        </svg>
+        <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+          {{tooltip}}
+        </div>
+      </span>
+    </div>
+  </div>
+<script>
+  function toggleButton(element){
+    const searchId = element.getAttribute("data-value")
+    const input = document.getElementById(searchId);
+    input.checked = !input.checked;
+  setState(element);
+}
+function setState(element) {
+  const searchId = element.getAttribute("data-value")
+  const input = document.getElementById(searchId);
+  const automaticToggle = element;
+
+  if (input.checked) {
+    automaticToggle.setAttribute("aria-checked", "true");
+  } else {
+    automaticToggle.setAttribute("aria-checked", "false");
+  }
+  // Ensure the correct default state (ON by default)
+  let isChecked = automaticToggle.getAttribute("aria-checked") === "true";
+
+  automaticToggle.classList.toggle("bg-emerald-500", isChecked);
+  automaticToggle.classList.toggle("bg-slate-200", !isChecked);
+  automaticToggle.querySelector("span").classList.toggle("translate-x-5", isChecked);
+  automaticToggle.querySelector("span").classList.toggle("translate-x-0", !isChecked);
+}
+document.addEventListener("DOMContentLoaded", function () {
+    setState(document.getElementById("button_{{field.auto_id}}"));
+})
+</script>

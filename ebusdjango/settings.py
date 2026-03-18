@@ -15,7 +15,6 @@ from pathlib import Path
 from django.utils.translation import gettext_lazy as _
 
 import environ
-
 from ebus_map.settings import *  # noqa
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -33,24 +32,15 @@ env.read_env(str(ROOT_DIR.path(".env")))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DJANGO_ELEVATION_TOKEN = env.str("DJANGO_ELEVATION_TOKEN", "notoken")
 OPENELEVATION_URL = env.str("OPENELEVATION_URL", "")
+SEARCH_STATION_LOCATIONS = env.bool("DJANGO_SEARCH_STATIONS", default=True)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "*"])
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://127.0.0.1"])
-# https://docs.djangoproject.com/en/dev/ref/settings/#secure-proxy-ssl-header
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-# https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
-SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
-# under which URL can server be reached? Used in email verification
-DJANGO_HOST_URL = env("DJANGO_HOST_URL", default="").rstrip('/')
-if not DJANGO_HOST_URL:
-    print("No DJANGO_HOST_URL set, emails might contain only partial links")
-
 
 # Source to xyzascii zip of elevations
 ELEVATION_SOURCE_URL = env.str(
@@ -58,10 +48,6 @@ ELEVATION_SOURCE_URL = env.str(
     "https://daten.gdz.bkg.bund.de/produkte/dgm/dgm200/aktuell/dgm200.utm32s.gridascii.zip",
 )
 
-if env.bool("DJANGO_LOCAL_DEVELOPMENT", default=False):
-    SECURE_PROXY_SSL_HEADER = None
-    # https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
-    SECURE_SSL_REDIRECT = False
 DATA_UPLOAD_MAX_NUMBER_FIELDS = env.int(
     "DJANGO_DATA_UPLOAD_MAX_NUMBER_FIELDS", 3000
 )  # higher than the count of fields. StationsView can have a couple of hundred stations with 5 fields each.
@@ -85,11 +71,13 @@ INSTALLED_APPS = [
     "bootstrap4",
     "tailwind",
     "tailwind_theme",
+    "widget_tweaks",
 ]
 
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -102,12 +90,7 @@ MIDDLEWARE = [
     # activate the language based on user cookie
     "core.middleware.LanguageMiddleware",
 ]
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379",
-    }
-}
+
 ROOT_URLCONF = "ebusdjango.urls"
 
 TEMPLATES = [
@@ -150,14 +133,27 @@ LOGIN_REDIRECT_URL = "/"  # redirect to landing page after login
 DATABASES = {"default": env.db("DATABASE_URL")}
 
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=True)
-if CELERY_TASK_ALWAYS_EAGER:
-    # if set, eager tasks will propagate exceptions
-    CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=True)
-    # if set, eager tasks will save results in backend
-    CELERY_TASK_STORE_EAGER_RESULT = env.bool("CELERY_TASK_STORE_EAGER_RESULT", default=True)
+# if set, eager tasks will propagate exceptions
+CELERY_TASK_EAGER_PROPAGATES = env.bool("CELERY_TASK_EAGER_PROPAGATES", default=True)
+# if set, eager tasks will save results in backend
+CELERY_TASK_STORE_EAGER_RESULT = env.bool("CELERY_TASK_STORE_EAGER_RESULT", default=True)
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=None)
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=None)
+# Recommended celery backend for persistent storage is REDIS.
+# rpc is an alternative which does not need extra dependency but is epheremal.
+# Once fetched the results are gone.
+# The status Started can only be fetched once.
+# Therefore the status of tasks can not be determined accurately.
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="rpc://")
+CELERY_TASK_TRACK_STARTED = True
+REDIS_URL = env("REDIS_URL", default=None)
 
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+    }
+}
 # For Database visualization
 GRAPH_MODELS = {
     "all_applications": False,
@@ -165,6 +161,16 @@ GRAPH_MODELS = {
     "app_labels": ["ebustoolbox"],
 }
 
+# Turn on hashing and compression for whitenoise
+STORAGES = {
+    # ...
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
@@ -198,6 +204,11 @@ LOGGING = {
     },
     # Do not show logs with status 200 for map_engine
     "filters": {
+        "remove_progress": {
+            "()": "core.filters.FilterStatusCode",
+            "status_code": 200,
+            "search_text": "progress",
+        },
         "map_status_no_content": {
             "()": "core.filters.FilterStatusCode",
             "status_code": 204,
@@ -207,12 +218,14 @@ LOGGING = {
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
+            "filters": ["remove_progress"],
             "formatter": "simple",
         },
         "file": {
             "level": "INFO",
             "class": "logging.FileHandler",
-            "filename": "./info.log",
+            "filename": BASE_DIR
+            / "logs/info.log",  # Adjust the path based on  your project structure
             "formatter": "simple",
         },
     },
@@ -260,6 +273,7 @@ X_FRAME_OPTIONS = "DENY"
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 UPLOAD_PATH = "uploads/"
 MEDIA_ROOT = env.str("DJANGO_MEDIA_ROOT", "media/")
 
@@ -270,11 +284,10 @@ MAX_FILE_SIZE_B = env.int("DJANGO_MAX_FILE_SIZE_KB", 64000) << 10
 # while the above line checks all the app folders for static folders the below one can be a list of
 # general static file folders
 STATICFILES_DIRS = [
-    BASE_DIR,
+    BASE_DIR / "static",
     BASE_DIR / "templates/js",
     BASE_DIR / "templates/css",
     BASE_DIR / "templates/img",
-    BASE_DIR / UPLOAD_PATH,
 ]
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -283,3 +296,35 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 TAILWIND_APP_NAME = "tailwind_theme"
 INTERNAL_IPS = ["localhost", "127.0.0.1"]
+
+
+# NOTE: By default these are secure settings. Can always be explicitly overwritten by .env
+# Small value for testing, maybe increase?
+# https://docs.djangoproject.com/en/5.1/ref/middleware/#http-strict-transport-security
+SECURE_HSTS_SECONDS = env.bool("DJANGO_SECURE_HSTS_SECONDS", default=60)
+# https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
+SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
+SESSION_COOKIE_SECURE = env.bool("DJANGO_SESSION_COOKIE_SECURE", default=True)
+CSRF_COOKIE_SECURE = env.bool("DJANGO_CSRF_COOKIE_SECURE", default=True)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True)
+SECURE_HSTS_PRELOAD = env.bool("DJANGO_SECURE_HSTS_PRELOAD", default=True)
+# https://docs.djangoproject.com/en/dev/ref/settings/#secure-proxy-ssl-header
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# under which URL can server be reached? Used in email verification
+DJANGO_HOST_URL = env("DJANGO_HOST_URL", default="").rstrip('/')
+if not DJANGO_HOST_URL:
+    print("No DJANGO_HOST_URL set, emails might contain only partial links")
+
+# NOTE: Explicitly setting local development will use unsecure development defaults instead
+if env.bool("DJANGO_LOCAL_DEVELOPMENT", default=False):
+    # NOTE: Development defaults
+    SECURE_HSTS_SECONDS = env.bool("DJANGO_SECURE_HSTS_SECONDS", default=0)
+    # https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
+    SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=False)
+    SESSION_COOKIE_SECURE = env.bool("DJANGO_SESSION_COOKIE_SECURE", default=False)
+    CSRF_COOKIE_SECURE = env.bool("DJANGO_CSRF_COOKIE_SECURE", default=False)
+    # https://docs.djangoproject.com/en/dev/ref/settings/#secure-proxy-ssl-header
+    SECURE_PROXY_SSL_HEADER = env.tuple("SECURE_PROXY_SSL_HEADER", default=None)
+
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True)
+    SECURE_HSTS_PRELOAD = env.bool("DJANGO_SECURE_HSTS_PRELOAD", default=True)

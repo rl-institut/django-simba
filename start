@@ -4,7 +4,10 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-poetry run python manage.py makemigrations
+
+# clear previous static files without needing a user input
+poetry run python manage.py collectstatic -c --noinput &
 poetry run python manage.py migrate
 poetry run python manage.py load_consumption
-poetry run python manage.py runserver 0.0.0.0:8000
+# Set the number of Gunicorn Workers to the Envvariable. Defaults to 4. make sure to bind to 0.0.0.0:8000
+poetry run gunicorn ebusdjango.wsgi --bind 0.0.0.0:8000 --chdir=/app --workers ${GUNICORN_WORKER_NR:-4}

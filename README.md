@@ -1,3 +1,38 @@
+## Development Updates
+### SOURCE_FILE Scenarios
+A new Scenario Type has been introduced, called SOURCE_FILE. After uploading a source, the source is deepcopied, and inserted as a parent of the SOURCE scenario. This happens after functions which fix zero duration or zero distance trips and creating opp stations at depots when needed. This source_file scenario should never be mutated. The SOURCE scenario is now mutable by a filter_scenario view, which permanently removes rotations/stations/lines. This is only possible as long as there are no other children of this scenario.
+
+### Data Scenarios
+How to create public data scenarios.
+Admins can now easily add Scenarios which can be selected by users to run a scenarios without uploading data.
+Steps
+1. Login as Superuser
+2. Upload a Scenarios using the standard way/trips.html
+3. Go to the admin panel, select the created mutation scenario and make the scenario a PUBLIC_DATA scenario
+
+### Admin Panel
+Most Models have been added to the scenario panel.
+If you search for a specific item a query can be added to the model url,
+```
+vehicletype/?battery_capacity__gte=500&name__contains=MyVehicleType
+```
+
+### Redis
+To allow caching, enable permanent celery results storage and use the same stack as production. Redis is very **recommended**.
+Install redis and use the following .env settings
+
+``` .env
+REDIS_URL=redis://127.0.0.1:6379
+CELERY_BROKER_URL=redis://127.0.0.1:6379
+CELERY_RESULT_BACKEND='redis://127.0.0.1:6379'
+```
+
+This removes rabbitmq or other brokers from the necessary dependencies.
+REDIS_URL is used for caching and needs to be redis. If no REDIS_URL is supplied, caching will be skipped.
+CELERY_BROKER_URL is the broker which manages celery task management.
+CELERY_RESULT_BACKEND is used to store results.
+CELERY_TASK_RESULT_EXPIRES can be used to define how long the results are stored (in seconds). default is 1 day.
+
 ## Installation
 
 1. Clone this git repository (or [download a specific release](https://github.com/rl-institut/django-simba/releases))
@@ -41,6 +76,8 @@
      DATABASE_URL=postgis://YOUR_DB_USERNAME:YOUR_PASSWORD@localhost/YOUR_DB_NAME
      # Should the simulation run with eflips-depot. Development setting which will be set to True in stable Versions.
      EFLIPS_USE=TRUE
+     # Redis backend url. This allows caching. Can be the same as the celery broker url but does not have to be
+     REDIS_URL=redis://127.0.0.1:6379
      # Should celery be used synchronously? In this case no celery process and CELERY_BROKER_URL is needed.
      CELERY_TASK_ALWAYS_EAGER=True
      # CELERY_BROKER_URL=pyamqp://guest@localhost//
@@ -271,3 +308,9 @@ stundenwerte_TU_00003_19500401_20110331_hist.zip
 stundenwerte_TU_00003_19500401_20110331_hist.zip
 ...
 ```
+Temperature fetching uses caching. This requires a REDIS_URL. If no REDIS_URL is given, caching should be skipped.
+
+## Image Licensing Notice
+Some visual assets in this project are licensed from Freepik under a Premium License.
+These assets are provided only for use within this project.
+They cannot be reused, redistributed, or modified outside of this context without obtaining a valid Freepik license.

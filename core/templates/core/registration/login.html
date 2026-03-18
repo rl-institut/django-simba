@@ -1,7 +1,7 @@
 {% extends 'core/base.html' %}
 {% load i18n %}
 
-  {% block title %}{% translate 'WeBus - Login' %}{% endblock title %}
+{% block title %}{% translate 'WeBus - Login' %}{% endblock title %}
 
 {% block content %}
 <main class="flex-grow flex flex-col items-center justify-center text-center sm:px-6 lg:px-8">
@@ -13,38 +13,26 @@
 
     <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
       <div class="bg-white px-6 py-12 shadow-lg sm:rounded-lg sm:px-12">
-        <form class="space-y-6" action="{% url 'core:login' %}" method="POST">
+        {% if form.errors %}
+          <p class='mt-1 text-red-500 text-xs break-words'>{% translate 'E-Mail und Passwort stimmen nicht überein.' %}</p>
+        {% endif %}
+        <form class="space-y-6" method="POST">
           {% csrf_token %}
           <div>
-            <label for="email" class="block text-sm/6 font-medium text-slate-800">{% translate 'E-Mail-Adresse' %}</label>
+            <label for="email" class="block text-sm/6 font-semibold text-slate-800">{% translate 'E-Mail-Adresse' %}</label>
             <div class="mt-2">
-              <input type="text" name="username" id="email" autocomplete="email" required value="{{ form.username.initial|default_if_none:"" }}" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-slate-800 outline outline-1 -outline-offset-1 outline-slate-300 placeholder:text-slate-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-500 sm:text-sm/6">
+              <input type="text" name="username" id="email" autocomplete="email" required value="{{ form.username.initial|default_if_none:"" }}" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-slate-800 outline outline-1 -outline-offset-1 outline-slate-300 placeholder:text-slate-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-emerald-500 sm:text-sm/6">
             </div>
           </div>
 
           <div>
-            <label for="password" class="block text-sm/6 font-medium text-slate-800">{% translate 'Passwort' %}</label>
+            <label for="password" class="block text-sm/6 font-semibold text-slate-800">{% translate 'Passwort' %}</label>
             <div class="mt-2">
-              <input type="password" name="password" id="password" autocomplete="current-password" required class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-slate-800 outline outline-1 -outline-offset-1 outline-slate-300 placeholder:text-slate-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-500 sm:text-sm/6">
+              <input type="password" name="password" id="password" autocomplete="current-password" required class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-slate-800 outline outline-1 -outline-offset-1 outline-slate-300 placeholder:text-slate-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-emerald-500 sm:text-sm/6">
             </div>
           </div>
 
           <div class="flex items-center justify-between">
-<!--
-            <div class="flex gap-3">
-              <div class="flex h-6 shrink-0 items-center">
-                <div class="group grid size-4 grid-cols-1">
-                  <input id="remember-me" name="remember-me" type="checkbox" class="col-start-1 row-start-1 appearance-none rounded border border-slate-300 bg-white checked:border-emerald-600 checked:bg-emerald-600 indeterminate:border-emerald-600 indeterminate:bg-emerald-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:border-slate-300 disabled:bg-slate-100 disabled:checked:bg-slate-100 forced-colors:appearance-auto">
-                  <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-[:disabled]:stroke-slate-950/25" viewBox="0 0 14 14" fill="none">
-                    <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                    <path class="opacity-0 group-has-[:indeterminate]:opacity-100" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                </div>
-              </div>
-              <label for="remember-me" class="block text-sm/6 text-slate-800">Remember me</label>
-            </div>
--->
-
             <div class="text-sm/6">
               <a href="{% url 'core:password_reset' %}" class="font-semibold text-slate-800 underline decoration-transparent hover:decoration-black transition-all duration-300">{% translate 'Passwort vergessen?' %}</a>
             </div>

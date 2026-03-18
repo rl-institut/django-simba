@@ -1,403 +1,281 @@
 {% extends 'ebustoolbox/wizard.html' %}
+{% block header %}
+<script>
+function addHTMX(button_id) {
+  button = document.getElementById(button_id);
+  button.setAttribute("hx-post", ".");
+  button.setAttribute("hx-swap", "outerHTML ");
+  form_container= button.closest(".depot-form-container");
+  button.setAttribute("hx-target", "#"+form_container.id);
+  button.setAttribute("hx-select", "#"+form_container.id);
+}
+</script>
+{% endblock header %}
 {% load i18n %}
 {% load custom_filters %}
-  {% block title %}{% translate "WeBus - Depots" %}{% endblock title %}
-
+{% load widget_tweaks %}
+{% block title %}
+  {% translate "WeBus - Depots" %}
+{% endblock title %}
 {% block wizard_navigation %}
-  {% with wiz_idx=5 %}
-    {{ block.super }}
-  {% endwith %}
+  {% with wiz_idx=6 %}{{ block.super }}{% endwith %}
 {% endblock wizard_navigation %}
-
 {% block wizard_content %}
-<main class="flex flex-col items-center flex-grow">
-  <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-    <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">
-      {% translate 'Depots' %}
-    </h1>
-    <form
-    type="sumbit"
-    method="POST"
-    >
-    {% csrf_token %}
-      {#    Manage all the different formsets#}
-      {% for form_dict in forms.values %}
-      {% with formset=form_dict|get_item:"depot_area_forms" %}
-
-      {{ formset.management_form  }}
-      {{ formset.management_form.errors  }}
-      {% endwith %}
-      {% endfor %}
-
-      {% for depot_id, form_dict in forms.items %}
-        {% with depot=depots|get_item:depot_id %}
-          <section class="pb-12">
-          <div id={{ depot_id }}"DepotContent">
-
-
-            <div class="overflow-hidden rounded-lg bg-white shadow mb-4">
-              <div class="flex items-center justify-between py-4 px-4 gap-4 bg-gradient-to-r from-slate-100 to-slate-200">
-                <div class="flex items-center gap-2">
-                  <p class="flex gap-2 items-center">
-                    <span class="text-base font-bold">{{ depot.name }}</span>
-                    <button type="button" class="inline-flex items-center text-slate-800 hover:text-emerald-600"
-                            aria-label="Depotname editieren">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                           stroke="currentColor" class="size-4">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                              d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125"/>
-                      </svg>
-                    </button>
-                  </p>
-                </div>
-              </div>
-
-              <div class="px-4 sm:p-6">
-                <div class="flex gap-2">
-                  <div class="flex items-center">
-                    <input  style="display:none" {{ form_dict|get_item:"calculation_mode_form"|get_item:"calculation_mode"|widget_attrs }} value="automatic">
-                    <button
-                            type="button"
-                            id="automaticToggle"
-                            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-emerald-500 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
-                            role="switch"
-                            data-depot-id="{{ depot.id }}"
-                            aria-checked="true"
-                            aria-labelledby="automaticToggleLabel"
-                    >
-                <span
-                        aria-hidden="true"
-                        class="pointer-events-none inline-block size-5 translate-x-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                ></span>
-                    </button>
+  <main class="flex flex-col items-center flex-grow">
+    <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+      <h1 class="pb-12 text-2xl text-slate-500 font-light tracking-wide uppercase">{% translate 'Depots' %}</h1>
+      <form type="sumbit" method="POST">
+        {% csrf_token %}
+        {% for depot, form_dict in forms.items %}
+          {% with depot_form=form_dict.depot_config %}
+            <!-- Accordion Item {{depot.id}} -->
+            <section class="">
+              <div id='DepotContent{{ depot.id }}' data-value='{{depot.id}}' class="accordion-container overflow-hidden" >
+                <div class="rounded-lg bg-white shadow mb-0">
+                  <button type='button'
+                          onclick="toggleAccordion(this)"
+                          class="w-full flex items-center justify-between py-4 px-4 gap-4 bg-gradient-to-r from-slate-100 to-slate-200 accordion-header">
                     <div class="flex items-center gap-2">
-                <span class="ml-3 text-sm" id="automaticToggleLabel">
-                      <span class="font-medium text-slate-900">{% translate "Automatische Berechnung" %}</span>
-                </span>
-                      <div class="relative inline-block">
-                        <!-- Info Icon -->
-                        <span class="cursor-pointer group">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                         stroke="currentColor" class="size-4">
-                      <path stroke-linecap="round" stroke-linejoin="round"
-                            d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
-                    </svg>
-                    <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                          {% translate 'Bottom Left-Aligned Tooltip' %}
+                      <p class="flex gap-2 items-center">
+                        <span class="text-base font-bold">{{ depot.name }}</span>
+                        <span id="icon-{{ depot.id }}"
+                              class="text-slate-800 transition-transform duration-300">
+                          <svg xmlns="http://www.w3.org/2000/svg"
+                               viewBox="0 0 16 16"
+                               fill="currentColor"
+                               class="w-4 h-4">
+                            <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                          </svg>
+                        </span>
+                      </p>
                     </div>
-                  </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div id="depotChargingContent_{{ depot.id }}" class="hidden pt-6 pb-4 border-b border-slate-200">
-                  <div class="mb-4">
-                  <h2 class="block text-base font-semibold text-slate-800">{% translate "Ladepunkte" %}</h2>
-                  </div>
-                  {#          Iterate over all rows of ladepunkte and leistung#}
-                  {% for form in form_dict|get_item:"depot_area_forms"|get_attr:"initial_forms" %}
-                    <div class="grid grid-cols-1 gap-6" id="pointsContainer_{{ depot.id }}" data-depot-id="{{ depot.id }}">
-                      <div class="grid grid-cols-2 gap-6 point-row">
-                        <!-- First Column: Anzahl -->
-                        <div class="flex-grow">
-                          <div class="flex items-center gap-2">
-                        <label for="anzahl" class="block text-sm font-medium text-slate-800">{% translate "Anzahl" %}</label>
-                            <div class="relative inline-block">
-                              <!-- Info Icon -->
-                              <span class="cursor-pointer group">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                             stroke="currentColor" class="size-4">
-                          <path stroke-linecap="round" stroke-linejoin="round"
-                                d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
-                        </svg>
-                        <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                              {% translate 'Anzahl Tooltip' %}
-                        </div>
-                      </span>
-                            </div>
-                          </div>
-                          <div class="mt-2">
-                            <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
-                              <input
-                                      {{ form.amount_charging_places|widget_attrs }}
-                                      class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                                      placeholder="8"
-                              >
-                            </div>
-                          </div>
-                        </div>
-                        <!-- Second Column: Leistung -->
-                        <div class="flex-grow relative">
-                          <div class="flex items-center gap-2">
-                        <label for="leistung" class="block text-sm font-medium text-slate-800">{% translate 'Leistung pro
-                              Punkt' %}</label>
-                            <div class="relative inline-block">
-                              <!-- Info Icon -->
-                              <span class="cursor-pointer group">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                             stroke="currentColor" class="size-4">
-                          <path stroke-linecap="round" stroke-linejoin="round"
-                                d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
-                        </svg>
-                        <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                              {% translate 'Leistung Tooltip' %}
-                        </div>
-                      </span>
-                            </div>
-                          </div>
-                          <div class="mt-2 flex items-center gap-2">
-                            <div class="flex items-center w-full rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
-                              <input
-                                      {{ form.power_per_charger|widget_attrs }}
-                                      class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                                      placeholder="300"
-                              >
-                          <div class="shrink-0 select-none text-slate-500">{% translate "kW" %}</div>
-                            </div>
-                            <!-- Delete Button -->
-                            <button
-                                    type="button"
-                                    aria-label="Reihe löschen"
-                                    class="delete-row flex items-center justify-center rounded-full p-1 text-slate-500 hover:text-red-600 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                                   stroke="currentColor" class="size-5">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                      d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  {% endfor %}
-                  <div class="mt-2">
-                  <button id="addPoint_{{ depot.id }}" class="text-emerald-600 text-sm font-bold">{% translate "+ Ladepunkte hinzufügen" %}</button>
-                  </div>
-
-
-                  <div class="flex justify-end">
-                    <div class="flex items-center gap-4">
-                    <span class="text-sm font-normal">{% translate "Gesamtleistung" %}</span>
-                      <span class="px-2 py-1 bg-sky-50 font-semibold text-sky-800"><div id="{{ depot_id }}summedTotalPower"></div></span>
-                    </div>
-                  </div>
-                </div>
-
-                <div id="gridConnectionContent_{{ depot_id }}" class="hidden pb-4">
-                  <div class="mt-6">
-                  <h2 class="block text-base font-semibold text-slate-800">{% translate "Netzanschlüsse" %}</h2>
-                    <div class="flex items-center gap-2 pt-4">
-                    <label for="ladeleistung" class="block text-sm font-medium text-slate-800">{% translate "Ladeleistung" %}</label>
-                      <div class="relative inline-block">
-                        <!-- Info Icon -->
-                        <span class="cursor-pointer group">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                         stroke="currentColor" class="size-4">
-                      <path stroke-linecap="round" stroke-linejoin="round"
-                            d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
-                    </svg>
-                    <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                          {% translate 'Bottom Left-Aligned Tooltip' %}
-                    </div>
-                  </span>
-                      </div>
-                    </div>
-                    <div class="mt-2">
-                      <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
-                        <input
-                                {{ form_dict|get_item:"depot_info_form"|get_item:"power_total"|widget_attrs }}
-                                class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                                placeholder="5000"
-                        >
-                      <div class="shrink-0 select-none text-slate-500">{% translate "kVA" %}</div>
-                      </div>
-                    </div>
+                  </button>
+                  <div id="content-{{ depot.id }}"
+                       class="max-h-0 transition-all duration-300 ease-in-out accordion-content">
+                    <!-- General Depot configuration -->
+                    {% include "ebustoolbox/partials/depot_configuration_wish.html" %}
                   </div>
                 </div>
               </div>
-            </div>
-
-          </div>
-          </section>
-        {% endwith %}
-    {% endfor %}
-    <button hidden id="submitButton" onclick="validate()"></button>
+            </section>
+          {% endwith %}
+        {% endfor %}
+        <button hidden id="submitButton" onclick="validateAccordions()"></button>
       </form>
-  </div>
-</main>
+    </div>
+  </main>
+  <div class="hidden bg-emerald-200"></div>
 {% endblock wizard_content %}
-
 {% block wizard_buttons %}
   {% url 'simba:costs' scenario.task_id as prev_url %}
-  {%  with "submitButton" as buttonId %}
-  {{ block.super }}
-  {% endwith %}
+  {% with "submitButton" as buttonId %}{{ block.super }}{% endwith %}
 {% endblock wizard_buttons %}
-
 {% block script %}
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
+  <script>
 
-        const automaticToggles = document.querySelectorAll('button[id^="automaticToggle"]');
-        const input_prefix ="id_depot_calc_mode_";
-        const input_suffix ="-calculation_mode";
+  function validateAccordions(){
+    const containers = document.querySelectorAll('div.accordion-container');
+    error = false;
+    containers.forEach((container) => {
+      if (error) return;
+      inputs = container.querySelectorAll('input');
+      inputs.forEach((input) => {
+      if (!input.checkValidity()){
+        error = true;
+        button = container.querySelector('button');
+         if (toggleAccordion.open !== button) toggleAccordion(button)
 
-        automaticToggles.forEach((automaticToggle) => {
-            const depot_id = automaticToggle.getAttribute("data-depot-id")
-            const depotChargingContent = document.getElementById("depotChargingContent_"+depot_id);
-            const gridConnectionContent = document.getElementById("gridConnectionContent_"+depot_id);
-            const input_element = document.getElementById(input_prefix + depot_id + input_suffix);
-            console.assert(input_element)
-
-            // Ensure the correct default state (ON by default)
-            let isChecked = automaticToggle.getAttribute("aria-checked") === "true";
-            // Default state of the input element is "automatic" according to the toggle
-            input_element.setAttribute("value", "automatic");
-
-            automaticToggle.classList.toggle("bg-emerald-500", isChecked);
-            automaticToggle.classList.toggle("bg-slate-200", !isChecked);
-            automaticToggle.querySelector("span").classList.toggle("translate-x-5", isChecked);
-            automaticToggle.querySelector("span").classList.toggle("translate-x-0", !isChecked);
-
-            // **Make sure the content is hidden by default when toggled ON**
-            if (depotChargingContent && gridConnectionContent) {
-                depotChargingContent.classList.toggle("hidden", isChecked); // Hides when ON
-                gridConnectionContent.classList.toggle("hidden", isChecked);
-            }
-
-            // Add event listener for toggling
-            automaticToggle.addEventListener("click", () => {
-                isChecked = automaticToggle.getAttribute("aria-checked") === "true";
-                automaticToggle.setAttribute("aria-checked", !isChecked);
-
-                if (automaticToggle.getAttribute("aria-checked") === "true") {
-                    input_element.setAttribute("value", "automatic");
-                } else if (automaticToggle.getAttribute("aria-checked") === "false") {
-                    input_element.setAttribute("value", "manual");
-                } else {
-                    console.log("Toggle did not work")
-                }
-
-
-                // Toggle styles dynamically
-                automaticToggle.classList.toggle("bg-emerald-500", !isChecked);
-                automaticToggle.classList.toggle("bg-slate-200", isChecked);
-                automaticToggle.querySelector("span").classList.toggle("translate-x-5", !isChecked);
-                automaticToggle.querySelector("span").classList.toggle("translate-x-0", isChecked);
-
-                // **Show content when toggled OFF, hide when ON**
-                if (depotChargingContent && gridConnectionContent) {
-                    depotChargingContent.classList.toggle("hidden", !isChecked); // Show when OFF
-                    gridConnectionContent.classList.toggle("hidden", !isChecked);
-                }
-            });
-        })
+      }
+      });
 
     });
-</script>
-
-<script>
-  // Add and remove rows for charging points
-  document.addEventListener("DOMContentLoaded", () => {
-      const pointsContainers = document.querySelectorAll('div[id^="pointsContainer"]');
-      const formset_prefix = "depot_area_" //+depot.id
-      pointsContainers.forEach((pointsContainer) => {
-          const depotId=pointsContainer.getAttribute("data-depot-id");
-          const addPointButton = document.getElementById("addPoint_"+depotId);
-          const totalForms = document.getElementById("id_"+formset_prefix+depotId+"-TOTAL_FORMS");
-          var totalFormsNr = parseInt(totalForms.value);
-
-          // Function to toggle visibility of delete buttons
-          function toggleDeleteButtons() {
-              const rows = pointsContainer.querySelectorAll(".point-row");
-              rows.forEach((row, index) => {
-                  const deleteButton = row.querySelector(".delete-row");
-                  if (rows.length === 1) {
-                      deleteButton.classList.add("hidden");
-                  } else {
-                      deleteButton.classList.remove("hidden");
-                  }
-              });
-          }
-
-          // Function rename elements after delete()
-          function renameElements() {
-              totalFormsNr -= 1;
-              totalForms.value = totalFormsNr;
-              // Rename all ids so they start from 0 to totalFormsNr
-              const containerRows = pointsContainer.querySelectorAll(".point-row")
-              let current_num = 0;
-              containerRows.forEach((row) => {
-                  row.querySelectorAll("input[id]").forEach((el) => {
-                      let pattern = new RegExp(formset_prefix + depotId + "-\\d+");
-                      let replace = formset_prefix + depotId + "-" + (current_num);
-                      if (el.id) el.id = el.id.replace(pattern,replace) ;
-                      if (el.name) el.name = el.name.replace(pattern,replace);
-                      current_num += 1;
-                  });
-              })
-
-          }
-
-          // Add a new row
-          addPointButton.addEventListener("click", (event) => {
-
-              event.preventDefault();
-              totalFormsNr += 1;
-              totalForms.value=totalFormsNr;
-
-              const newRow = pointsContainer.querySelector(".point-row").cloneNode(true);
-              newRow.querySelectorAll("input").forEach((input) => (input.value = ""));
-
-              // Change ids and names so formset can make use of it
-              newRow.querySelectorAll("input[id]").forEach((el) => {
-                  if (el.id) el.id = el.id.replace(formset_prefix+depotId+"-0", formset_prefix+depotId+"-"+(totalFormsNr-1));
-                  if (el.name) el.name = el.name.replace(formset_prefix+depotId+"-0", formset_prefix+depotId+"-"+(totalFormsNr-1));
-              });
-
-
-              // Add delete functionality to the new row
-              const deleteButton = newRow.querySelector(".delete-row");
-              deleteButton.addEventListener("click", () => {
-                  renameElements();
-                  newRow.remove();
-                  toggleDeleteButtons();
-              });
-              pointsContainer.appendChild(newRow);
-              toggleDeleteButtons();
-          });
-
-          // Add delete functionality to the initial row
-          const initialDeleteButton = pointsContainer.querySelector(".delete-row");
-          initialDeleteButton.addEventListener("click", () => {
-              if (pointsContainer.querySelectorAll(".point-row").length > 1) {
-                  initialDeleteButton.closest(".point-row").remove();
-                  renameElements();
-                  toggleDeleteButtons();
-              }
-          });
-
-          toggleDeleteButtons();
-      })
-
-  });
-</script>
-  <script>
-  // Simple overwrite of required at validation for all visible inputs
-  function validate(){
-      const inputs = document.querySelectorAll("input");
-      inputs.forEach((input)=>{
-      if (input.offsetParent){
-          input.required =true;
-      } else {
-          input.required =false;
-      }
-      }
-      )
 
   }
 
+
+  // This allows the active panel to overflow after the transition completed.
+  // Otherwise tooltips which overflow would be hidden when they leave the div
+  window.addEventListener('load', e =>{
+    const containers = document.querySelectorAll('div.accordion-container');
+    containers.forEach((container) => {
+    container.addEventListener('transitionend', e => {
+          if (e.propertyName !== 'max-height') return;
+      if (e.target.style.maxHeight!=="0px")
+          // The panel was activated. make sure its allowed to overflow
+          // overflow-hidden is added when a panel is closed via toggleAccordion
+          container.classList.remove('overflow-hidden');
+      container.style.height = '';
+    });
+    });
+  });
+
+  function toggleAccordion(button) {
+    if (toggleAccordion.open == button ) {
+      return
+    }
+    const container = button.closest('div.accordion-container');
+    index = container.dataset.value;
+    const content = document.getElementById(`content-${index}`);
+    const icon = document.getElementById(`icon-${index}`);
+
+    if (toggleAccordion.open != undefined) {
+      let old_button = toggleAccordion.open;
+      toggleAccordion.open = undefined;
+      old_button.click();
+    }
+
+    // SVG for Down icon
+    const downSVG = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
+        <path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+      </svg>
+    `;
+
+    // SVG for Up icon
+    const upSVG = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
+        <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+      </svg>
+    `;
+
+    // Toggle the content's max-height for smooth opening and closing
+    if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+      // while the container expands ensure that the overflow-is hidden
+      container.classList.add('overflow-hidden');
+      content.style.maxHeight = '0';
+      icon.innerHTML = upSVG;
+    } else {
+      content.style.maxHeight = content.scrollHeight + 'px';
+      icon.innerHTML = downSVG;
+      toggleAccordion.open = button;
+    }
+    }
+
+  function openAccordion(index){
+    const content = document.getElementById(`content-${index}`);
+    const icon = document.getElementById(`icon-${index}`);
+    // SVG for Down icon
+    const downSVG = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
+        <path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+      </svg>
+    `;
+
+    // SVG for Up icon
+    const upSVG = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
+        <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+      </svg>
+    `;
+      content.style.maxHeight = content.scrollHeight + 'px';
+      icon.innerHTML = downSVG;
+    // }
+    }
+
+  var button = document.querySelector(".accordion-header");
+  toggleAccordion(button);
   </script>
+  <script>
+
+function validateDepotContainers(){
+  console.log('Validating inputs');
+  var containers = document.querySelectorAll("div[id^='DepotContent']");
+  containers.forEach((container) => {
+  var header = container.querySelector('button.accordion-header');
+  var inputs = container.querySelectorAll('input');
+  for (let i=0; i<inputs.length; i++){
+    if (!inputs[i].checkValidity()) {
+        header.classList.remove("transition-colors", "duration-100", "bg-emerald-200");
+        header.classList.add( 'bg-gradient-to-r' ,'from-slate-100', 'to-slate-200') ;
+      return;
+    }
+  }
+        header.classList.remove( 'bg-gradient-to-r' ,'from-slate-100', 'to-slate-200') ;
+        header.classList.add("transition-colors", "duration-100", "bg-emerald-200");
+  });
+}
+
+
+
+function debounce(func, timeout = 300) {
+  let timer;
+  // return a debounced function, which can be called with any args
+  return (...args) => {
+    // clear the previous timer
+    clearTimeout(timer);
+    // after the duration of timeout call the function
+    timer = setTimeout(() => {
+      func.apply(this, args);
+    }, timeout);
+  };
+}
+
+
+
+document.querySelectorAll('input, change, select').forEach(el => {
+  el.addEventListener('input', e => {
+      //NOTE: debounce the function. this allows other callbacks to finish and toggle 'required'
+      debounce(validateDepotContainers,20)();
+  });
+});
+
+// New inputs via htmx need to be listened to as well
+  document.body.addEventListener("htmx:afterSwap", function (e) {
+  e.target.addEventListener('input', e => {
+      //NOTE: debounce the function. this allows other callbacks to finish and toggle 'required'
+      debounce(validateDepotContainers,20)();
+  });
+  });
+// inital check if everything is valid
+debounce(validateDepotContainers,100)();
+
+  </script>
+
+
+<script>
+function dispatchCheckBlockEvent(event){
+ event.target.dispatchEvent(new CustomEvent('checkblocklength', {bubbles: true}));
+}
+
+
+function findClosestDivider(total, divider, prev_divider) {
+  // We use the previous divider to determine, the direction the user used the stepper and enforce
+  // to find an element in this direction, so there is no lock in effect for needed steps > stepsize
+  total = parseInt(total);
+  divider = parseInt(divider);
+  divider = Math.min(total,divider);
+  min_value = 2;
+  divider = Math.max(min_value,divider);
+  if (total % divider == 0) return divider;
+  var bigger = divider;
+  while (bigger<total && total % bigger != 0) bigger++;
+  var smaller = divider;
+  while (smaller>min_value && total % smaller != 0) smaller--;
+  // Set the default output to the bigger value
+  output = bigger;
+  // Use the smaller divider if it is closer to the target and not identical with the previous divider
+  if (total % smaller == 0){
+  if (divider - smaller< bigger-divider && prev_divider != smaller ) output=smaller;
+  else {
+    // if the bigger divider is closer to the target but indentical we also use the smaller divider
+    if (prev_divider == bigger) output=smaller;
+  }
+  }
+
+  return output;
+}
+
+
+function getBlockLength(capacity, block_length, prev_block_length, element) {
+  let new_block_length = findClosestDivider(capacity, block_length, prev_block_length);
+
+  if (new_block_length != block_length && !Number.isNaN(block_length) && block_length != "") {
+    notification=element.querySelector(".notification")
+     notification.dispatchEvent(new CustomEvent('blocklengthchanged', {bubbles: false}));
+  }
+  return new_block_length;
+}
+
+</script>
 
 {% endblock script %}
