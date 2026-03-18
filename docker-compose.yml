@@ -7,7 +7,7 @@ services:
       dockerfile: ./Dockerfile_local_development
     image: django-web:latest
     command:
-      /start
+      /start_dev
     volumes:
       - .:/app
     ports:

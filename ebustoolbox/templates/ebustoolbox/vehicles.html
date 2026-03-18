@@ -6,16 +6,10 @@
   {% block title %}{% translate 'WeBus - Fahrzeuge' %}{% endblock title %}
 
 {% block wizard_navigation %}
-  {% with wiz_idx=2 %}{{ block.super }}{% endwith %}
+  {% with wiz_idx=3 %}{{ block.super }}{% endwith %}
 {% endblock wizard_navigation %}
 {% block wizard_content %}
 
-<!-- ebustoolbox/templates/ebustoolbox/partials/notifications_multi.html -->
-<div id='multiNotificationDiv'
-hx-get='{% url "simba:notifications" task_id 'VehiclesView' %}'
-hx-swap='outerHTML'
-hx-trigger='load'
-></div>
 <main class="flex flex-col items-center flex-grow">
 
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
@@ -24,83 +18,6 @@ hx-trigger='load'
         method ="POST">
         {% csrf_token %}
         <h1 class="pb-12 text-2xl text-slate-600 font-light tracking-wide uppercase">{% translate 'Fahrzeuge' %}</h1>
-
-    <section class="pb-12">
-      <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide">
-          {% translate 'Zeitspanne' %}
-        <div class="relative inline-block">
-          <!-- Info Icon -->
-          <span class="cursor-pointer group">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-            </svg>
-            <!-- Tooltip -->
-            <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                {% translate 'Die zeitliche Beschneidung ihrer Eingangsdaten führt zu einer schnelleren Simulation des reduzierten Systems.' %}
-            </div>
-            </span>
-          </div>
-          </h2>
-          <span class="block mb-6 text-sm text-slate-500">{% translate 'Nur Umläufe die innerhalb dieser Zeitspanne starten, werden simuliert.' %}</span>
-          <fieldset class="flex items-center gap-4">
-            <span class="text-slate-600">{% translate 'Von' %}</span>
-            <!-- Start Date -->
-            <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-              <label for="start-date" class="sr-only">{% translate 'Startdatum' %}</label>
-              <input type="date"
-                     id="start-date"
-                     name="start-date"
-                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                     aria-label="Startdatum"
-                     min="{{ min_date }}"
-                     max="{{ max_date }}"
-                     value="{{ start_date }}"
-                     required>
-            </div>
-            <!-- Start Time -->
-            <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-              <label for="start-time" class="sr-only">{% translate 'Startzeit' %}</label>
-              <input type="time"
-                     id="start-time"
-                     name="start-time"
-                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                     aria-label="Startzeit"
-                     value="{{ initial_start_time }}"
-                     required>
-            </div>
-            <span class="text-slate-600">{% translate 'bis' %}</span>
-            <!-- End Date -->
-            <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-              <label for="end-date" class="sr-only">Enddatum</label>
-              <input type="date"
-                     id="end-date"
-                     name="end-date"
-                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                     aria-label="Enddatum"
-                     min="{{ min_date }}"
-                     max="{{ max_date }}"
-                     value="{{ end_date }}"
-                     required>
-            </div>
-            <!-- End Time -->
-            <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-              <label for="end-time" class="sr-only">{% translate 'Endzeit' %}</label>
-              <input type="time"
-                     id="end-time"
-                     name="end-time"
-                     class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                     aria-label="Endzeit"
-                     value="{{ initial_end_time }}"
-                     required>
-            </div>
-          </fieldset>
-          <!-- ToDo Bryan: Styling and positioning of errors -->
-          <div id="sim_range_errors">
-            <ul class="text-red-500 text-sm mt-2">
-              {% for error in simulation_parameters_form.errors.values %}<li>{{ error }}</li>{% endfor %}
-            </ul>
-          </div>
-        </section>
         <section class="pb-12">
           <h2 class="flex items-center gap-2 pb-2 text-xl font-semibold tracking-wide"
               id="temperature-heading">
@@ -123,9 +40,9 @@ hx-trigger='load'
               </span>
             </div>
           </h2>
-          <div class="row flex">
-            <div class="min-w-[16rem]">
-              <h3 class="flex items-center gap-2 pb-2 text-l font-semibold tracking-wide"
+          <div class="grid grid-cols-1 w-4/5 sm:grid-cols-2 gap-x-14 gap-y-4 sm:max-w-[60%] sm:pr-10 ">
+          <div class="max-w-[80%]">
+              <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-800 tracking-wide"
                   id="temperature-heading">
                 {% translate 'Durchschnittstemperatur' %}
                 <div class="relative inline-block">
@@ -140,32 +57,49 @@ hx-trigger='load'
                       <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                     </svg>
                     <!-- Tooltip -->
-                    <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      {% translate 'Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.' %}
+                    <div class="absolute left-0 top-full z-10 mt-2 w-96 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                      {% translate 'Die gewählte Temperatur verändert den simulierten Durchschnitts-Verbrauch der Fahrzeuge. Dieser ist entscheidend für den kumulierten Energieverbrauch und die damit einhergenden Kosten und Emissionen der Energiebereitstellung. Die Temperatur hat keinen Einfluss wenn Sie den Fahrzeugtypen unten einen konstanten Verbrauch zuordnen.' %}
                     </div>
                   </span>
                 </div>
               </h3>
-              <div class="w-12/12">
-                <div class="mt-2">
-                  <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
-                    <input {% with simulation_parameters_form.temperature_average as form %}
+              <div class="w-full">
+                <div class="mt-2" x-data="{value:'', data: '', loading: true}"
+  >
+
+                  <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-emerald-400 focus-within:focus-visible:outline-2">
+                    <input
+                    x-model.fill="value"
+                    @input="const n = parseInt($event.target.value);
+                          $event.target.value = Number.isNaN(n) ? '' : n;
+                    "
+                    {% with temperatures_form.temperature_average as form %}
                           {{ form|widget_attrs}}
                            {% endwith %}
-                           class="flex-1 bg-white mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                           class="flex-1 bg-white mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                            placeholder="Gib eine Temperatur ein."
                            aria-describedby="temperature-heading temperature-unit"
-                onchange ="temperatureChange(this.value, 'AvgTemperatureHint','div .avg-consumption-hint', debounced_fetchAndSetTemperature2)"
+                          @change="loading = true;"
+                          @change.debounce.200ms='data = await fetchQuantile($el.value); loading=false; refreshPageHints();'
+                          x-init='data = await fetchQuantile($el.value); loading=false;'
                   >
-                    <div id="temperature-unit" class="shrink-0 select-none text-slate-500">°C</div>
+                    <div id="temperature-unit" class="shrink-0 select-none text-sm text-slate-500">°C</div>
                   </div>
-                </div>
-              </div>
+
                 <div class="flex" >
-                  <div id="AvgTemperatureHint"  class="hidden flex mt-1 text-sm text-slate-600 italic transition-opacity duration-200 ease-in-out">
-                    <!-- Next div is queried for class= text and filled with temperature fetch. -->
-                    <div class="flex text">
-                  </div>
+                  <div id="AvgTemperatureHint"  class="flex mt-1 text-sm text-slate-500 italic transition-opacity duration-200 ease-in-out">
+                    {% comment %}
+                      show spinner cause data is being fetched and no error
+                    {% endcomment %}
+                    <template x-if=" loading  && data !=null">
+                      <div class="flex loader text">
+                      </div>
+                    </template>
+                    <template x-if="!loading && data !=null && data.quantile != undefined">
+                      <div class="w-full inline">
+                      Die ausgewählte Temperatur liegt im <span x-text='parseFloat(data.quantile).toFixed(2)'></span> Quantil. Der Mittelwert der Messtation liegt bei <span x-text='parseFloat(data.air_temperature_avg).toFixed(2)'></span>&deg;C
+                      </div>
+                    </template>
                     <div class="px-2 relative inline-block">
                       <!-- Info Icon -->
                       <span class="cursor-pointer group">
@@ -183,20 +117,20 @@ hx-trigger='load'
                         {% blocktranslate %}Bezogen auf die pro Stunde gemittelten Temperaturen von {{startYear}} bis {{endYear}} an der Messstation {{w_name}}. {% endblocktranslate %}
                         {% endwith %}
                         {% if distance %}
-                        {% blocktranslate %}diese liegt {{distance.km|floatformat:1 }} km entfernt vom Mittelpunkt des Szenarios {% endblocktranslate %}
+                      {% with km_distance=distance.km|floatformat:1 %}
+                        {% blocktranslate %}Diese liegt {{km_distance}}&nbsp;km entfernt vom Mittelpunkt des Szenarios {% endblocktranslate %}
+                      {% endwith %}
                         {% endif %}
                       </div>
                     </span>
                     </div>
                   </div>
                 </div>
+                </div>
+              </div>
             </div>
-            <div class="px-6">
-
-              <!-- Gap between inputs -->
-            </div>
-            <div class="min-w-[16rem]">
-              <h3 class="flex items-center gap-2 pb-2 text-l font-semibold tracking-wide"
+          <div class="max-w-[80%]">
+              <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-800 tracking-wide"
                   id="temperature-heading">
                 {% translate 'Extremtemperatur' %}
                 <div class="relative inline-block">
@@ -211,31 +145,47 @@ hx-trigger='load'
                       <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                     </svg>
                     <!-- Tooltip -->
-                    <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      {% translate 'Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.' %}
+                    <div class="absolute left-0 top-full z-10 mt-2 w-96 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                      {% translate 'Die gewählte Temperatur verändert den simulierten Extrem-Verbrauch der Fahrzeuge. Dieser ist entscheidend für die Auslegung der Infrastruktur und automatischen Identifikation von zu elektrifizierender Zwischenhaltestellen. Die Temperatur hat keinen Einfluss wenn Sie den Fahrzeugtypen unten einen konstanten Verbrauch zuordnen.' %}
                     </div>
                   </span>
                 </div>
               </h3>
-              <div class="w-12/12">
-                <div class="mt-2">
-                  <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-green-400 focus-within:focus-visible:outline-2">
-                    <input {% with simulation_parameters_form.temperature_extreme as form %}
+              <div class="w-full">
+              <div  class="mt-2" x-data="{value:'', data: '', loading: true}">
+                  <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-emerald-400 focus-within:focus-visible:outline-2">
+                  <input
+                    x-model.fill="value"
+                    @input="const n = parseInt($event.target.value);
+                          $event.target.value = Number.isNaN(n) ? '' : n;
+                    "
+                {% with temperatures_form.temperature_extreme as form %}
                           {{ form|widget_attrs}}
                            {% endwith %}
                            class="flex-1 bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
                            placeholder="Gib eine Temperatur ein."
                            aria-describedby="temperature-heading temperature-unit"
-                onchange ="temperatureChange(this.value, 'ExtremeTemperatureHint','div .extreme-consumption-hint', debounced_fetchAndSetTemperature1)"
+                    @change="loading = true;"
+                    @change.debounce.200ms='data = await fetchQuantile($el.value); loading=false; refreshPageHints()'
+                    x-init='data = await fetchQuantile($el.value); loading=false;'
                   >
                     <div id="temperature-unit" class="shrink-0 select-none text-slate-500">°C</div>
                   </div>
 
-                <div class="flex" >
-                  <div id="ExtremeTemperatureHint"  class="hidden flex mt-1 text-sm text-slate-600 italic transition-opacity duration-200 ease-in-out">
-                    <!-- Next div is queried for class= text and filled with temperature fetch. -->
-                    <div class="flex text">
-                  </div>
+                <div class="flex " >
+                  <div id="ExtremeTemperatureHint"  class="flex mt-1 text-sm text-slate-500 italic transition-opacity duration-200 ease-in-out">
+                    {% comment %}
+                      show spinner cause data is being fetched and no error
+                    {% endcomment %}
+                    <template x-if=" loading  && data !=null">
+                      <div class="flex loader text">
+                      </div>
+                    </template>
+                    <template x-if="!loading && data !=null && data.quantile != undefined">
+                      <div class="w-full inline">
+                      Die ausgewählte Temperatur liegt im <span x-text='parseFloat(data.quantile).toFixed(2)'></span> Quantil. Der Mittelwert der Messtation liegt bei <span x-text='parseFloat(data.air_temperature_avg).toFixed(2)'></span>&deg;C
+                      </div>
+                    </template>
                     <div class="px-2 relative inline-block">
                       <!-- Info Icon -->
                       <span class="cursor-pointer group">
@@ -254,7 +204,9 @@ hx-trigger='load'
                         {% blocktranslate %}Bezogen auf die pro Stunde gemittelten Temperaturen von {{startYear}} bis {{endYear}} an der Messstation {{w_name}}. {{distance_text}} {% endblocktranslate %}
                         {% endwith %}
                         {% if distance %}
-                        {% blocktranslate %}diese liegt {{distance.km|floatformat:1 }} km entfernt vom Mittelpunkt des Szenarios {% endblocktranslate %}
+                      {% with km_distance=distance.km|floatformat:1 %}
+                        {% blocktranslate %}Diese liegt {{km_distance}}&nbsp;km entfernt vom Mittelpunkt des Szenarios {% endblocktranslate %}
+                      {% endwith %}
                         {% endif %}
                         </div>
                       </span>
@@ -263,8 +215,8 @@ hx-trigger='load'
                 </div>
 
               </div>
-            </div>
-          </div>
+        </div>
+        </div>
         </div>
       </section>
       <section class="pb-12">
@@ -283,8 +235,7 @@ hx-trigger='load'
                 </svg>
                 <!-- Tooltip -->
             <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-              {% translate 'Folgende Fahrzeugtypen wurden in Ihrem Umlaufplan identifiziert. Für die Simulation sind technische Parameter notwendig die Sie hier zuordnen müssen.
-                Sie können Fahrzeugtypen aus einer Bibliothek übernehmen und verschiedene Werte manuell überschreiben.' %}
+              {% translate 'Folgende Fahrzeugtypen wurden in Ihrem Umlaufplan identifiziert. Für die Simulation sind technische Parameter notwendig die Sie hier zuordnen müssen. Sie können Fahrzeugtypen aus einer Bibliothek übernehmen und verschiedene Werte manuell überschreiben.' %}
                 </div>
               </span>
             </div>
@@ -299,7 +250,6 @@ hx-trigger='load'
 </main>
 {% endblock wizard_content %}
 {% block wizard_buttons %}
-  {% url 'simba:trips' scenario.task_id as prev_url %}
   {% with "SubmitButton" as buttonId %}{{ block.super }}{% endwith %}
 {% endblock wizard_buttons %}
 {% block script %}
@@ -389,32 +339,7 @@ function debounce(func, timeout = 300) {
     };
   }
 
-
-async function extremeTemperatureChange(){
-  var tempHintDivId = 'ExtremeTemperatureHint';
-  var consumptionHintQuery = 'div .extreme-consumption-hint';
-  var temperature = document.getElementById("id_temperature_extreme").value;
-  fetchAndSetFunction = debounced_fetchAndSetTemperature1;
-  temperatureChange(temperature, tempHintDivId, consumptionHintQuery, fetchAndSetFunction);
-}
-
-async function averageTemperatureChange(){
-  var tempHintDivId = 'AvgTemperatureHint';
-  var consumptionHintQuery = 'div .avg-consumption-hint';
-  var temperature = document.getElementById("id_temperature_average").value;
-  fetchAndSetFunction = debounced_fetchAndSetTemperature2;
-  temperatureChange(temperature, tempHintDivId, consumptionHintQuery, fetchAndSetFunction);
-
-}
-async function temperatureChange(temperature, tempHintDivId, consumptionHintQuery, fetchAndSetFunction){
-  showTemperatureHint(temperature, tempHintDivId,fetchAndSetFunction);
-  showConsumptionEstimate(temperature, consumptionHintQuery);
-  refreshPageHints();
-}
-
 document.addEventListener('DOMContentLoaded', e => {
-  extremeTemperatureChange();
-  averageTemperatureChange();
   refreshPageHints();
 })
 
@@ -654,13 +579,22 @@ containers.forEach((container) => {
     }
 
     plot_selected_consumption_over_temp(input_selection.value);
+
+    // Refresh plot when selecting dropdown
     listItems.forEach((item)=>{
       item.addEventListener("click",function () {
-        let selected_vehicle_type=item.getAttribute('data-dropdown-item');
-        plot_selected_consumption_over_temp(selected_vehicle_type);
+        let db_id=getSelectedVehicleTypeId(container);
+        plot_selected_consumption_over_temp(db_id);
         myChart.resize();
       })
     });
+
+    // Refresh plot when toggling dieselzusatz
+    container.querySelector("input[id*='has_diesel_heating']").addEventListener("click",function () {
+        let db_id=getSelectedVehicleTypeId(container);
+        plot_selected_consumption_over_temp(db_id);
+        myChart.resize();
+      });
 
     function resizeChart() {
       if (chartDom.offsetWidth > 0) {
@@ -722,10 +656,10 @@ function validateVehicleContainers(){
     }
     if (isValid){
       header.classList.remove("transition-colors", "duration-100", "bg-transparent");
-      header.classList.add("transition-colors", "duration-100", "bg-green-200");
+      header.classList.add("transition-colors", "duration-100", "bg-emerald-200");
       errorDiv.classList.add("hidden");
     } else {
-      header.classList.remove("transition-colors", "duration-100", "bg-green-200");
+      header.classList.remove("transition-colors", "duration-100", "bg-emerald-200");
       header.classList.add("transition-colors", "duration-100", "bg-transparent");
     }
   };

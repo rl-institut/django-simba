@@ -20,6 +20,22 @@ Template:
 
 ## [x.x.x] - Unreleased
 ### Changed
+- [(#292)](https://github.com/rl-institut/django-simba/pull/292)
+- Overall design update
+- Hide stations table by default for better UX
+
+
+- [(#323)](https://github.com/rl-institut/django-simba/pull/323)
+A new Scenario Type has been introduced, called SOURCE_FILE. After uploading a source, the source is deepcopied, and inserted as a parent of the SOURCE scenario. This happens after functions which fix zero duration or zero distance trips and creating opp stations at depots when needed. This source_file scenario should never be mutated. The SOURCE scenario is now mutable by a filter_scenario view, which permanently removes rotations/stations/lines. This is only possible as long as there are no other children of this scenario.
+
+- [(#299)](https://github.com/rl-institut/django-simba/pull/299)
+Progress bars get a static id so transitions using htmx work properly
+Allow running toolchain without parent
+Fix duplicated Notifications
+Give consumption plot on vehicles.html some padding
+Add most Models to the admin panel
+Create a new ScenarioType 'PUBLIC_DATA'
+Scenarios of type PUBLIC_DATA can be selected to be used as a data source
 
 - [(#263)](https://github.com/rl-institut/django-simba/pull/263)
  - Added transform_zero_duration_trips function

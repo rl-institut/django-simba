@@ -4,15 +4,11 @@
 {% block title %}{% translate 'WeBus - Zusammenfassung' %}{% endblock title %}
 
 {% block wizard_navigation %}
-  {% with wiz_idx=6 %}
+  {% with wiz_idx=7 %}
     {{ block.super }}
   {% endwith %}
 {% endblock wizard_navigation %}
 
-{% block header %}
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-{% endblock header %}
 
 {% block wizard_content %}
 
@@ -82,7 +78,7 @@ hx-trigger='load'
       <div class="inline-flex items-center p-1 gap-1 bg-slate-200 rounded-full">
         <button
           id="tab-summary"
-          class="tab-button px-4 py-2 rounded-full bg-slate-800 text-white text-sm font-medium focus:outline-none"
+          class="tab-button px-4 py-2 rounded-full bg-slate-800 text-white text-sm font-semibold focus:outline-none"
           data-tab="summary"
         >
           <span class="flex items-center gap-2">
@@ -94,7 +90,7 @@ hx-trigger='load'
         </button>
         <button
           id="tab-map"
-          class="tab-button px-4 py-2 rounded-full bg-white text-slate-800 text-sm font-medium focus:outline-none"
+          class="tab-button px-4 py-2 rounded-full bg-white text-slate-800 text-sm font-semibold focus:outline-none"
           data-tab="map"
         >
           <span class="flex items-center gap-2">
@@ -109,40 +105,31 @@ hx-trigger='load'
     <section class="tab-content pt-12 " id="content-summary">
       <div class="pt-8">
         <div class="pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide  ">{% translate 'Szenarioname' %}</p>
+          <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Szenarioname' %}</p>
           <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
-            <div class='animate-slide-in-top'>
               <p>{{ scenario.name }}</p>
-            </div>
           </div>
         </div>
         <div class="pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Beschreibung' %}</p>
-          <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
-            <div>
-              {% if scenario.description %}<p>{{ scenario.description }}</p>
+            <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Beschreibung' %}</p>
+            <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
+              <div>
+                {% if scenario.description %}<p>{{ scenario.description }}</p>
                 {% else %}<p class="w-[18rem] text-slate-500">{% translate 'Keine Beschreibung' %}</p>{% endif %}
+              </div>
+            </div>
+          </div>
+          <div class="pb-8 space-y-2">
+            <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Zeitspanne' %}</p>
+            <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
+              <div>
+                <p>{{ sim_duration}}</p>
+              </div>
             </div>
           </div>
         </div>
         <div class="pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Zeitspanne' %}</p>
-          <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
-            <div>
-              <p>{{ sim_duration}}</p>
-            </div>
-            <div>
-              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-                </svg>
-                  {% translate 'Editieren' %}
-              </a>
-            </div>
-          </div>
-        </div>
-        <div class="pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Temperatur' %}</p>
+            <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Temperatur' %}</p>
           <div class="flex justify-between items-center bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div>
               {% blocktranslate %}
@@ -151,7 +138,7 @@ hx-trigger='load'
               {% endblocktranslate %}
             </div>
             <div>
-              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -161,7 +148,7 @@ hx-trigger='load'
           </div>
         </div>
         <div class="flex flex-col pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Fahrzeugtypen' %}</p>
+            <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Fahrzeugtypen' %}</p>
           {%  for vehicle_type in vehicle_types %}
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
@@ -169,8 +156,19 @@ hx-trigger='load'
               <p class="text-slate-800 font-semibold uppercase pr-2">{{ vehicle_type.name }}</p>
                   {% if vehicle_type.lines %}
               <div class="relative inline-flex">
-                  <span>({{ vehicle_type.lines|length}} {% translate 'Linie(n)' %}</span>
-                  <img src="{% static 'ebustoolbox/eye_icon.svg' %}" title="{{ vehicle_type.lines|join:'&#010' }}" style="height: 1.5rem">
+                <span>({{ vehicle_type.lines|length}} {% translate 'Linie(n)' %}</span>
+                <span class="px-1 relative inline-flex ">
+                  <span class="cursor-pointer group">
+                    <img src="{% static 'ebustoolbox/eye_icon.svg' %}" style="height: 1.5rem">
+                    <div
+                      class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none"
+                    >
+                      {% for line in vehicle_type.lines %}
+                        <li>{{ line}}</li>
+                        {% endfor %}
+                    </div>
+                  </span>
+                </span>
               </div>
                 {% endif %}
                 <div class="inline-flex items-center gap-1 pb-2">
@@ -195,7 +193,7 @@ hx-trigger='load'
               </div>
             </div>
             <div>
-              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:vehicles" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -207,7 +205,7 @@ hx-trigger='load'
         </div>
 
         <div class="pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Endhaltestellen' %}</p>
+            <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Endhaltestellen' %}</p>
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
               <div class="flex flex-col font-normal gap-2">
@@ -216,7 +214,18 @@ hx-trigger='load'
                   <div class="flex items-center gap-2">
                     <span class="text-slate-800">{{ electrified_stations|length }} {% translate 'Stationen' %}</span>
                     {% if electrified_stations %}
-                      <img src="{% static 'ebustoolbox/eye_icon.svg' %}" title="{{ electrified_stations|join:'&#010' }}" style="height: 1.5rem">
+                    <div class="relative group">
+                      <img src="{% static 'ebustoolbox/eye_icon.svg' %}" style="height: 1.5rem">
+                      <div
+                        class="absolute left-0 top-full z-10 mt-2 w-64 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 pointer-events-none group-hover:opacity-100"
+                      >
+                        <ul class="list-disc list-inside">
+                          {% for station in electrified_stations %}
+                          <li>{{ station.name }}</li>
+                          {% endfor %}
+                        </ul>
+                      </div>
+                    </div>
                     {% endif %}
                   </div>
                 </div>
@@ -225,7 +234,18 @@ hx-trigger='load'
                   <div class="flex items-center gap-2">
                     <span class="text-slate-800">{{ automatic_stations|length }} {% translate 'Stationen' %}</span>
                     {% if automatic_stations %}
-                      <img src="{% static 'ebustoolbox/eye_icon.svg' %}" title="{{ automatic_stations|join:'&#010' }}" style="height: 1.5rem">
+                    <div class="relative group">
+                      <img src="{% static 'ebustoolbox/eye_icon.svg' %}" style="height: 1.5rem">
+                      <div
+                        class="absolute left-0 top-full z-10 mt-2 w-64 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 pointer-events-none group-hover:opacity-100"
+                      >
+                        <ul class="list-disc list-inside">
+                          {% for station in automatic_stations %}
+                          <li>{{ station.name }}</li>
+                          {% endfor %}
+                        </ul>
+                      </div>
+                    </div>
                     {% endif %}
                   </div>
                 </div>
@@ -234,14 +254,25 @@ hx-trigger='load'
                   <div class="flex items-center gap-2">
                     <span class="text-slate-800">{{ excluded_stations|length }} {% translate 'Stationen' %}</span>
                     {% if excluded_stations %}
-                      <img src="{% static 'ebustoolbox/eye_icon.svg' %}" title="{{ excluded_stations|join:'&#010' }}" style="height: 1.5rem">
+                     <div class="relative group">
+                      <img src="{% static 'ebustoolbox/eye_icon.svg' %}" style="height: 1.5rem">
+                      <div
+                        class="absolute left-0 top-full z-10 mt-2 w-64 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 pointer-events-none group-hover:opacity-100"
+                      >
+                        <ul class="list-disc list-inside">
+                          {% for station in excluded_stations %}
+                          <li>{{ station.name }}</li>
+                          {% endfor %}
+                        </ul>
+                      </div>
+                    </div>
                     {% endif %}
                   </div>
                 </div>
               </div>
             </div>
             <div>
-              <a href="{%  url "simba:stations" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:stations" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -253,7 +284,7 @@ hx-trigger='load'
 
         {% if costs %}
         <div class="pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Kostenparameter' %}</p>
+            <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Kostenparameter' %}</p>
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
               <div class="flex flex-col font-normal gap-2">
@@ -284,7 +315,7 @@ hx-trigger='load'
               </div>
             </div>
             <div>
-              <a href="{%  url "simba:costs" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:costs" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -298,7 +329,7 @@ hx-trigger='load'
 
         {% if lca %}
         <div class="pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Umweltparameter' %}</p>
+            <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Umweltparameter' %}</p>
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
               <div class="flex flex-col font-normal gap-2">
@@ -329,7 +360,7 @@ hx-trigger='load'
               </div>
             </div>
             <div>
-              <a href="{%  url "simba:costs" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{%  url "simba:costs" scenario.task_id  %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -341,42 +372,79 @@ hx-trigger='load'
         {%  endif %}
 
         <div class="flex flex-col pb-8 space-y-2">
-            <p class="text-slate-800 font-medium tracking-wide">{% translate 'Depots' %}</p>
-          {% for depot in depots %}
+            <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Depots' %}</p>
+          {% for depot in depot_wishes %}
           <div class="flex justify-between items-start bg-white rounded-lg p-4 text-sm tracking-wide gap-4">
             <div class="w-full">
-              <p class="text-slate-800 font-semibold uppercase">{{ depot.name }}</p>
+              <p class="text-slate-800 font-semibold uppercase">{{ depot.station.name }}</p>
               <div class="pt-4 pl-4">
                 <div class="flex flex-col pl-4 font-normal border-l gap-2">
+                    {% if depot.auto_generate %}
                   <p class="flex">
-                      <span class="w-[16rem] text-slate-500">{% translate 'Anzahl Ladepunkte:' %}</span>
-                    <span class="text-slate-800">{{ depot.amount_charging_places }}</span>
+                      <span class="w-[16rem] text-slate-500">{% translate 'Ladepunkte pro Fahrzeugtyp:' %}</span>
+                    <span class="text-slate-800">{{ depot.standard_block_length }}</span>
                   </p>
                   <p class="flex">
                       <span class="w-[16rem] text-slate-500">{% translate 'Leistung pro Punkt:' %}</span>
-                    <span class="text-slate-800">{{ depot.power_per_charger }} kW</span>
+                    <span class="text-slate-800">{{ depot.default_power }} kW</span>
                   </p>
+                    {% else %}
+                      <details class="group">
+                        <summary class="flex items-center cursor-pointer list-none hover:text-slate-500 transition-colors">
+                          <svg class="w-4 h-4 mr-2 text-slate-500 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                          </svg>
+                          <span class="text-slate-800 font-semibold">{% translate 'Manuelle Einstellungen' %}</span>
+                        </summary>
+                      <div class="pl-6 pt-2 flex flex-col gap-2 [&>p]:flex [&>p>span:first-child]:w-[16rem] [&>p>span:first-child]:text-slate-500 [&>p>span:nth-child(2)]:text-slate-800 ">
+
+                          <p class="flex" >
+                            <span >{% translate 'Reinigungsplätze:' %}</span>
+                            <span >{{ depot.cleaning_slots }} {% translate 'Fahrzeuge' %}</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Reinigungsdauer:' %}</span>
+                            <span >{{ depot.cleaning_duration }} min</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Rangierplätze:' %}</span>
+                            <span >{{ depot.shunting_slots }} {% translate 'Fahrzeuge' %}</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Rangierdauer:' %}</span>
+                            <span >{{ depot.shunting_duration }} min</span>
+                          </p>
+                          {% for area in depot.areainformation_set.all %}
+                          <p class='pt-2' >
+                            <span class="!text-slate-800 font-semibold">{% translate 'Fläche für' %} {{ area.vehicle_type.name }}</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Kapazität:' %}</span>
+                            <span >{{ area.capacity }} {% translate 'Fahrzeuge' %}</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Leistung pro Ladepunkt:' %}</span>
+                            <span >{{ area.power }} kW</span>
+                          </p>
+                          <p >
+                            <span >{% translate 'Flächentyp:' %}</span>
+                            <span >{{ area.get_area_type_display }}</span>
+                          </p>
+                          {% if area.block_length %}
+                          <p >
+                            <span >{% translate 'Blocklänge:' %}</span>
+                            <span >{{ area.block_length }} {% translate 'Fahrzeuge' %}</span>
+                          </p>
+                          {% endif %}
+                          {% endfor %}
+                        </div>
+                      </details>
+                    {% endif %}
                 </div>
-              </div>
-              <div class="pt-4 pl-4">
-                <div class="flex flex-col pl-4 font-normal border-l gap-2">
-                  <p class="flex">
-                      <span class="w-[16rem] text-slate-500">{% translate 'Anzahl Ladepunkte:' %}</span>
-                    <span class="text-slate-800">not implemented</span>
-                  </p>
-                  <p class="flex">
-                      <span class="w-[16rem] text-slate-500">{% translate 'Leistung pro Punkt [kW]:' %}</span>
-                    <span class="text-slate-800">not implemented</span>
-                  </p>
-                </div>
-                <p class="flex pt-4">
-                    <span class="w-[16rem] text-slate-500">{% translate 'Ladeleistung:' %}</span>
-                  <span class="text-slate-800 pl-4">{{ depot.power_total }} kVA</span>
-                </p>
               </div>
             </div>
             <div>
-              <a href="{% url 'simba:depots' scenario.task_id %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+              <a href="{% url 'simba:depots' scenario.task_id %}" class="flex items-center gap-2 text-emerald-600 text-sm font-bold hover:text-emerald-500 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                 </svg>
@@ -453,11 +521,4 @@ hx-trigger='load'
   });
 </script>
 
-<script>
-  // Empty Leaflet Map
-  var map = L.map('map', {
-      center: [51.505, -0.09],
-      zoom: 13
-  });
-</script>
 {% endblock script %}

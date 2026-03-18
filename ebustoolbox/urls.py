@@ -9,12 +9,12 @@ from ebustoolbox.views import (
     progress_scenario,
     StationsView,
     CostsView,
+    FilterView,
     DepotsView,
     SummaryView,
     model_export_json,
     merge_and_run,
     run_simulation,
-    DashboardView,
     get_dashboard,
     compare,
     export_scenario,
@@ -38,11 +38,6 @@ urlpatterns = [
     ),
     path("dashboard/", get_dashboard, name="dashboard"),
     path(
-        "dashboard/",
-        DashboardView.as_view(),
-        name="dashboard2",
-    ),
-    path(
         "depots/<uuid:task_id>/",
         DepotsView.as_view(),
         name="depots",
@@ -64,7 +59,7 @@ urlpatterns = [
         name="summary",
     ),
     path(
-        "notifications/<uuid:task_id>/<str:view>",
+        "notifications/<uuid:task_id>/<str:view>/",
         get_notifications,
         name="notifications",
     ),
@@ -99,7 +94,7 @@ urlpatterns = [
         name="JSON_export_scenario_tree",
     ),
     path(
-        "export/<uuid:task_id>/",
+        "export/",
         export_scenario,
         name="JSON_export_scenario",
     ),
@@ -107,6 +102,16 @@ urlpatterns = [
         "import/",
         import_scenario,
         name="JSON_import_scenario",
+    ),
+    path(
+        "filter_scenario/<uuid:task_id>/",
+        FilterView.as_view(),
+        name="filter_scenario",
+    ),
+    path(
+        "filter_scenario/<uuid:task_id>/get_count/",
+        FilterView.get_rotation_count,
+        name="filter_scenario_get_count",
     ),
     path(
         "vehicles/<uuid:task_id>/",
@@ -121,7 +126,6 @@ urlpatterns = [
     # results endpoints
     path("result/<uuid:task_id>/soc/", views.get_soc_data, name="soc_data"),
     path("result/<uuid:task_id>/power-draw/", views.get_power_draw, name="power_draw_data"),
-    path("result/<uuid:task_id>/gantt/", views.get_gantt_data, name="gantt_data"),
     path("result/<uuid:task_id>/stats/", views.get_stats, name="stats"),
     path("result/<uuid:task_id>/dist_histogram/", views.get_dist_hist, name="dist_hist_data"),
     path("result/<uuid:task_id>/speed_histogram/", views.get_speed_hist, name="speed_hist_data"),
@@ -130,8 +134,20 @@ urlpatterns = [
         views.render_critical_rotations,
         name="critical_rotations",
     ),
+    path(
+        "result/<uuid:task_id>/cumulative_coverage/",
+        views.get_cumulative_energy,
+        name="get_cumulative_energy",
+    ),
+    path(
+        "result/<uuid:task_id>/rotation_table/",
+        views.get_rotation_table_data,
+        name="get_rotation_table_data",
+    ),
     path("result/<uuid:task_id>/bustype/", views.render_bustype, name="bustype"),
     path("result/<uuid:task_id>/soc_hist/", views.get_binned_soc_data, name="soc_hist"),
     path("result/<uuid:task_id>/depot_power/", views.get_power_draw_and_occ, name="eflips_power"),
-    path("result/<uuid:task_id>/soc_gantt/", views.get_soc_gantt, name="soc_gantt"),
+    path("result/<uuid:task_id>/gantt/", views.get_gantt, name="gantt"),
+    path("load_test/<uuid:task_id>/", views.loadTester, name="loadtest"),
+    path("delete/<uuid:task_id>/", views.delete_scenario, name="delete"),
 ]

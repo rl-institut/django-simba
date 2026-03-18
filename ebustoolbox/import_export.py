@@ -26,7 +26,6 @@ logger = logging.getLogger("custom")
 
 
 def visit_all_scenario_queries(visitor, scenario: Scenario):
-
     ebus_models = django.apps.apps.get_app_config("ebustoolbox").get_models()
     # All relevant models have a foreign key to this scenario
     for model in ebus_models:

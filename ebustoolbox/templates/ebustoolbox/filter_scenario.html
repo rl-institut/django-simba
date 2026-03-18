@@ -1,0 +1,211 @@
+{% extends 'ebustoolbox/wizard.html' %}
+{% load i18n %}
+
+  {% block title %}{% translate 'WeBus - Simulationsfilter' %}{% endblock title %}
+
+{% block wizard_navigation %}
+  {% with wiz_idx=2 %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock wizard_navigation %}
+
+
+{% block wizard_content %}
+<!-- ebustoolbox/templates/ebustoolbox/partials/notifications_multi.html -->
+<div id='multiNotificationDiv'
+hx-get='{% url "simba:notifications" task_id 'FilterView' %}'
+hx-swap='outerHTML'
+hx-trigger='load'
+></div>
+
+<main class="flex flex-col items-center flex-grow">
+<div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
+  <h1 class="pb-6 text-2xl text-slate-600 font-light tracking-wide uppercase">
+      {% translate 'Simulationsfilter' %}
+      <span class="text-sm normal-case font-normal text-slate-600">{% translate '(optional)' %}</span>
+  </h1>
+
+  <section>
+        <p class="mt-1 text-sm text-slate-500 leading-6">
+          {% blocktrans %}
+            Wenn Sie eine Simulation mit nur einem Teil der gerade ausgewählten
+            Daten starten möchten, können Sie die Daten hier filtern. Es ist
+            möglich die Zeitspanne auszuwählen die Sie simulieren möchten,
+            Depots auszuwählen die simuliert werden sollen und die Umläufe nach
+            Depots zu Filtern. Mögliche Optimierungen, wie z.B. eine Optimierung des Depots oder eine Optimierung von zu elektrifzierenden Zwischenhalten werden sich nur auf die hier getroffene Auswahl beziehen.
+          {% endblocktrans %}
+        </p>
+
+        <form id="filterform" method='POST' >
+          <div
+            hx-trigger="change from:#filterform delay:50ms, load"
+            hx-include="#filterform"
+            hx-get='{% url "simba:filter_scenario_get_count" task_id %}'
+            hx-indicator='#rotationCountWrapper'
+            hx-target='#rotationcount'>
+        {% csrf_token %}
+
+          <time-select-section class="pb-2">
+            <h2 class="flex items-center gap-2 pt-2 text-xl font-semibold tracking-wide">
+                {% translate 'Zeitspanne' %}
+              <div class="relative inline-block">
+                <!-- Info Icon -->
+                <span class="cursor-pointer group">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                  </svg>
+                  <!-- Tooltip -->
+                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                      {% translate 'Die zeitliche Beschneidung ihrer Eingangsdaten führt zu einer schnelleren Simulation des reduzierten Systems.' %}
+                  </div>
+                  </span>
+                </div>
+                </h2>
+                <span class="block mb-2 text-sm text-slate-500">{% translate 'Nur Umläufe, die innerhalb dieser Zeitspanne starten, werden simuliert.' %}</span>
+                <fieldset class="flex items-center gap-4">
+                  <span class="text-slate-600">{% translate 'Von' %}</span>
+                  <!-- Start Date -->
+                  <div class="flex items-center rounded-md outline outline-1 outline-transparent">
+                    <label for="start-date" class="sr-only">{% translate 'Startdatum' %}</label>
+                    <input type="date"
+                           id="start-date"
+                           name="start-date"
+                           class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                           aria-label="Startdatum"
+                           min="{{ min_date }}"
+                           max="{{ max_date }}"
+                           value="{{ start_date }}"
+                           required>
+                  </div>
+                  <!-- Start Time -->
+                  <div class="flex items-center rounded-md outline outline-1 outline-transparent">
+                    <label for="start-time" class="sr-only">{% translate 'Startzeit' %}</label>
+                    <input type="time"
+                           id="start-time"
+                           name="start-time"
+                           class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                           aria-label="Startzeit"
+                           value="{{ initial_start_time }}"
+                           required>
+                  </div>
+                  <span class="text-slate-600">{% translate 'bis' %}</span>
+                  <!-- End Date -->
+                  <div class="flex items-center rounded-md outline outline-1 outline-transparent">
+                    <label for="end-date" class="sr-only">Enddatum</label>
+                    <input type="date"
+                           id="end-date"
+                           name="end-date"
+                           class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                           aria-label="Enddatum"
+                           min="{{ min_date }}"
+                           max="{{ max_date }}"
+                           value="{{ end_date }}"
+                           required>
+                  </div>
+                  <!-- End Time -->
+                  <div class="flex items-center rounded-md outline outline-1 outline-transparent">
+                    <label for="end-time" class="sr-only">{% translate 'Endzeit' %}</label>
+                    <input type="time"
+                           id="end-time"
+                           name="end-time"
+                           class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+                           aria-label="Endzeit"
+                           value="{{ initial_end_time }}"
+                           required>
+                  </div>
+                </fieldset>
+              </time-select-section>
+
+          <depot-select-section class="pb-2">
+            <h2 class="flex items-center gap-2 pt-2 text-xl font-semibold tracking-wide">
+                {% translate 'Depots' %}
+              <div class="relative inline-block">
+                <!-- Info Icon -->
+                <span class="cursor-pointer group">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                  </svg>
+                  <!-- Tooltip -->
+                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                      {% translate 'Die Beschneidung des Szenarios auf weniger Depots beschleunigt die Simulationszeit' %}
+                  </div>
+                  </span>
+                </div>
+                </h2>
+                <span class="block mb-2 text-sm text-slate-500">{% translate 'Nur Umläufe die von diesen Depots starten werden simuliert. Eine leere Auswahl überspringt die Filterung.' %}</span>
+                <fieldset class="flex items-center gap-4">
+
+              <div class="min-w-[33%] h-24">
+                {% include "ebustoolbox/partials/multi_select.html" with field=simulation_parameters_form.depot_select %}
+                </div>
+
+                </fieldset>
+                <!-- ToDo Bryan: Styling and positioning of errors -->
+            </depot-select-section>
+          <line-select-section class="pb-2">
+            <h2 class="flex items-center gap-2 pt-2 text-xl font-semibold tracking-wide">
+                {% translate 'Linien' %}
+              <div class="relative inline-block">
+                <!-- Info Icon -->
+                <span class="cursor-pointer group">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                  </svg>
+                  <!-- Tooltip -->
+                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+                      {% translate 'Die Beschneidung des Szenarios auf eine Unterauswahl aus Linien kann die Simulationszeit beschleunigen.' %}
+                  </div>
+                  </span>
+                </div>
+                </h2>
+                <span class="block mb-2 text-sm text-slate-500">{% translate 'Nur Umläufe, die diese Linien bedienen, werden simuliert. Wenn ein Umlauf mehrere Linien bedient, von denen Sie mindestens eine ausgewählt haben, wird der gesamte Umlauf simuliert. Eine leere Auswahl überspringt die Filterung.' %}</span>
+                <fieldset class="flex items-center gap-4">
+              <div class="min-w-[33%] h-24">
+                  {% include "ebustoolbox/partials/multi_select.html" with field=simulation_parameters_form.line_select %}
+                </div>
+                </fieldset>
+
+
+            </line-select-section>
+
+          <!-- Fixed size so refreshing the count does not move elements -->
+        <div id="rotationCountWrapper" class="h-12 my-2 ">
+        <!-- htmx-hidden is a custom css class to hide the elmen while the request is in flight -->
+            <div id='rotationcount'>
+              </div>
+          </div>
+          <button id="SubmitButton" hidden ></button>
+          </div>
+        </form>
+
+         <!-- Buttons are outside of form, so they dont include the form data, by default. -->
+         <!-- We use it to apply the filter when sending the content via hx-include or refresh the page when we dont include the form -->
+          <span class="block mb-2 text-sm text-slate-500">{% translate 'Durchs Anwenden des Filters werden Ihnen nur verbleibende Depots und Linien angezeigt.' %}</span>
+          <button
+            hx-trigger="click"
+            hx-include="#filterform"
+            hx-select="#filterform"
+            hx-get="."
+            hx-target="#filterform"
+            class="px-6 py-2 w-[16rem] bg-slate-200 text-black text-base font-semibold tracking-wide rounded-full hover:bg-slate-300 hover:shadow-lg active:bg-slate-500 transition-all duration-300"
+        >{% translate "aktuelle Auswahl anzeigen" %}</button>
+          <button
+            hx-trigger="click"
+            hx-select="#filterform"
+            hx-get="."
+            hx-target="#filterform"
+            class="px-6 py-2 w-[16rem] bg-slate-200 text-black text-base font-semibold tracking-wide rounded-full hover:bg-slate-300 hover:shadow-lg active:bg-slate-500 transition-all duration-300"
+        >{% translate 'Filter Löschen'%}
+          </button>
+  </section>
+    </div>
+</main>
+{% endblock wizard_content %}
+{% block wizard_buttons %}
+  {% with "SubmitButton" as buttonId %}{{ block.super }}{% endwith %}
+{% endblock wizard_buttons %}
+
+{% block script %}
+<script>
+</script>
+{% endblock script %}

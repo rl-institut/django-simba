@@ -9,8 +9,8 @@
     <div class="border-b border-slate-200">
       <button type="button"
               onclick="toggleAccordion(this)"
-              class="w-full flex justify-between items-center py-5 text-slate-800 accordion-header">
-          <span class="w-max text-base font-bold px-2">Ihr Fahrzeugtyp: {{ modification.vehicle_type.name }}</span>
+              class="w-full flex justify-between items-center px-4 py-4 text-slate-800 accordion-header">
+          <span class="w-max text-base font-bold text-slate-800 px-2">Ihr Fahrzeugtyp: {{ modification.vehicle_type.name }}</span>
         <div id="SelectionError{{ vt_id }}" class="text-red-500 hidden"> {% translate "Wähle eine Fahrzeug aus" %}
           </div>
         <span id="icon-{{ vt_id }}"
@@ -71,4 +71,4 @@
 <div id="translate_geschätzer_verbrauch" class="hidden">{% translate 'Geschätzter Verbrauch: ' %}</div>
 <div id="translate_heißer_als" class="hidden">{% translate 'Heißer als ' %}</div>
 <!-- add bg color class so it can be activated via js -->
-<div id="translate_kälter_als" class="hidden bg-green-200">{% translate 'Kälter als ' %}</div>
+<div id="translate_kälter_als" class="hidden bg-emerald-200">{% translate 'Kälter als ' %}</div>
