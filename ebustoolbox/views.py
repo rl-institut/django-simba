@@ -1415,13 +1415,15 @@ class SummaryView(AuthorizedMixIn, TemplateView):
             annotated_vehicle_types.append(mutated_vt)
         context["vehicle_types"] = annotated_vehicle_types
 
-        context["electrified_stations"] = scenario_stations.filter(is_electrified=True)
+        context["electrified_stations"] = [
+            station.name for station in scenario_stations.filter(is_electrified=True).order_by("id")
+        ]
         excluded = Station.objects.filter(scenario=scenario, is_electrifiable=False)
         excluded_ids = excluded.values_list("id", flat=True)
         context["automatic_stations"] = scenario_stations.filter(
             is_electrified=False, is_electrifiable=True
-        )
-        context["excluded_stations"] = scenario_stations.filter(id__in=excluded_ids)
+        ).order_by("id")
+        context["excluded_stations"] = scenario_stations.filter(id__in=excluded_ids).order_by("id")
         context["depot_wishes"] = (
             DepotConfigurationWish.objects.filter(scenario=scenario)
             .prefetch_related("areainformation_set")

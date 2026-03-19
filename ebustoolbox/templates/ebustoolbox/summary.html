@@ -1,7 +1,7 @@
 {% extends 'ebustoolbox/wizard.html' %}
-{% load i18n %}
+{% load i18n static %}
 
-  {% block title %}{% translate 'WeBus - Zusammenfassung' %}{% endblock title %}
+{% block title %}{% translate 'WeBus - Zusammenfassung' %}{% endblock title %}
 
 {% block wizard_navigation %}
   {% with wiz_idx=7 %}
@@ -156,20 +156,19 @@ hx-trigger='load'
               <p class="text-slate-800 font-semibold uppercase pr-2">{{ vehicle_type.name }}</p>
                   {% if vehicle_type.lines %}
               <div class="relative inline-flex">
-                  <span>({{ vehicle_type.lines|length}} {% translate 'Linie(n)' %}</span>
-                  <span class="px-1 relative inline-flex ">
-                    <span class="cursor-pointer group">
-                      {% include "ebustoolbox/partials/eye_icon_svg.html" %}
-                      <!-- Tooltip -->
-                      <div
-                        class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none"
-                      >
-                        {% for line in vehicle_type.lines %}
-                          <li>{{ line}}</li>
-                          {% endfor %}
-                      </div>
-                    </span>
+                <span>({{ vehicle_type.lines|length}} {% translate 'Linie(n)' %}</span>
+                <span class="px-1 relative inline-flex ">
+                  <span class="cursor-pointer group">
+                    <img src="{% static 'ebustoolbox/eye_icon.svg' %}" style="height: 1.5rem">
+                    <div
+                      class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none"
+                    >
+                      {% for line in vehicle_type.lines %}
+                        <li>{{ line}}</li>
+                        {% endfor %}
+                    </div>
                   </span>
+                </span>
               </div>
                 {% endif %}
                 <div class="inline-flex items-center gap-1 pb-2">
@@ -213,29 +212,10 @@ hx-trigger='load'
                 <div class="flex items-center">
                     <span class="w-[18rem] text-slate-500">{% translate 'Elektrifizierung aktiviert:' %}</span>
                   <div class="flex items-center gap-2">
-                      <span class="text-slate-800">{{ electrified_stations|length }} {% translate 'Stationen' %}</span>
-                  {% if electrified_stations %}
+                    <span class="text-slate-800">{{ electrified_stations|length }} {% translate 'Stationen' %}</span>
+                    {% if electrified_stations %}
                     <div class="relative group">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="#00856C"
-                        class="size-5 cursor-pointer"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                        />
-                      </svg>
-                      <!-- Tooltip -->
+                      <img src="{% static 'ebustoolbox/eye_icon.svg' %}" style="height: 1.5rem">
                       <div
                         class="absolute left-0 top-full z-10 mt-2 w-64 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 pointer-events-none group-hover:opacity-100"
                       >
@@ -246,85 +226,47 @@ hx-trigger='load'
                         </ul>
                       </div>
                     </div>
-                  {% endif %}
+                    {% endif %}
                   </div>
                 </div>
                 <div class="flex items-center">
                     <span class="w-[18rem] text-slate-500">{% translate 'Bei Simulation entschieden:' %}</span>
                   <div class="flex items-center gap-2">
-                      <span class="text-slate-800">{{ automatic_stations|length }} {% translate 'Stationen' %}</span>
-                  {% if automatic_stations %}
+                    <span class="text-slate-800">{{ automatic_stations|length }} {% translate 'Stationen' %}</span>
+                    {% if automatic_stations %}
                     <div class="relative group">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="#00856C"
-                        class="size-5 cursor-pointer"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                        />
-                      </svg>
-                      <!-- Tooltip -->
+                      <img src="{% static 'ebustoolbox/eye_icon.svg' %}" style="height: 1.5rem">
                       <div
                         class="absolute left-0 top-full z-10 mt-2 w-64 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 pointer-events-none group-hover:opacity-100"
                       >
                         <ul class="list-disc list-inside">
                           {% for station in automatic_stations %}
-                          <li>{{ station.name}}</li>
+                          <li>{{ station.name }}</li>
                           {% endfor %}
                         </ul>
                       </div>
                     </div>
-                  {% endif %}
+                    {% endif %}
                   </div>
                 </div>
                 <div class="flex items-center">
                     <span class="w-[18rem] text-slate-500">{% translate 'Elektrifizierung nicht möglich:' %}</span>
                   <div class="flex items-center gap-2">
-                      <span class="text-slate-800">{{ excluded_stations|length }} {% translate 'Stationen' %}</span>
-                                    {% if excluded_stations %}
-                    <div class="relative group">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="#00856C"
-                        class="size-5 cursor-pointer"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                        />
-                      </svg>
-                      <!-- Tooltip -->
+                    <span class="text-slate-800">{{ excluded_stations|length }} {% translate 'Stationen' %}</span>
+                    {% if excluded_stations %}
+                     <div class="relative group">
+                      <img src="{% static 'ebustoolbox/eye_icon.svg' %}" style="height: 1.5rem">
                       <div
                         class="absolute left-0 top-full z-10 mt-2 w-64 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 pointer-events-none group-hover:opacity-100"
                       >
                         <ul class="list-disc list-inside">
                           {% for station in excluded_stations %}
-                          <li>{{ station.name}}</li>
+                          <li>{{ station.name }}</li>
                           {% endfor %}
                         </ul>
                       </div>
                     </div>
-                                    {% endif %}
+                    {% endif %}
                   </div>
                 </div>
               </div>
