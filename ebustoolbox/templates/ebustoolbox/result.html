@@ -369,34 +369,31 @@
             <div id="lineChart" class="chart-container h-[480px]"></div>
           </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
-            <p class="text-center text-lg font-bold text-slate-800 pb-4">
+              <p class="text-center text-lg font-bold text-slate-800 pb-4">
                 {% translate 'Depot Ladeleistung und Belegung' %}
               </p>
-              <div class="flex justify-between mt-4">
-                <div class="w-1/4 px-2 pb-4 text-center border-r border-slate-300">
+              <div class="flex mt-4">
+                <div class="flex-1 px-2 pb-4 text-center border-r border-slate-300">
                   <p class="text-slate-800">
-                    <span id="depot-max-charging"
-                          class="text-xl 2xl:text-2xl font-semibold">--</span>
+                    <span id="depot-max-charging" class="text-xl 2xl:text-2xl font-semibold">--</span>
                   </p>
                   <p class="text-sm text-slate-500">
                     {% translate 'Max. gleichzeitig ladende Fahrzeuge' %}
                   </p>
                 </div>
 
-                <div class="w-1/4 px-2 pb-4 text-center border-r border-slate-300">
+                <div class="flex-1 px-2 pb-4 text-center border-r border-slate-300">
                   <p class="text-slate-800">
-                    <span id="depot-max-total"
-                          class="text-xl 2xl:text-2xl font-semibold">--</span>
+                    <span id="depot-max-total" class="text-xl 2xl:text-2xl font-semibold">--</span>
                   </p>
                   <p class="text-sm text-slate-500">
                     {% translate 'Max. Fahrzeuge im Depot gesamt' %}
                   </p>
                 </div>
 
-                <div class="w-1/4 px-2 pb-4 text-center border-r border-slate-300">
+                <div class="flex-1 px-2 pb-4 text-center border-r border-slate-300">
                   <p class="text-slate-800">
-                    <span id="depot-peak-power"
-                          class="text-xl 2xl:text-2xl font-semibold">--</span>
+                    <span id="depot-peak-power" class="text-xl 2xl:text-2xl font-semibold">--</span>
                     <span class="text-sm 2xl:text-base font-normal">kW</span>
                   </p>
                   <p class="text-sm text-slate-500">
@@ -404,10 +401,9 @@
                   </p>
                 </div>
 
-                <div class="w-1/4 px-2 pb-4 text-center">
+                <div class="flex-1 px-2 pb-4 text-center">
                   <p class="text-slate-800">
-                    <span id="depot-energy"
-                          class="text-xl 2xl:text-2xl font-semibold">--</span>
+                    <span id="depot-energy" class="text-xl 2xl:text-2xl font-semibold">--</span>
                     <span class="text-sm 2xl:text-base font-normal">kWh</span>
                   </p>
                   <p class="text-sm text-slate-500">
@@ -415,8 +411,8 @@
                   </p>
                 </div>
               </div>
-            <div id="DepotlineChart" class="chart-container h-[480px]"></div>
-          </div>
+              <div id="DepotlineChart" class="chart-container h-[480px]"></div>
+            </div>
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
             <div id="filterContainerEvents"></div>
             <div id="ganttChart" class="chart-container h-[480px]"></div>
@@ -621,10 +617,41 @@
                     }
                 },
                 grid: {
-                  left: 40,
-                  right: 200,
-                  containLabel: true
+                    left: 40,
+                    right: 220,
+                    bottom: 60,
+                    containLabel: true
                 },
+
+                dataZoom: [
+                    {
+                        type: 'slider',
+                        filterMode: 'empty',
+                        showDataShadow: false,
+                        bottom: 10,
+                        labelFormatter: ''
+                    },
+                    {
+                        type: 'inside',
+                        filterMode: 'empty'
+                    },
+                    {
+                        type: 'slider',
+                        yAxisIndex: 0,
+                        filterMode: 'empty',
+                        showDataShadow: false,
+                        showDetail: false,
+                        width: 20,
+                        right: 155,
+                        top: 50,
+                        bottom: 75,
+                        startValue: seriesData.reduce((min, series) => {
+                            const seriesMin = Math.min(...series.data.map(d => d[1]));
+                            return Math.min(min, seriesMin);
+                        }, 0),
+                        endValue: 1.0,
+                    }
+                ],
                 tooltip: {
                     trigger: 'axis',
                     formatter: function (params) {
@@ -643,30 +670,19 @@
                     }
                 },
                 xAxis: {
-                    type: 'time',
+                    ...buildTimeXAxisConfig(),
                     name: 'Zeit',
-                    splitNumber: 8,
-                    axisLabel: {
-                        formatter: function (value) {
-                            const date = new Date(value);
-                            const yyyy = date.getFullYear();
-                            const mm = String(date.getMonth() + 1).padStart(2, '0'); // Months start at 0
-                            const dd = String(date.getDate()).padStart(2, '0');
-                            const hh = String(date.getHours()).padStart(2, '0');
-                            const min = String(date.getMinutes()).padStart(2, '0');
-                            return `${yyyy}-${mm}-${dd} - ${hh}:${min}`;
-                        },
-                        rotate: 0
-                    }
                 },
                 yAxis: {
                     type: 'value',
                     name: 'SOC (%)',
-                    min: -0.2,
+                    min: function(value) {
+                        return value.min < 0 ? Math.floor(value.min * 100) / 100 : 0;
+                    },
                     max: 1.0,
                     axisLabel: {
-                        formatter: function (value) {
-                            return value * 100; // Format x-axis labels
+                        formatter: function(value) {
+                            return value * 100;
                         }
                     }
                 },
@@ -691,7 +707,6 @@
             .then(response => response.json())
             .then(responseData => {
                 const rawData = responseData.data;
-
                 const kpis = responseData.kpis;
 
                 // KPIs
@@ -699,13 +714,6 @@
                 document.getElementById("depot-max-total").textContent = kpis.max_total;
                 document.getElementById("depot-peak-power").textContent = kpis.peak_power_kw;
                 document.getElementById("depot-energy").textContent = kpis.energy_kwh;
-
-
-                // Extract x and y arrays
-                const times = rawData.map(row => row.time);
-                const powers = rawData.map(row => row.power);
-                const occupancyCharging = rawData.map(row => row.occupancy_charging);
-                const occupancyTotal = rawData.map(row => row.occupancy_total);
 
                 const chart = echarts.init(document.getElementById(chartId));
 
@@ -722,14 +730,38 @@
                         duration: 300,
                         easing: 'cubicOut'
                     },
+                    dataZoom: [
+                        {
+                            type: 'slider',
+                            filterMode: 'empty',
+                            showDataShadow: false,
+                            bottom: 10,
+                            labelFormatter: ''
+                        },
+                        {
+                            type: 'inside',
+                            filterMode: 'empty'
+                        }
+                    ],
+                    grid: {
+                        top: 40,
+                        left: 60,
+                        right: 200,
+                        bottom: 50,
+                        containLabel: true
+                    },
                     tooltip: {
                         trigger: 'axis',
                         formatter: function(params) {
-                            const dateStr = params[0].axisValue; // already your x-axis label
-                            // optional: parse into Date object if you want, else just show it
+                            const date = new Date(params[0].axisValue);
+                            const hours = String(date.getHours()).padStart(2, '0');
+                            const minutes = String(date.getMinutes()).padStart(2, '0');
+                            const isoDate = date.toISOString().slice(0, 10);
+                            const dateStr = `${isoDate} ${hours}:${minutes}`;
+
                             let tooltipContent = `<strong>${dateStr}</strong><br/>`;
                             params.forEach(item => {
-                                let value = item.value;
+                                let value = item.value[1]; // [1] because data is now [timestamp, value]
                                 if (item.seriesName === 'Ladeleistung (kW)') {
                                     value = parseFloat(value).toFixed(2);
                                 }
@@ -739,37 +771,13 @@
                         }
                     },
                     xAxis: {
-                        type: 'category',
+                        ...buildTimeXAxisConfig(),
                         name: 'Zeit',
-                        data: times.map(ts => {
-                            const date = new Date(ts);
-                            const yyyy = date.getFullYear();
-                            const mm = String(date.getMonth() + 1).padStart(2, '0');
-                            const dd = String(date.getDate()).padStart(2, '0');
-                            const hh = String(date.getHours()).padStart(2, '0');
-                            const min = String(date.getMinutes()).padStart(2, '0');
-                            return `${yyyy}-${mm}-${dd} - ${hh}:${min}`;
-                        }),
-                        axisLabel: {
-                            rotate: 0,
-                            interval: function(index) {
-                                const total = times.length;
-                                const step = Math.ceil(total / 8);
-                                return index % step === 0;
-                            }
-                        }
                     },
                     legend: {
                       orient: 'vertical',
                       right: 0,
                       top: 70,
-                    },
-                    grid: {
-                      top: 80,
-                      left: 60,
-                      right: 200,
-                      bottom: 40,
-                      containLabel: true
                     },
                     yAxis: [
                         {
@@ -787,7 +795,7 @@
                         {
                             name: 'Ladeleistung (kW)',
                             type: 'line',
-                            data: powers,
+                            data: rawData.map(row => [new Date(row.time), row.power]),
                             yAxisIndex: 1,
                             lineStyle: {
                                 width: 3
@@ -796,7 +804,7 @@
                         {
                             name: 'Belegung ladend',
                             type: 'line',
-                            data: occupancyCharging,
+                            data: rawData.map(row => [new Date(row.time), row.occupancy_charging]),
                             yAxisIndex: 0,
                             lineStyle: {
                                 width: 3
@@ -805,7 +813,7 @@
                         {
                             name: 'Belegung total',
                             type: 'line',
-                            data: occupancyTotal,
+                            data: rawData.map(row => [new Date(row.time), row.occupancy_total]),
                             yAxisIndex: 0,
                             lineStyle: {
                                 width: 3
