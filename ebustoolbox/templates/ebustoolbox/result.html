@@ -2122,6 +2122,8 @@
 
     }
 
+    const scenarioName = "{{ scenario.name }}";
+
     async function fetchAndRenderTCOBars(chartName, chartID) {
         const res = await fetch(`/simba/result/${taskIdAvg}/${chartName}/`);
         const result = await res.json();
@@ -2139,6 +2141,9 @@
 
         const categories = Object.keys(result);
         const translatedCategories = categories.map(key => labelMapping[key] || key);
+
+        const totalCost = Object.values(result).reduce((a, b) => a + b, 0);
+        const yAxisMax = totalCost * 1.2;
 
         const option = {
             title: { text: 'Gesamtbetriebskosten (TCO)', left: 'center' },
@@ -2162,27 +2167,53 @@
             grid: { left: '5%', right: '5%', bottom: '10%', top: '25%', containLabel: true },
             xAxis: {
                 type: 'category',
-                data: ['Aktuelles Szenario'],
+                data: [scenarioName],
                 axisLabel: { fontWeight: 'bold' }
             },
             yAxis: {
                 type: 'value',
                 name: 'Kosten (€/km)',
-                nameGap: 25
+                nameGap: 25,
+                max: Math.ceil(yAxisMax)
             },
-            series: categories.map((key) => ({
+            series: [
+            ...categories.map((key) => ({
                 name: labelMapping[key] || key,
                 type: 'bar',
                 stack: 'total',
                 barWidth: "40%",
                 emphasis: { focus: 'series' },
+                label: {
+                    show: true,
+                    position: 'inside',
+                    // Only show value if it's large enough to fit inside the segment
+                    formatter: (params) => params.value > 0.02 ? params.value.toFixed(2) + ' €/km' : ''
+                },
                 data: [result[key]]
-            }))
-        };
+            })),
+            // Add tiny value of additional category atop, to form total cost
+            {
+                name: 'Total',
+                type: 'bar',
+                stack: 'total',
+                data: [0.00001],
+                label: {
+                    show: true,
+                    position: 'top',
+                    distance: 15,
+                    formatter: () => `{title|Gesamt}\n{value|${totalCost.toLocaleString('de-DE', { minimumFractionDigits: 2 })} €/km}`,
+                    rich: {
+                        title: { fontSize: 12, color: '#666', align: 'center' },
+                        value: { fontSize: 16, fontWeight: 'bold', color: '#333', align: 'center', lineHeight: 25 }
+                    }
+                }
+            }
+        ]
+    };
 
-        const chart = echarts.init(document.getElementById(chartID), 'ebusPalette');
-        chart.setOption(option);
-    }
+    const chart = echarts.init(document.getElementById(chartID), 'ebusPalette');
+    chart.setOption(option);
+}
 
     function computeCDF(rawData, selectedTypes) {
         const filtered = rawData.filter(d => selectedTypes.includes(d.type));
