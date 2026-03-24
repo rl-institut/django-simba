@@ -951,19 +951,19 @@
         };
     }
 
-// Store state per container so applyUnifiedFilter can read it
-const chipState = {}; // global, defined once outside all functions
+    //This is the filter state of the chips replacing the checkboxes for filtering bustypes
+    const chipState = {};
 
-function createVehicleTypeFilter(types, chartInstance, containerId, applyFilterFn) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
+    function createVehicleTypeFilter(types, chartInstance, containerId, applyFilterFn) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
 
-    chipState[containerId] = new Set(types);
-    const state = chipState[containerId];
+        chipState[containerId] = new Set(types);
+        const state = chipState[containerId];
 
-    const CHECK_SVG = `<svg class="chip-check" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>`;
+        const CHECK_SVG = `<svg class="chip-check" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`;
 
     function makeChip(label, type) {
         const btn = document.createElement('button');
@@ -1011,15 +1011,15 @@ function createVehicleTypeFilter(types, chartInstance, containerId, applyFilterF
 }
 
 
-function applyUnifiedFilter(chartInstance, uniqueVehicleTypes, sortedVehicles, ganttData, EVENT_COLORS, LEGEND_LABELS, containerId) {
+    function applyUnifiedFilter(chartInstance, uniqueVehicleTypes, sortedVehicles, ganttData, EVENT_COLORS, LEGEND_LABELS, containerId) {
 
-  const normId = id => Number(id);
-  const normType = t => (t == null ? '' : String(t).trim().toLowerCase());
+        const normId = id => Number(id);
+        const normType = t => (t == null ? '' : String(t).trim().toLowerCase());
 
-  // Read directly from chip state instead of checkbox DOM queries
-  const state = chipState[containerId];
-  const selectedTypes = state ? Array.from(state).map(normType) : uniqueVehicleTypes.map(normType);
-  const showAll = !state || state.size === uniqueVehicleTypes.length;
+        // Read directly from chip state instead of checkbox DOM queries
+        const state = chipState[containerId];
+        const selectedTypes = state ? Array.from(state).map(normType) : uniqueVehicleTypes.map(normType);
+        const showAll = !state || state.size === uniqueVehicleTypes.length;
 
         let vehiclesToKeep;
         if (showAll) {
@@ -1058,11 +1058,11 @@ function applyUnifiedFilter(chartInstance, uniqueVehicleTypes, sortedVehicles, g
         const baseEncode = baseSeriesOption.encode;
 
         let newSeries;
-        const isSocChart = chartInstance.getOption().series.length === 1 && !EVENT_COLORS; // Check for single series and lack of EVENT_COLORS
+        const isSocChart = chartInstance.getOption().series.length === 1 && !EVENT_COLORS;
 
         if (isSocChart) {
             let seriesData = filteredGanttData.map(d => [
-                d.vehicle,                    // 0: new y-axis category index
+                d.vehicle,                    // 0: y-axis category index
                 +new Date(d.start),           // 1: start time
                 +new Date(d.end),             // 2: end time
                 d.soc_start,
@@ -1265,41 +1265,41 @@ function applyUnifiedFilter(chartInstance, uniqueVehicleTypes, sortedVehicles, g
                     xAxis: buildTimeXAxisConfig(),
                     yAxis: buildYAxisConfig(sortedVehicles),
                     series: Object.keys(EVENT_COLORS).map(eventType => ({
-                      name: LEGEND_LABELS[eventType],
-                      type: 'custom',
-                      itemStyle: {
+                        name: LEGEND_LABELS[eventType],
+                        type: 'custom',
+                        itemStyle: {
                             color: EVENT_COLORS[eventType]
                         },
                         renderItem: function (params, api) {
-    const categoryIndex = api.value(0);
-    const startCoord = api.coord([api.value(1), categoryIndex]);
-    const endCoord   = api.coord([api.value(2), categoryIndex]);
-    const height = api.size([0, 1])[1] * 0.8;
+                            const categoryIndex = api.value(0);
+                            const startCoord = api.coord([api.value(1), categoryIndex]);
+                            const endCoord   = api.coord([api.value(2), categoryIndex]);
+                            const height = api.size([0, 1])[1] * 0.8;
 
-    const eventType = api.value(3); // ← read event type from data
-    const color = EVENT_COLORS[eventType] || '#ccc'; // ← look up color directly
+                            const eventType = api.value(3); // ← read event type from data
+                            const color = EVENT_COLORS[eventType] || '#ccc'; // ← look up color directly
 
-    return {
-        type: 'rect',
-        shape: {
-            x: startCoord[0],
-            y: startCoord[1] - height / 2,
-            width: endCoord[0] - startCoord[0],
-            height
-        },
-        style: {
-            fill: color // ← always explicit, never from api.visual()
-        }
-    };
-},
-                      encode: {
+                            return {
+                                type: 'rect',
+                                shape: {
+                                    x: startCoord[0],
+                                    y: startCoord[1] - height / 2,
+                                    width: endCoord[0] - startCoord[0],
+                                    height
+                                },
+                                style: {
+                                    fill: color // ← always explicit, never from api.visual()
+                                }
+                            };
+                        },
+                        encode: {
                           x: [1, 2],
                           y: 0,
                           itemName: 4
-                      },
-                      data: ganttData
-                          .filter(d => d.event_type === eventType)
-                          .map(d => [
+                        },
+                        data: ganttData
+                            .filter(d => d.event_type === eventType)
+                            .map(d => [
                                 d.vehicle,
                                 +new Date(d.start),           // 1: start
                                 +new Date(d.end),             // 2: end
@@ -1308,9 +1308,8 @@ function applyUnifiedFilter(chartInstance, uniqueVehicleTypes, sortedVehicles, g
                                 d.route_name,
                                 d.rotation_name,
                                 d.station_name
-                            ])
-                  }))
-
+                        ])
+                    }))
                 };
 
                 const chart = echarts.init(document.getElementById(chartId), 'ebusPalette');
