@@ -2091,14 +2091,14 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
 
 def set_scenario_progress_failed(scenario: Scenario, exception: Exception | None = None):
     mutation_progress = Progress.objects.filter(
-        scneario=scenario.parent, progress_type=EnumProgress.RUNNING_SIMULATION
+        scenario=scenario.parent, progress_type=EnumProgress.RUNNING_SIMULATION
     ).first()
     if mutation_progress:
         mutation_progress.errors.append(str(exception))
         mutation_progress.set_failed()
     # Also set simulation specific scenario progress to failed
     simulation_scenario_progress = Progress.objects.filter(
-        scneario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
+        scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
     ).first()
     if simulation_scenario_progress:
         simulation_scenario_progress.errors.append(str(exception))
