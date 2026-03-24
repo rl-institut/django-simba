@@ -967,7 +967,13 @@
 
         function makeChip(label, type) {
             const btn = document.createElement('button');
-            btn.className = 'chip' + (type === '__all__' ? ' all' : '');
+
+            if (type === '__all__') {
+                btn.className = 'chip all';
+            } else {
+                btn.className = 'chip';
+            }
+
             btn.innerHTML = CHECK_SVG + `<span>${label}</span>`;
             btn._type = type;
             return btn;
@@ -975,9 +981,22 @@
 
         // Syncs selected class to chip based on current state
         function updateChip(btn) {
-            const selected = btn._type === '__all__'
-                ? state.size === types.length
-                : state.has(btn._type);
+            let selected;
+
+            if (btn._type === '__all__') {
+                if (state.size === types.length) {
+                    selected = true;
+                } else {
+                    selected = false;
+                }
+            } else {
+                if (state.has(btn._type)) {
+                    selected = true;
+                } else {
+                    selected = false;
+                }
+            }
+
             btn.classList.toggle('selected', selected);
         }
 
@@ -987,22 +1006,40 @@
 
             const allBtn = makeChip('Alle', '__all__');
             allBtn.addEventListener('click', () => {
-                if (state.size === types.length) state.clear();
-                else types.forEach(t => state.add(t));
+                if (state.size === types.length) {
+                    state.clear();
+                } else {
+                    types.forEach(t => state.add(t));
+                }
+
                 container.querySelectorAll('.chip').forEach(updateChip);
                 applyFilterFn(chartInstance);
             });
+
             updateChip(allBtn);
             container.appendChild(allBtn);
 
             types.forEach(type => {
-                const chip = makeChip(type.length > 22 ? type.slice(0, 22) + '…' : type, type);
+                let label = type;
+                if (type.length > 22) {
+                    label = type.slice(0, 22) + '…';
+                }
+
+                const chip = makeChip(label, type);
                 chip.title = type;
+
                 chip.addEventListener('click', () => {
-                    state.has(type) ? state.delete(type) : state.add(type);
+                    // Toggle individual type
+                    if (state.has(type)) {
+                        state.delete(type);
+                    } else {
+                        state.add(type);
+                    }
+
                     container.querySelectorAll('.chip').forEach(updateChip);
                     applyFilterFn(chartInstance);
                 });
+
                 updateChip(chip);
                 container.appendChild(chip);
             });

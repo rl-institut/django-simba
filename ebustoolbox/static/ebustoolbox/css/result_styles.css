@@ -79,9 +79,9 @@ th.sortable.desc::after {
     height: 32px;
     padding: 0 12px;
     border-radius: 16px;
-    border-width: 1px;        /* ← add this explicitly */
-    border-style: solid;      /* ← and this */
-    border-color: #9E9E9E;    /* ← and this */
+    border-width: 1px;
+    border-style: solid;
+    border-color: #9E9E9E;
     background: transparent;
     color: #212121;
     font-size: 13px;
@@ -95,7 +95,7 @@ th.sortable.desc::after {
 }
 
 .chip.selected {
-    border-width: 0;           /* ← intentionally no border when selected */
+    border-width: 0;
     background: #E8EAF6;
     color: #3949AB;
     font-weight: 500;
