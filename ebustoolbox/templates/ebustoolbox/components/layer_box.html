@@ -173,7 +173,7 @@
                 const isDepotChecked = document.getElementById('layer-0').checked;
                 const isElectrifiedChecked = document.getElementById('layer-1').checked;
                 const isStationChecked = document.getElementById('layer-2').checked;
-                const acpFilter = ['>', ['to-number', ['get', 'acp']], 0];
+                const acpFilter = ['>', ['to-number', ['get', 'min_amount_charging_places']], 0];
 
                 const layersToCheck = ['station'];
                 const allLayersLoaded = layersToCheck.every(layer => map.getLayer(layer));

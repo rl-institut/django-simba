@@ -1222,8 +1222,6 @@ class Station(models.Model):
 
     objects = FastUpdateManager()
 
-    # Make sure all annotations are part of the columns below, if the data is supposed to be
-    # delivered to the map
     annotations = {
         "center": models.functions.Centroid("geom"),
         "lat": X("center", output_field=models.DecimalField()),
@@ -1237,7 +1235,7 @@ class Station(models.Model):
         "power_total_ann": F("power_total"),
         "num_arrivals": CountBusServices(),
         "is_depot": IsDepot(),
-        "acp": Coalesce(
+        "min_amount_charging_places": Coalesce(
             PeakConcurrency(event_types=["CHARGING_OPPORTUNITY", "CHARGING_DEPOT"]), Value(0)
         ),
     }
@@ -1255,7 +1253,7 @@ class Station(models.Model):
             "power_total_ann",
             "num_arrivals",
             "is_depot",
-            "acp",
+            "min_amount_charging_places",
         ],
     )
 
