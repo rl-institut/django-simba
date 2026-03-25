@@ -129,6 +129,7 @@ urlpatterns = [
     path("result/<uuid:task_id>/stats/", views.get_stats, name="stats"),
     path("result/<uuid:task_id>/dist_histogram/", views.get_dist_hist, name="dist_hist_data"),
     path("result/<uuid:task_id>/speed_histogram/", views.get_speed_hist, name="speed_hist_data"),
+    path("result/<uuid:task_id>/tco/", views.get_tco, name="tco_data"),
     path(
         "result/<uuid:task_id>/critical_rotations/",
         views.render_critical_rotations,

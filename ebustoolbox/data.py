@@ -1210,3 +1210,9 @@ def get_rotation_table_data(task_id: str):
         )
 
     return rows
+
+
+def get_tco(task_id):
+    s = Scenario.objects.get(task_id=task_id)
+    result = s.tco_result
+    return result
