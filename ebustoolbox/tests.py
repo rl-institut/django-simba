@@ -506,12 +506,11 @@ class SimulationTestCase(TransactionTestCase):
             .last()
         )
         num_ts = len(event.timeseries["time"])
-        interval = timedelta(minutes=tasks.get_args(django_scenario).interval)
         # check start/end soc
         assert event.soc_start != event.soc_end
         soc_end = event.soc_end
         with self.assertLogs(logger="custom") as cm:
-            tasks.replace_event_timeseries(event, [event.soc_start] * num_ts, interval)
+            tasks.replace_event_timeseries(event, [event.soc_start] * num_ts)
             # Check if any log entry contains the substring
             self.assertTrue(
                 any("Depot Charging Simulation diverged" in message for message in cm.output),
@@ -519,28 +518,38 @@ class SimulationTestCase(TransactionTestCase):
             )
         event.soc_end = soc_end
         with self.assertLogs(logger="custom") as cm:
-            tasks.replace_event_timeseries(event, [event.soc_end] * num_ts, interval)
+            tasks.replace_event_timeseries(event, [event.soc_end] * num_ts)
             self.assertTrue(
                 any("Depot Charging Simulation diverged" in message for message in cm.output),
                 "Error log not found",
             )
 
-        # check length of timeseries
-        assert num_ts > 2
-        with self.assertRaises(AssertionError):
-            tasks.replace_event_timeseries(event, [event.soc_start, event.soc_end], interval)
-
         # check None values
         with self.assertRaises(AssertionError):
             tasks.replace_event_timeseries(
-                event, [event.soc_start, None] + [event.soc_end] * (num_ts - 2), interval
+                event, [event.soc_start, None] + [event.soc_end] * (num_ts - 2)
             )
 
         # success
         tasks.replace_event_timeseries(
-            event, [event.soc_start] + [0] * (num_ts - 2) + [event.soc_end], interval
+            event, [event.soc_start] + [0] * (num_ts - 2) + [event.soc_end]
         )
         assert event.timeseries["soc"][1] == 0
+
+    def test_apply_depot_stratgy_second_timesteps(self):
+        # basic test
+        django_scenario = self.create_depot_simulation()
+        charge_evts = django_scenario.event_set.filter(
+            event_type=EventType.CHARGING_DEPOT
+        ).order_by("time_start")
+        first_evt = charge_evts.first()
+        first_evt.time_start = first_evt.time_start.replace(second=1)
+        first_evt.time_end = first_evt.time_end.replace(second=59)
+        first_evt.save()
+
+        tasks.apply_depot_strategy(django_scenario, "greedy")
+        # only one charging event per vehicle, so split_vehicles does not do much
+        tasks.apply_depot_strategy(django_scenario, "balanced", split_vehicles=True)
 
     def test_apply_depot_strategy_basic(self):
         # basic test

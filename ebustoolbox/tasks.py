@@ -1525,7 +1525,7 @@ def abbreviate_list(long_list: list, tail_elements: int = 2, delimiter: str = ",
     )
 
 
-def replace_event_timeseries(event: Event, soc_ts: list, interval: timedelta) -> None:
+def replace_event_timeseries(event: Event, soc_ts: list) -> None:
     # replace Event soc timeseries with arbitrary list
     # ### sanity checks ### #
     # event soc should always be defined / not null
@@ -1550,13 +1550,20 @@ def replace_event_timeseries(event: Event, soc_ts: list, interval: timedelta) ->
         Event.objects.bulk_update([event], fields=["soc_end"])
 
     # re-create timestamps series
-    n_ts = -((event.time_start - event.time_end) // interval) + 1
+    interval = (event.time_end - event.time_start) / (len(soc_ts) - 1)
     event.timeseries = {
-        "time": [(event.time_start + i * interval).isoformat() for i in range(n_ts)]
+        "time": [(event.time_start + i * interval).isoformat() for i in range(len(soc_ts))]
     }
 
     # soc and time lists must have same length
     assert len(soc_ts) == len(event.timeseries["time"])
+    assert event.timeseries["time"][0] == event.time_start.isoformat()
+    # handle floating point errors
+    assert datetime.fromisoformat(event.timeseries["time"][-1]) - event.time_end <= timedelta(
+        milliseconds=1
+    )
+    # remove the floating point error
+    event.timeseries["time"][-1] = event.time_end.isoformat()
 
     # save to DB
     event.timeseries["soc"] = soc_ts
@@ -1628,7 +1635,7 @@ def apply_depot_strategy(scenario: Scenario, strategy: str, split_vehicles=False
         event_list.append(event)
         if next_event is None:
             # no standby: just replace SoC timeseries
-            replace_event_timeseries(event, socs, interval)
+            replace_event_timeseries(event, socs)
         else:
             # standby event exists: split charging and standby
 
@@ -1647,8 +1654,8 @@ def apply_depot_strategy(scenario: Scenario, strategy: str, split_vehicles=False
             # adjust event start/end timestamps
             event.time_end = ts_stop_charging
             next_event.time_start = ts_stop_charging
-            replace_event_timeseries(event, socs_charging, interval)
-            replace_event_timeseries(next_event, socs_standby + socs_buffer, interval)
+            replace_event_timeseries(event, socs_charging)
+            replace_event_timeseries(next_event, socs_standby + socs_buffer)
             event_list.append(next_event)
 
     Event.objects.bulk_update(event_list, ["timeseries", "time_start", "time_end"])
@@ -2091,14 +2098,14 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
 
 def set_scenario_progress_failed(scenario: Scenario, exception: Exception | None = None):
     mutation_progress = Progress.objects.filter(
-        scneario=scenario.parent, progress_type=EnumProgress.RUNNING_SIMULATION
+        scenario=scenario.parent, progress_type=EnumProgress.RUNNING_SIMULATION
     ).first()
     if mutation_progress:
         mutation_progress.errors.append(str(exception))
         mutation_progress.set_failed()
     # Also set simulation specific scenario progress to failed
     simulation_scenario_progress = Progress.objects.filter(
-        scneario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
+        scenario=scenario, progress_type=EnumProgress.RUNNING_SIMULATION
     ).first()
     if simulation_scenario_progress:
         simulation_scenario_progress.errors.append(str(exception))
