@@ -1530,6 +1530,9 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
     # ### sanity checks ### #
     # event soc should always be defined / not null
     assert all([soc is not None for soc in soc_ts])
+    if len(soc_ts) < 2:
+        event.timeseries["soc"] = [event.soc_start, event.soc_end]
+        event.timeseries["time"] = [event.time_start, event.time_end]
 
     # start and end soc must remain the same
     if not (abs(soc_ts[0] - event.soc_start) < EPS):
