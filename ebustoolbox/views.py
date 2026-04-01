@@ -627,7 +627,7 @@ class FilterView(ScenarioMixIn, TemplateView):
             # If the scenario has children, changing the source_scenario is not allowed
             return HttpResponseForbidden(
                 _(
-                    "Das Szenario kann nicht wiederholt gefiltert werden. Erstellen Sie statt dessen eine neue Variante"
+                    "Das Szenario kann nicht wiederholt gefiltert werden. Erstellen Sie stattdessen eine neue Variante"
                 )
             )
         context = self.get_context_data(request, **kwargs)

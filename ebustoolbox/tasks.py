@@ -1532,7 +1532,7 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
     assert all([soc is not None for soc in soc_ts])
     if len(soc_ts) < 2:
         event.timeseries["soc"] = [event.soc_start, event.soc_end]
-        event.timeseries["time"] = [event.time_start, event.time_end]
+        event.timeseries["time"] = [event.time_start.isoformat(), event.time_end.isoformat()]
         return
 
     # start and end soc must remain the same
@@ -1563,7 +1563,7 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
     assert len(soc_ts) == len(event.timeseries["time"])
     assert event.timeseries["time"][0] == event.time_start.isoformat()
     # handle floating point errors
-    assert datetime.fromisoformat(event.timeseries["time"][-1]) - event.time_end <= timedelta(
+    assert abs(datetime.fromisoformat(event.timeseries["time"][-1]) - event.time_end) <= timedelta(
         milliseconds=1
     )
     # remove the floating point error
