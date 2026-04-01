@@ -38,6 +38,24 @@
   {% with wiz_idx=1 %}
     {{ block.super }}
   {% endwith %}
+
+{% if  request.user.is_authenticated %}
+<div class="sm:pt-8 sm:pb-4 lg:pt-6 sm:px-6 lg:px-8 w-full max-w-7xl">
+  <div class="p-2 border border-bg-yellow-500">
+          <h3 class="text-sm font-semibold text-yellow-800" id="alert-title">
+            {% translate 'Wichtiger Hinweis!' %}
+          </h3>
+          <div class="mt-2 text-sm text-yellow-700" id="alert-description">
+            <p>
+      {% blocktranslate %}
+        Sie sind nicht eingeloggt. Nach Abschluss der Simulation sind die Ergebnisse nur über den Ergebnislink abrufbar. Außerdem können Sie die Ergebnisse zu einem späteren Zeitpunkt nicht löschen. <br><strong>Für eine dauerhafte Speicherung und Passwortschutz Ihrer Ergebnisse sollten Sie sich einloggen.</strong>
+      {% endblocktranslate %}
+            </p>
+          </div>
+          </div>
+
+</div>
+{% endif %}
 {% endblock wizard_navigation %}
 
 {% block wizard_content %}
