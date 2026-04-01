@@ -623,6 +623,13 @@ class FilterView(ScenarioMixIn, TemplateView):
         return self.render_to_response(context)
 
     def post(self, request, *args, **kwargs):
+        if Scenario.objects.filter(parent=self.scenario.parent).count() > 1:
+            # If the scenario has children, changing the source_scenario is not allowed
+            return HttpResponseForbidden(
+                _(
+                    "Das Szenario kann nicht wiederholt gefiltert werden. Erstellen Sie stattdessen eine neue Variante"
+                )
+            )
         context = self.get_context_data(request, **kwargs)
         form: forms.SimulationFilterForm = context["simulation_parameters_form"]
         if form.is_valid():
@@ -1150,6 +1157,14 @@ class CostsView(ScenarioMixIn, TemplateView):
                             f"Station {station.name} has unknown "
                             f"charge type: {station.charge_type}"
                         )
+                        # Some stations are not properly configured by gtfs it seems
+                        # ensure values exist
+                        stco = station.tco_parameters
+                        stco["useful_life"] = stco["useful_life"] or 20
+                        stco["procurement_cost"] = stco["procurement_cost"] or 0
+                        stco["cost_escalation"] = stco["cost_escalation"] or 0.02
+                        station.save(update_fields=["tco_parameters"])
+
                         continue
                     station.save(update_fields=["tco_parameters"])
                     # charging point type has identical parameters?

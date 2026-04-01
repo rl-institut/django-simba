@@ -31,7 +31,7 @@
               <div class='mt-6'>
         {% if progress.success %}
           {% if first_success is not None %}
-          <meta http-equiv="refresh" content="3;url={%  url 'simba:result' default_scenario.task_id %}">
+          <meta http-equiv="refresh" content="3;url={%  url 'simba:result' progress.scenario.task_id %}">
           <p>{% translate 'Sie werden in wenigen Sekunden zu den Ergebnissen weitergeleitet.' %}</p>
           {% endif %}
 {#          a new scenario was created which has a new task_id identical to the progress task_id#}
