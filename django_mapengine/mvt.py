@@ -7,6 +7,9 @@ from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from rest_framework_mvt.views import BaseMVTView
 
+from django.apps import apps
+
+from ebustoolbox.models import EnumScenarioType, EnumSimulationType
 
 @dataclass
 class MVTLayer:
@@ -28,6 +31,22 @@ class MVTView(BaseMVTView):
 
     def get(self, request, *args, **kwargs):
         params = request.GET.dict()
+
+        if "task_id" in params:
+            # app registry to find the model across apps
+            Scenario = apps.get_model("ebustoolbox", "Scenario")
+            try:
+                current_scenario = Scenario.objects.get(task_id=params["task_id"])
+
+                # Find the associated "extreme"/sizing scenario
+                extScenario = current_scenario.get_sizing_scenario()
+
+                if extScenario:
+                    params["task_id"] = str(extScenario.task_id)
+
+            except (Scenario.DoesNotExist, ValueError):
+                pass
+
         mvt = b""
         status = 400
 

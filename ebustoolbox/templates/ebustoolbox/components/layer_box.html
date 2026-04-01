@@ -57,11 +57,6 @@
                 },
                 {
                     label: 'Nicht elektrifiziert',
-                    icon: "{% static 'ebus_map/bus_station_not_electrified.png' %}",
-                    toggleFunction: () => updateFilter()
-                },
-                {
-                    label: 'Nie elektrifiziert',
                     icon: "{% static 'ebus_map/bus_station_never_electrified.png' %}",
                     toggleFunction: () => updateFilter()
                 }
@@ -178,6 +173,7 @@
                 const isDepotChecked = document.getElementById('layer-0').checked;
                 const isElectrifiedChecked = document.getElementById('layer-1').checked;
                 const isStationChecked = document.getElementById('layer-2').checked;
+                const acpFilter = ['>', ['to-number', ['get', 'min_amount_charging_places']], 0];
 
                 const layersToCheck = ['station'];
                 const allLayersLoaded = layersToCheck.every(layer => map.getLayer(layer));
@@ -224,6 +220,8 @@
 
                     // Apply the filter to the stations layer
                     map.setFilter('station', filter);
+                    map.setFilter('station-badge', ['all', acpFilter, filter]);
+                    map.setFilter('station-badge-bg', ['all', acpFilter, filter]);
                 }
             }
 

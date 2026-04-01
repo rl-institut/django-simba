@@ -17,6 +17,32 @@
       ]
     }
   },
+"station-badge-bg": {
+  "type": "circle",
+  "source-layer": "station",
+  "paint": {
+    "circle-radius": 8,
+    "circle-color": "#FFF",
+    "circle-stroke-color": "#abbaaf",
+    "circle-stroke-width": 2,
+    "circle-translate": [13, -13],
+    "circle-translate-anchor": "viewport"
+  }
+},
+"station-badge": {
+  "type": "symbol",
+  "source-layer": "station",
+  "layout": {
+    "text-field": "{min_amount_charging_places}",
+    "text-font": ["Open Sans Bold"],
+    "text-size": 14,
+    "text-offset": [0.9,-0.9],
+    "text-anchor": "center"
+  },
+  "paint": {
+    "text-color": "#000"
+  }
+},
   "region-fill": {
     "type": "fill",
     "paint": {

@@ -20,8 +20,9 @@ from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.db.models import QuerySet, Sum, Case, When, Value, IntegerField, Func, F
-from django.db.models.functions import Now, Length
+from django.db.models import QuerySet, Sum, Case, When, Value, IntegerField, Func, F, Expression
+from django.db.models.sql.compiler import SQLCompiler
+from django.db.models.functions import Now, Length, Coalesce
 from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import make_aware
@@ -30,6 +31,86 @@ from ebus_map.managers import MVTManager, X, Y
 from simba.ids import INCLINE, LEVEL_OF_LOADING, SPEED, T_AMB, CONSUMPTION
 
 MINIMAL_TRIP_DURATION_S = 60  # seconds
+
+
+class PeakConcurrency(Expression):
+    """
+    A registry-safe expression to find peak concurrent events
+    for one or more event types at a given station.
+
+    Uses a correlated subquery: for each station, find all events of the
+    given types, then for each event count overlapping events, return the max.
+
+    This maps to SQL like:
+        SELECT MAX(overlap_count) FROM (
+            SELECT COUNT(*) as overlap_count
+            FROM "Event" e1
+            JOIN "Event" e2 ON (
+                e2.station_id = e1.station_id
+                AND e2.event_type IN (...)
+                AND e2.time_start < e1.time_end
+                AND e2.time_end > e1.time_start
+            )
+            WHERE e1.station_id = "Station".id
+              AND e1.event_type IN (...)
+            GROUP BY e1.id
+        ) counts
+    """
+
+    def __init__(self, event_types, output_field=None):
+        self.event_types = event_types if isinstance(event_types, (list, tuple)) else [event_types]
+        super().__init__(output_field=output_field or IntegerField())
+
+    def resolve_expression(
+        self, query=None, allow_joins=True, reuse=None, summarize=False, for_save=False
+    ):
+        c = self.copy()
+        c.is_summary = summarize
+
+        # Resolve the app/model dynamically to avoid circular imports
+        Station = query.model
+        c._event_model = Station._meta.apps.get_model(Station._meta.app_label, "Event")
+        c._station_meta = Station._meta
+        return c
+
+    def as_sql(self, compiler: SQLCompiler, connection):
+        event_table = self._event_model._meta.db_table
+        station_table = self._station_meta.db_table
+
+        placeholders = ", ".join(["%s"] * len(self.event_types))
+
+        sql = f"""
+            (
+                SELECT COALESCE(MAX(running_total), 0)
+                FROM (
+                    SELECT SUM(delta) OVER (
+                        ORDER BY ts, delta  -- process ends (-1) before starts (+1) at same timestamp
+                    ) AS running_total
+                    FROM (
+                        SELECT time_start AS ts, +1 AS delta
+                        FROM "{event_table}"
+                        WHERE station_id  = "{station_table}".id
+                          AND event_type IN ({placeholders})
+
+                        UNION ALL
+
+                        SELECT time_end AS ts, -1 AS delta
+                        FROM "{event_table}"
+                        WHERE station_id  = "{station_table}".id
+                          AND event_type IN ({placeholders})
+                    ) _boundaries
+                ) _sweep
+            )
+        """
+
+        params = self.event_types + self.event_types
+        return sql, params
+
+    def get_source_expressions(self):
+        return []
+
+    def set_source_expressions(self, exprs):
+        pass
 
 
 class EnumScenarioType(models.TextChoices):
@@ -136,6 +217,16 @@ class Scenario(models.Model):
         if self.scenario_type in [EnumScenarioType.SOURCE, EnumScenarioType.SOURCE_FILE]:
             return False
         return True
+
+    def get_sizing_scenario(self):
+        scenario_parent = self
+        if self.scenario_type == EnumScenarioType.SIMULATION:
+            scenario_parent = self.parent
+        return Scenario.objects.filter(
+            parent=scenario_parent,
+            scenario_type=EnumScenarioType.SIMULATION,
+            simulationtype__sim_type=EnumSimulationType.SIZING,
+        ).first()
 
 
 @receiver(models.signals.pre_delete, sender=Scenario)
@@ -1131,8 +1222,6 @@ class Station(models.Model):
 
     objects = FastUpdateManager()
 
-    # Make sure all annotations are part of the columns below, if the data is supposed to be
-    # delivered to the map
     annotations = {
         "center": models.functions.Centroid("geom"),
         "lat": X("center", output_field=models.DecimalField()),
@@ -1146,6 +1235,9 @@ class Station(models.Model):
         "power_total_ann": F("power_total"),
         "num_arrivals": CountBusServices(),
         "is_depot": IsDepot(),
+        "min_amount_charging_places": Coalesce(
+            PeakConcurrency(event_types=["CHARGING_OPPORTUNITY", "CHARGING_DEPOT"]), Value(0)
+        ),
     }
 
     vector_tiles = MVTManager(
@@ -1161,6 +1253,7 @@ class Station(models.Model):
             "power_total_ann",
             "num_arrivals",
             "is_depot",
+            "min_amount_charging_places",
         ],
     )
 
@@ -1177,7 +1270,7 @@ class Station(models.Model):
         # circular import
         from .util import get_charge_chart
 
-        obj = cls.objects.get(id=id)
+        obj = cls.objects.annotate(**cls.annotations).get(id=id)
         data = vars(obj)
         data["title"] = obj.name_short or obj.name
         plot = get_charge_chart(obj)

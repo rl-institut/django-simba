@@ -1043,12 +1043,16 @@ def get_dist_hist_as_json(task_id: str):
 
 
 def get_power_draw_and_occ_as_json(task_id: str):
-    scenario = Scenario.objects.get(task_id=task_id)
 
-    all_areas = scenario.area_set.all()
+    avgScenario = Scenario.objects.get(task_id=task_id)
+
+    # Find the associated "extreme"/sizing scenario
+    extrScenario = avgScenario.get_sizing_scenario()
+
+    all_areas = extrScenario.area_set.all()
     all_area_ids = [area.id for area in all_areas]
 
-    time_start, time_end = get_start_end_time(scenario)
+    time_start, time_end = get_start_end_time(extrScenario)
 
     with Session(SqlAlchemyEngine.get_engine()) as session:
         df = power_and_occupancy(
