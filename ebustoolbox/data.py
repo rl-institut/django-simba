@@ -1042,14 +1042,18 @@ def get_dist_hist_as_json(task_id: str):
     }
 
 
-def get_power_draw_and_occ_as_json(task_id: str):
+def get_power_draw_and_occ_as_json(task_id: str, depot_id: None | int = None):
 
     avgScenario = Scenario.objects.get(task_id=task_id)
 
     # Find the associated "extreme"/sizing scenario
     extrScenario = avgScenario.get_sizing_scenario()
 
-    all_areas = extrScenario.area_set.all()
+    if not depot_id:
+        all_areas = extrScenario.area_set.all()
+    else:
+        all_areas = extrScenario.area_set.filter(depot_id=depot_id)
+
     all_area_ids = [area.id for area in all_areas]
 
     time_start, time_end = get_start_end_time(extrScenario)

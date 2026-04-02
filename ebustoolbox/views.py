@@ -70,6 +70,7 @@ from ebustoolbox.models import (
     VehicleClass,
     VehicleType,
     DefaultScenario,
+    Depot,
     Station,
     EnumChargeType,
     Event,
@@ -1498,11 +1499,13 @@ class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
             scenario_type=EnumScenarioType.SIMULATION,
             simulationtype__sim_type=EnumSimulationType.DEFAULT,
         ).first()
-        context["ext_scenario"] = Scenario.objects.filter(
+        extScenario = Scenario.objects.filter(
             parent=scenario,
             scenario_type=EnumScenarioType.SIMULATION,
             simulationtype__sim_type=EnumSimulationType.SIZING,
         ).first()
+        context["ext_scenario"] = extScenario
+        context["depots"] = Depot.objects.filter(scenario=extScenario)
         context["scenario"] = scenario
         notifications = Notification.objects.filter(scenario=scenario)
         context["notifications"] = tasks.get_notfications_dict(notifications)
@@ -1912,8 +1915,8 @@ def get_dist_hist(request, task_id: str):
     return JsonResponse(response_data)
 
 
-def get_power_draw_and_occ(request, task_id: str):
-    response_data = data.get_power_draw_and_occ_as_json(task_id)
+def get_power_draw_and_occ(request, task_id: str, depot_id: int | None = None):
+    response_data = data.get_power_draw_and_occ_as_json(task_id, depot_id)
 
     return JsonResponse(response_data)
 
