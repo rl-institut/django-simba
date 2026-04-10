@@ -39,7 +39,7 @@
     {{ block.super }}
   {% endwith %}
 
-{% if  request.user.is_authenticated %}
+{% if not request.user.is_authenticated %}
 <div class="sm:pt-8 sm:pb-4 lg:pt-6 sm:px-6 lg:px-8 w-full max-w-7xl">
   <div class="p-2 border border-bg-yellow-500">
           <h3 class="text-sm font-semibold text-yellow-800" id="alert-title">
