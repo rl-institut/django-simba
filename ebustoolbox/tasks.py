@@ -2227,10 +2227,16 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
             .order_by("time_end")
             .last()
         )
+        if prev_event is None:
+            logger.error(
+                f"{rot.id=} has no event with {vehicle=} before {first_trip.departure_time.isoformat()}"
+            )
+            vehicle_assigns.append({"rot": rot.id, "v_id": vehicle.to_simba_name(), "soc": 1.0})
 
-        vehicle_assigns.append(
-            {"rot": rot.id, "v_id": vehicle.to_simba_name(), "soc": prev_event.soc_end}
-        )
+        else:
+            vehicle_assigns.append(
+                {"rot": rot.id, "v_id": vehicle.to_simba_name(), "soc": prev_event.soc_end}
+            )
     return vehicle_assigns
 
 
@@ -2252,6 +2258,7 @@ def create_optimizer_config(db_scenario: Scenario) -> simba.station_optimization
     }
     conf.exclusion_stations = exclusion_stations
     conf.standard_opp_station = standard_opp_station
+    conf.solver = "quick"
     return conf
 
 
