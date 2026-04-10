@@ -339,6 +339,12 @@ class AssocVehicleTypeVehicleClass(models.Model):
     vehicle_class = models.ForeignKey("VehicleClass", on_delete=models.CASCADE)
 
 
+class EnumEnergySource(models.TextChoices):
+    BATTERY_ELECTRIC = "battery_electric"
+    DIESEL = "diesel"
+    HYDROGEN = "hydrogen"
+
+
 class VehicleType(models.Model):
     """
     Model representing a type of vehicle associated with a scenario.
@@ -437,6 +443,12 @@ class VehicleType(models.Model):
     )
     vehicle_classes = models.ManyToManyField("VehicleClass", through="AssocVehicleTypeVehicleClass")
     """Vehicle classes this vehicle type belongs to."""
+    energy_source = models.CharField(
+        choices=EnumEnergySource.choices,
+        null=True,
+        blank=True,
+        default=EnumEnergySource.BATTERY_ELECTRIC,
+    )
 
     def save(self, *args, **kwargs):
         # Override save to make certain name_short exists
