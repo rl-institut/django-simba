@@ -217,7 +217,7 @@ hx-trigger='load'
                     <div class="relative group">
                       <img src="{% static 'ebustoolbox/eye_icon.svg' %}" style="height: 1.5rem">
                       <div
-                        class="absolute left-0 top-full z-10 mt-2 w-64 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 pointer-events-none group-hover:opacity-100"
+                        class="absolute left-0 top-full z-10  w-64 rounded-md bg-slate-800 px-2 text-sm text-white hidden shadow-lg overflow-y-auto max-h-96 transition-opacity duration-200   group-hover:block"
                       >
                         <ul class="list-disc list-inside">
                           {% for station in electrified_stations %}
@@ -237,7 +237,7 @@ hx-trigger='load'
                     <div class="relative group">
                       <img src="{% static 'ebustoolbox/eye_icon.svg' %}" style="height: 1.5rem">
                       <div
-                        class="absolute left-0 top-full z-10 mt-2 w-64 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 pointer-events-none group-hover:opacity-100"
+                        class="absolute left-0 top-full z-10  w-64 rounded-md bg-slate-800 px-2 text-sm text-white hidden shadow-lg overflow-y-auto max-h-96 transition-opacity duration-200   group-hover:block"
                       >
                         <ul class="list-disc list-inside">
                           {% for station in automatic_stations %}
@@ -257,7 +257,7 @@ hx-trigger='load'
                      <div class="relative group">
                       <img src="{% static 'ebustoolbox/eye_icon.svg' %}" style="height: 1.5rem">
                       <div
-                        class="absolute left-0 top-full z-10 mt-2 w-64 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 pointer-events-none group-hover:opacity-100"
+                        class="absolute left-0 top-full z-10  w-64 rounded-md bg-slate-800 px-2 text-sm text-white hidden shadow-lg overflow-y-auto max-h-96 transition-opacity duration-200   group-hover:block"
                       >
                         <ul class="list-disc list-inside">
                           {% for station in excluded_stations %}
@@ -487,6 +487,7 @@ hx-trigger='load'
         hx-get='.'
         hx-trigger='startSim from:body, success from:body, notRunning from:body'
         hx-swap='innerHTML'
+        hx-on::after-settle='window.scrollTo({ top: 0, behavior: "smooth" });'
         >
   {% include "ebustoolbox/partials/simulate_scenario_button.html" %}
       </div>
