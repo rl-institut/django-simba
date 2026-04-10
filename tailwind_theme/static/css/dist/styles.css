@@ -1381,6 +1381,10 @@ select {
   max-height: 45rem;
 }
 
+.max-h-96 {
+  max-height: 24rem;
+}
+
 .min-h-full {
   min-height: 100%;
 }
@@ -3768,6 +3772,10 @@ progress::-moz-progress-bar {
 
 .group:hover .group-hover\:visible {
   visibility: visible;
+}
+
+.group:hover .group-hover\:block {
+  display: block;
 }
 
 .group:hover .group-hover\:translate-x-1 {
