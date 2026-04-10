@@ -1021,10 +1021,6 @@ select {
   top: 100%;
 }
 
-.bottom-20 {
-  bottom: 5rem;
-}
-
 .isolate {
   isolation: isolate;
 }
@@ -1328,10 +1324,6 @@ select {
   height: 1.5rem;
 }
 
-.h-60 {
-  height: 15rem;
-}
-
 .h-8 {
   height: 2rem;
 }
@@ -1387,10 +1379,6 @@ select {
 
 .max-h-\[45rem\] {
   max-height: 45rem;
-}
-
-.max-h-56 {
-  max-height: 14rem;
 }
 
 .max-h-96 {
@@ -2081,10 +2069,6 @@ select {
   overflow-y: visible;
 }
 
-.overflow-y-scroll {
-  overflow-y: scroll;
-}
-
 .truncate {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2382,11 +2366,6 @@ select {
 .bg-yellow-50 {
   --tw-bg-opacity: 1;
   background-color: rgb(254 252 232 / var(--tw-bg-opacity, 1));
-}
-
-.bg-red-500 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(239 68 68 / var(--tw-bg-opacity, 1));
 }
 
 .bg-gradient-to-b {
