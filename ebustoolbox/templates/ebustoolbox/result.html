@@ -655,6 +655,53 @@
               <p class="text-center text-lg font-bold text-slate-800 pb-4">
                 {% translate 'Depot Ladeleistung und Belegung' %}
               </p>
+              <div
+                class="flex flex-wrap justify-center items-center gap-3 p-4  "
+                x-data="{ selected: null }"
+                  role="tablist"
+                  aria-label='{% translate "Depot Auswahl" %}'
+              >
+                <button
+                  x-data='{loading: false}'
+                  role="tab"
+                  type="button"
+                  :aria-selected="$el === selected"
+                  :tabindex="$el === selected ? 0 : -1"
+                  x-init="selected = $el"
+                  @click="loading=true;fetchAndRenderSingleDepot(); selected = $el;"
+                  @all-depots-loaded.document='loading=false'
+                  class="px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-200"
+                  :class="{
+                     'bg-emerald-400 text-white shadow-md scale-105': $el === selected,
+                     'bg-white text-slate-700 hover:bg-emerald-200':  $el != selected,
+                     '!bg-slate-300': loading,
+                      }"
+                >
+                <p class='' :class="loading ? 'loader' : ''"></p>
+                  Alle Depots
+                </button>
+
+                {% for depot in depots %}
+                <button
+                  x-data='{loading: false}'
+                  role="tab"
+                  type="button"
+                  :aria-selected="$el === selected"
+                  :tabindex="$el === selected ? 0 : -1"
+                  @click="loading=true;fetchAndRenderSingleDepot({{ depot.id }}); selected = $el;"
+                  @depot-{{depot.id}}-loaded.document='loading=false'
+                  class="px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-200"
+              :class="{
+                     'bg-emerald-400 text-white shadow-md scale-105': $el === selected,
+                     'bg-white text-slate-700 hover:bg-emerald-200':  $el != selected,
+                     '!bg-slate-300': loading,
+                      }"
+                >
+              <p class='' :class="loading ? 'loader' : ''"></p>
+                  {{ depot.name }}
+                </button>
+                {% endfor %}
+              </div>
               <div class="flex mt-4">
                 <div class="flex-1 px-2 pb-4 text-center border-r border-slate-300">
                   <p class="text-slate-800">
@@ -985,8 +1032,12 @@
             chart.setOption(options);
         });
     }
-  function fetchAndRenderDepotChart(chartName, chartId, titleText) {
-        return fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
+  function fetchAndRenderDepotChart(chartName, chartId, titleText, depot_id) {
+        var data_fetch = ()=> fetch(`/simba/result/${taskIdAvg}/${chartName}/`);
+    if (depot_id!=null){
+      data_fetch = ()=>fetch(`/simba/result/${taskIdAvg}/${chartName}/${depot_id}/`);
+    }
+        return data_fetch()
             .then(response => response.json())
             .then(responseData => {
                 const rawData = responseData.data;
@@ -1104,11 +1155,14 @@
                         }
                     ]
                 };
-
                 chart.setOption(options);
             })
             .catch(error => {
                 console.error('Error fetching or rendering chart:', error);
+            })
+            .finally(() => {
+            if (depot_id) document.dispatchEvent(new CustomEvent('depot-'+depot_id+'-loaded'));
+            else document.dispatchEvent(new CustomEvent('all-depots-loaded'));
             });
     }
 
@@ -2382,6 +2436,9 @@
 
     // Ensure the DOM is fully loaded before running
     document.addEventListener("DOMContentLoaded", function() {
+
+      fetchAndRenderSingleDepot = (depot_id)=>{
+        fetchAndRenderDepotChart("depot_power", "DepotlineChart", "", depot_id);};
 
         const el = document.getElementById("dataFetchedFinished");
       if (taskIdAvg) {
