@@ -3628,7 +3628,7 @@ def consolidate_socs(scenario: Scenario) -> None:
         f"{max(summed_difference.values()):.3e}"
     )
     logger.debug(summed_difference)
-    Event.objects.bulk_update(events, fields=["soc_end", "soc_start", "timeseries"])
+    Event.objects.fast_update(events, fields=["soc_end", "soc_start", "timeseries"])
 
 
 def create_consolidate_log(
