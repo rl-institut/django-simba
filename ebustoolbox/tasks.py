@@ -1008,6 +1008,12 @@ def run_and_merge_scenarios(
     default_simulation_task_id: UUIDType,
     sizing_scenario_task_id: UUIDType,
 ):
+
+    import cProfile
+
+    profiler = cProfile.Profile()
+    profiler.enable()
+
     progress, created = Progress.objects.get_or_create(task_id=self.request.id)
     progress.reset()
     # We expect 10 steps of work, with 5 steps per simulation.
@@ -1107,6 +1113,12 @@ def run_and_merge_scenarios(
     scenario = Scenario.objects.get(id=mutation_id)
     scenario.finished = timezone.now()
     scenario.save()
+
+    profiler.disable()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{timestamp}_{scenario.id}.out"
+
+    profiler.dump_stats(filename)
 
 
 def swap_consumption_w_max_consumption(scenario: Scenario) -> None:
@@ -1531,11 +1543,14 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
     # event soc should always be defined / not null
     assert all([soc is not None for soc in soc_ts])
     if len(soc_ts) < 2:
+        if not isinstance(event.timeseries, dict):
+            event.timeseries = dict()
         event.timeseries["soc"] = [event.soc_start, event.soc_end]
         event.timeseries["time"] = [event.time_start.isoformat(), event.time_end.isoformat()]
         return
 
-    # start and end soc must remain the same
+    # start and end soc must remain the same.
+    # We should rather keep the consolidated values
     if not (abs(soc_ts[0] - event.soc_start) < EPS):
         logger.error(
             f"S.ID:{event.scenario.id}:Depot Charging Simulation diverged\n"
@@ -1562,9 +1577,11 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
     # soc and time lists must have same length
     assert len(soc_ts) == len(event.timeseries["time"])
     assert event.timeseries["time"][0] == event.time_start.isoformat()
-    # handle floating point errors
+
+    # handle floating point errors, there are cases above 1 milliseconds, so lets just make it a second
+    # to never worry about it
     assert abs(datetime.fromisoformat(event.timeseries["time"][-1]) - event.time_end) <= timedelta(
-        milliseconds=1
+        seconds=1
     )
     # remove the floating point error
     event.timeseries["time"][-1] = event.time_end.isoformat()
@@ -1592,6 +1609,36 @@ def get_tail_index(arr: list) -> int:
         if x != arr[-1]:
             return i
     return len(arr)
+
+
+def loadState():
+    with open("saveState.pickle", "rb") as f:
+        state = pickle.load(f)
+    globals().update(state["globals"])
+    globals().update(state["locals"])
+    return state["locals"]
+
+
+def saveState(locals: dict):
+    SKIP_TYPES = (type(os),)  # modules
+
+    def is_picklable_data(key, value):
+        if key.startswith("__"):  # skip dunder metadata
+            return False
+        if isinstance(value, (type(os),)):
+            return False
+        try:
+            pickle.dumps(value)
+            return True
+        except:
+            return False
+
+    pickle_locals = {k: v for k, v in locals.items() if is_picklable_data(k, v)}
+    pickle_globals = {k: v for k, v in globals().items() if is_picklable_data(k, v)}
+
+    state = {"locals": pickle_locals, "globals": pickle_globals}
+    with open("saveState.pickle", "wb") as f:
+        pickle.dump(state, f)
 
 
 def apply_depot_strategy(scenario: Scenario, strategy: str, split_vehicles=False) -> None:
@@ -1658,6 +1705,7 @@ def apply_depot_strategy(scenario: Scenario, strategy: str, split_vehicles=False
             # adjust event start/end timestamps
             event.time_end = ts_stop_charging
             next_event.time_start = ts_stop_charging
+            # saved state to saveState.pickle
             replace_event_timeseries(event, socs_charging)
             replace_event_timeseries(next_event, socs_standby + socs_buffer)
             event_list.append(next_event)
@@ -2075,7 +2123,7 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
         # NOTE: Consolidate results with a given strategy. EPS of 1% needed.
         # Balanced strategy or expose from simba_options? TODO: Discuss
         # Greedy strategy for easier search of differences between eflips/simba
-        apply_depot_strategy(db_scenario, "greedy")
+        apply_depot_strategy(db_scenario, "balanced", split_vehicles=False)
 
         progress.current_work += 1
         progress.save()
@@ -3476,7 +3524,6 @@ def consolidate_socs(scenario: Scenario) -> None:
     running_delta_soc = 0
     summed_difference = {}
     for i, event in enumerate(events):
-        event: Event
         assert event.vehicle is not None, "Events must have a vehicle"
         # New vehicle detected. First event is used to initialize values
         if event.vehicle != vehicle:
@@ -3512,10 +3559,35 @@ def consolidate_socs(scenario: Scenario) -> None:
         create_consolidate_log(event, next_event, prev_event, running_delta_soc, pre_fix_delta)
         # NOTE: Small deltas of SOC might occur anywhere
         # Bigger delta_socs 'should' only happen at the interface DRIVING - DEPOT
+        # or also DEPOT - DRIVING
+
+        # Example: Simba calculated Socs during drive for two rotations
+        # R1: 1, 0.4, 0.6, 0.5         R2: 1.0, 0.4, 0.6, 0.5            R3: 1.0, 0.9, 0.8, 0.7
+        # eflips gives them the same vehicle and assumes "constant" energy curve
+        # R1: 1, 0.4, 0.6, 0.5 D1 0.9  R2: 0.9, 0.3, 0.5, 0.4   D2 0.45  R3: .45, 0.35, 0.25, 0.15
+        # In the following simba simulation the energy consumption but especially the added charge are
+        # recalculated. These lead to added charge
+        # R1: 1, 0.4, 0.6, 0.5 D1 0.9  R2: 0.9, 0.3, 0.58, 0.48 D2 0.45  R3: 0.48, 0.38, 0.28, 0.18
+        # while previously the d2 event had a start soc of 0.4 it now diverges from the previous events
+        # end soc which is now 0.48
+        # in some cases this soc lift during the previous rotation can lead to another gap
+        # in the following rotation R3 the soc from the first event diverges from the previous depot
+        # event (0.45 end soc vs 0.48 end soc with an implied even higher start soc)
+        # this is due to how simba/SpiceEV used the instructions from eflips.
+        # internally in SpiceEV the rotations are simulated sequentially with the start socs of the rotations
+        # being defined as the target socs of the previous charge. In this case the simulation would
+        # have to reduce the soc from 0.48 -> entering the depot to 0.45 (eflips calculated start value)
+        # SpiceEV handles this by simply not adding charge, but will not reduce it
         if abs(pre_fix_delta) > EPS:
-            if (
-                prev_event.event_type not in driving_event_types
-                or event.event_type not in depot_event_types
+            if not (
+                (
+                    prev_event.event_type in driving_event_types
+                    and event.event_type in depot_event_types
+                )
+                or (
+                    prev_event.event_type in depot_event_types
+                    and event.event_type in driving_event_types
+                )
             ):
                 raise AssertionError(
                     f"Big SoC Jump not at interface of SimBA/eFlips {prev_event=}, {event=}"
