@@ -2047,6 +2047,9 @@ def import_scenario_tree(request):
 
         importer.generate_instances()
         for scenario in importer.object_data["Scenario"]:
+            scenario: Scenario
+            if scenario.scenario_type == EnumScenarioType.PUBLIC_DATA:
+                return HttpResponseForbidden("Public Data Scenarios can not be imported")
             if Scenario.objects.filter(task_id=scenario.task_id).exists():
                 new_task_id = get_unique_task_id()
                 logger.warning(
