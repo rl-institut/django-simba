@@ -399,6 +399,19 @@ class VehicleType(models.Model):
 
     name = models.TextField(null=False, blank=False)
     name_short = models.TextField(null=True, blank=True)
+
+    class EnergySource(models.TextChoices):
+        BATTERY_ELECTRIC = "BATTERY_ELECTRIC"
+        DIESEL = "DIESEL"
+        HYDROGEN = "HYDROGEN"
+
+    energy_source = models.CharField(
+        max_length=16,
+        choices=EnergySource.choices,
+        default=EnergySource.BATTERY_ELECTRIC,
+        db_default=EnergySource.BATTERY_ELECTRIC,
+    )
+
     opportunity_charging_capable = models.BooleanField()
     battery_capacity = models.FloatField(
         validators=[MinValueValidator(0), MaxValueValidator(1000000)]
