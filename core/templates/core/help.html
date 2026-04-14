@@ -600,7 +600,6 @@
           Hierbei werden nur Stationen untersucht, die als elektrifizerbar markiert wurden. Dies geschieht, indem auf der Seite "Stationen" die Station mit "automatisch" markiert wird.
         Die Stationsoptimierung fügt sukzessive Stationen eine Elektrifizierung bei, bis ein voll elektrifizierter Zustand erreicht ist. Wenn ein Umlauf selbst bei vollständiger Elektrifizierung nicht fahrbar wird, so werden für diesen Umlauf keine Stationen elektrifiziert. Die Elektrifizierung von Stationen passiert basierend auf einer Optimierungsheuristik. Stationen, die als besonders effektiv erkannt werden, werden zuerst elektrifiziert, weniger effektive Stationen werden danach elektrifiziert. Sobald Fahrbarkeit erreicht ist, wird die Optimierung abgebrochen.
         Detaillierte Informationen zur Stationsoptimierung finden sie <a class="text-blue-600 hover:underline" href="https://github.com/rl-institut/SimBA">hier</a>.
-<<<<<<< HEAD
           {% endblocktrans %}
         </p>
           <a href="#import_export" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Import/Export' %}</a>
@@ -646,6 +645,24 @@
           <li class="list-inside list-disc py-1 text-slate-800">Passen Sie die Eigenschaften der verschiedenen Komponenten in der exportierten .json Datei an. Hierzu sind die Daten im Szenario vom typ "MUTATION" entscheidend. Sämtliche Einstellungen die Sie in WeBus vornehmen, werden an diesem Szenario getätigt."</li>
           <li class="list-inside list-disc py-1 text-slate-800">Importieren Sie die angepasste Datei. Sie können diese nun simulieren. Da der Eingabefluss nicht für den Expertenmodus ausgelegt ist, sollten Sie direkt zur Zusammenfassung/Summary springen um hier die Simulation zu starten.</li>
           </ol>
+          {% endblocktrans %}
+                  </section>
+
+                <section>
+                  <a id='faq' href="#faq" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'FAQ' %}</a>
+                  <p class="text-base pb-4 leading-relaxed text-slate-500">
+                    {% blocktrans %}
+          Im Folgenden erhalten Sie antworten auf häufig gestellte Fragen.
+        <h4 class='text-2xl font-semibold underline pt-4 pb-2'>Warum dauert die Simulation so lange?</h4>
+        <p>
+          Wenn bei Ihnen die Simulation sehr lange dauert kann das mehrere Gründe haben. Am wahrscheinlichsten ist, dass Sie einen komplexen Umlaufplan simulieren der mehrere Tage oder sogar Wochen umfasst. Die Stationsoptimierung und Depotplanung für solche Systeme ist aufwendig und kann längere Zeit in Anspruch nehmen. Wenn Sie schneller Ergebnisse erhalten möchten empfehlen wir Ihnen folgendes Vorgehen:
+          <ol class='list-disc'>
+          <li class="list-inside list-disc py-1 text-slate-800" >Reduzieren Sie die zu simulierende Zeitspanne auf 1 oder 2 Tage, die repräsentativ für das System sind. Eine Eingabe mit sich wiederholenden Umläufen, führt zu keiner Verbesserung der Ergebnisse, verlangsamt die Simulation jedoch drastisch. </li>
+
+          <li class="list-inside list-disc py-1 text-slate-800">Nutzen Sie realistische Parameter für Batteriekapazität, Ladeleistungen und Verbräuche.</li>
+          <li class="list-inside list-disc py-1 text-slate-800">Simulieren Sie Umläufe als zusammengefasste Fahrten von Endhaltestelle zu Endhaltestelle ohne Zwischenhalte. Dies beschleunigt, die Verbrauchsberechnung und Stationsoptimierung. Wenn Sie die Verbrauchswerte der Fahrzeuge nicht angeben, kann dies den geschätzen Verbrauch der Fahrzeuge leicht verändern.</li>
+        </ol>
+
           {% endblocktrans %}
                   </section>
                 </div>
