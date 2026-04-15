@@ -3445,7 +3445,7 @@ def consolidate_socs(scenario: Scenario) -> None:
     This shift would be positive and would not create negative socs.
     """
     logger.info(50 * "#" + "\n Consolidation")
-    EPS = 0.005
+    EPS = 0.005  # warn above this threshold; raise above this if not at a sim boundary
     events = list(Event.objects.filter(scenario=scenario).order_by("vehicle", "time_start"))
 
     # the first event type from eflips could be one of many
@@ -3505,13 +3505,37 @@ def consolidate_socs(scenario: Scenario) -> None:
         create_consolidate_log(event, next_event, prev_event, running_delta_soc, pre_fix_delta)
         # NOTE: Small deltas of SOC might occur anywhere
         # Bigger delta_socs 'should' only happen at the interface DRIVING - DEPOT
+        # or at the DEPOT - DRIVING interface (eFlips departure SoC vs SpiceEV initial SoC).
+        # Both directions are valid interface boundaries between independent simulations.
         if abs(pre_fix_delta) > EPS:
-            if (
-                prev_event.event_type not in driving_event_types
-                or event.event_type not in depot_event_types
-            ):
+            vt = event.vehicle_type
+            bat_cap = vt.battery_capacity if vt else None
+            logger.warning(
+                f"consolidate_socs: SoC mismatch "
+                f"prev={prev_event.event_type} id={prev_event.id} "
+                f"soc_end={prev_event.soc_end:.4f} "
+                f"→ cur={event.event_type} id={event.id} "
+                f"soc_start={event.soc_start:.4f} "
+                f"pre_fix_delta={pre_fix_delta:+.4f} "
+                f"battery_cap={bat_cap}kWh"
+            )
+            # At any simulation boundary (DRIVING↔DEPOT) we warn but never raise:
+            # SpiceEV and eFlips use different time-step granularities and will not
+            # agree exactly on the handoff SoC. Outside a boundary, even a small
+            # jump is a bug — raise.
+            at_interface = (prev_event.event_type in driving_event_types) != (
+                event.event_type in driving_event_types
+            )
+            if not at_interface:
                 raise AssertionError(
-                    f"Big SoC Jump not at interface of SimBA/eFlips {prev_event=}, {event=}"
+                    f"Big SoC Jump not at interface of SimBA/eFlips "
+                    f"prev={prev_event.event_type} id={prev_event.id} "
+                    f"soc_end={prev_event.soc_end:.4f} "
+                    f"→ cur={event.event_type} id={event.id} "
+                    f"soc_start={event.soc_start:.4f} "
+                    f"pre_fix_delta={pre_fix_delta:+.4f} "
+                    f"battery_cap={bat_cap}kWh "
+                    f"({prev_event=}, {event=})"
                 )
 
         # NOTE: Charging depot events are only aligned at their start value.
