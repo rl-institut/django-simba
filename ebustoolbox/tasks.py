@@ -2228,9 +2228,20 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
             .last()
         )
 
-        vehicle_assigns.append(
-            {"rot": rot.id, "v_id": vehicle.to_simba_name(), "soc": prev_event.soc_end}
-        )
+        if prev_event is None:
+            # No depot/standby event precedes this rotation's first trip — the
+            # vehicle's earliest persisted event is the rotation itself (cold-start
+            # case from the eFLIPS steady-state window). Per project convention,
+            # default the start SoC to 1.0.
+            soc = 1.0
+            logger.warning(
+                f"S.ID:{scenario.id}:No prior event for rot={rot.id}/{rot.name}, "
+                f"vehicle={vehicle.to_simba_name()}; defaulting start SoC to 1.0"
+            )
+        else:
+            soc = prev_event.soc_end
+
+        vehicle_assigns.append({"rot": rot.id, "v_id": vehicle.to_simba_name(), "soc": soc})
     return vehicle_assigns
 
 
