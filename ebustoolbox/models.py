@@ -1810,6 +1810,22 @@ class Event(models.Model):
         out += f"at start time {self.time_start.isoformat()}"
         return out
 
+    def get_prev_event(self):
+        vid = self.vehicle_id
+        return (
+            Event.objects.filter(vehicle_id=vid, time_start__lt=self.time_start)
+            .order_by("time_start")
+            .last()
+        )
+
+    def get_next_event(self):
+        vid = self.vehicle_id
+        return (
+            Event.objects.filter(vehicle_id=vid, time_start__gt=self.time_start)
+            .order_by("time_start")
+            .first()
+        )
+
 
 class Depot(models.Model):
     """

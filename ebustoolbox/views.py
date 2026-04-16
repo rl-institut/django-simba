@@ -1548,6 +1548,24 @@ def merge_and_run(request: HttpRequest, task_id: str):
     logger.info(f"S.ID:{scenario.id}:Deleting failed previous child-scenarios")
     logger.info(str(Scenario.objects.filter(parent=scenario).delete()))
 
+    # delete old notifications
+    logger.info(f"S.ID:{scenario.id}:Deleting failed previous Simulation Notifications")
+    logger.info(
+        str(
+            Notification.objects.filter(
+                scenario=scenario,
+                notification_type__in=[
+                    EnumNotificationType.STATION_OPTIMIZATION_SKIPPED,
+                    EnumNotificationType.UNSTABLE_DEPOT_WARNING,
+                    EnumNotificationType.DELAYED_TRIP_WARNING,
+                    EnumNotificationType.UNEXPECTED_ERROR,
+                    EnumNotificationType.ADDED_ELECTRIFICATION,
+                    EnumNotificationType.LOW_SOC_BLOCKS,
+                ],
+            ).delete()
+        )
+    )
+
     if not request.user.is_superuser:
         # Delete failed scenarios
         if simulation_progress.filter(running=True).exists():

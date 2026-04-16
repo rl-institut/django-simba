@@ -1313,7 +1313,7 @@ def create_spiceev_scenario_dict(scenario: Scenario, split_vehicles=False) -> di
                 soc = event["update"]["desired_soc"]
                 vehicles[vid] = {
                     "connected_charging_station": None,
-                    "soc": soc,
+                    "soc": event["arrival_soc"],
                     "vehicle_type": vehicles[parent_vid]["vehicle_type"],
                 }
 
@@ -1373,6 +1373,9 @@ def create_spiceev_scenario_dict(scenario: Scenario, split_vehicles=False) -> di
     n_intervals = -int((start_simulation - stop_simulation) // timedelta(minutes=args.interval))
     # and one more timestep, since vehicle soc are taken at begin of each timestep
     n_intervals += 1
+    if split_vehicles:
+        for vehicle in scenario.vehicle_set.all():
+            del vehicles[vehicle.to_simba_name()]
 
     return {
         "scenario": {
@@ -1456,16 +1459,20 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False, split_vehicles=F
             subloc_no=event.subloc_no,  # vehicle must not have moved
             time_start=event.time_end,
         ).first()
+
         # create arrival event
         arrival_event = {
             "signal_time": scenario_start_time.isoformat(),
             "start_time": event.time_start.isoformat(),
             "vehicle_id": vid,
             "event_type": "arrival",
+            "arrival_soc": event.soc_start,
             "update": {
                 "connected_charging_station": event.station.to_simba_name(),
                 "estimated_time_of_departure": None,  # updated later
-                "soc_delta": event.soc_start - vehicle_soc[event.vehicle_id],
+                "soc_delta": (
+                    0 if split_vehicles else event.soc_start - vehicle_soc[event.vehicle_id]
+                ),
                 "desired_soc": event.soc_end,
             },
         }
@@ -1540,8 +1547,6 @@ def abbreviate_list(long_list: list, tail_elements: int = 2, delimiter: str = ",
 def replace_event_timeseries(event: Event, soc_ts: list) -> None:
     # replace Event soc timeseries with arbitrary list
     # ### sanity checks ### #
-    # event soc should always be defined / not null
-    assert all([soc is not None for soc in soc_ts])
     if len(soc_ts) < 2:
         if not isinstance(event.timeseries, dict):
             event.timeseries = dict()
@@ -1549,6 +1554,14 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
         event.timeseries["time"] = [event.time_start.isoformat(), event.time_end.isoformat()]
         return
 
+    # event soc should always be defined / not null
+    # this is only the case when the event has at least 1 timestep -> Duration >=1 minute
+    # these cases already returned early above with using the event.soc_ values directly for the
+    # timeseries
+    assert all([soc is not None for soc in soc_ts])
+
+    # NOTE: rather have a delta between timeseries and event.soc_end then have divering
+    # event.soc_end != next_event.soc_start
     # start and end soc must remain the same.
     # We should rather keep the consolidated values
     if not (abs(soc_ts[0] - event.soc_start) < EPS):
@@ -1557,19 +1570,21 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
             f"Delta of {abs(soc_ts[0] - event.soc_start)} at {event}.\n"
             f"{event.soc_start} Start Soc\n Timeseries:\n{abbreviate_list(soc_ts, fmt='.2e')}"
         )
-        event.soc_start = soc_ts[0]
-        Event.objects.bulk_update([event], fields=["soc_start"])
+        # event.soc_start = soc_ts[0]
+        # Event.objects.bulk_update([event], fields=["soc_start"])
     if not (abs(soc_ts[-1] - event.soc_end) < EPS):
         logger.error(
             f"S.ID:{event.scenario.id}:Depot Charging Simulation diverged\n"
             f"Delta of {abs(soc_ts[-1] - event.soc_end)} at {event}.\n"
             f"{event.soc_end} END SOC\n Timeseries:\n{abbreviate_list(soc_ts, fmt='.2e')}"
         )
-        event.soc_end = soc_ts[-1]
-        Event.objects.bulk_update([event], fields=["soc_end"])
+        # event.soc_end = soc_ts[-1]
+        # Event.objects.bulk_update([event], fields=["soc_end"])
 
     # re-create timestamps series
     interval = (event.time_end - event.time_start) / (len(soc_ts) - 1)
+    assert interval > timedelta(seconds=0), f"{event.id=}"
+    assert event.time_start < event.time_end, f"{event.id}"
     event.timeseries = {
         "time": [(event.time_start + i * interval).isoformat() for i in range(len(soc_ts))]
     }
@@ -1684,6 +1699,8 @@ def apply_depot_strategy(scenario: Scenario, strategy: str, split_vehicles=False
             for i in time_range
         ]
         event_list.append(event)
+        if any(s is None for s in socs):
+            print("empty socs")
         if next_event is None:
             # no standby: just replace SoC timeseries
             replace_event_timeseries(event, socs)
@@ -2099,6 +2116,20 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
         finally:
             Notification.objects.bulk_create(notifications)
 
+        def assert_mono(e):
+            last = None
+            if e.timeseries is None:
+                return
+            for t in e.timeseries["time"]:
+                if last:
+                    if not datetime.fromisoformat(last) <= datetime.fromisoformat(t):
+                        print(f"not mono for {e.id} with {last} and {t}")
+                last = t
+
+        print("after eflips")
+        for e in db_scenario.event_set.all():
+            assert_mono(e)
+
         progress.current_work += 1
         progress.save()
         eflips_assignment = get_assigned_vehicles(task_id)
@@ -2118,12 +2149,23 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
         # higher charging rates at lower socs
         simba_scenario = run_simba(schedule, args, db_scenario, mode="sim", scenario=None)
 
+        print("after simba")
+        for e in db_scenario.event_set.all():
+            assert_mono(e)
+
         consolidate_socs(db_scenario)
+        print("after consolidate")
+        for e in db_scenario.event_set.all():
+            assert_mono(e)
 
         # NOTE: Consolidate results with a given strategy. EPS of 1% needed.
         # Balanced strategy or expose from simba_options? TODO: Discuss
         # Greedy strategy for easier search of differences between eflips/simba
-        apply_depot_strategy(db_scenario, "balanced", split_vehicles=False)
+        apply_depot_strategy(db_scenario, "balanced", split_vehicles=True)
+
+        print("after depot")
+        for e in db_scenario.event_set.all():
+            assert_mono(e)
 
         progress.current_work += 1
         progress.save()
