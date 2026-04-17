@@ -2085,7 +2085,7 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
         progress.current_work += 1
         progress.status = _("Berechne TCO")
         progress.save()
-        tco_result = eflips_calculate_tco(db_scenario)  # on error: all values 1
+        tco_result = eflips_calculate_tco(db_scenario)
         db_scenario.tco_result = tco_result
         db_scenario.save(update_fields=["tco_result"])
 
@@ -2405,22 +2405,45 @@ def run_eflips(scenario, delete_existing_depot, progress) -> None:
 
 def eflips_calculate_tco(scenario: Scenario):
     db_url = create_db_url()
-    # get vehicle type energy consumptions
+
+    # Translate scenario.tco_parameters from the django-simba flat schema to the
+    # nested dict schema expected by eflips-tco >= feature/revenue-km.
+    # The UI and defaults remain unchanged; we convert on the fly here.
+    p = scenario.tco_parameters or {}
+    p["fuel_cost"] = {
+        "diesel": p.get("fuel_cost") if isinstance(p.get("fuel_cost"), float) else 1.5,
+        "electricity": p.get("energy_cost", 0.18),
+    }
+    p["vehicle_maint_cost"] = {
+        "diesel": p.get("maint_cost_diesel", 0.14),
+        "electricity": p.get("maint_cost", 0.07),
+    }
+    p["cost_escalation_rate"] = {
+        "general": p.get("pef_general", 0.02),
+        "staff": p.get("pef_wages", 0.02),
+        "diesel": p.get("pef_fuel", 0.02),
+        "electricity": p.get("pef_energy", 0.02),
+        "insurance": p.get("pef_insurance", 0.02),
+    }
+    p["infra_maint_cost"] = p.get("maint_infr_cost", 1000.0)
+    scenario.tco_parameters = p
+    scenario.save(update_fields=["tco_parameters"])
+
+    # Set per-vehicle-type electricity consumption from the actual simulated events.
+    # eflips-tco >= feature/revenue-km reads "average_electricity_consumption".
     for vt in scenario.vehicletype_set.all():
         if vt.consumption is not None:
-            # consumption set directly
-            vt.tco_parameters["const_energy_consumption"] = vt.consumption
+            consumption_kwh_per_km = vt.consumption
         else:
-            # vehicle type consumption not set: calculate from driving events
             energy_kwh = sum(
-                [
-                    e.get_energy_delta()
-                    for e in Event.objects.filter(vehicle_type=vt, event_type="DRIVING")
-                ]
+                e.get_energy_delta()
+                for e in Event.objects.filter(vehicle_type=vt, event_type="DRIVING")
             )
             distance = vt.get_total_distance_km
-            vt.tco_parameters["const_energy_consumption"] = -energy_kwh / distance  # [kWh / km]
+            consumption_kwh_per_km = -energy_kwh / distance  # [kWh / km]
+        vt.tco_parameters["average_electricity_consumption"] = consumption_kwh_per_km
         vt.save(update_fields=["tco_parameters"])
+
     return calculate_tco(scenario.id, db_url)
 
 
