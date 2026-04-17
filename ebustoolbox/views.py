@@ -2062,13 +2062,57 @@ def import_scenario_tree(request):
         scenario_ids = [scenario.id for scenario in importer.object_data["Scenario"]]
         Scenario.objects.filter(id__in=scenario_ids).update(manager=request.user)
 
+        # Old JSON exports may have null TCO cost values. Repair and warn so the user
+        # knows to review them in the Costs view.
+        warnings = []
+        for vt in VehicleType.objects.filter(scenario_id__in=scenario_ids):
+            p = vt.tco_parameters or {}
+            changed = False
+            if p.get("procurement_cost") is None:
+                p["procurement_cost"] = 550_000
+                changed = True
+            if p.get("procurement_cost_diesel") is None:
+                p["procurement_cost_diesel"] = 250_000
+                changed = True
+            if p.get("useful_life") is None:
+                p["useful_life"] = 14
+                changed = True
+            if p.get("cost_escalation") is None:
+                p["cost_escalation"] = 0.02
+                changed = True
+            if changed:
+                vt.tco_parameters = p
+                vt.save(update_fields=["tco_parameters"])
+                msg = f"VehicleType '{vt.name}' had missing TCO parameters — filled with defaults. Review in the Costs view."
+                logger.warning(msg)
+                warnings.append(msg)
+        for station in Station.objects.filter(scenario_id__in=scenario_ids):
+            p = station.tco_parameters or {}
+            changed = False
+            if p.get("procurement_cost") is None:
+                p["procurement_cost"] = 0
+                changed = True
+            if p.get("useful_life") is None:
+                p["useful_life"] = 20
+                changed = True
+            if p.get("cost_escalation") is None:
+                p["cost_escalation"] = 0.02
+                changed = True
+            if changed:
+                station.tco_parameters = p
+                station.save(update_fields=["tco_parameters"])
+                msg = f"Station '{station.name}' had missing TCO parameters — filled with defaults. Review in the Costs view."
+                logger.warning(msg)
+                warnings.append(msg)
+
         core.deepcopy.reset_postgres_auto_increments([Scenario._meta.app_label])
-        return HttpResponse(
-            _(
-                f"Szenarios wurden erfolgreich importiert mit folgenden ids <br>"
-                f"{'<br>'.join([s.task_id for s in importer.object_data['Scenario']])}. "
-            )
+        response_text = (
+            f"Szenarios wurden erfolgreich importiert mit folgenden ids <br>"
+            f"{'<br>'.join([s.task_id for s in importer.object_data['Scenario']])}. "
         )
+        if warnings:
+            response_text += "<br><br><b>Warnung: Fehlende TCO-Daten mit Standardwerten aufgefüllt:</b><br>" + "<br>".join(warnings)
+        return HttpResponse(_(response_text))
     return HttpResponseBadRequest(_("Use POST or GET"))
 
 
