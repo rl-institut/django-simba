@@ -1243,7 +1243,7 @@ class DepotsView(ScenarioMixIn, TemplateView):
                         scenario=scenario,
                         station=station,
                         default_power=150,
-                        standard_block_length=6,
+                        standard_block_length=8,
                     )
                 )
             DepotConfigurationWish.objects.bulk_create(depot_configs)
