@@ -9,6 +9,7 @@
           <img class="h-6 w-auto" src="{% static 'core/images/logo/webus_green.svg' %}" alt="WeBus">
         </a>
       </div>
+
       <div class="hidden sm:flex items-center space-x-6">
         <a href="{% url 'simba:trips' %}" class="px-4 py-1 border-2 border-emerald-400 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-emerald-400 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-400 active:bg-emerald-500 transition-all duration-300">
           {% translate '+ Szenario erstellen' %}
@@ -20,6 +21,15 @@
         {% endif %}
         <a href="{% url 'core:help' %}" class="text-sm text-slate-500 hover:text-emerald-500 transition-colors">{% translate 'Hilfe' %}</a>
         <a href="#" class="text-sm text-slate-500 hover:text-emerald-500 transition-colors">Über das Projekt</a>
+
+        <form action="{% url 'core:set_language' %}" method="post">{% csrf_token %}
+          {% get_current_language as LANGUAGE_CODE %}
+          <select name="language" class="language" onchange="this.form.submit()">
+            <option value="de"{% if LANGUAGE_CODE == "de" %} selected{% endif %}>🇩🇪️</option>
+            <option value="en"{% if LANGUAGE_CODE == "en" %} selected{% endif %}>🇬🇧️️</option>
+          </select>
+        </form>
+
         {% if user.is_authenticated %}
           <form action="{% url 'core:logout' %}" method="post">
             {% csrf_token %}
@@ -59,6 +69,13 @@
   <!-- Mobile Menu -->
   <div id="mobile-menu" class="fixed inset-0 hidden z-20 bg-white">
     <div class="flex flex-col items-center justify-center h-full space-y-8">
+      <form action="{% url 'core:set_language' %}" method="post">{% csrf_token %}
+        {% get_current_language as LANGUAGE_CODE %}
+        <select name="language" class="language" onchange="this.form.submit()">
+          <option value="de"{% if LANGUAGE_CODE == "de" %} selected{% endif %}>🇩🇪️</option>
+          <option value="en"{% if LANGUAGE_CODE == "en" %} selected{% endif %}>🇬🇧️️</option>
+        </select>
+      </form>
       {% if user.is_authenticated %}
       <button class="px-6 py-2 border-2 border-emerald-400 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-emerald-400 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-400 active:bg-emerald-500 transition-all duration-300">
         {% translate '+ Szenario erstellen' %}
