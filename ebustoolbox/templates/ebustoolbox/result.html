@@ -128,31 +128,6 @@
     <div class="flex flex-col">
       <div id="costs-section" class="flex justify-between items-center pb-2">
         <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Kosten' %}</h2>
-        <!-- Wrapper for each ellipsis and dropdown -->
-        <div class="relative inline-block text-left">
-          <button type="button"
-            class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
-            aria-expanded="false"
-            aria-haspopup="true"
-            aria-label="Optionen sehen"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-              stroke-width="1.5" stroke="currentColor" class="size-6">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-            </svg>
-          </button>
-          <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
-            role="menu"
-            aria-orientation="vertical"
-            tabindex="-1"
-          >
-            <div class="py-1" role="none">
-              <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
-              <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
-            </div>
-          </div>
-        </div>
       </div>
       <div class="bg-white rounded-lg shadow-md mb-12">
         <!-- Toggle and Dropdown -->
@@ -332,6 +307,7 @@
           </div>
         </div>
       </div>
+
       <div class="bg-white rounded-lg shadow-md mb-12">
         <div class="p-8">
           <nav class="-mb-px flex space-x-8 border-b border-slate-300" aria-label="Tabs" id="costsTabs">
@@ -364,8 +340,9 @@
                   </div>
                 </div>
               </div>
-              <div class="flex justify-between items-start gap-4 h-[400px]">
-                <div id="kostenverlaufChart" class="w-full h-[400px]"></div>
+              <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
+                <div id="toc-bar" class="chart-container h-[480px]"></div>
+              </div>
               </div>
             </div>
             <div class="costs-tab-content" data-tab="costs-tab-2">
@@ -375,67 +352,17 @@
         </div>
       </div>
       <div class="flex flex-col">
-        <div class="flex justify-between items-center pb-2">
-          <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Kosten' %}</h2>
-          <!-- Wrapper for each ellipsis and dropdown -->
-          <div class="relative inline-block text-left">
-            <button type="button"
-              class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
-              aria-expanded="false"
-              aria-haspopup="true"
-              aria-label="Optionen sehen"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                stroke-width="1.5" stroke="currentColor" class="size-6">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-              </svg>
-            </button>
-            <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
-              role="menu"
-              aria-orientation="vertical"
-              tabindex="-1"
-            >
-              <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
-                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
-              </div>
-            </div>
-          </div>
-        </div>
+        {% include "ebustoolbox/partials/result_export.html" with endpoint="tco" json_only=True %}
         <div class="bg-white rounded-lg shadow-md mb-12">
           <div class="p-8">
-                  <div id="tco-bar" class="chart-container h-[480px]"></div>
+            <div id="tco-bar" class="chart-container h-[480px]"></div>
           </div>
         </div>
       </div>
       <div class="flex flex-col">
         <div id="bus-section" class="flex justify-between items-center pb-2">
           <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Fahrzeuge' %}</h2>
-          <!-- Wrapper for each ellipsis and dropdown -->
-          <div class="relative inline-block text-left">
-            <button type="button"
-              class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
-              aria-expanded="false"
-              aria-haspopup="true"
-              aria-label="Optionen sehen"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                stroke-width="1.5" stroke="currentColor" class="size-6">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-              </svg>
-            </button>
-            <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
-              role="menu"
-              aria-orientation="vertical"
-              tabindex="-1"
-            >
-              <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
-                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
-              </div>
-            </div>
+          {% include "ebustoolbox/partials/result_export.html" with endpoint="soc_hist" %}
           </div>
         </div>
       </div>
@@ -476,30 +403,7 @@
       <div class="flex flex-col">
         <div id="infrastructure-section" class="flex justify-between items-center pb-2">
           <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Infrastruktur' %}</h2>
-          <!-- Wrapper for each ellipsis and dropdown -->
-          <div class="relative inline-block text-left">
-            <button type="button"
-              class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
-              aria-expanded="false"
-              aria-haspopup="true"
-              aria-label="Optionen sehen"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                stroke-width="1.5" stroke="currentColor" class="size-6">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-              </svg>
-            </button>
-            <div class="menu-dropdown absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
-              role="menu"
-              aria-orientation="vertical"
-              tabindex="-1"
-            >
-              <div class="py-1" role="none">
-                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als CSV exportieren' %}</a>
-                <a href="#" class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100" role="menuitem">{% translate 'Als JSON exportieren' %}</a>
-              </div>
-            </div>
+          {% include "ebustoolbox/partials/result_export.html" with endpoint="stats" json_only=True %}
           </div>
         </div>
         <div class="bg-white rounded-lg shadow-md mb-12">
@@ -640,6 +544,7 @@
           <input type="hidden" id="task-id-ext" value="{{ ext_scenario.task_id }}">
 
           <!-- Different containers for each chart -->
+          {% include "ebustoolbox/partials/result_export.html" with endpoint="piecharts" %}
           <div class="flex gap-8 mb-12">
             <div class="basis-1/2 bg-white rounded-lg shadow-md pt-8">
               <div id="chartContainer" class="chart-container mb-0 h-[340px]"></div>
@@ -648,9 +553,11 @@
               <div id="busTypeChartContainer" class="chart-container mb-0 h-[340px]"></div>
             </div>
           </div>
+          {% include "ebustoolbox/partials/result_export.html" with endpoint="soc" %}
           <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
             <div id="lineChart" class="chart-container h-[480px]"></div>
           </div>
+          {% include "ebustoolbox/partials/result_export.html" with endpoint="depot_power" %}
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
               <p class="text-center text-lg font-bold text-slate-800 pb-4">
                 {% translate 'Depot Ladeleistung und Belegung' %}
@@ -743,28 +650,34 @@
               </div>
               <div id="DepotlineChart" class="chart-container h-[480px]"></div>
             </div>
+          {% include "ebustoolbox/partials/result_export.html" with endpoint="gantt" %}
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
             <div id="filterContainerEvents"></div>
             <div id="ganttChart" class="chart-container h-[480px]"></div>
           </div>
+          {% include "ebustoolbox/partials/result_export.html" with endpoint="gantt" %}
           <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
             <div id="filterContainerSoC"></div>
-            <div id="soc-gantt" class="chart-containe h-[480px]"></div>
+            <div id="soc-gantt" class="chart-container h-[480px]"></div>
           </div>
+          {% include "ebustoolbox/partials/result_export.html" with endpoint="dist_histogram" json_only=True %}
           <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
             <div id="DistHistogramChart" class="chart-container h-[480px]"></div>
           </div>
+          {% include "ebustoolbox/partials/result_export.html" with endpoint="speed_histogram" %}
           <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
             <div id="SpeedHistogramChart" class="chart-container h-[480px]"></div>
           </div>
+        {% include "ebustoolbox/partials/result_export.html" with endpoint="cumulative_coverage" json_only=True %}
         <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
             <div id="filterContainerCumulative"></div>
             <div id="cumulative-coverage" class="chart-container h-[480px]"></div>
           </div>
+        {% include "ebustoolbox/partials/result_export.html" with endpoint="rotation_table" %}
         <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto max-w-4xl">
             <div id="table-scroll-container" class="h-[480px] overflow-y-auto relative">
                 <table id="rotationTable" class="w-full table-fixed border-collapse bg-white">
-                    <thead class="sticky top-0 z-20 bg-slate-50 shadow-sm">
+                    <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
                         <tr class="divide-x divide-slate-200 border-b border-slate-200">
                             <th data-column="name" class="sortable edge-pad-left px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/4" onclick="sortTable('name')">
                                 {% translate 'Name' %}
@@ -1896,7 +1809,6 @@
         fetch(`/simba/result/${taskIdAvg}/${chartName}/`)
             .then(response => response.json())
             .then(data => {
-
                 document.getElementById('longest_rotation').textContent = data.longest_rotation;
                 document.getElementById('shortest_rotation').textContent = data.shortest_rotation;
                 document.getElementById('total_dist').textContent = data.total_dist;
@@ -2006,7 +1918,6 @@
             console.error("Error loading histogram data:", data.error);
             return;
           }
-
                 const option = {
                     color: ['#4269d0'],
                     title: {
@@ -2470,6 +2381,36 @@
       }
     });
 
+    document.addEventListener("DOMContentLoaded", () => {
+      // enable download
+      document.querySelectorAll("[data-endpoint]").forEach(elem => {
+        elem.addEventListener("click", (e) => {
+          e.preventDefault();
+          const url = elem.getAttribute("data-endpoint");
+          const type = elem.getAttribute("type");
+          const name = elem.getAttribute("name");
+          // get data
+          fetch(url).then(response => {
+            if (response.status != 200) {
+              throw new Error(response.statusText);
+            }
+            response.text().then(data => {
+              let tmp = document.createElement('a');
+              tmp.setAttribute('href', 'data:' + type + ';charset=utf-8,' + encodeURIComponent(data));
+              tmp.setAttribute('download', name);
+              tmp.style.display = 'none';
+              document.body.appendChild(tmp);
+              tmp.click();
+              document.body.removeChild(tmp);
+            });
+          }).catch(error => {
+            console.error(error);
+            alert('{% translate "Download fehlgeschlagen" %}');
+          });
+        });
+      });
+    });
+
     // End echarts
 
 
@@ -2634,7 +2575,7 @@ switchCostsTab('costs-tab-1');
 <script>
   // ECharts example
   document.addEventListener("DOMContentLoaded", function () {
-    const chartDom = document.getElementById("kostenverlaufChart");
+    const chartDom = document.getElementById("toc-bar");
     const myChart = echarts.init(chartDom, 'ebusPalette');
 
     const option = {

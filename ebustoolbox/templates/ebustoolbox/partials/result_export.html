@@ -1,0 +1,32 @@
+{% load i18n %}
+<!-- Wrapper for each ellipsis and dropdown -->
+<div class="relative block text-right">
+  <button type="button"
+    class="menu-button inline-flex justify-center gap-x-1.5 rounded-full bg-white px-2 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+    aria-expanded="false"
+    aria-haspopup="true"
+    aria-label="Optionen sehen"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+      stroke-width="1.5" stroke="currentColor" class="size-6">
+      <path stroke-linecap="round" stroke-linejoin="round"
+        d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+    </svg>
+  </button>
+  <div class="menu-dropdown absolute right-0 z-20 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 hidden"
+    role="menu"
+    aria-orientation="vertical"
+    tabindex="-1"
+  >
+    <div class="py-1" role="none">
+      {% if not json_only %}
+        <button class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 text-left" role="menuitem" data-endpoint="/simba/result/{{ avg_scenario.task_id }}/{{ endpoint }}/?format=csv" type="text/csv" name="{{endpoint}}.csv">
+          {% translate 'Als CSV exportieren' %}
+        </button>
+      {% endif %}
+      <button class="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-100 text-left" role="menuitem" data-endpoint="/simba/result/{{ avg_scenario.task_id }}/{{ endpoint }}/?format=json" type="text/json" name="{{endpoint}}.json">
+        {% translate 'Als JSON exportieren' %}
+      </button>
+    </div>
+  </div>
+</div>
