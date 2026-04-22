@@ -1019,13 +1019,13 @@ simpy = ">=4.0.1,<5.0.0"
 
 [[package]]
 name = "eflips-depot"
-version = "4.16.2"
+version = "4.16.3"
 description = "Depot Simulation for eFLIPS"
 optional = false
 python-versions = "<3.14,>=3.11"
 files = [
-    {file = "eflips_depot-4.16.2-py3-none-any.whl", hash = "sha256:cc3227c760d3f1dffcf28790f1d7bd73d19296d6c2852f4fccc60718fc97428f"},
-    {file = "eflips_depot-4.16.2.tar.gz", hash = "sha256:bc4f6d387261bf32eed1a098503c6928b46b5b645150a848eb153dd6eaec6fee"},
+    {file = "eflips_depot-4.16.3-py3-none-any.whl", hash = "sha256:e35f5ece3aabcba822845c6280884b4eaf7ddad2a8b02c8100903818f1166e04"},
+    {file = "eflips_depot-4.16.3.tar.gz", hash = "sha256:a3b541885f616aaa79ca508b901a909884193eaa41c1ba9fc7db76d35645c988"},
 ]
 
 [package.dependencies]
@@ -3198,8 +3198,8 @@ spice_ev = "*"
 [package.source]
 type = "git"
 url = "https://github.com/rl-institut/SimBA"
-reference = "dev"
-resolved_reference = "5a1f9b85cf17603f9b885fd499b1c1014fb000cb"
+reference = "feature/improve_performance"
+resolved_reference = "6910bf2c3929e85f147f9f100303e5572f741d06"
 
 [[package]]
 name = "simpy"
@@ -3258,7 +3258,7 @@ files = [
 
 [[package]]
 name = "spice_ev"
-version = "1.0.2"
+version = "1.1.0"
 description = "Simulation Program for Individual Charging Events of Electric Vehicles."
 optional = false
 python-versions = "*"
@@ -3268,8 +3268,8 @@ develop = false
 [package.source]
 type = "git"
 url = "https://github.com/rl-institut/spice_ev"
-reference = "d593930f25ebdcdb0a915c45aa347c60be39e534"
-resolved_reference = "d593930f25ebdcdb0a915c45aa347c60be39e534"
+reference = "feature/balanced_check"
+resolved_reference = "c5ccd7508be489f3f9b1ac5f6b32fd3a37588576"
 
 [[package]]
 name = "sqlalchemy"
@@ -3660,4 +3660,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11, <3.14"
-content-hash = "ce0e30ff4d914b679496042f153eb7a454bff729140917da0f872e3a3e55e4e6"
+content-hash = "ab4ab9ee78bf1641cb0c62fbc849d969c91b33b9c4be65caac7e8800864e4829"

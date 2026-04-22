@@ -15,8 +15,8 @@ packages = [{include = "ebustoolbox"},
 
 [tool.poetry.dependencies]
 python = ">=3.11, <3.14"
-spice_ev = { git = "https://github.com/rl-institut/spice_ev", rev = "d593930f25ebdcdb0a915c45aa347c60be39e534"}
-simba = { git = "https://github.com/rl-institut/SimBA", rev = "dev"}
+spice_ev = { git = "https://github.com/rl-institut/spice_ev", rev = "feature/balanced_check"}
+simba = { git = "https://github.com/rl-institut/SimBA", rev = "feature/improve_performance"}
 
 Django = "^5.0.0"
 django-appconf = ">=1.0.5, <2.0.0"

@@ -582,7 +582,7 @@ def get_electrified_stations_from_db(django_scenario) -> dict:
             "cs_power_opps": station.power_per_charger,
             "gc_power": station.power_total,
             "voltage_level": station.voltage_level,
-            "min_charging_power": 0,
+            "min_power": 0,
         }
         stat_dict_cleaned = {
             k: v for k, v in stat_dict.items() if v is not None or k == "n_charging_stations"
@@ -1310,7 +1310,6 @@ def create_spiceev_scenario_dict(scenario: Scenario, split_vehicles=False) -> di
                     raise Exception("Vehicles not split enough")
                 # assume perfect charging at last station, reaching desired soc
                 # (which is the same for all depots)
-                soc = event["update"]["desired_soc"]
                 vehicles[vid] = {
                     "connected_charging_station": None,
                     "soc": event["arrival_soc"],
@@ -1626,36 +1625,6 @@ def get_tail_index(arr: list) -> int:
     return len(arr)
 
 
-def loadState():
-    with open("saveState.pickle", "rb") as f:
-        state = pickle.load(f)
-    globals().update(state["globals"])
-    globals().update(state["locals"])
-    return state["locals"]
-
-
-def saveState(locals: dict):
-    SKIP_TYPES = (type(os),)  # modules
-
-    def is_picklable_data(key, value):
-        if key.startswith("__"):  # skip dunder metadata
-            return False
-        if isinstance(value, (type(os),)):
-            return False
-        try:
-            pickle.dumps(value)
-            return True
-        except:
-            return False
-
-    pickle_locals = {k: v for k, v in locals.items() if is_picklable_data(k, v)}
-    pickle_globals = {k: v for k, v in globals().items() if is_picklable_data(k, v)}
-
-    state = {"locals": pickle_locals, "globals": pickle_globals}
-    with open("saveState.pickle", "wb") as f:
-        pickle.dump(state, f)
-
-
 def apply_depot_strategy(scenario: Scenario, strategy: str, split_vehicles=False) -> None:
     # simulate all depot charging in SpiceEV with new strategy, update timeseries
     spice_ev_scenario_dict = create_spiceev_scenario_dict(scenario, split_vehicles=split_vehicles)
@@ -1666,6 +1635,7 @@ def apply_depot_strategy(scenario: Scenario, strategy: str, split_vehicles=False
     events = scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT).order_by("time_start")
     # keep track of changed events
     event_list = list()
+    events_to_delete = list()
     interval = spice_ev_scenario.interval
     # for split_vehicles: how many new vehicles have been created from original?
     # vid -> count
@@ -1698,9 +1668,6 @@ def apply_depot_strategy(scenario: Scenario, strategy: str, split_vehicles=False
             spice_ev_scenario.vehicle_socs[vid][min(i, spice_ev_scenario.step_i - 1)]
             for i in time_range
         ]
-        event_list.append(event)
-        if any(s is None for s in socs):
-            print("empty socs")
         if next_event is None:
             # no standby: just replace SoC timeseries
             replace_event_timeseries(event, socs)
@@ -1714,20 +1681,37 @@ def apply_depot_strategy(scenario: Scenario, strategy: str, split_vehicles=False
                 spice_ev_scenario.start_time + (ts_start + idx_stop_charging) * interval
             )
 
-            socs_charging = socs[: idx_stop_charging + 1]
-            socs_standby = socs[idx_stop_charging:]
-            len_buffer = int((next_event.time_end - departure_time) / interval)
-            socs_buffer = [socs[-1]] * len_buffer
+            # The charging stopped inside the events:
+            # keep both events
 
-            # adjust event start/end timestamps
-            event.time_end = ts_stop_charging
-            next_event.time_start = ts_stop_charging
-            # saved state to saveState.pickle
-            replace_event_timeseries(event, socs_charging)
-            replace_event_timeseries(next_event, socs_standby + socs_buffer)
-            event_list.append(next_event)
+            # make sure the calculated times are correct with a max error of the spiceev timestep
+            assert (
+                spice_ev_scenario.start_time + (ts_start) * interval <= event.time_start + interval
+            )
+            assert (
+                spice_ev_scenario.start_time + (ts_start + idx_stop_charging) * interval
+                <= next_event.time_end + interval
+            )
+            if next_event.time_end > ts_stop_charging > event.time_start:
+                socs_charging = socs[: idx_stop_charging + 1]
+                socs_standby = socs[idx_stop_charging:]
+                len_buffer = int((next_event.time_end - departure_time) / interval)
+                socs_buffer = [socs[-1]] * len_buffer
+                # adjust event start/end timestamps
+                event.time_end = ts_stop_charging
+                next_event.time_start = ts_stop_charging
+                replace_event_timeseries(event, socs_charging)
+                replace_event_timeseries(next_event, socs_standby + socs_buffer)
+                event_list.append(next_event)
+            elif ts_stop_charging > next_event.time_end:
+                print(f"deleting event {next_event}")
+                replace_event_timeseries(event, socs)
+                event.time_end = next_event.time_end
+                events_to_delete.append(next_event)
+        event_list.append(event)
 
     Event.objects.bulk_update(event_list, ["timeseries", "time_start", "time_end"])
+    Event.objects.filter(id__in=[e.id for e in events_to_delete]).delete()
     logger.info(f"S.ID:{scenario.id}:{events.count()} depot charging events updated")
 
 
@@ -2099,6 +2083,7 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
                 notification_type=EnumNotificationType.DELAYED_TRIP_WARNING,
                 message=_("Manche Fahrzeuge können nur verspätet abfahren"),
             )
+            notifications.append(notification)
         except Exception as e:
             logger.error(f"S.ID:{db_scenario.id}:Eflips raised an unexpected Exception")
             logger.error(traceback.format_exception(e))
@@ -2115,20 +2100,6 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
             raise
         finally:
             Notification.objects.bulk_create(notifications)
-
-        def assert_mono(e):
-            last = None
-            if e.timeseries is None:
-                return
-            for t in e.timeseries["time"]:
-                if last:
-                    if not datetime.fromisoformat(last) <= datetime.fromisoformat(t):
-                        print(f"not mono for {e.id} with {last} and {t}")
-                last = t
-
-        print("after eflips")
-        for e in db_scenario.event_set.all():
-            assert_mono(e)
 
         progress.current_work += 1
         progress.save()
@@ -2149,23 +2120,12 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
         # higher charging rates at lower socs
         simba_scenario = run_simba(schedule, args, db_scenario, mode="sim", scenario=None)
 
-        print("after simba")
-        for e in db_scenario.event_set.all():
-            assert_mono(e)
-
         consolidate_socs(db_scenario)
-        print("after consolidate")
-        for e in db_scenario.event_set.all():
-            assert_mono(e)
 
         # NOTE: Consolidate results with a given strategy. EPS of 1% needed.
         # Balanced strategy or expose from simba_options? TODO: Discuss
         # Greedy strategy for easier search of differences between eflips/simba
         apply_depot_strategy(db_scenario, "balanced", split_vehicles=True)
-
-        print("after depot")
-        for e in db_scenario.event_set.all():
-            assert_mono(e)
 
         progress.current_work += 1
         progress.save()
@@ -2186,6 +2146,13 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
     except Exception as e:
         logger.error(traceback.format_exc())
         # Let all progress no of the failed simulation
+        Notification.objects.create(
+            scenario=db_scenario.parent or db_scenario,
+            sender="eflips-depot",
+            level=EnumNotificationLevels.ERROR,
+            notification_type=EnumNotificationType.UNEXPECTED_ERROR,
+            message=_("Ein unerwarteter Fehler ist aufgetreten! "),
+        )
         set_scenario_progress_failed(db_scenario, e)
         raise
 
@@ -3698,9 +3665,16 @@ def create_consolidate_log(
             f"\n{prev_event.id} and {event.id}"
         )
 
-    if pre_fix_delta > EPS:
+    # NOTE:: A following event gets its soc reduced.
+    # This can happen if the previous depot charge diverged from eflips/simba
+    # e.g. the first simba run started with soc 1 since each rotation gets its own vehicle
+    # eflips assigned a vehicle which was previously in use and charged from .8 to 0.95 and started the rotation
+    # simba will use the same assigment and try to reach 0.95 in the depot. if it does not succeed
+    # all following socs will drop by this amount
+    # this is not ideal since these difference can add up over time.
+    if pre_fix_delta > EPS * 5:
         logger.warning(
-            f"Unexpected soc drop {running_delta_soc=:.2e} due to consolidation.\n"
+            f"Unexpected soc drop {running_delta_soc=:.2e} and {pre_fix_delta=:.2e} due to consolidation.\n"
             f"{prev_event=}\n{event=}\n{next_event=}."
         )
     elif pre_fix_delta > 0:
