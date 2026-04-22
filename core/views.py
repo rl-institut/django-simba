@@ -45,21 +45,6 @@ def signup(request):
     raise Http404()
 
 
-def set_lang(request, lang: str):
-    """Set a cookie for the prefered language of the user
-
-    Middleware will activate the language on a per response basis
-    """
-    # TODO: placeholder for proper implementation
-    from django.utils.translation import activate
-    from django.conf import settings
-
-    activate(lang)
-    response = HttpResponse(f"Switched to {lang}")
-    response.set_cookie(settings.LANGUAGE_COOKIE_NAME, lang)
-    return response
-
-
 @login_required(login_url="/login/")
 def changePassword(request):
     if request.method == "POST":
