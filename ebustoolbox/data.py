@@ -369,7 +369,7 @@ def recent_memoizer(function, scenario_id, _dcache1=dict(), _result_cache2=dict(
     return decorated_function
 
 
-def get_soc_as_dataframe(scenario_id, buses):
+def get_soc_as_dataframe(scenario_id, buses) -> pd.DataFrame:
     """
     Retrieves state of charge (SOC) data as a DataFrame for specified buses in a given scenario.
 
@@ -387,7 +387,7 @@ def get_soc_as_dataframe(scenario_id, buses):
     return filtered_df
 
 
-def get_duration_as_dataframe(scenario_id, buses):
+def get_duration_as_dataframe(scenario_id, buses) -> pd.DataFrame:
     """
     Retrieves duration data as a DataFrame for specified buses in a given scenario.
 
@@ -406,7 +406,7 @@ def get_duration_as_dataframe(scenario_id, buses):
     return filtered_df
 
 
-def get_distances_as_dataframe(scenario_id, buses):
+def get_distances_as_dataframe(scenario_id, buses) -> pd.DataFrame:
     """
     Retrieves distance data as a DataFrame for specified buses in a given scenario.
 
@@ -425,7 +425,7 @@ def get_distances_as_dataframe(scenario_id, buses):
     return filtered_df
 
 
-def get_activities_as_dataframe(scenario_id, buses):
+def get_activities_as_dataframe(scenario_id, buses) -> pd.DataFrame:
     """
     Retrieves activity data as a DataFrame for specified buses in a given scenario.
 
@@ -443,7 +443,7 @@ def get_activities_as_dataframe(scenario_id, buses):
     return filtered_df
 
 
-def get_powerdraw_as_dataframe(scenario_id, buses=None):
+def get_powerdraw_as_dataframe(scenario_id, buses=None) -> pd.DataFrame:
     """
     Retrieves power draw data as a DataFrame for specified buses in a given scenario.
 
@@ -461,7 +461,7 @@ def get_powerdraw_as_dataframe(scenario_id, buses=None):
     return df
 
 
-def get_vehicle_types(scenario_id, buses):
+def get_vehicle_types(scenario_id, buses) -> pd.DataFrame:
     """
     Retrieves vehicle types and their counts as a DataFrame for specified buses in a given scenario.
 
@@ -489,7 +489,7 @@ def get_vehicle_types(scenario_id, buses):
     return df
 
 
-def get_critical_rotations_as_dataframe(scenario_id, buses):
+def get_critical_rotations_as_dataframe(scenario_id, buses) -> pd.DataFrame:
     """
     Retrieves per-rotation criticality information for specified buses in a scenario.
 
@@ -509,7 +509,6 @@ def get_critical_rotations_as_dataframe(scenario_id, buses):
     df["SOC_category"] = df["soc_end"].apply(
         lambda x: "Nicht kritisch" if x > CRITICAL_SOC else "kritisch"
     )
-
     return df
 
 
@@ -520,7 +519,7 @@ def apply_id(rotation):
         return None
 
 
-def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
+def get_critical_rotations_and_score_as_dataframe(scenario_id, buses) -> pd.DataFrame:
     """
     TODO
     """
@@ -544,7 +543,7 @@ def get_critical_rotations_and_score_as_dataframe(scenario_id, buses):
     return df
 
 
-def get_all_routes(scenario_id):
+def get_all_routes(scenario_id) -> pd.DataFrame:
     qs = Route.objects.filter(scenario_id=scenario_id)
 
     # Convert the QuerySet to a DataFrame
@@ -554,7 +553,7 @@ def get_all_routes(scenario_id):
     return df
 
 
-def get_all_trip_info(scenario_id):
+def get_all_trip_info(scenario_id) -> pd.DataFrame:
     """
     Retrieves trip related information for all vehicles in a given scenario.
 
@@ -601,7 +600,7 @@ def get_all_trip_info(scenario_id):
     return result_df
 
 
-def get_all_powerdraw(scenario_id):
+def get_all_powerdraw(scenario_id) -> pd.DataFrame:
     """
     Retrieves charging information for all vehicles in a given scenario.
 
@@ -714,11 +713,11 @@ def get_all_powerdraw(scenario_id):
     return result_df
 
 
-def sim_is_finished(task_id):
+def sim_is_finished(task_id: str) -> bool:
     return Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
 
 
-def get_soc_as_json(task_id: str):
+def get_soc_as_json(task_id: str) -> dict:
     s = Scenario.objects.get(task_id=task_id)
 
     vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
@@ -728,9 +727,7 @@ def get_soc_as_json(task_id: str):
     selected_columns = df[["vehicle_id", "end", "soc_end", "start", "soc_start"]].copy()
 
     # Convert both 'time_end' and 'time_start' to Unix timestamps (in milliseconds)
-    selected_columns["timestamp_end"] = (
-        pd.to_datetime(selected_columns["end"]).astype(int) // 10**6
-    )
+    selected_columns["timestamp_end"] = pd.to_datetime(selected_columns["end"]).astype(int) // 10**6
     selected_columns["timestamp_start"] = (
         pd.to_datetime(selected_columns["start"]).astype(int) // 10**6
     )
@@ -755,7 +752,7 @@ def get_soc_as_json(task_id: str):
     return {"data": soc_data}
 
 
-def get_binned_soc(task_id: str):
+def get_binned_soc(task_id: str) -> pd.DataFrame:
     # load raw SOC events
     scenario = Scenario.objects.get(task_id=task_id)
     vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
@@ -814,7 +811,7 @@ def get_binned_soc(task_id: str):
     return heatmap_data
 
 
-def get_power_draw(request, task_id: str):
+def get_power_draw(request, task_id: str) -> list:
     scenario = Scenario.objects.get(task_id=task_id)
 
     buses = request.GET.getlist("buses[]")
@@ -837,7 +834,7 @@ def get_power_draw(request, task_id: str):
     return charging_status
 
 
-def get_stats(task_id: str):
+def get_stats(task_id: str) -> dict:
     scenario = Scenario.objects.get(task_id=task_id)
 
     filter_dict = dict(task_id=task_id)
@@ -974,7 +971,7 @@ def get_stats(task_id: str):
     return resp
 
 
-def get_speed_hist(task_id: str):
+def get_speed_hist(task_id: str) -> pd.DataFrame:
     scenario = Scenario.objects.get(task_id=task_id)
     vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
@@ -1002,7 +999,7 @@ def get_speed_hist(task_id: str):
     )
 
 
-def get_dist_hist(task_id: str):
+def get_dist_hist(task_id: str) -> dict:
     scenario = Scenario.objects.get(task_id=task_id)
     vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
     buses = list(vehicle_name_dict.keys())
@@ -1047,7 +1044,7 @@ def get_dist_hist(task_id: str):
     }
 
 
-def get_power_draw_and_occ(task_id: str, depot_id: None | int = None):
+def get_power_draw_and_occ(task_id: str, depot_id: None | int = None) -> dict:
     avgScenario = Scenario.objects.get(task_id=task_id)
 
     # Find the associated "extreme"/sizing scenario
@@ -1090,7 +1087,7 @@ def get_power_draw_and_occ(task_id: str, depot_id: None | int = None):
     }
 
 
-def get_gantt(scenario_id: str):
+def get_gantt(scenario_id: str) -> pd.DataFrame:
     # Get all events for the scenario, ordered
 
     scenario = Scenario.objects.get(id=scenario_id)
@@ -1156,7 +1153,7 @@ def get_start_end_time(scenario: Scenario) -> tuple[datetime.datetime, datetime.
     return time_start, time_end
 
 
-def get_cumulative_energy(task_id: str):
+def get_cumulative_energy(task_id: str) -> dict:
     rotations = (
         Rotation.objects.filter(scenario__task_id=task_id)
         .annotate(
@@ -1182,7 +1179,7 @@ def get_cumulative_energy(task_id: str):
     return {"raw_data": raw_data, "unique_types": unique_types}
 
 
-def get_rotation_table_data(task_id: str):
+def get_rotation_table_data(task_id: str) -> pd.DataFrame:
     rotations = Rotation.objects.filter(scenario__task_id=task_id).annotate(
         max_soc=Max("trip__event__soc_start"),
         min_soc=Min("trip__event__soc_end"),
@@ -1223,13 +1220,14 @@ def get_rotation_table_data(task_id: str):
     return pd.DataFrame(rows)
 
 
-def get_tco(task_id):
+def get_tco(task_id: str) -> dict:
+    # return tco_result JsonField of scenario
     s = Scenario.objects.get(task_id=task_id)
     result = s.tco_result
     return result
 
 
-def get_combined_piecharts(task_id, filters=None):
+def get_combined_piecharts(task_id: str, filters=None) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Returns two DataFrames:
     1. critical_rotations_df: aggregated counts by SOC_category

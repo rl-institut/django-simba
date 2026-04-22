@@ -2075,9 +2075,8 @@ def export_scenario(request):
         exporter = ScenarioJSONImporterExporter()
         visit_all_scenario_queries(exporter, scenario)
         json_data = exporter.renderJSON()
-        data[
-            f"scenario_{scenario.simulationtype_set.first().sim_type}_{task_id[:3]}.json"
-        ] = json_data
+        file_name = f"scenario_{scenario.simulationtype_set.first().sim_type}_{task_id[:3]}.json"
+        data[file_name] = json_data
         # If a child was created delete it
         if child is not None:
             child.delete()
