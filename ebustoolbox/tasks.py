@@ -2125,7 +2125,7 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
         # NOTE: Consolidate results with a given strategy. EPS of 1% needed.
         # Balanced strategy or expose from simba_options? TODO: Discuss
         # Greedy strategy for easier search of differences between eflips/simba
-        apply_depot_strategy(db_scenario, "balanced", split_vehicles=True)
+        apply_depot_strategy(db_scenario, "balanced_check", split_vehicles=True)
 
         progress.current_work += 1
         progress.save()
@@ -3545,6 +3545,8 @@ def consolidate_socs(scenario: Scenario) -> None:
         assert prev_event.time_end == event.time_start
 
         # This is the delta which exists between the current and the previous event
+        # Generally we expect this value to be negative or 0.
+        # Negative values mean the charge was increased in previous events
         pre_fix_delta = event.soc_start - pre_fix_end_soc
         summed_difference[vehicle] += abs(pre_fix_delta)
         # This is the delta which has to be applied to the current event
