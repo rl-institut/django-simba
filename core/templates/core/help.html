@@ -12,7 +12,7 @@
           <h2 id='webus' class="pb-2 pt-4 text-2xl font-semibold">
           <a href="#webus">{% translate 'WeBus' %}</a>
         </h2>
-        <p class="text-base pb-4 leading-relaxed text-slate-500">
+        <p class="text-base pb-4 leading-relaxed text-slate-800">
           {% blocktranslate %}WeBus hilft Ihnen bei der Umstellung ihres Bussystems vom Dieselbetrieb auf den elektrischen Betrieb.
         Sie können den Einfluss verschiedener Fahrzeugparameter erproben, die Elektrifizierung von Endhaltestellen testen, entscheidende Parameter ihres Fahrzeugdepots bestimmen und vieles mehr.
         WeBus stellt ihnen hierzu eine Weboberfläche zur Verfügung, die ihr spezifisches System in einer Simulation berechnet.
@@ -29,7 +29,7 @@
           <h2 id='umlaufplan' class="pb-2 pt-4 text-2xl font-semibold">
           <a href="#umlaufplan">{% translate 'Umlaufplan' %}</a>
         </h2>
-        <p class="text-base pb-4 leading-relaxed text-slate-500">
+        <p class="text-base pb-4 leading-relaxed text-slate-800">
           {% blocktranslate %}
         Für die Simulation Ihres Bussystems benötigt WeBus Eingangsdaten. Diese können in folgenden Formaten hochgeladen werden:
       </p>
@@ -37,7 +37,7 @@
         <li class="list-inside list-disc py-1 text-slate-800">SimBA .csv</li>
 
       <h3 id='vdv_452' class="pb-2 pt-4 text-xl font-semibold"><a href="#vdv_452">VDV 452</a></h3>
-      <p class="text-base pb-4 leading-relaxed text-slate-500">
+      <p class="text-base pb-4 leading-relaxed text-slate-800">
       Die <a class="text-blue-600 hover:underline" href="https://www.vdv.de/downloads/4328/452V1%206%20SDS/forced">VDV Schrift 452</a> beschreibt eine Schnittstelle zum Austausch von verschiedenen Informationen,
       wie z.B. zu Sollfahrplänen, Liniennetz, Anschlussdefinitionen und Elektromobilität.
         Eine Vielzahl an Tools erlaubt den direkten Export Ihres Umlaufplans zu VDV 452. Eine unvollständige Liste finden sie <a class="text-blue-600 hover:underline" href="https://www.vdv.de/kompatible-produkte-8.2013.pdfx">hier</a>. Der Dateityp für diese Schnittstelle ist <i>.X10</i>
@@ -74,11 +74,11 @@
         <li class="list-inside list-disc py-1 text-slate-800"><i>REC_UMLAUF</i></li>
         <!-- no need for translation -->
         </p>
-          <p class="text-base pb-4 leading-relaxed text-slate-500">
+          <p class="text-base pb-4 leading-relaxed text-slate-800">
         Die Dateien müssen als .zip Datei hochgeladen werden und werden automatisch von WeBus verarbeitet. Es werden Dateigrößen bis {{max_file_size_mb}} MB erlaubt.
         </p>
       <h3 id='simba_schedule' class="pb-2 pt-4 text-xl font-semibold"><a href="#simba_schedule">SimBA Format</a></h3>
-      <p class="text-base pb-4 leading-relaxed text-slate-500">
+      <p class="text-base pb-4 leading-relaxed text-slate-800">
         WeBus erlaubt das .csv Dateiformat nach SimBA Spezifikation. Dies ist ein spezifisches Format für <a class="text-blue-600 hover:underline" href="https://github.com/rl-institut/SimBA">SimBA</a>. Die Formatspezifikation finden Sie <a class="text-blue-600 hover:underline" href='https://rli-simba.readthedocs.io/en/latest/simulation_parameters.html#schedule'>hier</a>. Für WeBus kann ein weiter reduziertes Format genutzt werden.
         WeBus erwartet eine .csv Datei mit Komma / ',' als Trennzeichen. Folgende Spaltennamen MÜSSEN enthalten sein.
         <li class="list-inside list-disc py-1 text-slate-800"><i>departure_name</i></li>
@@ -91,34 +91,34 @@
         <li class="list-inside list-disc py-1 text-slate-800"><i>line</i></li>
         </p>
         <h4 class="text-m pb-1 pt-4 font-semibold" >departure_name</h4>
-        <p class="text-base pb-2 leading-relaxed text-slate-500">
+        <p class="text-base pb-2 leading-relaxed text-slate-800">
           Der Name der Abfahrts-Station. Jeder einzigartige Name wird als Haltestelle abgebildet.
         Haltestellen mit gleichem Namen werden als identische Haltestelle betrachtet.
         Elektrifizierungen von Haltestellen sind für alle Haltestellen mit gleichem Namen identisch.
         Bei der Erstellung von Haltestellen für das Simulationsmodell wird nicht zwischen Abfahrts- und Zielstationen unterschieden.
         </p>
         <h4 class="text-m pb-1 pt-4 font-semibold" >departure_time</h4>
-        <p class="text-base pb-2 leading-relaxed text-slate-500">
+        <p class="text-base pb-2 leading-relaxed text-slate-800">
         Der Zeitpunkt der Abfahrt im <a href='https://de.wikipedia.org/wiki/ISO_8601'>ISO Format</a>. Beispiel für den 30.6.2025 um 18:30 nach MESZ - Sommerzeit: <i>2025-06-30T18:30:00+02:00</i>
         </p>
 
         <h4 class="text-m pb-1 pt-4 font-semibold" >arrival_name</h4>
-        <p class="text-base pb-2 leading-relaxed text-slate-500">
+        <p class="text-base pb-2 leading-relaxed text-slate-800">
         Der Name der Ziel-Station. Jeder einzigartige Name wird als Haltestelle abgebildet.
         Haltestellen mit gleichem Namen werden als identische Haltestelle betrachtet.
         Elektrifizierungen von Haltestellen sind für alle Haltestellen mit gleichem Namen identisch.
         Bei der Erstellung von Haltestellen für das Simulationsmodell wird nicht zwischen Abfahrts- und Ziel-Stationen unterschieden.
         </p>
         <h4 class="text-m pb-1 pt-4 font-semibold" >arrival_time</h4>
-        <p class="text-base pb-2 leading-relaxed text-slate-500">
+        <p class="text-base pb-2 leading-relaxed text-slate-800">
         Der Zeitpunkt der Ankunft im <a href='https://de.wikipedia.org/wiki/ISO_8601'>ISO Format</a>. Beispiel für den 30.6.2025 um 18:30 nach MESZ - Sommerzeit: <i>2025-06-30T18:30:00+02:00</i>
         </p>
         <h4 class="text-m pb-1 pt-4 font-semibold" >distance</h4>
-        <p class="text-base pb-2 leading-relaxed text-slate-500">
+        <p class="text-base pb-2 leading-relaxed text-slate-800">
         Die Distanz zwischen Abfahrts- und Ziel-Station die der Bus zurücklegen muss in Metern.
         </p>
         <h4 class="text-m pb-1 pt-4 font-semibold" >vehicle_type</h4>
-        <p class="text-base pb-2 leading-relaxed text-slate-500">
+        <p class="text-base pb-2 leading-relaxed text-slate-800">
         Der Name des Fahrzeugtyps der diese Fahrt übernimmt. Es kann ein beliebiger Name gewählt werden. Fahrzeugtypen mit gleichem Namen werden im Modell als identisch betrachtet. Beispiel: <a>Doppeldecker</a>
         Die Fahrt wird durch den Fahrzeugtyp "Doppeldecker" bedient.
         Sollte es eine andere Fahrt geben die einen anderen Fahrzeugtyp erfordert, z.B. "Gelenkbus", so benötigt es hier zwangsweise ein weiteres Fahrzeug innerhalb der Simulation.
@@ -127,17 +127,17 @@
         <br /><b>Fahrten eines Umlaufes MÜSSEN durch den gleichen Fahrzeugtyp bedient werden.</b>
         </p>
         <h4 class="text-m pb-1 pt-4 font-semibold" >rotation_id</h4>
-        <p class="text-m pb-2 leading-relaxed text-slate-500">
+        <p class="text-m pb-2 leading-relaxed text-slate-800">
         Die ID des Umlaufs. Fahrten mit der gleichen ID gehören zu einem Umlauf und werden durch ein Fahrzeug bedient.
         <br><b>Ein Umlauf muss in einem Depot beginnen und enden. Start und End-Depot müssen identisch sein.</b>
         </p>
         <h4 class="text-m pb-1 pt-4 font-semibold" >line</h4>
-        <p class="text-base pb-2 leading-relaxed text-slate-500">
+        <p class="text-base pb-2 leading-relaxed text-slate-800">
         Die Linie zu der die Fahrt gehört. Dies ist eine optionale Angabe, die bei der Darstellung von Eingaben und Ergebnissen durch Filterung unterstützen kann.
         </p>
 
         <h4 class="text-m pb-1 pt-4 font-semibold" >Beispiel</h4>
-        <p class="text-base pb-2 leading-relaxed text-slate-500">
+        <p class="text-base pb-2 leading-relaxed text-slate-800">
         Ein minimaler Umlaufplan mit einem Bustyp, der einen einzigen Umlauf einer Linie beschreibt. Der Umlauf besteht aus einer Einsetz-, Aussetz- und einer Passagierfahrt vom "Hauptbahnhof" bis zum "Rathaus".
         </p>
           <div class="overflow-x-auto rounded-lg shadow">
@@ -185,7 +185,7 @@
             </table>
           </div>
           <h3 id='consistency' class="pb-2 pt-4 text-xl font-semibold"><a href="#consistency">Konsistenz</a></h3>
-      <p class="text-base pb-4 leading-relaxed text-slate-500">
+      <p class="text-base pb-4 leading-relaxed text-slate-800">
       Für die erfolgreiche Simulation benötigt WeBus konsistente Daten. Ist dies nicht gegeben, kann das Hochladen der Datei fehlschlagen oder es kann zum Absturz der Simulation führen.
       Folgende Punkte müssen im Umlaufplan beachtet werden.
       <ul class="list-inside list-disc text-slate-800">
@@ -200,7 +200,7 @@
           </section>
           <section>
             <h2 id='filter' class="pb-2 pt-4 text-2xl font-semibold"><a href="#filter">{% translate 'Filter' %}</h2></a>
-            <p class="text-base pb-4 leading-relaxed text-slate-500">
+            <p class="text-base pb-4 leading-relaxed text-slate-800">
               {% blocktrans %}
             WeBus erlaubt Ihnen eine vereinfachte Simulation von Teilen Ihres Bussystems, auch wenn Ihnen nur eine Datei des Umlaufplans vorliegt. Hierzu können Sie auf der Seite Filter eine Unterauswahl aus Umläufen und Depots treffen. Drei Filter stehen zur Verfügung.
             <ul class="list-inside list-disc text-slate-800">
@@ -214,7 +214,7 @@
                 </ul>
             </ul>
 
-      <p class="text-base pb-4 leading-relaxed text-slate-500">
+      <p class="text-base pb-4 leading-relaxed text-slate-800">
             Bei der Auswahl von Filtern wird sofort berechnet, welche Anzahl an Umläufen in diesem Umlaufplan verbleibt. Dies kann einige Sekunden dauern. Welche Depots und Linien mit der getätigten Auswahl bedient werden, können Sie sehen, nachdem Sie den Button "aktuelle Auswahl anzeigen" geklickt haben. Der Filter kann durch den Button "Filter Löschen" auf den ungefilterten Startzustand gesetzt werden.
             <br>
             <b>Nachdem Sie auf "Weiter" geklickt haben, werden Daten aus dem Szenario gelöscht, welche nicht die verbleibenden Umläufe betreffen.</b>
@@ -226,7 +226,7 @@
           </section>
           <section>
             <a href="#vehicles" id='vehicles' class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Fahrzeuge' %}</a>
-            <p class="text-base pb-4 leading-relaxed text-slate-500">
+            <p class="text-base pb-4 leading-relaxed text-slate-800">
             {% blocktrans %}
           WeBus erkennt Fahrzeugtypen automatisch aus dem Umlaufplan.
           Diesen Fahrzeugtypen müssen technische Eigenschaften zugeordnet werden, sodass die Simulation ausgeführt werden kann.
@@ -238,7 +238,7 @@
           </p>
           <h3 class="text-m pb-2 pt-4 font-semibold">{% translate 'Fahrzeugeeigenschaften' %}</h3>
           <!-- {% blocktrans %}WeBus arbeitet mit den folgenden Fahrzeugeigenschaften. -->
-          <p class="text-base pb-4 leading-relaxed text-slate-500">
+          <p class="text-base pb-4 leading-relaxed text-slate-800">
             <!-- Table for VehicleType columns/ attributes -->
           </p>
           <div class="overflow-x-auto rounded-lg shadow">
@@ -413,7 +413,7 @@
               <h2 id="temperaturen" class="text-2xl font-semibold pt-4 pb-2">
                 <a href="#temperaturen">{% translate 'Temperaturen' %}</a>
               </h2>
-          <p class="text-base pb-4 leading-relaxed text-slate-500">
+          <p class="text-base pb-4 leading-relaxed text-slate-800">
           {% blocktrans %}
           Die Einstellungen in Temperaturen unterstüzen Sie bei der Auswahl geeigneter Verbräuche, wenn Sie diese manuell auswählen möchten. Wenn aus dem hochgeladenen Umlaufplan geographische Informationen ausgelesen werden konnten,
           wird eine Wetterstation des <a href="https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/">DWD</a> in der Nähe der Systemmitte gesucht und die Temperaturdaten des Jahres 2024 werden analysiert. Für die gewählten Temperaturen wird ein Verbrauchswert aus Basis des gewählten Fahrzeugtyps und der mittleren Geschwindigkeit der Fahrten abgeschätzt. Dieser Wert kann Ihnen als Indikator dienen, welchen Verbrauch die Simulation nutzen wird. Dieser Wert ist ein Schätzwert und kann sich in der nachfolgenden Simulation verändern. Wahlweise kann der Verbrauch des Fahrzeugs durch einen konstanten Wert überschrieben werden. Auf Fahrzeugtypen mit einem konstanten Verbrauch hat die Wahl der Temperaturen keinen Einfluss.
@@ -422,7 +422,7 @@
               </section>
               <section>
           <h2 class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Endhaltestellen' %}</h2>
-          <p class="text-base pb-4 leading-relaxed text-slate-500">
+          <p class="text-base pb-4 leading-relaxed text-slate-800">
           {% blocktrans %}
           WeBus erlaubt Ihnen die Untersuchung ihres Bussystems mit verschiedenen Elektrifizierungszuständen.
           In der Simulation werden Fahrzeuge mit Zwischenladefähigkeit an elektrifizierten Haltestellen geladen, wenn freie Ladesäulen verfügbar sind.
@@ -436,23 +436,23 @@
 
 
           <h4 class="text-m pb-1 pt-4 font-semibold" >Elektrifizierung</h4>
-          <p class="text-m pb-2 leading-relaxed text-slate-500">
+          <p class="text-m pb-2 leading-relaxed text-slate-800">
           Haltestellen können manuell ausgewählt werden und im Berechnungsmodell spezifisch elektrifiziert werden. Ihnen kann eine spezifische Ladeleistung pro Ladepunkt und eine Anzahl an Ladepunkten zugeordnet werden. Bei fehlender Eingabe einer Anzahl an Ladepunkten wird die Anzahl als unbegrenzt angenommen.
           </p>
 
           <h4 class="text-m pb-1 pt-4 font-semibold" >Nicht-Elektrifzierung</h4>
-          <p class="text-m pb-2 leading-relaxed text-slate-500">
+          <p class="text-m pb-2 leading-relaxed text-slate-800">
           Die Haltestelle wird als nicht elektrifiziert angenommen. Während der Simulation werde Fahrzeuge an diesen Haltestellen nicht laden. Dies ist der Standardwert für alle Haltestellen.
           </p>
 
           <h4 class="text-m pb-1 pt-4 font-semibold" >Automatisch</h4>
-          <p class="text-m pb-2 leading-relaxed text-slate-500">
+          <p class="text-m pb-2 leading-relaxed text-slate-800">
           Diese Einstellung prüft, ob das zu untersuchende Bussystem fahrbar ist ohne Elektrifizierung von Haltestellen. Sollte ein Bussystem fahrbar werden, wenn Haltestellen elektrifiziert werden,
           nutzt die Simulation einen Optimierungsalgorithmus, um eine geringe Anzahl an Haltestellen zu elektrifizieren und so Fahrbarkeit zu erreichen.
           </p>
 
           <h4 class="text-m pb-1 pt-4 font-semibold" >Empfehlung</h4>
-          <p class="text-m pb-2 leading-relaxed text-slate-500">
+          <p class="text-m pb-2 leading-relaxed text-slate-800">
           Die Auswahl der richtigen Haltestellen, die elektrifiziert werden müssen, um ein fahrbares Szenario zu erstellen, kann sehr komplex sein. Daher wird empfohlen folgendermaßen vorzugehen:
           </p>
           <ul class="list-disc">
@@ -461,14 +461,14 @@
           <li class="list-inside py-1 text-slate-800">Schalten Sie alle anderen Stationen auf "automatisch".</li>
           </ul>
 
-          <p class="text-m pb-2 leading-relaxed text-slate-500">
+          <p class="text-m pb-2 leading-relaxed text-slate-800">
           Somit erreichen Sie optimale Startbedingungen, um ein fahrbares Szenario zu erstellen.
           In weiteren Iterationen können sie durchs wahlweise setzen von Elektrifizierung und Nicht-Elektrifizierung von Stationen weitere Varianten erstellen.
           </p>
 
           <h2 class="pb-2 pt-4 text-2xl font-semibold">Erweiterte Optionen</h2>
-          <p class="text-base pb-4 leading-relaxed text-slate-500">
-          Im <a href="#expert_mode" class="text-blue-600 hover:underline">Expertenmodus</a> lässt sich über die Einstellung simba_options in der Tabelle Scenario das Ladeverhalten bei Zwischenladung beeinflussen.
+          <p class="text-base pb-4 leading-relaxed text-slate-800">
+          Im <a id='expert_mode' href="#expert_mode" class="text-blue-600 hover:underline">Expertenmodus</a> lässt sich über die Einstellung simba_options in der Tabelle Scenario das Ladeverhalten bei Zwischenladung beeinflussen.
           <b>simba_options["min_charging_time"]</b>: Minimale Standzeit um eine Zwischenladung durchzuführen.
           Wert in Minuten. Bei Standzeiten kleiner als dieser wird das Fahrzeug nicht geladen.
           Der Standardwert ist 0. <br>
@@ -578,22 +578,22 @@
             </section>
             <section>
               <a id='costs' href="#costs" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Kosten' %}</a>
-              <p class="text-base pb-4 leading-relaxed text-slate-500">
+              <p class="text-base pb-4 leading-relaxed text-slate-800">
             {% translate 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.' %}
           </p>
-          <a href="#depots" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Depots' %}</a>
-          <p class="text-base pb-4 leading-relaxed text-slate-500">
+          <a id='depots' href="#depots" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Depots' %}</a>
+          <p class="text-base pb-4 leading-relaxed text-slate-800">
             {% translate 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.' %}
           </p>
                 </section>
                 <section>
                   <a id='optimization' href="#optimization" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Optimierung' %}</a>
-                  <p class="text-base pb-4 leading-relaxed text-slate-500">
+                  <p class="text-base pb-4 leading-relaxed text-slate-800">
             {% blocktrans %}
           WeBus kann ihr Bussystem optimieren. Zwei Optimierungsmethoden werden standardmäßig angewandt
           </p>
-        <a href="#station_optimization" class="pb-2 pt-4 text-2xl font-semibold">Stationsoptimierung</a>
-          <p class="text-base pb-4 leading-relaxed text-slate-500">
+        <a id="station_optimization" href="#station_optimization" class="pb-2 pt-4 text-2xl font-semibold">Stationsoptimierung</a>
+          <p class="text-base pb-4 leading-relaxed text-slate-800">
           Sollte Ihr Bussystem mit den ausgewählten Fahrzeugtypen nicht fahrbar sein, so besteht die Möglichkeit, dass mittels Stationsoptimierung ein fahrbarer Zustand erreicht wird.
           Nicht fahrbar bedeutet in diesem Kontext: Ein voll geladener Bus kann einen Umlauf nicht bedienen, ohne dass der SoC des Fahrzeugs unter 0&nbsp;% fällt.
          Wenn das Fahrzeug diesen Umlauf bedienen könnte, wenn es an Stationen die momentan nicht elektrifiziert sind zwischenladen würde, so wird die Stationsoptimierung ausgeführt.
@@ -602,8 +602,8 @@
         Detaillierte Informationen zur Stationsoptimierung finden sie <a class="text-blue-600 hover:underline" href="https://github.com/rl-institut/SimBA">hier</a>.
           {% endblocktrans %}
         </p>
-          <a href="#import_export" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Import/Export' %}</a>
-          <p class="text-base pb-4 leading-relaxed text-slate-600">
+          <a id="import_export" href="#import_export" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Import/Export' %}</a>
+          <p class="text-base pb-4 leading-relaxed text-slate-800">
           {% url 'simba:JSON_import_scenario_tree'   as import_url %}
           {% url 'simba:dashboard'   as dashboard_url %}
             {% blocktrans %}
@@ -621,40 +621,37 @@
           Die Daten können vielfältigt weitergenutzt werden, beispielsweise für eigene Visualisierungsmethoden.
           {% endblocktrans %}
           </p>
+          <section>
           <a href="#results" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Ergebnisse' %}</a>
-          <p class="text-base pb-4 leading-relaxed text-slate-500">
+          <p class="text-base pb-4 leading-relaxed text-slate-800">
             {% blocktrans %}
           Im Folgenden finden Sie Erläuterungen zu den Kennzahlen und Grafiken die sie auf der Ergebnis-Seite finden.
-                  </p>
-                </section>
-                <section>
-                  <a id='results' href="#results" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Ergebnisse' %}</a>
-                  <p class="text-base pb-4 leading-relaxed text-slate-500">
-                    {% blocktrans %}
-          Im Folgenden finden Sie Erläuterungen zu den Kennzahlen und Grafiken, die Sie auf der Ergebnis-Seite finden.
-          <!-- TODO: plots erklären. Import/Export/Downloads -->
           {% endblocktrans %}
           </p>
           <a href="#expert_mode" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Expertenmodus' %}</a>
-          <p class="text-base pb-4 leading-relaxed text-slate-500">
+          <p class="text-base pb-4 leading-relaxed text-slate-800">
             {% blocktrans %}
           WeBus bietet einen vereinfachten Zugang für die Simulation von zu elektrifizierenden Bussystemen. Hierzu wurde der Funktionsumfang der Weboberfläche auf die wichtigsten Aspekte reduziert. Sollten Sie spezielle Anforderungen an beispielsweise technische Eigenschaften der Fahrzeuge haben, so lassen sich diese in einem Expertenmodus bearbeiten.
           Hierzu sind folgende drei Schritte notwendig:
-          <ol class="list-decimal">
+          <ol class="list-decimal m-auto p-0 text-slate-800">
           <li class="list-inside list-disc py-1 text-slate-800">Exportieren Sie ihr Szenario, welches Sie anpassen möchten, mittels "Daten exportieren". Eine Anleitung finden Sie <a href="#import_export" class="text-blue-600 hover:underline">hier</a> </li>
           <li class="list-inside list-disc py-1 text-slate-800">Passen Sie die Eigenschaften der verschiedenen Komponenten in der exportierten .json Datei an. Hierzu sind die Daten im Szenario vom typ "MUTATION" entscheidend. Sämtliche Einstellungen die Sie in WeBus vornehmen, werden an diesem Szenario getätigt."</li>
           <li class="list-inside list-disc py-1 text-slate-800">Importieren Sie die angepasste Datei. Sie können diese nun simulieren. Da der Eingabefluss nicht für den Expertenmodus ausgelegt ist, sollten Sie direkt zur Zusammenfassung/Summary springen um hier die Simulation zu starten.</li>
-          </ol>
           {% endblocktrans %}
-                  </section>
-
-                <section>
-                  <a id='faq' href="#faq" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'FAQ' %}</a>
-                  <p class="text-base pb-4 leading-relaxed text-slate-500">
+          </ol>
+          </section>
+          <section>
+            <a id='faq' href="#faq" class="inline-block pb-2 pt-4 text-2xl font-semibold">{% translate 'FAQ' %}</a>
+              <p class="text-base pb-4 leading-relaxed">
                     {% blocktrans %}
-          Im Folgenden erhalten Sie antworten auf häufig gestellte Fragen.
-        <h4 class='text-2xl font-semibold underline pt-4 pb-2'>Warum dauert die Simulation so lange?</h4>
-        <p>
+              Im Folgenden erhalten Sie antworten auf häufig gestellte Fragen.
+          <details class="group" >
+              <summary class="list-none cursor-pointer">
+          <span class='text-xl font-semibold underline pb-2 '>Warum dauert die Simulation so lange?</span>
+                <span class="inline-block transition group-open:rotate-180 ">⌄</span>
+              </summary>
+
+          <p class="text-slate-800">
           Wenn bei Ihnen die Simulation sehr lange dauert kann das mehrere Gründe haben. Am wahrscheinlichsten ist, dass Sie einen komplexen Umlaufplan simulieren der mehrere Tage oder sogar Wochen umfasst. Die Stationsoptimierung und Depotplanung für solche Systeme ist aufwendig und kann längere Zeit in Anspruch nehmen. Wenn Sie schneller Ergebnisse erhalten möchten empfehlen wir Ihnen folgendes Vorgehen:
           <ol class='list-disc'>
           <li class="list-inside list-disc py-1 text-slate-800" >Reduzieren Sie die zu simulierende Zeitspanne auf 1 oder 2 Tage, die repräsentativ für das System sind. Eine Eingabe mit sich wiederholenden Umläufen, führt zu keiner Verbesserung der Ergebnisse, verlangsamt die Simulation jedoch drastisch. </li>
@@ -663,6 +660,7 @@
           <li class="list-inside list-disc py-1 text-slate-800">Simulieren Sie Umläufe als zusammengefasste Fahrten von Endhaltestelle zu Endhaltestelle ohne Zwischenhalte. Dies beschleunigt, die Verbrauchsberechnung und Stationsoptimierung. Wenn Sie die Verbrauchswerte der Fahrzeuge nicht angeben, kann dies den geschätzen Verbrauch der Fahrzeuge leicht verändern.</li>
         </ol>
 
+            </details>
           {% endblocktrans %}
                   </section>
                 </div>
