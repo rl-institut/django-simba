@@ -340,9 +340,9 @@ class AssocVehicleTypeVehicleClass(models.Model):
 
 
 class EnumEnergySource(models.TextChoices):
-    BATTERY_ELECTRIC = "battery_electric"
-    DIESEL = "diesel"
-    HYDROGEN = "hydrogen"
+    BATTERY_ELECTRIC = "BATTERY_ELECTRIC"
+    DIESEL = "DIESEL"
+    HYDROGEN = "HYDROGEN"
 
 
 class VehicleType(models.Model):
