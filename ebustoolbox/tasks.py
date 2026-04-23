@@ -381,7 +381,6 @@ def get_trip_dictionaries_from_db(django_scenario, station_data) -> list:
         lut_consumption = False
         if len(consumption_classes) == 1:
             lut_consumption = True
-        # TODO: clean up conditionals
 
         try:
             calc_allowed_load = rot.vehicle_type.allowed_mass - rot.vehicle_type.empty_mass
@@ -1009,11 +1008,6 @@ def run_and_merge_scenarios(
     sizing_scenario_task_id: UUIDType,
 ):
 
-    import cProfile
-
-    profiler = cProfile.Profile()
-    profiler.enable()
-
     progress, created = Progress.objects.get_or_create(task_id=self.request.id)
     progress.reset()
     # We expect 10 steps of work, with 5 steps per simulation.
@@ -1113,12 +1107,6 @@ def run_and_merge_scenarios(
     scenario = Scenario.objects.get(id=mutation_id)
     scenario.finished = timezone.now()
     scenario.save()
-
-    profiler.disable()
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{timestamp}_{scenario.id}.out"
-
-    profiler.dump_stats(filename)
 
 
 def swap_consumption_w_max_consumption(scenario: Scenario) -> None:
@@ -1458,7 +1446,6 @@ def get_spiceev_events_from_scenario(scenario, skip_oppb=False, split_vehicles=F
             subloc_no=event.subloc_no,  # vehicle must not have moved
             time_start=event.time_end,
         ).first()
-
         # create arrival event
         arrival_event = {
             "signal_time": scenario_start_time.isoformat(),
@@ -1562,23 +1549,19 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
     # NOTE: rather have a delta between timeseries and event.soc_end then have divering
     # event.soc_end != next_event.soc_start
     # start and end soc must remain the same.
-    # We should rather keep the consolidated values
+    # In case of divergergence the original values are kept so divergences dont cascade
     if not (abs(soc_ts[0] - event.soc_start) < EPS):
         logger.error(
             f"S.ID:{event.scenario.id}:Depot Charging Simulation diverged\n"
             f"Delta of {abs(soc_ts[0] - event.soc_start)} at {event}.\n"
             f"{event.soc_start} Start Soc\n Timeseries:\n{abbreviate_list(soc_ts, fmt='.2e')}"
         )
-        # event.soc_start = soc_ts[0]
-        # Event.objects.bulk_update([event], fields=["soc_start"])
     if not (abs(soc_ts[-1] - event.soc_end) < EPS):
         logger.error(
             f"S.ID:{event.scenario.id}:Depot Charging Simulation diverged\n"
             f"Delta of {abs(soc_ts[-1] - event.soc_end)} at {event}.\n"
             f"{event.soc_end} END SOC\n Timeseries:\n{abbreviate_list(soc_ts, fmt='.2e')}"
         )
-        # event.soc_end = soc_ts[-1]
-        # Event.objects.bulk_update([event], fields=["soc_end"])
 
     # re-create timestamps series
     interval = (event.time_end - event.time_start) / (len(soc_ts) - 1)
@@ -1592,8 +1575,8 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
     assert len(soc_ts) == len(event.timeseries["time"])
     assert event.timeseries["time"][0] == event.time_start.isoformat()
 
-    # handle floating point errors, there are cases above 1 milliseconds, so lets just make it a second
-    # to never worry about it
+    # handle floating point errors
+    # there are cases above 1 milliseconds, so lets just make it a second to never worry about it
     assert abs(datetime.fromisoformat(event.timeseries["time"][-1]) - event.time_end) <= timedelta(
         seconds=1
     )
@@ -1681,9 +1664,6 @@ def apply_depot_strategy(scenario: Scenario, strategy: str, split_vehicles=False
                 spice_ev_scenario.start_time + (ts_start + idx_stop_charging) * interval
             )
 
-            # The charging stopped inside the events:
-            # keep both events
-
             # make sure the calculated times are correct with a max error of the spiceev timestep
             assert (
                 spice_ev_scenario.start_time + (ts_start) * interval <= event.time_start + interval
@@ -1693,6 +1673,8 @@ def apply_depot_strategy(scenario: Scenario, strategy: str, split_vehicles=False
                 <= next_event.time_end + interval
             )
             if next_event.time_end > ts_stop_charging > event.time_start:
+                # The charging stopped inside the events:
+                # keep both events
                 socs_charging = socs[: idx_stop_charging + 1]
                 socs_standby = socs[idx_stop_charging:]
                 len_buffer = int((next_event.time_end - departure_time) / interval)
@@ -1704,9 +1686,17 @@ def apply_depot_strategy(scenario: Scenario, strategy: str, split_vehicles=False
                 replace_event_timeseries(next_event, socs_standby + socs_buffer)
                 event_list.append(next_event)
             elif ts_stop_charging > next_event.time_end:
-                print(f"deleting event {next_event}")
-                replace_event_timeseries(event, socs)
+                # the charging event stopped after the next event.
+                # the event is deleted, the overlapping time is ignored
+                # the first event expands to include the whole next_event
+                logger.info(
+                    f"{next_event} will be deleted. The previous event{event} will end at "
+                    f"{next_event.time_end.isoformat()} instead of the SpiceEv simulated "
+                    f"{ts_stop_charging.isoformat()}. "
+                    f"{(ts_stop_charging-next_event.time_end).total_seconds()} s difference"
+                )
                 event.time_end = next_event.time_end
+                replace_event_timeseries(event, socs)
                 events_to_delete.append(next_event)
         event_list.append(event)
 
@@ -2123,8 +2113,7 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
         consolidate_socs(db_scenario)
 
         # NOTE: Consolidate results with a given strategy. EPS of 1% needed.
-        # Balanced strategy or expose from simba_options? TODO: Discuss
-        # Greedy strategy for easier search of differences between eflips/simba
+        # Force balanced_check so balanced strategy makes sure to achieve desired soc even with charging curves
         apply_depot_strategy(db_scenario, "balanced_check", split_vehicles=True)
 
         progress.current_work += 1
@@ -2288,12 +2277,11 @@ def get_assigned_vehicles(task_id: str) -> List[dict]:
             logger.error(
                 f"{rot.id=} has no event with {vehicle=} before {first_trip.departure_time.isoformat()}"
             )
-            vehicle_assigns.append({"rot": rot.id, "v_id": vehicle.to_simba_name(), "soc": 1.0})
-
+            start_soc = 1
         else:
-            vehicle_assigns.append(
-                {"rot": rot.id, "v_id": vehicle.to_simba_name(), "soc": prev_event.soc_end}
-            )
+            start_soc = prev_event.soc_end
+
+        vehicle_assigns.append({"rot": rot.id, "v_id": vehicle.to_simba_name(), "soc": start_soc})
     return vehicle_assigns
 
 
@@ -3671,10 +3659,10 @@ def create_consolidate_log(
     # This can happen if the previous depot charge diverged from eflips/simba
     # e.g. the first simba run started with soc 1 since each rotation gets its own vehicle
     # eflips assigned a vehicle which was previously in use and charged from .8 to 0.95 and started the rotation
-    # simba will use the same assigment and try to reach 0.95 in the depot. if it does not succeed
+    # SimBA/SpiceEv will use the same assignment and try to reach 0.95 in the depot. if it does not succeed
     # all following socs will drop by this amount
     # this is not ideal since these difference can add up over time.
-    if pre_fix_delta > EPS * 5:
+    if pre_fix_delta > EPS:
         logger.warning(
             f"Unexpected soc drop {running_delta_soc=:.2e} and {pre_fix_delta=:.2e} due to consolidation.\n"
             f"{prev_event=}\n{event=}\n{next_event=}."
