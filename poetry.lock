@@ -3199,7 +3199,7 @@ spice_ev = "*"
 type = "git"
 url = "https://github.com/rl-institut/SimBA"
 reference = "feature/improve_performance"
-resolved_reference = "6910bf2c3929e85f147f9f100303e5572f741d06"
+resolved_reference = "01c7195bde02d371ad7e1b14ce8c0c5db43b217f"
 
 [[package]]
 name = "simpy"
