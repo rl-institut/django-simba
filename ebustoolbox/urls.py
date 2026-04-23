@@ -132,7 +132,7 @@ urlpatterns = [
     path("result/<uuid:task_id>/tco/", views.get_tco, name="tco_data"),
     path(
         "result/<uuid:task_id>/critical_rotations/",
-        views.render_critical_rotations,
+        views.get_critical_rotations,
         name="critical_rotations",
     ),
     path(
@@ -145,10 +145,16 @@ urlpatterns = [
         views.get_rotation_table_data,
         name="get_rotation_table_data",
     ),
-    path("result/<uuid:task_id>/bustype/", views.render_bustype, name="bustype"),
+    path("result/<uuid:task_id>/bustype/", views.get_bustype, name="bustype"),
     path("result/<uuid:task_id>/soc_hist/", views.get_binned_soc_data, name="soc_hist"),
     path("result/<uuid:task_id>/depot_power/", views.get_power_draw_and_occ, name="eflips_power"),
+    path(
+        "result/<uuid:task_id>/depot_power/<int:depot_id>/",
+        views.get_power_draw_and_occ,
+        name="eflips_power",
+    ),
     path("result/<uuid:task_id>/gantt/", views.get_gantt, name="gantt"),
+    path("result/<uuid:task_id>/piecharts/", views.get_piecharts, name="piecharts"),
     path("load_test/<uuid:task_id>/", views.loadTester, name="loadtest"),
     path("delete/<uuid:task_id>/", views.delete_scenario, name="delete"),
 ]

@@ -70,6 +70,7 @@ from ebustoolbox.models import (
     VehicleClass,
     VehicleType,
     DefaultScenario,
+    Depot,
     Station,
     EnumChargeType,
     Event,
@@ -1498,11 +1499,13 @@ class ResultView(AuthorizedMixIn, TemplateView, MapEngineMixin):
             scenario_type=EnumScenarioType.SIMULATION,
             simulationtype__sim_type=EnumSimulationType.DEFAULT,
         ).first()
-        context["ext_scenario"] = Scenario.objects.filter(
+        extScenario = Scenario.objects.filter(
             parent=scenario,
             scenario_type=EnumScenarioType.SIMULATION,
             simulationtype__sim_type=EnumSimulationType.SIZING,
         ).first()
+        context["ext_scenario"] = extScenario
+        context["depots"] = Depot.objects.filter(scenario=extScenario)
         context["scenario"] = scenario
         notifications = Notification.objects.filter(scenario=scenario)
         context["notifications"] = tasks.get_notfications_dict(notifications)
@@ -1838,57 +1841,46 @@ def usergroups(request):
     return render(request, "usergroups.html", {"usergroups": usergroups})
 
 
-def render_critical_rotations(request, task_id: str):
-    """Returns raw JSON data for critical rotations (critical vs. non-critical)"""
-    vehicle_name_dict = data.get_all_buses_labeled(task_id)[0]
-    buses = list(vehicle_name_dict.keys())
-
+def get_critical_rotations(request, task_id: str):
+    """Returns data about rotations (critical vs. non-critical)"""
+    file_format = request.GET.get("format", "json").lower()
     s = Scenario.objects.get(task_id=task_id)
-
-    df = data.get_critical_rotations_as_dataframe(s.id, buses)
-
-    # Aggregate category counts
-    category_counts = (
-        df["SOC_category"].value_counts().reindex(["Nicht kritisch", "kritisch"], fill_value=0)
-    )
-
-    return JsonResponse(
-        {
-            "data": [
-                {"value": count, "name": category} for category, count in category_counts.items()
-            ]
-        }
-    )
+    df = data.get_critical_rotations_as_dataframe(s.id, None)
+    if file_format == "json":
+        data_obj = (
+            df.groupby("SOC_category").size().reset_index(name="count").to_dict(orient="records")
+        )
+        return JsonResponse({"data": data_obj}, safe=True)
+    elif file_format == "csv":
+        return HttpResponse(df.to_csv(index=False), content_type="text/csv")
+    return HttpResponse(status=400)
 
 
-def render_bustype(request, task_id: str):
-    """Returns raw JSON data for vehicle type distribution"""
-    vehicle_name_dict, unused_variable = data.get_all_buses_labeled(task_id)
-    buses = list(vehicle_name_dict.keys())
-
+def get_bustype(request, task_id: str):
+    """Returns data about vehicle type distribution"""
+    file_format = request.GET.get("format", "json").lower()
     s = Scenario.objects.get(task_id=task_id)
-
-    df = data.get_vehicle_types(s.id, buses)
-    if len(df) == 0:
-        return JsonResponse({"data": []})
-
-    return JsonResponse(
-        {
-            "data": [
-                {"value": row["count"], "name": row["name"]}
-                for unused_variable, row in df.iterrows()
-            ]
-        }
-    )
+    df = data.get_vehicle_types(s.id, None)
+    if file_format == "json":
+        return JsonResponse({"data": df.to_dict(orient="records")}, safe=True)
+    elif file_format == "csv":
+        return HttpResponse(df.to_csv(index=False), content_type="text/csv")
+    return HttpResponse(status=400)
 
 
 def get_soc_data(request, task_id: str):
     """
-    Returns SOC (State of Charge) data over time for selected buses in JSON format.
+    Returns SOC (State of Charge) data over time.
     """
-    response_data = data.get_soc_as_json(task_id)
+    file_format = request.GET.get("format", "json").lower()
+    s = Scenario.objects.get(task_id=task_id)
 
-    return JsonResponse(response_data)
+    if file_format == "json":
+        return JsonResponse(data.get_soc_as_json(task_id), safe=True)
+    elif file_format == "csv":
+        csv_text = data.get_soc_as_dataframe(s.id, data.get_all_buses(task_id))
+        return HttpResponse(csv_text.to_csv(index=False), content_type="text/csv")
+    raise HttpResponse(status=400)
 
 
 def get_binned_soc_data(request, task_id: str):
@@ -1896,54 +1888,120 @@ def get_binned_soc_data(request, task_id: str):
     Returns binned SOC histogram data over time, forward-filled to hourly resolution,
     ensuring one (the lowest) SOC entry per vehicle per hour.
     """
-
-    response_data = data.get_binned_soc_as_json(task_id)
-
-    return JsonResponse({"data": response_data})
+    file_format = request.GET.get("format", "json").lower()
+    df = data.get_binned_soc(task_id)
+    if file_format == "json":
+        return JsonResponse({"data": df.to_dict(orient="records")}, safe=True)
+    elif file_format == "csv":
+        return HttpResponse(df.to_csv(index=False), content_type="text/csv")
+    return HttpResponse(status=400)
 
 
 def get_power_draw(request, task_id: str):
     """
     Returns power draw data over time by station ID for selected buses.
     """
-
-    response_data = data.get_power_draw_as_json(request, task_id)
+    response_data = data.get_power_draw(request, task_id)
 
     return JsonResponse({"data": response_data})
 
 
 def get_stats(request, task_id: str):
-    response_data = data.get_stats_as_json(task_id)
-
+    response_data = data.get_stats(task_id)
     return JsonResponse(response_data)
 
 
 def get_speed_hist(request, task_id: str):
-    response_data = data.get_speed_hist_as_json(task_id)
-
-    return JsonResponse(response_data)
+    file_format = request.GET.get("format", "json").lower()
+    df = data.get_speed_hist(task_id)
+    if file_format == "json":
+        return JsonResponse(df.to_dict(orient="list"), safe=True)
+    elif file_format == "csv":
+        return HttpResponse(df.to_csv(index=False), content_type="text/csv")
+    return HttpResponse(status=400)
 
 
 def get_dist_hist(request, task_id: str):
-    response_data = data.get_dist_hist_as_json(task_id)
+    file_format = request.GET.get("format", "").lower()
+    response_data = data.get_dist_hist(task_id)
+    if not file_format:
+        return JsonResponse(response_data, safe=True)
+    if file_format == "json":
+        return JsonResponse(response_data["data"], safe=True)
+    return HttpResponse(status=400)
 
-    return JsonResponse(response_data)
 
-
-def get_power_draw_and_occ(request, task_id: str):
-    response_data = data.get_power_draw_and_occ_as_json(task_id)
-
-    return JsonResponse(response_data)
+def get_power_draw_and_occ(request, task_id: str, depot_id: int | None = None):
+    file_format = request.GET.get("format", "").lower()
+    response_data = data.get_power_draw_and_occ(task_id)
+    if not file_format:
+        response_data["data"] = response_data["data"].to_dict(orient="records")
+        return JsonResponse(response_data, safe=True)
+    df = response_data["data"]
+    if file_format == "json":
+        return JsonResponse({"data": df.to_dict(orient="records")}, safe=True)
+    elif file_format == "csv":
+        return HttpResponse(df.to_csv(index=False), content_type="text/csv")
+    return HttpResponse(status=400)
 
 
 def get_gantt(request, task_id: str):
+    file_format = request.GET.get("format", "json").lower()
     scenario = Scenario.objects.get(task_id=task_id)
+    df = data.recent_memoizer(data.get_gantt, scenario.id)(scenario.id)
+    if file_format == "json":
+        return JsonResponse({"data": df.to_dict(orient="records")}, safe=True)
+    elif file_format == "csv":
+        return HttpResponse(df.to_csv(index=False), content_type="text/csv")
+    return HttpResponse(status=400)
 
-    records = data.recent_memoizer(data.get_gantt, scenario.id)(scenario.id).to_dict(
-        orient="records"
-    )
 
-    return JsonResponse({"data": records})
+def get_tco(request, task_id: str):
+    file_format = request.GET.get("format", "json").lower()
+    tco = data.get_tco(task_id)  # tco_result JSON field from Scenario
+    if file_format == "json":
+        return JsonResponse(tco)
+    elif file_format == "csv":
+        return HttpResponse(tco.to_csv(index=False), content_type="text/csv")
+    return HttpResponse(status=400)
+
+
+def get_piecharts(request, task_id: str):
+    file_format = request.GET.get("format", "json").lower()
+
+    # Get the two DataFrames
+    critical_df, bus_df = data.get_combined_piecharts(task_id)
+
+    if file_format == "json":
+        # Convert DataFrames to nested dicts
+        json_data = {
+            "critical_rotations": dict(zip(critical_df["category"], critical_df["count"])),
+            "bus_types": dict(zip(bus_df["category"], bus_df["count"])),
+        }
+        return JsonResponse(json_data, safe=True)
+
+    elif file_format == "csv":
+        # Build CSV string manually, because of empty row between tables
+        lines = []
+
+        # Header and rows for critical rotations
+        lines.append(",".join(critical_df.columns))
+        for row in critical_df.itertuples(index=False):
+            lines.append(",".join(str(x) for x in row))
+
+        # Empty row
+        lines.append("")
+
+        # Header and rows for bus types
+        lines.append(",".join(bus_df.columns))
+        for row in bus_df.itertuples(index=False):
+            lines.append(",".join(str(x) for x in row))
+
+        csv_string = "\n".join(lines)
+        response = HttpResponse(csv_string, content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="piecharts.csv"'
+        return response
+    return HttpResponse(status=400)
 
 
 def export_scenario_tree(request, task_id: str):
@@ -2035,9 +2093,8 @@ def export_scenario(request):
         exporter = ScenarioJSONImporterExporter()
         visit_all_scenario_queries(exporter, scenario)
         json_data = exporter.renderJSON()
-        data[f"scenario_{scenario.simulationtype_set.first().sim_type}_{task_id[:3]}.json"] = (
-            json_data
-        )
+        file_name = f"scenario_{scenario.simulationtype_set.first().sim_type}_{task_id[:3]}.json"
+        data[file_name] = json_data
         # If a child was created delete it
         if child is not None:
             child.delete()
@@ -2213,17 +2270,16 @@ def delete_scenario(request, task_id):
     return redirect(reverse("simba:dashboard"))
 
 
-def get_tco(request, task_id):
-
-    response_data = data.get_tco(task_id)
-    return JsonResponse(response_data)
-
-
 def get_cumulative_energy(request, task_id: str):
     response_data = data.get_cumulative_energy(task_id)
     return JsonResponse(response_data)
 
 
 def get_rotation_table_data(request, task_id: str):
-    response_data = data.get_rotation_table_data(task_id)
-    return JsonResponse(response_data, safe=False)
+    file_format = request.GET.get("format", "json").lower()
+    df = data.get_rotation_table_data(task_id)
+    if file_format == "json":
+        return JsonResponse(df.to_dict(orient="records"), safe=False)
+    elif file_format == "csv":
+        return HttpResponse(df.to_csv(index=False), content_type="text/csv")
+    return HttpResponse(status=400)

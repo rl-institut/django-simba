@@ -3322,8 +3322,12 @@ class ScheduleStationMerger:
         )
 
         # Filter for routes which do not have a trip anymore and delete them.
+        # Scoped to source_scenario: a global query would race concurrent
+        # imports of other scenarios, whose routes briefly have no trips
+        # between bulk_create(Route) and bulk_create(Trip).
         logger.info(
-            f"Deleting orphaned routes without trips {(Route.objects.filter(trip__isnull=True).delete())}"
+            "Deleting orphaned routes without trips "
+            f"{(Route.objects.filter(scenario=source_scenario, trip__isnull=True).delete())}"
         )
 
         deleted_stations = str(
