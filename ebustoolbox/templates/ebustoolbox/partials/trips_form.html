@@ -96,23 +96,46 @@
           <label id="listbox-label" class="block text-sm font-semibold text-slate-800">
 
           </label>
-
           <!-- Dropdown -->
-          <div class="relative">
             <select
               id="{{ form.existing_scenario.auto_id }}"
+              x-data
+              x-init="$($el).select2();"
               name="{{ form.existing_scenario.name }}"
               class="flex flex-wrap items-center w-full rounded-md bg-white px-3 py-1.5 text-left text-slate-800 border border-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6 cursor-pointer"
             >
               <option value="">{% translate '-- Szenario auswählen --' %}</option>
-              {% for scenario in scenarios %}
+              {% if userScenarios %}
+              <optgroup label='{% translate "Deine Szenarien" %}'>
+              {% for scenario in userScenarios %}
+                  <option
+                    value="{{ scenario.task_id }}"
+                    {% if scenario.id|stringformat:"i" == requested %}selected{% endif %}
+                  >{{ scenario.name }}</option>
+                {% endfor %}
+              </optgroup>
+              {% endif %}
+              {% if groupScenarios %}
+              <optgroup label='{% translate "Freigeschaltete Szenarien" %}'>
+              {% for scenario in groupScenarios %}
                 <option
                   value="{{ scenario.task_id }}"
                   {% if scenario.id|stringformat:"i" == requested %}selected{% endif %}
                 >{{ scenario.name }}</option>
               {% endfor %}
+              </optgroup>
+              {% endif %}
+              {% if publicScenarios %}
+              <optgroup label='{% translate "Öffentliche Szenarien" %}'>
+                {% for scenario in publicScenarios %}
+                <option
+                  value="{{ scenario.task_id }}"
+                  {% if scenario.id|stringformat:"i" == requested %}selected{% endif %}
+                >{{ scenario.name }}</option>
+              {% endfor %}
+              </optgroup>
+              {% endif %}
             </select>
-          </div>
         </div>
       </div>
     </div>
