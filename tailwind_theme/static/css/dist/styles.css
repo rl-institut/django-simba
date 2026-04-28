@@ -1551,6 +1551,11 @@ select {
   min-width: 100%;
 }
 
+.min-w-fit {
+  min-width: -moz-fit-content;
+  min-width: fit-content;
+}
+
 .max-w-12 {
   max-width: 3rem;
 }
@@ -2087,6 +2092,10 @@ select {
 
 .whitespace-nowrap {
   white-space: nowrap;
+}
+
+.text-nowrap {
+  text-wrap: nowrap;
 }
 
 .break-words {

@@ -89,7 +89,7 @@
     </div>
     <div class="col-span-full pt-4 pb-8">
       <div class="flex items-center gap-4">
-        <div class="text-sm text-slate-500">
+        <div class="text-sm text-slate-500 min-w-fit">
           {% translate 'oder aus bestehendem Szenario' %}
         </div>
         <div class="flex-grow">
@@ -102,7 +102,7 @@
               x-data
               x-init="$($el).select2();"
               name="{{ form.existing_scenario.name }}"
-              class="flex flex-wrap items-center w-full rounded-md bg-white px-3 py-1.5 text-left text-slate-800 border border-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6 cursor-pointer"
+              class="w-full"
             >
               <option value="">{% translate '-- Szenario auswählen --' %}</option>
               {% if userScenarios %}
