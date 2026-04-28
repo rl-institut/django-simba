@@ -1217,6 +1217,18 @@ class SimulationExecutionFailException(Exception):
     pass
 
 
+class SimulationZeroEventDurationException(Exception):
+    pass
+
+
+class SimulationNegativeEventDurationException(Exception):
+    pass
+
+
+class SimulationLateEventException(Exception):
+    pass
+
+
 def create_spiceev_scenario_dict(scenario: Scenario, split_vehicles=False) -> dict:  # noqa: C901
     events = scenario.event_set.filter(event_type=EventType.CHARGING_DEPOT)
     if not events.exists():
@@ -1361,6 +1373,7 @@ def create_spiceev_scenario_dict(scenario: Scenario, split_vehicles=False) -> di
     # and one more timestep, since vehicle soc are taken at begin of each timestep
     n_intervals += 1
     if split_vehicles:
+        # remove original vehicles from simulation, retain only split vehicles
         for vehicle in scenario.vehicle_set.all():
             del vehicles[vehicle.to_simba_name()]
 
@@ -1546,10 +1559,8 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
     # timeseries
     assert all([soc is not None for soc in soc_ts])
 
-    # NOTE: rather have a delta between timeseries and event.soc_end then have divering
-    # event.soc_end != next_event.soc_start
-    # start and end soc must remain the same.
-    # In case of divergergence the original values are kept so divergences dont cascade
+    # NOTE: start and end soc must remain the same (event.soc_end == next_event.soc_start)
+    # Allow deviation in timeseries and soc_end. The original values are kept to avoid cascade.
     if not (abs(soc_ts[0] - event.soc_start) < EPS):
         logger.error(
             f"S.ID:{event.scenario.id}:Depot Charging Simulation diverged\n"
@@ -1565,8 +1576,10 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
 
     # re-create timestamps series
     interval = (event.time_end - event.time_start) / (len(soc_ts) - 1)
-    assert interval > timedelta(seconds=0), f"{event.id=}"
-    assert event.time_start < event.time_end, f"{event.id}"
+    if not event.time_start < event.time_end:
+        raise SimulationNegativeEventDurationException(f"{event.id=} has a negative duration")
+    if not interval > timedelta(seconds=0):
+        raise SimulationZeroEventDurationException(f"{event.id=} has zero duration")
     event.timeseries = {
         "time": [(event.time_start + i * interval).isoformat() for i in range(len(soc_ts))]
     }
@@ -1665,13 +1678,20 @@ def apply_depot_strategy(scenario: Scenario, strategy: str, split_vehicles=False
             )
 
             # make sure the calculated times are correct with a max error of the spiceev timestep
-            assert (
+            if not (
                 spice_ev_scenario.start_time + (ts_start) * interval <= event.time_start + interval
-            )
-            assert (
+            ):
+                raise SimulationLateEventException(
+                    "SpiceEV charging start timestep diverges from event.time_start"
+                )
+            if not (
                 spice_ev_scenario.start_time + (ts_start + idx_stop_charging) * interval
                 <= next_event.time_end + interval
-            )
+            ):
+
+                raise SimulationLateEventException(
+                    "SpiceEV charging end timestep diverges from event.time_start"
+                )
             if next_event.time_end > ts_stop_charging > event.time_start:
                 # The charging stopped inside the events:
                 # keep both events
@@ -3659,7 +3679,7 @@ def create_consolidate_log(
             f"\n{prev_event.id} and {event.id}"
         )
 
-    # NOTE:: A following event gets its soc reduced.
+    # NOTE: A following event gets its soc reduced.
     # This can happen if the previous depot charge diverged from eflips/simba
     # e.g. the first simba run started with soc 1 since each rotation gets its own vehicle
     # eflips assigned a vehicle which was previously in use and charged from .8 to 0.95 and started the rotation
