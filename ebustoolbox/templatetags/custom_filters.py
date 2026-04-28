@@ -1,4 +1,5 @@
 from django import template
+from django.conf import settings
 
 register = template.Library()
 
@@ -80,3 +81,8 @@ def get_attr(obj, key):
 @register.filter
 def multiply(a, b):
     return a*b
+
+
+@register.simple_tag
+def email_to():
+    return settings.DEFAULT_FROM_EMAIL

@@ -1,5 +1,6 @@
 {% load i18n %}
 {% load static %}
+{% load custom_filters %}
 <!-- Add Top Navigation -->
 <nav class="bg-white shadow-md z-20">
   <div class="mx-auto px-4 sm:px-6 lg:px-8">
@@ -19,7 +20,7 @@
           <a href="{% url 'core:profile' %}" class="text-sm text-slate-500 hover:text-emerald-500 transition-colors">{% translate 'Profil' %}</a>
         {% endif %}
         <a href="{% url 'core:help' %}" class="text-sm text-slate-500 hover:text-emerald-500 transition-colors">{% translate 'Hilfe' %}</a>
-        <a href="#" class="text-sm text-slate-500 hover:text-emerald-500 transition-colors">Über das Projekt</a>
+        <a href="mailto:{% email_to %}?subject=Feedback WeBus" class="text-sm text-slate-500 hover:text-emerald-500 transition-colors">Feedback</a>
         {% if user.is_authenticated %}
           <form action="{% url 'core:logout' %}" method="post">
             {% csrf_token %}
