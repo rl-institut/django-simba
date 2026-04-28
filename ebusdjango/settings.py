@@ -285,9 +285,6 @@ MAX_FILE_SIZE_B = env.int("DJANGO_MAX_FILE_SIZE_KB", 64000) << 10
 # general static file folders
 STATICFILES_DIRS = [
     BASE_DIR / "static",
-    BASE_DIR / "templates/js",
-    BASE_DIR / "templates/css",
-    BASE_DIR / "templates/img",
 ]
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
