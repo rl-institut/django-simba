@@ -7,7 +7,10 @@ How to create public data scenarios.
 Admins can now easily add Scenarios which can be selected by users to run a scenarios without uploading data.
 Steps
 1. Login as Superuser
-2. Upload a Scenarios using the standard way/trips.html
+2a. Upload a Scenarios using the standard way/trips.html OR
+2b. Upload a Scenarios using the scenario_tee import
+    - If the tree does not contain a Mutation-Scenario create one
+        - Create a variant using the "Szenarien" Tab. Click on "Variante Erstellen" filter it the way you like using the wizards "Simulationsfilter"
 3. Go to the admin panel, select the created mutation scenario and make the scenario a PUBLIC_DATA scenario
 
 ### Admin Panel

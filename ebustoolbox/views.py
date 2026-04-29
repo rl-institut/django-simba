@@ -345,8 +345,22 @@ class TripsView(FormView):
             progress_db = get_unique_progress_or_none(kwargs.get("task_id"))
             context["progress_id"] = progress_db.task_id if progress_db else None
 
-        scenarios = get_sorted_selectable_scenarios(self.request.user)
+        scenarios = list(get_sorted_selectable_scenarios(self.request.user))
+        userScenarios = list(filter(lambda x: x.manager == request.user, scenarios))
+        groupScenarios = list(
+            filter(
+                lambda x: x.manager != request.user
+                and x.scenario_type != EnumScenarioType.PUBLIC_DATA,
+                scenarios,
+            )
+        )
+        publicScenarios = list(
+            filter(lambda x: x.scenario_type == EnumScenarioType.PUBLIC_DATA, scenarios)
+        )
         context["scenarios"] = scenarios
+        context["userScenarios"] = userScenarios
+        context["groupScenarios"] = groupScenarios
+        context["publicScenarios"] = publicScenarios
         context["requested"] = request.GET.get("s")
         return context
 
