@@ -3800,11 +3800,6 @@ progress::-moz-progress-bar {
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
-.group[open] .group-open\:bg-emerald-200 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(167 243 208 / var(--tw-bg-opacity, 1));
-}
-
 .group:hover .group-hover\:visible {
   visibility: visible;
 }
