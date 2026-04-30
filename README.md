@@ -291,12 +291,6 @@ The translation becomes available when the msgstr inside these .po files is set 
 django-admin compilemessages
 ```
 
-For now the language is set via a cookie when calling
-`
-/set_lang/LANGUAGE_ABBREVIATION
-`
-for now "de" and "en" are supported
-
 ## Temperatures
 The Website supports temperature statistics via DWD-data. Currently they are used in supporting the user deciding on a scenario temperature.
 The closest weatherstation in regards to the scenario centroid with sufficient data is searched. Found data is used to compare user input to historical data,

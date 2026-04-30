@@ -35,3 +35,8 @@
     visibility: hidden;
     display: none
 }
+
+.language {
+    border: 0px;
+    padding: 0px;
+}

@@ -1,6 +1,5 @@
-{% load i18n %}
-{% load static %}
-{% load custom_filters %}
+{% load i18n static custom_filters %}
+{% get_current_language as LANGUAGE_CODE %}
 <!-- Add Top Navigation -->
 <nav class="bg-white shadow-md z-20">
   <div class="mx-auto px-4 sm:px-6 lg:px-8">
@@ -10,6 +9,7 @@
           <img class="h-6 w-auto" src="{% static 'core/images/logo/webus_green.svg' %}" alt="WeBus">
         </a>
       </div>
+
       <div class="hidden sm:flex items-center space-x-6">
         <a href="{% url 'simba:trips' %}" class="px-4 py-1 border-2 border-emerald-400 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-emerald-400 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-400 active:bg-emerald-500 transition-all duration-300">
           {% translate '+ Szenario erstellen' %}
@@ -21,6 +21,31 @@
         {% endif %}
         <a href="{% url 'core:help' %}" class="text-sm text-slate-500 hover:text-emerald-500 transition-colors">{% translate 'Hilfe' %}</a>
         <a href="mailto:{% email_to %}?subject=Feedback WeBus" class="text-sm text-slate-500 hover:text-emerald-500 transition-colors">Feedback</a>
+
+        <div class="relative block language-select">
+          <button type="button"
+            class="menu-button px-2 py-2 inline-flex justify-center gap-x-1.5"
+            aria-expanded="false"
+            aria-haspopup="true"
+            aria-label="Sprachauswahl"
+          >
+            <img src="{% static 'core/images/flag_'|add:LANGUAGE_CODE|add:'.png' %}">
+          </button>
+          <div class="menu-dropdown hidden z-20 rounded-md bg-white shadow-lg"
+            style="gap:4px; justify-items:center; width:100%"
+            role="menu"
+            aria-orientation="vertical"
+            tabindex="-1"
+          >
+            <button value="de">
+              <img src="{% static 'core/images/flag_de.png' %}" alt="Deutsch">
+            </button>
+            <button value="en">
+              <img src="{% static 'core/images/flag_en.png' %}" alt="English">
+            </button>
+          </div>
+        </div>
+
         {% if user.is_authenticated %}
           <form action="{% url 'core:logout' %}" method="post">
             {% csrf_token %}
@@ -60,6 +85,29 @@
   <!-- Mobile Menu -->
   <div id="mobile-menu" class="fixed inset-0 hidden z-20 bg-white">
     <div class="flex flex-col items-center justify-center h-full space-y-8">
+      <div class="relative block language-select">
+        <button type="button"
+          class="menu-button px-2 py-2 inline-flex justify-center gap-x-1.5"
+          aria-expanded="false"
+          aria-haspopup="true"
+          aria-label="Sprachauswahl"
+        >
+          <img src="{% static 'core/images/flag_'|add:LANGUAGE_CODE|add:'.png' %}">
+        </button>
+        <div class="menu-dropdown hidden z-20 rounded-md bg-white shadow-lg"
+          style="gap:4px; justify-items:center; width:100%"
+          role="menu"
+          aria-orientation="vertical"
+          tabindex="-1"
+        >
+          <button value="de">
+            <img src="{% static 'core/images/flag_de.png' %}" alt="Deutsch">
+          </button>
+          <button value="en">
+            <img src="{% static 'core/images/flag_en.png' %}" alt="English">
+          </button>
+        </div>
+      </div>
       {% if user.is_authenticated %}
       <button class="px-6 py-2 border-2 border-emerald-400 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-emerald-400 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-400 active:bg-emerald-500 transition-all duration-300">
         {% translate '+ Szenario erstellen' %}
@@ -108,6 +156,19 @@
   </div>
 </div>
 
+<!--
+  language selection
+  Problem: Chrome/Windows does not render country flags
+  Also, select/option does not allow images.
+  => hide the actual form, build DIVs with images
+-->
+<form id="form-lang" action="{% url 'core:set_language' %}" method="post">{% csrf_token %}
+  <select name="language" class="language hidden" onchange="this.form.submit()">
+    <option id="form-lang-de" value="de"{% if LANGUAGE_CODE == "de" %} selected{% endif %}>🇩🇪️</option>
+    <option id="form-lang-en" value="en"{% if LANGUAGE_CODE == "en" %} selected{% endif %}>🇬🇧️️</option>
+  </select>
+</form>
+
 <script>
   // Top Navigation
   // Due to htmx, there might be multiple declartions of these consts.
@@ -154,4 +215,43 @@
   });
 }
   setupMenu();
+
+  // language selection
+  document.addEventListener("DOMContentLoaded", () => {
+    for (let lang_div of document.getElementsByClassName('language-select')) {
+      let menu_btn = lang_div.firstElementChild;
+      let dropdown = lang_div.lastElementChild;
+
+      function setLanguageSelection(open) {
+        dropdown.classList.add(open? 'grid' : 'hidden');
+        dropdown.classList.remove(open? 'hidden' : 'grid');
+        menu_btn.classList.add(open? 'hidden' : 'block');
+        menu_btn.classList.remove(open? 'block' : 'hidden');
+        menu_btn.setAttribute('aria-expanded', open? 'true' : 'false');
+      }
+
+      menu_btn.addEventListener('click', _ => {
+        const isOpen = !dropdown.classList.contains('hidden');
+        setLanguageSelection(open=!isOpen);
+      });
+
+      for (let btn of dropdown.children) {
+        btn.addEventListener('click', _ => {
+          let requested_language = btn.value;
+          if (requested_language != '{{ LANGUAGE_CODE }}') {
+            document.getElementById('form-lang-' + btn.value).selected = true;
+            document.getElementById('form-lang').submit();
+          } else {
+            setLanguageSelection(open=false);
+          }
+        });
+      }
+
+      document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target) && !dropdown.previousElementSibling.contains(e.target)) {
+          setLanguageSelection(open=false);
+        }
+      });
+    }
+  });
 </script>

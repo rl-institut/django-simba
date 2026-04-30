@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from django.contrib.auth.views import LoginView, PasswordResetView, LogoutView
 from django.views.generic.base import TemplateView
 from . import views, forms
@@ -28,11 +28,11 @@ urlpatterns = [
     ),
     path("password_change/", views.changePassword, name="password_change"),
     path("register/", views.signup, name="signup"),
-    path("set_lang/<str:lang>", views.set_lang, name="set_language"),
     path("profile/", TemplateView.as_view(template_name="core/profile.html"), name="profile"),
     path("help/", views.HelpView.as_view(), name="help"),
     path("test_email/", views.test_email, name="test_email"),
     path("impressum/", TemplateView.as_view(template_name="core/legal.html"), name="legal"),
     path("datenschutz/", TemplateView.as_view(template_name="core/privacy.html"), name="privacy"),
+    path("", include("django.conf.urls.i18n")),  # includes /setlang/ template
     path("", TemplateView.as_view(template_name="core/index.html"), name="home"),
 ]
