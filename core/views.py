@@ -8,9 +8,11 @@ from django.core import signing, mail
 from django.views.generic import TemplateView
 from django.http import HttpResponse, Http404
 from django.shortcuts import render, redirect
+from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.translation import gettext as _
 
-from .forms import SignUpForm
+from .forms import AuthForm, SignUpForm
 
 
 # ******** User management ******** #
@@ -28,20 +30,53 @@ def signup(request):
         user = form.save()  # read necessary info from form
         user.refresh_from_db()
         user.username = user.email.lower()  # force lowercase for username
-        user.is_active = True
+        # user came here from invite: no further email needed
+        user.is_active = form.cleaned_data["invited"]
         user.save()
-        login(request, user)
-        return redirect(reverse("core:home"))
+        if user.is_active:
+            login(request, user)
+            return redirect(reverse("simba:dashboard"))
+        else:
+            user.email_user(
+                subject=_("WeBus Registrierung"),
+                message=render_to_string(
+                    "core/registration/email_signup.txt",
+                    {
+                        "host_url": settings.DJANGO_HOST_URL,
+                        "token": signing.dumps(user.username),
+                    },
+                ),
+                html_message=render_to_string(
+                    "core/registration/email_signup.html",
+                    {
+                        "host_url": settings.DJANGO_HOST_URL,
+                        "token": signing.dumps(user.username),
+                    },
+                ),
+                fail_silently=True,
+            )
+            return render(request, "core/registration/signup_success.html", {"email": user.email})
+
     elif request.GET.get("token"):
-        # GET: present registration form, fill in email from token
+        # token may be from signup process or invite
         try:
             email = signing.loads(request.GET["token"])
         except signing.BadSignature:
             return HttpResponse("Wrong signature", status=400)
-        if User.objects.filter(username=email).exists():
-            return redirect(reverse("login"))
-        form = SignUpForm(initial={"email": email})
-        return render(request, "core/registration/signup.html", {"form": form})
+        try:
+            user = User.objects.get(username=email.lower())
+            # token from signup: activate user
+            user.is_active = True
+            user.save(update_fields=["is_active"])
+            form = AuthForm(initial={"username": user.email})
+            return render(request, "core/registration/login.html", {"form": form})
+        except User.DoesNotExist:
+            # token from invite: present registration form, fill in email from token
+            form = SignUpForm(initial={"email": email, "invited": True})
+            return render(request, "core/registration/signup.html", {"form": form})
+    else:
+        # GET, no token: normal registration
+        return render(request, "core/registration/signup.html", {"form": SignUpForm()})
     raise Http404()
 
 

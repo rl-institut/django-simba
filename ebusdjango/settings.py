@@ -123,6 +123,7 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default=None)
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
+LOGIN_URL = "login"  # redirect after password reset done (Django default: accounts/login)
 LOGIN_REDIRECT_URL = "/"  # redirect to landing page after login
 # LOGOUT_REDIRECT_URL = "/"  # don't set: show custom logged out view
 
@@ -307,7 +308,10 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS
 SECURE_HSTS_PRELOAD = env.bool("DJANGO_SECURE_HSTS_PRELOAD", default=True)
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-proxy-ssl-header
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-
+# under which URL can server be reached? Used in email verification
+DJANGO_HOST_URL = env("DJANGO_HOST_URL", default="").rstrip('/')
+if not DJANGO_HOST_URL:
+    print("No DJANGO_HOST_URL set, emails might contain only partial links")
 
 # NOTE: Explicitly setting local development will use unsecure development defaults instead
 if env.bool("DJANGO_LOCAL_DEVELOPMENT", default=False):

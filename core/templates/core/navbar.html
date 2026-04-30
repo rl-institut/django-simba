@@ -32,8 +32,8 @@
             </button>
           </form>
         {% else %}
-          <a class="border-2 border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white px-4 py-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black cursor-pointer">
-            Registrieren
+          <a href="{% url 'core:signup' %}" class="border-2 border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white px-4 py-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black cursor-pointer">
+            {% translate 'Registrieren' %}
           </a>
           <a href="{% url 'core:login' %}" class="text-sm flex items-center text-slate-500 hover:text-emerald-500 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
