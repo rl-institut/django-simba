@@ -40,3 +40,13 @@
     border: 0px;
     padding: 0px;
 }
+
+.text-block {
+    text-align: justify;
+}
+
+.toc {
+    width: fit-content;
+    padding: 1rem 3rem;
+    border: 1px solid black;
+}
