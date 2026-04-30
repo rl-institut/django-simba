@@ -339,6 +339,12 @@ class AssocVehicleTypeVehicleClass(models.Model):
     vehicle_class = models.ForeignKey("VehicleClass", on_delete=models.CASCADE)
 
 
+class EnumEnergySource(models.TextChoices):
+    BATTERY_ELECTRIC = "BATTERY_ELECTRIC"
+    DIESEL = "DIESEL"
+    HYDROGEN = "HYDROGEN"
+
+
 class VehicleType(models.Model):
     """
     Model representing a type of vehicle associated with a scenario.
@@ -437,6 +443,12 @@ class VehicleType(models.Model):
     )
     vehicle_classes = models.ManyToManyField("VehicleClass", through="AssocVehicleTypeVehicleClass")
     """Vehicle classes this vehicle type belongs to."""
+    energy_source = models.CharField(
+        choices=EnumEnergySource.choices,
+        null=True,
+        blank=True,
+        default=EnumEnergySource.BATTERY_ELECTRIC,
+    )
 
     def save(self, *args, **kwargs):
         # Override save to make certain name_short exists
@@ -1797,6 +1809,22 @@ class Event(models.Model):
             )
         out += f"at start time {self.time_start.isoformat()}"
         return out
+
+    def get_prev_event(self):
+        vid = self.vehicle_id
+        return (
+            Event.objects.filter(vehicle_id=vid, time_start__lt=self.time_start)
+            .order_by("time_start")
+            .last()
+        )
+
+    def get_next_event(self):
+        vid = self.vehicle_id
+        return (
+            Event.objects.filter(vehicle_id=vid, time_start__gt=self.time_start)
+            .order_by("time_start")
+            .first()
+        )
 
 
 class Depot(models.Model):

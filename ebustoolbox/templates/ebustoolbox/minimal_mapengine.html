@@ -5,11 +5,11 @@
 
     {# maplibre 4.0 breaks loading images #}
       {#      maplibre 4.0 breaks loading images#}
-      <script src="{% static "maplibre-gl.js" %}"></script>
-      <link href="{% static "maplibre-gl.css" %}" rel='stylesheet'/>
+      <script src="{% static "ebustoolbox/js/maplibre-gl.js" %}"></script>
+      <link href="{% static "ebustoolbox/css/maplibre-gl.css" %}" rel='stylesheet'/>
 
-      <script src="{% static "pubsub.js" %}"></script>
-      <link rel="stylesheet" type="text/css" href="{% static 'mapOverlays.css' %}">
+      <script src="{% static "ebustoolbox/js/pubsub.js" %}"></script>
+      <link rel="stylesheet" type="text/css" href="{% static 'ebustoolbox/css/mapOverlays.css' %}">
 
         {% include 'django_mapengine/map.html' %}
         {% include 'django_mapengine/map_json.html' %}

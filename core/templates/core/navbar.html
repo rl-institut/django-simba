@@ -1,5 +1,4 @@
-{% load i18n %}
-{% load static %}
+{% load i18n static custom_filters %}
 {% get_current_language as LANGUAGE_CODE %}
 <!-- Add Top Navigation -->
 <nav class="bg-white shadow-md z-20">
@@ -21,7 +20,7 @@
           <a href="{% url 'core:profile' %}" class="text-sm text-slate-500 hover:text-emerald-500 transition-colors">{% translate 'Profil' %}</a>
         {% endif %}
         <a href="{% url 'core:help' %}" class="text-sm text-slate-500 hover:text-emerald-500 transition-colors">{% translate 'Hilfe' %}</a>
-        <a href="#" class="text-sm text-slate-500 hover:text-emerald-500 transition-colors">Über das Projekt</a>
+        <a href="mailto:{% email_to %}?subject=Feedback WeBus" class="text-sm text-slate-500 hover:text-emerald-500 transition-colors">Feedback</a>
 
         <div class="relative block language-select">
           <button type="button"
