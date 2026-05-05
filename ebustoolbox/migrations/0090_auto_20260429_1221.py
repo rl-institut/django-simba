@@ -10,6 +10,10 @@ def fix_energy_sources(apps, schema_editor):
     )
 
 
+def dummy_reverse(app, schema_editor):
+    pass
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -17,5 +21,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(fix_energy_sources, lambda app, schema_editor: ()),
+        migrations.RunPython(fix_energy_sources, dummy_reverse),
     ]
