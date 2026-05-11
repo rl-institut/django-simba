@@ -90,7 +90,7 @@ class ScenarioJSONImporterExporter:
             ]
             self.object_data[model_name] = []
             for instance_data in data:
-                dict_data = {field[0]: instance_data[field[1]] for field in field_name_lookup}
+                dict_data = {field[0]: instance_data.get(field[1]) for field in field_name_lookup}
                 self.object_data[model_name].append(model_class(**dict_data))
 
     def create_creation_order(self) -> list[str]:
