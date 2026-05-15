@@ -136,24 +136,8 @@
         </div>
       </div>
     </div>
-      <div class="flex flex-col">
-        <div id="bus-section" class="flex justify-between items-center pb-2">
-          <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Fahrzeuge' %}</h2>
-          {% include "ebustoolbox/partials/result_export.html" with endpoint="soc_hist" %}
-        </div>
-      </div>
 
-      <div class="bg-white rounded-lg shadow-md mb-12">
-        <div class="p-8">
-          <div id="soc-tab-contents" class="mt-4">
-            <div class="soc-tab-content" data-tab="soc-tab-1">
-              <div id="soc-heatmap" style="width: 100%; height: 600px;"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex flex-col">
+    <div class="flex flex-col">
         <div id="infrastructure-section" class="flex justify-between items-center pb-2">
           <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Infrastruktur' %}</h2>
           {% include "ebustoolbox/partials/result_export.html" with endpoint="stats" json_only=True %}
@@ -290,176 +274,188 @@
           </div>
         </div>
 
-        <div class="pb-8">
-          <!-- Hidden input to pass task ID to javascript -->
-          <input type="hidden" id="task-id-avg" value="{{ avg_scenario.task_id }}">
-          <input type="hidden" id="task-id-ext" value="{{ ext_scenario.task_id }}">
+    <div class="pb-8">
+      <!-- Hidden input to pass task ID to javascript -->
+      <input type="hidden" id="task-id-avg" value="{{ avg_scenario.task_id }}">
+      <input type="hidden" id="task-id-ext" value="{{ ext_scenario.task_id }}">
 
-          <!-- Different containers for each chart -->
-          {% include "ebustoolbox/partials/result_export.html" with endpoint="piecharts" %}
-          <div class="flex gap-8 mb-12">
-            <div class="basis-1/2 bg-white rounded-lg shadow-md pt-8">
-              <div id="critRotChartContainer" class="chart-container mb-0 h-[340px]"></div>
-            </div>
-            <div class="basis-1/2 bg-white rounded-lg shadow-md pt-8">
-              <div id="busTypeChartContainer" class="chart-container mb-0 h-[340px]"></div>
-            </div>
-          </div>
-          {% include "ebustoolbox/partials/result_export.html" with endpoint="soc" %}
-          <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
-            <div id="lineChart" class="chart-container h-[480px]"></div>
-          </div>
-          {% include "ebustoolbox/partials/result_export.html" with endpoint="depot_power" %}
-          <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
-              <p class="text-center text-lg font-bold text-slate-800 pb-4">
-                {% translate 'Depot Ladeleistung und Belegung' %}
-              </p>
-              <div
-                class="flex flex-wrap justify-center items-center gap-3 p-4  "
-                x-data="{ selected: null }"
-                  role="tablist"
-                  aria-label='{% translate "Depot Auswahl" %}'
-              >
-                <button
-                  x-data='{loading: false}'
-                  role="tab"
-                  type="button"
-                  :aria-selected="$el === selected"
-                  :tabindex="$el === selected ? 0 : -1"
-                  x-init="selected = $el"
-                  @click="loading=true;fetchAndRenderSingleDepot(); selected = $el;"
-                  @all-depots-loaded.document='loading=false'
-                  class="px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-200"
-                  :class="{
-                     'bg-emerald-400 text-white shadow-md scale-105': $el === selected,
-                     'bg-white text-slate-700 hover:bg-emerald-200':  $el != selected,
-                     '!bg-slate-300': loading,
-                      }"
-                >
-                <p class='' :class="loading ? 'loader' : ''"></p>
-                  Alle Depots
-                </button>
-
-                {% for depot in depots %}
-                <button
-                  x-data='{loading: false}'
-                  role="tab"
-                  type="button"
-                  :aria-selected="$el === selected"
-                  :tabindex="$el === selected ? 0 : -1"
-                  @click="loading=true;fetchAndRenderSingleDepot({{ depot.id }}); selected = $el;"
-                  @depot-{{depot.id}}-loaded.document='loading=false'
-                  class="px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-200"
+      <!-- Different containers for each chart -->
+      {% include "ebustoolbox/partials/result_export.html" with endpoint="piecharts" %}
+      <div class="flex gap-8 mb-12">
+        <div class="basis-1/2 bg-white rounded-lg shadow-md pt-8">
+          <div id="critRotChartContainer" class="chart-container mb-0 h-[340px]"></div>
+        </div>
+        <div class="basis-1/2 bg-white rounded-lg shadow-md pt-8">
+          <div id="busTypeChartContainer" class="chart-container mb-0 h-[340px]"></div>
+        </div>
+      </div>
+       {% include "ebustoolbox/partials/result_export.html" with endpoint="depot_power" %}
+      <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
+          <p class="text-center text-lg font-bold text-slate-800 pb-4">
+            {% translate 'Depot Ladeleistung und Belegung' %}
+          </p>
+          <div
+            class="flex flex-wrap justify-center items-center gap-3 p-4  "
+            x-data="{ selected: null }"
+              role="tablist"
+              aria-label='{% translate "Depot Auswahl" %}'
+          >
+            <button
+              x-data='{loading: false}'
+              role="tab"
+              type="button"
+              :aria-selected="$el === selected"
+              :tabindex="$el === selected ? 0 : -1"
+              x-init="selected = $el"
+              @click="loading=true;fetchAndRenderSingleDepot(); selected = $el;"
+              @all-depots-loaded.document='loading=false'
+              class="px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-200"
               :class="{
-                     'bg-emerald-400 text-white shadow-md scale-105': $el === selected,
-                     'bg-white text-slate-700 hover:bg-emerald-200':  $el != selected,
-                     '!bg-slate-300': loading,
-                      }"
-                >
-              <p class='' :class="loading ? 'loader' : ''"></p>
-                  {{ depot.name }}
-                </button>
-                {% endfor %}
-              </div>
-              <div class="flex mt-4">
-                <div class="flex-1 px-2 pb-4 text-center border-r border-slate-300">
-                  <p class="text-slate-800">
-                    <span id="depot-max-charging" class="text-xl 2xl:text-2xl font-semibold">--</span>
-                  </p>
-                  <p class="text-sm text-slate-500">
-                    {% translate 'Max. gleichzeitig ladende Fahrzeuge' %}
-                  </p>
-                </div>
+                 'bg-emerald-400 text-white shadow-md scale-105': $el === selected,
+                 'bg-white text-slate-700 hover:bg-emerald-200':  $el != selected,
+                 '!bg-slate-300': loading,
+                  }"
+            >
+            <p class='' :class="loading ? 'loader' : ''"></p>
+              Alle Depots
+            </button>
 
-                <div class="flex-1 px-2 pb-4 text-center border-r border-slate-300">
-                  <p class="text-slate-800">
-                    <span id="depot-max-total" class="text-xl 2xl:text-2xl font-semibold">--</span>
-                  </p>
-                  <p class="text-sm text-slate-500">
-                    {% translate 'Max. Fahrzeuge im Depot gesamt' %}
-                  </p>
-                </div>
-
-                <div class="flex-1 px-2 pb-4 text-center border-r border-slate-300">
-                  <p class="text-slate-800">
-                    <span id="depot-peak-power" class="text-xl 2xl:text-2xl font-semibold">--</span>
-                    <span class="text-sm 2xl:text-base font-normal">kW</span>
-                  </p>
-                  <p class="text-sm text-slate-500">
-                    {% translate 'Spitzenleistung' %}
-                  </p>
-                </div>
-
-                <div class="flex-1 px-2 pb-4 text-center">
-                  <p class="text-slate-800">
-                    <span id="depot-energy" class="text-xl 2xl:text-2xl font-semibold">--</span>
-                    <span class="text-sm 2xl:text-base font-normal">kWh</span>
-                  </p>
-                  <p class="text-sm text-slate-500">
-                    {% translate 'Geladene Energie' %}
-                  </p>
-                </div>
-              </div>
-              <div id="DepotlineChart" class="chart-container h-[480px]"></div>
+            {% for depot in depots %}
+            <button
+              x-data='{loading: false}'
+              role="tab"
+              type="button"
+              :aria-selected="$el === selected"
+              :tabindex="$el === selected ? 0 : -1"
+              @click="loading=true;fetchAndRenderSingleDepot({{ depot.id }}); selected = $el;"
+              @depot-{{depot.id}}-loaded.document='loading=false'
+              class="px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-200"
+          :class="{
+                 'bg-emerald-400 text-white shadow-md scale-105': $el === selected,
+                 'bg-white text-slate-700 hover:bg-emerald-200':  $el != selected,
+                 '!bg-slate-300': loading,
+                  }"
+            >
+          <p class='' :class="loading ? 'loader' : ''"></p>
+              {{ depot.name }}
+            </button>
+            {% endfor %}
+          </div>
+          <div class="flex mt-4">
+            <div class="flex-1 px-2 pb-4 text-center border-r border-slate-300">
+              <p class="text-slate-800">
+                <span id="depot-max-charging" class="text-xl 2xl:text-2xl font-semibold">--</span>
+              </p>
+              <p class="text-sm text-slate-500">
+                {% translate 'Max. gleichzeitig ladende Fahrzeuge' %}
+              </p>
             </div>
-          {% include "ebustoolbox/partials/result_export.html" with endpoint="gantt" %}
-          <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
-            <div id="filterContainerEvents"></div>
-            <div id="ganttChart" class="chart-container h-[480px]"></div>
+
+            <div class="flex-1 px-2 pb-4 text-center border-r border-slate-300">
+              <p class="text-slate-800">
+                <span id="depot-max-total" class="text-xl 2xl:text-2xl font-semibold">--</span>
+              </p>
+              <p class="text-sm text-slate-500">
+                {% translate 'Max. Fahrzeuge im Depot gesamt' %}
+              </p>
+            </div>
+
+            <div class="flex-1 px-2 pb-4 text-center border-r border-slate-300">
+              <p class="text-slate-800">
+                <span id="depot-peak-power" class="text-xl 2xl:text-2xl font-semibold">--</span>
+                <span class="text-sm 2xl:text-base font-normal">kW</span>
+              </p>
+              <p class="text-sm text-slate-500">
+                {% translate 'Spitzenleistung' %}
+              </p>
+            </div>
+
+            <div class="flex-1 px-2 pb-4 text-center">
+              <p class="text-slate-800">
+                <span id="depot-energy" class="text-xl 2xl:text-2xl font-semibold">--</span>
+                <span class="text-sm 2xl:text-base font-normal">kWh</span>
+              </p>
+              <p class="text-sm text-slate-500">
+                {% translate 'Geladene Energie' %}
+              </p>
+            </div>
           </div>
-          {% include "ebustoolbox/partials/result_export.html" with endpoint="gantt" %}
-          <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
-            <div id="filterContainerSoC"></div>
-            <div id="soc-gantt" class="chart-container h-[480px]"></div>
-          </div>
-          {% include "ebustoolbox/partials/result_export.html" with endpoint="dist_histogram" json_only=True %}
-          <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
-            <div id="DistHistogramChart" class="chart-container h-[480px]"></div>
-          </div>
-          {% include "ebustoolbox/partials/result_export.html" with endpoint="speed_histogram" %}
-          <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
-            <div id="SpeedHistogramChart" class="chart-container h-[480px]"></div>
-          </div>
-        {% include "ebustoolbox/partials/result_export.html" with endpoint="cumulative_coverage" json_only=True %}
-        <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
-          <div id="filterContainerCumulative"></div>
-          <div id="cumulative-coverage" class="chart-container h-[480px]"></div>
+          <div id="DepotlineChart" class="chart-container h-[480px]"></div>
         </div>
-        {% include "ebustoolbox/partials/result_export.html" with endpoint="rotation_table" %}
-        <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto max-w-4xl">
-          <div id="table-scroll-container" class="h-[480px] overflow-y-auto relative">
-            <table id="rotationTable" class="w-full table-fixed border-collapse bg-white">
-              <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
-                <tr class="divide-x divide-slate-200 border-b border-slate-200">
-                  <th data-column="name" class="sortable edge-pad-left px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/4" onclick="sortTable('name')">
-                    {% translate 'Name' %}
-                  </th>
-                  <th data-column="vehicle" class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortTable('vehicle')">
-                    {% translate 'Typ' %}
-                  </th>
-                  <th data-column="distance" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('distance')">
-                    km
-                  </th>
-                  <th data-column="consumption" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('consumption')">
-                    kWh
-                  </th>
-                  <th data-column="efficiency" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('efficiency')">
-                    kWh/km
-                  </th>
-                  <th data-column="duration" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('duration')">
-                    {% translate 'Dauer' %}
-                  </th>
-                  <th data-column="soc_spread_pct" class="sortable edge-pad-right px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortTable('soc_spread_pct')">
-                    Δ SoC
-                  </th>
-                </tr>
-              </thead>
-              <tbody id="rotationTableBody" class="divide-y divide-slate-200 bg-white"></tbody>
-            </table>
-          </div>
+      <div class="flex flex-col">
+        <div id="bus-section" class="flex justify-between items-center pb-2">
+          <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Fahrzeuge' %}</h2>
+          {% include "ebustoolbox/partials/result_export.html" with endpoint="soc_hist" %}
         </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md mb-12">
+    <div class="p-8">
+      <div id="soc-tab-contents" class="mt-4">
+        <div class="soc-tab-content" data-tab="soc-tab-1">
+          <div id="soc-heatmap" style="width: 100%; height: 600px;"></div>
         </div>
-        <div class="flex flex-col">
+      </div>
+    </div>
+  </div>
+      {% include "ebustoolbox/partials/result_export.html" with endpoint="soc" %}
+      <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
+        <div id="lineChart" class="chart-container h-[480px]"></div>
+      </div>
+      {% include "ebustoolbox/partials/result_export.html" with endpoint="gantt" %}
+      <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
+        <div id="filterContainerEvents"></div>
+        <div id="ganttChart" class="chart-container h-[480px]"></div>
+      </div>
+      {% include "ebustoolbox/partials/result_export.html" with endpoint="gantt" %}
+      <div class="bg-white rounded-lg shadow-md pt-8 pb-4 mb-12">
+        <div id="filterContainerSoC"></div>
+        <div id="soc-gantt" class="chart-container h-[480px]"></div>
+      </div>
+      {% include "ebustoolbox/partials/result_export.html" with endpoint="dist_histogram" json_only=True %}
+      <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
+        <div id="DistHistogramChart" class="chart-container h-[480px]"></div>
+      </div>
+    {% include "ebustoolbox/partials/result_export.html" with endpoint="cumulative_coverage" json_only=True %}
+    <div class="bg-white rounded-lg shadow-md pt-8 mb-12">
+      <div id="filterContainerCumulative"></div>
+      <div id="cumulative-coverage" class="chart-container h-[480px]"></div>
+    </div>
+    {% include "ebustoolbox/partials/result_export.html" with endpoint="rotation_table" %}
+    <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto max-w-4xl">
+      <div id="table-scroll-container" class="h-[480px] overflow-y-auto relative">
+        <table id="rotationTable" class="w-full table-fixed border-collapse bg-white">
+          <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
+            <tr class="divide-x divide-slate-200 border-b border-slate-200">
+              <th data-column="name" class="sortable edge-pad-left px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/4" onclick="sortTable('name')">
+                {% translate 'Name' %}
+              </th>
+              <th data-column="vehicle" class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortTable('vehicle')">
+                {% translate 'Typ' %}
+              </th>
+              <th data-column="distance" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('distance')">
+                km
+              </th>
+              <th data-column="consumption" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('consumption')">
+                kWh
+              </th>
+              <th data-column="efficiency" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('efficiency')">
+                kWh/km
+              </th>
+              <th data-column="duration" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('duration')">
+                {% translate 'Dauer' %}
+              </th>
+              <th data-column="soc_spread_pct" class="sortable edge-pad-right px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortTable('soc_spread_pct')">
+                Δ SoC
+              </th>
+            </tr>
+          </thead>
+          <tbody id="rotationTableBody" class="divide-y divide-slate-200 bg-white"></tbody>
+        </table>
+      </div>
+    </div>
+    </div>
+    <div class="flex flex-col">
         {% if not disable_map %}
         <div id="map-section" class="flex justify-between items-center pb-2">
           <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Karte' %}</h2>
@@ -495,9 +491,9 @@
         </div>
         {% endif %}
       </div>
-    </div>
   </div>
-<div id="dataFetchedFinished" value="0"></div>
+
+  <div id="dataFetchedFinished" value="0"></div>
 </main>
 {% endblock content %}
 
