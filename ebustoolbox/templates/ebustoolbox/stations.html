@@ -191,15 +191,15 @@
           </span>
         </div>
         <div class="flex flex-col flex-1 gap-2">
-          <img src="{% static 'core/images/automatic-button.png' %}" width="24" height="24" alt="" class="w-[24] h-[24px]" />
+          <img src="{% static 'core/images/no-electrify-button.png' %}" width="24" height="24" alt="" class="w-[24] h-[24px]" />
           <span class="text-sm text-slate-500 pt-2">
-            {% translate 'Standardmäßig berechnet die Simulation, ob die Endstationen elektrifiziert werden müssen, und bestimmt dabei automatisch die Anzahl der Ladepunkte.' %}
+            {% translate 'Standardmäßig werden keine Endhaltestellen elektrifiziert.' %}
           </span>
         </div>
         <div class="flex flex-col flex-1 gap-2">
-          <img src="{% static 'core/images/electrify-button.png' %}" width="74" height="24" alt="" class="w-[74px] h-[24px]" />
+          <img src="{% static 'core/images/electrify-option-button.png' %}" width="74" height="24" alt="" class="w-[74px] h-[24px]" />
           <span class="text-sm text-slate-500 pt-2">
-            {% translate 'Sie haben jedoch die Möglichkeit, die Endstationen manuell zu elektrifizieren und die Anzahl der Ladepunkte sowie die Ladeleistung festzulegen – oder alternativ die Elektrifizierung vollständig auszuschließen.' %}
+            {% translate 'Du hast jedoch die Möglichkeit, die Endstationen manuell zu elektrifizieren und die Anzahl der Ladepunkte sowie die Ladeleistung festzulegen – oder alternativ die Elektrifizierung WeBus zu überlassen.' %}
           </span>
         </div>
       </div>
@@ -220,7 +220,7 @@
               >
           <div id="" class="shrink-0 select-none text-sm text-slate-500">kW</div>
         </div>
-        <div id="defaultChargePowerHint" class="text-sm text-slate-500 leading-snug pt-1">{% translate 'Wird auf alle Stationen angewendet, außer individuell überschrieben.' %}</div>
+        <div id="defaultChargePowerHint" class="text-sm text-slate-500 leading-snug pt-1">{% translate 'Wird auf alle Haltestellen angewendet, bei denen keine individuelle Leistung angegeben ist.' %}</div>
       </div>
       <div class="flex flex-start flex-1">
         <button
@@ -228,7 +228,7 @@
           class="px-6 py-2 bg-slate-200 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300"
           @click='showDetail = !showDetail'
           id="showStationsTable"
-              x-text='!showDetail ? `{% translate "Optional: Einzelne Stationen anpassen" %}` : `{% translate "Zurück zu global" %}`'
+              x-text='!showDetail ? `{% translate "Endhaltestellen elektrifizieren" %}` : `{% translate "Zuklappen" %}`'
             >
         </button>
       </div>
