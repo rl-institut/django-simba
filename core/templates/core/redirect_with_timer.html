@@ -10,8 +10,8 @@
 {% block wizard_content %}
   {#ToDo Brany. Please style this. {{ content }} is raw text is explaining why a redirection will follow.#}
     {{ content }}
-<div> {% blocktranslate %}Sie werden in <a id="countdown">{{ duration }}</a> s weitergeleitet.{% endblocktranslate %}</div>
-    <div> {% blocktranslate %}Wenn dies nicht funktioniert klicken sie <a href={{ redirect_url }} >hier</a>  {% endblocktranslate %}
+<div> {% blocktranslate %}Weiterleitung in <a id="countdown">{{ duration }}</a> Sekunden.{% endblocktranslate %}</div>
+    <div> {% blocktranslate %}Wenn die automatische Weiterleitung nicht funktioniert, klick <a href={{ redirect_url }} >hier</a>  {% endblocktranslate %}
     </div>
 
     <script>
