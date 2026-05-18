@@ -143,7 +143,7 @@ def validate_zip(
                 total_size += file.file_size
                 if total_size > max_total_size:
                     raise ZipFileException(
-                        f"Zipfile is too large in the uncompressed state ({total_size}>{max_total_size}"
+                        f"Uncompressed Zip file is larger than the allowed {max_total_size>>20} MB"
                     )
                 # Validate file path to prevent path traversal
                 extraction_dir = conf.settings.MEDIA_ROOT
