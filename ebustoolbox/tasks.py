@@ -852,7 +852,9 @@ def init_db_with_trips(
         # Allow for compression of 0.5
         max_uncompressed_size = conf.settings.MAX_FILE_SIZE_B * 2
         [
-            ebustoolbox.util.validate_zip(zf.ZipFile(f), 100, max_uncompressed_size, 5)
+            ebustoolbox.util.validate_zip(
+                zf.ZipFile(f), conf.settings.MAX_ZIP_FILES_NR, max_uncompressed_size, 5
+            )
             for f in file_paths.values()
             if Path(f).suffix == ".zip"
         ]

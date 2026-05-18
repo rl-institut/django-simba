@@ -282,6 +282,10 @@ MEDIA_ROOT = env.str("DJANGO_MEDIA_ROOT", "media/")
 # Given in KB, stored in Bytes. Default 64 MB.
 MAX_FILE_SIZE_B = env.int("DJANGO_MAX_FILE_SIZE_KB", 64000) << 10
 
+# The maximum number of files per uploaded zip file
+MAX_FILE_SIZE_B = env.int("DJANGO_MAX_ZIP_FILES_NR,", 100)
+
+
 # while the above line checks all the app folders for static folders the below one can be a list of
 # general static file folders
 STATICFILES_DIRS = [
