@@ -191,15 +191,15 @@
           </span>
         </div>
         <div class="flex flex-col flex-1 gap-2">
-          <img src="{% static 'core/images/automatic-button.png' %}" width="24" height="24" alt="" class="w-[24] h-[24px]" />
+          <img src="{% static 'core/images/no-electrify-button.png' %}" width="24" height="24" alt="" class="w-[24] h-[24px]" />
           <span class="text-sm text-slate-500 pt-2">
-            {% translate 'Standardmäßig berechnet die Simulation, ob die Endstationen elektrifiziert werden müssen, und bestimmt dabei automatisch die Anzahl der Ladepunkte.' %}
+            {% translate 'Standardmäßig werden keine Endhaltestellen elektrifiziert.' %}
           </span>
         </div>
         <div class="flex flex-col flex-1 gap-2">
-          <img src="{% static 'core/images/electrify-button.png' %}" width="74" height="24" alt="" class="w-[74px] h-[24px]" />
+          <img src="{% static 'core/images/electrify-option-button.png' %}" width="74" height="24" alt="" class="w-[74px] h-[24px]" />
           <span class="text-sm text-slate-500 pt-2">
-            {% translate 'Sie haben jedoch die Möglichkeit, die Endstationen manuell zu elektrifizieren und die Anzahl der Ladepunkte sowie die Ladeleistung festzulegen – oder alternativ die Elektrifizierung vollständig auszuschließen.' %}
+            {% translate 'Du hast jedoch die Möglichkeit, die Endstationen manuell zu elektrifizieren und die Anzahl der Ladepunkte sowie die Ladeleistung festzulegen – oder du überlässt WeBus die Elektrifizierung mit der Option "Automatisch".' %}
           </span>
         </div>
       </div>
@@ -210,7 +210,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="16" height="16">
             <path fill="#2E282A" d="M23.578,16.7319l-14,9.9165a1,1,0,0,1-1.395-1.3925l5.8867-8.34H9A1,1,0,0,1,8.4218,15.1l14-9.9165A1,1,0,0,1,23.8544,6.519l-3.981,6.5469L23.48,15.0386a1,1,0,0,1,.0981,1.6933ZM16,3a12.88,12.88,0,0,1,4.521.812A1,1,0,1,0,21.22,1.938,14.9992,14.9992,0,0,0,1.938,21.22a1,1,0,1,0,1.874-.6992A12.88,12.88,0,0,1,3,16,13.0144,13.0144,0,0,1,16,3Zm14.062,7.78a1,1,0,0,0-1.874.6992A12.88,12.88,0,0,1,29,16,13.0144,13.0144,0,0,1,16,29a12.88,12.88,0,0,1-4.521-.812,1,1,0,0,0-.6992,1.874A14.9992,14.9992,0,0,0,30.062,10.78Z"/>
           </svg>
-          <span>{% translate 'Globale Ladeleistung' %}</span>
+          <span>{% translate 'Globale Ladeleistung an Endhaltestellen' %}</span>
         </label>
         <div class="flex items-center rounded-md outline outline-1 outline-transparent">
               <input {{charging_power_form.default_charge_power|widget_attrs}} class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
@@ -220,7 +220,7 @@
               >
           <div id="" class="shrink-0 select-none text-sm text-slate-500">kW</div>
         </div>
-        <div id="defaultChargePowerHint" class="text-sm text-slate-500 leading-snug pt-1">{% translate 'Wird auf alle Stationen angewendet, außer individuell überschrieben.' %}</div>
+        <div id="defaultChargePowerHint" class="text-sm text-slate-500 leading-snug pt-1">{% translate 'Wird auf alle Haltestellen angewendet, bei denen keine individuelle Leistung angegeben ist.' %}</div>
       </div>
       <div class="flex flex-start flex-1">
         <button
@@ -228,7 +228,7 @@
           class="px-6 py-2 bg-slate-200 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300"
           @click='showDetail = !showDetail'
           id="showStationsTable"
-              x-text='!showDetail ? `{% translate "Optional: Einzelne Stationen anpassen" %}` : `{% translate "Zurück zu global" %}`'
+              x-text='!showDetail ? `{% translate "Endhaltestellen elektrifizieren" %}` : `{% translate "Zuklappen" %}`'
             >
         </button>
       </div>
