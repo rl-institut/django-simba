@@ -40,3 +40,33 @@
     border: 0px;
     padding: 0px;
 }
+
+.text-block {
+    text-align: justify;
+}
+
+.top-btn {
+    position: fixed;
+    width: 4rem;
+    height: 4rem;
+    bottom: 20px;
+    right: 30px;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    border-radius: 100%;
+    background-color: #27CFA5;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out, visibility 0.5s linear;
+}
+
+.toc {
+    width: fit-content;
+    padding: 1rem 3rem;
+    border: 1px solid black;
+}
+
+.list-circle {
+    list-style-type: circle;
+}
