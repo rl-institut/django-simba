@@ -1,23 +1,26 @@
 {% extends 'core/base.html' %}
-{% load i18n %}
+{% load i18n static %}
 {% block title %}
   {% translate 'WeBus - Hilfe' %}
 {% endblock title %}
 {% block content %}
 <main class="flex flex-grow flex-col">
+  <button id="top-btn" onclick="scrollToTop()" class="top-btn" title="{% translate 'Nach oben' %}">
+    <img src="{% static 'core/images/arrow-up.svg' %}">
+  </button>
   <div class="max-w-7xl sm:px-6 sm:pb-4 sm:pt-8 lg:px-8 lg:pt-12">
     <h1 class="pb-8 text-4xl font-semibold">{% translate 'Hilfe' %}</h1>
 
     <div class="toc">
       <h2 class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Inhaltsverzeichnis' %}</h2>
-      <ul>
+      <ul class="list-disc">
         <li><a href="#webus">{% translate 'WeBus' %}</a></li>
         <li>
           <a href="#umlaufplan">{% translate 'Umlaufplan' %}</a>
-          <ul>
-            <li class="pl-6"><a href="#vdv_452">VDV 452</a></li>
-            <li class="pl-6"><a href="#simba_schedule">SimBA Format</a></li>
-            <li class="pl-6"><a href="#consistency">Konsistenz</a></li>
+          <ul class="pl-6 list-circle">
+            <li><a href="#vdv_452">VDV 452</a></li>
+            <li><a href="#simba_schedule">SimBA Format</a></li>
+            <li><a href="#consistency">Konsistenz</a></li>
           </ul>
         </li>
         <li><a href="#filter">{% translate 'Filter' %}</h2></a></li>
@@ -698,4 +701,17 @@
     </div>
   </div>
 </main>
+
+<script>
+  window.addEventListener('scroll', _ => {
+    let isAtTop = (document.body.scrollTop + document.documentElement.scrollTop) < 100;
+    document.getElementById('top-btn').style.visibility = isAtTop ? 'hidden' : 'visible';
+    document.getElementById('top-btn').style.opacity = isAtTop ? '0' : '1';
+  });
+
+  function scrollToTop() {
+    document.body.scrollTop = 0; // For Safari
+    document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+  }
+</script>
 {% endblock content %}
