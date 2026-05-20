@@ -4,7 +4,7 @@
   <link href="{%  static 'ebustoolbox/css/costs.css' %}" rel="stylesheet">
 {% endblock imports %}
 
-<div class="flex-grow">
+<div class="flex-grow {% if hidden %}hidden{% endif %}">
   <div class="flex items-center gap-2">
       <label class="block text-sm/6 font-semibold text-slate-800">{% blocktrans %}{{ label }}{% endblocktrans %}</label>
     <div class="relative inline-block">

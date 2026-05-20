@@ -24,7 +24,7 @@
     <section class="pb-12">
       <fieldset class="pb-8 flex" style="justify-content: center">
         <div class="mt-6">
-          <!-- Option 1: no settings -->
+          <!-- Option 1: default settings -->
           <div class="flex items-center h-12">
             <input
               id="costsAutomatic"
@@ -34,19 +34,7 @@
               class="relative size-4 appearance-none rounded-full border border-slate-300 bg-white before:absolute before:inset-1 before:rounded-full before:bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:hover:bg-emerald-500 checked:focus:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
             >
             <div class="flex items-center gap-2">
-              <label for="costsAutomatic" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Keine Eingabe' %}</label>
-              <div class="relative inline-block">
-                <!-- Info Icon -->
-                <span class="cursor-pointer group">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"></path>
-                  </svg>
-                  <!-- Tooltip -->
-                  <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                    {% translate 'Keine Kostenparameter setzen' %}
-                  </div>
-                </span>
-              </div>
+              <label for="costsAutomatic" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Standardwerte übernehmen' %}</label>
             </div>
           </div>
           <!-- Option 2: manual settings -->
@@ -149,11 +137,12 @@
             </div>
           </div>
         </div>
-        <!-- required manual inputs: diesel -->
+        <!-- not implemented manual inputs: diesel -->
         <div
           id="acc-req-diesel"
           class="rounded-lg bg-white shadow accordion-container"
           data-value="req-diesel"
+          style="display:none"
         >
           <div class="border-b border-slate-200">
             <button type="button"
@@ -211,7 +200,7 @@
                     {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis" tooltip="Durchschnittlicher Kaufpreis für ein Fahrzeug dieses Typs. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst" unit="€" name=vehicle_type.name input=costs_manual.procurement_cost_bus|widget_attrs initial=vehicle_type.tco_parameters.procurement_cost|default:costs_manual.procurement_cost_bus.initial %}
                     {% include "ebustoolbox/partials/cost_input.html" with label="Batterielebensdauer" tooltip="Durchschnittliche Lebensdauer für eine Batterie dieses Typs" unit="Jahre" name=vehicle_type.name input=costs_manual.useful_life_battery|widget_attrs initial=vehicle_type.battery_type.tco_parameters.useful_life|default:costs_manual.procurement_cost_battery.initial %}
                     {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Batterie" tooltip="Durchschnittlicher Kaufpreis für eine Batterie dieses Typs, angegeben pro kWh. Wenn unbekannt, Fahrzeugkaufpreis inkl. Batterie angeben und hier 0 (dann kann ein Batterietausch aber nicht abgebildet werden)" unit="€/kWh"  name=vehicle_type.name input=costs_manual.procurement_cost_battery|widget_attrs initial=vehicle_type.battery_type.tco_parameters.procurement_cost|default:costs_manual.procurement_cost_battery.initial %}
-                    {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis (Dieselbus)" tooltip="Durchschnittlicher Kaufpreis für einen äquivalenten Dieselbus" unit="€" name=vehicle_type.name input=costs_manual.procurement_cost_diesel|widget_attrs initial=vehicle_type.tco_parameters.procurement_cost_diesel|default:costs_manual.procurement_cost_diesel.initial %}
+                    {% include "ebustoolbox/partials/cost_input.html" with hidden=True label="Kaufpreis (Dieselbus)" tooltip="Durchschnittlicher Kaufpreis für einen äquivalenten Dieselbus" unit="€" name=vehicle_type.name input=costs_manual.procurement_cost_diesel|widget_attrs initial=vehicle_type.tco_parameters.procurement_cost_diesel|default:costs_manual.procurement_cost_diesel.initial %}
                   </div>
                 </div>
               </div>
@@ -250,7 +239,7 @@
                   {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – allgemein" tooltip="Generelle Preissteigerung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_general|widget_attrs initial=scenario.tco_parameters.pef_general|default:costs_manual.pef_general.initial|multiply:100 %}
                   {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Arbeitslohn" tooltip="Preissteigerung für Arbeitslohn pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_wages|widget_attrs initial=scenario.tco_parameters.pef_wages|default:costs_manual.pef_wages.initial|multiply:100 %}
                   {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Strom" tooltip="Preissteigerung für Stromkosten pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_energy|widget_attrs initial=scenario.tco_parameters.pef_energy|default:costs_manual.pef_energy.initial|multiply:100 %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Diesel" tooltip="Preissteigerung für Dieselkosten pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant." unit="%" input=costs_manual.pef_fuel|widget_attrs initial=scenario.tco_parameters.pef_fuel|default:costs_manual.pef_fuel.initial|multiply:100 %}
+                  {% include "ebustoolbox/partials/cost_input.html" with hidden=True label="Preiseskalation – Diesel" tooltip="Preissteigerung für Dieselkosten pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant." unit="%" input=costs_manual.pef_fuel|widget_attrs initial=scenario.tco_parameters.pef_fuel|default:costs_manual.pef_fuel.initial|multiply:100 %}
                   {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Versicherung" tooltip="Preissteigerung für Versicherung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_insurance|widget_attrs initial=scenario.tco_parameters.pef_insurance|default:costs_manual.pef_insurance.initial|multiply:100 %}
                   {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Ladepunkt" tooltip="Preissteigerung für Ladepunkt dieses Typs pro Jahr. Dient der Anpassung der Preise für Ersatzladepunkte im Betrachtungszeitraum" unit="%" input=costs_manual.cost_escalation_chargepoint|widget_attrs initial=scenario.tco_parameters.cost_escalation_chargepoint|default:costs_manual.cost_escalation_chargepoint.initial|default:costs_manual.cost_escalation_chargepoint.initial|multiply:100 %}
                 </div>
@@ -346,16 +335,20 @@
   });
 
   function showCostForRadio(radio) {
+    // reduce height of manual inputs if not needed to move continue buttons up
     costsInputs.style.visibility = radio.id == 'costsManually' ? 'visible' : 'hidden';
+    costsInputs.style.height = radio.id == 'costsManually' ? '100%' : '0px';
     childrenInputs(costsInputs).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'costsManually'));
   }
-  // show section for initially selected
-  showCostForRadio(document.querySelector('input[name^="costsRadio"]:checked'));
+  window.onload = _ => {
+    // show section for initially selected
+    showCostForRadio(document.querySelector('input[name^="costsRadio"]:checked'));
 
-  const envRadioButtons = document.querySelectorAll('input[name^="envRadio"]');
+    const envRadioButtons = document.querySelectorAll('input[name^="envRadio"]');
 
-  // unrequire all form inputs at the start
-  childrenInputs(costsInputs).forEach((inputDiv) => toggleAttribute(inputDiv, "required", false));
+    // unrequire all form inputs at the start
+    childrenInputs(costsInputs).forEach((inputDiv) => toggleAttribute(inputDiv, "required", false));
+  };
 
   function childrenInputs(element){
     if (element)
@@ -428,7 +421,6 @@
     if (man_inp.checked)
       toggleAccordion(button); // find first accordion header and toggle open
     man_inp.onchange = e => {
-      console.log(e);
       if (e.target.checked) {
         toggleAccordion(button);
       }
