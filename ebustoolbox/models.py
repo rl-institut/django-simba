@@ -2064,6 +2064,7 @@ class EnumNotificationLevels(models.TextChoices):
 class EnumNotificationType(models.TextChoices):
     """Definitions for notification types which define where the message is shown"""
 
+    DELETED_INCONSISTENT_ROTATION = "deleted_inconsistent_rotation"
     MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING = "multi_dep_trips_in_block"
     MERGED_STATIONS_FOR_INCONSISTENT_TRIPS = "merged_station_trips_and_routes"
     INTERMEDIATE_DEPOT_STOPS_TRANSFORMED = "transformed_depot_stop_to_opp_station"

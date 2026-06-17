@@ -872,6 +872,13 @@ def init_db_with_trips(
         progress.success = schedule_reader.write_to_db(parent.id)
         scenario.simba_options = vars(get_args(parent))
         find_and_make_depots(parent)
+
+        # Delete rotations which are not consistent and create a notification
+        # Do this after creating depots, since depots are part of consistent rotations
+        print("focring consistency")
+        make_consistent(parent)
+        print(Rotation.objects.filter(scenario=parent).count())
+        print("rotations left")
         scenario.scenario_type = EnumScenarioType.MUTATION
         parent.scenario_type = EnumScenarioType.SOURCE
         scenario.save()
@@ -2576,8 +2583,34 @@ def is_consistent_rotation(rotation: Rotation) -> bool:
     return True
 
 
+def make_consistent(scenario: Scenario) -> None:
+    for rotation in Rotation.objects.filter(scenario=scenario):
+        message = (
+            "Der Umlauf '{}' wurde gelöscht da er nicht die Anforderungen an Konsistenz erfüllt."
+            "Die Anfoderungen an Konsistenz sind in der Hilfe erläutert."
+        )
+        if not is_consistent_rotation(rotation):
+            Notification.objects.create(
+                scenario=scenario,
+                level=EnumNotificationLevels.WARNING,
+                notification_type=EnumNotificationType.DELETED_INCONSISTENT_ROTATION,
+                message=(
+                    message.format(
+                        escape(rotation.name),
+                    )
+                )[:999],
+            )
+            rotation.delete()
+
+    if VehicleType.objects.filter(scenario=scenario, consumption=None).count() > 0:
+        q = Trip.objects.filter(scenario=scenario, loaded_mass=None)
+        if q.count() > 0:
+            q.update(loaded_mass=0)
+
+
 def is_consistent(scenario: Scenario) -> bool:
     for rotation in Rotation.objects.filter(scenario=scenario):
+        print(rotation.id)
         if not is_consistent_rotation(rotation):
             return False
 
@@ -3376,7 +3409,6 @@ def transform_depot_stations(source_scenario: Scenario) -> None:
     This function determines if there are intermediate stops at depot stations,
     creates an opportunity station and switches this station into the appropriate routes.
     :param source_scenario: Source scenario
-    :param child: Child scenario which is notified about changes
     """
     depots = Station.objects.filter(scenario=source_scenario, charge_type=EnumChargeType.DEPOT)
     all_routes = Route.objects.filter(scenario=source_scenario)
@@ -3408,9 +3440,6 @@ def transform_depot_stations(source_scenario: Scenario) -> None:
     new_stations = dict()
     changed_rotations = dict()
 
-    # This is used to differentiate between existing routes and newly created ones
-    max_route_id = ebustoolbox.util.get_next_id(Route)
-
     # NOTE: We make use of the lazy nature of queries. depot_departure_routes is evaluated after
     # the arrival_routes were created
 
@@ -3419,6 +3448,9 @@ def transform_depot_stations(source_scenario: Scenario) -> None:
         [last_trip_ids, first_trip_ids],
         ["arrival_station", "departure_station"],
     ):
+
+        # This is used to differentiate between existing routes and newly created ones
+        max_route_id = ebustoolbox.util.get_next_id(Route)
         new_routes = []
         changed_routes = []
         changed_trips = []

@@ -152,6 +152,7 @@ class TripsForm(forms.Form):
         file_suffix = data_file.name[-3:]
         if file_suffix not in ["csv", "zip"]:
             self.errors["data_file"] = f"Der Dateityp {file_suffix} wird nicht unterstützt"
+            return False
         return True
 
 
