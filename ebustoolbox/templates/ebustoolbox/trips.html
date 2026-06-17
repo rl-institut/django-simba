@@ -106,6 +106,13 @@
           console.log("htmx:xhr:progress fired");
           htmx.find('#progress').setAttribute('value', evt.detail.loaded / evt.detail.total * 100)
       });
+      // Re-enable the submit button if the request fails or is aborted by the browser
+      // (e.g. when the browser cannot read a directory as a file for the multipart body).
+      htmx.on('#trips_form', 'htmx:afterRequest', function (evt) {
+          if (!evt.detail.successful) {
+              enableButton(document.getElementById("WizardNextButton"));
+          }
+      });
   </script>
 {#  load the file drop zone functions and apply them to the drop zone and input field#}
 <script src="{% static 'ebustoolbox/js/file_drop_zone_handling.js' %}" onload="setDropHandler('drop_zone','{{ form.data_file.auto_id}}')">
@@ -151,8 +158,21 @@
         errorMessage.style.display = "block";  // Show error message
         enableButton(wizardNextButton);
         event.preventDefault()
+    } else if (val2 && input2.files.length > 0) {
+        // File provided — reject anything that isn't a .csv or .zip (e.g. a dropped folder).
+        const fileName = input2.files[0].name.toLowerCase();
+        if (!fileName.endsWith('.csv') && !fileName.endsWith('.zip')) {
+            input2.value = null;
+            let el = document.getElementById("uploaded_file_id");
+            el.classList.add("text-red-600");
+            el.textContent = "{% translate 'Ordner werden nicht unterstützt. Bitte lade eine .csv oder .zip Datei hoch.' %}";
+            enableButton(wizardNextButton);
+            event.preventDefault();
+        } else {
+            errorMessage.style.display = "none";
+        }
     } else {
-        // valid case
+        // valid case (existing scenario selected)
         errorMessage.style.display = "none";  // Hide error message if valid
     }
   };
@@ -160,9 +180,10 @@
 <script>
   function updateFileName(input){
       console.log("updating file name")
-      let uploaded_file_id=document.getElementById("uploaded_file_id")
+      let el = document.getElementById("uploaded_file_id");
+      el.classList.remove("text-red-600");
       let fileName = input.files.length > 0 ? input.files[0].name : 'Keine Datei ausgewählt';
-      uploaded_file_id.textContent = fileName;
+      el.textContent = fileName;
   }
 </script>
 {%  endblock script %}

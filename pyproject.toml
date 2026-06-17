@@ -47,9 +47,9 @@ tqdm = "^4.66.1"
 charset-normalizer = "^3.4.2"
 django-widget-tweaks = "^1.5.0"
 
-eflips-ingest = "^1.8.1"
 eflips-eval = "^1.7.3"
-eflips-depot = "^4.14.0"
+eflips-depot = "^4.18.2"
+eflips-ingest = "^2.0.0"
 gunicorn = "^23.0.0"
 whitenoise = "^6.11.0"
 eflips-tco = {git = "https://github.com/mpm-tu-berlin/eflips-tco.git", branch = "feature/revenue-km"}
