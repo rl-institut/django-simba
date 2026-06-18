@@ -875,10 +875,7 @@ def init_db_with_trips(
 
         # Delete rotations which are not consistent and create a notification
         # Do this after creating depots, since depots are part of consistent rotations
-        print("focring consistency")
         make_consistent(parent)
-        print(Rotation.objects.filter(scenario=parent).count())
-        print("rotations left")
         scenario.scenario_type = EnumScenarioType.MUTATION
         parent.scenario_type = EnumScenarioType.SOURCE
         scenario.save()
@@ -2610,7 +2607,6 @@ def make_consistent(scenario: Scenario) -> None:
 
 def is_consistent(scenario: Scenario) -> bool:
     for rotation in Rotation.objects.filter(scenario=scenario):
-        print(rotation.id)
         if not is_consistent_rotation(rotation):
             return False
 
