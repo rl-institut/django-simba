@@ -2586,7 +2586,7 @@ def is_consistent_rotation(rotation: Rotation) -> bool:
 def make_consistent(scenario: Scenario) -> None:
     for rotation in Rotation.objects.filter(scenario=scenario):
         message = (
-            "Der Umlauf '{}' wurde gelöscht da er nicht die Anforderungen an Konsistenz erfüllt."
+            "Der Umlauf '{}' wurde gelöscht da er nicht die Anforderungen an Konsistenz erfüllt. "
             "Die Anfoderungen an Konsistenz sind in der Hilfe erläutert."
         )
         if not is_consistent_rotation(rotation):

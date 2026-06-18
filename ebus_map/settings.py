@@ -13,15 +13,16 @@ MAP_ENGINE_IMAGES = [
 
 # MAP_ENGINE_API_MVTS = {}
 MAP_ENGINE_API_MVTS = {
+    # Routes first so they are in the bottom layer
+    "routes_mvt": [
+        # setup.MVTAPI("station", "ebustoolbox", "station"),
+        setup.MVTAPI("routes", "ebustoolbox", "route"),
+    ],
     "stations_mvt": [
         # create layer called station, from app ebus_map with the model data from station
         setup.MVTAPI("station", "ebustoolbox", "station"),
         setup.MVTAPI("station-badge-bg", "ebustoolbox", "station"),
         setup.MVTAPI("station-badge", "ebustoolbox", "station"),
-    ],
-    "routes_mvt": [
-        # setup.MVTAPI("station", "ebustoolbox", "station"),
-        setup.MVTAPI("routes", "ebustoolbox", "route"),
     ],
 }
 

@@ -1053,13 +1053,13 @@ simpy = ">=4.0.1,<5.0.0"
 
 [[package]]
 name = "eflips-depot"
-version = "4.18.2"
+version = "4.18.3"
 description = "Depot Simulation for eFLIPS"
 optional = false
 python-versions = "<3.14,>=3.11"
 files = [
-    {file = "eflips_depot-4.18.2-py3-none-any.whl", hash = "sha256:ec8220984d8a17f9b76720be8a65cbdca5b2bb583b126b3dc7490a6a75745388"},
-    {file = "eflips_depot-4.18.2.tar.gz", hash = "sha256:0b7f2918fc0a03cd2227c8235b105fbeea47452240ea990ae950d426f7b05eb6"},
+    {file = "eflips_depot-4.18.3-py3-none-any.whl", hash = "sha256:e91a405b298d99a3a30a3dea055bcdeb37c39a92bd6e7ea133f4766f65f42e1e"},
+    {file = "eflips_depot-4.18.3.tar.gz", hash = "sha256:cdae84612ac9e3086f7a885be6471c5bdb2e07ee991ad1265cbe553e6c11cc4a"},
 ]
 
 [package.dependencies]
@@ -2211,21 +2211,23 @@ files = [
 
 [[package]]
 name = "networkx"
-version = "3.5"
+version = "3.6.1"
 description = "Python package for creating and manipulating graphs and networks"
 optional = false
-python-versions = ">=3.11"
+python-versions = "!=3.14.1,>=3.11"
 files = [
-    {file = "networkx-3.5-py3-none-any.whl", hash = "sha256:0030d386a9a06dee3565298b4a734b68589749a544acbb6c412dc9e2489ec6ec"},
-    {file = "networkx-3.5.tar.gz", hash = "sha256:d4c6f9cf81f52d69230866796b82afbccdec3db7ae4fbd1b65ea750feed50037"},
+    {file = "networkx-3.6.1-py3-none-any.whl", hash = "sha256:d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762"},
+    {file = "networkx-3.6.1.tar.gz", hash = "sha256:26b7c357accc0c8cde558ad486283728b65b6a95d85ee1cd66bafab4c8168509"},
 ]
 
 [package.extras]
+benchmarking = ["asv", "virtualenv"]
 default = ["matplotlib (>=3.8)", "numpy (>=1.25)", "pandas (>=2.0)", "scipy (>=1.11.2)"]
 developer = ["mypy (>=1.15)", "pre-commit (>=4.1)"]
 doc = ["intersphinx-registry", "myst-nb (>=1.1)", "numpydoc (>=1.8.0)", "pillow (>=10)", "pydata-sphinx-theme (>=0.16)", "sphinx (>=8.0)", "sphinx-gallery (>=0.18)", "texext (>=0.6.7)"]
-example = ["cairocffi (>=1.7)", "contextily (>=1.6)", "igraph (>=0.11)", "momepy (>=0.7.2)", "osmnx (>=2.0.0)", "scikit-learn (>=1.5)", "seaborn (>=0.13)"]
+example = ["cairocffi (>=1.7)", "contextily (>=1.6)", "igraph (>=0.11)", "iplotx (>=0.9.0)", "momepy (>=0.7.2)", "osmnx (>=2.0.0)", "scikit-learn (>=1.5)", "seaborn (>=0.13)"]
 extra = ["lxml (>=4.6)", "pydot (>=3.0.1)", "pygraphviz (>=1.14)", "sympy (>=1.10)"]
+release = ["build (>=0.10)", "changelist (==0.5)", "twine (>=4.0)", "wheel (>=0.40)"]
 test = ["pytest (>=7.2)", "pytest-cov (>=4.0)", "pytest-xdist (>=3.0)"]
 test-extras = ["pytest-mpl", "pytest-randomly"]
 
@@ -2576,17 +2578,6 @@ packaging = "*"
 tenacity = ">=6.2.0"
 
 [[package]]
-name = "ply"
-version = "3.11"
-description = "Python Lex & Yacc"
-optional = false
-python-versions = "*"
-files = [
-    {file = "ply-3.11-py2.py3-none-any.whl", hash = "sha256:096f9b8350b65ebd2fd1346b12452efe5b9607f7482813ffca50c22722a807ce"},
-    {file = "ply-3.11.tar.gz", hash = "sha256:00c7c1aaa88358b9c765b6d3000c6eec0ba42abca5351b095321aef446081da3"},
-]
-
-[[package]]
 name = "polyline"
 version = "2.0.4"
 description = "A Python implementation of Google's Encoded Polyline Algorithm Format."
@@ -2777,46 +2768,45 @@ test = ["pytest", "pytest-cov"]
 
 [[package]]
 name = "pyomo"
-version = "6.9.4"
+version = "6.10.1"
 description = "The Pyomo optimization modeling framework"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 files = [
-    {file = "pyomo-6.9.4-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:7de575b80e17edf59f393e7fb4dd7b33eda071f1ced65b464b156ceaf076d738"},
-    {file = "pyomo-6.9.4-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:3986f6bc445c187255df1f50895cfb2c733cd62a03cd6d8dfde427d6b113c79d"},
-    {file = "pyomo-6.9.4-cp310-cp310-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:b32eb679410ce65614e22a95f63c587286537ecb03b0c786ba1044fe56c5d83b"},
-    {file = "pyomo-6.9.4-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:87fb4034e8345f6a7733fd8510855f37ec7c0cf0f0f8fe185bfd0107a0780d73"},
-    {file = "pyomo-6.9.4-cp310-cp310-win_amd64.whl", hash = "sha256:396c4c569af906abce57b73d6acc3f9bf2e0f6902c030a82f12247e17f125590"},
-    {file = "pyomo-6.9.4-cp310-cp310-win_arm64.whl", hash = "sha256:4615404d46d3ffbd5eefa20e7c6069c34a568697b94ddd7a5b9a72a531f3dd7e"},
-    {file = "pyomo-6.9.4-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:81387bd2dcbc734c2bfeb3de1fc15e90d2ecf76f4985c77dc5aa7f608c9bcc34"},
-    {file = "pyomo-6.9.4-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:dbe6c5c86b1f3eea9da632121df473608b56d48c97191c046c1eb6b48762abd4"},
-    {file = "pyomo-6.9.4-cp311-cp311-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:66752c5653e77179bc0c980cf10f6ecea03ee03e158c3b72cf33d1f947970ae0"},
-    {file = "pyomo-6.9.4-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:3d47465a05f936b51df5d8fd872f766f0b7379ca4d9d43a8fb2b555aecbcb262"},
-    {file = "pyomo-6.9.4-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:cc3cd52c143991071821bbb9943d2a59512481b5d15adb7add32f92def4172ce"},
-    {file = "pyomo-6.9.4-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:3a5e1dc79e1a2ec1f6247f0df59ac3572781e40218093a624f9213dd3ae6913f"},
-    {file = "pyomo-6.9.4-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:abea6ca55295b179c1c91184db4eece7589cfd6099869eff8e3e6aa8a06463d1"},
-    {file = "pyomo-6.9.4-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:ddd48dec34b270ca2621863a216c4f3a6fcc409db86a7dc34c31eb788a44b8c6"},
-    {file = "pyomo-6.9.4-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:e1a768a178ae3f0391c66e2334da3d1618c9c85c9d879bc86de441efd143f491"},
-    {file = "pyomo-6.9.4-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:09cde10e5fe8414f453d1ed3bccef1b42fc048fc2da0a9c936e40b2f877201bf"},
-    {file = "pyomo-6.9.4-cp313-cp313-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:df3e173d330666f881258deefa79f37373b941d4a5b00edc6aa5b10680720dc1"},
-    {file = "pyomo-6.9.4-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8a13baebcdb05deadeb0ec4b04ecedffa65f1e86179418fa67e603a4f8f1bf17"},
-    {file = "pyomo-6.9.4-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:e196371dddc94fe77ec6ce800d7fec70878a0d350e368939bd9bbd95170ab522"},
-    {file = "pyomo-6.9.4-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:f4b130a97e0b755104e39df7acc0cc41e2c2fbefc4252f15a541d73f20494848"},
-    {file = "pyomo-6.9.4-cp39-cp39-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:9112a661d19484bd3ad0016cae008e542dda467f2cf0b13703f11f82ba8944f8"},
-    {file = "pyomo-6.9.4-cp39-cp39-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:523d4dbdece18ec4b0d53ad83637cec7f4f5d340794d37a2e8f9c9c31b1180ff"},
-    {file = "pyomo-6.9.4-cp39-cp39-win_amd64.whl", hash = "sha256:fb48baeef88f7b770ba77e330d0a93f644163194e78266bc0af4692280d52551"},
-    {file = "pyomo-6.9.4-cp39-cp39-win_arm64.whl", hash = "sha256:47145bfe5f3f2c9881fe349c639b7132084c588fff9c5631a082bd976e424b75"},
-    {file = "pyomo-6.9.4-py3-none-any.whl", hash = "sha256:a274d74616c0b793279931f3b2175a31f9c63213f2d7b86c14d168c6c264f782"},
-    {file = "pyomo-6.9.4.tar.gz", hash = "sha256:34ad22cd6bf9956de9c0d3842d01c1f92dee0515b25aa3e8f113b326549b1231"},
+    {file = "pyomo-6.10.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:f49ec6d66c3986d1b084257061ec119a28995113bd7465bf9d9fec1656c3ae6a"},
+    {file = "pyomo-6.10.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:179d9b91b29ee3993189377b464fc48a296843af60ba56917730596c6967d950"},
+    {file = "pyomo-6.10.1-cp310-cp310-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:18258da66749df3bbfdad7fc2a5b0963b583e368f503c05b0deff84112cf3c0d"},
+    {file = "pyomo-6.10.1-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:e1905d0b8858e81c9dbbe54e80810d6c1e46ef897e495b475b9dca51ac1ae42b"},
+    {file = "pyomo-6.10.1-cp310-cp310-win_amd64.whl", hash = "sha256:52cd5829c666b3041229acde8e0d7caaa805208e7e92190fd978f9cd0a41f1ce"},
+    {file = "pyomo-6.10.1-cp310-cp310-win_arm64.whl", hash = "sha256:30ff0930d71564ca057dfdb6f2cc218f9efc765256b218f03c9cd2ee2fd6d67b"},
+    {file = "pyomo-6.10.1-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:e3564058b79b8a9f179b010b4a8ad28686369b548cccec1e2a58a5c44363d48a"},
+    {file = "pyomo-6.10.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:f8f4fd600abf78732a72a16926ec94fd6f23f98818cd4032ce96d4cf2bef035e"},
+    {file = "pyomo-6.10.1-cp311-cp311-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:4abc6def7f898296c4554208965bb0a1feffc98acc171480a5645bdfa5208ead"},
+    {file = "pyomo-6.10.1-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:4e6c54a9a8b9325db5bb0c2b4cafa02738d592e3673d20c80f28d73738f38316"},
+    {file = "pyomo-6.10.1-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:f446764a499e535c6980435b71f297873cb13f0b040a1275853431abd35033d9"},
+    {file = "pyomo-6.10.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:1ffae4d4cd96c87d48ea19a25dd942b69b3d8383374e133f7a040ea63e361f68"},
+    {file = "pyomo-6.10.1-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:2ed5fe352c74b249c35437e366413582c24d1869b995fdc648e29675bb9e8c3a"},
+    {file = "pyomo-6.10.1-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:be91786a9340230c031bec0e82c17acfcb5bba04801253ad09e85e4ddaf87d51"},
+    {file = "pyomo-6.10.1-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:1a8b838d7b66ffefa29c6a033a67dddfbcd048a94ac1ed4e11bc7e1abc40262d"},
+    {file = "pyomo-6.10.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:c2c9b69066428ec0b9b01e5ef146d0ff36c709fff747e20e8af00667e5d55b76"},
+    {file = "pyomo-6.10.1-cp313-cp313-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:ab4799b3a2c2728cfba1c9a1754c06dda48e2f4463c7692a027b5b884e54b16a"},
+    {file = "pyomo-6.10.1-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:9efddbc4c83971189047e734ba108ca6fdde8ff3390e0944e6eb928db0707ecd"},
+    {file = "pyomo-6.10.1-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:8c0f3174094e058eb2d0a274c45242c6214070d1f4db43f6ac1d176ae543026f"},
+    {file = "pyomo-6.10.1-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:b1f1f5f21e98ceb082be6f3dfcba13310605e4b28713ca22e35b4ce100524f0d"},
+    {file = "pyomo-6.10.1-cp314-cp314-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:02501a1d1b19557fa95ac302425496c49c1b1ce66c4a7ee5a61e95e570975096"},
+    {file = "pyomo-6.10.1-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:7899f5261e59d60e7de4d0d6d2185e3e72b2ac79e33b888625eeb32aee8b7b9a"},
+    {file = "pyomo-6.10.1-cp314-cp314t-macosx_10_15_x86_64.whl", hash = "sha256:2f2d63dda6c9ee8e200627c6c9cb9b5e778eddf9089c813a281dd4868b71c684"},
+    {file = "pyomo-6.10.1-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:3dbe06a08c0c73f8069a35671e680323857213007859f2c63a0ba51ea149aaa0"},
+    {file = "pyomo-6.10.1-cp314-cp314t-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:785d9973fa7802bbb396872ff13514fdf3cee3f8d3afa736369660518f0f90de"},
+    {file = "pyomo-6.10.1-cp314-cp314t-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:1c8719faf9f4dcfefcb75066989b1781a45d9bac20e2a5ad236fdb21bb09a505"},
+    {file = "pyomo-6.10.1-py3-none-any.whl", hash = "sha256:7a81b5301d4c0389809c1afd12311d23db04522341566332229d8ce4226bccb1"},
+    {file = "pyomo-6.10.1.tar.gz", hash = "sha256:74a9109c3b4ab97e69d6b1a1ca4e96a54442a177d8b1a19393e417e6ba008ba3"},
 ]
 
-[package.dependencies]
-ply = "*"
-
 [package.extras]
-docs = ["Sphinx (>4,!=8.2.0)", "numpy", "scipy", "sphinx-copybutton", "sphinx_rtd_theme (>0.5)", "sphinxcontrib-jsmath", "sphinxcontrib-napoleon"]
-optional = ["casadi", "dill", "ipython", "linear-tree", "matplotlib (>=3.6.0,!=3.6.1)", "networkx", "networkx (<3.2)", "numdifftools", "numpy", "openpyxl", "packaging", "pandas", "pint", "plotly", "python-louvain", "pywin32", "pyyaml", "qtconsole", "scikit-learn (<1.7.0)", "scipy", "seaborn", "sympy", "xlrd", "z3-solver"]
-tests = ["coverage", "parameterized", "pybind11", "pytest", "pytest-parallel"]
+docs = ["Sphinx (>4,!=8.2.0,<9.0.dev0 || >9.1.0)", "numpy", "scipy", "sphinx-copybutton", "sphinx_rtd_theme (>0.5)", "sphinxcontrib-jsmath", "sphinxcontrib-napoleon"]
+optional = ["casadi", "dill", "ipython", "linear-tree", "matplotlib (>=3.6.0,!=3.6.1)", "networkx", "numdifftools", "numpy", "openpyxl", "packaging", "pandas", "pint", "plotly", "python-louvain", "pywin32", "pyyaml", "qtconsole", "scikit-learn", "scikit-learn (<1.7.0)", "scipy", "seaborn", "sympy", "xlrd", "z3-solver"]
+tests = ["coverage", "parameterized", "pybind11", "pytest (!=9.0.0)", "pytest-parallel"]
 
 [[package]]
 name = "pyparsing"
@@ -3262,13 +3252,13 @@ resolved_reference = "01c7195bde02d371ad7e1b14ce8c0c5db43b217f"
 
 [[package]]
 name = "simpy"
-version = "4.1.1"
+version = "4.1.2"
 description = "Event discrete, process based simulation for Python."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "simpy-4.1.1-py3-none-any.whl", hash = "sha256:7c5ae380240fd2238671160e4830956f8055830a8317edf5c05e495b3823cd88"},
-    {file = "simpy-4.1.1.tar.gz", hash = "sha256:06d0750a7884b11e0e8e20ce0bc7c6d4ed5f1743d456695340d13fdff95001a6"},
+    {file = "simpy-4.1.2-py3-none-any.whl", hash = "sha256:43071f84b6512c9b4fcb33ef057f240ccb1d1f3b263f9b4f9229d072e310b372"},
+    {file = "simpy-4.1.2.tar.gz", hash = "sha256:76ef36b71e0436ba94e55febc001c78879e493a323f045bbcfbb0b216e9b1fbc"},
 ]
 
 [[package]]
@@ -3744,4 +3734,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11, <3.14"
-content-hash = "541f546d82b9c61f7da9adc54c67452fe33a6159bbba66631f7277df91a106a8"
+content-hash = "5bc64a334626a900c44bbda7f222e15874859aa0d906832d1426e99fd5b0ef05"
