@@ -1170,7 +1170,7 @@ xsdata = {version = "^24.1", extras = ["cli", "lxml"]}
 type = "git"
 url = "https://github.com/mpm-tu-berlin/eflips-ingest.git"
 reference = "bugfix/vdv"
-resolved_reference = "c29e8ffb78f556cc3c7bfdb22a2e90c13a9d6ac1"
+resolved_reference = "84671cf80e972462dc607c8198f9061fcd32a526"
 
 [[package]]
 name = "eflips-model"
