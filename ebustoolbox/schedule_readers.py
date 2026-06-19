@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone as tz
 from enum import Enum
 import logging
 import inspect
+import traceback
 from pathlib import Path
 from random import random
 
@@ -596,7 +597,12 @@ class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
 
         """
 
-        validation_result, uuid_or_errors = self._ingester.prepare(**self._kwargs)
+        try:
+            validation_result, uuid_or_errors = self._ingester.prepare(**self._kwargs)
+        except Exception:
+            self._errors = [traceback.format_exc()]
+            return False
+
         if not validation_result:
             assert isinstance(uuid_or_errors, dict)
             self._errors = [f"{key}: {value}" for key, value in uuid_or_errors.items()]
@@ -606,6 +612,8 @@ class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
 
         engine = create_engine(self._database_url)
         with Session(engine) as session:
+            django_assigned_task_id = None
+            scenario = None
             try:
                 scenario = (
                     session.query(eflips.model.Scenario)
@@ -621,14 +629,15 @@ class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
                 self._ingester.ingest(uuid_or_errors, self._progress_callback)
 
                 scenario.task_id = django_assigned_task_id
-            except Exception as e:
-                self._errors = [str(e)]
+            except Exception:
+                self._errors = [traceback.format_exc()]
                 session.rollback()
                 return False
             finally:
                 # In any case, we need to set the task_id back to what it was before
-                scenario.task_id = django_assigned_task_id
-                session.commit()
+                if scenario is not None:
+                    scenario.task_id = django_assigned_task_id
+                    session.commit()
 
         return True
 
