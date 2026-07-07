@@ -49,7 +49,7 @@ django-widget-tweaks = "^1.5.0"
 
 eflips-depot = "^4.18.3"
 eflips-eval = "^1.7.3"
-eflips-ingest = {git = "https://github.com/mpm-tu-berlin/eflips-ingest.git", branch = "bugfix/vdv"}
+eflips-ingest = "^2.0.1"
 gunicorn = "^23.0.0"
 whitenoise = "^6.11.0"
 eflips-tco = {git = "https://github.com/mpm-tu-berlin/eflips-tco.git", branch = "feature/revenue-km"}
