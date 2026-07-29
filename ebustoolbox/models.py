@@ -877,16 +877,16 @@ def get_shortest_distance_rotation(filter_dict: dict) -> Rotation:
 
 
 class EnumVoltageLevel(models.TextChoices):
-    VOLTAGE_HV = "HV"
-    VOLTAGE_HV_MV = "HV_MV"
-    VOLTAGE_MV = "MV"
-    VOLTAGE_MV_LV = "MV_LV"
-    VOLTAGE_LV = "LV"
+    VOLTAGE_HV = "HV", _("Hochspannung")
+    VOLTAGE_HV_MV = "HV_MV", _("Hoch-/Mittelspannung")
+    VOLTAGE_MV = "MV", _("Mittelspannung")
+    VOLTAGE_MV_LV = "MV_LV", _("Mittel-/Niederspannung")
+    VOLTAGE_LV = "LV", _("Niederspannung")
 
 
 class EnumChargeType(models.TextChoices):
-    DEPOT = "depb"
-    OPPORTUNITY = "oppb"
+    DEPOT = "depb", _("Depotladung")
+    OPPORTUNITY = "oppb", _("Gelegenheitsladung")
 
 
 def charge_type_from_simba_to_db(charge_type: str) -> str:
@@ -1134,7 +1134,11 @@ class CountBusServices(Func):
         # We override the as_sql method to generate our custom SQL
         # Get the SQL representation of the first source expression, which is F('id')
         expression_sql, expression_params = self.source_expressions[0].as_sql(compiler, connection)
-        sql = f'(SELECT COUNT(*) FROM public."Route" WHERE arrival_station_id = {expression_sql})'
+        sql = (
+            '(SELECT COUNT(*) FROM public."Trip" '
+            'INNER JOIN public."Route" ON "Trip"."route_id" = "Route"."id" '
+            f'WHERE "Route"."arrival_station_id" = {expression_sql})'
+        )
 
         return sql, expression_params
 
@@ -1285,6 +1289,8 @@ class Station(models.Model):
         obj = cls.objects.annotate(**cls.annotations).get(id=id)
         data = vars(obj)
         data["title"] = obj.name_short or obj.name
+        data["charge_type"] = obj.get_charge_type_display()
+        data["voltage_level"] = obj.get_voltage_level_display()
         plot = get_charge_chart(obj)
         if plot:
             data["plot"] = plot
