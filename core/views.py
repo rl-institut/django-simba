@@ -102,7 +102,7 @@ def test_email(request):
     if request.user.is_staff:
         mail.send_mail(
             subject="TEST",
-            message="Wenn Sie das lesen können, ist die Email angekommen.",
+            message="Wenn du das lesen kannst, ist die Email angekommen.",
             from_email=None,
             recipient_list=[request.user.email],
             fail_silently=False,

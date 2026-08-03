@@ -387,7 +387,7 @@ class SimbaScheduleReader(ScheduleReader):
             self.errors.append(
                 _(
                     f"Fahrt(en) in Zeile {', '.join(map(str, duration_errors))} haben keine oder eine "
-                    "negative Fahrtdauer. Bitte ergänzen Sie Fahrzeiten oder entfernen Sie die Fahrten."
+                    "negative Fahrtdauer. Bitte ergänze Fahrzeiten oder entferne die Fahrten."
                 )
             )
 

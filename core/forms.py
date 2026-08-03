@@ -35,7 +35,7 @@ class SignUpForm(UserCreationForm):
         accepts_terms = self.cleaned_data["accepts_terms"]
         if not accepts_terms:
             raise forms.ValidationError(
-                _("Für einen Zugang müssen Sie der Datenschutzerklärung zustimmen.")
+                _("Für einen Zugang musst du der Datenschutzerklärung zustimmen.")
             )
         return True
 

@@ -286,7 +286,7 @@ class ScenarioMixIn(AuthorizedMixIn):
                     "duration": 4,
                     "redirect_url": reverse("simba:summary", args=[scenario.task_id]),
                     "content": _(
-                        "Ihre Simulation wird ausgeführt, daher werden sie zur Zusammenfassung zurückgeleitet."
+                        "Deine Simulation wird ausgeführt, daher wirst du zur Zusammenfassung zurückgeleitet."
                     ),
                 }
                 return render(request, "core/redirect_with_timer.html", context)
@@ -297,7 +297,7 @@ class ScenarioMixIn(AuthorizedMixIn):
                     "duration": 4,
                     "redirect_url": reverse("simba:result", args=[scenario.task_id]),
                     "content": _(
-                        "Ihre Simulation ist beendet, daher werden sie zu den Ergebnissen weitergeleitet.."
+                        "Deine Simulation ist beendet, daher wirst du zu den Ergebnissen weitergeleitet.."
                     ),
                 }
                 return render(request, "core/redirect_with_timer.html", context)
@@ -534,7 +534,7 @@ def get_scenario_and_assert_authorization(request, task_id) -> Scenario:
     if request.user.is_superuser:
         return scenario
     if scenario.manager and scenario.manager != request.user:
-        raise PermissionDenied(_("Sie haben keinen Zugriff auf diese Seite"))
+        raise PermissionDenied(_("Du hast keinen Zugriff auf diese Seite"))
     return scenario
 
 
@@ -642,7 +642,7 @@ class FilterView(ScenarioMixIn, TemplateView):
             # If the scenario has children, changing the source_scenario is not allowed
             return HttpResponseForbidden(
                 _(
-                    "Das Szenario kann nicht wiederholt gefiltert werden. Erstellen Sie stattdessen eine neue Variante"
+                    "Das Szenario kann nicht wiederholt gefiltert werden. Erstelle stattdessen eine neue Variante"
                 )
             )
         context = self.get_context_data(request, **kwargs)
@@ -1615,7 +1615,7 @@ def merge_and_run(request: HttpRequest, task_id: str):
         assert async_result.task_id != sim_task_id, "Task ids are expected to be equal"
     except Exception:
         progress.errors.append(
-            _("Ein unerwarteter Fehler ist aufgetreten. Wenden Sie sich an ihren Administrator")
+            _("Ein unerwarteter Fehler ist aufgetreten. Wende dich an deinen Administrator")
         )
         progress.set_failed()
         logger.error(traceback.format_exc())
@@ -1835,7 +1835,7 @@ def usergroups(request):
                 url = f"{request.scheme}://{request.get_host()}{reverse('core:signup')}"
                 # generate and append token (embed email, sign with server key)
                 url += f"?token={signing.dumps(email)}"
-                body = _(f"Klicken Sie auf folgenden Link, um sich zu registrieren: {url}")
+                body = _(f"Klicke auf folgenden Link, um dich zu registrieren: {url}")
                 mail.send_mail(
                     subject=_("Willkommen zu eBus2030+"),
                     message=body,
@@ -2030,7 +2030,7 @@ def export_scenario_tree(request, task_id: str):
     # Raise an exception if user is not authorized for this task_id
     permission = AuthorizedMixIn.get_permission(request.user, task_id)
     if not permission:
-        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
+        return HttpResponseForbidden(_("Du hast keinen Zugriff auf diese Seite"))
     scenario = Scenario.objects.get(task_id=task_id)
     default_scenario = DefaultScenario.objects.first()
     if default_scenario and scenario == default_scenario.scenario:
@@ -2089,12 +2089,12 @@ def export_scenario(request):
     # Raise an exception if user is not authorized for this task_id
     task_ids = [_id for _id in request.GET.getlist("task_id")]
     if not task_ids:
-        return Http404(_("Sie müssen mindestens eine task_id als GET Request angeben"))
+        return Http404(_("Du musst mindestens eine task_id als GET Request angeben"))
 
     for task_id in task_ids:
         permission = AuthorizedMixIn.get_permission(request.user, task_id)
         if not permission:
-            return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
+            return HttpResponseForbidden(_("Du hast keinen Zugriff auf diese Seite"))
 
     data = {}
     for task_id in task_ids:
@@ -2264,7 +2264,7 @@ def loadTester(request, task_id: str):
             except Exception:
                 progress.errors.append(
                     _(
-                        "Ein unerwarteter Fehler ist aufgetreten. Wenden Sie sich an ihren Administrator"
+                        "Ein unerwarteter Fehler ist aufgetreten. Wende dich an deinen Administrator"
                     )
                 )
                 progress.set_failed()

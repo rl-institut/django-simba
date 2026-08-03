@@ -14,7 +14,7 @@
   {% csrf_token %}
   <div class="sm:pt-8 sm:pb-4 lg:pt-6 sm:px-6 lg:px-8 w-full max-w-7xl">
     <h1 class="pb-6 text-2xl text-slate-500 font-light tracking-wide uppercase">{% translate 'Umlaufplan' %}</h1>
-    <span class="block mb-6 text-sm text-slate-500">{% translate 'Laden Sie ihren Umlaufplan hoch. Alternativ können Sie den Umlaufplan aus einem existierendem Szenario auswählen.' %}</span>
+    <span class="block mb-6 text-sm text-slate-500">{% translate 'Lade deinen Umlaufplan hoch. Alternativ kannst du den Umlaufplan aus einem existierendem Szenario auswählen.' %}</span>
 
     <div id="error-message" style="display:None">{% translate 'Lade eine Datei aus oder wähle ein Szenario aus.' %}</div>
     <div class="grid grid-cols-12 gap-4">
@@ -34,7 +34,7 @@
                 </a>
                 <!-- Tooltip -->
                 <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                  {% translate 'Lade eine Datei hoch die Ihren Umlaufplan abbildet. Für unterstütze Dateiformate klicken Sie hier.' %}
+                  {% translate 'Lade eine Datei hoch die deinen Umlaufplan abbildet. Für unterstütze Dateiformate klicke hier.' %}
                 </div>
               </span>
             </div>
@@ -196,7 +196,7 @@
         <div class="mt-2">
           <textarea type="text" {{ form.description|widget_attrs }} rows="3"
             class="bg-white w-full px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 sm:text-sm/6"
-            placeholder="{% translate "Beschreiben Sie Ihr Szenario..." %}"
+            placeholder="{% translate "Beschreibe dein Szenario..." %}"
             aria-describedby="description-optional">{% if form.description.value %}{{ form.description.value }}{% endif %}</textarea>
         </div>
       </div>

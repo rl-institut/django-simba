@@ -3496,7 +3496,7 @@ def transform_depot_stations(source_scenario: Scenario) -> None:
             message=(
                 f"Für den Umlauf {escape(rotation.name)} wurden Zwischenhaltestellen "
                 f"an den Depots {[escape(s.name) for s in stations]} erzeugt. "
-                "Mehr Informationen finden Sie in der Hilfe."
+                "Mehr Informationen findest du in der Hilfe."
             )[:999],
         )
     if len(changed_rotations) > 0:

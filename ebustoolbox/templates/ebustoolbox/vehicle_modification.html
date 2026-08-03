@@ -10,7 +10,7 @@
       <button type="button"
               onclick="toggleAccordion(this)"
               class="w-full flex justify-between items-center px-4 py-4 text-slate-800 accordion-header">
-          <span class="w-max text-base font-bold text-slate-800 px-2">Ihr Fahrzeugtyp: {{ modification.vehicle_type.name }}</span>
+          <span class="w-max text-base font-bold text-slate-800 px-2">Dein Fahrzeugtyp: {{ modification.vehicle_type.name }}</span>
         <div id="SelectionError{{ vt_id }}" class="text-red-500 hidden"> {% translate "Wähle eine Fahrzeug aus" %}
           </div>
         <span id="icon-{{ vt_id }}"
@@ -29,7 +29,7 @@
           <div class="flex items-center justify-between py-4 px-4 gap-4 bg-gradient-to-r from-slate-100 to-slate-200">
 
         <!-- dropdown. requires dropdown_partial_js.html-->
-        {% include "ebustoolbox/partials/dropdown_partial.html" with label="Wählen Sie ein Fahrzeug aus" field=modification.selection.default_vehicle_type|attr:"required:true"|add_class:"hidden" choices=modification.vehicle_choices placeholder="Noch keine Auswahl" %}
+        {% include "ebustoolbox/partials/dropdown_partial.html" with label="Wähle ein Fahrzeug aus" field=modification.selection.default_vehicle_type|attr:"required:true"|add_class:"hidden" choices=modification.vehicle_choices placeholder="Noch keine Auswahl" %}
           </div>
           <!-- inner vehicle form -->
           {% include 'ebustoolbox/partials/inner_vehicle_type_form.html' %}

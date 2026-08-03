@@ -35,7 +35,7 @@
                 </svg>
                 <!-- Tooltip -->
                 <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                  {% translate 'Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert überschreiben.' %}
+                  {% translate 'Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. Dies ist nicht der Fall, wenn du den Verbrauchswert überschreibst.' %}
                 </div>
               </span>
             </div>
@@ -58,7 +58,7 @@
                     </svg>
                     <!-- Tooltip -->
                     <div class="absolute left-0 top-full z-10 mt-2 w-96 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      {% translate 'Die gewählte Temperatur verändert den simulierten Durchschnitts-Verbrauch der Fahrzeuge. Dieser ist entscheidend für den kumulierten Energieverbrauch und die damit einhergenden Kosten und Emissionen der Energiebereitstellung. Die Temperatur hat keinen Einfluss wenn Sie den Fahrzeugtypen unten einen konstanten Verbrauch zuordnen.' %}
+                      {% translate 'Die gewählte Temperatur verändert den simulierten Durchschnitts-Verbrauch der Fahrzeuge. Dieser ist entscheidend für den kumulierten Energieverbrauch und die damit einhergenden Kosten und Emissionen der Energiebereitstellung. Die Temperatur hat keinen Einfluss wenn du den Fahrzeugtypen unten einen konstanten Verbrauch zuordnest.' %}
                     </div>
                   </span>
                 </div>
@@ -146,7 +146,7 @@
                     </svg>
                     <!-- Tooltip -->
                     <div class="absolute left-0 top-full z-10 mt-2 w-96 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                      {% translate 'Die gewählte Temperatur verändert den simulierten Extrem-Verbrauch der Fahrzeuge. Dieser ist entscheidend für die Auslegung der Infrastruktur und automatischen Identifikation von zu elektrifizierender Zwischenhaltestellen. Die Temperatur hat keinen Einfluss wenn Sie den Fahrzeugtypen unten einen konstanten Verbrauch zuordnen.' %}
+                      {% translate 'Die gewählte Temperatur verändert den simulierten Extrem-Verbrauch der Fahrzeuge. Dieser ist entscheidend für die Auslegung der Infrastruktur und automatischen Identifikation von zu elektrifizierender Zwischenhaltestellen. Die Temperatur hat keinen Einfluss wenn du den Fahrzeugtypen unten einen konstanten Verbrauch zuordnest.' %}
                     </div>
                   </span>
                 </div>
@@ -235,12 +235,12 @@
                 </svg>
                 <!-- Tooltip -->
             <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-              {% translate 'Folgende Fahrzeugtypen wurden in Ihrem Umlaufplan identifiziert. Für die Simulation sind technische Parameter notwendig die Sie hier zuordnen müssen. Sie können Fahrzeugtypen aus einer Bibliothek übernehmen und verschiedene Werte manuell überschreiben.' %}
+              {% translate 'Folgende Fahrzeugtypen wurden in deinem Umlaufplan identifiziert. Für die Simulation sind technische Parameter notwendig die du hier zuordnen musst. Du kannst Fahrzeugtypen aus einer Bibliothek übernehmen und verschiedene Werte manuell überschreiben.' %}
                 </div>
               </span>
             </div>
           </h2>
-          <span class="block mb-6 text-sm text-slate-500">{% translate 'Ordnen Sie jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu.' %}</span>
+          <span class="block mb-6 text-sm text-slate-500">{% translate 'Ordne jedem Fahrzeug aus dem Fahrplan ein verfügbares Standard-Fahrzeug zu.' %}</span>
           {% include "ebustoolbox/vehicle_modification.html" with modification=modification vt_id=vt_id choice_vts=choice_vts %}
           {#      validate() is defined in vehicle_modification since this content is what is validated#}
           <button id="SubmitButton" hidden onclick="validate()"></button>
