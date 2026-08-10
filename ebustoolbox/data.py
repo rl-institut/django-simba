@@ -1058,6 +1058,73 @@ def get_stats(task_id: str) -> dict:
     return resp
 
 
+def get_electrified_stations(task_id: str) -> pd.DataFrame:
+    """One row per electrified terminus stop.
+
+    Terminus electrification is modelled as opportunity charging, so every opportunity charging
+    station is an electrified terminus. The number of charging points is whatever the operator
+    configured; where that was left open, it is the peak number of buses charging there at the
+    same time, which is the number the station has to be built for.
+
+    Utilisation is the share of the simulated period during which an average charging point at
+    that station is occupied, so a station whose single charger is busy half the time reads 50%.
+
+    :param task_id: The task id of the (simulated) scenario.
+    :return: Columns ``name``, ``chargers``, ``utilization`` (0-1) and ``arrivals``.
+    """
+    scenario = Scenario.objects.get(task_id=task_id)
+    time_start, time_end = get_start_end_time(scenario)
+    window_seconds = (time_end - time_start).total_seconds()
+
+    opp_stations = scenario.station_set.filter(charge_type=EnumChargeType.OPPORTUNITY)
+
+    charging_events = scenario.event_set.filter(
+        event_type=EventType.CHARGING_OPPORTUNITY,
+        time_start__gte=time_start,
+        time_end__lte=time_end,
+    )
+    events_by_station: dict[int, list] = {}
+    for station_id, start, end in charging_events.values_list(
+        "station_id", "time_start", "time_end"
+    ):
+        events_by_station.setdefault(station_id, []).append((start, end))
+
+    records = []
+    for station in opp_stations:
+        events = events_by_station.get(station.id, [])
+
+        # How many vehicles charge here at the same time, at the busiest moment
+        timeline = sorted(
+            [(start, 1) for start, unused_end in events]
+            + [(end, -1) for unused_start, end in events]
+        )
+        concurrent = 0
+        peak = 0
+        for unused_time, delta in timeline:
+            concurrent += delta
+            peak = max(peak, concurrent)
+
+        chargers = station.amount_charging_places or peak
+        occupied_seconds = sum((end - start).total_seconds() for start, end in events)
+
+        if chargers and window_seconds:
+            utilization = occupied_seconds / (chargers * window_seconds)
+        else:
+            utilization = 0.0
+
+        records.append(
+            {
+                "name": station.name,
+                "chargers": chargers,
+                "utilization": round(utilization, 4),
+                "arrivals": len(events),
+            }
+        )
+
+    df = pd.DataFrame(records, columns=["name", "chargers", "utilization", "arrivals"])
+    return df.sort_values("name").reset_index(drop=True)
+
+
 def get_speed_hist(task_id: str) -> pd.DataFrame:
     scenario = Scenario.objects.get(task_id=task_id)
     vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)

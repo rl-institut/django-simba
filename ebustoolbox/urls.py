@@ -153,6 +153,11 @@ urlpatterns = [
         views.get_power_draw_and_occ,
         name="eflips_power",
     ),
+    path(
+        "result/<uuid:task_id>/electrified_stations/",
+        views.get_electrified_stations_data,
+        name="electrified_stations",
+    ),
     path("result/<uuid:task_id>/gantt/", views.get_gantt, name="gantt"),
     path("result/<uuid:task_id>/piecharts/", views.get_piecharts, name="piecharts"),
     path("load_test/<uuid:task_id>/", views.loadTester, name="loadtest"),

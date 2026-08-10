@@ -1959,6 +1959,23 @@ def get_binned_soc_data(request, task_id: str):
     return HttpResponse(status=400)
 
 
+def get_electrified_stations_data(request, task_id: str):
+    """
+    Returns one row per electrified terminus stop with its number of charging points and the
+    average utilization of those points over the simulated period.
+    """
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
+    file_format = request.GET.get("format", "json").lower()
+    df = data.get_electrified_stations(task_id)
+    if file_format == "json":
+        return JsonResponse({"data": df.to_dict(orient="records")}, safe=True)
+    elif file_format == "csv":
+        return HttpResponse(df.to_csv(index=False), content_type="text/csv")
+    return HttpResponse(status=400)
+
+
 def get_power_draw(request, task_id: str):
     """
     Returns power draw data over time by station ID for selected buses.
