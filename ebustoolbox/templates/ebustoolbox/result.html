@@ -642,7 +642,10 @@
                     },
                     {
                         type: 'inside',
-                        filterMode: 'empty'
+                        filterMode: 'empty',
+                        // Leave the wheel to the page; the sliders and dragging still zoom
+                        zoomOnMouseWheel: false,
+                        moveOnMouseWheel: false
                     },
                     {
                         type: 'slider',
@@ -753,7 +756,10 @@
                         },
                         {
                             type: 'inside',
-                            filterMode: 'empty'
+                            filterMode: 'empty',
+                            // Leave the wheel to the page; the sliders and dragging still zoom
+                            zoomOnMouseWheel: false,
+                            moveOnMouseWheel: false
                         }
                     ],
                     grid: {
@@ -1161,7 +1167,11 @@
                         },
                         {
                             type: 'inside',
-                            filterMode: 'weakFilter'
+                            filterMode: 'weakFilter',
+                            // The wheel scrolls the rows vertically (see insideY below), it must
+                            // not also zoom the time axis
+                            zoomOnMouseWheel: false,
+                            moveOnMouseWheel: false
                         },
                         {
                             type: 'slider',
@@ -1432,7 +1442,11 @@
                         },
                         {
                             type: 'inside',
-                            filterMode: 'weakFilter'
+                            filterMode: 'weakFilter',
+                            // The wheel scrolls the rows vertically (see insideY below), it must
+                            // not also zoom the time axis
+                            zoomOnMouseWheel: false,
+                            moveOnMouseWheel: false
                         },
                         {
                             type: 'slider',
