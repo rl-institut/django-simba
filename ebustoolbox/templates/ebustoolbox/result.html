@@ -1732,27 +1732,41 @@
       .then((result) => {
         const rawData = result.data;
 
-        const xHours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+        // Absolute hours, not hour-of-day, so this lines up with the depot occupancy chart.
+        // The backend already limits them to the simulation window.
+        const xTimes = [...new Set(rawData.map(item => item.time))].sort();
         const yBins = ["<0", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"];
 
+        const formatHour = (iso) => {
+          const date = new Date(iso);
+          const pad = (n) => String(n).padStart(2, '0');
+          return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} `
+               + `${pad(date.getHours())}:00`;
+        };
+        const xLabels = xTimes.map(formatHour);
+
         // Fill in all (hour, soc_bin) combinations with 0 where missing
-        const dataMap = new Map(rawData.map(item => [`${item.hour}-${item.soc_bin}`, item.count]));
+        const dataMap = new Map(rawData.map(item => [`${item.time}-${item.soc_bin}`, item.count]));
         const fullData = [];
 
-        for (let h = 0; h < 24; h++) {
+        for (let h = 0; h < xTimes.length; h++) {
           for (let y = 0; y < yBins.length; y++) {
-            const key = `${h}-${yBins[y]}`;
+            const key = `${xTimes[h]}-${yBins[y]}`;
             const count = dataMap.get(key) || 0;
             fullData.push([h, y, count]);
           }
         }
+
+        const maxCount = fullData.reduce((acc, item) => Math.max(acc, item[2]), 0);
+        // Only readable while the window is roughly a single day; beyond that the tooltip carries it
+        const showCellLabels = xTimes.length <= 26;
 
         const chart = echarts.init(document.getElementById(chartID), 'ebusPalette');
         const option = {
           tooltip: {
             position: 'top',
             formatter: params =>
-              `Stunde: ${xHours[params.data[0]]}<br>SOC: ${yBins[params.data[1]]}%<br>Fahrzeuge: ${params.data[2]}`
+              `Zeit: ${xLabels[params.data[0]]}<br>SOC: ${yBins[params.data[1]]}%<br>Fahrzeuge: ${params.data[2]}`
           },
           title: { text: 'Anzahl Fahrzeuge nach SoC', left: 'center' },
           grid: {
@@ -1763,10 +1777,15 @@
           },
           xAxis: {
             type: 'category',
-            data: xHours,
+            data: xLabels,
             name: 'Zeit',
             nameLocation: 'middle',
-            nameGap: 25,
+            nameGap: 55,
+            axisLabel: {
+              // Thin the labels out, the axis now carries a full date per tick
+              interval: Math.max(0, Math.ceil(xLabels.length / 8) - 1),
+              rotate: 45
+            },
             axisLine: {
               lineStyle: {
                 color: '#000',
@@ -1783,7 +1802,7 @@
           },
           visualMap: {
             min: 0,
-            max: Math.max(...fullData.map(item => item[2])),
+            max: maxCount,
             calculable: true,
             orient: 'horizontal',
             left: 'center',
@@ -1802,7 +1821,7 @@
             type: 'heatmap',
             data: fullData,
             label: {
-              show: true
+              show: showCellLabels
             },
             emphasis: {
               itemStyle: {
@@ -1810,17 +1829,7 @@
                 shadowColor: 'rgba(0, 0, 0, 0.5)'
               }
             }
-          }],
-          markLine: {
-            symbol: 'none',
-            lineStyle: {
-              color: '#000',
-              width: 2
-            },
-            data: [
-              { xAxis: 0 }  // Thicker vertical line at 0:00
-            ]
-          }
+          }]
         };
         chart.setOption(option);
       });
