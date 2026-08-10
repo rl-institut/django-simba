@@ -36,6 +36,25 @@ files = [
 vine = ">=5.0.0,<6.0.0"
 
 [[package]]
+name = "anyio"
+version = "4.14.2"
+description = "High-level concurrency and networking framework on top of asyncio or Trio"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "anyio-4.14.2-py3-none-any.whl", hash = "sha256:9f505dda5ac9f0c8309b5e8bd445a8c2bf7246f3ce950121e45ea15bc41d1494"},
+    {file = "anyio-4.14.2.tar.gz", hash = "sha256:cfa139f3ed1a23ee8f88a145ddb5ac7605b8bbfd8592baacd7ce3d8bb4313c7f"},
+]
+
+[package.dependencies]
+idna = ">=2.8"
+typing_extensions = {version = ">=4.5", markers = "python_version < \"3.13\""}
+
+[package.extras]
+trio = ["trio (>=0.32.0)"]
+
+[[package]]
 name = "asgiref"
 version = "3.8.1"
 description = "ASGI specs, helper code, and adapters"
@@ -1106,14 +1125,14 @@ simpy = ">=4.0.1,<5.0.0"
 
 [[package]]
 name = "eflips-depot"
-version = "4.18.4"
+version = "4.18.5"
 description = "Depot Simulation for eFLIPS"
 optional = false
 python-versions = "<3.14,>=3.11"
 groups = ["main"]
 files = [
-    {file = "eflips_depot-4.18.4-py3-none-any.whl", hash = "sha256:224514ad9c20922e6742e7f6c4b71fdf987a53c62d600a364a5bec6053373c36"},
-    {file = "eflips_depot-4.18.4.tar.gz", hash = "sha256:b96ac0ad91116da6588b8dc374ba395426e21ed9560b68ad002145debb58c985"},
+    {file = "eflips_depot-4.18.5-py3-none-any.whl", hash = "sha256:429092849a42c76c9cef1a1fefb10d8a9f9a4f66b99c13d5f9ec58f2eea4b171"},
+    {file = "eflips_depot-4.18.5.tar.gz", hash = "sha256:32b3e6787514b8654291fb34a3b1741a95b1297fd5aaed1f7223dd12a72adcbd"},
 ]
 
 [package.dependencies]
@@ -1129,35 +1148,37 @@ xlsxwriter = ">=3.1.9,<4.0.0"
 
 [[package]]
 name = "eflips-eval"
-version = "1.7.4"
+version = "1.9.0"
 description = ""
 optional = false
 python-versions = "<3.14,>=3.10"
 groups = ["main"]
 files = [
-    {file = "eflips_eval-1.7.4-py3-none-any.whl", hash = "sha256:2f325dc1e12c3a449ab5667480eb335cce70585fc67b33225df614351e07e6c3"},
-    {file = "eflips_eval-1.7.4.tar.gz", hash = "sha256:aeded0b9af87ce27c0c8a3492ea96d7583b956056477f61abf2b1489a69d9a5c"},
+    {file = "eflips_eval-1.9.0-py3-none-any.whl", hash = "sha256:ad00351173163e4eec2bf1de0684411d93c433849981343ba4366a35d9c3ca8d"},
+    {file = "eflips_eval-1.9.0.tar.gz", hash = "sha256:7d44d9ff17ecfe939b9610c46140cd803f5316e8c5c14325fed9e259384ea8a4"},
 ]
 
 [package.dependencies]
 dash-cytoscape = ">=1.0.1,<2.0.0"
 folium = ">=0.17.0,<0.18.0"
+httpx = ">=0.27.0,<0.28.0"
 matplotlib = ">=3.9.0,<4.0.0"
 pandas = ">=2.2.0,<3.0.0"
 plotly = ">=5.19.0,<6.0.0"
+polyline = ">=2.0.0,<3.0.0"
 seaborn = ">=0.13.2,<0.14.0"
 shapely = ">=2.0.5,<3.0.0"
 
 [[package]]
 name = "eflips-ingest"
-version = "2.0.1"
+version = "2.2.0"
 description = "A collection of import scripts for converting bus schedule data into the [eflips-model](https://github.com/mpm-tu-berlin/eflips-model) data format."
 optional = false
 python-versions = "<3.14,>=3.11"
 groups = ["main"]
 files = [
-    {file = "eflips_ingest-2.0.1-py3-none-any.whl", hash = "sha256:599f56f97df0169914450f586c225826d27fe20665127403bc203d9af52f3635"},
-    {file = "eflips_ingest-2.0.1.tar.gz", hash = "sha256:b8c514838792fe91ef6d48ee650b7f2511b05fe1f116d6ff065cb380136b6b11"},
+    {file = "eflips_ingest-2.2.0-py3-none-any.whl", hash = "sha256:c4a18d4d01256592acbe4d5348baa693f07267c5a263a980464341f76bfa6824"},
+    {file = "eflips_ingest-2.2.0.tar.gz", hash = "sha256:6858566c33ed8fca5a4d46c8cc88e50a65b89a65105f5398e9f0e028ca3c08cf"},
 ]
 
 [package.dependencies]
@@ -1751,6 +1772,54 @@ files = [
     {file = "h11-0.14.0-py3-none-any.whl", hash = "sha256:e3fe4ac4b851c468cc8363d500db52c2ead036020723024a109d37346efaa761"},
     {file = "h11-0.14.0.tar.gz", hash = "sha256:8f19fbbe99e72420ff35c00b27a34cb9937e902a8b810e2c88300c6f0a3b699d"},
 ]
+
+[[package]]
+name = "httpcore"
+version = "1.0.8"
+description = "A minimal low-level HTTP client."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "httpcore-1.0.8-py3-none-any.whl", hash = "sha256:5254cf149bcb5f75e9d1b2b9f729ea4a4b883d1ad7379fc632b727cec23674be"},
+    {file = "httpcore-1.0.8.tar.gz", hash = "sha256:86e94505ed24ea06514883fd44d2bc02d90e77e7979c8eb71b90f41d364a1bad"},
+]
+
+[package.dependencies]
+certifi = "*"
+h11 = ">=0.13,<0.15"
+
+[package.extras]
+asyncio = ["anyio (>=4.0,<5.0)"]
+http2 = ["h2 (>=3,<5)"]
+socks = ["socksio (==1.*)"]
+trio = ["trio (>=0.22.0,<1.0)"]
+
+[[package]]
+name = "httpx"
+version = "0.27.2"
+description = "The next generation HTTP client."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "httpx-0.27.2-py3-none-any.whl", hash = "sha256:7bb2708e112d8fdd7829cd4243970f0c223274051cb35ee80c03301ee29a3df0"},
+    {file = "httpx-0.27.2.tar.gz", hash = "sha256:f7c2be1d2f3c3c3160d441802406b206c2b76f5947b11115e6df10c6c65e66c2"},
+]
+
+[package.dependencies]
+anyio = "*"
+certifi = "*"
+httpcore = "==1.*"
+idna = "*"
+sniffio = "*"
+
+[package.extras]
+brotli = ["brotli ; platform_python_implementation == \"CPython\"", "brotlicffi ; platform_python_implementation != \"CPython\""]
+cli = ["click (==8.*)", "pygments (==2.*)", "rich (>=10,<14)"]
+http2 = ["h2 (>=3,<5)"]
+socks = ["socksio (==1.*)"]
+zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "idna"
