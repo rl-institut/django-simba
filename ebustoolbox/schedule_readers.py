@@ -22,6 +22,7 @@ from django.contrib.gis.db import models
 
 import eflips
 from eflips.ingest import DummyIngester, AbstractIngester
+from eflips.ingest.bvgxml import BvgxmlIngester
 from eflips.ingest.dummy import BusType
 from eflips.ingest.vdv import VdvIngester
 from sqlalchemy import create_engine
@@ -55,6 +56,8 @@ def get_options_form(reader_num: int):
             return EflipsIngestScheduleReaderDummy.get_options_form(DummyIngester)
         case 3:
             return EflipsIngestScheduleReaderVDV.get_options_form(VdvIngester)
+        case 4:
+            return EflipsIngestScheduleReaderBVGXML.get_options_form(BvgxmlIngester)
     raise NotImplementedError
 
 
@@ -126,6 +129,8 @@ def get_schedule_reader_factory(reader_num: int) -> type(ScheduleReader):
             return EflipsIngestScheduleReaderDummy
         case 3:
             return EflipsIngestScheduleReaderVDV
+        case 4:
+            return EflipsIngestScheduleReaderBVGXML
 
     raise NotImplementedError(f"Schedule Reader with {reader_num} not found")
 
@@ -774,6 +779,27 @@ class EflipsIngestScheduleReaderVDV(EflipsIngestScheduleReaderBase):
 
         self._kwargs = {
             "x10_zip_file": x10_zip_file,
+            "progress_callback": None,
+        }
+
+
+class EflipsIngestScheduleReaderBVGXML(EflipsIngestScheduleReaderBase):
+    """
+    Shim for the eflips-ingest BvgxmlIngester. Consumes a zip archive containing one or more
+    BVG-XML Linienfahrplan files.
+    """
+
+    def __init__(
+        self,
+        xml_zip_file: str,
+    ):
+        super().__init__()
+        self._ingester = BvgxmlIngester(self._database_url)
+
+        xml_zip_file = Path(xml_zip_file)
+
+        self._kwargs = {
+            "xml_zip_file": xml_zip_file,
             "progress_callback": None,
         }
 

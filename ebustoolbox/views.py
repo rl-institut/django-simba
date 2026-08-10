@@ -2,6 +2,7 @@ import datetime
 import dateutil.parser as parser
 import logging
 import traceback
+import zipfile
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
@@ -448,10 +449,36 @@ class TripsView(FormView):
                     task_id=progress_id,
                 )
             elif file_suffix == "zip":
-                async_result = tasks.init_db_with_trips.apply_async(
-                    (scenario.id, 3, {"x10_zip_file": files["data_file"]}, {}, progress.id),
-                    task_id=progress_id,
-                )
+                # Distinguish VDV (.x10 inside) from BVG-XML (.xml inside) by sniffing the
+                # uploaded zip's entry names.
+                zip_path = files["data_file"][0]
+                try:
+                    with zipfile.ZipFile(zip_path) as zf:
+                        names = [n.lower() for n in zf.namelist()]
+                except zipfile.BadZipFile:
+                    names = []
+                has_x10 = any(n.endswith(".x10") for n in names)
+                has_xml = any(n.endswith(".xml") for n in names)
+                if has_x10:
+                    async_result = tasks.init_db_with_trips.apply_async(
+                        (scenario.id, 3, {"x10_zip_file": files["data_file"]}, {}, progress.id),
+                        task_id=progress_id,
+                    )
+                elif has_xml:
+                    async_result = tasks.init_db_with_trips.apply_async(
+                        (scenario.id, 4, {"xml_zip_file": files["data_file"]}, {}, progress.id),
+                        task_id=progress_id,
+                    )
+                else:
+                    progress.success = False
+                    progress.running = False
+                    progress.errors.append(
+                        _(
+                            "Das Zip-Archiv enthält weder .x10- (VDV 451/452) noch "
+                            ".xml-Dateien (BVG-XML Linienfahrplan)."
+                        )
+                    )
+                    progress.save()
             else:
                 progress.success = False
                 progress.running = False
