@@ -64,7 +64,7 @@
                 </div>
               </h3>
               <div class="w-full">
-                <div class="mt-2" x-data="{value:'', data: '', loading: true}"
+                <div class="mt-2" x-data="{value:'', data: null, loading: true, error: false}"
   >
 
                   <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-emerald-400 focus-within:focus-visible:outline-2">
@@ -80,8 +80,8 @@
                            placeholder="Gib eine Temperatur ein."
                            aria-describedby="temperature-heading temperature-unit"
                           @change="loading = true;"
-                          @change.debounce.200ms='data = await fetchQuantile($el.value); loading=false; refreshPageHints();'
-                          x-init='data = await fetchQuantile($el.value); loading=false;'
+                          @change.debounce.200ms='await loadQuantile($data, $el.value); refreshPageHints();'
+                          x-init='await loadQuantile($data, $el.value)'
                   >
                     <div id="temperature-unit" class="shrink-0 select-none text-sm text-slate-500">°C</div>
                   </div>
@@ -91,13 +91,18 @@
                     {% comment %}
                       show spinner cause data is being fetched and no error
                     {% endcomment %}
-                    <template x-if=" loading  && data !=null">
+                    <template x-if="loading">
                       <div class="flex loader text">
                       </div>
                     </template>
-                    <template x-if="!loading && data !=null && data.quantile != undefined">
+                    <template x-if="!loading && !error && data">
                       <div class="w-full inline">
                       Die ausgewählte Temperatur liegt im <span x-text='parseFloat(data.quantile).toFixed(2)'></span> Quantil. Der Mittelwert der Messtation liegt bei <span x-text='parseFloat(data.air_temperature_avg).toFixed(2)'></span>&deg;C
+                      </div>
+                    </template>
+                    <template x-if="!loading && error">
+                      <div class="w-full inline text-amber-700">
+                        {% translate 'Temperaturdaten konnten nicht geladen werden.' %}
                       </div>
                     </template>
                     <div class="px-2 relative inline-block">
@@ -152,7 +157,7 @@
                 </div>
               </h3>
               <div class="w-full">
-              <div  class="mt-2" x-data="{value:'', data: '', loading: true}">
+              <div  class="mt-2" x-data="{value:'', data: null, loading: true, error: false}">
                   <div class="flex items-center rounded-md outline outline-1 outline-transparent focus-within:focus-visible:outline-emerald-400 focus-within:focus-visible:outline-2">
                   <input
                     x-model.fill="value"
@@ -166,8 +171,8 @@
                            placeholder="Gib eine Temperatur ein."
                            aria-describedby="temperature-heading temperature-unit"
                     @change="loading = true;"
-                    @change.debounce.200ms='data = await fetchQuantile($el.value); loading=false; refreshPageHints()'
-                    x-init='data = await fetchQuantile($el.value); loading=false;'
+                    @change.debounce.200ms='await loadQuantile($data, $el.value); refreshPageHints()'
+                    x-init='await loadQuantile($data, $el.value)'
                   >
                     <div id="temperature-unit" class="shrink-0 select-none text-slate-500">°C</div>
                   </div>
@@ -177,13 +182,18 @@
                     {% comment %}
                       show spinner cause data is being fetched and no error
                     {% endcomment %}
-                    <template x-if=" loading  && data !=null">
+                    <template x-if="loading">
                       <div class="flex loader text">
                       </div>
                     </template>
-                    <template x-if="!loading && data !=null && data.quantile != undefined">
+                    <template x-if="!loading && !error && data">
                       <div class="w-full inline">
                       Die ausgewählte Temperatur liegt im <span x-text='parseFloat(data.quantile).toFixed(2)'></span> Quantil. Der Mittelwert der Messtation liegt bei <span x-text='parseFloat(data.air_temperature_avg).toFixed(2)'></span>&deg;C
+                      </div>
+                    </template>
+                    <template x-if="!loading && error">
+                      <div class="w-full inline text-amber-700">
+                        {% translate 'Temperaturdaten konnten nicht geladen werden.' %}
                       </div>
                     </template>
                     <div class="px-2 relative inline-block">
@@ -444,21 +454,56 @@ async function fetchAndSetTemperature(divElement, textElement, temperature){
 const debounced_fetchAndSetTemperature1 = debounce(fetchAndSetTemperature, 200);
 const debounced_fetchAndSetTemperature2 = debounce(fetchAndSetTemperature, 200);
 
-{% if weatherstation %}
+// Always defined, even without a weather station. It used to sit inside the {% templatetag openblock %} if
+// weatherstation {% templatetag closeblock %} guard, so on a deployment without imported DWD data the
+// x-init below threw a ReferenceError before it could clear `loading`, leaving the hint spinning forever.
 async function fetchQuantile(temperature){
+{% if weatherstation %}
   try {
     // dwd_station_id {{ weatherstation.dwd_id}}
     var url = (" {% url 'temperatures:quantile_station' weatherstation.dwd_id startDate endDate 'TEMPERATURE' %}" );
     url = url.replace('TEMPERATURE',temperature );
     var response = await fetch(url );
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     var data = await response.json();
     return data;
   } catch (e) {
     console.error('Fetch error:', e);
     return null;
   }
-}
+{% else %}
+  console.error('Keine Wetterstation mit auswertbaren Daten konfiguriert.');
+  return null;
 {% endif %}
+}
+
+// Drives one temperature hint. Whatever happens, the spinner is cleared: a failed lookup shows a
+// short error instead of pretending it is still loading.
+async function loadQuantile(state, temperature){
+  state.loading = true;
+  state.error = false;
+  if (temperature === "" || temperature === null || temperature === undefined) {
+    // Nothing to look up yet, so show neither a spinner nor an error
+    state.data = null;
+    state.loading = false;
+    return;
+  }
+  try {
+    const data = await fetchQuantile(temperature);
+    if (data == null || data.quantile === undefined) {
+      state.data = null;
+      state.error = true;
+    } else {
+      state.data = data;
+    }
+  } catch (e) {
+    console.error('Temperaturquantil konnte nicht geladen werden:', e);
+    state.data = null;
+    state.error = true;
+  } finally {
+    state.loading = false;
+  }
+}
 
 function set_consumption_placeholder(temp_div_id, consumption_div){
   temp_div = document.getElementById(temp_div_id);
