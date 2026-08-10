@@ -1943,6 +1943,9 @@ def get_binned_soc_data(request, task_id: str):
     """
     Returns binned SOC histogram data over time, forward-filled to hourly resolution,
     ensuring one (the lowest) SOC entry per vehicle per hour.
+
+    Hours are absolute timestamps limited to the simulation window, so each count is a number of
+    vehicles at that hour rather than a sum across the simulated days.
     """
     permission = AuthorizedMixIn.get_permission(request.user, task_id)
     if not permission:

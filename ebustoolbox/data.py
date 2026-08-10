@@ -794,8 +794,15 @@ def get_binned_soc(task_id: str) -> pd.DataFrame:
     # drop initial hours where we never had a reading
     df_filled = df_filled.dropna(subset=["soc_end"])
 
-    # extract hour‐of‐day and bucket into 10% SOC bins
-    df_filled["hour"] = df_filled["timestamp"].dt.hour
+    # Restrict to the simulation window, the same one the depot occupancy chart uses. The events
+    # span more than the schedule itself, because eflips simulates a period before and after it to
+    # reach a steady state, and those padding days are not a result worth plotting. The resample
+    # and ffill above deliberately run on the full range, so a vehicle whose last reading predates
+    # the window still carries its SOC into it.
+    time_start, time_end = get_start_end_time(scenario)
+    df_filled = df_filled[
+        df_filled["timestamp"].between(pd.Timestamp(time_start).floor("h"), pd.Timestamp(time_end))
+    ].copy()
 
     def soc_bin(soc):
         if soc < 0:
@@ -805,10 +812,14 @@ def get_binned_soc(task_id: str) -> pd.DataFrame:
 
     df_filled["soc_bin"] = df_filled["soc_end"].apply(soc_bin)
 
-    # build the histogram: one count per vehicle‐hour in its lowest‐SOC bin
-    heatmap_data = df_filled.groupby(["hour", "soc_bin"]).size().reset_index(name="count")
+    # The reindex above puts every vehicle on exactly one row per hour, so each count is a number
+    # of vehicles. Hours stay absolute instead of being folded onto a 24h axis, which keeps this
+    # comparable to the depot occupancy chart and stops the ~03:00 start of the operating day from
+    # wrapping the night onto both edges of the plot.
+    heatmap_data = df_filled.groupby(["timestamp", "soc_bin"]).size().reset_index(name="count")
+    heatmap_data["time"] = heatmap_data["timestamp"].apply(lambda t: t.isoformat())
 
-    return heatmap_data
+    return heatmap_data[["time", "soc_bin", "count"]]
 
 
 def get_power_draw(request, task_id: str) -> list:
