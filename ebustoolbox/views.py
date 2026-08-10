@@ -47,7 +47,7 @@ from .forms import (
     VehicleTypeSelectionForm,
     ManualTcoForm,
 )
-from .tasks import deepcopy_scenario, merge_scenario
+from .tasks import deepcopy_scenario, merge_scenario, migrate_legacy_tco_forward
 from .import_export import ScenarioJSONImporterExporter, visit_all_scenario_queries
 
 from .util import get_unique_task_id, to_zip
@@ -1178,6 +1178,12 @@ class CostsView(ScenarioMixIn, TemplateView):
                         self.scenario.tco_parameters[param] = form_data[param] * scale
                     except KeyError:
                         logger.warning(f"TCO Scenario: Parameter {param} not found")
+                # the scenario parameters are now in the legacy format
+                # transform them using the migration feature
+                new_params = migrate_legacy_tco_forward(self.scenario.tco_parameters)
+                if new_params is not None:
+                    self.scenario.tco_parameters = new_params
+
                 self.scenario.save(update_fields=["tco_parameters"])
 
                 # Station TCO
@@ -2001,7 +2007,7 @@ def get_power_draw_and_occ(request, task_id: str, depot_id: int | None = None):
     if not permission:
         return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "").lower()
-    response_data = data.get_power_draw_and_occ(task_id)
+    response_data = data.get_power_draw_and_occ(task_id, depot_id)
     if not file_format:
         response_data["data"] = response_data["data"].to_dict(orient="records")
         return JsonResponse(response_data, safe=True)

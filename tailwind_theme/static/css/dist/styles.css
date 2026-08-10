@@ -1353,6 +1353,18 @@ select {
   height: max-content;
 }
 
+.h-\[1lh\] {
+  height: 1lh;
+}
+
+.h-\[0\.8lh\] {
+  height: 0.8lh;
+}
+
+.h-1 {
+  height: 0.25rem;
+}
+
 .max-h-0 {
   max-height: 0px;
 }
@@ -1538,10 +1550,6 @@ select {
 
 .max-w-12 {
   max-width: 3rem;
-}
-
-.max-w-2xl {
-  max-width: 42rem;
 }
 
 .max-w-4xl {

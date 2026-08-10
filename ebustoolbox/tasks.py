@@ -121,6 +121,14 @@ def apply_vehicle_type(
     source_vehicle_type.scenario = target_vehicle_type.scenario
     source_vehicle_type.name = target_vehicle_type.name
     source_vehicle_type.name_short = target_vehicle_type.name_short
+    # the source battery might point to a battery.
+    # Since vehicle types should not be shared (custom tco_parameters)
+    # the battery_type needs to be copied.
+    new_battery = source_vehicle_type.battery_type
+    new_battery.id = None
+    new_battery.save()
+    source_vehicle_type.battery_type = new_battery
+
     source_vehicle_type.save()
     # Copy vehicle_classes and consumption and add the new vehicle type to it
     for vehicle_class in vehicle_classes:
@@ -3768,6 +3776,54 @@ def delete_scenario(scenario: Scenario):
     if children.exists():
         return
     logger.info(scenario.parent.delete())
+
+
+def migrate_legacy_tco_forward(legacy_params: dict) -> dict | None:
+    """Returns a dict with the new tco_parameter setup"""
+    legacy_keys = {
+        "energy_cost",
+        "maint_cost",
+        "maint_cost_diesel",
+        "maint_infr_cost",
+        "pef_general",
+        "pef_wages",
+        "pef_energy",
+        "pef_fuel",
+        "pef_insurance",
+    }
+    if not legacy_keys.intersection(legacy_params):
+        return None
+    old_fuel = legacy_params.pop("fuel_cost", 1.5)
+    new_params = dict(legacy_params)
+    new_params["fuel_cost"] = {
+        "electricity": legacy_params.pop("energy_cost", 0.18),
+        "diesel": old_fuel if not isinstance(old_fuel, dict) else old_fuel.get("diesel", 1.5),
+    }
+    new_params["vehicle_maint_cost"] = {
+        "electricity": legacy_params.pop("maint_cost", 0.07),
+        "diesel": legacy_params.pop("maint_cost_diesel", 0.14),
+    }
+    new_params["infra_maint_cost"] = legacy_params.pop("maint_infr_cost", 1000.0)
+    new_params["cost_escalation_rate"] = {
+        "general": legacy_params.pop("pef_general", 0.02),
+        "staff": legacy_params.pop("pef_wages", 0.02),
+        "electricity": legacy_params.pop("pef_energy", 0.02),
+        "diesel": legacy_params.pop("pef_fuel", 0.02),
+        "insurance": legacy_params.pop("pef_insurance", 0.02),
+    }
+    for stale in (
+        "energy_cost",
+        "maint_cost",
+        "maint_cost_diesel",
+        "maint_infr_cost",
+        "pef_general",
+        "pef_wages",
+        "pef_energy",
+        "pef_fuel",
+        "pef_insurance",
+    ):
+        new_params.pop(stale, None)
+    return new_params
 
 
 class StationOpimizationImpossible(Exception):
