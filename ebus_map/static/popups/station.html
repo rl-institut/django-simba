@@ -1,69 +1,63 @@
 {% extends "popups/base.html" %}
 {% block class_content_1 %}
 <div class="container max-w-xl mx-auto rounded-lg overflow-hidden">
-  <!-- Tabs -->
-  <div class="mt-2 px-4 pt-3">
-    <div class="flex space-x-2 p-1 rounded-full text-sm text-white font-semibold">
-      <button type="button"
-        class="tab-link flex-grow px-2 py-1 bg-slate-800 rounded-full border border-slate-800 active"
-        onclick="openTab(event, 'info')"
-      >Info</button>
-      <button type="button"
-        class="tab-link flex-grow px-2 py-1 bg-slate-800 rounded-full border border-slate-800"
-        onclick="openTab(event, 'plot')"
-      >Plot</button>
-    </div>
-  </div>
-
-  <!-- Tab Content -->
-  <div class="tab-content bg-white px-4 py-4">
-    <div class="tab-pane fade" id="tab-info">
-      {% if is_electrified %}
-        <table class="w-full text-sm text-left text-slate-800">
-          <tbody>
+  <div class="bg-white px-4 py-4">
+    {% if is_electrified %}
+      <table class="w-full text-sm text-left text-slate-800">
+        <tbody>
+          <tr class="border-b border-slate-200">
+            <td class="py-1">Anschlusstyp</td>
+            <td class="py-1 font-semibold">{{ charge_type }}</td>
+          </tr>
+          <tr class="border-b border-slate-200">
+            <td class="py-1">Spannungsebene</td>
+            <td class="py-1 font-semibold">{{ voltage_level }}</td>
+          </tr>
+          <tr class="border-b border-slate-200">
+            <td class="py-1">Benötigte Ladepunkte</td>
+            <td class="py-1 font-semibold">{{ min_amount_charging_places }}</td>
+          </tr>
+          {% comment %}
+            amount_charging_places is None when the station is not capped to a fixed number of
+            charging places. Showing that as "Anschlüsse: None" says nothing, so the row only
+            appears once a limit was actually configured. power_total is only a real figure in
+            that same case; otherwise it is the "do not restrict me" sentinel.
+          {% endcomment %}
+          {% if amount_charging_places %}
             <tr class="border-b border-slate-200">
-              <td class="py-1">Anschlusstyp</td>
-              <td class="py-1 font-semibold">{{ charge_type }}</td>
-            </tr>
-            <tr class="border-b border-slate-200">
-              <td class="py-1">Spannungsebene</td>
-              <td class="py-1 font-semibold">{{ voltage_level }}</td>
-            </tr>
-            <tr class="border-b border-slate-200">
-              <td class="py-1">Anschlüsse</td>
+              <td class="py-1">Konfigurierte Anschlüsse</td>
               <td class="py-1 font-semibold">{{ amount_charging_places }}</td>
             </tr>
-            {% if amount_charging_places > 0 %}
-              <tr class="border-b border-slate-200">
-                <td class="py-1">Leistung pro Anschluss</td>
-                <td class="py-1 font-semibold">{{ power_per_charger|floatformat:"0" }} kW</td>
-              </tr>
-              <tr class="border-b border-slate-200">
-                <td class="py-1">Gesamtleistung</td>
-                <td class="py-1 font-semibold">{{ power_total|floatformat:"0" }} kW</td>
-              </tr>
-            {% endif %}
+          {% endif %}
+          {% if power_per_charger %}
             <tr class="border-b border-slate-200">
-              <td class="py-1">Min. Ladepunkte</td>
-              <td class="py-1 font-semibold">{{ min_amount_charging_places }}</td>
+              <td class="py-1">Leistung pro Anschluss</td>
+              <td class="py-1 font-semibold">{{ power_per_charger|floatformat:"0" }} kW</td>
             </tr>
+          {% endif %}
+          {% if amount_charging_places and power_total %}
             <tr class="border-b border-slate-200">
-              <td class="py-1">Anfahrten</td>
-              <td class="py-1 font-semibold">{{ num_arrivals }}</td>
+              <td class="py-1">Gesamtleistung</td>
+              <td class="py-1 font-semibold">{{ power_total|floatformat:"0" }} kW</td>
             </tr>
-          </tbody>
-        </table>
-      {% else %}
-        <p class="text-sm text-slate-800 font-semibold pb-1">Nicht elektrifiziert.</p>
-      {% endif %}
-    </div>
+          {% endif %}
+          <tr class="border-b border-slate-200">
+            <td class="py-1">Anfahrten</td>
+            <td class="py-1 font-semibold">{{ num_arrivals }}</td>
+          </tr>
+        </tbody>
+      </table>
+    {% else %}
+      <p class="text-sm text-slate-800 font-semibold pb-1">Nicht elektrifiziert.</p>
+    {% endif %}
 
-    <div class="tab-pane fade" id="tab-plot" style="display:none">
-      <p class="text-sm text-slate-800">Koordinaten: {{ geom.y|floatformat:"4" }}, {{ geom.x|floatformat:"4" }}</p>
-      {% if plot %}
-        <img class="popup-image mt-2 border rounded" src="data:image/png;base64,{{ plot|safe }}">
-      {% endif %}
-    </div>
+    {% if plot %}
+      <img class="popup-image mt-3 border rounded" src="data:image/png;base64,{{ plot|safe }}">
+    {% endif %}
+
+    <p class="mt-3 text-xs text-slate-500">
+      Koordinaten: {{ geom.y|floatformat:"4" }}, {{ geom.x|floatformat:"4" }}
+    </p>
   </div>
 </div>
 {% endblock %}
