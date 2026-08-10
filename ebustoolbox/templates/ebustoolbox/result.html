@@ -423,6 +423,15 @@
     </div>
     {% include "ebustoolbox/partials/result_export.html" with endpoint="rotation_table" %}
     <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto max-w-4xl">
+      <!-- The sibling cards get their heading from the chart itself; this one is plain HTML and
+           had none at all -->
+      <div class="border-b border-slate-200 px-4 pt-6 pb-4 text-center">
+        <h3 class="text-base font-semibold text-slate-800">{% translate 'Umlaufübersicht' %}</h3>
+        <p class="mt-1 text-xs text-slate-500">
+          <span id="rotationTableCount">–</span>&nbsp;{% translate 'Umläufe' %}
+          &middot; {% translate 'Spaltentitel zum Sortieren anklicken' %}
+        </p>
+      </div>
       <div id="table-scroll-container" class="h-[480px] overflow-y-auto relative">
         <table id="rotationTable" class="w-full table-fixed border-collapse bg-white">
           <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
@@ -2097,6 +2106,9 @@
     function renderTable(data) {
         const tbody = document.getElementById('rotationTableBody');
         if (!tbody) return;
+
+        const count = document.getElementById('rotationTableCount');
+        if (count) count.textContent = data.length.toLocaleString('de-DE');
 
         tbody.innerHTML = data.map(row => `
             <tr class="hover:bg-slate-50 transition-colors duration-75">
