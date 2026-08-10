@@ -382,6 +382,38 @@
           </div>
           <div id="DepotlineChart" class="chart-container h-[480px]"></div>
         </div>
+
+      {% include "ebustoolbox/partials/result_export.html" with endpoint="electrified_stations" %}
+      <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto max-w-4xl w-full">
+        <div class="border-b border-slate-200 px-4 pt-6 pb-4 text-center">
+          <h3 class="text-base font-semibold text-slate-800">
+            {% translate 'Elektrifizierte Endhaltestellen' %}
+          </h3>
+          <p class="mt-1 text-xs text-slate-500">
+            <span id="electrifiedStationsCount">–</span>&nbsp;{% translate 'Haltestellen' %}
+            &middot; {% translate 'Auslastung eines durchschnittlichen Ladepunkts über den Simulationszeitraum' %}
+          </p>
+        </div>
+        <div class="max-h-[480px] overflow-y-auto relative">
+          <table id="electrifiedStationsTable" class="w-full table-fixed border-collapse bg-white">
+            <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
+              <tr class="divide-x divide-slate-200 border-b border-slate-200">
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/2">
+                  {% translate 'Name' %}
+                </th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">
+                  {% translate 'Ladepunkte' %}
+                </th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">
+                  {% translate 'Ø Auslastung' %}
+                </th>
+              </tr>
+            </thead>
+            <tbody id="electrifiedStationsBody" class="divide-y divide-slate-200 bg-white"></tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="flex flex-col">
         <div id="bus-section" class="flex justify-between items-center pb-2">
           <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Fahrzeuge' %}</h2>
@@ -2081,6 +2113,41 @@
             });
     }
 
+    function loadElectrifiedStations(taskId) {
+        return fetch(`/simba/result/${taskId}/electrified_stations/`)
+            .then(response => response.json())
+            .then(result => {
+                const rows = result.data || [];
+                const tbody = document.getElementById('electrifiedStationsBody');
+                const count = document.getElementById('electrifiedStationsCount');
+                if (count) count.textContent = rows.length.toLocaleString('de-DE');
+                if (!tbody) return;
+
+                if (!rows.length) {
+                    tbody.innerHTML = `
+                        <tr><td colspan="3" class="px-4 py-6 text-center text-xs text-slate-500">
+                            Keine elektrifizierten Endhaltestellen in diesem Szenario.
+                        </td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = rows.map(row => {
+                    const utilization = (row.utilization * 100).toLocaleString('de-DE', {
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1
+                    });
+                    return `
+                        <tr class="hover:bg-slate-50 transition-colors duration-75">
+                            <td class="px-4 py-2 text-xs font-medium text-slate-900 truncate" title="${row.name}">
+                                ${row.name}
+                            </td>
+                            <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${row.chargers}</td>
+                            <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${utilization}&nbsp;%</td>
+                        </tr>`;
+                }).join('');
+            });
+    }
+
     function loadRotationTable(taskId) {
         fetch(`/simba/result/${taskId}/rotation_table/`)
             .then(response => response.json())
@@ -2180,7 +2247,8 @@
         fetchAndRenderGanttChartSOC("gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit"),
         fetchAndRenderTCOBars('tco', 'tco-bar'),
 	fetchAndRenderCumulativeChart("cumulative_coverage", "cumulative-coverage", "Anteil erfüllbarer Umläufe"),
-        loadRotationTable(taskIdAvg)
+        loadRotationTable(taskIdAvg),
+        loadElectrifiedStations(taskIdAvg)
         ];
 
         Promise.allSettled(chartPromises).then((results)=>{
