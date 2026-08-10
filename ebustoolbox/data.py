@@ -156,6 +156,76 @@ def get_rotation_dictionaries(scenario_id: int) -> tuple[dict, dict]:
     return rotation_name_dict, rotation_name_dict_reverse
 
 
+def get_vehicle_display_names(scenario_id: int) -> dict[int, dict]:
+    """Short, descriptive labels for the vehicles of a scenario.
+
+    Database ids carry no meaning outside the database, so the result charts label a vehicle with
+    its vehicle type, the depot it is stationed at, and a counter. The counter restarts at 1 for
+    every (vehicle type, depot) pair within the scenario and is handed out in order of first
+    activity, which is the order the Gantt charts already stack their rows in.
+
+    :param scenario_id: The id of the scenario the vehicles belong to.
+    :return: ``{vehicle_id: {"name", "vehicle_type", "depot", "number"}}``
+    """
+    vehicles = list(Vehicle.objects.filter(scenario_id=scenario_id).select_related("vehicle_type"))
+
+    # A vehicle is stationed wherever it parks, which is the depot owning its area events. In
+    # practice that is a single depot per vehicle; if it ever is not, take the first by name so
+    # the label stays stable between requests.
+    depot_by_vehicle: dict[int, str] = {}
+    depot_rows = sorted(
+        Event.objects.filter(scenario_id=scenario_id)
+        .exclude(area=None)
+        .exclude(vehicle=None)
+        .values_list("vehicle_id", "area__depot__name_short", "area__depot__name")
+        .distinct(),
+        key=lambda row: (row[0], str(row[1] or row[2] or "")),
+    )
+    for vehicle_id, depot_short, depot_name in depot_rows:
+        depot_by_vehicle.setdefault(vehicle_id, depot_short or depot_name or "")
+
+    first_activity = {
+        row["vehicle_id"]: row["first_start"]
+        for row in Event.objects.filter(scenario_id=scenario_id)
+        .exclude(vehicle=None)
+        .values("vehicle_id")
+        .annotate(first_start=Min("time_start"))
+    }
+
+    def sort_key(vehicle: Vehicle):
+        vt = vehicle.vehicle_type
+        started = first_activity.get(vehicle.id)
+        return (
+            str(vt.name_short or vt.name),
+            depot_by_vehicle.get(vehicle.id, ""),
+            # Vehicles without a single event sort last, but still deterministically
+            (started is None, started or datetime.datetime.min),
+            vehicle.id,
+        )
+
+    display_names: dict[int, dict] = {}
+    counters: dict[tuple[str, str], int] = {}
+    for vehicle in sorted(vehicles, key=sort_key):
+        vt = vehicle.vehicle_type
+        type_name = str(vt.name_short or vt.name)
+        depot_name = depot_by_vehicle.get(vehicle.id, "")
+
+        key = (type_name, depot_name)
+        counters[key] = counters.get(key, 0) + 1
+        number = counters[key]
+
+        parts = [part for part in (type_name, depot_name) if part]
+        parts.append(str(number))
+        display_names[vehicle.id] = {
+            "name": " ".join(parts),
+            "vehicle_type": type_name,
+            "depot": depot_name,
+            "number": number,
+        }
+
+    return display_names
+
+
 def get_vehicle_dictionaries(scenario_id: int) -> tuple[dict, dict]:
     vehicles = Vehicle.objects.filter(scenario_id=scenario_id)
     # Fetch all vehicle types
@@ -749,7 +819,13 @@ def get_soc_as_json(task_id: str) -> dict:
         )
         .to_dict()
     )
-    return {"data": soc_data}
+    # The chart keys its series by vehicle id, so ship the labels alongside rather than renaming
+    # the keys and losing the link back to the database row.
+    names = {
+        vehicle_id: display["name"]
+        for vehicle_id, display in get_vehicle_display_names(s.id).items()
+    }
+    return {"data": soc_data, "names": names}
 
 
 def get_binned_soc(task_id: str) -> pd.DataFrame:
@@ -1114,10 +1190,14 @@ def get_gantt(scenario_id: str) -> pd.DataFrame:
         )
     )
 
+    display_names = get_vehicle_display_names(scenario_id)
+
     records = []
     for event in events:
         vehicle_id = event.vehicle.id
-        vehicle_type_name = event.vehicle.vehicle_type.name
+        display = display_names.get(vehicle_id, {})
+        # Fall back to the long type name only if the vehicle somehow has no label
+        vehicle_type_name = display.get("vehicle_type") or event.vehicle.vehicle_type.name
 
         if event.trip:
             rotation_id = event.trip.rotation.id if event.trip.rotation else None
@@ -1132,7 +1212,9 @@ def get_gantt(scenario_id: str) -> pd.DataFrame:
             {
                 "vehicle_id": vehicle_id,
                 "vehicle_type": vehicle_type_name,
-                "bus_name": vehicle_id,
+                "bus_name": display.get("name", str(vehicle_id)),
+                "vehicle_number": display.get("number"),
+                "depot": display.get("depot", ""),
                 "start": event.time_start.isoformat(),
                 "end": event.time_end.isoformat(),
                 "soc_start": event.soc_start,
