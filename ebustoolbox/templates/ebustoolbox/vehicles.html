@@ -768,14 +768,57 @@ debounce(validateVehicleContainers,100)();
 
     // Toggle the content's max-height for smooth opening and closing
     if (content.style.maxHeight && content.style.maxHeight !== '0px') {
-      content.style.maxHeight = '0';
+      collapseAccordionContent(content);
       icon.innerHTML = upSVG;
     } else {
-      content.style.maxHeight = content.scrollHeight + 'px';
+      expandAccordionContent(content);
       icon.innerHTML = downSVG;
       toggleAccordion.open = button;
     }
     }
+
+  // max-height has to be a concrete pixel value for the transition, but scrollHeight is only
+  // correct at the moment it is read. The consumption plot is sized to 180px and the estimate
+  // hints are unhidden after this runs, so a measured height clips the bottom of the form.
+  // Measure to animate, then release the constraint once the accordion is open.
+  const ACCORDION_TRANSITION_MS = 300;
+  function expandAccordionContent(content) {
+    cancelAccordionRelease(content);
+    content.style.maxHeight = content.scrollHeight + 'px';
+    const release = () => {
+      cancelAccordionRelease(content);
+      // Guard against a close that happened while we were waiting
+      if (content.style.maxHeight !== '0px' && content.style.maxHeight !== '0') {
+        content.style.maxHeight = 'none';
+      }
+    };
+    const onTransitionEnd = (event) => {
+      if (event.target !== content || event.propertyName !== 'max-height') return;
+      release();
+    };
+    content._accordionListener = onTransitionEnd;
+    content.addEventListener('transitionend', onTransitionEnd);
+    // transitionend does not fire when there is nothing to animate, so fall back on the clock
+    content._accordionRelease = setTimeout(release, ACCORDION_TRANSITION_MS + 50);
+  }
+
+  function cancelAccordionRelease(content) {
+    clearTimeout(content._accordionRelease);
+    if (content._accordionListener) {
+      content.removeEventListener('transitionend', content._accordionListener);
+      content._accordionListener = null;
+    }
+  }
+
+  function collapseAccordionContent(content) {
+    cancelAccordionRelease(content);
+    // 'none' cannot be animated, so pin the current height before collapsing
+    if (content.style.maxHeight === 'none') {
+      content.style.maxHeight = content.scrollHeight + 'px';
+      void content.offsetHeight; // force a reflow so the browser picks up the start value
+    }
+    content.style.maxHeight = '0';
+  }
   var button = document.querySelector(".accordion-header");
   toggleAccordion(button);
 
