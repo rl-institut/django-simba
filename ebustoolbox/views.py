@@ -1884,6 +1884,9 @@ def usergroups(request):
 
 def get_critical_rotations(request, task_id: str):
     """Returns data about rotations (critical vs. non-critical)"""
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
     s = Scenario.objects.get(task_id=task_id)
     df = data.get_critical_rotations_as_dataframe(s.id, None)
@@ -1899,6 +1902,9 @@ def get_critical_rotations(request, task_id: str):
 
 def get_bustype(request, task_id: str):
     """Returns data about vehicle type distribution"""
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
     s = Scenario.objects.get(task_id=task_id)
     df = data.get_vehicle_types(s.id, None)
@@ -1913,6 +1919,9 @@ def get_soc_data(request, task_id: str):
     """
     Returns SOC (State of Charge) data over time.
     """
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
     s = Scenario.objects.get(task_id=task_id)
 
@@ -1929,6 +1938,9 @@ def get_binned_soc_data(request, task_id: str):
     Returns binned SOC histogram data over time, forward-filled to hourly resolution,
     ensuring one (the lowest) SOC entry per vehicle per hour.
     """
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
     df = data.get_binned_soc(task_id)
     if file_format == "json":
@@ -1942,17 +1954,26 @@ def get_power_draw(request, task_id: str):
     """
     Returns power draw data over time by station ID for selected buses.
     """
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     response_data = data.get_power_draw(request, task_id)
 
     return JsonResponse({"data": response_data})
 
 
 def get_stats(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     response_data = data.get_stats(task_id)
     return JsonResponse(response_data)
 
 
 def get_speed_hist(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
     df = data.get_speed_hist(task_id)
     if file_format == "json":
@@ -1963,6 +1984,9 @@ def get_speed_hist(request, task_id: str):
 
 
 def get_dist_hist(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "").lower()
     response_data = data.get_dist_hist(task_id)
     if not file_format:
@@ -1973,6 +1997,9 @@ def get_dist_hist(request, task_id: str):
 
 
 def get_power_draw_and_occ(request, task_id: str, depot_id: int | None = None):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "").lower()
     response_data = data.get_power_draw_and_occ(task_id)
     if not file_format:
@@ -1987,6 +2014,9 @@ def get_power_draw_and_occ(request, task_id: str, depot_id: int | None = None):
 
 
 def get_gantt(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
     scenario = Scenario.objects.get(task_id=task_id)
     df = data.recent_memoizer(data.get_gantt, scenario.id)(scenario.id)
@@ -1998,6 +2028,9 @@ def get_gantt(request, task_id: str):
 
 
 def get_tco(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
     tco = data.get_tco(task_id)  # tco_result JSON field from Scenario
     if file_format == "json":
@@ -2008,6 +2041,9 @@ def get_tco(request, task_id: str):
 
 
 def get_piecharts(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
 
     # Get the two DataFrames
@@ -2312,11 +2348,17 @@ def delete_scenario(request, task_id):
 
 
 def get_cumulative_energy(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     response_data = data.get_cumulative_energy(task_id)
     return JsonResponse(response_data)
 
 
 def get_rotation_table_data(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
     df = data.get_rotation_table_data(task_id)
     if file_format == "json":
