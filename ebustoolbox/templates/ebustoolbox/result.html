@@ -605,11 +605,14 @@
             const chart = echarts.init(document.getElementById(chartId));
 
             // Prepare the series data for each bus (V_id)
+            const busNames = data.names || {};
             var seriesData = [];
             for (let v_id in data.data) {
                 let busData = data.data[v_id];
                 seriesData.push({
-                    name: `Bus ${v_id}`, // Name for the legend
+                    // Database ids mean nothing to the user, so label with the short name the
+                    // backend derives from vehicle type, depot and a per-scenario counter
+                    name: busNames[v_id] || `Bus ${v_id}`,
                     type: 'line',
                     data: busData, // The actual time-series data for this bus
                     smooth: false
@@ -854,21 +857,20 @@
     //shared utilities between the Gantt Plots:
     function prepareGanttData(ganttData){
         const vehicleMap = {};
-        const readableNameMap = {};
 
         ganttData.forEach(item => {
             const vehicleId = item.vehicle_id;
             const vehicleType = item.vehicle_type;
             const startTime = item.start;
 
-            if (!readableNameMap[vehicleId]) {
-                readableNameMap[vehicleId] = item.name;
-            }
-
             if (!vehicleMap[vehicleId]) {
                 vehicleMap[vehicleId] = {
                     id: vehicleId,
                     type: vehicleType,
+                    // Short name and counter come from the backend so every chart agrees
+                    label: item.bus_name,
+                    busNumber: item.vehicle_number,
+                    depot: item.depot,
                     minTime: startTime,
                     originalId: vehicleId
                 };
@@ -884,21 +886,17 @@
         // Convert map to a sortable array
         const sortedVehicles = Object.values(vehicleMap);
 
-        // Sort: Primary key is Vehicle Type (alphabetical), secondary is Min Time
+        // Sort: Primary key is Vehicle Type (alphabetical), secondary is the backend's counter.
+        // That counter is already handed out in order of first activity, and sorting on it keeps
+        // the rows in the same order as their labels. (minTime is an ISO string, so subtracting
+        // two of them yields NaN and left the order up to chance.)
         sortedVehicles.sort((a, b) => {
             // Primary sort: Vehicle Type (Alphabetical)
             if (a.type < b.type) return -1;
             if (a.type > b.type) return 1;
 
             // Secondary sort: Earliest Start Time (Ascending)
-            return a.minTime - b.minTime;
-        });
-
-        //Construct y-axis lables
-        const typeCounters = {};
-        sortedVehicles.forEach(v => {
-            if (!typeCounters[v.type]) typeCounters[v.type] = 1; // start numbering at 1 per type
-            v.busNumber = typeCounters[v.type]++;
+            return (a.busNumber ?? 0) - (b.busNumber ?? 0);
         });
 
         const newIndexMap = sortedVehicles.reduce((map, v, index) => {
@@ -944,7 +942,9 @@
         return {
             type: 'category',
             inverse: true,
-            data: vehicles.map(v => `Bus ${v.busNumber}`),
+            // Category values have to be unique, which "Bus 1" was not once a second vehicle
+            // type started counting from 1 again
+            data: vehicles.map(v => v.label || `Bus ${v.busNumber}`),
             axisLabel: {
                 interval: 0,
                 formatter: function(value, index) {
@@ -954,7 +954,11 @@
                     const type = vehicle.type || 'Unknown';
                     const truncated = type.length > 15 ? type.slice(0, 15) + '…' : type;
 
-                    return `{${type}|${truncated}} ${value}`;
+                    // The badge already carries the vehicle type, so the text beside it only
+                    // needs the depot and the number
+                    const rest = [vehicle.depot, vehicle.busNumber].filter(Boolean).join(' ');
+
+                    return `{${type}|${truncated}} ${rest || value}`;
                 },
                 rich: rich
             },
