@@ -222,12 +222,24 @@ LOGGING = {
             "filters": ["remove_progress"],
             "formatter": "simple",
         },
+        # Rotating file handler — prevents unbounded log growth in production
         "file": {
             "level": "INFO",
-            "class": "logging.FileHandler",
-            "filename": BASE_DIR
-            / "logs/info.log",  # Adjust the path based on  your project structure
-            "formatter": "simple",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": BASE_DIR / "logs/info.log",
+            "maxBytes": 50 * 1024 * 1024,  # 50 MB per file
+            "backupCount": 5,  # keep 5 rotated copies (~250 MB total)
+            "formatter": "verbose",
+            "encoding": "utf-8",
+        },
+        # Separate error log with full exception tracebacks
+        "error_file": {
+            "level": "ERROR",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": BASE_DIR / "logs/error.log",
+            "maxBytes": 50 * 1024 * 1024,  # 50 MB per file
+            "backupCount": 5,
+            "formatter": "verbose",
             "encoding": "utf-8",
         },
     },
@@ -237,13 +249,19 @@ LOGGING = {
     },
     "loggers": {
         "django": {
-            "handlers": ["console", "file"],
+            "handlers": ["console", "file", "error_file"],
             "level": env.str("DJANGO_LOG_LEVEL", "INFO"),
             "propagate": False,
         },
         "custom": {
-            "handlers": ["console", "file"],
+            "handlers": ["console", "file", "error_file"],
             "level": env.str("DJANGO_LOG_LEVEL", "INFO"),
+            "propagate": False,
+        },
+        # Catch-all logger for unhandled exceptions — logs full traceback
+        "django.request": {
+            "handlers": ["console", "file", "error_file"],
+            "level": "ERROR",
             "propagate": False,
         },
     },
