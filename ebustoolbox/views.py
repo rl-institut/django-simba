@@ -1981,8 +1981,9 @@ def get_electrified_stations_data(request, task_id: str):
 
 def get_station_load(request, task_id: str, station_id: int):
     """
-    Returns the load profile of one charging station in 60 minute bins: the mean occupancy of its
-    charging points and the highest power reached per bin. Fetched by the map popup on demand.
+    Returns the load profile of one charging station: the mean occupancy of its charging points
+    in 60 minute bins, and the power drawn at the resolution it is simulated on. Fetched by the
+    map popup on demand.
     """
     permission = AuthorizedMixIn.get_permission(request.user, task_id)
     if not permission:
