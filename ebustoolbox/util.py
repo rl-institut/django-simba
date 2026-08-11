@@ -9,14 +9,13 @@ from celery import uuid
 from io import BytesIO
 from django import conf
 import matplotlib
-import pandas as pd
 import sys
 
 from django.db.models import Max
 from django.utils.translation import gettext as _
 
 from .models import Scenario
-from ebustoolbox.data import get_powerdraw_as_dataframe
+from ebustoolbox.data import get_powerdraw_as_dataframe, station_power_profile
 
 logger = logging.getLogger("custom")
 
@@ -50,22 +49,9 @@ def get_charge_chart(station):
     # get power at this station
     power_df = get_powerdraw_as_dataframe(station.scenario.id)
     power_df = power_df[power_df["Station_id"] == station.id]
-    power_df = power_df[power_df["Power"] > 0]
-    if power_df.empty:
+    power_over_time = station_power_profile(power_df)
+    if power_over_time.empty:
         return None
-
-    # Every row is one vehicle charging at a constant power between time_start and time_end. The
-    # station's draw at any moment is the sum of the rows covering it, so add each row's power at
-    # its start and take it away again at its end, then accumulate.
-    deltas = pd.concat(
-        [
-            power_df[["time_start", "Power"]].rename(columns={"time_start": "time"}),
-            power_df[["time_end", "Power"]]
-            .rename(columns={"time_end": "time"})
-            .assign(Power=lambda frame: -frame["Power"]),
-        ]
-    )
-    power_over_time = deltas.groupby("time")["Power"].sum().sort_index().cumsum()
 
     figure, ax = plt.subplots(figsize=(5, 2.5))
     try:

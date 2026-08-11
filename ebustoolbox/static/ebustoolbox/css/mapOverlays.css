@@ -177,3 +177,22 @@ button.btn img {
     color: #475569; /* Tailwind's text-gray-700 */
     margin: 0; /* Remove default margin for alignment */
 }
+/* Station popup.
+   maplibre caps the popup at the maxWidth passed in popup.js (280px) and pads its content box.
+   The station popup draws an edge-to-edge header and a three-up figure strip, so it needs the
+   room and has to own its own padding. */
+.maplibregl-popup {
+    max-width: 360px !important;
+}
+
+.maplibregl-popup-content {
+    padding: 0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.maplibregl-popup-close-button {
+    color: #fff;
+    font-size: 18px;
+    padding: 0 6px;
+}
