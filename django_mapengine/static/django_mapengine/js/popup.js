@@ -60,7 +60,8 @@ function add_popup(layerID) {
 
     $.ajax({
       type: "GET",
-      url: `/popup/${lookup}/${featureID}?lang=en`,
+      // The scenario's task_id scopes and authorises the popup, exactly as it does for the tiles
+      url: `/popup/${mapTaskId}/${lookup}/${featureID}?lang=en`,
       data: map_store.cold.state,
       dataType: 'json',
       success: function (data) {

@@ -804,6 +804,14 @@ def station_power_samples(events) -> pd.DataFrame:
     across the whole night and expanding every one of them costs seconds for a caller that only
     wants a single terminus.
 
+    eflips.eval's power_and_occupancy would be the natural home for this - it takes a station_id
+    and a temporal resolution, and get_stats already uses it for depot areas. It cannot be used
+    for terminus stations against this data: it asserts that an event's soc timeseries ends before
+    the event does, and every one of this scenario's opportunity charging events carries a final
+    sample 15s past its own time_end (the depot's events end exactly on time, which is why the
+    area-based callers are fine). Switching over needs either that assertion relaxed upstream or
+    the simulation output fixed at the source.
+
     :param events: Charging events, with ``vehicle_type`` selected.
     :return: One row per sample interval, in the same shape as :func:`get_all_powerdraw` so that
         :func:`station_power_profile` can consume either.
