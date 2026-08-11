@@ -39,6 +39,8 @@ MAX_SIZE = 10
 # stores scenario_id and finished time
 last_simulations = list()
 CRITICAL_SOC = 0.0
+# Grid the station power series is sampled on, before the load profile bins it
+LOAD_RESOLUTION = 60
 logger = logging.getLogger("custom")
 
 
@@ -791,7 +793,9 @@ def get_all_powerdraw(scenario_id) -> pd.DataFrame:
     return result_df
 
 
-def station_power_series(session, station_id, sim_start, sim_end, resolution_seconds=60):
+def station_power_series(
+    session, station_id, sim_start, sim_end, resolution_seconds=LOAD_RESOLUTION
+):
     """Power drawn at one station over the simulated period, from eflips-eval.
 
     Always asked for at a fine resolution and aggregated by the caller, never at the resolution
@@ -1231,13 +1235,21 @@ def get_station_summary(station) -> dict:
 def get_station_load_profile(station, bin_minutes: int = 60) -> list[dict]:
     """The station's load over the simulated period, in fixed bins.
 
-    Per bin the occupancy is averaged, because a mean is what "how busy was this hour" means,
-    while the power is the highest value reached, because that is what the connection has to
-    carry. Bins with no charging are kept so the time axis stays continuous.
+    Both series are means over the bin, which is what makes them readable side by side: mean
+    power is proportional to the energy delivered in that hour, so it rises and falls with the
+    occupancy next to it. The highest power reached in the bin does not - it saturates at what a
+    single bus draws on the flat part of its charging curve, so a quiet night hour with one empty
+    bus outreads a packed hour of short top-ups at high SoC, and the two series then tell
+    opposite stories. The peak worth sizing a connection to is the one over the whole period,
+    which :func:`get_station_summary` reports.
+
+    Bins with no charging are kept so the time axis stays continuous.
 
     :param station: The station to profile.
     :param bin_minutes: Width of one bin in minutes.
-    :return: ``[{"time", "utilization", "power"}]`` ordered by time.
+    :return: ``[{"time", "utilization", "power"}]`` ordered by time. The power is grid-side, on
+        the same footing as the peak the popup quotes above the chart, and the popup names the
+        efficiency that was assumed to get there.
     """
     scenario = station.scenario
     time_start, time_end = get_start_end_time(scenario)
@@ -1255,19 +1267,8 @@ def get_station_load_profile(station, bin_minutes: int = 60) -> list[dict]:
         pd.Timestamp(time_start).floor(f"{bin_minutes}min"), pd.Timestamp(time_end), freq=bin_size
     )
 
-    with Session(SqlAlchemyEngine.get_engine()) as session:
-        profile = station_power_series(session, station.id, time_start, time_end)
-
-    # Highest power reached within the bin, because that is what the connection has to carry
-    if profile.empty:
-        power_per_bin = pd.Series(0.0, index=bins)
-    else:
-        power_per_bin = (
-            profile.resample(bin_size, origin=bins[0]).max().reindex(bins).fillna(0.0)
-        )
-
     # Occupancy is time-weighted over the bin, because "how busy was this hour" is a mean, and it
-    # is taken from the events rather than from the resampled series (see station_power_series)
+    # is taken from the events rather than from the sampled series (see station_power_series)
     bin_starts = bins.astype("int64").to_numpy() / 1e9
     bin_ends = bin_starts + bin_size.total_seconds()
     if events:
@@ -1284,6 +1285,26 @@ def get_station_load_profile(station, bin_minutes: int = 60) -> list[dict]:
         occupied = np.zeros(len(bins))
 
     utilization = occupied / (chargers * bin_size.total_seconds()) if chargers else occupied * 0.0
+
+    # Grid-side, so the curve and the peak quoted above it are the same figure (grid_side_power)
+    with Session(SqlAlchemyEngine.get_engine()) as session:
+        profile = station_power_series(session, station.id, time_start, time_end)
+    efficiencies = {event.vehicle_type.charging_efficiency for event in charging_events}
+    scaled, unused_label = grid_side_power(profile, efficiencies)
+
+    if scaled.empty:
+        power_per_bin = pd.Series(0.0, index=bins)
+    else:
+        # Summed rather than averaged: the series runs from the first charge of the day to the
+        # last, so a mean would divide a half-covered bin by the samples it has instead of the
+        # samples a whole hour has, and read as busier than it was. Summing counts the hours
+        # either side of the working day as the 0 kW they were.
+        power_per_bin = (
+            (scaled.resample(bin_size, origin=bins[0]).sum() * LOAD_RESOLUTION)
+            .div(bin_size.total_seconds())
+            .reindex(bins)
+            .fillna(0.0)
+        )
 
     return [
         {

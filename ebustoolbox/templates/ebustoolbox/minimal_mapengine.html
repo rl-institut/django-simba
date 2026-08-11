@@ -60,7 +60,7 @@
 
                 if (!container.classList.contains('hidden')) {
                     container.classList.add('hidden');
-                    button.textContent = 'Lastgang anzeigen (60-Min-Bins) ▾';
+                    button.textContent = 'Lastgang anzeigen (60-Minuten Mittel) ▾';
                     return;
                 }
 
@@ -84,6 +84,7 @@
                     });
             }
 
+            // Both series are hourly means, so one category per bin carries them both.
             function renderStationLastgang(container, rows) {
                 const chart = echarts.init(container);
                 const hours = rows.map(row => {
@@ -140,7 +141,7 @@
                             yAxisIndex: 1,
                             symbol: 'none',
                             data: rows.map(row => row.power),
-                            lineStyle: {color: '#475569', width: 2}
+                            lineStyle: {color: '#475569', width: 2, opacity: 0.66}
                         }
                     ]
                 });
