@@ -1066,6 +1066,34 @@ def get_stats(task_id: str) -> dict:
     return resp
 
 
+def station_power_profile(power_df: pd.DataFrame) -> pd.Series:
+    """Turn per-vehicle charging intervals into the power drawn over time.
+
+    Every row of ``power_df`` is one vehicle charging at a constant power between time_start and
+    time_end. The draw at any moment is the sum of the rows covering it, so add each row's power
+    at its start, take it away again at its end and accumulate.
+
+    Note that the power of a row is the average over its event, so the taper of the charging curve
+    is already smoothed into it and the peak of this profile understates the instantaneous one.
+
+    :param power_df: Rows from :func:`get_powerdraw_as_dataframe`, for a single station.
+    :return: Power in kW indexed by time, empty if there is nothing to charge.
+    """
+    charging = power_df[power_df["Power"] > 0]
+    if charging.empty:
+        return pd.Series(dtype=float)
+
+    deltas = pd.concat(
+        [
+            charging[["time_start", "Power"]].rename(columns={"time_start": "time"}),
+            charging[["time_end", "Power"]]
+            .rename(columns={"time_end": "time"})
+            .assign(Power=lambda frame: -frame["Power"]),
+        ]
+    )
+    return deltas.groupby("time")["Power"].sum().sort_index().cumsum()
+
+
 def get_electrified_stations(task_id: str) -> pd.DataFrame:
     """One row per electrified terminus stop.
 
@@ -1074,11 +1102,21 @@ def get_electrified_stations(task_id: str) -> pd.DataFrame:
     configured; where that was left open, it is the peak number of buses charging there at the
     same time, which is the number the station has to be built for.
 
-    Utilisation is the share of the simulated period during which an average charging point at
-    that station is occupied, so a station whose single charger is busy half the time reads 50%.
+    Two power figures are reported, because they answer different questions and differ a lot.
+    ``power_installed`` is the nameplate capacity that has to be built, charging points times the
+    power of one. ``power_peak`` is the highest draw the simulation actually produced, which is
+    the diversified load a grid connection would be negotiated on. The latter is derived from
+    per-event average powers (see :func:`station_power_profile`) and understates the instantaneous
+    peak, so it is never the safe number to size hardware on.
+
+    ``utilization`` is the mean number of occupied charging points over the available ones. Since
+    the count of charging points is itself the peak occupancy wherever the operator set no limit,
+    it is then a mean-over-peak load factor: it cannot reach 100%, and a low value means arrivals
+    are peaky rather than that a charging point could be dropped. ``avg_concurrent`` is the same
+    figure before dividing, i.e. the average number of buses charging here.
 
     :param task_id: The task id of the (simulated) scenario.
-    :return: Columns ``name``, ``chargers``, ``utilization`` (0-1) and ``arrivals``.
+    :return: One row per terminus with its lines, charging points, power, energy and occupancy.
     """
     scenario = Scenario.objects.get(task_id=task_id)
     time_start, time_end = get_start_end_time(scenario)
@@ -1090,12 +1128,33 @@ def get_electrified_stations(task_id: str) -> pd.DataFrame:
         event_type=EventType.CHARGING_OPPORTUNITY,
         time_start__gte=time_start,
         time_end__lte=time_end,
-    )
+    ).annotate(energy=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity"))
     events_by_station: dict[int, list] = {}
-    for station_id, start, end in charging_events.values_list(
-        "station_id", "time_start", "time_end"
+    energy_by_station: dict[int, float] = {}
+    for station_id, start, end, energy in charging_events.values_list(
+        "station_id", "time_start", "time_end", "energy"
     ):
         events_by_station.setdefault(station_id, []).append((start, end))
+        energy_by_station[station_id] = energy_by_station.get(station_id, 0.0) + (energy or 0.0)
+
+    # Which lines terminate here. This is what makes a stop worth electrifying, so it answers
+    # "what breaks if this one is skipped".
+    lines_by_station: dict[int, set] = {}
+    for station_id, line_name in (
+        Trip.objects.filter(scenario=scenario)
+        .exclude(route__line=None)
+        .values_list("route__arrival_station_id", "route__line__name")
+        .distinct()
+    ):
+        lines_by_station.setdefault(station_id, set()).add(str(line_name))
+
+    power_df = get_powerdraw_as_dataframe(scenario.id)
+    peak_power_by_station: dict[int, float] = {}
+    if not power_df.empty:
+        for station_id, group in power_df.groupby("Station_id"):
+            profile = station_power_profile(group)
+            if not profile.empty:
+                peak_power_by_station[station_id] = float(profile.max())
 
     records = []
     for station in opp_stations:
@@ -1115,21 +1174,37 @@ def get_electrified_stations(task_id: str) -> pd.DataFrame:
         chargers = station.amount_charging_places or peak
         occupied_seconds = sum((end - start).total_seconds() for start, end in events)
 
-        if chargers and window_seconds:
-            utilization = occupied_seconds / (chargers * window_seconds)
-        else:
-            utilization = 0.0
+        avg_concurrent = occupied_seconds / window_seconds if window_seconds else 0.0
+        utilization = avg_concurrent / chargers if chargers else 0.0
 
         records.append(
             {
                 "name": station.name,
+                "lines": ", ".join(sorted(lines_by_station.get(station.id, set()))),
                 "chargers": chargers,
+                "power_installed": round((station.power_per_charger or 0.0) * chargers, 1),
+                "power_peak": round(peak_power_by_station.get(station.id, 0.0), 1),
+                "energy": round(energy_by_station.get(station.id, 0.0), 1),
                 "utilization": round(utilization, 4),
+                "avg_concurrent": round(avg_concurrent, 2),
                 "arrivals": len(events),
             }
         )
 
-    df = pd.DataFrame(records, columns=["name", "chargers", "utilization", "arrivals"])
+    df = pd.DataFrame(
+        records,
+        columns=[
+            "name",
+            "lines",
+            "chargers",
+            "power_installed",
+            "power_peak",
+            "energy",
+            "utilization",
+            "avg_concurrent",
+            "arrivals",
+        ],
+    )
     return df.sort_values("name").reset_index(drop=True)
 
 

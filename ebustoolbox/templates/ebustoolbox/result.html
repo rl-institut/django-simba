@@ -391,21 +391,36 @@
           </h3>
           <p class="mt-1 text-xs text-slate-500">
             <span id="electrifiedStationsCount">–</span>&nbsp;{% translate 'Haltestellen' %}
-            &middot; {% translate 'Auslastung eines durchschnittlichen Ladepunkts über den Simulationszeitraum' %}
+            &middot; {% translate 'Spaltentitel zum Sortieren anklicken' %}
+          </p>
+          <p class="mx-auto mt-2 max-w-2xl text-xs text-slate-500">
+            {% blocktranslate %}Leistung: installiert (Ladepunkte × Anschlussleistung) und darunter die höchste in der Simulation erreichte Leistung. Letztere entsteht aus mittleren Leistungen je Ladevorgang und unterschätzt die Momentanspitze &ndash; sie ist keine Grundlage für die Auslegung des Netzanschlusses.{% endblocktranslate %}
+          </p>
+          <p class="mx-auto mt-1 max-w-2xl text-xs text-slate-500">
+            {% blocktranslate %}Auslastung: mittlere Belegung bezogen auf die Ladepunkte. Da sich die Ladepunkte aus der Spitzenbelegung ergeben, erreicht sie nie 100 %; ein niedriger Wert bedeutet ungleichmäßige Ankünfte, nicht einen entbehrlichen Ladepunkt.{% endblocktranslate %}
           </p>
         </div>
         <div class="max-h-[480px] overflow-y-auto relative">
           <table id="electrifiedStationsTable" class="w-full table-fixed border-collapse bg-white">
             <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
               <tr class="divide-x divide-slate-200 border-b border-slate-200">
-                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/2">
-                  {% translate 'Name' %}
+                <th data-column="name" class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/5" onclick="sortStationsTable('name')">
+                  {% translate 'Haltestelle' %}
                 </th>
-                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">
+                <th data-column="lines" class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortStationsTable('lines')">
+                  {% translate 'Linien' %}
+                </th>
+                <th data-column="chargers" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('chargers')">
                   {% translate 'Ladepunkte' %}
                 </th>
-                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">
-                  {% translate 'Ø Auslastung' %}
+                <th data-column="power_installed" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('power_installed')">
+                  {% translate 'Leistung' %}
+                </th>
+                <th data-column="energy" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('energy')">
+                  {% translate 'Energie' %}
+                </th>
+                <th data-column="utilization" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('utilization')">
+                  {% translate 'Auslastung' %}
                 </th>
               </tr>
             </thead>
@@ -2113,39 +2128,92 @@
             });
     }
 
+    let electrifiedStationData = [];
+    let stationsSortColumn = '';
+    let stationsSortDirection = 1;
+
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[character]);
+
+    const formatNumber = (value, digits = 0) => Number(value ?? 0).toLocaleString('de-DE', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+    });
+
     function loadElectrifiedStations(taskId) {
         return fetch(`/simba/result/${taskId}/electrified_stations/`)
             .then(response => response.json())
             .then(result => {
-                const rows = result.data || [];
-                const tbody = document.getElementById('electrifiedStationsBody');
+                electrifiedStationData = result.data || [];
                 const count = document.getElementById('electrifiedStationsCount');
-                if (count) count.textContent = rows.length.toLocaleString('de-DE');
-                if (!tbody) return;
-
-                if (!rows.length) {
-                    tbody.innerHTML = `
-                        <tr><td colspan="3" class="px-4 py-6 text-center text-xs text-slate-500">
-                            Keine elektrifizierten Endhaltestellen in diesem Szenario.
-                        </td></tr>`;
-                    return;
-                }
-
-                tbody.innerHTML = rows.map(row => {
-                    const utilization = (row.utilization * 100).toLocaleString('de-DE', {
-                        minimumFractionDigits: 1,
-                        maximumFractionDigits: 1
-                    });
-                    return `
-                        <tr class="hover:bg-slate-50 transition-colors duration-75">
-                            <td class="px-4 py-2 text-xs font-medium text-slate-900 truncate" title="${row.name}">
-                                ${row.name}
-                            </td>
-                            <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${row.chargers}</td>
-                            <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${utilization}&nbsp;%</td>
-                        </tr>`;
-                }).join('');
+                if (count) count.textContent = electrifiedStationData.length.toLocaleString('de-DE');
+                renderElectrifiedStations(electrifiedStationData);
             });
+    }
+
+    function renderElectrifiedStations(rows) {
+        const tbody = document.getElementById('electrifiedStationsBody');
+        if (!tbody) return;
+
+        if (!rows.length) {
+            tbody.innerHTML = `
+                <tr><td colspan="6" class="px-4 py-6 text-center text-xs text-slate-500">
+                    Keine elektrifizierten Endhaltestellen in diesem Szenario.
+                </td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = rows.map(row => `
+            <tr class="hover:bg-slate-50 transition-colors duration-75">
+                <td class="px-4 py-2 text-xs font-medium text-slate-900 truncate" title="${escapeHtml(row.name)}">
+                    ${escapeHtml(row.name)}
+                </td>
+                <td class="px-4 py-2 text-xs text-slate-600 truncate" title="${escapeHtml(row.lines)}">
+                    ${escapeHtml(row.lines) || '&ndash;'}
+                </td>
+                <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${row.chargers}</td>
+                <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">
+                    ${formatNumber(row.power_installed)}&nbsp;kW
+                    <span class="block text-slate-400">sim. ${formatNumber(row.power_peak)}&nbsp;kW</span>
+                </td>
+                <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${formatNumber(row.energy)}&nbsp;kWh</td>
+                <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">
+                    ${formatNumber(row.utilization * 100, 1)}&nbsp;%
+                    <span class="block text-slate-400">
+                        &Oslash;&nbsp;${formatNumber(row.avg_concurrent, 1)} von ${row.chargers}
+                    </span>
+                </td>
+            </tr>`).join('');
+    }
+
+    function sortStationsTable(column) {
+        if (stationsSortColumn === column) {
+            stationsSortDirection *= -1;
+        } else {
+            stationsSortDirection = 1;
+            stationsSortColumn = column;
+        }
+
+        document.querySelectorAll('#electrifiedStationsTable th.sortable').forEach(th => {
+            th.classList.remove('asc', 'desc');
+            if (th.dataset.column === column) {
+                th.classList.add(stationsSortDirection === 1 ? 'asc' : 'desc');
+            }
+        });
+
+        const sorted = [...electrifiedStationData].sort((a, b) => {
+            const valueA = a[column];
+            const valueB = b[column];
+            if (valueA == null) return 1;
+            if (valueB == null) return -1;
+            if (typeof valueA === 'string') {
+                return valueA.localeCompare(valueB, 'de-DE') * stationsSortDirection;
+            }
+            return (valueA - valueB) * stationsSortDirection;
+        });
+
+        renderElectrifiedStations(sorted);
     }
 
     function loadRotationTable(taskId) {
