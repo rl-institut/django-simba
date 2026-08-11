@@ -6,23 +6,23 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ebustoolbox', '0090_auto_20260429_1221'),
+        ("ebustoolbox", "0093_add_batterytypes_to_default_vehicletypes"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='vehicletype',
-            name='height',
+            model_name="vehicletype",
+            name="height",
             field=models.FloatField(blank=True, default=None, null=True),
         ),
         migrations.AlterField(
-            model_name='vehicletype',
-            name='length',
+            model_name="vehicletype",
+            name="length",
             field=models.FloatField(blank=True, default=None, null=True),
         ),
         migrations.AlterField(
-            model_name='vehicletype',
-            name='width',
+            model_name="vehicletype",
+            name="width",
             field=models.FloatField(blank=True, default=None, null=True),
         ),
     ]
