@@ -58,10 +58,15 @@ function add_popup(layerID) {
     const featureID = event.features[0].properties.id;
     const lookup = map_store.cold.currentChoropleth === null ? layerID : map_store.cold.currentChoropleth;
 
+    // The scenario's task_id scopes and authorises the popup, exactly as it does for the tiles.
+    // Defined per page in the template that includes this shared file; guard rather than throw
+    // on a page that never set it, so a popup click there just fails the request instead of
+    // crashing add_popup's click handler outright.
+    const popupTaskId = typeof mapTaskId !== "undefined" ? mapTaskId : "";
+
     $.ajax({
       type: "GET",
-      // The scenario's task_id scopes and authorises the popup, exactly as it does for the tiles
-      url: `/popup/${mapTaskId}/${lookup}/${featureID}?lang=en`,
+      url: `/popup/${popupTaskId}/${lookup}/${featureID}?lang=en`,
       data: map_store.cold.state,
       dataType: 'json',
       success: function (data) {
