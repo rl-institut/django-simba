@@ -55,8 +55,13 @@
         <div class="font-mono text-[11.5px] font-semibold text-slate-900">{{ arrivals }}</div>
       </div>
 
-      <div class="text-[9.5px] text-slate-400">
-        {{ geom.y|floatformat:"4" }}, {{ geom.x|floatformat:"4" }}
+      <div class="text-[9.5px] leading-snug text-slate-400">
+        {% if charging_efficiency_pct %}
+          <div>
+            Leistung netzseitig, angenommen {{ charging_efficiency_pct|floatformat:0 }}&nbsp;% Ladeeffizienz.
+          </div>
+        {% endif %}
+        <div>{{ geom.y|floatformat:"4" }}, {{ geom.x|floatformat:"4" }}</div>
       </div>
     </div>
 

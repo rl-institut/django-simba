@@ -1149,6 +1149,32 @@ def station_charging_events(station, time_start, time_end):
     ).select_related("vehicle_type")
 
 
+def grid_side_power(battery_side_kw, efficiencies) -> tuple:
+    """Put a power figure read off the stored SoC back on the grid side.
+
+    eflips-eval derives power from the SoC, and the SoC is what arrived in the battery, so its
+    figures are battery-side: at 0.95 efficiency a 300 kW charger running flat out reads 285 kW.
+    Reported next to the installed connection that would look like 5% of headroom that does not
+    exist, so it is divided back out and the assumption named wherever the figure is shown.
+
+    The efficiency belongs to the vehicle type rather than to the station, so a stop served by
+    several types has no single right answer. The lowest is divided out, because it gives the
+    highest grid-side power and a connection sized on the conservative reading is the one that
+    holds, and the label carries the whole range so the reader can see it was not one number.
+
+    :param battery_side_kw: Power as eflips-eval reports it, a single figure or a whole series.
+    :param efficiencies: Charging efficiencies of the vehicle types charging there.
+    :return: ``(grid_side, label)`` in the shape it was given, where the label reads "95" or
+        "90-95" in percent, and is None if nothing charged there.
+    """
+    usable = sorted({efficiency for efficiency in efficiencies if efficiency})
+    if not usable:
+        return battery_side_kw, None
+    percentages = [f"{efficiency * 100:g}" for efficiency in (usable[0], usable[-1])]
+    label = percentages[0] if usable[0] == usable[-1] else "–".join(percentages)
+    return battery_side_kw / usable[0], label
+
+
 def get_station_summary(station) -> dict:
     """The figures the map popup shows for one electrified station.
 
@@ -1171,6 +1197,11 @@ def get_station_summary(station) -> dict:
     with Session(SqlAlchemyEngine.get_engine()) as session:
         profile = station_power_series(session, station.id, time_start, time_end)
 
+    power_peak, efficiency_pct = grid_side_power(
+        float(profile.max()) if not profile.empty else 0.0,
+        {event.vehicle_type.charging_efficiency for event in events},
+    )
+
     # Asked of Route, not Trip: every trip on a route shares that route's terminus and line, so
     # going through Trip scans every trip in the scenario to produce the same handful of names
     lines = sorted(
@@ -1186,7 +1217,8 @@ def get_station_summary(station) -> dict:
     return {
         "chargers": metrics["chargers"],
         "power_installed": round((station.power_per_charger or 0.0) * metrics["chargers"], 1),
-        "power_peak": round(float(profile.max()) if not profile.empty else 0.0, 1),
+        "power_peak": round(power_peak, 1),
+        "charging_efficiency_pct": efficiency_pct,
         "energy": round(energy, 1),
         "utilization": round(metrics["utilization"], 4),
         "utilization_pct": round(metrics["utilization"] * 100, 1),
@@ -1305,6 +1337,7 @@ def get_electrified_stations(task_id: str) -> pd.DataFrame:
     )
     events_by_station: dict[int, list] = {}
     energy_by_station: dict[int, float] = {}
+    efficiencies_by_station: dict[int, set] = {}
     for event in charging_events:
         events_by_station.setdefault(event.station_id, []).append(
             (event.time_start, event.time_end)
@@ -1312,6 +1345,9 @@ def get_electrified_stations(task_id: str) -> pd.DataFrame:
         energy = (event.soc_end - event.soc_start) * event.vehicle_type.battery_capacity
         energy_by_station[event.station_id] = (
             energy_by_station.get(event.station_id, 0.0) + energy
+        )
+        efficiencies_by_station.setdefault(event.station_id, set()).add(
+            event.vehicle_type.charging_efficiency
         )
 
     # Which lines terminate here. This is what makes a stop worth electrifying, so it answers
@@ -1339,6 +1375,10 @@ def get_electrified_stations(task_id: str) -> pd.DataFrame:
         events = events_by_station.get(station.id, [])
         metrics = occupancy_metrics(events, window_seconds, station.amount_charging_places)
         chargers = metrics["chargers"]
+        power_peak, efficiency_pct = grid_side_power(
+            peak_power_by_station.get(station.id, 0.0),
+            efficiencies_by_station.get(station.id, set()),
+        )
 
         records.append(
             {
@@ -1349,7 +1389,8 @@ def get_electrified_stations(task_id: str) -> pd.DataFrame:
                 "lines": ", ".join(sorted(lines_by_station.get(station.id, set()))),
                 "chargers": chargers,
                 "power_installed": round((station.power_per_charger or 0.0) * chargers, 1),
-                "power_peak": round(peak_power_by_station.get(station.id, 0.0), 1),
+                "power_peak": round(power_peak, 1),
+                "charging_efficiency_pct": efficiency_pct,
                 "energy": round(energy_by_station.get(station.id, 0.0), 1),
                 "utilization": round(metrics["utilization"], 4),
                 "avg_concurrent": round(metrics["avg_concurrent"], 2),
@@ -1369,6 +1410,7 @@ def get_electrified_stations(task_id: str) -> pd.DataFrame:
             "chargers",
             "power_installed",
             "power_peak",
+            "charging_efficiency_pct",
             "energy",
             "utilization",
             "avg_concurrent",
