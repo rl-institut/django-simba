@@ -755,7 +755,11 @@ def get_all_powerdraw(scenario_id) -> pd.DataFrame:
                         "time_start": time_start,
                         "time_end": time_end,
                         "Power": energy / ((time_end - time_start).total_seconds() / 3600),
-                        "Station_id": stations_name_short_dict.get(station.id),
+                        # Station_id is the primary key, so callers can match a Station without
+                        # guessing which of its two names ended up here. The readable name rides
+                        # along in its own column for exports.
+                        "Station_id": station.id,
+                        "Station": stations_name_short_dict.get(station.id),
                     }
                 )
                 # Disconnection of vehicle after event. Copy last event and change power
@@ -770,13 +774,17 @@ def get_all_powerdraw(scenario_id) -> pd.DataFrame:
         result_df["time_end"] = pd.to_datetime(result_df["time_end"])
         result_df = result_df.sort_values(by="time_start")
     else:
+        # Same columns as the populated frame. This used to announce an "Energy" column that
+        # nothing produces, so consumers reading "Power" raised a KeyError on a scenario without
+        # charging events.
         result_df = pd.DataFrame(
             {
-                "V_id": [None],
-                "time_end": [None],
-                "time_start": [None],
-                "Energy": [None],
-                "Station_id": [None],
+                "V_id": [],
+                "time_start": [],
+                "time_end": [],
+                "Power": [],
+                "Station_id": [],
+                "Station": [],
             }
         )
 
