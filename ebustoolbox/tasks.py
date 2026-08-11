@@ -41,6 +41,7 @@ from eflips.depot.api import (  # noqa
 from eflips.tco import calculate_tco
 
 import core.deepcopy
+from ebustoolbox.impact import apply_tco_mutation
 from ebusdjango.util import get_static_file_path
 import ebustoolbox.util
 import simba.optimizer_util
@@ -1947,6 +1948,10 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     apply_vehicle_mutation(mutation, child, stack)
     apply_station_mutation(mutation, child, stack)
     apply_depot_and_area_wishes(mutation, child, stack)
+    # Must run after apply_vehicle_mutation and apply_station_mutation: those copy
+    # whole rows, so the child's battery_type_id / charging_point_type_id still point
+    # at the mutation's rows until this repoints them.
+    apply_tco_mutation(mutation, child, stack)
 
     child.save()
     return child
