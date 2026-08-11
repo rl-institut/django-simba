@@ -791,79 +791,36 @@ def get_all_powerdraw(scenario_id) -> pd.DataFrame:
     return result_df
 
 
-def station_power_samples(events) -> pd.DataFrame:
-    """Charging power of the given events, at the resolution the simulation recorded.
+def station_power_series(session, station_id, sim_start, sim_end, resolution_seconds=60):
+    """Power drawn at one station over the simulated period, from eflips-eval.
 
-    :func:`get_all_powerdraw` collapses a charging event into one average power, which averages
-    away the taper of the charging curve: a bus that starts at 250 kW and tails off shows up as
-    the ~200 kW it averaged, so a peak taken from it is not a peak at all. Each charging event
-    carries a minute-wise soc timeseries spanning its whole duration, so the power actually drawn
-    between two samples can be recovered instead.
+    Always asked for at a fine resolution and aggregated by the caller, never at the resolution
+    it will be displayed at. power_and_occupancy resamples onto a grid of exactly the resolution
+    given, so a six-minute charging event asked for at 3600s falls between grid points and its
+    peak simply is not in the result: the same station reads 519 kW hourly, 590 kW at 300s and
+    713 kW at 60s. Its occupancy has a sharper edge still - it builds the occupied interval as
+    [time_start, time_end - resolution], which inverts for any event shorter than one step and
+    silently yields zero, so occupancy is taken from the events themselves (occupancy_metrics)
+    rather than from here.
 
-    Takes the events rather than a scenario, because a depot's events are sampled per minute
-    across the whole night and expanding every one of them costs seconds for a caller that only
-    wants a single terminus.
-
-    eflips.eval's power_and_occupancy would be the natural home for this - it takes a station_id
-    and a temporal resolution, and get_stats already uses it for depot areas. It cannot be used
-    for terminus stations against this data: it asserts that an event's soc timeseries ends before
-    the event does, and every one of this scenario's opportunity charging events carries a final
-    sample 15s past its own time_end (the depot's events end exactly on time, which is why the
-    area-based callers are fine). Switching over needs either that assertion relaxed upstream or
-    the simulation output fixed at the source.
-
-    :param events: Charging events, with ``vehicle_type`` selected.
-    :return: One row per sample interval, in the same shape as :func:`get_all_powerdraw` so that
-        :func:`station_power_profile` can consume either.
+    :param session: An open sqlalchemy session.
+    :param station_id: The station to report on.
+    :param sim_start: Start of the simulated period.
+    :param sim_end: End of the simulated period.
+    :param resolution_seconds: Grid the underlying series is sampled on.
+    :return: Power in kW indexed by time, empty if nothing charged there.
     """
-    rows = []
-    for event in events:
-        if event.event_type == EventType.CHARGING_DEPOT:
-            station_id = event.area.depot.station_id if event.area else None
-        else:
-            station_id = event.station_id
-        if station_id is None:
-            continue
-
-        capacity = event.vehicle_type.battery_capacity
-        efficiency = event.vehicle_type.charging_efficiency
-        timeseries = event.timeseries or {}
-        times = timeseries.get("time") or []
-        socs = timeseries.get("soc") or []
-
-        if len(times) < 2 or len(times) != len(socs):
-            # Nothing sampled, so the event's average is the best available. Formatted like the
-            # samples so the column stays homogeneous strings and can be parsed in one go.
-            samples = [
-                (
-                    event.time_start.isoformat(),
-                    event.time_end.isoformat(),
-                    event.soc_end - event.soc_start,
-                )
-            ]
-        else:
-            samples = [
-                (times[i], times[i + 1], socs[i + 1] - socs[i]) for i in range(len(times) - 1)
-            ]
-
-        # Kept as raw values here; parsing timestamps one at a time dominates the runtime of this
-        # function, and a depot's events expand to hundreds of thousands of samples
-        for start, end, delta_soc in samples:
-            if delta_soc > 0:
-                rows.append((start, end, delta_soc * efficiency * capacity, station_id))
-
-    frame = pd.DataFrame(rows, columns=["time_start", "time_end", "energy", "Station_id"])
+    frame = power_and_occupancy(
+        [],
+        session,
+        temporal_resolution=resolution_seconds,
+        station_id=station_id,
+        sim_start_time=sim_start,
+        sim_end_time=sim_end,
+    )
     if frame.empty:
-        return pd.DataFrame(columns=["time_start", "time_end", "Power", "Station_id"])
-
-    # ISO8601 rather than a fixed format: the simulation writes fractional seconds only sometimes
-    frame["time_start"] = pd.to_datetime(frame["time_start"], utc=True, format="ISO8601")
-    frame["time_end"] = pd.to_datetime(frame["time_end"], utc=True, format="ISO8601")
-    hours = (frame["time_end"] - frame["time_start"]).dt.total_seconds() / 3600
-    frame = frame[hours > 0]
-    frame["Power"] = frame["energy"] / hours[hours > 0]
-
-    return frame[["time_start", "time_end", "Power", "Station_id"]]
+        return pd.Series(dtype=float)
+    return pd.Series(frame["power"].to_numpy(), index=pd.DatetimeIndex(frame["time"]))
 
 
 def sim_is_finished(task_id: str) -> bool:
@@ -1141,35 +1098,6 @@ def get_stats(task_id: str) -> dict:
     return resp
 
 
-def station_power_profile(power_df: pd.DataFrame) -> pd.Series:
-    """Turn per-vehicle charging intervals into the power drawn over time.
-
-    Every row of ``power_df`` is one vehicle charging at a constant power between time_start and
-    time_end. The draw at any moment is the sum of the rows covering it, so add each row's power
-    at its start, take it away again at its end and accumulate.
-
-    How fine the result is depends on the rows given: one row per charging event
-    (:func:`get_all_powerdraw`) yields event averages, one row per recorded sample
-    (:func:`station_power_samples`) yields the instantaneous power.
-
-    :param power_df: Rows from :func:`get_powerdraw_as_dataframe`, for a single station.
-    :return: Power in kW indexed by time, empty if there is nothing to charge.
-    """
-    charging = power_df[power_df["Power"] > 0]
-    if charging.empty:
-        return pd.Series(dtype=float)
-
-    deltas = pd.concat(
-        [
-            charging[["time_start", "Power"]].rename(columns={"time_start": "time"}),
-            charging[["time_end", "Power"]]
-            .rename(columns={"time_end": "time"})
-            .assign(Power=lambda frame: -frame["Power"]),
-        ]
-    )
-    return deltas.groupby("time")["Power"].sum().sort_index().cumsum()
-
-
 def occupancy_metrics(intervals: list, window_seconds: float, configured_places) -> dict:
     """Occupancy of one station's charging points over the simulated period.
 
@@ -1240,7 +1168,8 @@ def get_station_summary(station) -> dict:
     )
 
     metrics = occupancy_metrics(intervals, window_seconds, station.amount_charging_places)
-    profile = station_power_profile(station_power_samples(events))
+    with Session(SqlAlchemyEngine.get_engine()) as session:
+        profile = station_power_series(session, station.id, time_start, time_end)
 
     # Asked of Route, not Trip: every trip on a route shares that route's terminus and line, so
     # going through Trip scans every trip in the scenario to produce the same handful of names
@@ -1290,41 +1219,48 @@ def get_station_load_profile(station, bin_minutes: int = 60) -> list[dict]:
     )
     chargers = metrics["chargers"]
 
-    profile = station_power_profile(station_power_samples(charging_events))
-
     bins = pd.date_range(
         pd.Timestamp(time_start).floor(f"{bin_minutes}min"), pd.Timestamp(time_end), freq=bin_size
     )
 
-    rows = []
-    for bin_start in bins:
-        bin_end = bin_start + bin_size
+    with Session(SqlAlchemyEngine.get_engine()) as session:
+        profile = station_power_series(session, station.id, time_start, time_end)
 
-        # Occupied charger-seconds that fall inside this bin
-        occupied = 0.0
-        for start, end in events:
-            overlap_start = max(pd.Timestamp(start), bin_start)
-            overlap_end = min(pd.Timestamp(end), bin_end)
-            if overlap_end > overlap_start:
-                occupied += (overlap_end - overlap_start).total_seconds()
-
-        utilization = occupied / (chargers * bin_size.total_seconds()) if chargers else 0.0
-
-        # The profile is a step function, so the value in force at the bin start still counts
-        in_bin = profile[(profile.index >= bin_start) & (profile.index < bin_end)]
-        before = profile[profile.index <= bin_start]
-        candidates = list(in_bin.values) + ([before.iloc[-1]] if not before.empty else [])
-        power = max(candidates) if candidates else 0.0
-
-        rows.append(
-            {
-                "time": bin_start.isoformat(),
-                "utilization": round(utilization, 4),
-                "power": round(float(power), 1),
-            }
+    # Highest power reached within the bin, because that is what the connection has to carry
+    if profile.empty:
+        power_per_bin = pd.Series(0.0, index=bins)
+    else:
+        power_per_bin = (
+            profile.resample(bin_size, origin=bins[0]).max().reindex(bins).fillna(0.0)
         )
 
-    return rows
+    # Occupancy is time-weighted over the bin, because "how busy was this hour" is a mean, and it
+    # is taken from the events rather than from the resampled series (see station_power_series)
+    bin_starts = bins.astype("int64").to_numpy() / 1e9
+    bin_ends = bin_starts + bin_size.total_seconds()
+    if events:
+        starts = np.array([start.timestamp() for start, unused_end in events])
+        ends = np.array([end.timestamp() for unused_start, end in events])
+        overlap = np.clip(
+            np.minimum(ends[None, :], bin_ends[:, None])
+            - np.maximum(starts[None, :], bin_starts[:, None]),
+            0,
+            None,
+        )
+        occupied = overlap.sum(axis=1)
+    else:
+        occupied = np.zeros(len(bins))
+
+    utilization = occupied / (chargers * bin_size.total_seconds()) if chargers else occupied * 0.0
+
+    return [
+        {
+            "time": bin_start.isoformat(),
+            "utilization": round(float(util), 4),
+            "power": round(float(power), 1),
+        }
+        for bin_start, util, power in zip(bins, utilization, power_per_bin.to_numpy())
+    ]
 
 
 def get_electrified_stations(task_id: str) -> pd.DataFrame:
@@ -1389,14 +1325,14 @@ def get_electrified_stations(task_id: str) -> pd.DataFrame:
     ):
         lines_by_station.setdefault(station_id, set()).add(str(line_name))
 
-    # Only the terminus events, so the depot's night-long minute-wise samples are not expanded
-    power_df = station_power_samples(charging_events)
+    # One session for all of them; power_and_occupancy sums the stations it is given rather than
+    # reporting them separately, so each terminus is asked for on its own
     peak_power_by_station: dict[int, float] = {}
-    if not power_df.empty:
-        for station_id, group in power_df.groupby("Station_id"):
-            profile = station_power_profile(group)
+    with Session(SqlAlchemyEngine.get_engine()) as session:
+        for station in opp_stations:
+            profile = station_power_series(session, station.id, time_start, time_end)
             if not profile.empty:
-                peak_power_by_station[station_id] = float(profile.max())
+                peak_power_by_station[station.id] = float(profile.max())
 
     records = []
     for station in opp_stations:
