@@ -408,7 +408,7 @@
                   {% translate 'Ladepunkte' %}
                 </th>
                 <th data-column="power_installed" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('power_installed')"
-                    title="{% translate 'Installiert (Ladepunkte × Anschlussleistung), darunter die höchste in der Simulation erreichte Leistung.' %}">
+                    title="{% translate 'Installiert (Ladepunkte × Anschlussleistung), darunter die höchste in der Simulation erreichte Leistung. Beide netzseitig: die Simulation rechnet in Batterieleistung, zurückgerechnet wird mit der Ladeeffizienz des Fahrzeugtyps.' %}">
                   {% translate 'Leistung' %}
                 </th>
                 <th data-column="energy" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('energy')">
@@ -2166,9 +2166,12 @@
                     ${escapeHtml(row.name)}
                 </td>
                 <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${row.chargers}</td>
-                <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">
+                <td class="px-4 py-2 text-xs text-right font-mono text-slate-600"
+                    title="${row.charging_efficiency_pct
+                        ? `Spitze netzseitig, angenommen ${row.charging_efficiency_pct} % Ladeeffizienz`
+                        : ''}">
                     ${formatNumber(row.power_installed)}&nbsp;kW
-                    <span class="block text-slate-400">sim. ${formatNumber(row.power_peak)}&nbsp;kW</span>
+                    <span class="block text-slate-400">Spitze ${formatNumber(row.power_peak)}&nbsp;kW</span>
                 </td>
                 <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${formatNumber(row.energy)}&nbsp;kWh</td>
                 <td class="px-4 py-2 text-xs text-slate-600">
