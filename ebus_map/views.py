@@ -9,8 +9,10 @@ from django.apps import apps
 
 # from django.conf import settings
 from django.http import HttpRequest, response
+from django.shortcuts import get_object_or_404
 from django.template.exceptions import TemplateDoesNotExist
 from django.template.loader import render_to_string
+from django.utils.translation import gettext as _
 from django.views.generic import TemplateView
 from django_mapengine import views
 
@@ -26,13 +28,21 @@ class MinimalMapengineView(TemplateView, views.MapEngineMixin):
     template_name = "minimal_mapengine.html"
 
 
-def get_popup(request: HttpRequest, lookup: str, id: int) -> response.JsonResponse:  # noqa: ARG001
+def get_popup(
+    request: HttpRequest, task_id: str, lookup: str, id: int
+) -> response.JsonResponse:
     """Return popup as html and chart options to render chart on popup.
+
+    The scenario's task_id is part of the URL and is checked, like it is for the vector tiles this
+    popup belongs to. Without it the route took a sequential primary key and answered for any
+    object in the database, so the popups of every scenario could be walked by counting upwards.
 
     Parameters
     ----------
     request : HttpRequest
         Request from app, can hold option for different language
+    task_id: str
+        Task id of the scenario the map is showing. Authorises the request and scopes the lookup.
     lookup: str
         Name is used to lookup data and chart functions
     id: int
@@ -43,7 +53,22 @@ def get_popup(request: HttpRequest, lookup: str, id: int) -> response.JsonRespon
     JsonResponse
         containing HTML to render popup and chart options to be used in E-Chart.
     """
-    data = apps.get_model(app_label="ebustoolbox", model_name=lookup).get_popup_data(id)
+    # Imported here because ebustoolbox.views imports ebus_map.managers at module scope
+    from ebustoolbox.views import AuthorizedMixIn
+
+    if not AuthorizedMixIn.get_permission(request.user, task_id):
+        return response.HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
+
+    scenario_model = apps.get_model(app_label="ebustoolbox", model_name="scenario")
+    scenario = get_object_or_404(scenario_model, task_id=task_id)
+    # The tiles are drawn from the sizing scenario where there is one (see django_mapengine.mvt),
+    # so that is where a feature id on the map has to be resolved.
+    displayed_scenario = scenario.get_sizing_scenario() or scenario
+
+    model = apps.get_model(app_label="ebustoolbox", model_name=lookup)
+    obj = get_object_or_404(model, id=id, scenario=displayed_scenario)
+
+    data = model.get_popup_data(obj.id)
     try:
         html = render_to_string(f"popups/{lookup}.html", context=data)
     except TemplateDoesNotExist:

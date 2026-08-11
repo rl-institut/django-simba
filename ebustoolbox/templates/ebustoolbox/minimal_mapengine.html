@@ -16,6 +16,10 @@
         <script>
             // This is needed as mapengine checks for eventTopics value (bug in mapengine!)
            let eventTopics = {};
+
+           // Scopes and authorises popup requests, the same task_id the tile sources carry.
+           // Defined before map_js so popup.js can use it.
+           const mapTaskId = "{{ task_id }}";
         </script>
         {% include 'django_mapengine/map_js.html' %}
         <div id="map-button">
@@ -37,7 +41,7 @@
                 document.querySelectorAll('.maplibregl-popup').forEach(popup => popup.remove());
                 map.flyTo({center: [lon, lat], zoom: 14});
 
-                fetch(`/popup/station/${stationId}?lang=de`)
+                fetch(`/popup/${mapTaskId}/station/${stationId}?lang=de`)
                     .then(response => response.json())
                     .then(({html}) => {
                         new maplibregl.Popup({maxWidth: '360px'})
