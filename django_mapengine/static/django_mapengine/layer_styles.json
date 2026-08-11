@@ -114,15 +114,8 @@
   "routes": {
     "type": "line",
    "paint": {
-      "line-color": [
-        "interpolate",
-        ["linear"],
-        ["slice", ["get","geom"], 2],
-        0, "blue",
-        10, "green",
-        20, "red"
-      ],
-      "line-width": 5
+      "line-color": "#00000050",
+      "line-width": 1
     },
     "layout": {
         "line-cap": "round",

@@ -311,7 +311,7 @@
               @all-depots-loaded.document='loading=false'
               class="px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-200"
               :class="{
-                 'bg-emerald-400 text-white shadow-md scale-105': $el === selected,
+                 'bg-emerald-400 text-white shadow-md ': $el === selected,
                  'bg-white text-slate-700 hover:bg-emerald-200':  $el != selected,
                  '!bg-slate-300': loading,
                   }"
@@ -331,7 +331,7 @@
               @depot-{{depot.id}}-loaded.document='loading=false'
               class="px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-200"
           :class="{
-                 'bg-emerald-400 text-white shadow-md scale-105': $el === selected,
+                 'bg-emerald-400 text-white shadow-md ': $el === selected,
                  'bg-white text-slate-700 hover:bg-emerald-200':  $el != selected,
                  '!bg-slate-300': loading,
                   }"

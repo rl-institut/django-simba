@@ -1,471 +1,455 @@
-{  "myexamplemultipolygon": {
-    "type": "fill",
-    "paint": {
-      "fill-color": "rgb(10,1,2)",
-      "fill-opacity": [
-        "case",
-        [
-          "boolean",
-          [
-            "feature-state",
-            "hover"
-          ],
-          false
-        ],
-        1,
-        1
-      ]
-    }
-  },
-  "region-fill": {
-    "type": "fill",
-    "paint": {
-      "fill-color": "rgb(10,1,2)",
-      "fill-opacity": [
-        "case",
-        [
-          "boolean",
-          [
-            "feature-state",
-            "hover"
-          ],
-          false
-        ],
-        0,
-        0
-      ]
-    }
-  },
-  "region-label": {
-    "type": "symbol",
-    "layout": {
-      "text-field": "{name}",
-      "text-letter-spacing": 0.04,
-      "text-radial-offset": 2,
-      "text-variable-anchor": [
-        "center",
-        "top"
-      ]
-    },
-    "paint": {
-      "text-color": [
-        "case",
-        [
-          "boolean",
-          [
-            "feature-state",
-            "hover"
-          ],
-          false
-        ],
-        "#222222",
-        "#000000"
-      ],
-      "text-halo-blur": 1.5,
-      "text-halo-color": "hsl(0, 0%, 100%)",
-      "text-halo-width": 0.85
-    }
-  },
-  "region-line": {
-    "type": "line",
-    "paint": {
-      "line-color": "rgb(250, 250,250)",
-      "line-width": [
-        "case",
-        [
-          "boolean",
-          [
-            "feature-state",
-            "hover"
-          ],
-          false
-        ],
-        3,
-        0.25
-      ]
-    }
-  },
-  "routes": {
-    "type": "line",
-   "paint": {
-      "line-color": [
-        "interpolate",
-        ["linear"],
-        ["slice", ["get","geom"], 2],
-        0, "blue",
-        10, "green",
-        20, "red"
-      ],
-      "line-width": 5
-    },
-    "layout": {
-        "line-cap": "round",
-        "line-join": "round"
-    }
-  },
-  "station": {
-    "type": "symbol",
-    "layout": {
-      "icon-image": [
-        "coalesce",
-        ["step", ["get","electrified"], "busstop", 5,"busstop_blue"],
-        ["image", "marker_15"]
-      ],
-      "icon-size":  ["interpolate", ["linear"], ["zoom"], 10,0.5, 17, 1],
-      "icon-allow-overlap": true
-    }
-  },
-  "wind": {
-    "type": "symbol",
-    "layout": {
-      "icon-image": "wind",
-      "icon-size": 0.8,
-      "icon-allow-overlap": true
-    },
-    "paint": {
-      "icon-color": "blue"
-    }
-  },
-  "wind_cluster": {
-    "type": "circle",
-    "filter": [
-      "has",
-      "point_count"
-    ],
-    "paint": {
-      "circle-color": "#6A89CC",
-      "circle-radius": [
-        "step",
-        [
-          "get",
-          "point_count"
-        ],
-        20,
-        15,
-        30,
-        50,
-        40
-      ]
-    }
-  },
-  "wind_cluster_count": {
-    "type": "symbol",
-    "filter": [
-      "has",
-      "point_count"
-    ],
-    "layout": {
-      "text-field": "{point_count_abbreviated}",
-      "text-font": [
-        "DIN Offc Pro Medium",
-        "Arial Unicode MS Bold"
-      ],
-      "text-size": 12
-    }
-  },
-  "pvroof": {
-    "type": "symbol",
-    "filter": [
-      "!",
-      [
-        "has",
-        "point_count"
-      ]
-    ],
-    "layout": {
-      "icon-image": "pv",
-      "icon-size": 0.8,
-      "icon-allow-overlap": true
-    },
-    "paint": {
-      "icon-color": "yellow",
-      "icon-halo-color": "red"
-    }
-  },
-  "pvroof_cluster": {
-    "type": "circle",
-    "filter": [
-      "has",
-      "point_count"
-    ],
-    "paint": {
-      "circle-color": "#FFD660",
-      "circle-radius": [
-        "step",
-        [
-          "get",
-          "point_count"
-        ],
-        20,
-        15,
-        30,
-        50,
-        40
-      ]
-    }
-  },
-  "pvroof_cluster_count": {
-    "type": "symbol",
-    "filter": [
-      "has",
-      "point_count"
-    ],
-    "layout": {
-      "text-field": "{point_count_abbreviated}",
-      "text-font": [
-        "DIN Offc Pro Medium",
-        "Arial Unicode MS Bold"
-      ],
-      "text-size": 12
-    }
-  },
-  "pvground": {
-    "type": "symbol",
-    "filter": [
-      "!",
-      [
-        "has",
-        "point_count"
-      ]
-    ],
-    "layout": {
-      "icon-image": "pv",
-      "icon-size": 0.8,
-      "icon-allow-overlap": true
-    },
-    "paint": {
-      "icon-color": "yellow"
-    }
-  },
-  "pvground_cluster": {
-    "type": "circle",
-    "filter": [
-      "has",
-      "point_count"
-    ],
-    "paint": {
-      "circle-color": "#F6B93B",
-      "circle-radius": [
-        "step",
-        [
-          "get",
-          "point_count"
-        ],
-        20,
-        15,
-        30,
-        50,
-        40
-      ]
-    }
-  },
-  "pvground_cluster_count": {
-    "type": "symbol",
-    "filter": [
-      "has",
-      "point_count"
-    ],
-    "layout": {
-      "text-field": "{point_count_abbreviated}",
-      "text-font": [
-        "DIN Offc Pro Medium",
-        "Arial Unicode MS Bold"
-      ],
-      "text-size": 12
-    }
-  },
-  "hydro": {
-    "type": "symbol",
-    "filter": [
-      "!",
-      [
-        "has",
-        "point_count"
-      ]
-    ],
-    "layout": {
-      "icon-image": "hydro",
-      "icon-size": 0.8,
-      "icon-allow-overlap": true
-    },
-    "paint": {
-      "icon-color": "blue"
-    }
-  },
-  "hydro_cluster": {
-    "type": "circle",
-    "filter": [
-      "has",
-      "point_count"
-    ],
-    "paint": {
-      "circle-color": "#9CC4D9",
-      "circle-radius": [
-        "step",
-        [
-          "get",
-          "point_count"
-        ],
-        20,
-        15,
-        30,
-        50,
-        40
-      ]
-    }
-  },
-  "hydro_cluster_count": {
-    "type": "symbol",
-    "filter": [
-      "has",
-      "point_count"
-    ],
-    "layout": {
-      "text-field": "{point_count_abbreviated}",
-      "text-font": [
-        "DIN Offc Pro Medium",
-        "Arial Unicode MS Bold"
-      ],
-      "text-size": 12
-    }
-  },
-  "biomass": {
-    "type": "symbol",
-    "filter": [
-      "!",
-      [
-        "has",
-        "point_count"
-      ]
-    ],
-    "layout": {
-      "icon-image": "biomass",
-      "icon-size": 0.5,
-      "icon-allow-overlap": true
-    },
-    "paint": {
-      "icon-color": "green"
-    }
-  },
-  "biomass_cluster": {
-    "type": "circle",
-    "filter": [
-      "has",
-      "point_count"
-    ],
-    "paint": {
-      "circle-color": "#52C41A",
-      "circle-radius": [
-        "step",
-        [
-          "get",
-          "point_count"
-        ],
-        20,
-        15,
-        30,
-        50,
-        40
-      ]
-    }
-  },
-  "biomass_cluster_count": {
-    "type": "symbol",
-    "filter": [
-      "has",
-      "point_count"
-    ],
-    "layout": {
-      "text-field": "{point_count_abbreviated}",
-      "text-font": [
-        "DIN Offc Pro Medium",
-        "Arial Unicode MS Bold"
-      ],
-      "text-size": 12
-    }
-  },
-  "combustion": {
-    "type": "symbol",
-    "filter": [
-      "!",
-      [
-        "has",
-        "point_count"
-      ]
-    ],
-    "layout": {
-      "icon-image": "combustion",
-      "icon-size": 0.8,
-      "icon-allow-overlap": true
-    },
-    "paint": {
-      "icon-color": "black"
-    }
-  },
-  "combustion_cluster": {
-    "type": "circle",
-    "filter": [
-      "has",
-      "point_count"
-    ],
-    "paint": {
-      "circle-color": "#1A1A1A",
-      "circle-radius": [
-        "step",
-        [
-          "get",
-          "point_count"
-        ],
-        20,
-        15,
-        30,
-        50,
-        40
-      ]
-    }
-  },
-  "combustion_cluster_count": {
-    "type": "symbol",
-    "filter": [
-      "has",
-      "point_count"
-    ],
-    "layout": {
-      "text-field": "{point_count_abbreviated}",
-      "text-font": [
-        "DIN Offc Pro Medium",
-        "Arial Unicode MS Bold"
-      ],
-      "text-size": 12
-    },
-    "paint": {
-      "text-color": "white"
-    }
-  },
-  "results": {
-    "type": "fill",
-    "paint": {
-      "fill-color": [
-        "interpolate",
-        [
-          "linear"
-        ],
-        [
-          "feature-state",
-          "value"
-        ],
-        0.3,
-        "#fef0d9",
-        0.6,
-        "#fdcc8a",
-        0.8,
-        "#fc8d59",
-        0.9,
-        "#e34a33",
-        1,
-        "#b30000"
-      ],
-      "fill-opacity": 0.8
-    }
-  }
-}
+// not in use, use instead
+// django_mapengine/static/django_mapengine/layer_styles.json
+// {  "myexamplemultipolygon": {
+//     "type": "fill",
+//     "paint": {
+//       "fill-color": "rgb(10,1,2)",
+//       "fill-opacity": [
+//         "case",
+//         [
+//           "boolean",
+//           [
+//             "feature-state",
+//             "hover"
+//           ],
+//           false
+//         ],
+//         1,
+//         1
+//       ]
+//     }
+//   },
+//   "region-fill": {
+//     "type": "fill",
+//     "paint": {
+//       "fill-color": "rgb(10,1,2)",
+//       "fill-opacity": [
+//         "case",
+//         [
+//           "boolean",
+//           [
+//             "feature-state",
+//             "hover"
+//           ],
+//           false
+//         ],
+//         0,
+//         0
+//       ]
+//     }
+//   },
+//   "region-label": {
+//     "type": "symbol",
+//     "layout": {
+//       "text-field": "{name}",
+//       "text-letter-spacing": 0.04,
+//       "text-radial-offset": 2,
+//       "text-variable-anchor": [
+//         "center",
+//         "top"
+//       ]
+//     },
+//     "paint": {
+//       "text-color": [
+//         "case",
+//         [
+//           "boolean",
+//           [
+//             "feature-state",
+//             "hover"
+//           ],
+//           false
+//         ],
+//         "#222222",
+//         "#000000"
+//       ],
+//       "text-halo-blur": 1.5,
+//       "text-halo-color": "hsl(0, 0%, 100%)",
+//       "text-halo-width": 0.85
+//     }
+//   },
+//   "region-line": {
+//     "type": "line",
+//     "paint": {
+//       "line-color": "rgb(250, 250,250)",
+//       "line-width": [
+//         "case",
+//         [
+//           "boolean",
+//           [
+//             "feature-state",
+//             "hover"
+//           ],
+//           false
+//         ],
+//         3,
+//         0.25
+//       ]
+//     }
+//   },
+//   "station": {
+//     "type": "symbol",
+//     "layout": {
+//       "icon-image": [
+//         "coalesce",
+//         ["step", ["get","electrified"], "busstop", 5,"busstop_blue"],
+//         ["image", "marker_15"]
+//       ],
+//       "icon-size":  ["interpolate", ["linear"], ["zoom"], 10,0.5, 17, 1],
+//       "icon-allow-overlap": true
+//     }
+//   },
+//   "wind": {
+//     "type": "symbol",
+//     "layout": {
+//       "icon-image": "wind",
+//       "icon-size": 0.8,
+//       "icon-allow-overlap": true
+//     },
+//     "paint": {
+//       "icon-color": "blue"
+//     }
+//   },
+//   "wind_cluster": {
+//     "type": "circle",
+//     "filter": [
+//       "has",
+//       "point_count"
+//     ],
+//     "paint": {
+//       "circle-color": "#6A89CC",
+//       "circle-radius": [
+//         "step",
+//         [
+//           "get",
+//           "point_count"
+//         ],
+//         20,
+//         15,
+//         30,
+//         50,
+//         40
+//       ]
+//     }
+//   },
+//   "wind_cluster_count": {
+//     "type": "symbol",
+//     "filter": [
+//       "has",
+//       "point_count"
+//     ],
+//     "layout": {
+//       "text-field": "{point_count_abbreviated}",
+//       "text-font": [
+//         "DIN Offc Pro Medium",
+//         "Arial Unicode MS Bold"
+//       ],
+//       "text-size": 12
+//     }
+//   },
+//   "pvroof": {
+//     "type": "symbol",
+//     "filter": [
+//       "!",
+//       [
+//         "has",
+//         "point_count"
+//       ]
+//     ],
+//     "layout": {
+//       "icon-image": "pv",
+//       "icon-size": 0.8,
+//       "icon-allow-overlap": true
+//     },
+//     "paint": {
+//       "icon-color": "yellow",
+//       "icon-halo-color": "red"
+//     }
+//   },
+//   "pvroof_cluster": {
+//     "type": "circle",
+//     "filter": [
+//       "has",
+//       "point_count"
+//     ],
+//     "paint": {
+//       "circle-color": "#FFD660",
+//       "circle-radius": [
+//         "step",
+//         [
+//           "get",
+//           "point_count"
+//         ],
+//         20,
+//         15,
+//         30,
+//         50,
+//         40
+//       ]
+//     }
+//   },
+//   "pvroof_cluster_count": {
+//     "type": "symbol",
+//     "filter": [
+//       "has",
+//       "point_count"
+//     ],
+//     "layout": {
+//       "text-field": "{point_count_abbreviated}",
+//       "text-font": [
+//         "DIN Offc Pro Medium",
+//         "Arial Unicode MS Bold"
+//       ],
+//       "text-size": 12
+//     }
+//   },
+//   "pvground": {
+//     "type": "symbol",
+//     "filter": [
+//       "!",
+//       [
+//         "has",
+//         "point_count"
+//       ]
+//     ],
+//     "layout": {
+//       "icon-image": "pv",
+//       "icon-size": 0.8,
+//       "icon-allow-overlap": true
+//     },
+//     "paint": {
+//       "icon-color": "yellow"
+//     }
+//   },
+//   "pvground_cluster": {
+//     "type": "circle",
+//     "filter": [
+//       "has",
+//       "point_count"
+//     ],
+//     "paint": {
+//       "circle-color": "#F6B93B",
+//       "circle-radius": [
+//         "step",
+//         [
+//           "get",
+//           "point_count"
+//         ],
+//         20,
+//         15,
+//         30,
+//         50,
+//         40
+//       ]
+//     }
+//   },
+//   "pvground_cluster_count": {
+//     "type": "symbol",
+//     "filter": [
+//       "has",
+//       "point_count"
+//     ],
+//     "layout": {
+//       "text-field": "{point_count_abbreviated}",
+//       "text-font": [
+//         "DIN Offc Pro Medium",
+//         "Arial Unicode MS Bold"
+//       ],
+//       "text-size": 12
+//     }
+//   },
+//   "hydro": {
+//     "type": "symbol",
+//     "filter": [
+//       "!",
+//       [
+//         "has",
+//         "point_count"
+//       ]
+//     ],
+//     "layout": {
+//       "icon-image": "hydro",
+//       "icon-size": 0.8,
+//       "icon-allow-overlap": true
+//     },
+//     "paint": {
+//       "icon-color": "blue"
+//     }
+//   },
+//   "hydro_cluster": {
+//     "type": "circle",
+//     "filter": [
+//       "has",
+//       "point_count"
+//     ],
+//     "paint": {
+//       "circle-color": "#9CC4D9",
+//       "circle-radius": [
+//         "step",
+//         [
+//           "get",
+//           "point_count"
+//         ],
+//         20,
+//         15,
+//         30,
+//         50,
+//         40
+//       ]
+//     }
+//   },
+//   "hydro_cluster_count": {
+//     "type": "symbol",
+//     "filter": [
+//       "has",
+//       "point_count"
+//     ],
+//     "layout": {
+//       "text-field": "{point_count_abbreviated}",
+//       "text-font": [
+//         "DIN Offc Pro Medium",
+//         "Arial Unicode MS Bold"
+//       ],
+//       "text-size": 12
+//     }
+//   },
+//   "biomass": {
+//     "type": "symbol",
+//     "filter": [
+//       "!",
+//       [
+//         "has",
+//         "point_count"
+//       ]
+//     ],
+//     "layout": {
+//       "icon-image": "biomass",
+//       "icon-size": 0.5,
+//       "icon-allow-overlap": true
+//     },
+//     "paint": {
+//       "icon-color": "green"
+//     }
+//   },
+//   "biomass_cluster": {
+//     "type": "circle",
+//     "filter": [
+//       "has",
+//       "point_count"
+//     ],
+//     "paint": {
+//       "circle-color": "#52C41A",
+//       "circle-radius": [
+//         "step",
+//         [
+//           "get",
+//           "point_count"
+//         ],
+//         20,
+//         15,
+//         30,
+//         50,
+//         40
+//       ]
+//     }
+//   },
+//   "biomass_cluster_count": {
+//     "type": "symbol",
+//     "filter": [
+//       "has",
+//       "point_count"
+//     ],
+//     "layout": {
+//       "text-field": "{point_count_abbreviated}",
+//       "text-font": [
+//         "DIN Offc Pro Medium",
+//         "Arial Unicode MS Bold"
+//       ],
+//       "text-size": 12
+//     }
+//   },
+//   "combustion": {
+//     "type": "symbol",
+//     "filter": [
+//       "!",
+//       [
+//         "has",
+//         "point_count"
+//       ]
+//     ],
+//     "layout": {
+//       "icon-image": "combustion",
+//       "icon-size": 0.8,
+//       "icon-allow-overlap": true
+//     },
+//     "paint": {
+//       "icon-color": "black"
+//     }
+//   },
+//   "combustion_cluster": {
+//     "type": "circle",
+//     "filter": [
+//       "has",
+//       "point_count"
+//     ],
+//     "paint": {
+//       "circle-color": "#1A1A1A",
+//       "circle-radius": [
+//         "step",
+//         [
+//           "get",
+//           "point_count"
+//         ],
+//         20,
+//         15,
+//         30,
+//         50,
+//         40
+//       ]
+//     }
+//   },
+//   "combustion_cluster_count": {
+//     "type": "symbol",
+//     "filter": [
+//       "has",
+//       "point_count"
+//     ],
+//     "layout": {
+//       "text-field": "{point_count_abbreviated}",
+//       "text-font": [
+//         "DIN Offc Pro Medium",
+//         "Arial Unicode MS Bold"
+//       ],
+//       "text-size": 12
+//     },
+//     "paint": {
+//       "text-color": "white"
+//     }
+//   },
+//   "results": {
+//     "type": "fill",
+//     "paint": {
+//       "fill-color": [
+//         "interpolate",
+//         [
+//           "linear"
+//         ],
+//         [
+//           "feature-state",
+//           "value"
+//         ],
+//         0.3,
+//         "#fef0d9",
+//         0.6,
+//         "#fdcc8a",
+//         0.8,
+//         "#fc8d59",
+//         0.9,
+//         "#e34a33",
+//         1,
+//         "#b30000"
+//       ],
+//       "fill-opacity": 0.8
+//     }
+//   }
+// }
