@@ -423,9 +423,9 @@ class VehicleType(models.Model):
     max_consumption = models.FloatField(default=None, null=True, blank=True)
 
     # Shape of the vehicle in the form of length, width, height.
-    length = models.FloatField(default=None, null=False)
-    width = models.FloatField(default=None, null=False)
-    height = models.FloatField(default=None, null=False)
+    length = models.FloatField(default=None, null=True, blank=True)
+    width = models.FloatField(default=None, null=True, blank=True)
+    height = models.FloatField(default=None, null=True, blank=True)
 
     # Including battery and driver, no passengers
     empty_mass = models.FloatField(default=None, null=True)
