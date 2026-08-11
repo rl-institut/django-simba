@@ -1020,6 +1020,14 @@ class OpportunityChargingTimeseriesTestCase(TransactionTestCase):
     connection, which cannot see rows still sitting in an uncommitted test transaction.
     """
 
+    def setUp(self):
+        super().setUp()
+        # SqlAlchemyEngine is a process-wide singleton over a QueuePool, so closing the Session
+        # only returns its connection to the pool -- the backend session stays attached to the
+        # test database and Django's DROP DATABASE at the end of the run fails with ObjectInUse.
+        # Registered as a cleanup rather than in tearDown so a failing assertion still releases it.
+        self.addCleanup(SqlAlchemyEngine.dispose)
+
     def build_opportunity_charging_scenario(self):
         """Simulate the test schedule with terminus charging switched on.
 
