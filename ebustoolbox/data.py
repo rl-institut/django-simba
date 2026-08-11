@@ -1094,6 +1094,154 @@ def station_power_profile(power_df: pd.DataFrame) -> pd.Series:
     return deltas.groupby("time")["Power"].sum().sort_index().cumsum()
 
 
+def occupancy_metrics(intervals: list, window_seconds: float, configured_places) -> dict:
+    """Occupancy of one station's charging points over the simulated period.
+
+    :param intervals: ``(time_start, time_end)`` of every charging event at the station.
+    :param window_seconds: Length of the simulated period.
+    :param configured_places: ``amount_charging_places``, or None where no limit was set.
+    :return: ``{"chargers", "peak", "avg_concurrent", "utilization"}``
+    """
+    timeline = sorted(
+        [(start, 1) for start, unused_end in intervals]
+        + [(end, -1) for unused_start, end in intervals]
+    )
+    concurrent = 0
+    peak = 0
+    for unused_time, delta in timeline:
+        concurrent += delta
+        peak = max(peak, concurrent)
+
+    # Without a configured limit the station has to be built for its busiest moment
+    chargers = configured_places or peak
+    occupied_seconds = sum((end - start).total_seconds() for start, end in intervals)
+    avg_concurrent = occupied_seconds / window_seconds if window_seconds else 0.0
+
+    return {
+        "chargers": chargers,
+        "peak": peak,
+        "avg_concurrent": avg_concurrent,
+        "utilization": avg_concurrent / chargers if chargers else 0.0,
+    }
+
+
+def get_station_summary(station) -> dict:
+    """The figures the map popup shows for one electrified station.
+
+    Same definitions as :func:`get_electrified_stations`, for a single station, so the popup and
+    the table below the map cannot drift apart.
+    """
+    scenario = station.scenario
+    time_start, time_end = get_start_end_time(scenario)
+    window_seconds = (time_end - time_start).total_seconds()
+
+    events = scenario.event_set.filter(
+        station=station,
+        event_type=EventType.CHARGING_OPPORTUNITY,
+        time_start__gte=time_start,
+        time_end__lte=time_end,
+    ).annotate(energy=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity"))
+
+    intervals = []
+    energy = 0.0
+    for start, end, event_energy in events.values_list("time_start", "time_end", "energy"):
+        intervals.append((start, end))
+        energy += event_energy or 0.0
+
+    metrics = occupancy_metrics(intervals, window_seconds, station.amount_charging_places)
+
+    power_df = get_powerdraw_as_dataframe(scenario.id)
+    profile = station_power_profile(power_df[power_df["Station_id"] == station.id])
+
+    lines = sorted(
+        {
+            str(name)
+            for name in Trip.objects.filter(scenario=scenario, route__arrival_station=station)
+            .exclude(route__line=None)
+            .values_list("route__line__name", flat=True)
+            .distinct()
+        }
+    )
+
+    return {
+        "chargers": metrics["chargers"],
+        "power_installed": round((station.power_per_charger or 0.0) * metrics["chargers"], 1),
+        "power_peak": round(float(profile.max()) if not profile.empty else 0.0, 1),
+        "energy": round(energy, 1),
+        "utilization": round(metrics["utilization"], 4),
+        "utilization_pct": round(metrics["utilization"] * 100, 1),
+        "avg_concurrent": round(metrics["avg_concurrent"], 2),
+        "arrivals": len(intervals),
+        "lines": lines,
+    }
+
+
+def get_station_load_profile(station, bin_minutes: int = 60) -> list[dict]:
+    """The station's load over the simulated period, in fixed bins.
+
+    Per bin the occupancy is averaged, because a mean is what "how busy was this hour" means,
+    while the power is the highest value reached, because that is what the connection has to
+    carry. Bins with no charging are kept so the time axis stays continuous.
+
+    :param station: The station to profile.
+    :param bin_minutes: Width of one bin in minutes.
+    :return: ``[{"time", "utilization", "power"}]`` ordered by time.
+    """
+    scenario = station.scenario
+    time_start, time_end = get_start_end_time(scenario)
+    bin_size = pd.Timedelta(minutes=bin_minutes)
+
+    events = list(
+        scenario.event_set.filter(
+            station=station,
+            event_type=EventType.CHARGING_OPPORTUNITY,
+            time_start__gte=time_start,
+            time_end__lte=time_end,
+        ).values_list("time_start", "time_end")
+    )
+    metrics = occupancy_metrics(
+        events, (time_end - time_start).total_seconds(), station.amount_charging_places
+    )
+    chargers = metrics["chargers"]
+
+    power_df = get_powerdraw_as_dataframe(scenario.id)
+    profile = station_power_profile(power_df[power_df["Station_id"] == station.id])
+
+    bins = pd.date_range(
+        pd.Timestamp(time_start).floor(f"{bin_minutes}min"), pd.Timestamp(time_end), freq=bin_size
+    )
+
+    rows = []
+    for bin_start in bins:
+        bin_end = bin_start + bin_size
+
+        # Occupied charger-seconds that fall inside this bin
+        occupied = 0.0
+        for start, end in events:
+            overlap_start = max(pd.Timestamp(start), bin_start)
+            overlap_end = min(pd.Timestamp(end), bin_end)
+            if overlap_end > overlap_start:
+                occupied += (overlap_end - overlap_start).total_seconds()
+
+        utilization = occupied / (chargers * bin_size.total_seconds()) if chargers else 0.0
+
+        # The profile is a step function, so the value in force at the bin start still counts
+        in_bin = profile[(profile.index >= bin_start) & (profile.index < bin_end)]
+        before = profile[profile.index <= bin_start]
+        candidates = list(in_bin.values) + ([before.iloc[-1]] if not before.empty else [])
+        power = max(candidates) if candidates else 0.0
+
+        rows.append(
+            {
+                "time": bin_start.isoformat(),
+                "utilization": round(utilization, 4),
+                "power": round(float(power), 1),
+            }
+        )
+
+    return rows
+
+
 def get_electrified_stations(task_id: str) -> pd.DataFrame:
     """One row per electrified terminus stop.
 
@@ -1159,41 +1307,33 @@ def get_electrified_stations(task_id: str) -> pd.DataFrame:
     records = []
     for station in opp_stations:
         events = events_by_station.get(station.id, [])
-
-        # How many vehicles charge here at the same time, at the busiest moment
-        timeline = sorted(
-            [(start, 1) for start, unused_end in events]
-            + [(end, -1) for unused_start, end in events]
-        )
-        concurrent = 0
-        peak = 0
-        for unused_time, delta in timeline:
-            concurrent += delta
-            peak = max(peak, concurrent)
-
-        chargers = station.amount_charging_places or peak
-        occupied_seconds = sum((end - start).total_seconds() for start, end in events)
-
-        avg_concurrent = occupied_seconds / window_seconds if window_seconds else 0.0
-        utilization = avg_concurrent / chargers if chargers else 0.0
+        metrics = occupancy_metrics(events, window_seconds, station.amount_charging_places)
+        chargers = metrics["chargers"]
 
         records.append(
             {
+                "station_id": station.id,
                 "name": station.name,
+                # Joined rather than a list so the CSV export stays readable; the table splits
+                # it again to draw one chip per line
                 "lines": ", ".join(sorted(lines_by_station.get(station.id, set()))),
                 "chargers": chargers,
                 "power_installed": round((station.power_per_charger or 0.0) * chargers, 1),
                 "power_peak": round(peak_power_by_station.get(station.id, 0.0), 1),
                 "energy": round(energy_by_station.get(station.id, 0.0), 1),
-                "utilization": round(utilization, 4),
-                "avg_concurrent": round(avg_concurrent, 2),
+                "utilization": round(metrics["utilization"], 4),
+                "avg_concurrent": round(metrics["avg_concurrent"], 2),
                 "arrivals": len(events),
+                # So a row in the table can point the map at its stop
+                "lon": station.geom.x if station.geom else None,
+                "lat": station.geom.y if station.geom else None,
             }
         )
 
     df = pd.DataFrame(
         records,
         columns=[
+            "station_id",
             "name",
             "lines",
             "chargers",
@@ -1203,6 +1343,8 @@ def get_electrified_stations(task_id: str) -> pd.DataFrame:
             "utilization",
             "avg_concurrent",
             "arrivals",
+            "lon",
+            "lat",
         ],
     )
     return df.sort_values("name").reset_index(drop=True)

@@ -384,7 +384,7 @@
         </div>
 
       {% include "ebustoolbox/partials/result_export.html" with endpoint="electrified_stations" %}
-      <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto max-w-4xl w-full">
+      <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto max-w-5xl w-full">
         <div class="border-b border-slate-200 px-4 pt-6 pb-4 text-center">
           <h3 class="text-base font-semibold text-slate-800">
             {% translate 'Elektrifizierte Endhaltestellen' %}
@@ -392,6 +392,9 @@
           <p class="mt-1 text-xs text-slate-500">
             <span id="electrifiedStationsCount">–</span>&nbsp;{% translate 'Haltestellen' %}
             &middot; {% translate 'Spaltentitel zum Sortieren anklicken' %}
+            {% if not disable_map %}
+              &middot; {% translate 'Zeile anklicken, um die Haltestelle in der Karte zu zeigen' %}
+            {% endif %}
           </p>
           <p class="mx-auto mt-2 max-w-2xl text-xs text-slate-500">
             {% blocktranslate %}Leistung: installiert (Ladepunkte × Anschlussleistung) und darunter die höchste in der Simulation erreichte Leistung. Letztere entsteht aus mittleren Leistungen je Ladevorgang und unterschätzt die Momentanspitze &ndash; sie ist keine Grundlage für die Auslegung des Netzanschlusses.{% endblocktranslate %}
@@ -407,9 +410,6 @@
                 <th data-column="name" class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/5" onclick="sortStationsTable('name')">
                   {% translate 'Haltestelle' %}
                 </th>
-                <th data-column="lines" class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortStationsTable('lines')">
-                  {% translate 'Linien' %}
-                </th>
                 <th data-column="chargers" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('chargers')">
                   {% translate 'Ladepunkte' %}
                 </th>
@@ -419,8 +419,11 @@
                 <th data-column="energy" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('energy')">
                   {% translate 'Energie' %}
                 </th>
-                <th data-column="utilization" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('utilization')">
+                <th data-column="utilization" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortStationsTable('utilization')">
                   {% translate 'Auslastung' %}
+                </th>
+                <th data-column="lines" class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortStationsTable('lines')">
+                  {% translate 'Linien' %}
                 </th>
               </tr>
             </thead>
@@ -2165,12 +2168,11 @@
         }
 
         tbody.innerHTML = rows.map(row => `
-            <tr class="hover:bg-slate-50 transition-colors duration-75">
-                <td class="px-4 py-2 text-xs font-medium text-slate-900 truncate" title="${escapeHtml(row.name)}">
+            <tr class="station-row cursor-pointer hover:bg-slate-50 transition-colors duration-75"
+                data-station-id="${row.station_id}"
+                onclick="selectStationRow(this, ${row.station_id}, ${row.lon}, ${row.lat})">
+                <td class="px-4 py-2 text-xs font-semibold text-slate-900 truncate" title="${escapeHtml(row.name)}">
                     ${escapeHtml(row.name)}
-                </td>
-                <td class="px-4 py-2 text-xs text-slate-600 truncate" title="${escapeHtml(row.lines)}">
-                    ${escapeHtml(row.lines) || '&ndash;'}
                 </td>
                 <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${row.chargers}</td>
                 <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">
@@ -2178,13 +2180,47 @@
                     <span class="block text-slate-400">sim. ${formatNumber(row.power_peak)}&nbsp;kW</span>
                 </td>
                 <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${formatNumber(row.energy)}&nbsp;kWh</td>
-                <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">
-                    ${formatNumber(row.utilization * 100, 1)}&nbsp;%
-                    <span class="block text-slate-400">
+                <td class="px-4 py-2 text-xs text-slate-600">
+                    <div class="flex items-center justify-end gap-2">
+                        <span class="relative h-1.5 w-12 shrink-0 overflow-hidden rounded-full bg-slate-200">
+                            <span class="absolute inset-y-0 left-0 bg-emerald-500"
+                                  style="width: ${Math.min(100, row.utilization * 100).toFixed(0)}%"></span>
+                        </span>
+                        <span class="font-mono">${formatNumber(row.utilization * 100, 1)}&nbsp;%</span>
+                    </div>
+                    <span class="block text-right text-slate-400">
                         &Oslash;&nbsp;${formatNumber(row.avg_concurrent, 1)} von ${row.chargers}
                     </span>
                 </td>
+                <td class="px-4 py-2" title="${escapeHtml(row.lines)}">
+                    ${renderLineChips(row.lines)}
+                </td>
             </tr>`).join('');
+    }
+
+    // At most four chips, then a count, so a stop on many lines cannot push the column wide
+    function renderLineChips(lines) {
+        const names = String(lines || '').split(',').map(name => name.trim()).filter(Boolean);
+        if (!names.length) return '<span class="text-xs text-slate-400">&ndash;</span>';
+
+        const shown = names.slice(0, 4).map(name =>
+            `<span class="rounded border border-slate-300 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-slate-700">${escapeHtml(name)}</span>`
+        );
+        if (names.length > 4) {
+            shown.push(`<span class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-slate-500">+${names.length - 4}</span>`);
+        }
+        return `<div class="flex flex-wrap gap-1">${shown.join('')}</div>`;
+    }
+
+    function selectStationRow(rowElement, stationId, lon, lat) {
+        document.querySelectorAll('#electrifiedStationsBody .station-row').forEach(row => {
+            row.classList.remove('bg-emerald-50', 'border-l-[3px]', 'border-emerald-500');
+        });
+        rowElement.classList.add('bg-emerald-50', 'border-l-[3px]', 'border-emerald-500');
+
+        if (typeof showStationOnMap === 'function') {
+            showStationOnMap(stationId, lon, lat);
+        }
     }
 
     function sortStationsTable(column) {

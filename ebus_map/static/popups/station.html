@@ -1,63 +1,77 @@
 {% extends "popups/base.html" %}
 {% block class_content_1 %}
-<div class="container max-w-xl mx-auto rounded-lg overflow-hidden">
-  <div class="bg-white px-4 py-4">
-    {% if is_electrified %}
-      <table class="w-full text-sm text-left text-slate-800">
-        <tbody>
-          <tr class="border-b border-slate-200">
-            <td class="py-1">Anschlusstyp</td>
-            <td class="py-1 font-semibold">{{ charge_type }}</td>
-          </tr>
-          <tr class="border-b border-slate-200">
-            <td class="py-1">Spannungsebene</td>
-            <td class="py-1 font-semibold">{{ voltage_level }}</td>
-          </tr>
-          <tr class="border-b border-slate-200">
-            <td class="py-1">Benötigte Ladepunkte</td>
-            <td class="py-1 font-semibold">{{ min_amount_charging_places }}</td>
-          </tr>
-          {% comment %}
-            amount_charging_places is None when the station is not capped to a fixed number of
-            charging places. Showing that as "Anschlüsse: None" says nothing, so the row only
-            appears once a limit was actually configured. power_total is only a real figure in
-            that same case; otherwise it is the "do not restrict me" sentinel.
-          {% endcomment %}
-          {% if amount_charging_places %}
-            <tr class="border-b border-slate-200">
-              <td class="py-1">Konfigurierte Anschlüsse</td>
-              <td class="py-1 font-semibold">{{ amount_charging_places }}</td>
-            </tr>
-          {% endif %}
-          {% if power_per_charger %}
-            <tr class="border-b border-slate-200">
-              <td class="py-1">Leistung pro Anschluss</td>
-              <td class="py-1 font-semibold">{{ power_per_charger|floatformat:"0" }} kW</td>
-            </tr>
-          {% endif %}
-          {% if amount_charging_places and power_total %}
-            <tr class="border-b border-slate-200">
-              <td class="py-1">Gesamtleistung</td>
-              <td class="py-1 font-semibold">{{ power_total|floatformat:"0" }} kW</td>
-            </tr>
-          {% endif %}
-          <tr class="border-b border-slate-200">
-            <td class="py-1">Anfahrten</td>
-            <td class="py-1 font-semibold">{{ num_arrivals }}</td>
-          </tr>
-        </tbody>
-      </table>
-    {% else %}
-      <p class="text-sm text-slate-800 font-semibold pb-1">Nicht elektrifiziert.</p>
-    {% endif %}
+<div class="bg-white">
+  {% if is_electrified %}
+    <!-- Kennzahlen-Streifen -->
+    <div class="grid grid-cols-3 border-b border-dashed border-slate-300">
+      <div class="px-2 py-3 text-center border-r border-dashed border-slate-300">
+        <div class="font-mono text-xl font-semibold text-slate-900">{{ chargers }}</div>
+        <div class="mt-1 text-[9.5px] uppercase tracking-wide text-slate-500">Ladepunkte</div>
+      </div>
+      <div class="px-2 py-3 text-center border-r border-dashed border-slate-300">
+        <div class="font-mono text-xl font-semibold text-slate-900">
+          {{ power_installed|floatformat:0 }}<span class="ml-0.5 text-[11px] font-normal text-slate-500">kW</span>
+        </div>
+        <div class="mt-1 text-[9.5px] uppercase tracking-wide text-slate-500">Leistung</div>
+        <div class="text-[9.5px] text-slate-400">sim. {{ power_peak|floatformat:0 }}&nbsp;kW</div>
+      </div>
+      <div class="px-2 py-3 text-center">
+        <div class="font-mono text-xl font-semibold text-slate-900">
+          {{ energy|floatformat:0 }}<span class="ml-0.5 text-[11px] font-normal text-slate-500">kWh</span>
+        </div>
+        <div class="mt-1 text-[9.5px] uppercase tracking-wide text-slate-500">Energie</div>
+      </div>
+    </div>
 
-    {% if plot %}
-      <img class="popup-image mt-3 border rounded" src="data:image/png;base64,{{ plot|safe }}">
-    {% endif %}
+    <div class="flex flex-col gap-2.5 px-3.5 py-3">
+      <div class="flex items-center gap-2.5">
+        <div class="w-[74px] shrink-0 text-[11.5px] text-slate-500">Auslastung</div>
+        <div class="relative h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+          <div class="absolute inset-y-0 left-0 bg-emerald-400"
+               style="width: {% widthratio utilization_pct 100 100 %}%"></div>
+        </div>
+        <div class="font-mono text-[11.5px] font-semibold text-slate-900">
+          {{ utilization_pct|floatformat:1 }}&nbsp;%
+        </div>
+      </div>
 
-    <p class="mt-3 text-xs text-slate-500">
-      Koordinaten: {{ geom.y|floatformat:"4" }}, {{ geom.x|floatformat:"4" }}
-    </p>
-  </div>
+      {% if lines %}
+        <div class="flex items-start gap-2.5">
+          <div class="w-[74px] shrink-0 pt-0.5 text-[11.5px] text-slate-500">Linien</div>
+          <div class="flex flex-1 flex-wrap gap-1">
+            {% for line in lines|slice:":4" %}
+              <span class="rounded border border-slate-300 px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-slate-700">{{ line }}</span>
+            {% endfor %}
+            {% if lines|length > 4 %}
+              <span class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-slate-500">+{{ lines|length|add:"-4" }}</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="flex items-center gap-2.5">
+        <div class="w-[74px] shrink-0 text-[11.5px] text-slate-500">Anfahrten</div>
+        <div class="font-mono text-[11.5px] font-semibold text-slate-900">{{ arrivals }}</div>
+      </div>
+    </div>
+
+    {% comment %}
+      The chart is fetched only when opened, so panning the map does not render one per popup.
+      toggleStationLastgang is defined alongside the map in minimal_mapengine.html, because a
+      script tag inside this template would not run: the popup is injected with innerHTML.
+    {% endcomment %}
+    <button type="button"
+            class="w-full border-t border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-center text-[11.5px] font-semibold text-teal-700 hover:bg-slate-100"
+            onclick="toggleStationLastgang(this, '{{ task_id }}', {{ station_id }})">
+      Lastgang anzeigen (60-Min-Bins) ▾
+    </button>
+    <div class="hidden px-2 pb-2" data-station-lastgang style="height: 190px"></div>
+  {% else %}
+    <p class="px-3.5 py-3 text-sm font-semibold text-slate-800">Nicht elektrifiziert.</p>
+  {% endif %}
+
+  <p class="px-3.5 pb-3 text-[10px] text-slate-400">
+    {{ geom.y|floatformat:"4" }}, {{ geom.x|floatformat:"4" }}
+  </p>
 </div>
 {% endblock %}

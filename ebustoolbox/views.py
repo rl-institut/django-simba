@@ -1976,6 +1976,19 @@ def get_electrified_stations_data(request, task_id: str):
     return HttpResponse(status=400)
 
 
+def get_station_load(request, task_id: str, station_id: int):
+    """
+    Returns the load profile of one charging station in 60 minute bins: the mean occupancy of its
+    charging points and the highest power reached per bin. Fetched by the map popup on demand.
+    """
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
+    scenario = get_object_or_404(Scenario, task_id=task_id)
+    station = get_object_or_404(Station, id=station_id, scenario=scenario)
+    return JsonResponse({"data": data.get_station_load_profile(station)}, safe=True)
+
+
 def get_power_draw(request, task_id: str):
     """
     Returns power draw data over time by station ID for selected buses.

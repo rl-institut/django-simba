@@ -25,6 +25,123 @@
 
 
         <script>
+            // Point the map at one station and open its popup, so a row in the table below can
+            // show where its stop actually is.
+            function showStationOnMap(stationId, lon, lat) {
+                if (typeof map === 'undefined' || lon == null || lat == null) return;
+
+                const section = document.getElementById('map-section');
+                if (section) section.scrollIntoView({behavior: 'smooth', block: 'start'});
+
+                // Only one popup at a time, matching what clicking the map itself does
+                document.querySelectorAll('.maplibregl-popup').forEach(popup => popup.remove());
+                map.flyTo({center: [lon, lat], zoom: 14});
+
+                fetch(`/popup/station/${stationId}?lang=de`)
+                    .then(response => response.json())
+                    .then(({html}) => {
+                        new maplibregl.Popup({maxWidth: '360px'})
+                            .setLngLat([lon, lat])
+                            .setHTML(html)
+                            .addTo(map);
+                    })
+                    .catch(error => console.error('Popup konnte nicht geladen werden:', error));
+            }
+
+            // Called from the station popup's inline onclick. It has to live out here: the popup
+            // html is injected with innerHTML, which does not execute script tags inside it.
+            function toggleStationLastgang(button, taskId, stationId) {
+                const container = button.parentElement.querySelector('[data-station-lastgang]');
+                if (!container) return;
+
+                if (!container.classList.contains('hidden')) {
+                    container.classList.add('hidden');
+                    button.textContent = 'Lastgang anzeigen (60-Min-Bins) ▾';
+                    return;
+                }
+
+                container.classList.remove('hidden');
+                button.textContent = 'Lastgang ausblenden ▴';
+
+                if (container.dataset.loaded === 'true') {
+                    return;
+                }
+
+                fetch(`/simba/result/${taskId}/station_load/${stationId}/`)
+                    .then(response => response.json())
+                    .then(result => {
+                        container.dataset.loaded = 'true';
+                        renderStationLastgang(container, result.data || []);
+                    })
+                    .catch(error => {
+                        console.error('Lastgang konnte nicht geladen werden:', error);
+                        container.textContent = 'Lastgang konnte nicht geladen werden.';
+                        container.classList.add('p-3', 'text-xs', 'text-amber-700');
+                    });
+            }
+
+            function renderStationLastgang(container, rows) {
+                const chart = echarts.init(container);
+                const hours = rows.map(row => {
+                    const date = new Date(row.time);
+                    return String(date.getHours()).padStart(2, '0');
+                });
+
+                chart.setOption({
+                    grid: {left: 38, right: 42, top: 30, bottom: 24},
+                    legend: {
+                        top: 0,
+                        itemHeight: 8,
+                        textStyle: {fontSize: 10},
+                        data: ['Auslastung', 'Leistung']
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        formatter: params => {
+                            const time = params[0].axisValue;
+                            const parts = params.map(item => item.seriesName === 'Auslastung'
+                                ? `${item.marker} Auslastung: ${item.value.toFixed(1)} %`
+                                : `${item.marker} Leistung: ${item.value.toFixed(0)} kW`);
+                            return `<strong>${time}:00</strong><br/>${parts.join('<br/>')}`;
+                        }
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: hours,
+                        axisLabel: {fontSize: 9, interval: 3}
+                    },
+                    yAxis: [
+                        {
+                            type: 'value',
+                            max: 100,
+                            axisLabel: {fontSize: 9, formatter: '{value} %'},
+                            splitLine: {lineStyle: {type: 'dashed', color: '#e2e8f0'}}
+                        },
+                        {
+                            type: 'value',
+                            axisLabel: {fontSize: 9, formatter: '{value}'},
+                            splitLine: {show: false}
+                        }
+                    ],
+                    series: [
+                        {
+                            name: 'Auslastung',
+                            type: 'bar',
+                            data: rows.map(row => row.utilization * 100),
+                            itemStyle: {color: '#a7f3d0'}
+                        },
+                        {
+                            name: 'Leistung',
+                            type: 'line',
+                            yAxisIndex: 1,
+                            symbol: 'none',
+                            data: rows.map(row => row.power),
+                            lineStyle: {color: '#475569', width: 2}
+                        }
+                    ]
+                });
+            }
+
             // This is needed, as otherwise map height is zero and therefore not visible (bug in mapengine!)
             document.getElementById("map").style = "height: 620px"
 
