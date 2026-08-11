@@ -2863,6 +2863,8 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario) -> list[Ev
             raise Exception(
                 f"{vehicle.to_simba_name()}/{vehicle.id} has None values in between socs"
             )
+        time_start = vehicle_event.start_time.astimezone(timezone)
+        time_end = end_time.astimezone(timezone)
         event = Event(
             scenario=db_scenario,
             vehicle=vehicle,
@@ -2871,11 +2873,16 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario) -> list[Ev
             trip=trip,
             soc_start=soc_start,
             soc_end=soc_end,
-            time_start=vehicle_event.start_time.astimezone(timezone),
-            time_end=end_time.astimezone(timezone),
+            time_start=time_start,
+            time_end=time_end,
             timeseries=timeseries,
             event_type=event_type,
         )
+        # use the timeseries adjustment, while keeping socs
+        # timeseries data is reconstructed from the SpiceEV simulation intervall/steps
+        # SpiceEV events do not have to hit intervalls but can lie between,
+        # therefor they might diverge
+        replace_event_timeseries(event, timeseries["soc"])
         events.append(event)
     Event.objects.bulk_create(events)
     return events

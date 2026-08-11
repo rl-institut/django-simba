@@ -18,7 +18,11 @@ import core.deepcopy
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 
+from sqlalchemy.orm import Session
+from eflips.eval.output.prepare import power_and_occupancy
+
 from ebustoolbox.schedule_readers import SimbaScheduleReader
+from ebustoolbox.data import SqlAlchemyEngine, get_start_end_time
 
 from .import_export import visit_all_scenario_queries, ScenarioJSONImporterExporter
 from . import tasks
@@ -1003,6 +1007,120 @@ class AllowOppChargingTestCase(TestCase):
             ).count()
             > 0
         )
+
+
+class OpportunityChargingTimeseriesTestCase(TransactionTestCase):
+    """The SoC timeseries SimBA writes has to lie inside the event it belongs to.
+
+    `eflips.eval.output.prepare.power_and_occupancy()` requires it, and asserts bare when it does
+    not hold, so this runs the smallest terminus-charging simulation the fixtures allow and then
+    asks eflips-eval for that station.
+
+    TransactionTestCase rather than TestCase: power_and_occupancy reads through its own SQLAlchemy
+    connection, which cannot see rows still sitting in an uncommitted test transaction.
+    """
+
+    def setUp(self):
+        super().setUp()
+        # SqlAlchemyEngine is a process-wide singleton over a QueuePool, so closing the Session
+        # only returns its connection to the pool -- the backend session stays attached to the
+        # test database and Django's DROP DATABASE at the end of the run fails with ObjectInUse.
+        # Registered as a cleanup rather than in tearDown so a failing assertion still releases it.
+        self.addCleanup(SqlAlchemyEngine.dispose)
+
+    def build_opportunity_charging_scenario(self):
+        """Simulate the test schedule with terminus charging switched on.
+
+        SimBA anchors its simulation step grid at `get_departure_of_first_trip() - signal_time_dif`
+        with signal_time_dif in whole minutes. The grid step is defined by the simulation interval
+        which defaults to 1 minute. Schedules with different second values for arrival/departure from
+        the first departure, do not align with the grid.
+
+        For depots this problem was fixed inside the toolchain, by replacing the timeseries after
+        the depot strategy was applied. A simple fix was used forcing the first and last value to
+        the bounds of the event (e.time_start, e.time_end), which are unaffected by interval calculations.
+
+        When simba is run on its own, or when analyzing opportunity stations, a misalignment could
+        still happen. By reusing the above implementation on each event at event creation,
+        no misalignment should exist.
+        """
+        django_scenario, unused_schedule, unused_args = build_scenario()
+
+        first_trip = (
+            Trip.objects.filter(scenario=django_scenario).order_by("departure_time").first()
+        )
+        first_trip.departure_time -= timedelta(seconds=45)
+        first_trip.save(update_fields=["departure_time"])
+
+        for station in Station.objects.filter(scenario=django_scenario):
+            if station.charge_type == EnumChargeType.DEPOT:
+                continue
+            station.is_electrified = True
+            station.charge_type = EnumChargeType.OPPORTUNITY
+            station.voltage_level = EnumVoltageLevel.VOLTAGE_HV
+            station.power_per_charger = 500
+            station.total_power = 10_000
+            station.save()
+
+        Rotation.objects.filter(scenario=django_scenario).update(allow_opportunity_charging=True)
+        VehicleType.objects.filter(scenario=django_scenario).update(
+            opportunity_charging_capable=True
+        )
+
+        run_simba_scenario(django_scenario)
+        return django_scenario
+
+    def test_charging_timeseries_stays_inside_its_event(self):
+        django_scenario = self.build_opportunity_charging_scenario()
+
+        events = list(
+            Event.objects.filter(
+                scenario=django_scenario, event_type=EventType.CHARGING_OPPORTUNITY
+            ).exclude(timeseries=None)
+        )
+        self.assertGreater(len(events), 0, "the fixture produced no opportunity charging events")
+
+        for event in events:
+            times = [parse_datetime(t) for t in event.timeseries["time"]]
+            self.assertGreaterEqual(
+                times[0],
+                event.time_start,
+                f"event {event.id} starts sampling {times[0] - event.time_start} before it begins",
+            )
+            self.assertLessEqual(
+                times[-1],
+                event.time_end,
+                f"event {event.id} keeps sampling {times[-1] - event.time_end} past its end",
+            )
+
+    def test_eflips_eval_accepts_a_terminus_station(self):
+        django_scenario = self.build_opportunity_charging_scenario()
+
+        station = (
+            Station.objects.filter(
+                scenario=django_scenario,
+                charge_type=EnumChargeType.OPPORTUNITY,
+                event__event_type=EventType.CHARGING_OPPORTUNITY,
+            )
+            .distinct()
+            .first()
+        )
+        self.assertIsNotNone(station, "no terminus station saw a charging event")
+
+        sim_start, sim_end = get_start_end_time(django_scenario)
+        # Raises AssertionError inside power_and_occupancy if any sample sits outside its event
+        with Session(SqlAlchemyEngine.get_engine()) as session:
+            frame = power_and_occupancy(
+                [],
+                session,
+                temporal_resolution=60,
+                station_id=station.id,
+                sim_start_time=sim_start,
+                sim_end_time=sim_end,
+            )
+
+        self.assertFalse(frame.empty, "eflips-eval returned no rows for a station that charged")
+        self.assertGreater(frame["power"].max(), 0, "eflips-eval reported no power at the station")
 
 
 def create_temperatures(scenario):
