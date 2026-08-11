@@ -916,7 +916,6 @@
         ganttData.forEach(item => {
             const vehicleId = item.vehicle_id;
             const vehicleType = item.vehicle_type;
-            const startTime = item.start;
 
             if (!vehicleMap[vehicleId]) {
                 vehicleMap[vehicleId] = {
@@ -926,15 +925,8 @@
                     label: item.bus_name,
                     busNumber: item.vehicle_number,
                     depot: item.depot,
-                    minTime: startTime,
                     originalId: vehicleId
                 };
-
-            } else {
-                // Find the absolute minimum start time for the vehicle
-                if (startTime < vehicleMap[vehicleId].minTime) {
-                    vehicleMap[vehicleId].minTime = startTime;
-                }
             }
         });
 
@@ -943,8 +935,7 @@
 
         // Sort: Primary key is Vehicle Type (alphabetical), secondary is the backend's counter.
         // That counter is already handed out in order of first activity, and sorting on it keeps
-        // the rows in the same order as their labels. (minTime is an ISO string, so subtracting
-        // two of them yields NaN and left the order up to chance.)
+        // the rows in the same order as their labels.
         sortedVehicles.sort((a, b) => {
             // Primary sort: Vehicle Type (Alphabetical)
             if (a.type < b.type) return -1;
