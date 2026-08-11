@@ -824,30 +824,38 @@ def station_power_samples(events) -> pd.DataFrame:
         socs = timeseries.get("soc") or []
 
         if len(times) < 2 or len(times) != len(socs):
-            # Nothing sampled, so the event's average is the best available
-            samples = [(event.time_start, event.time_end, event.soc_end - event.soc_start)]
+            # Nothing sampled, so the event's average is the best available. Formatted like the
+            # samples so the column stays homogeneous strings and can be parsed in one go.
+            samples = [
+                (
+                    event.time_start.isoformat(),
+                    event.time_end.isoformat(),
+                    event.soc_end - event.soc_start,
+                )
+            ]
         else:
             samples = [
                 (times[i], times[i + 1], socs[i + 1] - socs[i]) for i in range(len(times) - 1)
             ]
 
+        # Kept as raw values here; parsing timestamps one at a time dominates the runtime of this
+        # function, and a depot's events expand to hundreds of thousands of samples
         for start, end, delta_soc in samples:
-            start = pd.Timestamp(start)
-            end = pd.Timestamp(end)
-            hours = (end - start).total_seconds() / 3600
-            if hours <= 0 or delta_soc <= 0:
-                continue
-            rows.append(
-                {
-                    "V_id": event.vehicle_id,
-                    "time_start": start,
-                    "time_end": end,
-                    "Power": delta_soc * efficiency * capacity / hours,
-                    "Station_id": station_id,
-                }
-            )
+            if delta_soc > 0:
+                rows.append((start, end, delta_soc * efficiency * capacity, station_id))
 
-    return pd.DataFrame(rows, columns=["V_id", "time_start", "time_end", "Power", "Station_id"])
+    frame = pd.DataFrame(rows, columns=["time_start", "time_end", "energy", "Station_id"])
+    if frame.empty:
+        return pd.DataFrame(columns=["time_start", "time_end", "Power", "Station_id"])
+
+    # ISO8601 rather than a fixed format: the simulation writes fractional seconds only sometimes
+    frame["time_start"] = pd.to_datetime(frame["time_start"], utc=True, format="ISO8601")
+    frame["time_end"] = pd.to_datetime(frame["time_end"], utc=True, format="ISO8601")
+    hours = (frame["time_end"] - frame["time_start"]).dt.total_seconds() / 3600
+    frame = frame[hours > 0]
+    frame["Power"] = frame["energy"] / hours[hours > 0]
+
+    return frame[["time_start", "time_end", "Power", "Station_id"]]
 
 
 def sim_is_finished(task_id: str) -> bool:
@@ -1132,8 +1140,9 @@ def station_power_profile(power_df: pd.DataFrame) -> pd.Series:
     time_end. The draw at any moment is the sum of the rows covering it, so add each row's power
     at its start, take it away again at its end and accumulate.
 
-    Note that the power of a row is the average over its event, so the taper of the charging curve
-    is already smoothed into it and the peak of this profile understates the instantaneous one.
+    How fine the result is depends on the rows given: one row per charging event
+    (:func:`get_all_powerdraw`) yields event averages, one row per recorded sample
+    (:func:`station_power_samples`) yields the instantaneous power.
 
     :param power_df: Rows from :func:`get_powerdraw_as_dataframe`, for a single station.
     :return: Power in kW indexed by time, empty if there is nothing to charge.
@@ -1225,12 +1234,14 @@ def get_station_summary(station) -> dict:
     metrics = occupancy_metrics(intervals, window_seconds, station.amount_charging_places)
     profile = station_power_profile(station_power_samples(events))
 
+    # Asked of Route, not Trip: every trip on a route shares that route's terminus and line, so
+    # going through Trip scans every trip in the scenario to produce the same handful of names
     lines = sorted(
         {
             str(name)
-            for name in Trip.objects.filter(scenario=scenario, route__arrival_station=station)
-            .exclude(route__line=None)
-            .values_list("route__line__name", flat=True)
+            for name in Route.objects.filter(scenario=scenario, arrival_station=station)
+            .exclude(line=None)
+            .values_list("line__name", flat=True)
             .distinct()
         }
     )
@@ -1318,10 +1329,9 @@ def get_electrified_stations(task_id: str) -> pd.DataFrame:
 
     Two power figures are reported, because they answer different questions and differ a lot.
     ``power_installed`` is the nameplate capacity that has to be built, charging points times the
-    power of one. ``power_peak`` is the highest draw the simulation actually produced, which is
-    the diversified load a grid connection would be negotiated on. The latter is derived from
-    per-event average powers (see :func:`station_power_profile`) and understates the instantaneous
-    peak, so it is never the safe number to size hardware on.
+    power of one. ``power_peak`` is the highest draw the simulation actually produced, taken from
+    the recorded soc samples rather than from per-event averages, so it is the diversified load a
+    grid connection would be negotiated on.
 
     ``utilization`` is the mean number of occupied charging points over the available ones. Since
     the count of charging points is itself the peak occupancy wherever the operator set no limit,
@@ -1338,34 +1348,41 @@ def get_electrified_stations(task_id: str) -> pd.DataFrame:
 
     opp_stations = scenario.station_set.filter(charge_type=EnumChargeType.OPPORTUNITY)
 
-    charging_events = scenario.event_set.filter(
-        event_type=EventType.CHARGING_OPPORTUNITY,
-        time_start__gte=time_start,
-        time_end__lte=time_end,
-    ).annotate(energy=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity"))
+    # Fetched once and reused: the sample expansion below needs the same rows, and reading them a
+    # second time through a values_list only to re-derive energy is a wasted pass over the events
+    charging_events = list(
+        scenario.event_set.filter(
+            event_type=EventType.CHARGING_OPPORTUNITY,
+            time_start__gte=time_start,
+            time_end__lte=time_end,
+        )
+        .exclude(station=None)
+        .select_related("vehicle_type")
+    )
     events_by_station: dict[int, list] = {}
     energy_by_station: dict[int, float] = {}
-    for station_id, start, end, energy in charging_events.values_list(
-        "station_id", "time_start", "time_end", "energy"
-    ):
-        events_by_station.setdefault(station_id, []).append((start, end))
-        energy_by_station[station_id] = energy_by_station.get(station_id, 0.0) + (energy or 0.0)
+    for event in charging_events:
+        events_by_station.setdefault(event.station_id, []).append(
+            (event.time_start, event.time_end)
+        )
+        energy = (event.soc_end - event.soc_start) * event.vehicle_type.battery_capacity
+        energy_by_station[event.station_id] = (
+            energy_by_station.get(event.station_id, 0.0) + energy
+        )
 
     # Which lines terminate here. This is what makes a stop worth electrifying, so it answers
     # "what breaks if this one is skipped".
     lines_by_station: dict[int, set] = {}
     for station_id, line_name in (
-        Trip.objects.filter(scenario=scenario)
-        .exclude(route__line=None)
-        .values_list("route__arrival_station_id", "route__line__name")
+        Route.objects.filter(scenario=scenario)
+        .exclude(line=None)
+        .values_list("arrival_station_id", "line__name")
         .distinct()
     ):
         lines_by_station.setdefault(station_id, set()).add(str(line_name))
 
     # Only the terminus events, so the depot's night-long minute-wise samples are not expanded
-    power_df = station_power_samples(
-        charging_events.select_related("vehicle_type").exclude(station=None)
-    )
+    power_df = station_power_samples(charging_events)
     peak_power_by_station: dict[int, float] = {}
     if not power_df.empty:
         for station_id, group in power_df.groupby("Station_id"):

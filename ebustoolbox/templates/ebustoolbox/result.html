@@ -384,7 +384,7 @@
         </div>
 
       {% include "ebustoolbox/partials/result_export.html" with endpoint="electrified_stations" %}
-      <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto w-full" style="max-width:64rem">
+      <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto w-full max-w-5xl">
         <div class="border-b border-slate-200 px-4 pt-6 pb-4 text-center">
           <h3 class="text-base font-semibold text-slate-800">
             {% translate 'Elektrifizierte Endhaltestellen' %}
@@ -1928,10 +1928,7 @@
 
         // Money is always shown with exactly two decimals. minimumFractionDigits on its own
         // leaves the maximum at three, which is where the stray third digit came from.
-        const formatEuro = (value) => value.toLocaleString('de-DE', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        });
+        const formatEuro = (value) => formatNumber(value, 2);
 
         const categories = Object.keys(result);
         const translatedCategories = categories.map(key => labelMapping[key] || key);
@@ -2128,8 +2125,6 @@
     }
 
     let electrifiedStationData = [];
-    let stationsSortColumn = '';
-    let stationsSortDirection = 1;
 
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -2178,8 +2173,9 @@
                 <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${formatNumber(row.energy)}&nbsp;kWh</td>
                 <td class="px-4 py-2 text-xs text-slate-600">
                     <div class="flex items-center justify-end gap-2">
-                        <span style="position:relative;width:48px;height:6px;flex:none;border-radius:3px;background:#e2e8f0;overflow:hidden">
-                            <span style="position:absolute;top:0;bottom:0;left:0;background:#10b981;width:${Math.min(100, row.utilization * 100).toFixed(0)}%"></span>
+                        <span class="relative h-1.5 w-12 flex-none overflow-hidden rounded-full bg-slate-200">
+                            <span class="absolute inset-y-0 left-0 bg-emerald-500"
+                                  style="width: ${Math.min(100, row.utilization * 100).toFixed(0)}%"></span>
                         </span>
                         <span class="font-mono">${formatNumber(row.utilization * 100, 1)}&nbsp;%</span>
                     </div>
@@ -2198,58 +2194,67 @@
         const names = String(lines || '').split(',').map(name => name.trim()).filter(Boolean);
         if (!names.length) return '<span class="text-xs text-slate-400">&ndash;</span>';
 
-        // Inline styles, because Tailwind's arbitrary sizes are not in the compiled stylesheet
-        const chip = 'font:600 9.5px ui-monospace,Menlo,monospace;padding:1px 5px;border-radius:3px';
+        const chip = 'rounded px-1.5 font-mono text-[9.5px] font-semibold';
         const shown = names.slice(0, 4).map(name =>
-            `<span style="${chip};border:1px solid #cbd5e1;color:#334155">${escapeHtml(name)}</span>`
+            `<span class="${chip} border border-slate-300 text-slate-700">${escapeHtml(name)}</span>`
         );
         if (names.length > 4) {
-            shown.push(`<span style="${chip};background:#f1f5f9;color:#64748b">+${names.length - 4}</span>`);
+            shown.push(`<span class="${chip} bg-slate-100 text-slate-500">+${names.length - 4}</span>`);
         }
-        return `<div style="display:flex;flex-wrap:wrap;gap:3px">${shown.join('')}</div>`;
+        return `<div class="flex flex-wrap gap-1">${shown.join('')}</div>`;
     }
+
+    // An inset shadow rather than a border, so the row does not shift sideways when selected
+    const SELECTED_ROW_CLASSES = ['bg-emerald-50', 'shadow-[inset_3px_0_0_#10b981]'];
 
     function selectStationRow(rowElement, stationId, lon, lat) {
         document.querySelectorAll('#electrifiedStationsBody .station-row').forEach(row => {
-            row.classList.remove('bg-emerald-50');
-            row.style.boxShadow = '';
+            row.classList.remove(...SELECTED_ROW_CLASSES);
         });
-        rowElement.classList.add('bg-emerald-50');
-        // inset shadow rather than a border, so the row does not shift by 3px when selected
-        rowElement.style.boxShadow = 'inset 3px 0 0 0 #10b981';
+        rowElement.classList.add(...SELECTED_ROW_CLASSES);
 
         if (typeof showStationOnMap === 'function') {
             showStationOnMap(stationId, lon, lat);
         }
     }
 
-    function sortStationsTable(column) {
-        if (stationsSortColumn === column) {
-            stationsSortDirection *= -1;
+    // Shared by both result tables. The header query is scoped to the table being sorted: an
+    // unscoped one repaints every th.sortable on the page, so sorting one table stripped the
+    // sort arrow off the other.
+    const tableSortState = {};
+
+    function sortTableBy(tableId, column, rows, render) {
+        const state = tableSortState[tableId] || (tableSortState[tableId] = {column: '', direction: 1});
+        if (state.column === column) {
+            state.direction *= -1;
         } else {
-            stationsSortDirection = 1;
-            stationsSortColumn = column;
+            state.direction = 1;
+            state.column = column;
         }
 
-        document.querySelectorAll('#electrifiedStationsTable th.sortable').forEach(th => {
+        document.querySelectorAll(`#${tableId} th.sortable`).forEach(th => {
             th.classList.remove('asc', 'desc');
             if (th.dataset.column === column) {
-                th.classList.add(stationsSortDirection === 1 ? 'asc' : 'desc');
+                th.classList.add(state.direction === 1 ? 'asc' : 'desc');
             }
         });
 
-        const sorted = [...electrifiedStationData].sort((a, b) => {
+        const sorted = [...rows].sort((a, b) => {
             const valueA = a[column];
             const valueB = b[column];
             if (valueA == null) return 1;
             if (valueB == null) return -1;
             if (typeof valueA === 'string') {
-                return valueA.localeCompare(valueB, 'de-DE') * stationsSortDirection;
+                return valueA.localeCompare(valueB, 'de-DE') * state.direction;
             }
-            return (valueA - valueB) * stationsSortDirection;
+            return (valueA - valueB) * state.direction;
         });
 
-        renderElectrifiedStations(sorted);
+        render(sorted);
+    }
+
+    function sortStationsTable(column) {
+        sortTableBy('electrifiedStationsTable', column, electrifiedStationData, renderElectrifiedStations);
     }
 
     function loadRotationTable(taskId) {
@@ -2262,8 +2267,6 @@
     }
 
     let rotationData = [];
-    let sortDirection = 1;
-    let currentSortColumn = '';
 
     function formatDuration(decimalHours) {
         const totalMinutes = Math.floor(decimalHours * 60);
@@ -2298,34 +2301,10 @@
         `).join('');
     }
     function sortTable(column) {
-        if (currentSortColumn === column) {
-            sortDirection *= -1;
-        } else {
-            sortDirection = 1;
-            currentSortColumn = column;
-        }
-
-        document.querySelectorAll('th.sortable').forEach(th => {
-            th.classList.remove('asc', 'desc');
-            if (th.dataset.column === column) {
-                th.classList.add(sortDirection === 1 ? 'asc' : 'desc');
-            }
+        sortTableBy('rotationTable', column, rotationData, sorted => {
+            rotationData = sorted;
+            renderTable(rotationData);
         });
-
-        rotationData.sort((a, b) => {
-            let valA = a[column];
-            let valB = b[column];
-
-            if (valA == null) return 1;
-            if (valB == null) return -1;
-
-            if (typeof valA === 'string') {
-                return valA.localeCompare(valB) * sortDirection;
-            }
-            return (valA - valB) * sortDirection;
-        });
-
-        renderTable(rotationData);
     }
 
 

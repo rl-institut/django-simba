@@ -1286,7 +1286,11 @@ class Station(models.Model):
         # circular import
         from .data import get_station_summary
 
-        obj = cls.objects.annotate(**cls.annotations).get(id=id)
+        # Deliberately without cls.annotations: those are for the vector tiles, and the two the
+        # popup used to render (PeakConcurrency, CountBusServices) are correlated subqueries that
+        # get_station_summary now derives anyway. Keeping them would also put two different
+        # definitions of "Anfahrten" in the same context.
+        obj = cls.objects.select_related("scenario").get(id=id)
         data = vars(obj)
         data["title"] = obj.name_short or obj.name
         data["charge_type"] = obj.get_charge_type_display()
