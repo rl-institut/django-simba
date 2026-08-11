@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "_comment": [
+    "TCO parameter defaults for eflips-impact. Every block below is written into a",
+    "'tco_parameters' JSONB column and must match the shape eflips.impact.tco expects",
+    "(see eflips.impact.tco.dataclasses).",
+    "",
+    "The '*_default' blocks are a django-simba addition: the upstream eflips-impact",
+    "files key everything by 'name_short', which only works for a fixed fleet. Here",
+    "vehicle types come from user uploads, so an explicit entry in 'vehicle_types' /",
+    "'battery_types' wins and the matching '*_default' block fills in the rest.",
+    "",
+    "'scenario' mirrors the db_default of Scenario.tco_parameters plus 'eta_avail',",
+    "which eflips.impact.tco.TCOCalculator reads unconditionally."
+  ],
+   "scenario": {
+    "project_duration": 20,
+    "interest_rate": 0.04,
+    "inflation_rate": 0.02,
+
+    "staff_cost": 25.0,
+    "fuel_cost": {"diesel": 1.0, "electricity": 0.1794},
+    "vehicle_maint_cost": {"diesel": 0.5, "electricity": 0.35},
+    "infra_maint_cost": 1000.0,
+    "cost_escalation_rate": {
+      "general": 0.02,
+      "staff": 0.025,
+      "diesel": 0.018,
+      "electricity": 0.008,
+      "insurance": 0.02
+    },
+    "insurance": 9693.0,
+    "taxes": 278.0,
+    "eta_avail": 1.0
+  },
+  "vehicle_type_default": {
+    "useful_life": 14,
+    "procurement_cost": 550000.0,
+    "cost_escalation": 0.02,
+    "average_electricity_consumption": 1.48
+  },
+  "vehicle_type_default_diesel": {
+    "useful_life": 14,
+    "procurement_cost": 250000.0,
+    "cost_escalation": 0.02,
+    "average_diesel_consumption": 0.449
+  },
+  "vehicle_types": [],
+  "battery_type_default": {
+    "useful_life": 7,
+    "procurement_cost": 190.0,
+    "cost_escalation": -0.03
+  },
+  "battery_types": [],
+  "charging_point_types": {
+    "depot": {
+      "useful_life": 20,
+      "procurement_cost": 119899.5,
+      "cost_escalation": 0.02
+    },
+    "opportunity": {
+      "useful_life": 20,
+      "procurement_cost": 299748.74,
+      "cost_escalation": 0.02
+    }
+  },
+  "charging_infrastructure": {
+    "depot": {
+      "useful_life": 20,
+      "procurement_cost": 2397989.95,
+      "cost_escalation": 0.02
+    },
+    "station": {
+      "useful_life": 20,
+      "procurement_cost": 269773.87,
+      "cost_escalation": 0.02
+    }
+  }
+}

@@ -192,6 +192,9 @@ class Scenario(models.Model):
             "infra_maint_cost": 1000.0,
             "taxes": 0.0,
             "insurance": 0.0,
+            # Technical availability. eflips.impact.tco.TCOCalculator reads this
+            # unconditionally and sizes the fleet as ceil(n_ready / eta_avail).
+            "eta_avail": 0.9,
             "cost_escalation_rate": {
                 "general": 0.02,
                 "staff": 0.02,
