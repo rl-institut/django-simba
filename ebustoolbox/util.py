@@ -9,6 +9,7 @@ from celery import uuid
 from io import BytesIO
 from django import conf
 import matplotlib
+import pandas as pd
 import sys
 
 from django.db.models import Max
@@ -23,6 +24,9 @@ if not any(["selenium" in str(x) for x in sys.modules.values()]):
     # do not use tkagg during testing since it does not work with headless selenium
     # Explicitly call backend. Put into env? Without simba does not always properly generate plots
     matplotlib.use("Agg")
+
+# Imported after the backend is chosen above, since pyplot binds it on import
+import matplotlib.pyplot as plt  # noqa: E402
 
 
 # TODO: remove since checking uuid is not common since duplicates are too rare
@@ -45,21 +49,44 @@ def get_charge_chart(station):
     """
     # get power at this station
     power_df = get_powerdraw_as_dataframe(station.scenario.id)
-    power_df = power_df[power_df["Station_id"] == station.name]
+    power_df = power_df[power_df["Station_id"] == station.id]
+    power_df = power_df[power_df["Power"] > 0]
     if power_df.empty:
         return None
 
-    ax = power_df.plot(
-        x="time_start", y="Power", xlabel=_("Zeit"), ylabel=_("Leistung [kW]"), legend=False
+    # Every row is one vehicle charging at a constant power between time_start and time_end. The
+    # station's draw at any moment is the sum of the rows covering it, so add each row's power at
+    # its start and take it away again at its end, then accumulate.
+    deltas = pd.concat(
+        [
+            power_df[["time_start", "Power"]].rename(columns={"time_start": "time"}),
+            power_df[["time_end", "Power"]]
+            .rename(columns={"time_end": "time"})
+            .assign(Power=lambda frame: -frame["Power"]),
+        ]
     )
-    buffer = BytesIO()
-    ax.figure.savefig(buffer, format="png")
-    buffer.seek(0)
-    image_png = buffer.getvalue()
-    buffer.close()
-    plot = base64.b64encode(image_png)
-    plot = plot.decode("utf-8")
-    return plot
+    power_over_time = deltas.groupby("time")["Power"].sum().sort_index().cumsum()
+
+    figure, ax = plt.subplots(figsize=(5, 2.5))
+    try:
+        # The power holds until the next change, so step between the points rather than
+        # interpolating a slope that never happened
+        power_over_time.plot(ax=ax, drawstyle="steps-post", legend=False)
+        ax.set_xlabel(_("Zeit"))
+        ax.set_ylabel(_("Leistung [kW]"))
+        ax.set_ylim(bottom=0)
+        figure.tight_layout()
+
+        buffer = BytesIO()
+        figure.savefig(buffer, format="png", dpi=100)
+        buffer.seek(0)
+        image_png = buffer.getvalue()
+        buffer.close()
+    finally:
+        # Every popup renders one of these, and pyplot keeps figures alive until they are closed
+        plt.close(figure)
+
+    return base64.b64encode(image_png).decode("utf-8")
 
 
 def get_next_id(model: django.db.models.Model) -> int:
