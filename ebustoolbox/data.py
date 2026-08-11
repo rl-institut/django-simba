@@ -791,6 +791,65 @@ def get_all_powerdraw(scenario_id) -> pd.DataFrame:
     return result_df
 
 
+def station_power_samples(events) -> pd.DataFrame:
+    """Charging power of the given events, at the resolution the simulation recorded.
+
+    :func:`get_all_powerdraw` collapses a charging event into one average power, which averages
+    away the taper of the charging curve: a bus that starts at 250 kW and tails off shows up as
+    the ~200 kW it averaged, so a peak taken from it is not a peak at all. Each charging event
+    carries a minute-wise soc timeseries spanning its whole duration, so the power actually drawn
+    between two samples can be recovered instead.
+
+    Takes the events rather than a scenario, because a depot's events are sampled per minute
+    across the whole night and expanding every one of them costs seconds for a caller that only
+    wants a single terminus.
+
+    :param events: Charging events, with ``vehicle_type`` selected.
+    :return: One row per sample interval, in the same shape as :func:`get_all_powerdraw` so that
+        :func:`station_power_profile` can consume either.
+    """
+    rows = []
+    for event in events:
+        if event.event_type == EventType.CHARGING_DEPOT:
+            station_id = event.area.depot.station_id if event.area else None
+        else:
+            station_id = event.station_id
+        if station_id is None:
+            continue
+
+        capacity = event.vehicle_type.battery_capacity
+        efficiency = event.vehicle_type.charging_efficiency
+        timeseries = event.timeseries or {}
+        times = timeseries.get("time") or []
+        socs = timeseries.get("soc") or []
+
+        if len(times) < 2 or len(times) != len(socs):
+            # Nothing sampled, so the event's average is the best available
+            samples = [(event.time_start, event.time_end, event.soc_end - event.soc_start)]
+        else:
+            samples = [
+                (times[i], times[i + 1], socs[i + 1] - socs[i]) for i in range(len(times) - 1)
+            ]
+
+        for start, end, delta_soc in samples:
+            start = pd.Timestamp(start)
+            end = pd.Timestamp(end)
+            hours = (end - start).total_seconds() / 3600
+            if hours <= 0 or delta_soc <= 0:
+                continue
+            rows.append(
+                {
+                    "V_id": event.vehicle_id,
+                    "time_start": start,
+                    "time_end": end,
+                    "Power": delta_soc * efficiency * capacity / hours,
+                    "Station_id": station_id,
+                }
+            )
+
+    return pd.DataFrame(rows, columns=["V_id", "time_start", "time_end", "Power", "Station_id"])
+
+
 def sim_is_finished(task_id: str) -> bool:
     return Scenario.objects.filter(task_id=task_id, finished__isnull=False).exists()
 
@@ -1125,6 +1184,26 @@ def occupancy_metrics(intervals: list, window_seconds: float, configured_places)
     }
 
 
+def station_charging_events(station, time_start, time_end):
+    """The charging events at one station, within the simulated period.
+
+    A depot's buses charge on an area belonging to the depot rather than at the station itself, so
+    a depot station has to be looked up through its areas and by the other event type.
+
+    :param station: The station whose charging events are wanted.
+    :param time_start: Start of the simulated period.
+    :param time_end: End of the simulated period.
+    """
+    window = {"time_start__gte": time_start, "time_end__lte": time_end}
+    if station.charge_type == EnumChargeType.DEPOT:
+        return station.scenario.event_set.filter(
+            event_type=EventType.CHARGING_DEPOT, area__depot__station=station, **window
+        ).select_related("vehicle_type", "area__depot")
+    return station.scenario.event_set.filter(
+        event_type=EventType.CHARGING_OPPORTUNITY, station=station, **window
+    ).select_related("vehicle_type")
+
+
 def get_station_summary(station) -> dict:
     """The figures the map popup shows for one electrified station.
 
@@ -1135,23 +1214,16 @@ def get_station_summary(station) -> dict:
     time_start, time_end = get_start_end_time(scenario)
     window_seconds = (time_end - time_start).total_seconds()
 
-    events = scenario.event_set.filter(
-        station=station,
-        event_type=EventType.CHARGING_OPPORTUNITY,
-        time_start__gte=time_start,
-        time_end__lte=time_end,
-    ).annotate(energy=(F("soc_end") - F("soc_start")) * F("vehicle_type__battery_capacity"))
+    events = list(station_charging_events(station, time_start, time_end))
 
-    intervals = []
-    energy = 0.0
-    for start, end, event_energy in events.values_list("time_start", "time_end", "energy"):
-        intervals.append((start, end))
-        energy += event_energy or 0.0
+    intervals = [(event.time_start, event.time_end) for event in events]
+    energy = sum(
+        (event.soc_end - event.soc_start) * event.vehicle_type.battery_capacity
+        for event in events
+    )
 
     metrics = occupancy_metrics(intervals, window_seconds, station.amount_charging_places)
-
-    power_df = get_powerdraw_as_dataframe(scenario.id)
-    profile = station_power_profile(power_df[power_df["Station_id"] == station.id])
+    profile = station_power_profile(station_power_samples(events))
 
     lines = sorted(
         {
@@ -1191,21 +1263,15 @@ def get_station_load_profile(station, bin_minutes: int = 60) -> list[dict]:
     time_start, time_end = get_start_end_time(scenario)
     bin_size = pd.Timedelta(minutes=bin_minutes)
 
-    events = list(
-        scenario.event_set.filter(
-            station=station,
-            event_type=EventType.CHARGING_OPPORTUNITY,
-            time_start__gte=time_start,
-            time_end__lte=time_end,
-        ).values_list("time_start", "time_end")
-    )
+    charging_events = list(station_charging_events(station, time_start, time_end))
+    events = [(event.time_start, event.time_end) for event in charging_events]
+
     metrics = occupancy_metrics(
         events, (time_end - time_start).total_seconds(), station.amount_charging_places
     )
     chargers = metrics["chargers"]
 
-    power_df = get_powerdraw_as_dataframe(scenario.id)
-    profile = station_power_profile(power_df[power_df["Station_id"] == station.id])
+    profile = station_power_profile(station_power_samples(charging_events))
 
     bins = pd.date_range(
         pd.Timestamp(time_start).floor(f"{bin_minutes}min"), pd.Timestamp(time_end), freq=bin_size
@@ -1296,7 +1362,10 @@ def get_electrified_stations(task_id: str) -> pd.DataFrame:
     ):
         lines_by_station.setdefault(station_id, set()).add(str(line_name))
 
-    power_df = get_powerdraw_as_dataframe(scenario.id)
+    # Only the terminus events, so the depot's night-long minute-wise samples are not expanded
+    power_df = station_power_samples(
+        charging_events.select_related("vehicle_type").exclude(station=None)
+    )
     peak_power_by_station: dict[int, float] = {}
     if not power_df.empty:
         for station_id, group in power_df.groupby("Station_id"):

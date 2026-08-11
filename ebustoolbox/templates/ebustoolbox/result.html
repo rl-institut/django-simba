@@ -384,7 +384,7 @@
         </div>
 
       {% include "ebustoolbox/partials/result_export.html" with endpoint="electrified_stations" %}
-      <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto max-w-5xl w-full">
+      <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto w-full" style="max-width:64rem">
         <div class="border-b border-slate-200 px-4 pt-6 pb-4 text-center">
           <h3 class="text-base font-semibold text-slate-800">
             {% translate 'Elektrifizierte Endhaltestellen' %}
@@ -395,12 +395,6 @@
             {% if not disable_map %}
               &middot; {% translate 'Zeile anklicken, um die Haltestelle in der Karte zu zeigen' %}
             {% endif %}
-          </p>
-          <p class="mx-auto mt-2 max-w-2xl text-xs text-slate-500">
-            {% blocktranslate %}Leistung: installiert (Ladepunkte × Anschlussleistung) und darunter die höchste in der Simulation erreichte Leistung. Letztere entsteht aus mittleren Leistungen je Ladevorgang und unterschätzt die Momentanspitze &ndash; sie ist keine Grundlage für die Auslegung des Netzanschlusses.{% endblocktranslate %}
-          </p>
-          <p class="mx-auto mt-1 max-w-2xl text-xs text-slate-500">
-            {% blocktranslate %}Auslastung: mittlere Belegung bezogen auf die Ladepunkte. Da sich die Ladepunkte aus der Spitzenbelegung ergeben, erreicht sie nie 100 %; ein niedriger Wert bedeutet ungleichmäßige Ankünfte, nicht einen entbehrlichen Ladepunkt.{% endblocktranslate %}
           </p>
         </div>
         <div class="max-h-[480px] overflow-y-auto relative">
@@ -413,13 +407,15 @@
                 <th data-column="chargers" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('chargers')">
                   {% translate 'Ladepunkte' %}
                 </th>
-                <th data-column="power_installed" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('power_installed')">
+                <th data-column="power_installed" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('power_installed')"
+                    title="{% translate 'Installiert (Ladepunkte × Anschlussleistung), darunter die höchste in der Simulation erreichte Leistung.' %}">
                   {% translate 'Leistung' %}
                 </th>
                 <th data-column="energy" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('energy')">
                   {% translate 'Energie' %}
                 </th>
-                <th data-column="utilization" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortStationsTable('utilization')">
+                <th data-column="utilization" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortStationsTable('utilization')"
+                    title="{% translate 'Mittlere Belegung bezogen auf die Ladepunkte. Da sich die Ladepunkte aus der Spitzenbelegung ergeben, wird sie nie 100 %; ein niedriger Wert bedeutet ungleichmäßige Ankünfte, nicht einen entbehrlichen Ladepunkt.' %}">
                   {% translate 'Auslastung' %}
                 </th>
                 <th data-column="lines" class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortStationsTable('lines')">
@@ -2182,9 +2178,8 @@
                 <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${formatNumber(row.energy)}&nbsp;kWh</td>
                 <td class="px-4 py-2 text-xs text-slate-600">
                     <div class="flex items-center justify-end gap-2">
-                        <span class="relative h-1.5 w-12 shrink-0 overflow-hidden rounded-full bg-slate-200">
-                            <span class="absolute inset-y-0 left-0 bg-emerald-500"
-                                  style="width: ${Math.min(100, row.utilization * 100).toFixed(0)}%"></span>
+                        <span style="position:relative;width:48px;height:6px;flex:none;border-radius:3px;background:#e2e8f0;overflow:hidden">
+                            <span style="position:absolute;top:0;bottom:0;left:0;background:#10b981;width:${Math.min(100, row.utilization * 100).toFixed(0)}%"></span>
                         </span>
                         <span class="font-mono">${formatNumber(row.utilization * 100, 1)}&nbsp;%</span>
                     </div>
@@ -2203,20 +2198,25 @@
         const names = String(lines || '').split(',').map(name => name.trim()).filter(Boolean);
         if (!names.length) return '<span class="text-xs text-slate-400">&ndash;</span>';
 
+        // Inline styles, because Tailwind's arbitrary sizes are not in the compiled stylesheet
+        const chip = 'font:600 9.5px ui-monospace,Menlo,monospace;padding:1px 5px;border-radius:3px';
         const shown = names.slice(0, 4).map(name =>
-            `<span class="rounded border border-slate-300 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-slate-700">${escapeHtml(name)}</span>`
+            `<span style="${chip};border:1px solid #cbd5e1;color:#334155">${escapeHtml(name)}</span>`
         );
         if (names.length > 4) {
-            shown.push(`<span class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-slate-500">+${names.length - 4}</span>`);
+            shown.push(`<span style="${chip};background:#f1f5f9;color:#64748b">+${names.length - 4}</span>`);
         }
-        return `<div class="flex flex-wrap gap-1">${shown.join('')}</div>`;
+        return `<div style="display:flex;flex-wrap:wrap;gap:3px">${shown.join('')}</div>`;
     }
 
     function selectStationRow(rowElement, stationId, lon, lat) {
         document.querySelectorAll('#electrifiedStationsBody .station-row').forEach(row => {
-            row.classList.remove('bg-emerald-50', 'border-l-[3px]', 'border-emerald-500');
+            row.classList.remove('bg-emerald-50');
+            row.style.boxShadow = '';
         });
-        rowElement.classList.add('bg-emerald-50', 'border-l-[3px]', 'border-emerald-500');
+        rowElement.classList.add('bg-emerald-50');
+        // inset shadow rather than a border, so the row does not shift by 3px when selected
+        rowElement.style.boxShadow = 'inset 3px 0 0 0 #10b981';
 
         if (typeof showStationOnMap === 'function') {
             showStationOnMap(stationId, lon, lat);

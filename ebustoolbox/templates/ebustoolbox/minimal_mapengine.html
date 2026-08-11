@@ -54,13 +54,13 @@
                 const container = button.parentElement.querySelector('[data-station-lastgang]');
                 if (!container) return;
 
-                if (!container.classList.contains('hidden')) {
-                    container.classList.add('hidden');
+                if (container.style.display !== 'none') {
+                    container.style.display = 'none';
                     button.textContent = 'Lastgang anzeigen (60-Min-Bins) ▾';
                     return;
                 }
 
-                container.classList.remove('hidden');
+                container.style.display = 'block';
                 button.textContent = 'Lastgang ausblenden ▴';
 
                 if (container.dataset.loaded === 'true') {
@@ -75,8 +75,8 @@
                     })
                     .catch(error => {
                         console.error('Lastgang konnte nicht geladen werden:', error);
+                        container.style.cssText += ';padding:12px;color:#b45309;font:400 11px system-ui,sans-serif';
                         container.textContent = 'Lastgang konnte nicht geladen werden.';
-                        container.classList.add('p-3', 'text-xs', 'text-amber-700');
                     });
             }
 
