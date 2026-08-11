@@ -58,7 +58,7 @@
       <div class="text-[9.5px] leading-snug text-slate-400">
         {% if charging_efficiency_pct %}
           <div>
-            Leistung netzseitig, angenommen {{ charging_efficiency_pct|floatformat:0 }}&nbsp;% Ladeeffizienz.
+            Leistung netzseitig, angenommen {{ charging_efficiency_pct }}&nbsp;% Ladeeffizienz.
           </div>
         {% endif %}
         <div>{{ geom.y|floatformat:"4" }}, {{ geom.x|floatformat:"4" }}</div>

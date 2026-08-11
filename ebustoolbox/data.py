@@ -814,14 +814,21 @@ def station_power_series(
     :param resolution_seconds: Grid the underlying series is sampled on.
     :return: Power in kW indexed by time, empty if nothing charged there.
     """
-    frame = power_and_occupancy(
-        [],
-        session,
-        temporal_resolution=resolution_seconds,
-        station_id=station_id,
-        sim_start_time=sim_start,
-        sim_end_time=sim_end,
-    )
+    try:
+        frame = power_and_occupancy(
+            [],
+            session,
+            temporal_resolution=resolution_seconds,
+            station_id=station_id,
+            sim_start_time=sim_start,
+            sim_end_time=sim_end,
+        )
+    except ValueError:
+        # power_and_occupancy raises rather than returning an empty frame when the station has no
+        # events at all in the database (not just none in [sim_start, sim_end]) - an electrified
+        # terminus a run never ended up using, for example. That is exactly the "nothing charged
+        # there" case this function promises to return empty for, so treat it the same way.
+        return pd.Series(dtype=float)
     if frame.empty:
         return pd.Series(dtype=float)
     return pd.Series(frame["power"].to_numpy(), index=pd.DatetimeIndex(frame["time"]))
