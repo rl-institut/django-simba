@@ -1545,6 +1545,87 @@ def abbreviate_list(long_list: list, tail_elements: int = 2, delimiter: str = ",
     )
 
 
+def retime_timeseries_to_event_bounds(
+    time_start: datetime,
+    time_end: datetime,
+    times: list,
+    socs: list,
+    max_drift: timedelta = timedelta(seconds=1),
+) -> dict:
+    """Re-time a reconstructed SoC timeseries onto an event's own bounds.
+
+    Grid-quantized producers (SimBA's per-timestep vehicle SoC grid, SpiceEV's depot
+    re-simulation) can drift the reconstructed sample timestamps away from the event's real
+    `time_start`/`time_end` by up to a grid step -- e.g. rounding a real, minute-aligned trip
+    time to the nearest simulation step when the step grid itself sits a few seconds off the
+    minute (see the ``signal_time_dif`` offset applied to SimBA's scenario start time).
+    ``eflips.eval.output.prepare.power_and_occupancy()`` requires every sample to lie inside
+    ``[time_start, time_end]``, so an uncorrected drift surfaces there as a bare
+    ``AssertionError`` instead of at the point where the mismatch is actually introduced.
+
+    The sample *values* are right and their *spacing* is right; only the grid's phase is wrong.
+    So the whole series is mapped affinely onto the event's window -- shifted, and scaled by
+    ``event_duration / sample_span`` -- rather than having its end samples pinned in place.
+    Both do fix the bounds, and both leave the energy untouched (`socs` is passed through, and
+    the event's own soc_start/soc_end are its first and last entries), but they differ in where
+    the timing error lands:
+
+    * Pinning moves only the two end samples, so the entire mismatch is absorbed by the first
+      and last intervals. Measured on a real 1609s driving event drifting (+15s, +26s), that
+      compressed one interval from 60s to 34s and stretched another to 75s -- a 0.80x to 1.76x
+      error on the power those intervals imply. On a charging event it put 388 kW on a 300 kW
+      charging point.
+    * Re-timing spreads it across every interval instead: the same event comes out at a uniform
+      1.01x. Where the drift is equal at both ends -- every CHARGING_OPPORTUNITY event and ~88%
+      of DRIVING events, i.e. whenever the duration is a whole number of grid steps -- the scale
+      is exactly 1 and this degenerates to a pure shift, which is exactly right.
+
+    :param time_start: The event's real start time.
+    :param time_end: The event's real end time.
+    :param times: Reconstructed sample timestamps, ascending, spanning the event. Must have at
+        least one entry.
+    :param socs: SoC values parallel to `times`. Passed through unmodified.
+    :param max_drift: Refuse to re-time (raise instead) if a boundary sample is farther than this
+        from the bound it maps onto -- a large drift means something other than grid quantization
+        is wrong and should not be silently papered over.
+    :return: A ``{"time": [...], "soc": [...]}`` dict for ``Event.timeseries``, spanning exactly
+        `time_start` to `time_end`.
+    """
+    assert len(times) == len(socs) and len(times) >= 1, "times/socs must be same, non-zero length"
+
+    if len(times) == 1:
+        # A single grid sample can't span both ends; duplicate its SoC to both boundaries
+        # instead. This can happen for events shorter than one grid step.
+        return {
+            "time": [time_start.isoformat(), time_end.isoformat()],
+            "soc": [socs[0], socs[0]],
+        }
+
+    for idx, bound in ((0, time_start), (-1, time_end)):
+        drift = abs(times[idx] - bound)
+        if drift > max_drift:
+            raise AssertionError(
+                f"Timeseries sample at index {idx} ({times[idx].isoformat()}) is {drift} away "
+                f"from the event bound {bound.isoformat()}, which exceeds max_drift {max_drift}"
+            )
+
+    span = (times[-1] - times[0]).total_seconds()
+    duration = (time_end - time_start).total_seconds()
+    if span <= 0 or duration <= 0:
+        # Nothing to scale against; fall back to spreading the samples evenly over the window
+        step = duration / (len(times) - 1)
+        retimed = [time_start + timedelta(seconds=step * i) for i in range(len(times))]
+    else:
+        scale = duration / span
+        retimed = [
+            time_start + timedelta(seconds=(t - times[0]).total_seconds() * scale) for t in times
+        ]
+
+    # Pin the ends exactly, so floating point residue cannot push a sample back out of bounds
+    retimed[0], retimed[-1] = time_start, time_end
+    return {"time": [t.isoformat() for t in retimed], "soc": list(socs)}
+
+
 def replace_event_timeseries(event: Event, soc_ts: list) -> None:
     # replace Event soc timeseries with arbitrary list
     # ### sanity checks ### #
@@ -1582,24 +1663,13 @@ def replace_event_timeseries(event: Event, soc_ts: list) -> None:
         raise SimulationNegativeEventDurationException(f"{event.id=} has a negative duration")
     if not interval > timedelta(seconds=0):
         raise SimulationZeroEventDurationException(f"{event.id=} has zero duration")
-    event.timeseries = {
-        "time": [(event.time_start + i * interval).isoformat() for i in range(len(soc_ts))]
-    }
+    times = [event.time_start + i * interval for i in range(len(soc_ts))]
 
-    # soc and time lists must have same length
-    assert len(soc_ts) == len(event.timeseries["time"])
-    assert event.timeseries["time"][0] == event.time_start.isoformat()
-
-    # handle floating point errors
-    # there are cases above 1 milliseconds, so lets just make it a second to never worry about it
-    assert abs(datetime.fromisoformat(event.timeseries["time"][-1]) - event.time_end) <= timedelta(
-        seconds=1
+    # the timestamps above are evenly spaced between time_start and time_end by construction, so
+    # the re-timing below is a no-op apart from removing the floating point residue on the ends.
+    event.timeseries = retime_timeseries_to_event_bounds(
+        event.time_start, event.time_end, times, soc_ts, max_drift=timedelta(seconds=1)
     )
-    # remove the floating point error
-    event.timeseries["time"][-1] = event.time_end.isoformat()
-
-    # save to DB
-    event.timeseries["soc"] = soc_ts
 
 
 def get_ts_index_from_time(scenario: SimbaScenario, time: datetime) -> int:
@@ -2806,26 +2876,38 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario) -> list[Ev
         else:
             raise NotImplementedError("Unknown vehicle event type")
         timezone = aware_start_time.tzinfo
-        timestamp_list = [
-            get_datetime(simba_scenario, t).astimezone(timezone).isoformat()
+        event_time_start = vehicle_event.start_time.astimezone(timezone)
+        event_time_end = end_time.astimezone(timezone)
+        timestamps = [
+            get_datetime(simba_scenario, t).astimezone(timezone)
             for t in range(start_timestep, end_timestep + 1, int(60 / simba_scenario.stepsPerHour))
         ]
-        timeseries = {
-            "time": timestamp_list,
-            "soc": simba_scenario.vehicle_socs[vehicle.to_simba_name()][
-                start_timestep : end_timestep + 1
-            ],
-        }
-        if None in timeseries["soc"]:
+        socs = simba_scenario.vehicle_socs[vehicle.to_simba_name()][
+            start_timestep : end_timestep + 1
+        ]
+        if None in socs:
             logger.warning(f"S.ID:{db_scenario.id}:None Values found in timeseries")
-            forward_fill_last_value(timeseries["soc"])
-        # grab current vehicle SoC at timestep
-        soc_start = timeseries["soc"][0]
-        soc_end = timeseries["soc"][-1]
-        if None in timeseries["soc"]:
+            forward_fill_last_value(socs)
+        if None in socs:
             raise Exception(
                 f"{vehicle.to_simba_name()}/{vehicle.id} has None values in between socs"
             )
+        # `timestamps` is quantized to simba_scenario's simulation step grid (see get_timestep /
+        # get_datetime), which can sit a few seconds off the real, minute-aligned trip times --
+        # e.g. because of the signal_time_dif offset applied to the scenario's start time. That
+        # drifts the whole reconstructed series away from the event's own boundaries by up to one
+        # grid step; re-time it onto them so downstream consumers that assume samples lie inside
+        # [time_start, time_end] (e.g. eflips-eval's power_and_occupancy()) don't choke on it.
+        timeseries = retime_timeseries_to_event_bounds(
+            event_time_start,
+            event_time_end,
+            timestamps,
+            socs,
+            max_drift=timedelta(minutes=60 / simba_scenario.stepsPerHour),
+        )
+        # grab current vehicle SoC at timestep
+        soc_start = timeseries["soc"][0]
+        soc_end = timeseries["soc"][-1]
         event = Event(
             scenario=db_scenario,
             vehicle=vehicle,
@@ -2834,8 +2916,8 @@ def create_event_output(simba_scenario: "SimbaScenario", db_scenario) -> list[Ev
             trip=trip,
             soc_start=soc_start,
             soc_end=soc_end,
-            time_start=vehicle_event.start_time.astimezone(timezone),
-            time_end=end_time.astimezone(timezone),
+            time_start=event_time_start,
+            time_end=event_time_end,
             timeseries=timeseries,
             event_type=event_type,
         )
