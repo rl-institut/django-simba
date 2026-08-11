@@ -1927,7 +1927,10 @@ def get_electrified_stations_data(request, task_id: str):
     if file_format == "json":
         return JsonResponse({"data": df.to_dict(orient="records")}, safe=True)
     elif file_format == "csv":
-        return HttpResponse(df.to_csv(index=False), content_type="text/csv")
+        # The database id and the coordinates are only there so a table row can drive the map;
+        # they are noise in a file a planner opens
+        export = df.drop(columns=["station_id", "lon", "lat"], errors="ignore")
+        return HttpResponse(export.to_csv(index=False), content_type="text/csv")
     return HttpResponse(status=400)
 
 
@@ -1940,7 +1943,9 @@ def get_station_load(request, task_id: str, station_id: int):
     if not permission:
         return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     scenario = get_object_or_404(Scenario, task_id=task_id)
-    station = get_object_or_404(Station, id=station_id, scenario=scenario)
+    station = get_object_or_404(
+        Station.objects.select_related("scenario"), id=station_id, scenario=scenario
+    )
     return JsonResponse({"data": data.get_station_load_profile(station)}, safe=True)
 
 

@@ -1,4 +1,3 @@
-import base64
 import logging
 from pathlib import Path
 import traceback
@@ -12,10 +11,8 @@ import matplotlib
 import sys
 
 from django.db.models import Max
-from django.utils.translation import gettext as _
 
 from .models import Scenario
-from ebustoolbox.data import get_powerdraw_as_dataframe, station_power_profile
 
 logger = logging.getLogger("custom")
 
@@ -23,9 +20,6 @@ if not any(["selenium" in str(x) for x in sys.modules.values()]):
     # do not use tkagg during testing since it does not work with headless selenium
     # Explicitly call backend. Put into env? Without simba does not always properly generate plots
     matplotlib.use("Agg")
-
-# Imported after the backend is chosen above, since pyplot binds it on import
-import matplotlib.pyplot as plt  # noqa: E402
 
 
 # TODO: remove since checking uuid is not common since duplicates are too rare
@@ -40,39 +34,6 @@ def get_unique_task_id() -> str:
         except Scenario.DoesNotExist:
             task_id_not_unique = False
     return task_id
-
-
-def get_charge_chart(station):
-    """
-    Get charge plot for specific station, ready for HTML display
-    """
-    # get power at this station
-    power_df = get_powerdraw_as_dataframe(station.scenario.id)
-    power_df = power_df[power_df["Station_id"] == station.id]
-    power_over_time = station_power_profile(power_df)
-    if power_over_time.empty:
-        return None
-
-    figure, ax = plt.subplots(figsize=(5, 2.5))
-    try:
-        # The power holds until the next change, so step between the points rather than
-        # interpolating a slope that never happened
-        power_over_time.plot(ax=ax, drawstyle="steps-post", legend=False)
-        ax.set_xlabel(_("Zeit"))
-        ax.set_ylabel(_("Leistung [kW]"))
-        ax.set_ylim(bottom=0)
-        figure.tight_layout()
-
-        buffer = BytesIO()
-        figure.savefig(buffer, format="png", dpi=100)
-        buffer.seek(0)
-        image_png = buffer.getvalue()
-        buffer.close()
-    finally:
-        # Every popup renders one of these, and pyplot keeps figures alive until they are closed
-        plt.close(figure)
-
-    return base64.b64encode(image_png).decode("utf-8")
 
 
 def get_next_id(model: django.db.models.Model) -> int:

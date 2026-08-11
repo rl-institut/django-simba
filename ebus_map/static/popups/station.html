@@ -3,30 +3,31 @@
 <div class="bg-white">
   {% if is_electrified %}
     <!-- Kennzahlen-Streifen -->
-    <div class="grid grid-cols-3 border-b border-dashed border-slate-300">
-      <div class="px-2 py-3 text-center border-r border-dashed border-slate-300">
-        <div class="font-mono text-xl font-semibold text-slate-900">{{ chargers }}</div>
-        <div class="mt-1 text-[9.5px] uppercase tracking-wide text-slate-500">Ladepunkte</div>
+    <div class="grid grid-cols-3 border-b border-slate-200">
+      <div class="border-r border-slate-200 px-1.5 py-2.5 text-center">
+        <div class="font-mono text-lg font-semibold leading-none text-slate-900">{{ chargers }}</div>
+        <div class="mt-1.5 text-[9px] uppercase tracking-wide text-slate-500">Ladepunkte</div>
       </div>
-      <div class="px-2 py-3 text-center border-r border-dashed border-slate-300">
-        <div class="font-mono text-xl font-semibold text-slate-900">
-          {{ power_installed|floatformat:0 }}<span class="ml-0.5 text-[11px] font-normal text-slate-500">kW</span>
+      <div class="border-r border-slate-200 px-1.5 py-2.5 text-center">
+        <div class="font-mono text-lg font-semibold leading-none text-slate-900">
+          {{ power_installed|floatformat:0 }}<span class="text-[10px] font-normal text-slate-500"> kW</span>
         </div>
-        <div class="mt-1 text-[9.5px] uppercase tracking-wide text-slate-500">Leistung</div>
-        <div class="text-[9.5px] text-slate-400">sim. {{ power_peak|floatformat:0 }}&nbsp;kW</div>
+        <div class="mt-1.5 text-[9px] uppercase tracking-wide text-slate-500">Leistung</div>
+        <div class="text-[9px] text-slate-400">Spitze {{ power_peak|floatformat:0 }}&nbsp;kW</div>
       </div>
-      <div class="px-2 py-3 text-center">
-        <div class="font-mono text-xl font-semibold text-slate-900">
-          {{ energy|floatformat:0 }}<span class="ml-0.5 text-[11px] font-normal text-slate-500">kWh</span>
+      <div class="px-1.5 py-2.5 text-center">
+        <div class="font-mono text-lg font-semibold leading-none text-slate-900">
+          {{ energy|floatformat:0 }}<span class="text-[10px] font-normal text-slate-500"> kWh</span>
         </div>
-        <div class="mt-1 text-[9.5px] uppercase tracking-wide text-slate-500">Energie</div>
+        <div class="mt-1.5 text-[9px] uppercase tracking-wide text-slate-500">Energie</div>
       </div>
     </div>
 
-    <div class="flex flex-col gap-2.5 px-3.5 py-3">
+    <div class="flex flex-col gap-2 px-4 py-3">
       <div class="flex items-center gap-2.5">
-        <div class="w-[74px] shrink-0 text-[11.5px] text-slate-500">Auslastung</div>
-        <div class="relative h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+        <div class="w-[74px] flex-none text-[11.5px] text-slate-500">Auslastung</div>
+        <div class="relative h-[7px] flex-1 overflow-hidden rounded-full bg-slate-100">
+          <!-- width is a value only known at render time, so it stays inline -->
           <div class="absolute inset-y-0 left-0 bg-emerald-400"
                style="width: {% widthratio utilization_pct 100 100 %}%"></div>
         </div>
@@ -37,41 +38,46 @@
 
       {% if lines %}
         <div class="flex items-start gap-2.5">
-          <div class="w-[74px] shrink-0 pt-0.5 text-[11.5px] text-slate-500">Linien</div>
+          <div class="w-[74px] flex-none pt-0.5 text-[11.5px] text-slate-500">Linien</div>
           <div class="flex flex-1 flex-wrap gap-1">
             {% for line in lines|slice:":4" %}
-              <span class="rounded border border-slate-300 px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-slate-700">{{ line }}</span>
+              <span class="rounded border border-slate-300 px-1.5 font-mono text-[9.5px] font-semibold text-slate-700">{{ line }}</span>
             {% endfor %}
             {% if lines|length > 4 %}
-              <span class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-slate-500">+{{ lines|length|add:"-4" }}</span>
+              <span class="rounded bg-slate-100 px-1.5 font-mono text-[9.5px] font-semibold text-slate-500">+{{ lines|length|add:"-4" }}</span>
             {% endif %}
           </div>
         </div>
       {% endif %}
 
       <div class="flex items-center gap-2.5">
-        <div class="w-[74px] shrink-0 text-[11.5px] text-slate-500">Anfahrten</div>
+        <div class="w-[74px] flex-none text-[11.5px] text-slate-500">Anfahrten</div>
         <div class="font-mono text-[11.5px] font-semibold text-slate-900">{{ arrivals }}</div>
+      </div>
+
+      <div class="text-[9.5px] text-slate-400">
+        {{ geom.y|floatformat:"4" }}, {{ geom.x|floatformat:"4" }}
       </div>
     </div>
 
     {% comment %}
-      The chart is fetched only when opened, so panning the map does not render one per popup.
-      toggleStationLastgang is defined alongside the map in minimal_mapengine.html, because a
-      script tag inside this template would not run: the popup is injected with innerHTML.
+      Fetched only when opened, so panning the map does not build a profile per popup.
+      toggleStationLastgang lives with the map: a script tag here would not run, because the popup
+      is injected with innerHTML.
     {% endcomment %}
     <button type="button"
-            class="w-full border-t border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-center text-[11.5px] font-semibold text-teal-700 hover:bg-slate-100"
+            class="w-full border-t border-slate-200 bg-slate-50 px-3 py-2 text-center text-[11.5px] font-semibold text-teal-700 hover:bg-slate-100"
             onclick="toggleStationLastgang(this, '{{ task_id }}', {{ station_id }})">
       Lastgang anzeigen (60-Min-Bins) ▾
     </button>
-    <div class="hidden px-2 pb-2" data-station-lastgang style="height: 190px"></div>
+    <div data-station-lastgang class="hidden h-[170px] px-1.5 pb-2 pt-1"></div>
   {% else %}
-    <p class="px-3.5 py-3 text-sm font-semibold text-slate-800">Nicht elektrifiziert.</p>
+    <div class="px-4 py-3">
+      <p class="text-[12.5px] font-semibold text-slate-800">Nicht elektrifiziert.</p>
+      <p class="mt-1.5 text-[9.5px] text-slate-400">
+        {{ geom.y|floatformat:"4" }}, {{ geom.x|floatformat:"4" }}
+      </p>
+    </div>
   {% endif %}
-
-  <p class="px-3.5 pb-3 text-[10px] text-slate-400">
-    {{ geom.y|floatformat:"4" }}, {{ geom.x|floatformat:"4" }}
-  </p>
 </div>
 {% endblock %}
