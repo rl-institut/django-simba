@@ -42,8 +42,10 @@ import core.deepcopy
 from ebustoolbox.impact import (
     apply_tco_mutation,
     attach_charging_point_types,
+    calculate_lca,
     calculate_tco,
     ensure_fleet_topology,
+    ensure_lca_parameters,
 )
 from ebusdjango.util import get_static_file_path
 import ebustoolbox.util
@@ -2171,7 +2173,18 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
         db_scenario.tco_result = tco_result
         db_scenario.save(update_fields=["tco_result"])
 
-        # TODO if we want to integrate LCA as well, the lca_result field should be handled in the same way as tco_result.
+        # After the TCO, which is what attaches the charging point types the LCA reads
+        # off the Areas and Stations. A failure here is logged and swallowed: the LCA is
+        # a secondary result, and losing a finished simulation over it would be a poor
+        # trade. The result page renders the section only when there is something in it.
+        logger.info(f"S.ID:{db_scenario.id}:Running eFLIPS LCA {datetime.now()}")
+        progress.status = _("Berechne Ökobilanz")
+        progress.save()
+        try:
+            db_scenario.lca_result = calculate_lca(db_scenario)
+            db_scenario.save(update_fields=["lca_result"])
+        except Exception:
+            logger.error(f"S.ID:{db_scenario.id}:LCA failed\n{traceback.format_exc()}")
 
         check_event_soc_consistency(db_scenario)
         db_scenario.refresh_from_db()
@@ -2513,6 +2526,7 @@ def eflips_calculate_tco(scenario: Scenario) -> dict:
     :returns: ``{cost_category: EUR per revenue-km}`` for ``Scenario.tco_result``.
     """
     ensure_fleet_topology(scenario)
+    ensure_lca_parameters(scenario)
     attach_charging_point_types(scenario)
     return calculate_tco(scenario)
 

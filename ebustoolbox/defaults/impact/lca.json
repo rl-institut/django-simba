@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "_comment": [
+    "openLCA emission factors for eflips-impact, parsed by OpenLCAData.from_json_lca.",
+    "Every leaf is an impact vector over the eight EF 3.1 categories: gwp (kg CO2 eq),",
+    "pm (kg PM2.5 eq), pocp (kg NOx eq), ap (kg SO2 eq), ep_freshwater (kg P eq),",
+    "ep_marine (kg N eq), fuel (kg oil eq), water (m3).",
+    "",
+    "PROVISIONAL. These values are the BVG study's, on ecoinvent 3.9.1 / EF 3.1, and",
+    "are shipped as the default so the calculation has something to run on. They are",
+    "not specific to any scenario a user uploads: the vehicle, battery and charging",
+    "hardware they describe are the ones BVG modelled. Treat a result as indicative of",
+    "the method rather than of the operator's fleet until these are replaced.",
+    "",
+    "Two conversions happen on load and are easy to trip over when comparing numbers",
+    "with this file: electricity factors are stored per MJ and multiplied by 3.6 to",
+    "reach per kWh, and the battery and charging-hardware entries are stored split by",
+    "lifecycle phase and summed into one production+EoL vector.",
+    "",
+    "Values that vary per vehicle type or per charging point live in lca_overrides.json,",
+    "not here."
+  ],
+  "metadata": {
+    "ecoinvent_version": "3.9.1",
+    "lcia_method_set": "EF 3.1",
+    "description": "Filled strictly from bus_results.json",
+    "created_at": "2026-05-05T00:00:00Z",
+    "eta_avail": 0.9
+  },
+  "vehicle_production": {
+    "chassis_per_kg": {
+      "gwp": 7.1450240595,
+      "pm": 0.0130150898,
+      "pocp": 0.0165275622,
+      "ap": 0.0241323025,
+      "ep_freshwater": 0.0032166873,
+      "ep_marine": 0.0002458706,
+      "fuel": 1.8687034456,
+      "water": 0.0416410873
+    },
+    "electric_motor_per_kg": {
+      "gwp": 10.4222178848,
+      "pm": 0.0396204048,
+      "pocp": 0.0369665863,
+      "ap": 0.1049725031,
+      "ep_freshwater": 0.0078134135,
+      "ep_marine": 0.0003415405,
+      "fuel": 2.5539152597,
+      "water": 0.0632562358
+    },
+    "diesel_motor_per_unit": {
+      "gwp": 7119.8812502713,
+      "pm": 28.0884617065,
+      "pocp": 26.7830224941,
+      "ap": 70.987127361,
+      "ep_freshwater": 5.4776513498,
+      "ep_marine": 0.1185370059,
+      "fuel": 2002.9892693572,
+      "water": 38.6406873115
+    },
+    "diesel_motor_mass_kg": 1900
+  },
+  "battery": {
+    "lfp_production_per_kg": {
+      "gwp": 14.3224443242,
+      "pm": 0.0598533228,
+      "pocp": 0.0421623622,
+      "ap": 0.2127094264,
+      "ep_freshwater": 0.0061575681,
+      "ep_marine": 0.0007618472,
+      "fuel": 4.002192663,
+      "water": 0.094345349
+    },
+    "lfp_eol_transport_per_kg": {
+      "gwp": 0.6391297263,
+      "pm": 0.0004834968,
+      "pocp": 0.001006088,
+      "ap": 0.0007968881,
+      "ep_freshwater": 6.55958e-05,
+      "ep_marine": 1.73898e-05,
+      "fuel": 0.2030243693,
+      "water": 0.0009558494
+    },
+    "lfp_eol_disassembly_per_kg": {
+      "gwp": -0.2070739303,
+      "pm": -0.0786541299,
+      "pocp": 0.0053780256,
+      "ap": -0.2694058471,
+      "ep_freshwater": 0.0004983863,
+      "ep_marine": -1.57095e-05,
+      "fuel": -0.0427856118,
+      "water": -0.0079487565
+    },
+    "nmc_production_per_kg": {
+      "gwp": 20.1705783869,
+      "pm": 0.0628558404,
+      "pocp": 0.0324743284,
+      "ap": 0.1560246564,
+      "ep_freshwater": 0.0129088056,
+      "ep_marine": 0.0026767478,
+      "fuel": 6.2067875133,
+      "water": 1.2358116285
+    },
+    "nmc_eol_transport_per_kg": {
+      "gwp": 0.6391297263,
+      "pm": 0.0004834968,
+      "pocp": 0.001006088,
+      "ap": 0.0007968881,
+      "ep_freshwater": 6.55958e-05,
+      "ep_marine": 1.73898e-05,
+      "fuel": 0.2030243693,
+      "water": 0.0009558494
+    },
+    "nmc_eol_disassembly_per_kg": {
+      "gwp": -0.1142217733,
+      "pm": -0.0766256035,
+      "pocp": 0.0054840343,
+      "ap": -0.2626756459,
+      "ep_freshwater": 0.0005177394,
+      "ep_marine": -1.31525e-05,
+      "fuel": -0.0230062619,
+      "water": -0.007259187
+    },
+    "lifetime_years": 8
+  },
+  "use_phase": {
+    "electricity_per_kwh_by_year": {
+      "2023": {
+        "gwp": 0.1353671996,
+        "pm": -1.1765e-06,
+        "pocp": 0.000195864,
+        "ap": 0.0001231612,
+        "ep_freshwater": 0.0002881545,
+        "ep_marine": 1.70305e-05,
+        "fuel": 0.0302964784,
+        "water": 0.0009248269
+      },
+      "2030": {
+        "gwp": 0.0696828874,
+        "pm": 1.71883e-05,
+        "pocp": 9.77794e-05,
+        "ap": 6.91517e-05,
+        "ep_freshwater": 4.88415e-05,
+        "ep_marine": 2.9633e-06,
+        "fuel": 0.0203403371,
+        "water": 0.0003027604
+      },
+      "2050": {
+        "gwp": 0.0261391939,
+        "pm": 1.21063e-05,
+        "pocp": 4.93151e-05,
+        "ap": 3.81175e-05,
+        "ep_freshwater": 2.13471e-05,
+        "ep_marine": 1.3551e-06,
+        "fuel": 0.0070978087,
+        "water": 0.0001819775
+      }
+    },
+    "diesel_per_kg": {
+      "gwp": 3.8873023404,
+      "pm": 0.0025506822,
+      "pocp": 0.0152835829,
+      "ap": 0.008266563,
+      "ep_freshwater": -0.0005457298,
+      "ep_marine": 0.0006972338,
+      "fuel": 1.174965882,
+      "water": 0.0010879872
+    },
+    "efficiency_mv_to_lv": 0.99,
+    "efficiency_lv_ac_to_dc": 0.95
+  },
+  "maintenance": {
+    "iceb_per_year": {
+      "gwp": 2727.3725113174,
+      "pm": 1.4247619443,
+      "pocp": 4.0515118775,
+      "ap": 4.2536221735,
+      "ep_freshwater": 1.7563917371,
+      "ep_marine": 0.3003767929,
+      "fuel": 845.3033828273,
+      "water": 17.1228219107
+    },
+    "beb_per_year": {
+      "gwp": 2557.781999876,
+      "pm": 1.5140544646,
+      "pocp": 3.7768838271,
+      "ap": 4.6374171771,
+      "ep_freshwater": 1.9245437185,
+      "ep_marine": 0.351172717,
+      "fuel": 766.0160472554,
+      "water": 17.4877028381
+    },
+    "beb_maintenance_reduction_factor": 0.75
+  },
+  "charging_infrastructure": {
+    "control_unit_production_per_unit": {
+      "gwp": 1345.9444964049,
+      "pm": 18.0932046309,
+      "pocp": 10.7049633521,
+      "ap": 62.1398915436,
+      "ep_freshwater": -0.640240224,
+      "ep_marine": -0.025868672,
+      "fuel": 364.5624892555,
+      "water": 3.2271508923
+    },
+    "control_unit_eol_per_unit": {
+      "gwp": -695.6806515338,
+      "pm": -3.8086274076,
+      "pocp": -3.5434483822,
+      "ap": -12.2032120932,
+      "ep_freshwater": -0.6745872323,
+      "ep_marine": -0.0124930974,
+      "fuel": -166.475652966,
+      "water": -3.0624258115
+    },
+    "user_unit_production_per_unit": {
+      "gwp": 1103.5697420832,
+      "pm": 8.3891756795,
+      "pocp": 5.2934279549,
+      "ap": 24.807719031,
+      "ep_freshwater": 0.1623554265,
+      "ep_marine": 0.0088622687,
+      "fuel": 378.5719232999,
+      "water": 6.3381681756
+    },
+    "user_unit_eol_per_unit": {
+      "gwp": -575.5520046697,
+      "pm": -2.1062698977,
+      "pocp": -2.1443792511,
+      "ap": -5.6540243026,
+      "ep_freshwater": -0.4347275205,
+      "ep_marine": -0.0155945266,
+      "fuel": -218.6949472794,
+      "water": -4.9965202021
+    },
+    "power_unit": {
+      "ref_power_kw": 350,
+      "production_per_unit": {
+        "gwp": 6103.5150927163,
+        "pm": 88.7660796321,
+        "pocp": 52.1822194765,
+        "ap": 309.0006819978,
+        "ep_freshwater": -3.5354640772,
+        "ep_marine": -0.1454028451,
+        "fuel": 1618.5270535389,
+        "water": 12.9151295387
+      },
+      "eol_per_unit": {
+        "gwp": -1586.3434417575,
+        "pm": -15.0129738261,
+        "pocp": -12.6199610485,
+        "ap": -52.3884489456,
+        "ep_freshwater": -2.6246336265,
+        "ep_marine": -0.0099295108,
+        "fuel": -408.4318346679,
+        "water": -3.8301140032
+      }
+    },
+    "transformer": {
+      "ref_power_kw": 315.0,
+      "production_per_unit": {
+        "gwp": 8100.000000000007,
+        "pm": 18.580645161290313,
+        "pocp": 22.027913232601538,
+        "ap": 58.602150537634465,
+        "ep_freshwater": 2.933333333333336,
+        "ep_marine": 6.000000000000005,
+        "fuel": 3440.8602150537668,
+        "water": 3965.25
+      },
+      "eol_per_unit": {
+        "gwp": -0.0,
+        "pm": -1.300645161290322,
+        "pocp": -1.5419539262821078,
+        "ap": -4.1021505376344125,
+        "ep_freshwater": -0.733333333333334,
+        "ep_marine": -0.6000000000000005,
+        "fuel": -240.86021505376368,
+        "water": 1.56
+      }
+    },
+    "concrete_per_m3": {
+      "gwp": 307.953,
+      "pm": 0.298,
+      "pocp": 1.801,
+      "ap": 0.684,
+      "ep_freshwater": 0.037,
+      "ep_marine": 0.003,
+      "fuel": 48.306,
+      "water": 2.677
+    }
+  }
+}

@@ -41,7 +41,9 @@ from .models import (
     VehicleClass,
     EnumVoltageLevel,
     EnumChargeType,
+    EnumEnergySource,
 )
+from . import impact
 from .tasks import run_simba_scenario
 from .util import get_unique_task_id, validate_zip, ZipFileException
 
@@ -1329,3 +1331,82 @@ class ZipValidationTest(SimpleTestCase):
                 validate_zip(z, allowed_file_nr, allowed_size - 1, allowed_nesting)
             with self.assertRaises(ZipFileException):
                 validate_zip(z, allowed_file_nr, allowed_size, allowed_nesting - 1)
+
+
+class LcaDefaultsTest(SimpleTestCase):
+    """Guard the two LCA JSON files against drifting out of eflips-impact's schema.
+
+    Neither file is validated anywhere at import time: eflips-impact indexes into them
+    by key and the dataclasses validate cross-field consistency only once a whole
+    parameter set is built. A missing or misspelled key therefore surfaces as a
+    KeyError or a ValueError at the end of a simulation that has already run, which is
+    the most expensive moment to find out.
+    """
+
+    def test_lca_json_parses(self):
+        data = impact.load_lca_defaults()
+
+        self.assertGreater(data.eta_avail, 0)
+        self.assertGreater(data.battery_lifetime_years, 0)
+        self.assertGreater(data.diesel_motor_mass_kg, 0)
+        # The grid mix drives the whole use phase of a battery-electric fleet.
+        self.assertTrue(data.electricity_per_kwh.data, "no electricity years in lca.json")
+
+    def test_overrides_cover_the_year_in_the_electricity_series(self):
+        overrides = impact.load_lca_overrides()
+        years = sorted(impact.load_lca_defaults().electricity_per_kwh.data)
+        # Outside this range the series is clamped, with a warning, and the result
+        # stops responding to the year at all.
+        self.assertGreaterEqual(overrides["year"], years[0])
+        self.assertLessEqual(overrides["year"], years[-1])
+
+    def test_vehicle_type_parameters_build_for_both_energy_sources(self):
+        data = impact.load_lca_defaults()
+        overrides = impact.load_lca_overrides()
+        year = overrides["year"]
+
+        for name, energy_source in [
+            ("vehicle_type_default", EnumEnergySource.BATTERY_ELECTRIC),
+            ("vehicle_type_default_diesel", EnumEnergySource.DIESEL),
+        ]:
+            with self.subTest(defaults=name):
+                vehicle_type = VehicleType(name_short=None, energy_source=energy_source)
+                built = impact._lca_vehicle_type_overrides(vehicle_type)
+                # __post_init__ raises if a field contradicts the energy source.
+                if energy_source == EnumEnergySource.DIESEL:
+                    parameters = data.make_vehicle_type_lca_parameters_diesel(built)
+                else:
+                    parameters = data.make_vehicle_type_lca_parameters_beb(year, built)
+                self.assertIn("chassis_emission_factors_per_kg", parameters.to_dict())
+
+    def test_charging_point_type_parameters_differ_by_type(self):
+        data = impact.load_lca_defaults()
+
+        depot = data.make_charging_point_type_lca_parameters(
+            impact._lca_charging_point_type_overrides(impact.DEPOT_CPT_NAME_SHORT)
+        ).to_dict()
+        opportunity = data.make_charging_point_type_lca_parameters(
+            impact._lca_charging_point_type_overrides(impact.OPPORTUNITY_CPT_NAME_SHORT)
+        ).to_dict()
+
+        # An indoor depot charger has no concrete foundation; a terminal one does.
+        self.assertEqual(depot["foundation_volume_per_point_m3"], 0.0)
+        self.assertGreater(opportunity["foundation_volume_per_point_m3"], 0.0)
+
+    def test_battery_chemistry_selects_the_emission_factors(self):
+        data = impact.load_lca_defaults()
+
+        lfp = data.make_battery_type_lca_parameters("lfp").to_dict()
+        nmc = data.make_battery_type_lca_parameters("NMC622").to_dict()
+
+        # A quoted string -- what a naive jsonb::text migration would leave behind --
+        # fails the "NMC" prefix test and silently falls back to LFP.
+        self.assertNotEqual(
+            lfp["emission_factors_per_kg"]["gwp"], nmc["emission_factors_per_kg"]["gwp"]
+        )
+        self.assertEqual(
+            data.make_battery_type_lca_parameters('"NMC622"').to_dict()[
+                "emission_factors_per_kg"
+            ]["gwp"],
+            lfp["emission_factors_per_kg"]["gwp"],
+        )

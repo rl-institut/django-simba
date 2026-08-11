@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "_comment": [
+    "The half of the LCA parameters that is not an openLCA emission factor: values that",
+    "differ per vehicle model or per charging point type. lca.json holds the rest.",
+    "",
+    "Shaped like tco.json, not like the file of the same name in eflips-x. That one is a",
+    "list keyed by VehicleType.name_short, and eflips-impact's init_lca_params() writes",
+    "nothing at all -- for any entity -- if a single battery-electric vehicle type in the",
+    "scenario is missing from it. django-simba fleets come from user uploads and have",
+    "arbitrary names, so a name-keyed list would match nothing and silently leave the",
+    "whole scenario unparameterised. 'vehicle_type_default' therefore covers every",
+    "vehicle type not named in 'vehicle_types'.",
+    "",
+    "'year' selects the electricity mix from lca.json's per-year series, which drives",
+    "the entire use-phase impact of a battery-electric fleet. It is a fixed constant",
+    "rather than something derived from the scenario, because django-simba stores no",
+    "project year anywhere. Values between the years in lca.json (2023, 2030, 2050) are",
+    "interpolated; values outside that range are clamped, with a warning.",
+    "",
+    "'motor_rated_power_kw' is applied to every vehicle type equally. Motor mass is",
+    "derived from it as power / power_to_weight_ratio, so an articulated bus is given",
+    "the same motor as a 12 m one, understating its production emissions. Correcting",
+    "this needs a per-type figure -- either entries in 'vehicle_types' below, or a rule",
+    "based on VehicleType.length.",
+    "",
+    "Consumption is deliberately absent. eflips-impact reads it from these parameters,",
+    "but ebustoolbox.impact writes it in from the simulated driving events after the",
+    "run, the same value the TCO calculation uses. A number here would only be a",
+    "second, unused source for it."
+  ],
+  "year": 2025,
+  "vehicle_type_default": {
+    "motor_rated_power_kw": 200.0,
+    "motor_power_to_weight_ratio_kw_per_kg": 1.5,
+    "vehicle_lifetime_years": 12.0
+  },
+  "vehicle_type_default_diesel": {
+    "motor_rated_power_kw": 200.0,
+    "vehicle_lifetime_years": 12.0,
+    "diesel_consumption_kg_per_km": 0.449
+  },
+  "vehicle_types": [],
+  "charging_point_types": {
+    "depot": {
+      "infrastructure_lifetime_years": 20.0,
+      "foundation_volume_per_point_m3": 0.0
+    },
+    "opportunity": {
+      "infrastructure_lifetime_years": 20.0,
+      "foundation_volume_per_point_m3": 3.96
+    }
+  }
+}

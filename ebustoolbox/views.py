@@ -2046,6 +2046,14 @@ def get_tco(request, task_id: str):
     return HttpResponse(status=400)
 
 
+def get_lca(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
+    # JSON only: the payload is nested, so there is no single sensible CSV of it.
+    return JsonResponse(data.get_lca(task_id))
+
+
 def get_piecharts(request, task_id: str):
     permission = AuthorizedMixIn.get_permission(request.user, task_id)
     if not permission:

@@ -206,6 +206,10 @@ class Scenario(models.Model):
         blank=True,
     )
     tco_result = models.JSONField(default=None, null=True, blank=True)
+    # Nested, unlike tco_result's flat {category: value}: see
+    # ebustoolbox.impact.lca_result_to_dict. A django-simba column with no counterpart
+    # in eflips-model, which is why it has no server_default to answer to.
+    lca_result = models.JSONField(default=None, null=True, blank=True)
 
     manager = models.ForeignKey(
         User, on_delete=models.SET_NULL, default=None, null=True, blank=True, related_name="+"

@@ -1,4 +1,4 @@
-"""Integration of eflips-impact (TCO) with the django-simba scenario graph.
+"""Integration of eflips-impact (TCO and LCA) with the django-simba scenario graph.
 
 The scenario the user edits in the wizard is not the scenario that is simulated::
 
@@ -21,6 +21,12 @@ The scenario the user edits in the wizard is not the scenario that is simulated:
 4. :func:`calculate_tco` runs eflips-impact and returns the flat
    ``{category: EUR/revenue-km}`` dict that ``Scenario.tco_result`` and the result
    page expect.
+
+The LCA calculation reuses all four steps: it needs the same fleet topology, the same
+foreign keys, and the same annualisation. Only the parameters are its own, and they
+live in a column of their own, ``lca_parameters``. :func:`ensure_lca_parameters` fills
+those from ``defaults/impact/lca.json``, and :func:`calculate_lca` runs the
+calculation.
 """
 
 import json
@@ -33,6 +39,12 @@ from pathlib import Path
 from django.db.models import Max, Min
 from django.db.transaction import atomic
 
+from eflips.impact.lca import (
+    ChargingPointTypeOverrides,
+    OpenLCAData,
+    VehicleTypeOverrides,
+    calculate_lca as eflips_calculate_lca,
+)
 from eflips.impact.tco import calculate_tco as eflips_calculate_tco
 
 from .models import (
@@ -53,6 +65,8 @@ logger = logging.getLogger("custom")
 DATA_DIR = Path(__file__).resolve().parent / "defaults" / "impact"
 FLEET_DEFAULTS_PATH = DATA_DIR / "fleet.json"
 TCO_DEFAULTS_PATH = DATA_DIR / "tco.json"
+LCA_DEFAULTS_PATH = DATA_DIR / "lca.json"
+LCA_OVERRIDES_PATH = DATA_DIR / "lca_overrides.json"
 
 # ChargingPointType has no "type" column, so the depot/opportunity discriminator has
 # to live in name_short. These are the values used in fleet.json.
@@ -80,6 +94,24 @@ def load_fleet_defaults() -> dict:
 def load_tco_defaults() -> dict:
     """Return the parsed contents of ``defaults/impact/tco.json``."""
     with open(TCO_DEFAULTS_PATH, encoding="utf-8") as f:
+        return json.load(f)
+
+
+@lru_cache(maxsize=None)
+def load_lca_defaults() -> OpenLCAData:
+    """Return ``defaults/impact/lca.json`` as the dataclass eflips-impact builds from.
+
+    Parsing is not a plain ``json.load``: the loader converts the electricity factors
+    from per MJ to per kWh and sums the separate production and end-of-life entries,
+    so the object this returns does not have the same shape as the file.
+    """
+    return OpenLCAData.from_json_lca(LCA_DEFAULTS_PATH)
+
+
+@lru_cache(maxsize=None)
+def load_lca_overrides() -> dict:
+    """Return the parsed contents of ``defaults/impact/lca_overrides.json``."""
+    with open(LCA_OVERRIDES_PATH, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -124,6 +156,46 @@ def _tco_battery_type_defaults(name_short: str | None) -> dict:
 def scenario_tco_defaults() -> dict:
     """Return the default ``Scenario.tco_parameters``."""
     return deepcopy(load_tco_defaults()["scenario"])
+
+
+def _lca_vehicle_type_overrides(vehicle_type: VehicleType) -> VehicleTypeOverrides:
+    """Return the per-vehicle-type LCA values that are not openLCA emission factors.
+
+    Consumption is left at its default of zero here and written in after the
+    simulation by :func:`_write_lca_consumption`.
+    """
+    overrides = load_lca_overrides()
+    entry = _by_name_short(overrides.get("vehicle_types", []), "name_short").get(
+        vehicle_type.name_short
+    )
+    if entry is None:
+        if vehicle_type.energy_source == EnumEnergySource.DIESEL:
+            entry = overrides["vehicle_type_default_diesel"]
+        else:
+            entry = overrides["vehicle_type_default"]
+
+    return VehicleTypeOverrides(
+        motor_rated_power_kw=float(entry["motor_rated_power_kw"]),
+        vehicle_lifetime_years=float(entry["vehicle_lifetime_years"]),
+        motor_power_to_weight_ratio_kw_per_kg=entry.get("motor_power_to_weight_ratio_kw_per_kg"),
+        diesel_consumption_kg_per_km=entry.get("diesel_consumption_kg_per_km"),
+    )
+
+
+def _lca_charging_point_type_overrides(name_short: str | None) -> ChargingPointTypeOverrides:
+    """Return the LCA values for one charging point type.
+
+    Split by depot versus opportunity, which eflips-impact's own writer does not do:
+    it applies the opportunity values to every charging point type in the scenario.
+    The difference is the concrete foundation, which an indoor depot charger does not
+    have.
+    """
+    entries = load_lca_overrides()["charging_point_types"]
+    entry = entries["depot"] if name_short == DEPOT_CPT_NAME_SHORT else entries["opportunity"]
+    return ChargingPointTypeOverrides(
+        infrastructure_lifetime_years=float(entry["infrastructure_lifetime_years"]),
+        foundation_volume_per_point_m3=float(entry["foundation_volume_per_point_m3"]),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -450,14 +522,37 @@ def get_scaling_factor(scenario: Scenario) -> float:
     return 365.0 / max(1.0, math.ceil(days))
 
 
+def _electricity_consumption(vehicle_type: VehicleType) -> float | None:
+    """Return a battery-electric vehicle type's consumption in kWh/km.
+
+    Taken from the vehicle type if it carries a constant, and otherwise measured off
+    the simulated driving events. Shared by the TCO and LCA writers so that the two
+    calculations cannot end up describing the same fleet with different energy use.
+
+    :returns: kWh/km, or ``None`` if the scenario has not been simulated far enough to
+        measure one and the vehicle type has no constant either.
+    """
+    if vehicle_type.consumption is not None:
+        return vehicle_type.consumption
+
+    energy_kwh = sum(
+        event.get_energy_delta()
+        for event in Event.objects.filter(vehicle_type=vehicle_type, event_type="DRIVING")
+    )
+    distance = vehicle_type.get_total_distance_km
+    if not distance:
+        return None
+    # Driving events lose energy, so the delta is negative.
+    return -energy_kwh / distance
+
+
 def _write_energy_consumption(scenario: Scenario) -> None:
     """Write the per-vehicle-type average consumption eflips-impact reads.
 
     ``TCOCalculator`` runs in ``"constant"`` mode and looks for
     ``average_electricity_consumption`` (or ``average_diesel_consumption`` for diesel
     vehicle types) in ``VehicleType.tco_parameters``; a missing value is logged and
-    treated as zero, which silently zeroes the energy cost. The value is taken from
-    the vehicle type if set, and otherwise derived from the simulated driving events.
+    treated as zero, which silently zeroes the energy cost.
     """
     for vehicle_type in VehicleType.objects.filter(scenario=scenario):
         parameters = vehicle_type.tco_parameters or {}
@@ -468,17 +563,10 @@ def _write_energy_consumption(scenario: Scenario) -> None:
                 parameters["average_diesel_consumption"] = _tco_vehicle_type_defaults(vehicle_type)[
                     "average_diesel_consumption"
                 ]
-        elif vehicle_type.consumption is not None:
-            parameters["average_electricity_consumption"] = vehicle_type.consumption
         else:
-            energy_kwh = sum(
-                event.get_energy_delta()
-                for event in Event.objects.filter(vehicle_type=vehicle_type, event_type="DRIVING")
-            )
-            distance = vehicle_type.get_total_distance_km
-            if distance:
-                # Driving events lose energy, so the delta is negative.
-                parameters["average_electricity_consumption"] = -energy_kwh / distance
+            consumption = _electricity_consumption(vehicle_type)
+            if consumption is not None:
+                parameters["average_electricity_consumption"] = consumption
             else:
                 logger.warning(
                     f"S.ID:{scenario.id}:VehicleType {vehicle_type.id} has no distance; "
@@ -523,3 +611,207 @@ def tco_result_to_dict(result) -> dict:
     :returns: ``{category name: EUR per revenue-km}``.
     """
     return {category.name: value for category, value in result.tco_by_type_per_revenue_km.items()}
+
+
+# ---------------------------------------------------------------------------
+# LCA
+# ---------------------------------------------------------------------------
+
+
+@atomic()
+def ensure_lca_parameters(scenario: Scenario) -> None:
+    """Fill ``lca_parameters`` on every row of a scenario that needs one.
+
+    The rows themselves are not created here: :func:`ensure_fleet_topology` owns that,
+    and this has to run after it. ``calculate_lca`` raises rather than falling back
+    when a vehicle type, battery type or charging point type it reaches has no
+    parameters, so a scenario is either completely parameterised or not calculable.
+
+    Deliberately not built on eflips-impact's own ``init_lca_params``. That one keys
+    its per-vehicle-type values by ``name_short`` and writes *nothing at all* -- for
+    any entity in the scenario -- if one battery-electric vehicle type is missing from
+    the file. Fleets here are user uploads with arbitrary names, so that would be the
+    normal case rather than the exception. Working from the same file through the
+    lower-level constructors keeps the name lookup optional, and lets depot and
+    opportunity charging points be told apart, which ``init_lca_params`` does not do.
+
+    Values are replaced rather than merged: the JSON file is meant to be the only
+    source of them. Nothing here preserves a stored value, because nothing can edit
+    these -- unlike the TCO parameters, they have no form behind them.
+
+    :param scenario: The scenario to parameterise, after ``ensure_fleet_topology``.
+    """
+    data = load_lca_defaults()
+    year = int(load_lca_overrides()["year"])
+
+    for vehicle_type in VehicleType.objects.filter(scenario=scenario):
+        overrides = _lca_vehicle_type_overrides(vehicle_type)
+        if vehicle_type.energy_source == EnumEnergySource.DIESEL:
+            parameters = data.make_vehicle_type_lca_parameters_diesel(overrides)
+        else:
+            parameters = data.make_vehicle_type_lca_parameters_beb(year, overrides)
+        vehicle_type.lca_parameters = parameters.to_dict()
+        vehicle_type.save(update_fields=["lca_parameters"])
+
+    for battery_type in BatteryType.objects.filter(scenario=scenario):
+        # chemistry picks the emission factors: anything starting with "NMC" is NMC,
+        # everything else is treated as LFP.
+        battery_type.lca_parameters = data.make_battery_type_lca_parameters(
+            battery_type.chemistry
+        ).to_dict()
+        battery_type.save(update_fields=["lca_parameters"])
+
+    for charging_point_type in ChargingPointType.objects.filter(scenario=scenario):
+        charging_point_type.lca_parameters = data.make_charging_point_type_lca_parameters(
+            _lca_charging_point_type_overrides(charging_point_type.name_short)
+        ).to_dict()
+        charging_point_type.save(update_fields=["lca_parameters"])
+
+    logger.info(f"S.ID:{scenario.id}:Seeded LCA parameters from {LCA_DEFAULTS_PATH.name}")
+
+
+def _write_lca_consumption(scenario: Scenario) -> None:
+    """Write the measured consumption into ``VehicleType.lca_parameters``.
+
+    The counterpart of :func:`_write_energy_consumption`, using the same value from
+    :func:`_electricity_consumption`. It is seeded as zero by
+    :func:`ensure_lca_parameters` because it is a result of the simulation rather than
+    a configured default, and zero here would silently remove the entire use phase of
+    a battery-electric fleet from the result.
+
+    Diesel consumption is not touched: nothing simulates it, so it keeps the value
+    from ``lca_overrides.json``. Note the unit differs from the TCO parameter of the
+    same name -- kg/km here, litres/km there.
+    """
+    for vehicle_type in VehicleType.objects.filter(scenario=scenario):
+        if vehicle_type.energy_source == EnumEnergySource.DIESEL:
+            continue
+
+        parameters = vehicle_type.lca_parameters or {}
+        consumption = _electricity_consumption(vehicle_type)
+        if consumption is None:
+            logger.warning(
+                f"S.ID:{scenario.id}:VehicleType {vehicle_type.id} has no distance; "
+                "its use-phase emissions will be zero"
+            )
+            continue
+
+        parameters["average_consumption_kwh_per_km"] = consumption
+        vehicle_type.lca_parameters = parameters
+        vehicle_type.save(update_fields=["lca_parameters"])
+
+
+def _write_charging_places(scenario: Scenario) -> None:
+    """Fill in the plug count of opportunity stations that have none.
+
+    ``amount_charging_places`` is optional on the stations page, and most scenarios
+    reach the calculation with it unset. eflips-impact reads it as the number of plugs
+    to build -- one user unit and one concrete foundation each -- and, while it checks
+    for ``None`` before warning about an oversized station, it then multiplies with it
+    unguarded, so an unset value is a ``TypeError`` rather than a missing figure.
+
+    The value written is the peak number of buses charging at the station at once,
+    which is the smallest plug count that could have served the simulated schedule.
+    A count the user did enter is left alone; this only runs on the simulated
+    scenario, never on the one the wizard edits.
+    """
+    depot_station_ids = set(
+        Depot.objects.filter(scenario=scenario).values_list("station_id", flat=True)
+    )
+    stations = (
+        Station.objects.filter(scenario=scenario, is_electrified=True)
+        .exclude(id__in=depot_station_ids)
+        .exclude(charging_point_type__isnull=True)
+    )
+
+    for station in stations:
+        if station.amount_charging_places:
+            continue
+
+        # A charge ending exactly as another begins reuses the plug, so an end is
+        # sorted before a start at the same instant.
+        deltas = []
+        for time_start, time_end in Event.objects.filter(
+            scenario=scenario, station=station, event_type="CHARGING_OPPORTUNITY"
+        ).values_list("time_start", "time_end"):
+            deltas.append((time_start, 1))
+            deltas.append((time_end, -1))
+        deltas.sort(key=lambda point: (point[0], point[1]))
+
+        peak = simultaneous = 0
+        for _, delta in deltas:
+            simultaneous += delta
+            peak = max(peak, simultaneous)
+
+        if peak == 0:
+            continue
+
+        station.amount_charging_places = peak
+        station.save(update_fields=["amount_charging_places"])
+        logger.info(
+            f"S.ID:{scenario.id}:Station {station.id} had no charging places; "
+            f"using the simulated peak of {peak}"
+        )
+
+
+def _eta_avail(scenario: Scenario) -> float:
+    """Return the technical availability factor to size the fleet with.
+
+    Read from ``Scenario.tco_parameters`` so that both calculations scale the
+    simulated vehicle count the same way -- LCA takes
+    ``ceil(n_ready / eta_avail)`` vehicles as built, and a value differing from the
+    TCO one would have the two costing different fleets. ``lca.json`` carries its own
+    figure, used only when the scenario has none.
+    """
+    stored = (scenario.tco_parameters or {}).get("eta_avail")
+    if stored:
+        return float(stored)
+    return float(load_lca_defaults().eta_avail)
+
+
+def calculate_lca(scenario: Scenario) -> dict:
+    """Run the eflips-impact LCA calculation for a simulated scenario.
+
+    Shares the annualisation with :func:`calculate_tco` -- same scaling factor, same
+    availability factor -- so that the two describe one fleet over one year.
+
+    :param scenario: A simulated scenario, after :func:`attach_charging_point_types`.
+    :returns: The nested dict described in :func:`lca_result_to_dict`.
+    """
+    from ebustoolbox.tasks import create_db_url  # avoids a circular import
+
+    ensure_lca_parameters(scenario)
+    _write_lca_consumption(scenario)
+    _write_charging_places(scenario)
+
+    result = eflips_calculate_lca(
+        scenario.id,
+        database_url=create_db_url(),
+        scaling_factor=get_scaling_factor(scenario),
+        eta_avail=_eta_avail(scenario),
+    )
+    return lca_result_to_dict(result)
+
+
+def lca_result_to_dict(result) -> dict:
+    """Flatten an ``LCAResult`` for storage and the frontend.
+
+    ``LCAResult.items`` are annual fleet totals rather than per-revenue-km figures;
+    the three groupings below are the normalised ones. Each maps a group name to the
+    eight impact categories (``gwp``, ``pm``, ``pocp``, ``ap``, ``ep_freshwater``,
+    ``ep_marine``, ``fuel``, ``water``), all per revenue-km.
+
+    :param result: The ``LCAResult`` returned by eflips-impact.
+    :returns: ``{"total": {...}, "by_scope": {...}, "by_type": {...},
+        "revenue_km": {...}}``.
+    """
+    return {
+        "total": result.total_per_revenue_km.to_dict(),
+        "by_scope": {
+            scope.name: vector.to_dict() for scope, vector in result.emissions_by_scope.items()
+        },
+        "by_type": {
+            item.name: vector.to_dict() for item, vector in result.emissions_by_type.items()
+        },
+        "revenue_km": dict(result.revenue_km),
+    }
