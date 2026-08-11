@@ -38,10 +38,13 @@ from eflips.depot.api import (  # noqa
     simulate_scenario,
     generate_optimal_depot_layout,
 )
-from eflips.tco import calculate_tco
-
 import core.deepcopy
-from ebustoolbox.impact import apply_tco_mutation
+from ebustoolbox.impact import (
+    apply_tco_mutation,
+    attach_charging_point_types,
+    calculate_tco,
+    ensure_fleet_topology,
+)
 from ebusdjango.util import get_static_file_path
 import ebustoolbox.util
 import simba.optimizer_util
@@ -2163,9 +2166,12 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
         progress.current_work += 1
         progress.status = _("Berechne TCO")
         progress.save()
-        tco_result = eflips_calculate_tco(db_scenario)  # on error: all values 1
+
+        tco_result = eflips_calculate_tco(db_scenario)
         db_scenario.tco_result = tco_result
         db_scenario.save(update_fields=["tco_result"])
+
+        # TODO if we want to integrate LCA as well, the lca_result field should be handled in the same way as tco_result.
 
         check_event_soc_consistency(db_scenario)
         db_scenario.refresh_from_db()
@@ -2494,25 +2500,21 @@ def run_eflips(scenario, delete_existing_depot, progress) -> None:
     )
 
 
-def eflips_calculate_tco(scenario: Scenario):
-    db_url = create_db_url()
-    # get vehicle type energy consumptions
-    for vt in scenario.vehicletype_set.all():
-        if vt.consumption is not None:
-            # consumption set directly
-            vt.tco_parameters["const_energy_consumption"] = vt.consumption
-        else:
-            # vehicle type consumption not set: calculate from driving events
-            energy_kwh = sum(
-                [
-                    e.get_energy_delta()
-                    for e in Event.objects.filter(vehicle_type=vt, event_type="DRIVING")
-                ]
-            )
-            distance = vt.get_total_distance_km
-            vt.tco_parameters["const_energy_consumption"] = -energy_kwh / distance  # [kWh / km]
-        vt.save(update_fields=["tco_parameters"])
-    return calculate_tco(scenario.id, db_url)
+def eflips_calculate_tco(scenario: Scenario) -> dict:
+    """Complete the fleet topology of a simulated scenario and calculate its TCO.
+
+    The fleet rows and their parameters were created before the simulation and
+    carried onto this scenario by ``apply_tco_mutation``; ``ensure_fleet_topology``
+    is only a fallback for scenarios that never went through the costs page. The
+    charging point types can only be attached now, because the Areas and the
+    opportunity-charging Events they are attached to are products of the simulation.
+
+    :param scenario: A simulated scenario, after ``apply_depot_strategy``.
+    :returns: ``{cost_category: EUR per revenue-km}`` for ``Scenario.tco_result``.
+    """
+    ensure_fleet_topology(scenario)
+    attach_charging_point_types(scenario)
+    return calculate_tco(scenario)
 
 
 def create_db_url():
