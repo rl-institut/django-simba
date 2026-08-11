@@ -1961,8 +1961,9 @@ def get_binned_soc_data(request, task_id: str):
 
 def get_electrified_stations_data(request, task_id: str):
     """
-    Returns one row per electrified terminus stop with its number of charging points and the
-    average utilization of those points over the simulated period.
+    Returns one row per electrified terminus stop: the lines it serves, its number of charging
+    points, installed and peak power, energy delivered, and the average utilization of those
+    points over the simulated period.
     """
     permission = AuthorizedMixIn.get_permission(request.user, task_id)
     if not permission:
@@ -1982,8 +1983,8 @@ def get_electrified_stations_data(request, task_id: str):
 def get_station_load(request, task_id: str, station_id: int):
     """
     Returns the load profile of one charging station: the mean occupancy of its charging points
-    in 60 minute bins, and the power drawn at the resolution it is simulated on. Fetched by the
-    map popup on demand.
+    and the mean grid-side power drawn, both in 60 minute bins. Fetched by the map popup on
+    demand.
     """
     permission = AuthorizedMixIn.get_permission(request.user, task_id)
     if not permission:
