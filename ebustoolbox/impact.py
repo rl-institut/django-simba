@@ -631,10 +631,14 @@ def _write_energy_consumption(scenario: Scenario, consumption: dict | None = Non
                     f"S.ID:{scenario.id}:VehicleType {vehicle_type.id} has no measured "
                     "consumption; falling back to the configured one for TCO"
                 )
-                parameters.setdefault(
-                    "average_electricity_consumption",
-                    _tco_vehicle_type_defaults(vehicle_type)["average_electricity_consumption"],
-                )
+                # Not setdefault(): the field is optional on the costs page, so a
+                # blank input stores an explicit None rather than leaving the key
+                # out. setdefault() would keep that None, and eflips-impact
+                # multiplies with this value rather than checking it.
+                if parameters.get("average_electricity_consumption") is None:
+                    parameters["average_electricity_consumption"] = _tco_vehicle_type_defaults(
+                        vehicle_type
+                    )["average_electricity_consumption"]
 
         vehicle_type.tco_parameters = parameters
         vehicle_type.save(update_fields=["tco_parameters"])
