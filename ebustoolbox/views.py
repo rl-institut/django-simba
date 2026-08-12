@@ -106,7 +106,7 @@ def progress_scenario(request: HttpRequest, progress_id, template_name):
     not_exists = result.state == "PENDING"
     reserved = False
     if not_exists:
-        for r in app.control.inspect().reserved().values():
+        for r in (app.control.inspect().reserved() or {}).values():
             ids = set(x["id"] for x in r)
             if str(progress.task_id) in ids:
                 reserved = True
