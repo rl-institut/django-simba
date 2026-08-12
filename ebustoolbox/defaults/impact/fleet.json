@@ -5,9 +5,9 @@
     "before a TCO calculation can run: one BatteryType per battery-electric vehicle",
     "type, and one ChargingPointType per charging type.",
     "",
-    "Matching is by 'vehicle_name_short'. django-simba fleets come from user uploads",
-    "and have arbitrary names, so 'battery_type_default' supplies the values for any",
-    "vehicle type not listed explicitly in 'battery_types'.",
+    "'battery_type_default' supplies these values for every vehicle type. There is no",
+    "per-vehicle-type list: django-simba fleets come from user uploads with arbitrary",
+    "names, so name matching found nothing to match.",
     "",
     "ChargingPointType has no 'type' column in the database, so 'name_short' carries",
     "the depot/opportunity discriminator (see DEPOT_CPT_NAME_SHORT in impact.py)."
@@ -16,7 +16,6 @@
     "specific_mass": 6.0,
     "chemistry": "lfp"
   },
-  "battery_types": [],
   "charging_point_types": [
     {
       "type": "depot",

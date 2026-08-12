@@ -10,7 +10,7 @@
     "scenario is missing from it. django-simba fleets come from user uploads and have",
     "arbitrary names, so a name-keyed list would match nothing and silently leave the",
     "whole scenario unparameterised. 'vehicle_type_default' therefore covers every",
-    "vehicle type not named in 'vehicle_types'.",
+    "battery-electric vehicle type, and the diesel block every diesel one.",
     "",
     "'year' selects the electricity mix from lca.json's per-year series, which drives",
     "the entire use-phase impact of a battery-electric fleet. It is a fixed constant",
@@ -21,8 +21,7 @@
     "'motor_rated_power_kw' is applied to every vehicle type equally. Motor mass is",
     "derived from it as power / power_to_weight_ratio, so an articulated bus is given",
     "the same motor as a 12 m one, understating its production emissions. Correcting",
-    "this needs a per-type figure -- either entries in 'vehicle_types' below, or a rule",
-    "based on VehicleType.length.",
+    "this needs a per-type figure, most likely a rule based on VehicleType.length.",
     "",
     "Consumption is deliberately absent. eflips-impact reads it from these parameters,",
     "but ebustoolbox.impact writes it in from the simulated driving events after the",
@@ -40,7 +39,6 @@
     "vehicle_lifetime_years": 12.0,
     "diesel_consumption_kg_per_km": 0.449
   },
-  "vehicle_types": [],
   "charging_point_types": {
     "depot": {
       "infrastructure_lifetime_years": 20.0,

@@ -137,11 +137,9 @@ def _by_name_short(entries: list[dict], key: str) -> dict[str, dict]:
     return {entry[key]: entry for entry in entries if entry.get(key) is not None}
 
 
-def _fleet_battery_defaults(name_short: str | None) -> dict:
-    """Return specific_mass / chemistry for a vehicle type, falling back to the default."""
-    fleet = load_fleet_defaults()
-    override = _by_name_short(fleet.get("battery_types", []), "vehicle_name_short")
-    entry = override.get(name_short, fleet["battery_type_default"])
+def _fleet_battery_defaults() -> dict:
+    """Return the specific_mass / chemistry every battery is created with."""
+    entry = load_fleet_defaults()["battery_type_default"]
     return {
         "specific_mass": float(entry["specific_mass"]),
         "chemistry": entry["chemistry"],
@@ -149,12 +147,16 @@ def _fleet_battery_defaults(name_short: str | None) -> dict:
 
 
 def vehicle_type_tco_defaults(vehicle_type: VehicleType) -> dict:
-    """Return the default ``VehicleType.tco_parameters`` for a vehicle type."""
+    """Return the default ``VehicleType.tco_parameters`` for a vehicle type.
+
+    Energy source is the only thing that varies: there is one block for
+    battery-electric vehicle types and one for diesel, and no per-model lookup. The
+    upstream files key theirs by ``name_short``, which needs a fixed fleet of known
+    models; the fleets here are user uploads with arbitrary names, so that list never
+    matched and every vehicle type took the default regardless. A fleet that needs
+    different numbers per type sets them on the costs page.
+    """
     tco = load_tco_defaults()
-    override = _by_name_short(tco.get("vehicle_types", []), "name_short")
-    entry = override.get(vehicle_type.name_short)
-    if entry is not None:
-        return {k: v for k, v in entry.items() if k != "name_short"}
     if vehicle_type.energy_source == EnumEnergySource.DIESEL:
         return deepcopy(tco["vehicle_type_default_diesel"])
     return deepcopy(tco["vehicle_type_default"])
@@ -170,14 +172,13 @@ def vehicle_type_tco_defaults_beb() -> dict:
     return deepcopy(load_tco_defaults()["vehicle_type_default"])
 
 
-def battery_type_tco_defaults(name_short: str | None) -> dict:
-    """Return the default ``BatteryType.tco_parameters`` for a vehicle type."""
-    tco = load_tco_defaults()
-    override = _by_name_short(tco.get("battery_types", []), "vehicle_name_short")
-    entry = override.get(name_short)
-    if entry is not None:
-        return {k: v for k, v in entry.items() if k != "vehicle_name_short"}
-    return deepcopy(tco["battery_type_default"])
+def battery_type_tco_defaults() -> dict:
+    """Return the default ``BatteryType.tco_parameters``.
+
+    One block for every battery in every scenario; see
+    :func:`vehicle_type_tco_defaults` for why there is no per-vehicle-type lookup.
+    """
+    return deepcopy(load_tco_defaults()["battery_type_default"])
 
 
 def charging_point_type_tco_defaults(name_short: str | None) -> dict:
@@ -207,18 +208,17 @@ def scenario_tco_defaults() -> dict:
 def _lca_vehicle_type_overrides(vehicle_type: VehicleType) -> VehicleTypeOverrides:
     """Return the per-vehicle-type LCA values that are not openLCA emission factors.
 
+    Split by energy source only, matching :func:`vehicle_type_tco_defaults`; there is
+    no per-model lookup here either.
+
     Consumption is left at its default of zero here and written in after the
     simulation by :func:`_write_lca_consumption`.
     """
     overrides = load_lca_overrides()
-    entry = _by_name_short(overrides.get("vehicle_types", []), "name_short").get(
-        vehicle_type.name_short
-    )
-    if entry is None:
-        if vehicle_type.energy_source == EnumEnergySource.DIESEL:
-            entry = overrides["vehicle_type_default_diesel"]
-        else:
-            entry = overrides["vehicle_type_default"]
+    if vehicle_type.energy_source == EnumEnergySource.DIESEL:
+        entry = overrides["vehicle_type_default_diesel"]
+    else:
+        entry = overrides["vehicle_type_default"]
 
     return VehicleTypeOverrides(
         motor_rated_power_kw=float(entry["motor_rated_power_kw"]),
@@ -369,12 +369,12 @@ def _ensure_battery_types(scenario: Scenario) -> None:
 
         is_beb = vehicle_type.energy_source == EnumEnergySource.BATTERY_ELECTRIC
         if is_beb and vehicle_type.battery_type_id is None:
-            fleet_defaults = _fleet_battery_defaults(vehicle_type.name_short)
+            fleet_defaults = _fleet_battery_defaults()
             battery_type = BatteryType.objects.create(
                 scenario=scenario,
                 specific_mass=fleet_defaults["specific_mass"],
                 chemistry=fleet_defaults["chemistry"],
-                tco_parameters=battery_type_tco_defaults(vehicle_type.name_short),
+                tco_parameters=battery_type_tco_defaults(),
             )
             vehicle_type.battery_type = battery_type
             update_fields.append("battery_type")
@@ -386,7 +386,7 @@ def _ensure_battery_types(scenario: Scenario) -> None:
             # An existing row is re-seeded too, otherwise a battery created under an
             # older tco.json would keep those prices for good.
             battery_type = vehicle_type.battery_type
-            wanted = _seed_from_json(battery_type_tco_defaults(vehicle_type.name_short))
+            wanted = _seed_from_json(battery_type_tco_defaults())
             if wanted != battery_type.tco_parameters:
                 battery_type.tco_parameters = wanted
                 battery_type.save(update_fields=["tco_parameters"])
@@ -484,7 +484,7 @@ def vehicle_common_parameters(scenario: Scenario) -> dict:
     """
     beb = vehicle_type_tco_defaults_beb()
     defaults = {key: beb[key] for key in VEHICLE_COMMON_FIELDS}
-    defaults[BATTERY_KEY] = battery_type_tco_defaults(None)
+    defaults[BATTERY_KEY] = battery_type_tco_defaults()
 
     if not tco_parameters_edited(scenario):
         return deepcopy(defaults)

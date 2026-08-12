@@ -1120,7 +1120,7 @@ class CostsView(ScenarioMixIn, TemplateView):
             data=data,
             prefix="bt-common",
             initial=forms.BatteryTypeTcoForm.initial_from(common_battery),
-        ).mark_defaults(impact.battery_type_tco_defaults(None))
+        ).mark_defaults(impact.battery_type_tco_defaults())
 
         stored_overrides = impact.vehicle_overrides(scenario)
         vehicle_rows = []
@@ -1163,16 +1163,14 @@ class CostsView(ScenarioMixIn, TemplateView):
             battery_type = vehicle_type.battery_type
             if battery_type is not None:
                 battery_baseline = (
-                    impact.battery_type_tco_defaults(vehicle_type.name_short)
-                    if is_diesel
-                    else common_battery
+                    impact.battery_type_tco_defaults() if is_diesel else common_battery
                 )
                 row["battery_form"] = forms.BatteryTypeTcoForm(
                     data=data,
                     prefix=f"bt-{battery_type.id}",
                     initial=forms.BatteryTypeTcoForm.initial_from(
                         battery_type.tco_parameters,
-                        impact.battery_type_tco_defaults(vehicle_type.name_short),
+                        impact.battery_type_tco_defaults(),
                     ),
                 ).mark_defaults(battery_baseline)
             vehicle_rows.append(row)
@@ -1359,7 +1357,7 @@ class CostsView(ScenarioMixIn, TemplateView):
                         row["battery_form"].prefix,
                         source.battery_type.tco_parameters,
                         values,
-                        impact.battery_type_tco_defaults(source.name_short),
+                        impact.battery_type_tco_defaults(),
                     )
 
             other_infrastructure = impact.charging_infrastructure_parameters(other_scenario)
