@@ -137,6 +137,46 @@
       </div>
     </div>
 
+    {# Rendered only once an LCA result exists: the calculation is allowed to fail #}
+    {# without taking the simulation down with it, and older scenarios predate it. #}
+    {% if avg_scenario.lca_result %}
+    <div class="flex flex-col">
+      <div id="lca-section" class="flex justify-between items-center pb-2">
+        <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Ökobilanz' %}</h2>
+      </div>
+      {% include "ebustoolbox/partials/result_export.html" with endpoint="lca" json_only=True %}
+      <div class="bg-white rounded-lg shadow-md mb-12">
+        <div class="p-8">
+          <div class="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 pb-4">
+            <fieldset class="flex items-center gap-4">
+              <legend class="sr-only">{% translate 'Gruppierung' %}</legend>
+              <label class="flex items-center gap-2 text-sm text-slate-800">
+                <input type="radio" name="lca-grouping" value="by_type" checked
+                       class="size-4 border-slate-400 text-emerald-600 focus:ring-emerald-400">
+                {% translate 'nach Komponente' %}
+              </label>
+              <label class="flex items-center gap-2 text-sm text-slate-800">
+                <input type="radio" name="lca-grouping" value="by_scope"
+                       class="size-4 border-slate-400 text-emerald-600 focus:ring-emerald-400">
+                {% translate 'nach Lebenszyklusphase' %}
+              </label>
+            </fieldset>
+            <label class="flex items-center gap-2 text-sm text-slate-800">
+              {% translate 'Wirkungskategorie' %}
+              <select id="lca-category"
+                      class="rounded-md border border-slate-400 bg-white px-2 py-1 text-sm text-slate-800 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400">
+              </select>
+            </label>
+          </div>
+          <div id="lca-bar" class="chart-container h-[480px]"></div>
+          <p id="lca-negative-note" class="hidden pt-2 text-center text-xs text-slate-500">
+            {% translate 'Negative Werte sind Gutschriften aus der Verwertung am Lebensende.' %}
+          </p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     <div class="flex flex-col">
         <div id="infrastructure-section" class="flex justify-between items-center pb-2">
           <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Infrastruktur' %}</h2>
@@ -1920,6 +1960,115 @@
     chart.setOption(option);
 }
 
+    // The LCA payload is a matrix, not a vector like the TCO one: two groupings
+    // (by_scope, by_type) over eight impact categories. Both groupings arrive in the
+    // same fetch and are two partitions of the same items, so they share a total and
+    // the radio only re-splits a bar of constant height -- no refetch, no reload.
+    async function fetchAndRenderLCABars(chartName, chartID) {
+        const res = await fetch(`/simba/result/${taskIdAvg}/${chartName}/`);
+        const result = await res.json();
+        if (!result || !result.by_type) return;
+
+        const groupLabels = {
+            "PRODUCTION_AND_EOL": "Herstellung & Entsorgung",
+            "USE_PHASE": "Nutzungsphase",
+            "VEHICLE": "Fahrzeug",
+            "BATTERY": "Batterie",
+            "INFRASTRUCTURE": "Infrastruktur",
+            "ENERGY": "Energie"
+        };
+        // Units are per revenue-km and are not interchangeable between categories,
+        // which is why only one is ever plotted at a time.
+        const categories = {
+            gwp:           { label: "Treibhauspotenzial (GWP)",   unit: "kg CO₂-Äq" },
+            pm:            { label: "Feinstaub",                  unit: "kg PM2,5-Äq" },
+            pocp:          { label: "Sommersmog (POCP)",          unit: "kg NOx-Äq" },
+            ap:            { label: "Versauerung",                unit: "kg SO₂-Äq" },
+            ep_freshwater: { label: "Eutrophierung – Süßwasser",  unit: "kg P-Äq" },
+            ep_marine:     { label: "Eutrophierung – Meer",       unit: "kg N-Äq" },
+            fuel:          { label: "Fossiler Ressourcenbedarf",  unit: "kg Öl-Äq" },
+            water:         { label: "Wasserverbrauch",            unit: "m³" }
+        };
+
+        const select = document.getElementById("lca-category");
+        select.innerHTML = Object.entries(categories)
+            .map(([key, c]) => `<option value="${key}">${c.label}</option>`).join("");
+
+        const chart = echarts.init(document.getElementById(chartID), 'ebusPalette');
+        const note = document.getElementById("lca-negative-note");
+
+        function draw() {
+            const grouping = document.querySelector('input[name="lca-grouping"]:checked').value;
+            const categoryKey = select.value;
+            const unit = categories[categoryKey].unit;
+            const groups = result[grouping] || {};
+
+            const keys = Object.keys(groups);
+            const values = keys.map(key => groups[key][categoryKey] || 0);
+            const total = values.reduce((a, b) => a + b, 0);
+            note.classList.toggle("hidden", !values.some(v => v < 0));
+
+            // Significant digits rather than decimal places: the categories span three
+            // orders of magnitude (GWP ~1.2, marine eutrophication ~0.00012), and a
+            // fixed two decimals would render most of them as "0,00".
+            const format = (v) => v.toLocaleString('de-DE', { maximumSignificantDigits: 3 });
+
+            chart.setOption({
+                title: { text: `${categories[categoryKey].label} je Nutz-km`, left: 'center' },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: (params) => `
+                        <div style="font-weight: bold; border-bottom: 1px solid #ccc; margin-bottom: 5px;">
+                            ${params.name}
+                        </div>
+                        <span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${params.color};"></span>
+                        ${params.seriesName}: <b>${format(params.value)} ${unit}/km</b>
+                    `
+                },
+                legend: { top: '10%', data: keys.map(k => groupLabels[k] || k) },
+                grid: { left: '5%', right: '5%', bottom: '10%', top: '25%', containLabel: true },
+                xAxis: { type: 'category', data: [scenarioName], axisLabel: { fontWeight: 'bold' } },
+                yAxis: { type: 'value', name: `${unit}/km`, nameGap: 25 },
+                series: keys.map((key, i) => ({
+                    name: groupLabels[key] || key,
+                    type: 'bar',
+                    stack: 'total',
+                    barWidth: "40%",
+                    emphasis: { focus: 'series' },
+                    label: {
+                        show: true,
+                        formatter: () => Math.abs(values[i]) > Math.abs(total) * 0.04 ? format(values[i]) : ''
+                    },
+                    data: [values[i]],
+                    // The running total sits on the last segment, so it survives a
+                    // change of grouping without a series of its own.
+                    ...(i === keys.length - 1 ? {
+                        markPoint: {
+                            silent: true,
+                            symbol: 'circle',
+                            symbolSize: 0,
+                            data: [{ coord: [0, total] }],
+                            label: {
+                                position: 'top',
+                                distance: 15,
+                                formatter: `{title|Gesamt}\n{value|${format(total)} ${unit}/km}`,
+                                rich: {
+                                    title: { fontSize: 12, color: '#666', align: 'center' },
+                                    value: { fontSize: 16, fontWeight: 'bold', color: '#333', align: 'center', lineHeight: 25 }
+                                }
+                            }
+                        }
+                    } : {})
+                }))
+            }, { replaceMerge: ['series'] });
+        }
+
+        document.querySelectorAll('input[name="lca-grouping"]')
+            .forEach(radio => radio.addEventListener("change", draw));
+        select.addEventListener("change", draw);
+        draw();
+    }
+
     function computeCDF(rawData, selectedTypes) {
         const filtered = rawData.filter(d => selectedTypes.includes(d.type));
         if (filtered.length === 0) return { x: [], y: [] };
@@ -2133,6 +2282,9 @@
         fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap"),
         fetchAndRenderGanttChartSOC("gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit"),
         fetchAndRenderTCOBars('tco', 'tco-bar'),
+        // The section is absent until a scenario has an LCA result, so the chart
+        // container may legitimately not be there.
+        ...(document.getElementById('lca-bar') ? [fetchAndRenderLCABars('lca', 'lca-bar')] : []),
 	fetchAndRenderCumulativeChart("cumulative_coverage", "cumulative-coverage", "Anteil erfüllbarer Umläufe"),
         loadRotationTable(taskIdAvg)
         ];
