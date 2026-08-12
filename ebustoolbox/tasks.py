@@ -45,7 +45,6 @@ from ebustoolbox.impact import (
     calculate_lca,
     calculate_tco,
     ensure_fleet_topology,
-    ensure_lca_parameters,
     measured_consumption,
 )
 from ebusdjango.util import get_static_file_path
@@ -2576,13 +2575,18 @@ def eflips_calculate_tco(scenario: Scenario, consumption: dict | None = None) ->
     charging point types can only be attached now, because the Areas and the
     opportunity-charging Events they are attached to are products of the simulation.
 
+    The LCA parameters are deliberately not seeded here, even though both
+    calculations share this topology: ``calculate_lca`` seeds its own, and doing it
+    in both places rewrote every vehicle, battery and charging point type twice per
+    run. What the LCA does depend on from here is ``attach_charging_point_types``,
+    which is why it still has to run before it.
+
     :param scenario: A simulated scenario, after ``apply_depot_strategy``.
     :param consumption: Consumption measured on another scenario, from
         ``impact.measured_consumption``. ``None`` measures on ``scenario`` itself.
     :returns: ``{cost_category: EUR per revenue-km}`` for ``Scenario.tco_result``.
     """
     ensure_fleet_topology(scenario)
-    ensure_lca_parameters(scenario)
     attach_charging_point_types(scenario)
     return calculate_tco(scenario, consumption)
 
