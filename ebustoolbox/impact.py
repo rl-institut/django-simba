@@ -546,13 +546,72 @@ def _electricity_consumption(vehicle_type: VehicleType) -> float | None:
     return -energy_kwh / distance
 
 
-def _write_energy_consumption(scenario: Scenario) -> None:
+def vehicle_key(vehicle_type: VehicleType) -> str | None:
+    """Return the name a vehicle type is matched by across scenarios.
+
+    Row ids are not usable for this: the simulated scenarios are deepcopies, so the
+    same vehicle type has a different id in each. ``name_short`` is the key
+    ``tco.json`` and ``lca_overrides.json`` already index by, with ``name`` as the
+    fallback for uploads that carry no short name.
+    """
+    return vehicle_type.name_short or vehicle_type.name
+
+
+def measured_consumption(scenario: Scenario) -> dict[str | None, float]:
+    """Return ``{vehicle type key: kWh/km}`` as simulated on ``scenario``.
+
+    Lets one scenario's energy use be costed against another's fleet. The toolchain
+    takes the hardware quantities -- vehicle count, battery count, charging points --
+    from the sizing run, which is simulated at the extreme temperature and therefore
+    needs the larger fleet, and the use phase from the default run, which is simulated
+    at the average temperature and is what the vehicles actually consume over a year.
+    Costing either scenario on its own mixes the two: the sizing run prices a
+    year of extreme-weather energy, the default run prices a fleet too small to
+    operate in winter.
+
+    Vehicle types with no measurable consumption are left out rather than stored as
+    ``None``, so the writers fall back to their configured value per vehicle type.
+
+    :param scenario: The simulated scenario to measure. Normally the DEFAULT one.
+    :returns: kWh/km keyed by :func:`vehicle_key`.
+
+    .. warning::
+       The writers this feeds must have committed before ``calculate_tco`` or
+       ``calculate_lca`` runs. eflips-impact reads the columns over its own SQLAlchemy
+       connection (``create_db_url()``), so anything still open in a Django
+       transaction is invisible to it and the *previous* stored value is used
+       instead -- silently, with a plausible result. Do not wrap a costing call and
+       its parameter writes in a single ``atomic()``.
+    """
+    consumption = {}
+    for vehicle_type in VehicleType.objects.filter(scenario=scenario):
+        value = _electricity_consumption(vehicle_type)
+        if value is not None:
+            consumption[vehicle_key(vehicle_type)] = value
+    return consumption
+
+
+def _consumption_for(vehicle_type: VehicleType, consumption: dict | None) -> float | None:
+    """Return the kWh/km to write for ``vehicle_type``.
+
+    :param consumption: A map from :func:`measured_consumption`, or ``None`` to
+        measure on the vehicle type's own scenario.
+    """
+    if consumption is None:
+        return _electricity_consumption(vehicle_type)
+    return consumption.get(vehicle_key(vehicle_type))
+
+
+def _write_energy_consumption(scenario: Scenario, consumption: dict | None = None) -> None:
     """Write the per-vehicle-type average consumption eflips-impact reads.
 
     ``TCOCalculator`` runs in ``"constant"`` mode and looks for
     ``average_electricity_consumption`` (or ``average_diesel_consumption`` for diesel
     vehicle types) in ``VehicleType.tco_parameters``; a missing value is logged and
     treated as zero, which silently zeroes the energy cost.
+
+    :param consumption: Consumption measured elsewhere, from
+        :func:`measured_consumption`. ``None`` measures on ``scenario`` itself.
     """
     for vehicle_type in VehicleType.objects.filter(scenario=scenario):
         parameters = vehicle_type.tco_parameters or {}
@@ -564,13 +623,13 @@ def _write_energy_consumption(scenario: Scenario) -> None:
                     "average_diesel_consumption"
                 ]
         else:
-            consumption = _electricity_consumption(vehicle_type)
-            if consumption is not None:
-                parameters["average_electricity_consumption"] = consumption
+            consumption_kwh_per_km = _consumption_for(vehicle_type, consumption)
+            if consumption_kwh_per_km is not None:
+                parameters["average_electricity_consumption"] = consumption_kwh_per_km
             else:
                 logger.warning(
-                    f"S.ID:{scenario.id}:VehicleType {vehicle_type.id} has no distance; "
-                    "falling back to the configured consumption for TCO"
+                    f"S.ID:{scenario.id}:VehicleType {vehicle_type.id} has no measured "
+                    "consumption; falling back to the configured one for TCO"
                 )
                 parameters.setdefault(
                     "average_electricity_consumption",
@@ -581,17 +640,19 @@ def _write_energy_consumption(scenario: Scenario) -> None:
         vehicle_type.save(update_fields=["tco_parameters"])
 
 
-def calculate_tco(scenario: Scenario) -> dict:
+def calculate_tco(scenario: Scenario, consumption: dict | None = None) -> dict:
     """Run the eflips-impact TCO calculation for a simulated scenario.
 
     :param scenario: A simulated scenario, after :func:`attach_charging_point_types`.
+    :param consumption: Consumption measured on another scenario, from
+        :func:`measured_consumption`. ``None`` measures on ``scenario`` itself.
     :returns: ``{cost_category: EUR per revenue-km}``, the flat shape stored in
         ``Scenario.tco_result`` and read by the result page.
     """
     from ebustoolbox.tasks import create_db_url  # avoids a circular import
 
     _ensure_scenario_parameters(scenario)
-    _write_energy_consumption(scenario)
+    _write_energy_consumption(scenario, consumption)
 
     result = eflips_calculate_tco(
         scenario.id,
@@ -670,33 +731,36 @@ def ensure_lca_parameters(scenario: Scenario) -> None:
     logger.info(f"S.ID:{scenario.id}:Seeded LCA parameters from {LCA_DEFAULTS_PATH.name}")
 
 
-def _write_lca_consumption(scenario: Scenario) -> None:
+def _write_lca_consumption(scenario: Scenario, consumption: dict | None = None) -> None:
     """Write the measured consumption into ``VehicleType.lca_parameters``.
 
-    The counterpart of :func:`_write_energy_consumption`, using the same value from
-    :func:`_electricity_consumption`. It is seeded as zero by
-    :func:`ensure_lca_parameters` because it is a result of the simulation rather than
-    a configured default, and zero here would silently remove the entire use phase of
-    a battery-electric fleet from the result.
+    The counterpart of :func:`_write_energy_consumption`, taking its value the same
+    way so that the two calculations cannot end up describing one fleet with different
+    energy use. It is seeded as zero by :func:`ensure_lca_parameters` because it is a
+    result of the simulation rather than a configured default, and zero here would
+    silently remove the entire use phase of a battery-electric fleet from the result.
 
     Diesel consumption is not touched: nothing simulates it, so it keeps the value
     from ``lca_overrides.json``. Note the unit differs from the TCO parameter of the
     same name -- kg/km here, litres/km there.
+
+    :param consumption: Consumption measured elsewhere, from
+        :func:`measured_consumption`. ``None`` measures on ``scenario`` itself.
     """
     for vehicle_type in VehicleType.objects.filter(scenario=scenario):
         if vehicle_type.energy_source == EnumEnergySource.DIESEL:
             continue
 
         parameters = vehicle_type.lca_parameters or {}
-        consumption = _electricity_consumption(vehicle_type)
-        if consumption is None:
+        consumption_kwh_per_km = _consumption_for(vehicle_type, consumption)
+        if consumption_kwh_per_km is None:
             logger.warning(
-                f"S.ID:{scenario.id}:VehicleType {vehicle_type.id} has no distance; "
-                "its use-phase emissions will be zero"
+                f"S.ID:{scenario.id}:VehicleType {vehicle_type.id} has no measured "
+                "consumption; its use-phase emissions will be zero"
             )
             continue
 
-        parameters["average_consumption_kwh_per_km"] = consumption
+        parameters["average_consumption_kwh_per_km"] = consumption_kwh_per_km
         vehicle_type.lca_parameters = parameters
         vehicle_type.save(update_fields=["lca_parameters"])
 
@@ -769,19 +833,21 @@ def _eta_avail(scenario: Scenario) -> float:
     return float(load_lca_defaults().eta_avail)
 
 
-def calculate_lca(scenario: Scenario) -> dict:
+def calculate_lca(scenario: Scenario, consumption: dict | None = None) -> dict:
     """Run the eflips-impact LCA calculation for a simulated scenario.
 
     Shares the annualisation with :func:`calculate_tco` -- same scaling factor, same
     availability factor -- so that the two describe one fleet over one year.
 
     :param scenario: A simulated scenario, after :func:`attach_charging_point_types`.
+    :param consumption: Consumption measured on another scenario, from
+        :func:`measured_consumption`. ``None`` measures on ``scenario`` itself.
     :returns: The nested dict described in :func:`lca_result_to_dict`.
     """
     from ebustoolbox.tasks import create_db_url  # avoids a circular import
 
     ensure_lca_parameters(scenario)
-    _write_lca_consumption(scenario)
+    _write_lca_consumption(scenario, consumption)
     _write_charging_places(scenario)
 
     result = eflips_calculate_lca(

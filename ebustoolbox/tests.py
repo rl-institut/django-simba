@@ -42,6 +42,9 @@ from .models import (
     EnumVoltageLevel,
     EnumChargeType,
     EnumEnergySource,
+    EnumScenarioType,
+    EnumSimulationType,
+    SimulationType,
 )
 from . import impact
 from .tasks import run_simba_scenario
@@ -1333,6 +1336,82 @@ class ZipValidationTest(SimpleTestCase):
                 validate_zip(z, allowed_file_nr, allowed_size, allowed_nesting - 1)
 
 
+class ScenarioToCostTest(TestCase):
+    """Which scenario a finished simulation pass costs, and with whose energy.
+
+    The pairing is the whole point: hardware quantities come from the sizing run and
+    the use phase from the default one, because neither scenario alone describes what
+    the operator buys and then spends. Getting it wrong is not visible in the result --
+    it just produces a plausible number that is off by roughly the difference between
+    the two runs.
+    """
+
+    def setUp(self):
+        self.source = Scenario.objects.create(
+            name="source", task_id=get_unique_task_id(), scenario_type=EnumScenarioType.SOURCE
+        )
+        self.sizing = Scenario.objects.create(
+            name="sizing",
+            task_id=get_unique_task_id(),
+            parent=self.source,
+            scenario_type=EnumScenarioType.SIMULATION,
+        )
+        self.default = Scenario.objects.create(
+            name="default",
+            task_id=get_unique_task_id(),
+            parent=self.source,
+            scenario_type=EnumScenarioType.SIMULATION,
+        )
+        SimulationType.objects.create(scenario=self.sizing, sim_type=EnumSimulationType.SIZING)
+        SimulationType.objects.create(scenario=self.default, sim_type=EnumSimulationType.DEFAULT)
+
+    def test_sizing_pass_costs_nothing(self):
+        # It runs first, before the default scenario has been deepcopied from it, so
+        # its energy is not available yet. Skipping is also what keeps a second,
+        # extreme-weather result from sitting unread next to the one the page shows.
+        costed, consumption = tasks._scenario_to_cost(self.sizing)
+        self.assertIsNone(costed)
+        self.assertIsNone(consumption)
+
+    def test_default_pass_costs_the_sizing_sibling(self):
+        costed, consumption = tasks._scenario_to_cost(self.default)
+        self.assertEqual(costed, self.sizing)
+        # Measured on the default scenario even though the sizing one is costed.
+        self.assertIsNotNone(consumption)
+
+    def test_scenario_without_a_sibling_costs_itself(self):
+        # run_toolchain_from_scenario simulates one scenario on its own; there is no
+        # sizing run to borrow a fleet from, so it is costed entirely on itself.
+        lone = Scenario.objects.create(
+            name="lone",
+            task_id=get_unique_task_id(),
+            parent=self.source,
+            scenario_type=EnumScenarioType.SIMULATION,
+        )
+        costed, consumption = tasks._scenario_to_cost(lone)
+        self.assertEqual(costed, lone)
+        # None means "measure on the scenario being costed", which is this one.
+        self.assertIsNone(consumption)
+
+    def test_vehicle_types_are_matched_across_scenarios_by_name(self):
+        # The two scenarios are deepcopies, so the same vehicle type has a different
+        # id in each; only the name carries across.
+        sizing_vt = VehicleType.objects.create(
+            scenario=self.sizing, name="Gelenkbus", name_short="AB", consumption=1.5
+        )
+        default_vt = VehicleType.objects.create(
+            scenario=self.default, name="Gelenkbus", name_short="AB", consumption=1.2
+        )
+        self.assertNotEqual(sizing_vt.id, default_vt.id)
+
+        consumption = impact.measured_consumption(self.default)
+        self.assertEqual(consumption, {"AB": 1.2})
+        # And it reaches the sizing scenario's row, which is what gets costed.
+        impact._write_energy_consumption(self.sizing, consumption)
+        sizing_vt.refresh_from_db()
+        self.assertEqual(sizing_vt.tco_parameters["average_electricity_consumption"], 1.2)
+
+
 class LcaDefaultsTest(SimpleTestCase):
     """Guard the two LCA JSON files against drifting out of eflips-impact's schema.
 
@@ -1405,8 +1484,8 @@ class LcaDefaultsTest(SimpleTestCase):
             lfp["emission_factors_per_kg"]["gwp"], nmc["emission_factors_per_kg"]["gwp"]
         )
         self.assertEqual(
-            data.make_battery_type_lca_parameters('"NMC622"').to_dict()[
-                "emission_factors_per_kg"
-            ]["gwp"],
+            data.make_battery_type_lca_parameters('"NMC622"').to_dict()["emission_factors_per_kg"][
+                "gwp"
+            ],
             lfp["emission_factors_per_kg"]["gwp"],
         )
