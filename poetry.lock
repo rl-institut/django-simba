@@ -1125,14 +1125,14 @@ simpy = ">=4.0.1,<5.0.0"
 
 [[package]]
 name = "eflips-depot"
-version = "4.18.4"
+version = "4.18.5"
 description = "Depot Simulation for eFLIPS"
 optional = false
 python-versions = "<3.14,>=3.11"
 groups = ["main"]
 files = [
-    {file = "eflips_depot-4.18.4-py3-none-any.whl", hash = "sha256:224514ad9c20922e6742e7f6c4b71fdf987a53c62d600a364a5bec6053373c36"},
-    {file = "eflips_depot-4.18.4.tar.gz", hash = "sha256:b96ac0ad91116da6588b8dc374ba395426e21ed9560b68ad002145debb58c985"},
+    {file = "eflips_depot-4.18.5-py3-none-any.whl", hash = "sha256:429092849a42c76c9cef1a1fefb10d8a9f9a4f66b99c13d5f9ec58f2eea4b171"},
+    {file = "eflips_depot-4.18.5.tar.gz", hash = "sha256:32b3e6787514b8654291fb34a3b1741a95b1297fd5aaed1f7223dd12a72adcbd"},
 ]
 
 [package.dependencies]
@@ -1188,14 +1188,14 @@ pytest = ">=9.0.3,<10.0.0"
 
 [[package]]
 name = "eflips-ingest"
-version = "2.0.1"
+version = "2.2.0"
 description = "A collection of import scripts for converting bus schedule data into the [eflips-model](https://github.com/mpm-tu-berlin/eflips-model) data format."
 optional = false
 python-versions = "<3.14,>=3.11"
 groups = ["main"]
 files = [
-    {file = "eflips_ingest-2.0.1-py3-none-any.whl", hash = "sha256:599f56f97df0169914450f586c225826d27fe20665127403bc203d9af52f3635"},
-    {file = "eflips_ingest-2.0.1.tar.gz", hash = "sha256:b8c514838792fe91ef6d48ee650b7f2511b05fe1f116d6ff065cb380136b6b11"},
+    {file = "eflips_ingest-2.2.0-py3-none-any.whl", hash = "sha256:c4a18d4d01256592acbe4d5348baa693f07267c5a263a980464341f76bfa6824"},
+    {file = "eflips_ingest-2.2.0.tar.gz", hash = "sha256:6858566c33ed8fca5a4d46c8cc88e50a65b89a65105f5398e9f0e028ca3c08cf"},
 ]
 
 [package.dependencies]
@@ -4022,4 +4022,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11, <3.14"
-content-hash = "1d99c8234e14759637f5fbfea89359862ab96207d870eb58e890c3ab976d167b"
+content-hash = "30c61733e52ac330cbaf429537f6c49076616c98dde14fe00653ebf5962f44a8"

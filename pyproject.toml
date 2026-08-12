@@ -47,9 +47,9 @@ tqdm = "^4.66.1"
 charset-normalizer = "^3.4.2"
 django-widget-tweaks = "^1.5.0"
 
-eflips-depot = "^4.18.3"
+eflips-depot = "^4.18.5"
 eflips-eval = "^1.7.3"
-eflips-ingest = "^2.0.1"
+eflips-ingest = "^2.2.0"
 # Declared directly, although it only arrives as a dependency of the four packages
 # above: the Django models in ebustoolbox mirror its tables column for column, so a
 # resolver free to pick an older 11.x would leave our migrations describing a schema
