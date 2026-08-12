@@ -57,6 +57,7 @@ from ebus_map.managers import X, Y
 from . import data
 import ebustoolbox
 import ebustoolbox.tasks
+from ebustoolbox import impact
 from ebustoolbox.models import (
     AreaInformation,
     AreaType,
@@ -2380,3 +2381,54 @@ def get_rotation_table_data(request, task_id: str):
     elif file_format == "csv":
         return HttpResponse(df.to_csv(index=False), content_type="text/csv")
     return HttpResponse(status=400)
+
+
+class LcaView(ScenarioMixIn, TemplateView):
+    """The Ökobilanz wizard step, between Kosten and Depots.
+
+    A placeholder: the LCA parameters are not editable yet, so the only action is
+    taking the defaults from ``defaults/impact/lca.json``. The table on the page shows
+    which rows they reached.
+
+    Seeding here writes to the scenario the wizard edits, so the values are in place
+    before the simulation and travel to the simulated scenario with the rows that hold
+    them. The toolchain seeds again on its own, so skipping this step costs nothing --
+    it only makes the values visible and the moment repeatable.
+    """
+
+    success_name = "simba:depots"
+    template_name = "ebustoolbox/lca.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        scenario = self.scenario
+
+        # Reached through the reverse managers rather than the model classes, so this
+        # view needs no import the rest of the module does not already have.
+        context["vehicle_types"] = scenario.vehicletype_set.order_by("id")
+        context["battery_types"] = scenario.batterytype_set.order_by("id")
+        context["charging_point_types"] = scenario.chargingpointtype_set.order_by("id")
+        context["lca_rows"] = [
+            *context["vehicle_types"],
+            *context["battery_types"],
+            *context["charging_point_types"],
+        ]
+        return context
+
+    def get(self, request, *args, **kwargs):
+        return self.render_to_response(self.get_context_data(**kwargs))
+
+    def post(self, request, *args, **kwargs):
+        from ebustoolbox import impact
+
+        # Two submits land here: the defaults button, which stays on the step so its
+        # effect can be seen, and the wizard's "Weiter", which carries no name.
+        if "lca_defaults" not in request.POST:
+            return redirect(reverse(self.success_name, args=[kwargs["task_id"]]))
+
+        scenario = self.scenario
+        # The rows have to exist before they can be parameterised, and a scenario that
+        # never went through the costs page has none.
+        impact.ensure_fleet_topology(scenario)
+        impact.ensure_lca_parameters(scenario)
+        return redirect(reverse("simba:lca", args=[kwargs["task_id"]]))

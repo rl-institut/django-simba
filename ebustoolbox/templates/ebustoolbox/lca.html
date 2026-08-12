@@ -1,0 +1,99 @@
+{% extends 'ebustoolbox/wizard.html' %}
+{% load i18n %}
+
+{% block title %}WeBus - Ökobilanz{% endblock title %}
+
+{% block wizard_navigation %}
+  {% with wiz_idx=6 %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock wizard_navigation %}
+
+{% comment %}
+  Placeholder. The LCA parameters are not editable yet, so the only thing on offer is
+  taking the defaults from defaults/impact/lca.json; the table is here to show that they
+  landed, and on which rows. Layout to be designed later.
+{% endcomment %}
+
+{% block wizard_content %}
+<main class="flex flex-col items-center flex-grow">
+  <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl space-y-8">
+
+    <div class="space-y-2">
+      <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Umweltparameter' %}</p>
+      <div class="bg-white rounded-lg p-4 text-sm tracking-wide">
+        <p class="text-slate-500">
+          {% blocktranslate %}
+            Die Emissionsfaktoren stammen aus einer openLCA-Auswertung und sind noch nicht
+            bearbeitbar. Sie können hier nur als Standardwerte auf das Szenario übertragen
+            werden.
+          {% endblocktranslate %}
+        </p>
+        <form method="post" class="pt-4">
+          {% csrf_token %}
+          <button type="submit" name="lca_defaults" value="1"
+                  class="px-6 py-2 bg-emerald-400 text-black text-base font-semibold tracking-wide rounded-full hover:bg-emerald-300 hover:shadow-lg active:bg-emerald-500 transition-all duration-300">
+            {% translate 'Standardwerte übernehmen' %}
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="space-y-2">
+      <p class="text-slate-800 font-semibold tracking-wide">{% translate 'Hinterlegte Parameter' %}</p>
+      <div class="bg-white rounded-lg p-4 text-sm tracking-wide">
+        <table class="min-w-full">
+          <thead class="text-slate-500">
+            <tr>
+              <th class="py-2 pr-4 text-left font-normal">{% translate 'Zeile' %}</th>
+              <th class="py-2 pr-4 text-left font-normal">{% translate 'Bezeichnung' %}</th>
+              <th class="py-2 text-left font-normal">{% translate 'LCA-Parameter' %}</th>
+            </tr>
+          </thead>
+          <tbody class="text-slate-800">
+            {% for vehicle_type in vehicle_types %}
+              <tr>
+                <td class="py-1 pr-4 text-slate-500">{% translate 'Fahrzeugtyp' %}</td>
+                <td class="py-1 pr-4">{{ vehicle_type.name }}</td>
+                <td class="py-1">{% if vehicle_type.lca_parameters %}&check;{% else %}&mdash;{% endif %}</td>
+              </tr>
+            {% endfor %}
+            {% for battery_type in battery_types %}
+              <tr>
+                <td class="py-1 pr-4 text-slate-500">{% translate 'Batterietyp' %}</td>
+                <td class="py-1 pr-4">{{ battery_type.chemistry|default:"—" }}</td>
+                <td class="py-1">{% if battery_type.lca_parameters %}&check;{% else %}&mdash;{% endif %}</td>
+              </tr>
+            {% endfor %}
+            {% for charging_point_type in charging_point_types %}
+              <tr>
+                <td class="py-1 pr-4 text-slate-500">{% translate 'Ladepunkttyp' %}</td>
+                <td class="py-1 pr-4">{{ charging_point_type.name }}</td>
+                <td class="py-1">{% if charging_point_type.lca_parameters %}&check;{% else %}&mdash;{% endif %}</td>
+              </tr>
+            {% endfor %}
+            {% if not lca_rows %}
+              <tr>
+                <td colspan="3" class="py-4 text-slate-500">
+                  {% translate 'Für dieses Szenario gibt es noch keine Zeilen mit LCA-Parametern.' %}
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+{# The wizard's "Weiter" button clicks whatever element buttonId names, so the step #}
+{# needs a submit target even when the page has nothing to save.                    #}
+<form method="post" id="lcaContinueForm">{% csrf_token %}<button id="submitButton" hidden></button></form>
+</main>
+{% endblock wizard_content %}
+
+{% block wizard_buttons %}
+  {% url 'simba:costs' scenario.task_id as prev_url %}
+  {% with "submitButton" as buttonId %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock wizard_buttons %}
