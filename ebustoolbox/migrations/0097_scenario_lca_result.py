@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("ebustoolbox", "0095_lca_parameters_and_battery_chemistry_text"),
+        ("ebustoolbox", "0096_lca_parameters_and_battery_chemistry_text"),
     ]
 
     operations = [

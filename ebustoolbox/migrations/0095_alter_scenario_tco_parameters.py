@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("ebustoolbox", "0093_alter_notification_notification_type"),
+        ("ebustoolbox", "0094_alter_vehicletype_dimensions"),
     ]
 
     operations = [

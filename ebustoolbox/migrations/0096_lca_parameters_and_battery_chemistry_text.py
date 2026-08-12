@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
     """
 
     dependencies = [
-        ("ebustoolbox", "0094_alter_scenario_tco_parameters"),
+        ("ebustoolbox", "0095_alter_scenario_tco_parameters"),
     ]
 
     operations = [
