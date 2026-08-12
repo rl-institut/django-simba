@@ -12,9 +12,11 @@
 {% block wizard_content %}
 <main class="flex flex-col items-center flex-grow">
 
-<form
-  method="post"
-  enctype="multipart/form-data">
+{# novalidate: which inputs matter depends on the mode radio, and the unused ones are #}
+{# hidden rather than removed. The browser cannot focus a hidden input to report a    #}
+{# constraint violation, so it just abandons the submit and the button appears dead.  #}
+{# Every field is validated server-side and errors are rendered below the radios.     #}
+<form method="post" enctype="multipart/form-data" novalidate>
   {% csrf_token %}
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
     <h1 class="pb-12 text-2xl text-slate-500 font-light tracking-wide uppercase">
@@ -24,7 +26,7 @@
     <section class="pb-12">
       <fieldset class="pb-8 flex" style="justify-content: center">
         <div class="mt-6">
-          <!-- Option 1: default settings -->
+          <!-- Option 1: use the defaults already written to the scenario -->
           <div class="flex items-center h-12">
             <input
               id="costsAutomatic"
@@ -37,7 +39,7 @@
               <label for="costsAutomatic" class="ml-3 block text-sm/6 font-normal text-slate-800">{% translate 'Standardwerte übernehmen' %}</label>
             </div>
           </div>
-          <!-- Option 2: manual settings -->
+          <!-- Option 2: edit the values below -->
           <div class="flex items-center h-12">
             <input
               id="costsManually"
@@ -50,205 +52,64 @@
           </div>
         </div>
       </fieldset>
+
+      {% if cost_errors %}
+        <div class="mb-6 rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+          <p class="font-semibold">{% translate 'Die Eingaben konnten nicht gespeichert werden:' %}</p>
+          <ul class="mt-2 list-disc pl-5">
+            {% for field, messages in cost_errors.items %}
+              {% for message in messages %}<li>{{ field }}: {{ message }}</li>{% endfor %}
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
       <div id="costsInputs" style="visibility:hidden">
         <div style="padding:1rem">
-          <label
-            class="block text-sm/6 font-normal text-slate-800"
-            for="select-from-scenario"
-          >{% translate 'Aus Szenario übernehmen' %}</label>
+          <label class="block text-sm/6 font-normal text-slate-800" for="select-from-scenario">
+            {% translate 'Aus Szenario übernehmen' %}
+          </label>
           <select
             id="select-from-scenario"
             class="flex flex-wrap items-center w-full rounded-md bg-white px-3 py-1.5 text-left text-slate-800 border border-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6 cursor-pointer"
             onchange="updateCostValues(this);"
           >
             <option value="">{% translate 'Auswählen...' %}</option>
-            {% for cost in costs_scenario_selection.values %}
-              <option value={{ cost.id }}>{{ cost.name }}</option>
+            {% for id, preset in cost_presets.items %}
+              <option value="{{ id }}">{{ preset.name }}</option>
             {% endfor %}
           </select>
         </div>
-        <!-- required manual inputs: general -->
-        <div
-          id="acc-req-general"
-          class="rounded-lg bg-white shadow accordion-container"
-          data-value="req-general"
-        >
-          <div class="border-b border-slate-200">
-            <button id="acc-btn-req-general"
-                    type="button"
-                    onclick="toggleAccordion(this)"
-                    class="w-full flex justify-between items-center py-5 text-slate-800 bg-emerald-200 accordion-header">
-              <span class="w-max text-base font-bold px-2">{% translate 'Allgemeine Einstellungen' %}</span>
-              <span id="acc-icon-req-general"
-                    class="accordion-cost-icon text-slate-800 transition-transform duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     viewBox="0 0 16 16"
-                     fill="currentColor"
-                     class="w-4 h-4">
-                  <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
-                </svg>
-              </span>
-            </button>
-            <div id="acc-content-req-general"
-                 class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
-              <div class="accordion-cost-content">
-                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Zeithorizont" tooltip="Berechnungsdauer für die TCO. Gesamtsystemkosten und jährliche Kosten werden innerhalb dieses Zeitraums berechnet" unit="Jahre" input=costs_manual.project_duration|widget_attrs initial=scenario.tco_parameters.project_duration|default:costs_manual.project_duration.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Personalkosten" tooltip="Personalkosten pro Betriebsstunde für ein Fahrzeug. Üblicherweise Arbeitgeberkosten für die Busfahrer:in, evtl. zzgl. Schaffner:in" unit="€/h" input=costs_manual.staff_cost|widget_attrs initial=scenario.tco_parameters.staff_cost|default:costs_manual.staff_cost.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Stromkosten" tooltip="Stromkosten pro kWh inklusive aller Gebühren" unit="€/kWh" input=costs_manual.energy_cost|widget_attrs initial=scenario.tco_parameters.fuel_cost.electricity|default:costs_manual.energy_cost.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten E-Fahrzeug" tooltip="Wartungskosten für ein Elektrofahrzeug, pro Fahrzeugkilometer" unit="€/km" input=costs_manual.maint_cost|widget_attrs initial=scenario.tco_parameters.vehicle_maint_cost.electricity|default:costs_manual.maint_cost.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten Ladeinfrastruktur" tooltip="Durchschnittliche Wartungskosten für eine Ladesäule über ein Jahr" unit="€/a" input=costs_manual.maint_infr_cost|widget_attrs initial=scenario.tco_parameters.infra_maint_cost|default:costs_manual.maint_infr_cost.initial %}
-                </div>
-              </div>
-            </div>
-          </div>
+
+        <div class="flex justify-end pb-2 pr-4">
+          <button type="button" onclick="resetAllToDefaults()"
+                  class="text-sm text-slate-500 underline hover:text-slate-800">
+            {% translate 'Alle Werte auf Standard' %}
+          </button>
         </div>
-        <!-- required manual inputs: charging infrastructure -->
-        <div
-          id="acc-req-charging"
-          class="rounded-lg bg-white shadow accordion-container"
-          data-value="req-charging"
-        >
+
+        <!-- 1 - Scenario-wide settings. Wartung lives here because eflips-impact keeps -->
+        <!-- both maintenance figures at scenario level; see CostsView._general_groups.  -->
+        <div id="acc-general" class="rounded-lg bg-white shadow accordion-container" data-value="general">
           <div class="border-b border-slate-200">
-            <button type="button"
-                    onclick="toggleAccordion(this)"
+            <button type="button" onclick="toggleAccordion(this)"
                     class="w-full flex justify-between items-center py-5 text-slate-800 bg-emerald-200 accordion-header">
-              <span class="w-max text-base font-bold px-2">{% translate 'Ladeinfrastruktur' %}</span>
-              <span id="acc-icon-req-charging"
-                    class="accordion-cost-icon text-slate-800 transition-transform duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     viewBox="0 0 16 16"
-                     fill="currentColor"
-                     class="w-4 h-4">
+              <span class="w-max text-base font-bold px-2">{% translate 'Allgemein' %}</span>
+              <span id="acc-icon-general" class="accordion-cost-icon text-slate-800 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
                   <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
                 </svg>
               </span>
             </button>
-            <div id="acc-content-req-charging"
-                 class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
+            <div id="acc-content-general" class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
               <div class="accordion-cost-content">
-                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Lebensdauer Depot-Ladepunkt" tooltip="Durchschnittliche Lebensdauer für einen Depot-Ladepunkt" unit="Jahre" input=costs_manual.useful_life_chargepoint_depot|widget_attrs initial=scenario.tco_parameters.useful_life_chargepoint_depot|default:costs_manual.useful_life_chargepoint_depot.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Depot-Ladepunkt" tooltip="Durchschnittlicher Kaufpreis für einen Depot-Ladepunkt, inklusive anteiliger Leistungselektronik und anteiligem Netzanschluss. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst." unit="€" input=costs_manual.procurement_cost_chargepoint_depot|widget_attrs initial=scenario.tco_parameters.procurement_cost_chargepoint_depot|default:costs_manual.procurement_cost_chargepoint_depot.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Lebensdauer Opportunity-Ladepunkt" tooltip="Durchschnittliche Lebensdauer für einen Opportunity-Ladepunkt." unit="Jahre" input=costs_manual.useful_life_chargepoint_opp|widget_attrs initial=scenario.tco_parameters.useful_life_chargepoint_opp|default:costs_manual.useful_life_chargepoint_opp.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Opportunity-Ladepunkt" tooltip="Durchschnittlicher Kaufpreis für einen Opportunity-Ladepunkt, inklusive anteiliger Leistungselektronik und anteiligem Netzanschluss. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst." unit="€" input=costs_manual.procurement_cost_chargepoint_opp|widget_attrs initial=scenario.tco_parameters.procurement_cost_chargepoint_opp|default:costs_manual.procurement_cost_chargepoint_opp.initial %}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- not implemented manual inputs: diesel -->
-        <div
-          id="acc-req-diesel"
-          class="rounded-lg bg-white shadow accordion-container"
-          data-value="req-diesel"
-          style="display:none"
-        >
-          <div class="border-b border-slate-200">
-            <button type="button"
-                    onclick="toggleAccordion(this)"
-                    class="w-full flex justify-between items-center py-5 text-slate-800 bg-slate-200 accordion-header">
-              <span class="w-max text-base font-bold px-2">{% translate 'Diesel-Vergleich' %}</span>
-              <span id="acc-icon-req-diesel"
-                    class="accordion-cost-icon text-slate-800 transition-transform duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     viewBox="0 0 16 16"
-                     fill="currentColor"
-                     class="w-4 h-4">
-                  <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
-                </svg>
-              </span>
-            </button>
-            <div id="acc-content-req-diesel"
-                 class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
-              <div class="accordion-cost-content">
-                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Dieselkosten" unit="€" input=costs_manual.fuel_cost|widget_attrs initial=scenario.tco_parameters.fuel_cost.diesel|default:costs_manual.fuel_cost.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten Diesel-Fahrzeug" unit="€/km" tooltip="Wartungskosten für ein Dieselfahrzeug, pro Fahrzeugkilometer" input=costs_manual.maint_cost_diesel|widget_attrs initial=scenario.tco_parameters.vehicle_maint_cost.diesel|default:costs_manual.maint_cost_diesel.initial %}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- required manual inputs: vehicle types -->
-        {% for vehicle_type in vehicle_types %}
-          <div
-            id="acc-req-vt-{{vehicle_type}}"
-            class="rounded-lg bg-white shadow accordion-container"
-            data-value="req-vt-{{vehicle_type}}"
-          >
-            <div class="border-b border-slate-200">
-              <button type="button"
-                      onclick="toggleAccordion(this)"
-                      class="w-full flex justify-between items-center py-5 text-slate-800 bg-emerald-200 accordion-header">
-                <span class="w-max text-base font-bold px-2">{% translate 'Fahrzeugtyp' %} {{ vehicle_type.name }}</span>
-                <span id="acc-icon-req-vt-{{vehicle_type}}"
-                      class="accordion-cost-icon text-slate-800 transition-transform duration-300">
-                  <svg xmlns="http://www.w3.org/2000/svg"
-                       viewBox="0 0 16 16"
-                       fill="currentColor"
-                       class="w-4 h-4">
-                    <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
-                  </svg>
-                </span>
-              </button>
-              <div id="acc-content-req-vt-{{vehicle_type}}"
-                   class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
-                <div class="accordion-cost-content">
-                  <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                    {% include "ebustoolbox/partials/cost_input.html" with label="Fahrzeuglebensdauer" tooltip="Durchschnittliche Lebensdauer für ein Fahrzeug dieses Fahrzeugtyps" unit="Jahre" name=vehicle_type.name input=costs_manual.useful_life_bus|widget_attrs initial=vehicle_type.tco_parameters.useful_life|default:costs_manual.useful_life_bus.initial %}
-                    {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis" tooltip="Durchschnittlicher Kaufpreis für ein Fahrzeug dieses Typs. Bitte geben Sie einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst" unit="€" name=vehicle_type.name input=costs_manual.procurement_cost_bus|widget_attrs initial=vehicle_type.tco_parameters.procurement_cost|default:costs_manual.procurement_cost_bus.initial %}
-                    {% include "ebustoolbox/partials/cost_input.html" with label="Batterielebensdauer" tooltip="Durchschnittliche Lebensdauer für eine Batterie dieses Typs" unit="Jahre" name=vehicle_type.name input=costs_manual.useful_life_battery|widget_attrs initial=vehicle_type.battery_type.tco_parameters.useful_life|default:costs_manual.procurement_cost_battery.initial %}
-                    {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Batterie" tooltip="Durchschnittlicher Kaufpreis für eine Batterie dieses Typs, angegeben pro kWh. Wenn unbekannt, Fahrzeugkaufpreis inkl. Batterie angeben und hier 0 (dann kann ein Batterietausch aber nicht abgebildet werden)" unit="€/kWh"  name=vehicle_type.name input=costs_manual.procurement_cost_battery|widget_attrs initial=vehicle_type.battery_type.tco_parameters.procurement_cost|default:costs_manual.procurement_cost_battery.initial %}
-                    {% include "ebustoolbox/partials/cost_input.html" with hidden=True label="Kaufpreis (Dieselbus)" tooltip="Durchschnittlicher Kaufpreis für einen äquivalenten Dieselbus" unit="€" name=vehicle_type.name input=costs_manual.procurement_cost_diesel|widget_attrs initial=vehicle_type.tco_parameters.procurement_cost_diesel|default:costs_manual.procurement_cost_diesel.initial %}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        {% endfor %}
-        <!-- optional -->
-        <div
-          id="acc-optional"
-          class="rounded-lg bg-white shadow accordion-container"
-          data-value="optional"
-        >
-          <div class="border-b border-slate-200">
-            <button type="button"
-                    onclick="toggleAccordion(this)"
-                    class="w-full flex justify-between items-center py-5 text-slate-800 bg-emerald-200 accordion-header">
-              <span class="w-max text-base font-bold px-2">{% translate "Erweiterte Einstellungen" %}</span>
-              <span id="acc-icon-optional"
-                    class="accordion-cost-icon text-slate-800 transition-transform duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     viewBox="0 0 16 16"
-                     fill="currentColor"
-                     class="w-4 h-4">
-                  <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
-                </svg>
-              </span>
-            </button>
-            <div id="acc-content-optional"
-                 class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
-              <div class="accordion-cost-content">
-                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Zinssatz" unit="%" tooltip="Zinssatz für Investitionen und Kredite" input=costs_manual.interest_rate|widget_attrs initial=scenario.tco_parameters.interest_rate|default:costs_manual.interest_rate.initial|multiply:100 %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Inflation" unit="%" tooltip="Inflationsrate, Teuerung aller Güter bei gleichbleibendem Wert" input=costs_manual.inflation_rate|widget_attrs initial=scenario.tco_parameters.inflation_rate|default:costs_manual.inflation_rate.initial|multiply:100 %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Kfz-Steuer" tooltip="Durchschnittliche Kraftfahrzeugsteuer pro Jahr" unit="€" input=costs_manual.taxes|widget_attrs initial=scenario.tco_parameters.taxes|default:costs_manual.taxes.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Versicherung für Fahrzeug" tooltip="Durchschnittliche jährliche Versicherungskosten, pro Fahrzeug" unit="€/a" input=costs_manual.insurance|widget_attrs initial=scenario.tco_parameters.insurance|default:costs_manual.insurance.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – allgemein" tooltip="Generelle Preissteigerung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_general|widget_attrs initial=scenario.tco_parameters.cost_escalation_rate.general|default:costs_manual.pef_general.initial|multiply:100 %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Arbeitslohn" tooltip="Preissteigerung für Arbeitslohn pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_wages|widget_attrs initial=scenario.tco_parameters.cost_escalation_rate.staff|default:costs_manual.pef_wages.initial|multiply:100 %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Strom" tooltip="Preissteigerung für Stromkosten pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_energy|widget_attrs initial=scenario.tco_parameters.cost_escalation_rate.electricity|default:costs_manual.pef_energy.initial|multiply:100 %}
-                  {% include "ebustoolbox/partials/cost_input.html" with hidden=True label="Preiseskalation – Diesel" tooltip="Preissteigerung für Dieselkosten pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant." unit="%" input=costs_manual.pef_fuel|widget_attrs initial=scenario.tco_parameters.cost_escalation_rate.diesel|default:costs_manual.pef_fuel.initial|multiply:100 %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Versicherung" tooltip="Preissteigerung für Versicherung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_insurance|widget_attrs initial=scenario.tco_parameters.cost_escalation_rate.insurance|default:costs_manual.pef_insurance.initial|multiply:100 %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Ladepunkt" tooltip="Preissteigerung für Ladepunkt dieses Typs pro Jahr. Dient der Anpassung der Preise für Ersatzladepunkte im Betrachtungszeitraum" unit="%" input=costs_manual.cost_escalation_chargepoint|widget_attrs initial=scenario.tco_parameters.cost_escalation_chargepoint|default:costs_manual.cost_escalation_chargepoint.initial|default:costs_manual.cost_escalation_chargepoint.initial|multiply:100 %}
-                </div>
-                {% for vehicle_type in vehicle_types %}
-                  <fieldset>
-                    <legend>{% translate 'Fahrzeugtyp' %} {{ vehicle_type.name }}</legend>
-                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                      {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Fahrzeug" tooltip="Preissteigerung für Fahrzeuge pro Jahr. Dient der Anpassung der Preise für Ersatzfahrzeuge im Betrachtungszeitraum" unit="%" name=vehicle_type.name input=costs_manual.cost_escalation_bus|widget_attrs initial=vehicle_type.tco_parameters.cost_escalation|default:costs_manual.cost_escalation_bus.initial|multiply:100 %}
-                      {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Batterie" tooltip="Preissteigerung für Batterie pro Jahr. Dient der Anpassung der Preise für Ersatzbatterien im Betrachtungszeitraum" unit="%" name=vehicle_type.name input=costs_manual.cost_escalation_battery|widget_attrs initial=vehicle_type.battery_type.tco_parameters.cost_escalation|default:costs_manual.cost_escalation_battery.initial|multiply:100 %}
+                {% for group in general_groups %}
+                  <fieldset class="pb-4">
+                    <legend class="text-sm font-semibold text-slate-700">{{ group.title }}</legend>
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                      {% for field in group.fields %}
+                        {% include "ebustoolbox/partials/tco_field.html" %}
+                      {% endfor %}
                     </div>
                   </fieldset>
                 {% endfor %}
@@ -256,6 +117,137 @@
             </div>
           </div>
         </div>
+
+        <!-- Values every battery-electric vehicle type follows unless its own card deviates -->
+        <div id="acc-vt-common" class="rounded-lg bg-white shadow accordion-container" data-value="vt-common">
+          <div class="border-b border-slate-200">
+            <button type="button" onclick="toggleAccordion(this)"
+                    class="w-full flex justify-between items-center py-5 text-slate-800 bg-emerald-200 accordion-header">
+              <span class="w-max text-base font-bold px-2">{% translate 'Fahrzeuge – gemeinsame Werte' %}</span>
+              <span id="acc-icon-vt-common" class="accordion-cost-icon text-slate-800 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
+                  <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                </svg>
+              </span>
+            </button>
+            <div id="acc-content-vt-common" class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
+              <div class="accordion-cost-content">
+                <p class="pb-4 text-sm text-slate-500">
+                  {% blocktranslate %}
+                    Diese Werte gelten für alle Elektrofahrzeugtypen, die nicht abweichen.
+                  {% endblocktranslate %}
+                </p>
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-3">
+                  {% include "ebustoolbox/partials/tco_field.html" with field=common_form.useful_life %}
+                  {% include "ebustoolbox/partials/tco_field.html" with field=common_form.procurement_cost %}
+                  {% include "ebustoolbox/partials/tco_field.html" with field=common_form.cost_escalation %}
+                </div>
+                <fieldset class="pt-4">
+                  <legend class="text-sm font-semibold text-slate-700">{% translate 'Batterie' %}</legend>
+                  <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-3">
+                    {% include "ebustoolbox/partials/tco_field.html" with field=common_battery_form.useful_life %}
+                    {% include "ebustoolbox/partials/tco_field.html" with field=common_battery_form.procurement_cost %}
+                    {% include "ebustoolbox/partials/tco_field.html" with field=common_battery_form.cost_escalation %}
+                  </div>
+                </fieldset>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- One accordion per vehicle type -->
+        {% for row in vehicle_rows %}
+          <div id="acc-vt-{{ row.vehicle_type.id }}" class="rounded-lg bg-white shadow accordion-container" data-value="vt-{{ row.vehicle_type.id }}">
+            <div class="border-b border-slate-200">
+              <button type="button" onclick="toggleAccordion(this)"
+                      class="w-full flex justify-between items-center py-5 text-slate-800 bg-emerald-200 accordion-header">
+                <span class="w-max text-base font-bold px-2">{% translate 'Fahrzeugtyp' %} {{ row.vehicle_type.name }}</span>
+                <span id="acc-icon-vt-{{ row.vehicle_type.id }}" class="accordion-cost-icon text-slate-800 transition-transform duration-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
+                    <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                  </svg>
+                </span>
+              </button>
+              <div id="acc-content-vt-{{ row.vehicle_type.id }}" class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
+                <div class="accordion-cost-content">
+                  {% if row.can_follow %}
+                    {# Unchecked means the card follows the shared block; the inputs stay #}
+                    {# in the DOM so ticking it needs no round trip.                      #}
+                    <label class="flex items-center gap-2 pb-4 text-sm text-slate-800">
+                      <input type="checkbox" name="{{ row.checkbox_name }}" value="1"
+                             {% if row.deviates %}checked{% endif %}
+                             onchange="toggleDeviation(this)"
+                             class="size-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500">
+                      {% translate 'Von den gemeinsamen Werten abweichen' %}
+                    </label>
+                  {% endif %}
+                  <div class="vt-fields {% if row.can_follow and not row.deviates %}hidden{% endif %}">
+                  <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                    {% include "ebustoolbox/partials/tco_field.html" with field=row.form.useful_life %}
+                    {% include "ebustoolbox/partials/tco_field.html" with field=row.form.procurement_cost %}
+                    {% include "ebustoolbox/partials/tco_field.html" with field=row.form.cost_escalation %}
+                    {# No electricity consumption input: the toolchain measures it on the #}
+                    {# DEFAULT scenario and overwrites whatever is stored. Diesel has no  #}
+                    {# simulated counterpart, so it stays editable.                       #}
+                    {% if row.form.average_diesel_consumption %}
+                      {% include "ebustoolbox/partials/tco_field.html" with field=row.form.average_diesel_consumption %}
+                    {% endif %}
+                  </div>
+                  {% if row.battery_form %}
+                    <fieldset class="pt-4">
+                      <legend class="text-sm font-semibold text-slate-700">{% translate 'Batterie' %}</legend>
+                      <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-3">
+                        {% include "ebustoolbox/partials/tco_field.html" with field=row.battery_form.useful_life %}
+                        {% include "ebustoolbox/partials/tco_field.html" with field=row.battery_form.procurement_cost %}
+                        {% include "ebustoolbox/partials/tco_field.html" with field=row.battery_form.cost_escalation %}
+                      </div>
+                    </fieldset>
+                  {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+
+        <!-- 3 and 4 - Charging points, each paired with the site it is built on -->
+        {% for category in charging_categories %}
+          <div id="acc-cpt-{{ category.key }}" class="rounded-lg bg-white shadow accordion-container" data-value="cpt-{{ category.key }}">
+            <div class="border-b border-slate-200">
+              <button type="button" onclick="toggleAccordion(this)"
+                      class="w-full flex justify-between items-center py-5 text-slate-800 bg-emerald-200 accordion-header">
+                <span class="w-max text-base font-bold px-2">{{ category.title }}</span>
+                <span id="acc-icon-cpt-{{ category.key }}" class="accordion-cost-icon text-slate-800 transition-transform duration-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
+                    <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                  </svg>
+                </span>
+              </button>
+              <div id="acc-content-cpt-{{ category.key }}" class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
+                <div class="accordion-cost-content">
+                  {% if category.point_form %}
+                    <fieldset class="pb-4">
+                      <legend class="text-sm font-semibold text-slate-700">{% translate 'Ladepunkt' %}</legend>
+                      <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-3">
+                        {% include "ebustoolbox/partials/tco_field.html" with field=category.point_form.useful_life %}
+                        {% include "ebustoolbox/partials/tco_field.html" with field=category.point_form.procurement_cost %}
+                        {% include "ebustoolbox/partials/tco_field.html" with field=category.point_form.cost_escalation %}
+                      </div>
+                    </fieldset>
+                  {% endif %}
+                  <fieldset>
+                    <legend class="text-sm font-semibold text-slate-700">{{ category.site_title }}</legend>
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-3">
+                      {% include "ebustoolbox/partials/tco_field.html" with field=category.site_form.useful_life %}
+                      {% include "ebustoolbox/partials/tco_field.html" with field=category.site_form.procurement_cost %}
+                      {% include "ebustoolbox/partials/tco_field.html" with field=category.site_form.cost_escalation %}
+                    </div>
+                  </fieldset>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
       </div>
     </section>
   </div>
@@ -272,62 +264,35 @@
 {% endblock wizard_buttons %}
 
 {% block script %}
-{{ costs_scenario_selection|json_script:"cost_params" }}
+{{ cost_presets|json_script:"cost_presets" }}
 <script>
-  const costParams = JSON.parse(document.getElementById('cost_params').textContent);
+  const costPresets = JSON.parse(document.getElementById('cost_presets').textContent);
+
   function updateValue(input, value) {
-    input.value = v;
+    input.value = value;
+    // Copied values are as much a deviation from the standard as typed ones.
+    refreshField(input);
     // visual indicator, remove after 5 seconds
     input.classList.add('bg-emerald-300');
     setTimeout(_ => input.classList.remove('bg-emerald-300'), 5000);
   }
 
+  // Copy the parameters of another scenario into this form. The preset maps input id
+  // to value and is built server-side, so the percent scaling and the vehicle-type
+  // matching are done by the same code that renders the fields.
   function updateCostValues(select) {
-    // update manual costs with parameters from other scenario
     if (!select.value)
       return;
-    let params = costParams[select.value].params;
-    let perc_params = [  // percentage values, need to be multiplied by 100
-      'interest_rate', 'inflation_rate',
-      'pef_general', 'pef_wages', 'pef_energy', 'pef_fuel', 'pef_insurance',
-      'cost_escalation_chargepoint', 'cost_escalation_bus', 'cost_escalation_battery',
-    ];
-    // scenario parameters
-    for ([k, v] of Object.entries(params.scenario)) {
-      let inp = document.getElementById('id_costs-' + k);
-      if (inp) {
-        if (perc_params.includes(k))
-          v *= 100;
-        updateValue(inp, v);
-      }
-    }
-    // vehicle type parameters
-    for ([vt_name, tco] of Object.entries(params.vehicles)) {
-      let vt_inp = $('input[for="' + vt_name + '"]');
-      if (vt_inp.length == 0)
-        continue;  // vehicle type does not exist in this scenario
-      for ([k, v] of Object.entries(tco.vehicle_type)) {
-        let inp = vt_inp.filter('#id_costs-' + k + '_bus');
-        if (inp.length) {
-          if (k == 'cost_escalation')
-            v *= 100;
-          updateValue(inp[0], v);
-        }
-      }
-      for ([k, v] of Object.entries(tco.battery || {})) {
-        let inp = vt_inp.filter('#id_costs-' + k + '_battery');
-        if (inp.length) {
-          if (k == 'cost_escalation')
-            v *= 100;
-          updateValue(inp[0], v);
-        }
-      }
+    const values = costPresets[select.value].values;
+    for (const [inputId, value] of Object.entries(values)) {
+      const input = document.getElementById(inputId);
+      if (input && value !== null)
+        updateValue(input, value);
     }
   }
 
-  // Show and hide inputs based on selected option
+  // Show and hide inputs based on the selected mode
   const costsInputs = document.getElementById('costsInputs');
-
   const radioButtons = document.querySelectorAll('input[name^="costsRadio"]');
 
   radioButtons.forEach(radio => {
@@ -336,95 +301,78 @@
 
   function showCostForRadio(radio) {
     // reduce height of manual inputs if not needed to move continue buttons up
-    costsInputs.style.visibility = radio.id == 'costsManually' ? 'visible' : 'hidden';
-    costsInputs.style.height = radio.id == 'costsManually' ? '100%' : '0px';
-    childrenInputs(costsInputs).forEach((inputDiv) => toggleAttribute(inputDiv, "required", radio.id == 'costsManually'));
-  }
-  window.onload = _ => {
-    // show section for initially selected
-    showCostForRadio(document.querySelector('input[name^="costsRadio"]:checked'));
-
-    const envRadioButtons = document.querySelectorAll('input[name^="envRadio"]');
-
-    // unrequire all form inputs at the start
-    childrenInputs(costsInputs).forEach((inputDiv) => toggleAttribute(inputDiv, "required", false));
-  };
-
-  function childrenInputs(element){
-    if (element)
-      return element.querySelectorAll("input")
-    // default if no element was found/given: no children
-    return new Array();
+    const manual = radio.id == 'costsManually';
+    costsInputs.style.visibility = manual ? 'visible' : 'hidden';
+    costsInputs.style.height = manual ? '100%' : '0px';
   }
 
-  function toggleAttribute(element, attribute, value){
-      if (value){
-          element.setAttribute(attribute, "");
-      } else {
-          element.removeAttribute(attribute);
-      }
+  showCostForRadio(document.querySelector('input[name^="costsRadio"]:checked'));
 
+  // --- per-field "changed" marker and revert --------------------------------
+  // The baseline is stamped onto each input as data-default by
+  // TcoFormBase.mark_defaults, already in the unit the input shows, so nothing here
+  // has to know which fields are percentages.
+
+  function isChanged(input) {
+    const base = input.dataset.default;
+    if (base === undefined)
+      return false;
+    // Compared as numbers: "20" and "20.0" are the same value typed two ways.
+    const a = parseFloat(input.value), b = parseFloat(base);
+    if (Number.isNaN(a) || Number.isNaN(b))
+      return input.value !== base;
+    return Math.abs(a - b) > 1e-9;
   }
 
-  /* Accordion */
-  // SVG for Down icon
-  const downSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/></svg>';
+  function refreshField(input) {
+    const wrapper = input.closest('.tco-field');
+    if (!wrapper)
+      return;
+    const changed = isChanged(input);
+    wrapper.querySelector('.tco-changed-dot').classList.toggle('hidden', !changed);
+    wrapper.querySelector('.tco-revert').classList.toggle('hidden', !changed);
+  }
 
-  // SVG for Up icon
-  const upSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd"/></svg>';
+  function revertField(button) {
+    const input = button.closest('.tco-field').querySelector('input');
+    input.value = input.dataset.default;
+    refreshField(input);
+  }
+
+  function resetAllToDefaults() {
+    document.querySelectorAll('#costsInputs input[data-default]').forEach(input => {
+      input.value = input.dataset.default;
+      refreshField(input);
+    });
+  }
+
+  const tcoInputs = document.querySelectorAll('#costsInputs input[data-default]');
+  tcoInputs.forEach(input => {
+    input.addEventListener('input', _ => refreshField(input));
+    refreshField(input);
+  });
+
+  // Show or hide one vehicle type's own inputs. The inputs are never removed, so the
+  // card can be flipped back and forth without losing what was typed; the server
+  // decides what to save from the checkbox, not from what is visible.
+  function toggleDeviation(checkbox) {
+    const card = checkbox.closest('.accordion-container');
+    const fields = card.querySelector('.vt-fields');
+    fields.classList.toggle('hidden', !checkbox.checked);
+    // The accordion animates on a fixed max-height, so it has to be re-measured.
+    const content = card.querySelector('.accordion-cost-content').parentElement;
+    if (content.style.maxHeight && content.style.maxHeight !== '0px')
+      content.style.maxHeight = content.scrollHeight + 'px';
+  }
 
   function toggleAccordion(button) {
-    if (toggleAccordion.open == button ) {
-      // clicked same accordion: skip
-      return
-    }
-    if (toggleAccordion.open != undefined) {
-      // close prior accordion
-      let old_button = toggleAccordion.open;
-      toggleAccordion.open = undefined;
-      old_button.click();
-    }
-
-    const container = button.closest('div.accordion-container');
-    const index = container.dataset.value;
-    const content = document.getElementById(`acc-content-${index}`);
-    const icon = document.getElementById(`acc-icon-${index}`);
-
-    // Toggle the content's max-height for smooth opening and closing
-    if (content.style.maxHeight && content.style.maxHeight !== '0px') {
-      content.style.maxHeight = '0';
-      if (content.hasAttribute('timeout')) {
-        clearTimeout(content.getAttribute('timeout'));
-        content.removeAttribute('timeout');
-      }
-      content.classList.add('overflow-hidden');
-      icon.innerHTML = upSVG;
-      if (button == open) {
-        toggleAccordion.open = undefined;
-      }
-    } else {
-      content.style.maxHeight = content.scrollHeight + 'px';
-      icon.innerHTML = downSVG;
-      toggleAccordion.open = button;
-      // remove overflow after animation has ended
-      let timeout = setTimeout(_ => {
-          content.classList.remove('overflow-hidden');
-          content.removeAttribute('timeout');
-        }, 500
-      );
-      content.setAttribute('timeout', timeout);
-    }
-  }
-  let man_inp = document.getElementById('costsManually');
-  if (man_inp) {
-    let button = document.querySelector(".accordion-header");
-    if (man_inp.checked)
-      toggleAccordion(button); // find first accordion header and toggle open
-    man_inp.onchange = e => {
-      if (e.target.checked) {
-        toggleAccordion(button);
-      }
-    }
+    const container = button.closest('.accordion-container');
+    const content = container.querySelector('.accordion-cost-content').parentElement;
+    const icon = container.querySelector('.accordion-cost-icon');
+    const open = content.style.maxHeight && content.style.maxHeight !== '0px';
+    content.style.maxHeight = open ? '0px' : content.scrollHeight + 'px';
+    if (icon)
+      icon.style.transform = open ? '' : 'rotate(180deg)';
   }
 </script>
 {% endblock script %}

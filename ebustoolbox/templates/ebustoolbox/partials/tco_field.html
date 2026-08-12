@@ -1,0 +1,45 @@
+{% load i18n %}
+{# Renders one bound TCO form field. The widget is rendered by Django so the name,   #}
+{# id and value always agree with the form that will validate it.                    #}
+{#                                                                                   #}
+{# Label, tooltip and unit come from the field itself (ebustoolbox.forms.TcoFieldMixin) #}
+{# rather than from {% include %} arguments. They used to be passed in and rendered   #}
+{# through {% blocktrans %}{{ label }}{% endblocktrans %}, which makemessages extracts #}
+{# as the literal "%(label)s" -- so none of them could ever be translated.            #}
+{# The "geändert" dot and the revert button are driven entirely by the browser, from #}
+{# the data-default attribute mark_defaults() stamped onto the widget. Nothing here  #}
+{# needs the server, so a user can try values and step back without a round trip.    #}
+<div class="flex-grow tco-field">
+  <div class="flex items-center gap-2">
+    <label class="block text-sm/6 font-semibold text-slate-800" for="{{ field.id_for_label }}">
+      {{ field.label }}
+    </label>
+    <span class="tco-changed-dot hidden size-1.5 rounded-full bg-emerald-500"
+          title="{% translate 'Vom Standardwert abweichend' %}"></span>
+    <button type="button" onclick="revertField(this)"
+            class="tco-revert hidden text-xs text-slate-500 underline hover:text-slate-800">
+      {% translate 'Standard' %}
+    </button>
+    {% if field.help_text %}
+      <div class="relative inline-block">
+        <span class="cursor-pointer group">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+          </svg>
+          <div class="absolute left-0 top-full z-10 mt-2 w-48 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
+            {{ field.help_text }}
+          </div>
+        </span>
+      </div>
+    {% endif %}
+  </div>
+  <div class="mt-2">
+    <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
+      {{ field }}
+      <div class="shrink-0 select-none text-sm text-slate-500">{{ field.field.unit }}</div>
+    </div>
+  </div>
+  {% if field.errors %}
+    <p class="mt-1 text-sm text-red-600">{{ field.errors|join:" " }}</p>
+  {% endif %}
+</div>

@@ -45,9 +45,8 @@ from .forms import (
     DepotConfigurationWishForm,
     VehicleTypeForm,
     VehicleTypeSelectionForm,
-    ManualTcoForm,
 )
-from .tasks import deepcopy_scenario, merge_scenario, migrate_legacy_tco_forward
+from .tasks import deepcopy_scenario, merge_scenario
 from .import_export import ScenarioJSONImporterExporter, visit_all_scenario_queries
 
 from .util import get_unique_task_id, to_zip
@@ -58,9 +57,11 @@ from . import data
 import ebustoolbox
 import ebustoolbox.tasks
 from ebustoolbox import impact
+from ebustoolbox.impact import ensure_fleet_topology
 from ebustoolbox.models import (
     AreaInformation,
     AreaType,
+    ChargingPointType,
     DepotConfigurationWish,
     EnumSimulationType,
     Notification,
@@ -86,6 +87,7 @@ from ebustoolbox.models import (
     EnumScenarioType,
     EnumNotificationType,
     annotate_distance,
+    EnumEnergySource,
 )
 
 logger = logging.getLogger("custom")
@@ -1082,49 +1084,333 @@ class StationsView(ScenarioMixIn, TemplateView):
 
 
 class CostsView(ScenarioMixIn, TemplateView):
-    success_name = "simba:depots"
+    success_name = "simba:lca"
     template_name = "ebustoolbox/costs.html"
 
+    def _build_tco_forms(self, data):
+        """Build one form per row that owns a ``tco_parameters`` column.
+
+        Initials come from the stored rows, which ``ensure_fleet_topology`` has already
+        seeded from ``defaults/impact/tco.json``, so the page shows the JSON defaults
+        until the user overrides them.
+
+        :param data: ``request.POST`` on submit, ``None`` on a plain view.
+        :returns: A dict for the template context.
+        """
+        scenario = self.scenario
+
+        scenario_defaults = impact.scenario_tco_defaults()
+        scenario_form = forms.ScenarioTcoForm(
+            data=data,
+            prefix="scenario",
+            initial=forms.ScenarioTcoForm.initial_from(scenario.tco_parameters, scenario_defaults),
+        ).mark_defaults(scenario_defaults)
+
+        # The values every battery-electric vehicle type follows unless its own card
+        # says otherwise. Battery values are nested one level down; the two forms are
+        # separate because they write to two different tables.
+        common = impact.vehicle_common_parameters(scenario)
+        common_battery = common.get(impact.BATTERY_KEY)
+        common_form = forms.VehicleTypeTcoForm(
+            data=data,
+            prefix="vt-common",
+            initial=forms.VehicleTypeTcoForm.initial_from(common),
+        ).mark_defaults(impact.vehicle_type_tco_defaults_beb())
+        common_battery_form = forms.BatteryTypeTcoForm(
+            data=data,
+            prefix="bt-common",
+            initial=forms.BatteryTypeTcoForm.initial_from(common_battery),
+        ).mark_defaults(impact.battery_type_tco_defaults(None))
+
+        stored_overrides = impact.vehicle_overrides(scenario)
+        vehicle_rows = []
+        for vehicle_type in scenario.vehicletype_set.order_by("id"):
+            is_diesel = vehicle_type.energy_source == EnumEnergySource.DIESEL
+            form_class = forms.DieselVehicleTypeTcoForm if is_diesel else forms.VehicleTypeTcoForm
+
+            # A form is built for every vehicle type, not only the deviating ones, so
+            # that flipping a card to "abweichen" needs no round trip. Whether it is
+            # validated and saved is decided by the toggle below.
+            # What this card reverts to: the shared block if it could inherit one,
+            # otherwise its own JSON defaults. A deviating electric type is measured
+            # against what it would have had by following, not against tco.json.
+            baseline = impact.vehicle_type_tco_defaults(vehicle_type) if is_diesel else common
+            row = {
+                "vehicle_type": vehicle_type,
+                "form": form_class(
+                    data=data,
+                    prefix=f"vt-{vehicle_type.id}",
+                    initial=form_class.initial_from(
+                        vehicle_type.tco_parameters,
+                        impact.vehicle_type_tco_defaults(vehicle_type),
+                    ),
+                ).mark_defaults(baseline),
+                "battery_form": None,
+                # Diesel types cannot follow the shared block: tco.json prices them
+                # differently, so there is nothing sensible for them to inherit.
+                "can_follow": not is_diesel,
+                "deviates": True,
+            }
+            if not is_diesel:
+                checkbox = self._deviation_checkbox_name(vehicle_type)
+                row["checkbox_name"] = checkbox
+                row["deviates"] = (
+                    checkbox in data
+                    if data is not None
+                    else impact.vehicle_key(vehicle_type) in stored_overrides
+                )
+
+            battery_type = vehicle_type.battery_type
+            if battery_type is not None:
+                battery_baseline = (
+                    impact.battery_type_tco_defaults(vehicle_type.name_short)
+                    if is_diesel
+                    else common_battery
+                )
+                row["battery_form"] = forms.BatteryTypeTcoForm(
+                    data=data,
+                    prefix=f"bt-{battery_type.id}",
+                    initial=forms.BatteryTypeTcoForm.initial_from(
+                        battery_type.tco_parameters,
+                        impact.battery_type_tco_defaults(vehicle_type.name_short),
+                    ),
+                ).mark_defaults(battery_baseline)
+            vehicle_rows.append(row)
+
+        charging_point_rows = []
+        for charging_point_type in ChargingPointType.objects.filter(scenario=scenario).order_by(
+            "name_short"
+        ):
+            point_defaults = impact.charging_point_type_tco_defaults(charging_point_type.name_short)
+            charging_point_rows.append(
+                {
+                    "charging_point_type": charging_point_type,
+                    "is_depot": charging_point_type.name_short == impact.DEPOT_CPT_NAME_SHORT,
+                    "form": forms.ChargingPointTypeTcoForm(
+                        data=data,
+                        prefix=f"cpt-{charging_point_type.id}",
+                        initial=forms.ChargingPointTypeTcoForm.initial_from(
+                            charging_point_type.tco_parameters, point_defaults
+                        ),
+                    ).mark_defaults(point_defaults),
+                }
+            )
+
+        # Already resolved against the JSON defaults by impact, so initial_from needs
+        # no second fallback here.
+        infrastructure = impact.charging_infrastructure_parameters(scenario)
+        infrastructure_defaults = impact.load_tco_defaults()["charging_infrastructure"]
+        infrastructure_forms = {
+            key: form_class(
+                data=data,
+                prefix=f"infra-{key}",
+                initial=form_class.initial_from(infrastructure[key]),
+            ).mark_defaults(infrastructure_defaults[key])
+            for key, form_class in forms.CHARGING_INFRASTRUCTURE_FORMS.items()
+        }
+
+        return {
+            "scenario_form": scenario_form,
+            "general_groups": self._general_groups(scenario_form),
+            "common_form": common_form,
+            "common_battery_form": common_battery_form,
+            "vehicle_rows": vehicle_rows,
+            "charging_point_rows": charging_point_rows,
+            "charging_categories": self._charging_categories(
+                charging_point_rows, infrastructure_forms
+            ),
+            "infrastructure_forms": infrastructure_forms,
+        }
+
+    @staticmethod
+    def _general_groups(scenario_form):
+        """Group the seventeen scenario-wide fields into readable panels.
+
+        Wartung lives here rather than under the vehicle or charging point panels
+        where the design puts it, because eflips-impact cannot express it anywhere
+        else: ``vehicle_maint_cost`` is one scenario-level pair keyed
+        ``{diesel, electricity}`` (``tco/calculation.py:592``) and cannot deviate per
+        vehicle type, and ``infra_maint_cost`` is a single number per charging point
+        (``:641``) that cannot be split between depot and station.
+        """
+        groups = [
+            (
+                _("Projekt & Finanzierung"),
+                ("project_duration", "interest_rate", "inflation_rate", "eta_avail"),
+            ),
+            (_("Personal"), ("staff_cost", "cost_escalation_rate_staff")),
+            (
+                _("Energie"),
+                (
+                    "fuel_cost_electricity",
+                    "cost_escalation_rate_electricity",
+                    "fuel_cost_diesel",
+                    "cost_escalation_rate_diesel",
+                ),
+            ),
+            (
+                _("Wartung"),
+                (
+                    "vehicle_maint_cost_electricity",
+                    "vehicle_maint_cost_diesel",
+                    "infra_maint_cost",
+                ),
+            ),
+            (
+                _("Fixkosten je Fahrzeug"),
+                ("insurance", "taxes", "cost_escalation_rate_insurance"),
+            ),
+            (_("Allgemeine Teuerung"), ("cost_escalation_rate_general",)),
+        ]
+        return [
+            {"title": title, "fields": [scenario_form[name] for name in names]}
+            for title, names in groups
+        ]
+
+    @staticmethod
+    def _charging_categories(charging_point_rows, infrastructure_forms):
+        """Pair each charging point type with the site it is built on.
+
+        The two are priced very differently — around 120 000 € for a depot charging
+        point against 2 400 000 € for the depot itself — and until now sat in
+        unrelated parts of the page.
+        """
+        by_depot = {row["is_depot"]: row["form"] for row in charging_point_rows}
+        return [
+            {
+                "key": "depot",
+                "title": _("Ladepunkte Depot"),
+                "point_form": by_depot.get(True),
+                "site_form": infrastructure_forms["depot"],
+                "site_title": _("Depot (Standort)"),
+            },
+            {
+                "key": "station",
+                "title": _("Ladepunkte Station"),
+                "point_form": by_depot.get(False),
+                "site_form": infrastructure_forms["station"],
+                "site_title": _("Ladestation (Standort)"),
+            },
+        ]
+
+    @staticmethod
+    def _deviation_checkbox_name(vehicle_type) -> str:
+        """Return the name of the "abweichen" checkbox for one vehicle type."""
+        return f"vt-{vehicle_type.id}-deviates"
+
+    def _build_tco_presets(self, context):
+        """Build the "copy from another scenario" payload for the template.
+
+        Maps input id to value, so the browser only has to assign values by id: the
+        percent scaling and the matching of the other scenario's vehicle types (by
+        ``name_short``) are done here, by the same code that renders the fields.
+
+        :param context: The forms built by :meth:`_build_tco_forms`.
+        :returns: ``{scenario id: {"name": str, "values": {input id: value}}}``.
+        """
+
+        def collect(form_class, prefix, parameters, into, defaults=None):
+            other = form_class(prefix=prefix, initial=form_class.initial_from(parameters, defaults))
+            for name in other.fields:
+                into[other[name].auto_id] = other.initial.get(name)
+
+        scenarios = Scenario.objects.filter(scenario_type=EnumScenarioType.MUTATION)
+        presets = {}
+        for other_scenario in get_user_scenario_qs(self.request.user, scenarios):
+            if other_scenario.id == self.scenario.id:
+                continue
+            values: dict = {}
+            collect(
+                forms.ScenarioTcoForm,
+                "scenario",
+                other_scenario.tco_parameters,
+                values,
+                impact.scenario_tco_defaults(),
+            )
+
+            other_common = impact.vehicle_common_parameters(other_scenario)
+            collect(forms.VehicleTypeTcoForm, "vt-common", other_common, values)
+            collect(
+                forms.BatteryTypeTcoForm,
+                "bt-common",
+                other_common.get(impact.BATTERY_KEY),
+                values,
+            )
+
+            other_vehicle_types = {
+                vehicle_type.name_short or vehicle_type.name: vehicle_type
+                for vehicle_type in other_scenario.vehicletype_set.all()
+            }
+            for row in context["vehicle_rows"]:
+                mine = row["vehicle_type"]
+                source = other_vehicle_types.get(mine.name_short or mine.name)
+                if source is None:
+                    continue  # vehicle type does not exist in the other scenario
+                collect(
+                    row["form"].__class__,
+                    row["form"].prefix,
+                    source.tco_parameters,
+                    values,
+                    impact.vehicle_type_tco_defaults(source),
+                )
+                if row["battery_form"] is not None and source.battery_type is not None:
+                    collect(
+                        forms.BatteryTypeTcoForm,
+                        row["battery_form"].prefix,
+                        source.battery_type.tco_parameters,
+                        values,
+                        impact.battery_type_tco_defaults(source.name_short),
+                    )
+
+            other_infrastructure = impact.charging_infrastructure_parameters(other_scenario)
+            for key, form in context["infrastructure_forms"].items():
+                collect(form.__class__, form.prefix, other_infrastructure[key], values)
+
+            presets[other_scenario.id] = {"name": other_scenario.name, "values": values}
+        return presets
+
+    def _all_tco_forms(self, context):
+        """Return the forms that have to validate before the page can be saved.
+
+        A vehicle type that follows the shared block is skipped: its inputs are on the
+        page so the card can be flipped without a round trip, but they are hidden, and
+        an unfilled hidden input must not block a submit.
+        """
+        all_forms = [
+            context["scenario_form"],
+            context["common_form"],
+            context["common_battery_form"],
+            *context["infrastructure_forms"].values(),
+        ]
+        all_forms += [row["form"] for row in context["charging_point_rows"]]
+        for row in context["vehicle_rows"]:
+            if not row["deviates"]:
+                continue
+            all_forms.append(row["form"])
+            if row["battery_form"] is not None:
+                all_forms.append(row["battery_form"])
+        return all_forms
+
     def get_context_data(self, **kwargs):
-        data = {}
-        if self.request.method == "POST":
-            data = self.request.POST
+        # None, not {}: an empty dict is still "bound" as far as Django is concerned,
+        # so on a GET every required field would already be in error and every input
+        # would render with aria-invalid before the user has typed anything.
+        data = self.request.POST if self.request.method == "POST" else None
+
+        # The fleet rows a TCO calculation needs are created here rather than in the
+        # toolchain so their default values exist while the user is still in the
+        # wizard and can be edited before the simulation starts. Idempotent, and runs
+        # after ScenarioMixIn.dispatch has checked the user's permission.
+        ensure_fleet_topology(self.scenario)
+        self.scenario.refresh_from_db()
 
         context = super().get_context_data(**kwargs)
-        # Todo define which scenarios can be picked
-        scenarios = Scenario.objects.filter(scenario_type=EnumScenarioType.MUTATION)
-        selectable_scenarios = get_user_scenario_qs(self.request.user, scenarios)
-        costs_scenario_selection = {
-            scenario.id: {
-                "id": scenario.id,
-                "name": scenario.name,
-                "params": {
-                    "scenario": scenario.tco_parameters,
-                    "vehicles": {
-                        vt.name: {
-                            "vehicle_type": vt.tco_parameters,
-                            "battery": vt.battery_type.tco_parameters if vt.battery_type else None,
-                        }
-                        for vt in scenario.vehicletype_set.all()
-                    },
-                },
-            }
-            for scenario in selectable_scenarios
+        context["cost_mode_form"] = forms.CostInputModeForm(data=data, prefix="costsRadio")
+        context["radio_values"] = {
+            choice[0]: choice[0] for choice in forms.CostInputModeForm.CHOICES
         }
-        context["costs_scenario_selection"] = costs_scenario_selection
-        costs_form = forms.CostInputModeForm(data=data, prefix="costsRadio")
-        context["cost_mode_form"] = costs_form
-        # Radio Button Values
-        context["radio_values"] = dict()
-        for choice in forms.CostInputModeForm.CHOICES:
-            val = choice[0]
-            context["radio_values"][val] = choice[0]
-        context["costs_manual"] = ManualTcoForm(data=data, prefix="costs")
-        # get all vehicle types in scenario to show cost params for each type
-        scenario = Scenario.objects.get(task_id=kwargs["task_id"])
-        # retain order for associated TCO (returned as list)
-        context["vehicle_types"] = scenario.vehicletype_set.order_by("id")
-
+        context.update(self._build_tco_forms(data))
+        context["cost_presets"] = self._build_tco_presets(context)
         return context
 
     def get(self, request, *args, **kwargs):
@@ -1132,134 +1418,128 @@ class CostsView(ScenarioMixIn, TemplateView):
 
     def post(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        form = context["cost_mode_form"]
-        if not form.is_valid():
-            logger.debug("Invalid Costs Form provided")
+        mode_form = context["cost_mode_form"]
+        if not mode_form.is_valid():
+            # Without surfacing this the page silently re-renders and the click looks
+            # like it did nothing at all.
+            logger.debug(f"Invalid Costs Form provided: {mode_form.errors.as_json()}")
+            context["cost_errors"] = mode_form.errors
             return self.render_to_response(context)
-        match form.cleaned_data["input_mode"]:
+
+        match mode_form.cleaned_data["input_mode"]:
             case "no_input":
-                pass
+                # Normally nothing to save: ensure_fleet_topology has already written
+                # the defaults from defaults/impact/tco.json onto every row. But if the
+                # user saved manual values earlier, that call skipped them, so asking
+                # for the defaults again has to release the scenario first.
+                self._reset_tco_to_defaults()
             case "manual":
-                manual_form = context["costs_manual"]
-                if not manual_form.is_valid():
-                    logger.debug("Invalid Cost Manual Form provided")
+                tco_forms = self._all_tco_forms(context)
+                if not all(form.is_valid() for form in tco_forms):
+                    errors = {}
+                    for form in tco_forms:
+                        for field, messages in form.errors.items():
+                            label = form.fields[field].label or field.replace("_", " ")
+                            errors[f"{form.prefix}.{label}"] = messages
+                    logger.debug(f"Invalid TCO parameters provided: {errors}")
+                    context["cost_errors"] = errors
                     return self.render_to_response(context)
-                form_data = manual_form.cleaned_data
-                # save TCO parameters to their respective models
-                # some parameters are defined per instance (for example, cost per vehicle type)
-                # Scenario TCO
-                # parameter name -> scale (for percentages)
-                scenario_parameters = {
-                    "project_duration": 1,
-                    "interest_rate": 0.01,
-                    "inflation_rate": 0.01,
-                    "staff_cost": 1,
-                    "energy_cost": 1,
-                    "fuel_cost": 1,
-                    "maint_cost": 1,
-                    "maint_cost_diesel": 1,
-                    "maint_infr_cost": 1,
-                    "taxes": 1,
-                    "insurance": 1,
-                    "pef_general": 0.01,
-                    "pef_wages": 0.01,
-                    "pef_energy": 0.01,
-                    "pef_fuel": 0.01,
-                    "pef_insurance": 0.01,
-                    # not needed, but useful when restoring/loading values
-                    "useful_life_chargepoint_depot": 1,
-                    "procurement_cost_chargepoint_depot": 1,
-                    "useful_life_chargepoint_opp": 1,
-                    "procurement_cost_chargepoint_opp": 1,
-                    "cost_escalation_chargepoint": 0.01,
-                }
-
-                for param, scale in scenario_parameters.items():
-                    try:
-                        self.scenario.tco_parameters[param] = form_data[param] * scale
-                    except KeyError:
-                        logger.warning(f"TCO Scenario: Parameter {param} not found")
-                # the scenario parameters are now in the legacy format
-                # transform them using the migration feature
-                new_params = migrate_legacy_tco_forward(self.scenario.tco_parameters)
-                if new_params is not None:
-                    self.scenario.tco_parameters = new_params
-
-                self.scenario.save(update_fields=["tco_parameters"])
-
-                # Station TCO
-                for station in self.scenario.station_set.all():
-                    if station.charge_type == EnumChargeType.DEPOT.value:
-                        station.tco_parameters = {
-                            "useful_life": int(form_data["useful_life_chargepoint_depot"]),
-                            "procurement_cost": form_data["procurement_cost_chargepoint_depot"],
-                            "cost_escalation": form_data["cost_escalation_chargepoint"] / 100,
-                        }
-                    elif station.charge_type == EnumChargeType.OPPORTUNITY.value:
-                        station.tco_parameters = {
-                            "useful_life": int(form_data["useful_life_chargepoint_opp"]),
-                            "procurement_cost": form_data["procurement_cost_chargepoint_opp"],
-                            "cost_escalation": form_data["cost_escalation_chargepoint"] / 100,
-                        }
-                    else:
-                        logger.warning(
-                            f"Station {station.name} has unknown "
-                            f"charge type: {station.charge_type}"
-                        )
-                        # Some stations are not properly configured by gtfs it seems
-                        # ensure values exist
-                        stco = station.tco_parameters
-                        stco["useful_life"] = stco["useful_life"] or 20
-                        stco["procurement_cost"] = stco["procurement_cost"] or 0
-                        stco["cost_escalation"] = stco["cost_escalation"] or 0.02
-                        station.save(update_fields=["tco_parameters"])
-
-                        continue
-                    station.save(update_fields=["tco_parameters"])
-                    # charging point type has identical parameters?
-                    cp_type = station.charging_point_type
-                    if cp_type is not None:
-                        cp_type.tco_parameters = station.tco_parameters
-                        cp_type.save(update_fields=["tco_parameters"])
-
-                # VehicleType/BatteryType TCO
-                # multiple vehicle types allowed -> multiple values in form
-                for idx, vehicle_type in enumerate(context["vehicle_types"]):
-                    vehicle_type.tco_parameters = {
-                        "useful_life": int(request.POST.getlist("costs-useful_life_bus")[idx]),
-                        "procurement_cost": float(
-                            request.POST.getlist("costs-procurement_cost_bus")[idx]
-                        ),
-                        "procurement_cost_diesel": float(
-                            request.POST.getlist("costs-procurement_cost_diesel")[idx]
-                        ),
-                        "cost_escalation": float(
-                            request.POST.getlist("costs-cost_escalation_bus")[idx]
-                        )
-                        / 100,
-                    }
-                    vehicle_type.save(update_fields=["tco_parameters"])
-                    battery_type = vehicle_type.battery_type
-                    if battery_type is not None:
-                        battery_type.tco_parameters = {
-                            "useful_life": int(
-                                request.POST.getlist("costs-useful_life_battery")[idx]
-                            ),
-                            "procurement_cost": float(
-                                request.POST.getlist("costs-procurement_cost_battery")[idx]
-                            ),
-                            "cost_escalation": float(
-                                request.POST.getlist("costs-cost_escalation_battery")[idx]
-                            )
-                            / 100,
-                        }
-                        battery_type.save(update_fields=["tco_parameters"])
-                    else:
-                        logger.warning(f"VehicleType {vehicle_type.name} has no associated battery")
-
+                self._save_tco_forms(context)
             case _:
-                raise NotImplementedError(f"Mode {form.cleaned_data['input_mode']}")
+                raise NotImplementedError(f"Mode {mode_form.cleaned_data['input_mode']}")
         return redirect(reverse(self.success_name, args=[kwargs["task_id"]]))
+
+    @atomic()
+    def _reset_tco_to_defaults(self):
+        """Hand the scenario's TCO values back to ``defaults/impact/tco.json``.
+
+        Clearing the marker is enough to undo an earlier manual save: the values the
+        user entered are still in the columns, but every one of them is overwritten by
+        :func:`ebustoolbox.impact.ensure_fleet_topology` on the next call.
+        """
+        scenario = self.scenario
+        parameters = dict(scenario.tco_parameters or {})
+        if parameters.pop(impact.USER_EDITED_KEY, None) is None:
+            return
+
+        # Dropped rather than left behind: while the marker is clear nothing reads it,
+        # so a stale block here would only look authoritative to the next reader. That
+        # includes the shared vehicle block, whose absence puts every vehicle type back
+        # on the JSON defaults.
+        parameters.pop(impact.CHARGING_INFRASTRUCTURE_KEY, None)
+        parameters.pop(impact.WEBUS_KEY, None)
+        scenario.tco_parameters = parameters
+        scenario.save(update_fields=["tco_parameters"])
+        impact.ensure_fleet_topology(scenario)
+        logger.info(f"S.ID:{scenario.id}:TCO parameters reset to the defaults")
+
+    @atomic()
+    def _save_tco_forms(self, context):
+        """Write the validated forms back onto the rows they came from.
+
+        Field names match the schema eflips-impact reads, so each form maps to exactly
+        one ``tco_parameters`` column and no translation is needed. Values are merged
+        into the stored dict rather than replacing it, so keys the form does not cover
+        (such as the simulated ``average_electricity_consumption``) survive.
+
+        Vehicle types that follow the shared block are not written here at all. Their
+        rows are filled in by ``ensure_fleet_topology`` at the end, which copies the
+        block down — the same way station rows are derived from the scenario-level
+        charging infrastructure values.
+        """
+        scenario = self.scenario
+        common = context["common_form"].to_tco_parameters()
+        common[impact.BATTERY_KEY] = context["common_battery_form"].to_tco_parameters()
+        overrides = {
+            impact.vehicle_key(row["vehicle_type"])
+            for row in context["vehicle_rows"]
+            if row["can_follow"] and row["deviates"]
+        }
+
+        # Marked as the user's: ebustoolbox.impact stops re-seeding these rows from
+        # defaults/impact/tco.json. Has to be set before the ensure_fleet_topology
+        # call below, which would otherwise undo everything this method just wrote.
+        scenario.tco_parameters = impact.mark_tco_parameters_edited(
+            {
+                **(scenario.tco_parameters or {}),
+                **context["scenario_form"].to_tco_parameters(),
+                impact.CHARGING_INFRASTRUCTURE_KEY: {
+                    key: form.to_tco_parameters()
+                    for key, form in context["infrastructure_forms"].items()
+                },
+                impact.WEBUS_KEY: impact.webus_block(common, overrides),
+            }
+        )
+        scenario.save(update_fields=["tco_parameters"])
+
+        for row in context["vehicle_rows"]:
+            if not row["deviates"]:
+                continue
+            vehicle_type = row["vehicle_type"]
+            vehicle_type.tco_parameters = {
+                **(vehicle_type.tco_parameters or {}),
+                **row["form"].to_tco_parameters(),
+            }
+            vehicle_type.save(update_fields=["tco_parameters"])
+
+            if row["battery_form"] is not None:
+                battery_type = vehicle_type.battery_type
+                battery_type.tco_parameters = {
+                    **(battery_type.tco_parameters or {}),
+                    **row["battery_form"].to_tco_parameters(),
+                }
+                battery_type.save(update_fields=["tco_parameters"])
+
+        for row in context["charging_point_rows"]:
+            charging_point_type = row["charging_point_type"]
+            charging_point_type.tco_parameters = {
+                **(charging_point_type.tco_parameters or {}),
+                **row["form"].to_tco_parameters(),
+            }
+            charging_point_type.save(update_fields=["tco_parameters"])
+
+        # Station rows are derived from the two scenario-level sets just saved.
+        impact.ensure_fleet_topology(scenario)
 
 
 class DepotsView(ScenarioMixIn, TemplateView):

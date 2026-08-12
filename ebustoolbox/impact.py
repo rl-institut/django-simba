@@ -77,6 +77,23 @@ OPPORTUNITY_CPT_NAME_SHORT = "OCS"
 # Scenario.tco_parameters. See charging_infrastructure_parameters().
 CHARGING_INFRASTRUCTURE_KEY = "charging_infrastructure"
 
+# Marks a scenario whose costs page the user has saved. See tco_parameters_edited().
+USER_EDITED_KEY = "_user_edited"
+
+# Everything inside Scenario.tco_parameters that only django-simba understands, kept
+# under one key so the set of names eflips-impact could ever collide with stays at
+# one. See vehicle_common_parameters().
+WEBUS_KEY = "_webus"
+VEHICLE_COMMON_KEY = "vehicle_common"
+VEHICLE_OVERRIDES_KEY = "vehicle_overrides"
+BATTERY_KEY = "battery"
+
+# The fields the shared vehicle block covers. Deliberately not derived from
+# ebustoolbox.forms: this module is imported by the toolchain, which has no business
+# depending on the form layer. Keep in step with VehicleTypeTcoForm, which is the only
+# thing that writes them.
+VEHICLE_COMMON_FIELDS = ("useful_life", "procurement_cost", "cost_escalation")
+
 
 # ---------------------------------------------------------------------------
 # Defaults
@@ -131,7 +148,7 @@ def _fleet_battery_defaults(name_short: str | None) -> dict:
     }
 
 
-def _tco_vehicle_type_defaults(vehicle_type: VehicleType) -> dict:
+def vehicle_type_tco_defaults(vehicle_type: VehicleType) -> dict:
     """Return the default ``VehicleType.tco_parameters`` for a vehicle type."""
     tco = load_tco_defaults()
     override = _by_name_short(tco.get("vehicle_types", []), "name_short")
@@ -143,7 +160,17 @@ def _tco_vehicle_type_defaults(vehicle_type: VehicleType) -> dict:
     return deepcopy(tco["vehicle_type_default"])
 
 
-def _tco_battery_type_defaults(name_short: str | None) -> dict:
+def vehicle_type_tco_defaults_beb() -> dict:
+    """Return the battery-electric block of ``tco.json``.
+
+    The baseline the shared vehicle block is compared against. Unlike
+    :func:`vehicle_type_tco_defaults` this takes no vehicle type, because the shared
+    block belongs to no single one.
+    """
+    return deepcopy(load_tco_defaults()["vehicle_type_default"])
+
+
+def battery_type_tco_defaults(name_short: str | None) -> dict:
     """Return the default ``BatteryType.tco_parameters`` for a vehicle type."""
     tco = load_tco_defaults()
     override = _by_name_short(tco.get("battery_types", []), "vehicle_name_short")
@@ -151,6 +178,25 @@ def _tco_battery_type_defaults(name_short: str | None) -> dict:
     if entry is not None:
         return {k: v for k, v in entry.items() if k != "vehicle_name_short"}
     return deepcopy(tco["battery_type_default"])
+
+
+def charging_point_type_tco_defaults(name_short: str | None) -> dict:
+    """Return the default ``ChargingPointType.tco_parameters`` for a charging point.
+
+    ``name_short`` carries the depot/opportunity discriminator, because
+    ChargingPointType has no column for it, and ``fleet.json`` maps it to the key
+    ``tco.json`` files the defaults under. The fallback matches
+    :func:`_lca_charging_point_type_overrides`: anything that is not the depot
+    charging point is treated as an opportunity one.
+    """
+    entry = _by_name_short(load_fleet_defaults()["charging_point_types"], "name_short").get(
+        name_short
+    )
+    if entry is not None:
+        key = entry["type"]
+    else:
+        key = "depot" if name_short == DEPOT_CPT_NAME_SHORT else "opportunity"
+    return deepcopy(load_tco_defaults()["charging_point_types"][key])
 
 
 def scenario_tco_defaults() -> dict:
@@ -198,6 +244,30 @@ def _lca_charging_point_type_overrides(name_short: str | None) -> ChargingPointT
     )
 
 
+def tco_parameters_edited(scenario: Scenario) -> bool:
+    """Return whether the user has saved the costs page for this scenario.
+
+    Kept as a key inside ``Scenario.tco_parameters`` rather than as a column of its
+    own, so no schema change is needed. eflips-impact reads that JSONB by named key
+    and ignores the rest, and ``CHARGING_INFRASTRUCTURE_KEY`` already sets the
+    precedent for storing something there that only django-simba understands.
+
+    A key rather than a column also means the flag is carried by every path that
+    copies the dict — :func:`apply_tco_mutation` and ``core.deepcopy`` — with no extra
+    handling.
+
+    The one place it could not live is ``Station.tco_parameters``: eflips-impact
+    groups stations by the whole JSONB value, so an extra key there would change the
+    grouping. Stations take their values from the scenario anyway.
+    """
+    return bool((scenario.tco_parameters or {}).get(USER_EDITED_KEY))
+
+
+def mark_tco_parameters_edited(parameters: dict) -> dict:
+    """Return ``parameters`` with the user-edited marker set."""
+    return {**parameters, USER_EDITED_KEY: True}
+
+
 # ---------------------------------------------------------------------------
 # Step 1: pre-simulation fleet topology
 # ---------------------------------------------------------------------------
@@ -207,74 +277,75 @@ def _lca_charging_point_type_overrides(name_short: str | None) -> ChargingPointT
 def ensure_fleet_topology(scenario: Scenario) -> None:
     """Create the fleet rows a TCO calculation needs, if the scenario has none.
 
-    Idempotent and non-destructive: existing rows and non-default parameter values
-    are never overwritten, so it is safe to call on every request and again from the
-    toolchain. It is called from :class:`ebustoolbox.views.CostsView` so the values
-    it writes are on screen and editable before the user starts the simulation.
+    Idempotent, and safe to call on every request and again from the toolchain. It is
+    called from :class:`ebustoolbox.views.CostsView` so the values it writes are on
+    screen and editable before the user starts the simulation.
 
     Creates one :class:`~ebustoolbox.models.BatteryType` per battery-electric vehicle
-    type that has none, one :class:`~ebustoolbox.models.ChargingPointType` per
-    charging type, and seeds the ``tco_parameters`` of the scenario, its vehicle
-    types and its stations from ``defaults/impact/tco.json``.
+    type that has none and one :class:`~ebustoolbox.models.ChargingPointType` per
+    charging type. Whether it also re-seeds the ``tco_parameters`` of those rows
+    depends on :func:`tco_parameters_edited`; see :func:`_seed_from_json`. Missing rows
+    are always created, because the calculation cannot run without them.
 
     :param scenario: The scenario to complete. In the wizard this is the MUTATION.
     """
     _ensure_scenario_parameters(scenario)
     _ensure_battery_types(scenario)
+    # After _ensure_battery_types, which is what creates the rows it writes to, and
+    # like _ensure_station_parameters it is not gated on tco_parameters_edited by the
+    # caller: it checks for itself, because it has to keep running after the user has
+    # saved. That is what carries the shared values onto the SIZING scenario, where
+    # the toolchain calls this again before costing.
+    _apply_vehicle_common(scenario)
     _ensure_charging_point_types(scenario)
     _ensure_station_parameters(scenario)
 
 
-def _seed_from_json(current: dict | None, json_defaults: dict, model_default: dict | None) -> dict:
-    """Merge JSON defaults into a stored ``tco_parameters`` value, key by key.
+def _seed_from_json(json_defaults: dict) -> dict:
+    """Return the value to store for a row the user has not taken over.
 
-    Postgres fills these columns from the model's ``db_default`` at INSERT, so a row
-    is never empty by the time this runs; a plain "keep whatever is stored" merge
-    would make ``defaults/impact/tco.json`` inert and leave two competing sources of
-    truth for the same numbers. A key that is missing, or still holds the model
-    default, therefore counts as unset and takes the JSON value. Any other value is
-    the user's and is kept.
+    A replacement, not a merge: the stored dict becomes exactly the corresponding
+    block of ``defaults/impact/tco.json``. That is what makes the file the only source
+    of these numbers. A merge would leave whatever the column already held for keys
+    the JSON does not mention — the model's ``db_default`` for a fresh row, or a value
+    seeded from an earlier revision of the file — and those leftovers are invisible in
+    ``tco.json`` while still reaching the calculation.
 
-    The comparison is per key rather than on the whole dict, so a row written before a
-    key was added to the model default is not mistaken for a user edit. Keys present
-    only in the stored value (such as the ``procurement_cost_diesel`` left over from
-    eflips-tco) are carried through untouched.
+    So the ``db_default`` declared on each model is deliberately unreachable. It is
+    still the column ``DEFAULT`` in Postgres, because eflips-model declares one of its
+    own for the same columns and dropping Django's would not remove it; but nothing
+    here reads it, and no value it writes survives the first call.
 
-    A user who types a value identical to the model default loses that edit on the
-    next call. Distinguishing the two would need the edits tracked separately, which
-    is not worth a column here.
+    Two invariants make the replacement safe:
 
-    :param current: The stored value, possibly ``None``.
+    - ``tco.json`` covers every key eflips-impact reads. It has no fallback: it
+      indexes ``tco_parameters["useful_life"]`` and friends directly, so a key missing
+      from the JSON is a ``KeyError`` after a full simulation has run.
+    - Values that are computed rather than configured are written after this runs.
+      :func:`_write_energy_consumption` fills in ``average_electricity_consumption``
+      from the simulated events on the way into :func:`calculate_tco`.
+
+    Callers must check :func:`tco_parameters_edited` first. Once the user has saved the
+    costs page the stored numbers are theirs and nothing here may touch them.
+
     :param json_defaults: The corresponding block of ``defaults/impact/tco.json``.
-    :param model_default: The field's ``db_default``.
     :returns: The value to store.
     """
-    current = current or {}
-    model_default = model_default or {}
-
-    result = dict(current)
-    for key, json_value in json_defaults.items():
-        if isinstance(json_value, dict):
-            # fuel_cost, cost_escalation_rate, ... follow the same rule one level down.
-            result[key] = _seed_from_json(current.get(key), json_value, model_default.get(key))
-        elif key not in current or current[key] == model_default.get(key):
-            result[key] = json_value
-    return result
+    return deepcopy(json_defaults)
 
 
 def _ensure_scenario_parameters(scenario: Scenario) -> None:
-    """Seed ``Scenario.tco_parameters`` from ``defaults/impact/tco.json``.
+    """Reset ``Scenario.tco_parameters`` to ``defaults/impact/tco.json``.
 
-    Also backfills ``eta_avail`` for scenarios stored before it was added, which
-    ``TCOCalculator`` reads unconditionally and would otherwise fail on.
+    This is also what backfills keys added after a scenario was stored, such as
+    ``eta_avail``, which ``TCOCalculator`` reads unconditionally.
     """
-    merged = _seed_from_json(
-        scenario.tco_parameters,
-        scenario_tco_defaults(),
-        Scenario._meta.get_field("tco_parameters").db_default,
-    )
-    if merged != scenario.tco_parameters:
-        scenario.tco_parameters = merged
+    if tco_parameters_edited(scenario):
+        return
+
+    wanted = _seed_from_json(scenario_tco_defaults())
+    if wanted != scenario.tco_parameters:
+        scenario.tco_parameters = wanted
         scenario.save(update_fields=["tco_parameters"])
 
 
@@ -285,17 +356,16 @@ def _ensure_battery_types(scenario: Scenario) -> None:
     battery as ``procurement_cost * VehicleType.battery_capacity``, so the parameters
     are only meaningful per vehicle type.
     """
+    seed_parameters = not tco_parameters_edited(scenario)
+
     for vehicle_type in VehicleType.objects.filter(scenario=scenario):
         update_fields = []
 
-        merged = _seed_from_json(
-            vehicle_type.tco_parameters,
-            _tco_vehicle_type_defaults(vehicle_type),
-            VehicleType._meta.get_field("tco_parameters").db_default,
-        )
-        if merged != vehicle_type.tco_parameters:
-            vehicle_type.tco_parameters = merged
-            update_fields.append("tco_parameters")
+        if seed_parameters:
+            wanted = _seed_from_json(vehicle_type_tco_defaults(vehicle_type))
+            if wanted != vehicle_type.tco_parameters:
+                vehicle_type.tco_parameters = wanted
+                update_fields.append("tco_parameters")
 
         is_beb = vehicle_type.energy_source == EnumEnergySource.BATTERY_ELECTRIC
         if is_beb and vehicle_type.battery_type_id is None:
@@ -304,7 +374,7 @@ def _ensure_battery_types(scenario: Scenario) -> None:
                 scenario=scenario,
                 specific_mass=fleet_defaults["specific_mass"],
                 chemistry=fleet_defaults["chemistry"],
-                tco_parameters=_tco_battery_type_defaults(vehicle_type.name_short),
+                tco_parameters=battery_type_tco_defaults(vehicle_type.name_short),
             )
             vehicle_type.battery_type = battery_type
             update_fields.append("battery_type")
@@ -312,6 +382,14 @@ def _ensure_battery_types(scenario: Scenario) -> None:
                 f"S.ID:{scenario.id}:Created BatteryType {battery_type.id} "
                 f"for VehicleType {vehicle_type.id} ({vehicle_type.name_short})"
             )
+        elif seed_parameters and vehicle_type.battery_type_id is not None:
+            # An existing row is re-seeded too, otherwise a battery created under an
+            # older tco.json would keep those prices for good.
+            battery_type = vehicle_type.battery_type
+            wanted = _seed_from_json(battery_type_tco_defaults(vehicle_type.name_short))
+            if wanted != battery_type.tco_parameters:
+                battery_type.tco_parameters = wanted
+                battery_type.save(update_fields=["tco_parameters"])
 
         if update_fields:
             vehicle_type.save(update_fields=update_fields)
@@ -326,9 +404,11 @@ def _ensure_charging_point_types(scenario: Scenario) -> None:
     from the Areas and Stations pointing at it.
     """
     tco_defaults = load_tco_defaults()["charging_point_types"]
+    seed_parameters = not tco_parameters_edited(scenario)
+
     for entry in load_fleet_defaults()["charging_point_types"]:
         # name_short carries the type, so it is the lookup key rather than a default.
-        _, created = ChargingPointType.objects.get_or_create(
+        charging_point_type, created = ChargingPointType.objects.get_or_create(
             scenario=scenario,
             name_short=entry["name_short"],
             defaults={
@@ -338,6 +418,13 @@ def _ensure_charging_point_types(scenario: Scenario) -> None:
         )
         if created:
             logger.info(f"S.ID:{scenario.id}:Created ChargingPointType '{entry['name_short']}'")
+        elif seed_parameters:
+            # As for battery types: without this, a row created under an older
+            # tco.json would keep those prices for good.
+            wanted = _seed_from_json(tco_defaults[entry["type"]])
+            if wanted != charging_point_type.tco_parameters:
+                charging_point_type.tco_parameters = wanted
+                charging_point_type.save(update_fields=["tco_parameters"])
 
 
 def charging_infrastructure_parameters(scenario: Scenario) -> dict:
@@ -354,8 +441,117 @@ def charging_infrastructure_parameters(scenario: Scenario) -> dict:
     existing mutation carry-over instead of needing one of their own.
     """
     defaults = load_tco_defaults()["charging_infrastructure"]
+    if not tco_parameters_edited(scenario):
+        return deepcopy(defaults)
+
     stored = (scenario.tco_parameters or {}).get(CHARGING_INFRASTRUCTURE_KEY) or {}
     return {key: {**value, **(stored.get(key) or {})} for key, value in defaults.items()}
+
+
+def _webus(scenario: Scenario) -> dict:
+    """Return the django-simba bookkeeping block of a scenario, possibly empty."""
+    return (scenario.tco_parameters or {}).get(WEBUS_KEY) or {}
+
+
+def webus_block(common: dict, overrides) -> dict:
+    """Build the value to store under :data:`WEBUS_KEY`.
+
+    :param common: The shared vehicle values, with the battery ones nested under
+        :data:`BATTERY_KEY`.
+    :param overrides: Keys of the vehicle types that carry their own values.
+    """
+    return {VEHICLE_COMMON_KEY: common, VEHICLE_OVERRIDES_KEY: sorted(overrides)}
+
+
+def vehicle_common_parameters(scenario: Scenario) -> dict:
+    """Return the values every battery-electric vehicle type follows by default.
+
+    The counterpart of :func:`charging_infrastructure_parameters` for vehicles, and
+    the same overlay: the JSON defaults until the user has saved the costs page, then
+    the JSON defaults with the stored block laid over them, so a key added to
+    ``tco.json`` afterwards still resolves.
+
+    Battery values are nested under :data:`BATTERY_KEY` rather than kept beside the
+    vehicle ones. They land in a different table, so a flat block would collide on
+    ``useful_life`` and ``procurement_cost``, which both rows have.
+
+    Only battery-electric vehicle types can follow this. ``tco.json`` prices a diesel
+    bus at 250 000 € against 550 000 € for an electric one, so a single shared block
+    across a mixed fleet would be wrong for one of them; diesel types always carry
+    their own values. See :func:`follows_common`.
+
+    :returns: ``{useful_life, procurement_cost, cost_escalation, battery: {...}}``.
+    """
+    beb = vehicle_type_tco_defaults_beb()
+    defaults = {key: beb[key] for key in VEHICLE_COMMON_FIELDS}
+    defaults[BATTERY_KEY] = battery_type_tco_defaults(None)
+
+    if not tco_parameters_edited(scenario):
+        return deepcopy(defaults)
+
+    stored = _webus(scenario).get(VEHICLE_COMMON_KEY) or {}
+    common = {**defaults, **{k: v for k, v in stored.items() if k != BATTERY_KEY}}
+    common[BATTERY_KEY] = {**defaults[BATTERY_KEY], **(stored.get(BATTERY_KEY) or {})}
+    return common
+
+
+def vehicle_overrides(scenario: Scenario) -> set:
+    """Return the keys of the vehicle types that carry their own values.
+
+    Keyed by :func:`vehicle_key` rather than by row id, because the simulated
+    scenarios are deepcopies and the same vehicle type has a different id in each.
+    """
+    return set(_webus(scenario).get(VEHICLE_OVERRIDES_KEY) or [])
+
+
+def follows_common(vehicle_type: VehicleType, overrides: set) -> bool:
+    """Return whether a vehicle type takes its values from the shared block.
+
+    :param overrides: The set from :func:`vehicle_overrides`.
+    """
+    if vehicle_type.energy_source == EnumEnergySource.DIESEL:
+        return False
+    return vehicle_key(vehicle_type) not in overrides
+
+
+def _apply_vehicle_common(scenario: Scenario) -> None:
+    """Copy the shared vehicle block down onto the rows that follow it.
+
+    The same move :func:`_ensure_station_parameters` makes for stations, and for the
+    same reason: eflips-impact reads one complete dict per row and knows nothing about
+    inheritance, so whatever the user shares has to be materialised before it runs.
+
+    Merged rather than assigned, so keys the block does not cover survive — most
+    importantly ``average_electricity_consumption``, which is written per row after
+    the simulation by :func:`_write_energy_consumption`.
+
+    Rows that deviate are not touched: their values are their own, and the costs page
+    is the only thing that writes them.
+    """
+    if not tco_parameters_edited(scenario):
+        return
+
+    common = vehicle_common_parameters(scenario)
+    battery_common = common.get(BATTERY_KEY) or {}
+    vehicle_common = {key: value for key, value in common.items() if key != BATTERY_KEY}
+    overrides = vehicle_overrides(scenario)
+
+    for vehicle_type in VehicleType.objects.filter(scenario=scenario):
+        if not follows_common(vehicle_type, overrides):
+            continue
+
+        wanted = {**(vehicle_type.tco_parameters or {}), **vehicle_common}
+        if wanted != vehicle_type.tco_parameters:
+            vehicle_type.tco_parameters = wanted
+            vehicle_type.save(update_fields=["tco_parameters"])
+
+        if vehicle_type.battery_type_id is None:
+            continue
+        battery_type = vehicle_type.battery_type
+        wanted = {**(battery_type.tco_parameters or {}), **battery_common}
+        if wanted != battery_type.tco_parameters:
+            battery_type.tco_parameters = wanted
+            battery_type.save(update_fields=["tco_parameters"])
 
 
 def _ensure_station_parameters(scenario: Scenario) -> None:
@@ -371,6 +567,11 @@ def _ensure_station_parameters(scenario: Scenario) -> None:
     the MUTATION, where every station necessarily looks like an ordinary charging
     station. Since both parameter sets live on the scenario, the toolchain's second
     call simply re-runs the split and the depot stations pick up the depot values then.
+
+    Deliberately not gated on ``tco_parameters_edited``: it copies down what
+    :func:`charging_infrastructure_parameters` returns, which already respects the
+    flag, and it has to keep running after the user has saved so that the depot split
+    can still be applied.
     """
     parameters = charging_infrastructure_parameters(scenario)
     depot_station_ids = set(
@@ -410,6 +611,8 @@ def apply_tco_mutation(mutation: Scenario, child: Scenario, stack: dict) -> None
     :param stack: Deepcopy bookkeeping, unused here but kept for signature symmetry
         with the other ``apply_*`` functions.
     """
+    # Carries USER_EDITED_KEY with it, so the toolchain's own ensure_fleet_topology
+    # call will not overwrite the values copied here with the JSON defaults.
     child.tco_parameters = deepcopy(mutation.tco_parameters)
 
     battery_type_map = {}
@@ -619,7 +822,7 @@ def _write_energy_consumption(scenario: Scenario, consumption: dict | None = Non
         if vehicle_type.energy_source == EnumEnergySource.DIESEL:
             # No simulated diesel consumption exists; keep whatever was configured.
             if parameters.get("average_diesel_consumption") is None:
-                parameters["average_diesel_consumption"] = _tco_vehicle_type_defaults(vehicle_type)[
+                parameters["average_diesel_consumption"] = vehicle_type_tco_defaults(vehicle_type)[
                     "average_diesel_consumption"
                 ]
         else:
@@ -636,7 +839,7 @@ def _write_energy_consumption(scenario: Scenario, consumption: dict | None = Non
                 # out. setdefault() would keep that None, and eflips-impact
                 # multiplies with this value rather than checking it.
                 if parameters.get("average_electricity_consumption") is None:
-                    parameters["average_electricity_consumption"] = _tco_vehicle_type_defaults(
+                    parameters["average_electricity_consumption"] = vehicle_type_tco_defaults(
                         vehicle_type
                     )["average_electricity_consumption"]
 
