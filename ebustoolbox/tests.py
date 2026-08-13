@@ -1591,7 +1591,6 @@ class LcaDefaultsTest(SimpleTestCase):
         from ``lca_overrides.json``, so a value entered for one vehicle type has to
         override the file rather than sit beside it.
         """
-        data = impact.load_lca_defaults()
         lifetimes = impact.lifetime_defaults()
 
         for energy_source in (EnumEnergySource.BATTERY_ELECTRIC, EnumEnergySource.DIESEL):
