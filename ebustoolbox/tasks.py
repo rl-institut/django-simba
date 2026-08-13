@@ -1734,7 +1734,11 @@ def apply_depot_strategy(scenario: Scenario, strategy: str, split_vehicles=False
                 events_to_delete.append(next_event)
         event_list.append(event)
 
-    Event.objects.bulk_update(event_list, ["timeseries", "time_start", "time_end"])
+    # fast_update writes an UPDATE ... FROM (VALUES ...) instead of bulk_update's
+    # one CASE branch per row, which Postgres re-evaluates for every row. Profiling
+    # a week of BVG-XML measured 22,276 rows in 1,285 s here versus 0.81 ms/row for
+    # the fast_update in consolidate_socs.
+    Event.objects.fast_update(event_list, fields=["timeseries", "time_start", "time_end"])
     Event.objects.filter(id__in=[e.id for e in events_to_delete]).delete()
     logger.info(f"S.ID:{scenario.id}:{events.count()} depot charging events updated")
 
