@@ -1284,16 +1284,23 @@ class Station(models.Model):
     @classmethod
     def get_popup_data(cls, id):
         # circular import
-        from .util import get_charge_chart
+        from .data import get_station_summary
 
-        obj = cls.objects.annotate(**cls.annotations).get(id=id)
+        obj = cls.objects.select_related("scenario").get(id=id)
         data = vars(obj)
         data["title"] = obj.name_short or obj.name
+        if obj.is_electrified:
+            # Rendered by the shared popup header, below the station name
+            data["municipality"] = f"{data['charge_type']} · {data['voltage_level']}"
+            data.update(get_station_summary(obj))
+            # The load profile is fetched separately, only once the user opens it
+            data["station_id"] = obj.id
+            data["task_id"] = obj.scenario.task_id
+
+        # only do it right before displaying, since this mutates obj and destroys
+        # Enum comparisons
         data["charge_type"] = obj.get_charge_type_display()
         data["voltage_level"] = obj.get_voltage_level_display()
-        plot = get_charge_chart(obj)
-        if plot:
-            data["plot"] = plot
         return data
 
     def is_valid(self):

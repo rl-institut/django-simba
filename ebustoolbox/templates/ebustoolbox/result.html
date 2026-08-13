@@ -382,6 +382,52 @@
           </div>
           <div id="DepotlineChart" class="chart-container h-[480px]"></div>
         </div>
+
+      {% include "ebustoolbox/partials/result_export.html" with endpoint="electrified_stations" %}
+      <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto w-full max-w-5xl">
+        <div class="border-b border-slate-200 px-4 pt-6 pb-4 text-center">
+          <h3 class="text-base font-semibold text-slate-800">
+            {% translate 'Elektrifizierte Endhaltestellen' %}
+          </h3>
+          <p class="mt-1 text-xs text-slate-500">
+            <span id="electrifiedStationsCount">–</span>&nbsp;{% translate 'Haltestellen' %}
+            &middot; {% translate 'Spaltentitel zum Sortieren anklicken' %}
+            {% if not disable_map %}
+              &middot; {% translate 'Zeile anklicken, um die Haltestelle in der Karte zu zeigen' %}
+            {% endif %}
+          </p>
+        </div>
+        <div class="max-h-[480px] overflow-y-auto relative">
+          <table id="electrifiedStationsTable" class="w-full table-fixed border-collapse bg-white">
+            <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
+              <tr class="divide-x divide-slate-200 border-b border-slate-200">
+                <th data-column="name" class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/5" onclick="sortStationsTable('name')">
+                  {% translate 'Haltestelle' %}
+                </th>
+                <th data-column="chargers" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('chargers')">
+                  {% translate 'Ladepunkte' %}
+                </th>
+                <th data-column="power_installed" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('power_installed')"
+                    title="{% translate 'Installiert (Ladepunkte × Anschlussleistung), darunter die höchste in der Simulation erreichte Leistung. Beide netzseitig: die Simulation rechnet in Batterieleistung, zurückgerechnet wird mit der Ladeeffizienz des Fahrzeugtyps.' %}">
+                  {% translate 'Leistung' %}
+                </th>
+                <th data-column="energy" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('energy')">
+                  {% translate 'Energie' %}
+                </th>
+                <th data-column="utilization" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortStationsTable('utilization')"
+                    title="{% translate 'Mittlere Belegung bezogen auf die Ladepunkte. Da sich die Ladepunkte aus der Spitzenbelegung ergeben, wird sie nie 100 %; ein niedriger Wert bedeutet ungleichmäßige Ankünfte, nicht einen entbehrlichen Ladepunkt.' %}">
+                  {% translate 'Auslastung' %}
+                </th>
+                <th data-column="lines" class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortStationsTable('lines')">
+                  {% translate 'Linien' %}
+                </th>
+              </tr>
+            </thead>
+            <tbody id="electrifiedStationsBody" class="divide-y divide-slate-200 bg-white"></tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="flex flex-col">
         <div id="bus-section" class="flex justify-between items-center pb-2">
           <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Fahrzeuge' %}</h2>
@@ -423,6 +469,15 @@
     </div>
     {% include "ebustoolbox/partials/result_export.html" with endpoint="rotation_table" %}
     <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto max-w-4xl">
+      <!-- The sibling cards get their heading from the chart itself; this one is plain HTML and
+           had none at all -->
+      <div class="border-b border-slate-200 px-4 pt-6 pb-4 text-center">
+        <h3 class="text-base font-semibold text-slate-800">{% translate 'Umlaufübersicht' %}</h3>
+        <p class="mt-1 text-xs text-slate-500">
+          <span id="rotationTableCount">–</span>&nbsp;{% translate 'Umläufe' %}
+          &middot; {% translate 'Spaltentitel zum Sortieren anklicken' %}
+        </p>
+      </div>
       <div id="table-scroll-container" class="h-[480px] overflow-y-auto relative">
         <table id="rotationTable" class="w-full table-fixed border-collapse bg-white">
           <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
@@ -605,11 +660,14 @@
             const chart = echarts.init(document.getElementById(chartId));
 
             // Prepare the series data for each bus (V_id)
+            const busNames = data.names || {};
             var seriesData = [];
             for (let v_id in data.data) {
                 let busData = data.data[v_id];
                 seriesData.push({
-                    name: `Bus ${v_id}`, // Name for the legend
+                    // Database ids mean nothing to the user, so label with the short name the
+                    // backend derives from vehicle type, depot and a per-scenario counter
+                    name: busNames[v_id] || `Bus ${v_id}`,
                     type: 'line',
                     data: busData, // The actual time-series data for this bus
                     smooth: false
@@ -642,7 +700,10 @@
                     },
                     {
                         type: 'inside',
-                        filterMode: 'empty'
+                        filterMode: 'empty',
+                        // Leave the wheel to the page; the sliders and dragging still zoom
+                        zoomOnMouseWheel: false,
+                        moveOnMouseWheel: false
                     },
                     {
                         type: 'slider',
@@ -753,7 +814,10 @@
                         },
                         {
                             type: 'inside',
-                            filterMode: 'empty'
+                            filterMode: 'empty',
+                            // Leave the wheel to the page; the sliders and dragging still zoom
+                            zoomOnMouseWheel: false,
+                            moveOnMouseWheel: false
                         }
                     ],
                     grid: {
@@ -938,7 +1002,9 @@
         return {
             type: 'category',
             inverse: true,
-            data: vehicles.map(v => `Bus ${v.busNumber}`),
+            // Category values have to be unique, which "Bus 1" was not once a second vehicle
+            // type started counting from 1 again
+            data: vehicles.map(v => v.label || `Bus ${v.busNumber}`),
             axisLabel: {
                 interval: 0,
                 formatter: function(value, index) {
@@ -948,7 +1014,11 @@
                     const type = vehicle.type || 'Unknown';
                     const truncated = type.length > 15 ? type.slice(0, 15) + '…' : type;
 
-                    return `{${type}|${truncated}} ${value}`;
+                    // The badge already carries the vehicle type, so the text beside it only
+                    // needs the depot and the number
+                    const rest = [vehicle.depot, vehicle.busNumber].filter(Boolean).join(' ');
+
+                    return `{${type}|${truncated}} ${rest || value}`;
                 },
                 rich: rich
             },
@@ -1161,7 +1231,11 @@
                         },
                         {
                             type: 'inside',
-                            filterMode: 'weakFilter'
+                            filterMode: 'weakFilter',
+                            // The wheel scrolls the rows vertically (see insideY below), it must
+                            // not also zoom the time axis
+                            zoomOnMouseWheel: false,
+                            moveOnMouseWheel: false
                         },
                         {
                             type: 'slider',
@@ -1432,7 +1506,11 @@
                         },
                         {
                             type: 'inside',
-                            filterMode: 'weakFilter'
+                            filterMode: 'weakFilter',
+                            // The wheel scrolls the rows vertically (see insideY below), it must
+                            // not also zoom the time axis
+                            zoomOnMouseWheel: false,
+                            moveOnMouseWheel: false
                         },
                         {
                             type: 'slider',
@@ -1732,6 +1810,8 @@
       .then((result) => {
         const rawData = result.data;
 
+        // Absolute hours, not hour-of-day, so this lines up with the depot occupancy chart.
+        // The backend already limits them to the simulation window.
         const xHours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
         const yBins = ["<0", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"];
 
@@ -2038,6 +2118,142 @@
             });
     }
 
+    let electrifiedStationData = [];
+
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[character]);
+
+    const formatNumber = (value, digits = 0) => Number(value ?? 0).toLocaleString('de-DE', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+    });
+
+    function loadElectrifiedStations(taskId) {
+        return fetch(`/simba/result/${taskId}/electrified_stations/`)
+            .then(response => response.json())
+            .then(result => {
+                electrifiedStationData = result.data || [];
+                const count = document.getElementById('electrifiedStationsCount');
+                if (count) count.textContent = electrifiedStationData.length.toLocaleString('de-DE');
+                renderElectrifiedStations(electrifiedStationData);
+            });
+    }
+
+    function renderElectrifiedStations(rows) {
+        const tbody = document.getElementById('electrifiedStationsBody');
+        if (!tbody) return;
+
+        if (!rows.length) {
+            tbody.innerHTML = `
+                <tr><td colspan="6" class="px-4 py-6 text-center text-xs text-slate-500">
+                    Keine elektrifizierten Endhaltestellen in diesem Szenario.
+                </td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = rows.map(row => `
+            <tr class="station-row cursor-pointer hover:bg-slate-50 transition-colors duration-75"
+                data-station-id="${row.station_id}"
+                onclick="selectStationRow(this, ${row.station_id}, ${row.lon}, ${row.lat})">
+                <td class="px-4 py-2 text-xs font-semibold text-slate-900 truncate" title="${escapeHtml(row.name)}">
+                    ${escapeHtml(row.name)}
+                </td>
+                <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${row.chargers}</td>
+                <td class="px-4 py-2 text-xs text-right font-mono text-slate-600"
+                    title="${row.charging_efficiency_pct
+                        ? `Spitze netzseitig, angenommen ${row.charging_efficiency_pct} % Ladeeffizienz`
+                        : ''}">
+                    ${formatNumber(row.power_installed)}&nbsp;kW
+                    <span class="block text-slate-400">Spitze ${formatNumber(row.power_peak)}&nbsp;kW</span>
+                </td>
+                <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${formatNumber(row.energy)}&nbsp;kWh</td>
+                <td class="px-4 py-2 text-xs text-slate-600">
+                    <div class="flex items-center justify-end gap-2">
+                        <span class="relative h-1.5 w-12 flex-none overflow-hidden rounded-full bg-slate-200">
+                            <span class="absolute inset-y-0 left-0 bg-emerald-500"
+                                  style="width: ${Math.min(100, row.utilization * 100).toFixed(0)}%"></span>
+                        </span>
+                        <span class="font-mono">${formatNumber(row.utilization * 100, 1)}&nbsp;%</span>
+                    </div>
+                    <span class="block text-right text-slate-400">
+                        &Oslash;&nbsp;${formatNumber(row.avg_concurrent, 1)} von ${row.chargers}
+                    </span>
+                </td>
+                <td class="px-4 py-2" title="${escapeHtml(row.lines)}">
+                    ${renderLineChips(row.lines)}
+                </td>
+            </tr>`).join('');
+    }
+
+    // At most four chips, then a count, so a stop on many lines cannot push the column wide
+    function renderLineChips(lines) {
+        const names = String(lines || '').split(',').map(name => name.trim()).filter(Boolean);
+        if (!names.length) return '<span class="text-xs text-slate-400">&ndash;</span>';
+
+        const chip = 'rounded px-1.5 font-mono text-[9.5px] font-semibold';
+        const shown = names.slice(0, 4).map(name =>
+            `<span class="${chip} border border-slate-300 text-slate-700">${escapeHtml(name)}</span>`
+        );
+        if (names.length > 4) {
+            shown.push(`<span class="${chip} bg-slate-100 text-slate-500">+${names.length - 4}</span>`);
+        }
+        return `<div class="flex flex-wrap gap-1">${shown.join('')}</div>`;
+    }
+
+    // An inset shadow rather than a border, so the row does not shift sideways when selected
+    const SELECTED_ROW_CLASSES = ['bg-emerald-50', 'shadow-[inset_3px_0_0_#10b981]'];
+
+    function selectStationRow(rowElement, stationId, lon, lat) {
+        document.querySelectorAll('#electrifiedStationsBody .station-row').forEach(row => {
+            row.classList.remove(...SELECTED_ROW_CLASSES);
+        });
+        rowElement.classList.add(...SELECTED_ROW_CLASSES);
+
+        if (typeof showStationOnMap === 'function') {
+            showStationOnMap(stationId, lon, lat);
+        }
+    }
+
+    // Shared by both result tables. The header query is scoped to the table being sorted: an
+    // unscoped one repaints every th.sortable on the page, so sorting one table stripped the
+    // sort arrow off the other.
+    const tableSortState = {};
+
+    function sortTableBy(tableId, column, rows, render) {
+        const state = tableSortState[tableId] || (tableSortState[tableId] = {column: '', direction: 1});
+        if (state.column === column) {
+            state.direction *= -1;
+        } else {
+            state.direction = 1;
+            state.column = column;
+        }
+
+        document.querySelectorAll(`#${tableId} th.sortable`).forEach(th => {
+            th.classList.remove('asc', 'desc');
+            if (th.dataset.column === column) {
+                th.classList.add(state.direction === 1 ? 'asc' : 'desc');
+            }
+        });
+
+        const sorted = [...rows].sort((a, b) => {
+            const valueA = a[column];
+            const valueB = b[column];
+            if (valueA == null) return 1;
+            if (valueB == null) return -1;
+            if (typeof valueA === 'string') {
+                return valueA.localeCompare(valueB, 'de-DE') * state.direction;
+            }
+            return (valueA - valueB) * state.direction;
+        });
+
+        render(sorted);
+    }
+
+    function sortStationsTable(column) {
+        sortTableBy('electrifiedStationsTable', column, electrifiedStationData, renderElectrifiedStations);
+    }
+
     function loadRotationTable(taskId) {
         fetch(`/simba/result/${taskId}/rotation_table/`)
             .then(response => response.json())
@@ -2063,6 +2279,9 @@
     function renderTable(data) {
         const tbody = document.getElementById('rotationTableBody');
         if (!tbody) return;
+
+        const count = document.getElementById('rotationTableCount');
+        if (count) count.textContent = data.length.toLocaleString('de-DE');
 
         tbody.innerHTML = data.map(row => `
             <tr class="hover:bg-slate-50 transition-colors duration-75">
@@ -2128,13 +2347,14 @@
 
         fetchAndRenderStats("stats", "_", "_"),
         fetchAndRenderGanttChart("gantt","ganttChart","_"),
-        fetchAndRenderStackedHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen"),
-        fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten"),
+        // fetchAndRenderStackedHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen"),
+        // fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten"),
         fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap"),
         fetchAndRenderGanttChartSOC("gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit"),
         fetchAndRenderTCOBars('tco', 'tco-bar'),
 	fetchAndRenderCumulativeChart("cumulative_coverage", "cumulative-coverage", "Anteil erfüllbarer Umläufe"),
-        loadRotationTable(taskIdAvg)
+        loadRotationTable(taskIdAvg),
+        loadElectrifiedStations(taskIdAvg)
         ];
 
         Promise.allSettled(chartPromises).then((results)=>{
@@ -2462,19 +2682,4 @@ switchCostsTab('costs-tab-1');
   });
 </script>
 
-<script>
-  /* tabs in map popups functionality */
-  function openTab(e, tab_id) {
-    let tab_contents = document.getElementsByClassName("tab-pane");
-    for (let content of tab_contents) {
-      content.style.display = "none";
-    }
-    let tab_links = document.getElementsByClassName("tab-link");
-    for (let tab_link of tab_links) {
-      tab_link.classList.remove("active");
-    }
-    document.getElementById("tab-" + tab_id).style.display = "block";
-    e.currentTarget.classList.add("active");
-  }
-</script>
 {% endblock script %}
