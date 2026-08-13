@@ -1,7 +1,7 @@
 {% extends 'ebustoolbox/wizard.html' %}
 {% load i18n %}
 {% load custom_filters %}
-{% block title %}WeBus - Kosten{% endblock title %}
+{% block title %}WeBus - Kosten und Ökobilanz{% endblock title %}
 
 {% block wizard_navigation %}
   {% with wiz_idx=5 %}
@@ -21,7 +21,7 @@
   <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
     <h1 class="pb-12 text-2xl text-slate-500 font-light tracking-wide uppercase">
       <span class="text-sm normal-case font-normal text-slate-500">{% translate '(optional)' %}</span>
-      {% translate "Kosten" %}
+      {% translate "Kosten und Ökobilanz" %}
     </h1>
     <section class="pb-12">
       <fieldset class="pb-8 flex" style="justify-content: center">
@@ -88,9 +88,16 @@
           </button>
         </div>
 
-        <!-- 0 - The lifetimes both calculations share. Above the cost panels and       -->
-        <!-- outside them on purpose: these are the only inputs the Ökobilanz reads too, -->
-        <!-- and a lifetime entered twice is a lifetime that can disagree with itself.   -->
+        {# The page is three bands: what both calculations read, then the costs, then  #}
+        {# the Ökobilanz. A value belongs to exactly one of them, which is what makes  #}
+        {# it possible to say where any input on this page ends up.                    #}
+        <h2 class="pt-4 pb-3 text-base font-semibold uppercase tracking-wide text-slate-500">
+          {% translate 'Gemeinsame Annahmen' %}
+        </h2>
+
+        <!-- 0 - The lifetimes both calculations share. Its own band above the two      -->
+        <!-- subject areas on purpose: a lifetime entered twice is a lifetime that can  -->
+        <!-- disagree with itself.                                                      -->
         <div id="acc-lifetime" class="rounded-lg bg-white shadow accordion-container" data-value="lifetime">
           <div class="border-b border-slate-200">
             <button type="button" onclick="toggleAccordion(this)"
@@ -119,6 +126,10 @@
             </div>
           </div>
         </div>
+
+        <h2 class="pt-10 pb-3 text-base font-semibold uppercase tracking-wide text-slate-500">
+          {% translate 'Gesamtkosten' %}
+        </h2>
 
         <!-- 1 - Scenario-wide settings. Wartung lives here because eflips-impact keeps -->
         <!-- both maintenance figures at scenario level; see CostsView._general_groups.  -->
@@ -180,15 +191,6 @@
                     {% include "ebustoolbox/partials/tco_field.html" with field=common_battery_form.cost_escalation %}
                   </div>
                 </fieldset>
-                {# The former Ökobilanz step. Grouped rather than mixed in above because #}
-                {# these two describe the fleet physically and never reach the costs.    #}
-                <fieldset class="pt-4">
-                  <legend class="text-sm font-semibold text-slate-700">{% translate 'Ökobilanz' %}</legend>
-                  <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                    {% include "ebustoolbox/partials/tco_field.html" with field=lca_common_form.motor_rated_power_kw %}
-                    {% include "ebustoolbox/partials/tco_field.html" with field=lca_common_battery_form.specific_mass %}
-                  </div>
-                </fieldset>
               </div>
             </div>
           </div>
@@ -212,15 +214,20 @@
                   {% if row.can_follow %}
                     {# Unchecked means the card follows the shared block; the inputs stay #}
                     {# in the DOM so ticking it needs no round trip.                      #}
+                    {# The only checkbox of the pair that carries a name, and so the only #}
+                    {# one that is submitted. Its twin in the Ökobilanz band below mirrors #}
+                    {# it through data-vt; see toggleDeviation.                            #}
                     <label class="flex items-center gap-2 pb-4 text-sm text-slate-800">
                       <input type="checkbox" name="{{ row.checkbox_name }}" value="1"
+                             data-vt="{{ row.vehicle_type.id }}"
                              {% if row.deviates %}checked{% endif %}
                              onchange="toggleDeviation(this)"
                              class="size-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500">
                       {% translate 'Von den gemeinsamen Werten abweichen' %}
                     </label>
                   {% endif %}
-                  <div class="vt-fields {% if row.can_follow and not row.deviates %}hidden{% endif %}">
+                  <div class="vt-fields {% if row.can_follow and not row.deviates %}hidden{% endif %}"
+                       data-vt="{{ row.vehicle_type.id }}">
                   <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
                     {% include "ebustoolbox/partials/tco_field.html" with field=row.form.procurement_cost %}
                     {% include "ebustoolbox/partials/tco_field.html" with field=row.form.cost_escalation %}
@@ -240,17 +247,6 @@
                       </div>
                     </fieldset>
                   {% endif %}
-                  {# Same checkbox as the cost values above: a type that deviates       #}
-                  {# deviates in everything, so there is one toggle per card, not two.  #}
-                  <fieldset class="pt-4">
-                    <legend class="text-sm font-semibold text-slate-700">{% translate 'Ökobilanz' %}</legend>
-                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                      {% include "ebustoolbox/partials/tco_field.html" with field=row.lca_form.motor_rated_power_kw %}
-                      {% if row.lca_battery_form %}
-                        {% include "ebustoolbox/partials/tco_field.html" with field=row.lca_battery_form.specific_mass %}
-                      {% endif %}
-                    </div>
-                  </fieldset>
                   </div>
                 </div>
               </div>
@@ -294,6 +290,84 @@
             </div>
           </div>
         {% endfor %}
+
+        {# The former Ökobilanz wizard step. Its own band rather than a fieldset inside #}
+        {# each cost card: these values describe the fleet and the grid physically and  #}
+        {# never reach a euro, so mixed in among the prices they read as costs that      #}
+        {# happen to be measured in kilowatts.                                           #}
+        <h2 class="pt-10 pb-3 text-base font-semibold uppercase tracking-wide text-slate-500">
+          {% translate 'Ökobilanz' %}
+        </h2>
+
+        <div id="acc-lca-common" class="rounded-lg bg-white shadow accordion-container" data-value="lca-common">
+          <div class="border-b border-slate-200">
+            <button type="button" onclick="toggleAccordion(this)"
+                    class="w-full flex justify-between items-center py-5 text-slate-800 bg-emerald-200 accordion-header">
+              <span class="w-max text-base font-bold px-2">{% translate 'Fahrzeuge – gemeinsame Werte' %}</span>
+              <span id="acc-icon-lca-common" class="accordion-cost-icon text-slate-800 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
+                  <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                </svg>
+              </span>
+            </button>
+            <div id="acc-content-lca-common" class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
+              <div class="accordion-cost-content">
+                <p class="pb-4 text-sm text-slate-500">
+                  {% blocktranslate %}
+                    Diese Werte gelten für alle Elektrofahrzeugtypen, die nicht abweichen.
+                  {% endblocktranslate %}
+                </p>
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                  {% include "ebustoolbox/partials/tco_field.html" with field=lca_common_form.motor_rated_power_kw %}
+                  {% include "ebustoolbox/partials/tco_field.html" with field=lca_common_battery_form.specific_mass %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# One card per vehicle type again, mirroring the cost card of the same name.   #}
+        {# A type that deviates deviates in everything, so the checkbox here is the same #}
+        {# state as the one above rather than a second one.                              #}
+        {% for row in vehicle_rows %}
+          <div id="acc-vtlca-{{ row.vehicle_type.id }}" class="rounded-lg bg-white shadow accordion-container" data-value="vtlca-{{ row.vehicle_type.id }}">
+            <div class="border-b border-slate-200">
+              <button type="button" onclick="toggleAccordion(this)"
+                      class="w-full flex justify-between items-center py-5 text-slate-800 bg-emerald-200 accordion-header">
+                <span class="w-max text-base font-bold px-2">{% translate 'Fahrzeugtyp' %} {{ row.vehicle_type.name }}</span>
+                <span id="acc-icon-vtlca-{{ row.vehicle_type.id }}" class="accordion-cost-icon text-slate-800 transition-transform duration-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
+                    <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                  </svg>
+                </span>
+              </button>
+              <div id="acc-content-vtlca-{{ row.vehicle_type.id }}" class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
+                <div class="accordion-cost-content">
+                  {% if row.can_follow %}
+                    {# No name: the submitted one is in the Gesamtkosten card. #}
+                    <label class="flex items-center gap-2 pb-4 text-sm text-slate-800">
+                      <input type="checkbox" data-vt="{{ row.vehicle_type.id }}"
+                             {% if row.deviates %}checked{% endif %}
+                             onchange="toggleDeviation(this)"
+                             class="size-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500">
+                      {% translate 'Von den gemeinsamen Werten abweichen' %}
+                    </label>
+                  {% endif %}
+                  <div class="vt-fields {% if row.can_follow and not row.deviates %}hidden{% endif %}"
+                       data-vt="{{ row.vehicle_type.id }}">
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                      {% include "ebustoolbox/partials/tco_field.html" with field=row.lca_form.motor_rated_power_kw %}
+                      {% if row.lca_battery_form %}
+                        {% include "ebustoolbox/partials/tco_field.html" with field=row.lca_battery_form.specific_mass %}
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+
       </div>
     </section>
   </div>
@@ -401,14 +475,24 @@
   // Show or hide one vehicle type's own inputs. The inputs are never removed, so the
   // card can be flipped back and forth without losing what was typed; the server
   // decides what to save from the checkbox, not from what is visible.
+  //
+  // A vehicle type has two cards -- one under Gesamtkosten, one under Ökobilanz -- and
+  // one deviation state between them, so both checkboxes and both field blocks are
+  // found by data-vt and moved together. Only the cost card's checkbox has a name, so
+  // whichever one the user clicked, exactly one value is submitted.
   function toggleDeviation(checkbox) {
-    const card = checkbox.closest('.accordion-container');
-    const fields = card.querySelector('.vt-fields');
-    fields.classList.toggle('hidden', !checkbox.checked);
-    // The accordion animates on a fixed max-height, so it has to be re-measured.
-    const content = card.querySelector('.accordion-cost-content').parentElement;
-    if (content.style.maxHeight && content.style.maxHeight !== '0px')
-      content.style.maxHeight = content.scrollHeight + 'px';
+    const vt = checkbox.dataset.vt;
+    document.querySelectorAll(`input[type="checkbox"][data-vt="${vt}"]`).forEach(box => {
+      box.checked = checkbox.checked;
+    });
+    document.querySelectorAll(`.vt-fields[data-vt="${vt}"]`).forEach(fields => {
+      fields.classList.toggle('hidden', !checkbox.checked);
+      // The accordion animates on a fixed max-height, so it has to be re-measured.
+      const card = fields.closest('.accordion-container');
+      const content = card.querySelector('.accordion-cost-content').parentElement;
+      if (content.style.maxHeight && content.style.maxHeight !== '0px')
+        content.style.maxHeight = content.scrollHeight + 'px';
+    });
   }
 
   function toggleAccordion(button) {
