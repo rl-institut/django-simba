@@ -1154,6 +1154,16 @@ class CostsView(ScenarioMixIn, TemplateView):
             initial=forms.BatteryTypeLcaForm.initial_from(lca_common.get(impact.BATTERY_KEY)),
         ).mark_defaults(lca_common_defaults[impact.BATTERY_KEY])
 
+        # Scenario-wide and not part of any vehicle block: this describes the grid the
+        # fleet is plugged into. Already resolved against lca.json, hence no second
+        # fallback in initial_from.
+        electricity_defaults = impact.electricity_defaults()
+        electricity_form = forms.ElectricityLcaForm(
+            data=data,
+            prefix="elec",
+            initial=forms.ElectricityLcaForm.initial_from(impact.electricity_parameters(scenario)),
+        ).mark_defaults(electricity_defaults)
+
         stored_overrides = impact.vehicle_overrides(scenario)
         vehicle_rows = []
         for vehicle_type in scenario.vehicletype_set.order_by("id"):
@@ -1269,6 +1279,7 @@ class CostsView(ScenarioMixIn, TemplateView):
             "common_battery_form": common_battery_form,
             "lca_common_form": lca_common_form,
             "lca_common_battery_form": lca_common_battery_form,
+            "electricity_form": electricity_form,
             "vehicle_rows": vehicle_rows,
             "charging_point_rows": charging_point_rows,
             "charging_categories": self._charging_categories(
@@ -1408,6 +1419,13 @@ class CostsView(ScenarioMixIn, TemplateView):
                 values,
             )
 
+            collect(
+                forms.ElectricityLcaForm,
+                "elec",
+                impact.electricity_parameters(other_scenario),
+                values,
+            )
+
             other_vehicle_types = {
                 vehicle_type.name_short or vehicle_type.name: vehicle_type
                 for vehicle_type in other_scenario.vehicletype_set.all()
@@ -1464,6 +1482,7 @@ class CostsView(ScenarioMixIn, TemplateView):
             context["common_battery_form"],
             context["lca_common_form"],
             context["lca_common_battery_form"],
+            context["electricity_form"],
             *context["infrastructure_forms"].values(),
         ]
         all_forms += [row["form"] for row in context["charging_point_rows"]]
@@ -1619,6 +1638,7 @@ class CostsView(ScenarioMixIn, TemplateView):
                     context["lifetime_form"].to_tco_parameters(),
                     lca_common,
                     lca_values,
+                    context["electricity_form"].to_tco_parameters(),
                 ),
             }
         )
@@ -2783,7 +2803,7 @@ def get_rotation_table_data(request, task_id: str):
 # The Ökobilanz wizard step used to sit here, between Kosten and Depots. It was a
 # placeholder with one button on it -- take the defaults from defaults/impact/lca.json
 # -- and a table showing which rows they had reached, because none of the parameters
-# were editable. The two that are worth editing, the motor rated power and the
-# battery's specific mass, are now inputs on the costs page beside the cost values
-# that describe the same fleet, so the step had nothing left to offer and was
-# removed. Seeding is still done from there, and by calculate_lca before it runs.
+# were editable. The ones worth editing -- the motor rated power, the battery's specific
+# mass and the emission factors of the electricity -- are now inputs in the Ökobilanz
+# band of the costs page, so the step had nothing left to offer and was removed. Seeding
+# is still done from there, and by calculate_lca before it runs.

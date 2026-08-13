@@ -1,4 +1,5 @@
 import time
+import warnings
 from copy import copy
 from datetime import datetime, timedelta
 from typing import Iterable
@@ -1626,6 +1627,80 @@ class LcaDefaultsTest(SimpleTestCase):
         common = impact.vehicle_lca_defaults_beb()[impact.BATTERY_KEY][impact.SPECIFIC_MASS_KEY]
         self.assertEqual(common, impact._fleet_battery_defaults()[impact.SPECIFIC_MASS_KEY])
         self.assertGreater(common, 0)
+
+    def test_electricity_defaults_are_the_year_the_calculation_samples(self):
+        """The vector on the costs page is the one an untouched scenario is run with.
+
+        The file holds a series of years and eflips-impact samples it exactly once, at
+        ``analysis_year``. If the page resolved the series differently -- the earliest
+        year, say, or the raw per-MJ figures -- the number shown would not be the
+        number used, and editing it would silently change the result by a factor.
+        """
+        data = impact.load_lca_defaults()
+        sampled = data.electricity_per_kwh.at_year(impact.analysis_year()).to_dict()
+        defaults = impact.electricity_defaults()
+
+        self.assertEqual(set(defaults), set(sampled))
+        for category, value in defaults.items():
+            # Six significant digits of the sampled value, not some other year's: the
+            # tightest bound that survives rounding is 5e-6 relative, when the leading
+            # digit is a 1.
+            self.assertAlmostEqual(value, sampled[category], delta=abs(sampled[category]) * 1e-5)
+            self.assertLessEqual(len(repr(value)), 14, f"{category} is not rounded: {value!r}")
+        # Per kWh, not the per-MJ figures in the file: the loader multiplies by 3.6.
+        self.assertGreater(defaults["gwp"], 0.2)
+
+    def test_edited_electricity_replaces_the_whole_series(self):
+        """A stored vector reaches the built parameters, and nothing else survives.
+
+        The one-entry series has to be keyed at the year that is then asked for, or
+        ``at_year`` clamps to it with a warning instead of returning it -- same value
+        here, but only by luck of there being nothing else to clamp to.
+        """
+        scenario = Scenario(
+            tco_parameters=impact.mark_tco_parameters_edited(
+                {impact.WEBUS_KEY: {impact.ELECTRICITY_KEY: {"gwp": 0.05}}}
+            )
+        )
+
+        resolved = impact.electricity_parameters(scenario)
+        self.assertEqual(resolved["gwp"], 0.05)
+        # The seven the user left alone still come from the file.
+        self.assertEqual(resolved["water"], impact.electricity_defaults()["water"])
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")  # a clamp here would mean the key is wrong
+            data = impact._lca_data_for(scenario)
+            built = data.make_vehicle_type_lca_parameters_beb(
+                impact.analysis_year(),
+                impact._lca_vehicle_type_overrides(
+                    VehicleType(name_short=None, energy_source=EnumEnergySource.BATTERY_ELECTRIC),
+                    impact.lifetime_defaults(),
+                    impact.vehicle_lca_defaults_beb(),
+                ),
+            ).to_dict()
+        self.assertEqual(built["electricity_emission_factors_per_kwh"]["gwp"], 0.05)
+
+        # The cached dataset every other scenario is built from is untouched.
+        self.assertEqual(len(impact.load_lca_defaults().electricity_per_kwh.data), 3)
+
+    def test_unedited_scenario_keeps_the_shipped_electricity_factors(self):
+        """Adding the input must not move an existing result by anything visible.
+
+        Not identical to what the code produced before: the defaults are rounded to
+        six significant digits so that the page can render them. Bounded here, because
+        a rounding is the only difference this feature is allowed to make to a scenario
+        nobody has edited.
+        """
+        scenario = Scenario(tco_parameters={})
+        built = impact._lca_data_for(scenario).electricity_per_kwh.at_year(impact.analysis_year())
+        shipped = impact.load_lca_defaults().electricity_per_kwh.at_year(impact.analysis_year())
+
+        self.assertEqual(built.to_dict().keys(), shipped.to_dict().keys())
+        for category, value in built.to_dict().items():
+            self.assertAlmostEqual(
+                value, shipped.to_dict()[category], delta=abs(shipped.to_dict()[category]) * 1e-5
+            )
 
     def test_battery_chemistry_selects_the_emission_factors(self):
         data = impact.load_lca_defaults()

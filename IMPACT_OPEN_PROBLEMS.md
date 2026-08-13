@@ -4,10 +4,15 @@ Working list for the TCO/LCA integration in `ebustoolbox/impact.py`. Nothing her
 a blocker for the committed code; all of it is known and deferred.
 
 Status as of 2026-08-13. Committed: `4d79867e` `4f42a3ef` `68aabb72` `54f5ab6e`
-(TCO steps 1–4 + eflips-model 11.2.0), `518373ea` (Celery guard), `8c52cf61` (LCA).
+(TCO steps 1–4 + eflips-model 11.2.0), `518373ea` (Celery guard), `8c52cf61` (LCA),
+and the six commits ending here: the BatteryType adoption fix, the shared
+`Nutzungsdauer` block, the editable Ökobilanz inputs, the costs page restructure and
+the editable grid emission factors.
 
 Fixed since the list was written: **A2** (one lifetime block now feeds both
-calculations, `impact.lifetime_parameters`) and **A12** below.
+calculations, `impact.lifetime_parameters`) and **A12** below. The Ökobilanz wizard
+step is gone — its editable values are inputs on the costs page, now named
+*Kosten und Ökobilanz*.
 
 ---
 
@@ -120,6 +125,32 @@ simulation. `.select_related("vehicle_type")` collapses it to one query.
 The new step sets `progress.status` without incrementing `current_work`, so the bar
 does not move and the text stays up through `check_event_soc_consistency` to the end of
 the run.
+
+### A13. The LCA has no time dimension; the TCO does
+
+The result is a one-year snapshot normalised to revenue-km, not an integral over the
+fleet's life. `calculate_vehicle_type_emissions` amortises production into a per-year
+share (`amortize(total, lifetime_years) * n_total`) and prices one year of driving at
+one grid mix; there is no loop over years anywhere in `lca/calculation.py`, and
+`YearSeries.at_year` is called once, at parameter-seeding time
+(`open_lca_data.py:342`), never during the calculation.
+
+The TCO meanwhile does walk the timeline: `net_present_value(cash_flow,
+years_after_base_year, rate)` and `future_cost` apply `(1 + escalation) ** year` across
+`project_duration` (`tco/cost_items.py:13, 206`). So in one and the same run, costs
+escalate year by year and emissions do not.
+
+It matters more than it sounds. With the shipped curve and the 14-year vehicle life in
+`tco.json`, the grid factor at 2025 is 0.4198 kg CO₂e/kWh but the mean over 2025–2038
+is **0.2669 — 36 % lower**. Whichever is right, the choice is currently made by
+implication rather than by decision.
+
+Options, none taken: pick the snapshot year deliberately (the year is a constant in
+`lca_overrides.json`, so today it is 2025 by default rather than by choice); average
+the series over the vehicle lifetime in `electricity_defaults`, which is ~8 lines on
+our side and no upstream change; or raise the missing time dimension upstream.
+
+---
 
 ### A12. A shared BatteryType was silently dropped at simulation — **fixed**
 

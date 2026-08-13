@@ -30,18 +30,21 @@ which is a column rather than a key but is an LCA input all the same.
 :func:`calculate_lca` runs the calculation.
 
 Most of what it writes is an openLCA emission factor and not something a user could
-sensibly type. Four values are not: the three lifetimes, which the TCO amortises over
-too and which therefore have to agree (:func:`lifetime_parameters`), and the motor rated
-power and specific mass, which describe the fleet physically
-(:func:`vehicle_lca_parameters`). All four are inputs on the costs page and are stored
-on the scenario, not on the rows, because the columns they end up in are rewritten from
-scratch on every run.
+sensibly type. Three groups are: the three lifetimes, which the TCO amortises over too
+and which therefore have to agree (:func:`lifetime_parameters`); the motor rated power
+and specific mass, which describe the fleet physically
+(:func:`vehicle_lca_parameters`); and the emission factors of the electricity the fleet
+charges with, which describe the grid it is plugged into rather than the fleet at all
+(:func:`electricity_parameters`). All of them are inputs on the costs page and are
+stored on the scenario, not on the rows, because the columns they end up in are
+rewritten from scratch on every run.
 """
 
 import json
 import logging
 import math
 from copy import deepcopy
+from dataclasses import replace
 from functools import lru_cache
 from pathlib import Path
 
@@ -50,8 +53,10 @@ from django.db.transaction import atomic
 
 from eflips.impact.lca import (
     ChargingPointTypeOverrides,
+    DefaultImpactVector,
     OpenLCAData,
     VehicleTypeOverrides,
+    YearSeries,
     calculate_lca as eflips_calculate_lca,
 )
 from eflips.impact.tco import calculate_tco as eflips_calculate_tco
@@ -99,6 +104,7 @@ BATTERY_KEY = "battery"
 LIFETIMES_KEY = "lifetimes"
 LCA_COMMON_KEY = "lca_common"
 LCA_OVERRIDES_KEY = "lca_vehicle_values"
+ELECTRICITY_KEY = "lca_electricity"
 
 # The LCA inputs the user may edit, alongside the lifetimes above. Kept in
 # Scenario.tco_parameters rather than beside the emission factors they belong with,
@@ -290,6 +296,52 @@ def vehicle_lca_defaults_beb() -> dict:
     }
 
 
+def analysis_year() -> int:
+    """Return the calendar year the electricity mix is taken at.
+
+    A constant in ``lca_overrides.json`` rather than anything derived from the
+    scenario, because django-simba stores no project year: the simulated week carries
+    real dates, but they are the dates of the timetable that was uploaded, not of the
+    fleet being planned.
+
+    It is the only year in the calculation. eflips-impact resolves the per-year series
+    in ``lca.json`` to a single vector while the parameters are being written, and the
+    calculation itself has no time dimension at all -- production is amortised into a
+    per-year share and one year of driving is priced at one grid mix. See
+    :func:`electricity_defaults`.
+    """
+    return int(load_lca_overrides()["year"])
+
+
+def electricity_defaults() -> dict:
+    """Return the default grid emission factors, per kWh, at :func:`analysis_year`.
+
+    The eight categories of one impact vector, resolved out of the per-year series in
+    ``lca.json`` exactly as eflips-impact would resolve it: interpolated between the
+    two years bracketing the analysis year, clamped outside the range. What comes back
+    is therefore what an untouched scenario is calculated with today.
+
+    Two things about the unit are easy to trip over. The values in the file are per
+    **MJ** despite the key being named ``electricity_per_kwh_by_year``, and the loader
+    multiplies them by 3.6; what this returns has already been through that, so it is
+    per kWh -- around 0.42 kg CO2 eq for the shipped 2025 mix, a figure that can be
+    compared against a published grid factor. And these are the factors of the
+    electricity *delivered to the grid connection*: the losses between there and the
+    battery are applied by eflips-impact, from ``efficiency_mv_to_lv``,
+    ``efficiency_lv_ac_to_dc`` and the vehicle type's charging efficiency.
+
+    Rounded to six significant digits, because interpolating between two entries of ten
+    decimal places produces a float of sixteen and every one of them would be rendered
+    into an input the user is expected to read and edit. The rounding is done here
+    rather than in the form so that the value shown, the value stored on save and the
+    value calculated with are the same number; against the unrounded figure it is a
+    relative change of at most 5e-7, five orders of magnitude below the precision of
+    the ecoinvent data underneath and invisible in a chart that plots three digits.
+    """
+    vector = load_lca_defaults().electricity_per_kwh.at_year(analysis_year()).to_dict()
+    return {category: float(f"{value:.6g}") for category, value in vector.items()}
+
+
 def _lca_vehicle_type_overrides(
     vehicle_type: VehicleType, lifetimes: dict, values: dict
 ) -> VehicleTypeOverrides:
@@ -298,14 +350,14 @@ def _lca_vehicle_type_overrides(
     Split by energy source only, matching :func:`vehicle_type_tco_defaults`; there is
     no per-model lookup here either.
 
-    Neither the lifetime nor the motor power is read from ``lca_overrides.json`` beside
-    the rest. Both are editable, so both are passed in: the lifetime from
-    :func:`lifetime_parameters` and the rest of the block from
-    :func:`vehicle_lca_parameters`, which has already resolved it against the shared
-    values and the file.
-
     Consumption is left at its default of zero here and written in after the
     simulation by :func:`_write_lca_consumption`.
+
+    :param lifetimes: From :func:`lifetime_parameters`. The lifetime is passed in
+        rather than read from ``lca_overrides.json`` so that it is the same number the
+        TCO writes to ``useful_life``.
+    :param values: From :func:`vehicle_lca_parameters`, for the same reason: the motor
+        power is the user's if they set one, and the file's only otherwise.
     """
     overrides = load_lca_overrides()
     if vehicle_type.energy_source == EnumEnergySource.DIESEL:
@@ -330,6 +382,8 @@ def _lca_charging_point_type_overrides(
     it applies the opportunity values to every charging point type in the scenario.
     The difference is the concrete foundation, which an indoor depot charger does not
     have.
+
+    :param lifetimes: From :func:`lifetime_parameters`, as above.
     """
     entries = load_lca_overrides()["charging_point_types"]
     entry = entries["depot"] if name_short == DEPOT_CPT_NAME_SHORT else entries["opportunity"]
@@ -394,9 +448,9 @@ def ensure_fleet_topology(scenario: Scenario) -> None:
     _apply_vehicle_common(scenario)
     _ensure_charging_point_types(scenario)
     _ensure_station_parameters(scenario)
-    # Last, and over everything the steps above wrote: the lifetimes are one
-    # fleet-wide set rather than a per-row value, and every row that needs one takes
-    # it from there.
+    # Last, and unconditional: it is the only writer of useful_life on the vehicle,
+    # battery and charging point rows, and the blocks the three steps above seed from
+    # no longer carry one. See _apply_lifetimes.
     _apply_lifetimes(scenario)
 
 
@@ -417,12 +471,15 @@ def _seed_from_json(json_defaults: dict) -> dict:
 
     Two invariants make the replacement safe:
 
-    - ``tco.json`` covers every key eflips-impact reads. It has no fallback: it
-      indexes ``tco_parameters["useful_life"]`` and friends directly, so a key missing
-      from the JSON is a ``KeyError`` after a full simulation has run.
-    - Values that are computed rather than configured are written after this runs.
-      :func:`_write_energy_consumption` fills in ``average_electricity_consumption``
-      from the simulated events on the way into :func:`calculate_tco`.
+    - Between ``tco.json`` and the steps that run after this one, every key
+      eflips-impact reads is covered. It has no fallback: it indexes
+      ``tco_parameters["useful_life"]`` and friends directly, so a key nothing fills
+      is a ``KeyError`` after a full simulation has run.
+    - Values that are not configured per row are written after this runs.
+      :func:`_apply_lifetimes` fills in ``useful_life``, which is fleet-wide and
+      shared with the LCA, and :func:`_write_energy_consumption` fills in
+      ``average_electricity_consumption`` from the simulated events on the way into
+      :func:`calculate_tco`.
 
     Callers must check :func:`tco_parameters_edited` first. Once the user has saved the
     costs page the stored numbers are theirs and nothing here may touch them.
@@ -595,6 +652,7 @@ def webus_block(
     lifetimes: dict,
     lca_common: dict,
     lca_values: dict,
+    electricity: dict,
 ) -> dict:
     """Build the value to store under :data:`WEBUS_KEY`.
 
@@ -609,6 +667,8 @@ def webus_block(
     :param lca_values: ``{vehicle key: block}`` for the vehicle types that deviate,
         shaped as ``lca_common``. Unlike their cost counterparts these cannot live on
         the row -- see :data:`MOTOR_POWER_KEY`.
+    :param electricity: The grid emission factors, one impact vector for the whole
+        scenario; see :func:`electricity_parameters`.
     """
     return {
         VEHICLE_COMMON_KEY: common,
@@ -616,6 +676,7 @@ def webus_block(
         LIFETIMES_KEY: lifetimes,
         LCA_COMMON_KEY: lca_common,
         LCA_OVERRIDES_KEY: lca_values,
+        ELECTRICITY_KEY: electricity,
     }
 
 
@@ -629,14 +690,18 @@ def vehicle_common_parameters(scenario: Scenario) -> dict:
 
     Battery values are nested under :data:`BATTERY_KEY` rather than kept beside the
     vehicle ones. They land in a different table, so a flat block would collide on
-    ``useful_life`` and ``procurement_cost``, which both rows have.
+    ``procurement_cost``, which both rows have.
 
     Only battery-electric vehicle types can follow this. ``tco.json`` prices a diesel
     bus at 250 000 € against 550 000 € for an electric one, so a single shared block
     across a mixed fleet would be wrong for one of them; diesel types always carry
     their own values. See :func:`follows_common`.
 
-    :returns: ``{useful_life, procurement_cost, cost_escalation, battery: {...}}``.
+    Lifetimes are not here even though they too are shared. They are shared more
+    widely — a diesel type follows them as well, and so does the LCA — so they are
+    their own block; see :func:`lifetime_parameters`.
+
+    :returns: ``{procurement_cost, cost_escalation, battery: {...}}``.
     """
     beb = vehicle_type_tco_defaults_beb()
     defaults = {key: beb[key] for key in VEHICLE_COMMON_FIELDS}
@@ -825,6 +890,55 @@ def vehicle_lca_parameters(scenario: Scenario, vehicle_type: VehicleType) -> dic
 
     stored = (_webus(scenario).get(LCA_OVERRIDES_KEY) or {}).get(vehicle_key(vehicle_type)) or {}
     return _merge_lca_block(defaults, stored)
+
+
+def electricity_parameters(scenario: Scenario) -> dict:
+    """Return the grid emission factors this scenario charges at, per kWh.
+
+    One impact vector, the same overlay over :func:`electricity_defaults` as everywhere
+    else on this page. It describes the electricity rather than the fleet, so it is
+    scenario-wide: there is no per-vehicle-type version of it, and a mixed fleet's
+    diesel types are unaffected -- their factors are ``diesel_per_kg``, which is not
+    editable.
+
+    Stored as the vector alone, with no year beside it. ``lca.json`` holds a series of
+    years because the study it comes from projected one, but eflips-impact samples that
+    series exactly once, at :func:`analysis_year`, and everything downstream sees only
+    the resulting vector. A scenario that carries its own values therefore needs only
+    that one vector, and :func:`ensure_lca_parameters` hands it over as a one-entry
+    series, where the sampling is an exact lookup rather than an interpolation.
+
+    :returns: The eight categories of :class:`DefaultImpactVector`, per kWh delivered
+        to the grid connection.
+    """
+    defaults = electricity_defaults()
+    if not tco_parameters_edited(scenario):
+        return defaults
+
+    stored = _webus(scenario).get(ELECTRICITY_KEY) or {}
+    return {**defaults, **{k: v for k, v in stored.items() if k in defaults}}
+
+
+def _lca_data_for(scenario: Scenario) -> OpenLCAData:
+    """Return the emission factor dataset to parameterise ``scenario`` from.
+
+    ``lca.json`` with this scenario's electricity factors in place of the file's
+    per-year series. Built with :func:`dataclasses.replace` rather than by assignment:
+    :func:`load_lca_defaults` is cached and hands the same object to every scenario, so
+    setting the attribute would leak one scenario's grid mix into the next -- the same
+    trap the battery lifetime already avoids.
+
+    The series it substitutes has a single entry, at :func:`analysis_year`, which is
+    also the year :func:`ensure_lca_parameters` samples it at. ``YearSeries.at_year``
+    therefore returns it verbatim: no interpolation, and none of the clamping warnings
+    a series that did not contain the year asked for would produce.
+    """
+    return replace(
+        load_lca_defaults(),
+        electricity_per_kwh=YearSeries(
+            data={analysis_year(): DefaultImpactVector.from_dict(electricity_parameters(scenario))}
+        ),
+    )
 
 
 def _ensure_station_parameters(scenario: Scenario) -> None:
@@ -1178,10 +1292,11 @@ def ensure_lca_parameters(scenario: Scenario) -> None:
 
     Values are replaced rather than merged: the JSON file is meant to be the only
     source of them. What is not taken from the file is what the user can edit on the
-    costs page -- the three lifetimes, from :func:`lifetime_parameters`, and the motor
-    power and specific mass, from :func:`vehicle_lca_parameters`. Those are read from
-    the scenario, which is why replacing the rest is safe: nothing a user typed is
-    stored in the columns this overwrites.
+    costs page -- the three lifetimes, from :func:`lifetime_parameters`, the motor
+    power and specific mass, from :func:`vehicle_lca_parameters`, and the electricity
+    emission factors, from :func:`electricity_parameters`. Those are read from the
+    scenario, which is why replacing the rest is safe: nothing a user typed is stored
+    in the columns this overwrites.
 
     ``BatteryType.specific_mass`` is written here too although it is an ordinary column
     rather than part of ``lca_parameters``. It is an LCA input like any other -- mass
@@ -1191,8 +1306,8 @@ def ensure_lca_parameters(scenario: Scenario) -> None:
 
     :param scenario: The scenario to parameterise, after ``ensure_fleet_topology``.
     """
-    data = load_lca_defaults()
-    year = int(load_lca_overrides()["year"])
+    data = _lca_data_for(scenario)
+    year = analysis_year()
     lifetimes = lifetime_parameters(scenario)
 
     for vehicle_type in VehicleType.objects.filter(scenario=scenario):

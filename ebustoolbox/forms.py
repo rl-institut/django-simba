@@ -661,6 +661,75 @@ class BatteryTypeLcaForm(TcoFormBase):
     )
 
 
+class ElectricityLcaForm(TcoFormBase):
+    """The emission factors of the electricity the fleet charges with.
+
+    One impact vector over the eight EF 3.1 categories, per kWh drawn at the grid
+    connection — the losses down to the battery are eflips-impact's, from the two
+    charging efficiencies and the vehicle type's own. The only input on this page that
+    describes the surroundings rather than the fleet, which is why it is scenario-wide
+    and has no per-vehicle-type counterpart.
+
+    All eight are editable rather than only the CO2 one. The result page plots every
+    category from the same selector, so a scenario whose greenhouse gas figure came
+    from the operator's own supply contract while the other seven still described the
+    shipped German grid mix would be reporting two different power stations in two
+    tabs of one chart.
+
+    ``lca.json`` carries these per year, because the study they come from projected a
+    grid mix to 2050. eflips-impact samples that series exactly once — see
+    :func:`ebustoolbox.impact.analysis_year` — so what a scenario needs is the single
+    vector, and no year is asked for here.
+    """
+
+    gwp = TcoFloatField(
+        unit=gettext_lazy("kg CO₂-Äq/kWh"),
+        label=gettext_lazy("Treibhauspotenzial (GWP)"),
+        help_text=gettext_lazy(
+            "Treibhausgasemissionen je Kilowattstunde am Netzanschluss, über 100 "
+            "Jahre gewichtet. Der Standardwert ist der deutsche Strommix; ein "
+            "Ökostromvertrag oder eine eigene Erzeugung liegt deutlich darunter"
+        ),
+    )
+    pm = TcoFloatField(
+        unit=gettext_lazy("kg PM2,5-Äq/kWh"),
+        label=gettext_lazy("Feinstaub"),
+        help_text=gettext_lazy("Feinstaubbildung je Kilowattstunde am Netzanschluss"),
+    )
+    pocp = TcoFloatField(
+        unit=gettext_lazy("kg NOx-Äq/kWh"),
+        label=gettext_lazy("Sommersmog (POCP)"),
+        help_text=gettext_lazy("Bildung von bodennahem Ozon je Kilowattstunde am Netzanschluss"),
+    )
+    ap = TcoFloatField(
+        unit=gettext_lazy("kg SO₂-Äq/kWh"),
+        label=gettext_lazy("Versauerung"),
+        help_text=gettext_lazy("Versauerungspotenzial je Kilowattstunde am Netzanschluss"),
+    )
+    ep_freshwater = TcoFloatField(
+        unit=gettext_lazy("kg P-Äq/kWh"),
+        label=gettext_lazy("Eutrophierung – Süßwasser"),
+        help_text=gettext_lazy("Überdüngung von Süßgewässern je Kilowattstunde am Netzanschluss"),
+    )
+    ep_marine = TcoFloatField(
+        unit=gettext_lazy("kg N-Äq/kWh"),
+        label=gettext_lazy("Eutrophierung – Meer"),
+        help_text=gettext_lazy("Überdüngung von Meeren je Kilowattstunde am Netzanschluss"),
+    )
+    fuel = TcoFloatField(
+        unit=gettext_lazy("kg Öl-Äq/kWh"),
+        label=gettext_lazy("Fossiler Ressourcenbedarf"),
+        help_text=gettext_lazy(
+            "Verbrauch fossiler Energieträger je Kilowattstunde am Netzanschluss"
+        ),
+    )
+    water = TcoFloatField(
+        unit=gettext_lazy("m³/kWh"),
+        label=gettext_lazy("Wasserverbrauch"),
+        help_text=gettext_lazy("Wasserverbrauch je Kilowattstunde am Netzanschluss"),
+    )
+
+
 class VehicleTypeTcoForm(TcoFormBase):
     """Per-vehicle-type parameters — ``VehicleType.tco_parameters``.
 
@@ -709,7 +778,10 @@ class DieselVehicleTypeTcoForm(VehicleTypeTcoForm):
 
 
 class BatteryTypeTcoForm(TcoFormBase):
-    """Per-battery parameters — ``BatteryType.tco_parameters``."""
+    """Per-battery parameters — ``BatteryType.tco_parameters``.
+
+    The lifetime is on :class:`LifetimeForm`, which the LCA reads too.
+    """
 
     PERCENT_FIELDS = frozenset({"cost_escalation"})
 
@@ -733,7 +805,10 @@ class BatteryTypeTcoForm(TcoFormBase):
 
 
 class ChargingPointTypeTcoForm(TcoFormBase):
-    """Per-charging-point parameters — ``ChargingPointType.tco_parameters``."""
+    """Per-charging-point parameters — ``ChargingPointType.tco_parameters``.
+
+    The lifetime is on :class:`LifetimeForm`, which the LCA reads too.
+    """
 
     PERCENT_FIELDS = frozenset({"cost_escalation"})
 
