@@ -569,6 +569,49 @@ class ScenarioTcoForm(TcoFormBase):
     )
 
 
+class LifetimeForm(TcoFormBase):
+    """The fleet-wide lifetimes, shared by the TCO and the LCA.
+
+    The only place a lifetime is entered. Both calculations need one for a vehicle, a
+    battery and a charging point, and a difference between them is never meaningful:
+    it would write the same bus off over two different periods. They used to come from
+    two separate files and had drifted apart, so these are deliberately not per-type
+    fields and not repeated in the cost blocks below.
+
+    Stored under ``ebustoolbox.impact.LIFETIMES_KEY``, not in a ``tco_parameters``
+    column of its own — see :func:`ebustoolbox.impact.lifetime_parameters`.
+    """
+
+    vehicle = TcoIntegerField(
+        min_value=1,
+        unit=gettext_lazy("Jahre"),
+        label=gettext_lazy("Fahrzeug"),
+        help_text=gettext_lazy(
+            "Nutzungsdauer eines Fahrzeugs. Bestimmt sowohl die Ersatzbeschaffung in "
+            "der Kostenrechnung als auch die Amortisation der Herstellungsemissionen "
+            "in der Ökobilanz"
+        ),
+    )
+    battery = TcoIntegerField(
+        min_value=1,
+        unit=gettext_lazy("Jahre"),
+        label=gettext_lazy("Batterie"),
+        help_text=gettext_lazy(
+            "Nutzungsdauer einer Batterie bis zum Austausch. Gilt für Kostenrechnung "
+            "und Ökobilanz gleichermaßen"
+        ),
+    )
+    charging_point = TcoIntegerField(
+        min_value=1,
+        unit=gettext_lazy("Jahre"),
+        label=gettext_lazy("Ladepunkt"),
+        help_text=gettext_lazy(
+            "Nutzungsdauer eines Ladepunkts, im Depot wie an der Strecke. Gilt für "
+            "Kostenrechnung und Ökobilanz gleichermaßen"
+        ),
+    )
+
+
 class VehicleTypeTcoForm(TcoFormBase):
     """Per-vehicle-type parameters — ``VehicleType.tco_parameters``.
 
@@ -578,18 +621,13 @@ class VehicleTypeTcoForm(TcoFormBase):
     :func:`ebustoolbox.impact._write_energy_consumption` writes it over whatever is
     stored, so an input would have been discarded on every run. Diesel keeps its
     field below, because nothing simulates diesel consumption.
+
+    ``useful_life`` is not a field here either, for a different reason: it is
+    fleet-wide and shared with the LCA, so it belongs to :class:`LifetimeForm`.
     """
 
     PERCENT_FIELDS = frozenset({"cost_escalation"})
 
-    useful_life = TcoIntegerField(
-        min_value=1,
-        unit=gettext_lazy("Jahre"),
-        label=gettext_lazy("Fahrzeuglebensdauer"),
-        help_text=gettext_lazy(
-            "Durchschnittliche Lebensdauer für ein Fahrzeug dieses Fahrzeugtyps"
-        ),
-    )
     procurement_cost = TcoFloatField(
         min_value=0,
         unit=gettext_lazy("€"),
@@ -626,12 +664,6 @@ class BatteryTypeTcoForm(TcoFormBase):
 
     PERCENT_FIELDS = frozenset({"cost_escalation"})
 
-    useful_life = TcoIntegerField(
-        min_value=1,
-        unit=gettext_lazy("Jahre"),
-        label=gettext_lazy("Batterielebensdauer"),
-        help_text=gettext_lazy("Durchschnittliche Lebensdauer für eine Batterie dieses Typs"),
-    )
     procurement_cost = TcoFloatField(
         min_value=0,
         unit=gettext_lazy("€/kWh"),
@@ -656,12 +688,6 @@ class ChargingPointTypeTcoForm(TcoFormBase):
 
     PERCENT_FIELDS = frozenset({"cost_escalation"})
 
-    useful_life = TcoIntegerField(
-        min_value=1,
-        unit=gettext_lazy("Jahre"),
-        label=gettext_lazy("Lebensdauer"),
-        help_text=gettext_lazy("Durchschnittliche Lebensdauer für einen Ladepunkt dieses Typs"),
-    )
     procurement_cost = TcoFloatField(
         min_value=0,
         unit=gettext_lazy("€"),
@@ -686,13 +712,16 @@ class ChargingInfrastructureTcoForm(TcoFormBase):
 
     Abstract in practice: the depot and the on-route subclasses below describe
     different things and say so, so instantiate one of those rather than this.
+
+    There is no lifetime field. The site's ``useful_life`` is still stored and still
+    read by eflips-impact, but it is not editable: unlike the vehicle, battery and
+    charging point lifetimes it has no LCA counterpart to stay consistent with, so it
+    is neither part of :class:`LifetimeForm` nor duplicated here. It stays at the
+    value in ``defaults/impact/tco.json``.
     """
 
     PERCENT_FIELDS = frozenset({"cost_escalation"})
 
-    useful_life = TcoIntegerField(
-        min_value=1, unit=gettext_lazy("Jahre"), label=gettext_lazy("Lebensdauer")
-    )
     procurement_cost = TcoFloatField(
         min_value=0, unit=gettext_lazy("€"), label=gettext_lazy("Baukosten")
     )
@@ -702,12 +731,6 @@ class ChargingInfrastructureTcoForm(TcoFormBase):
 class DepotInfrastructureTcoForm(ChargingInfrastructureTcoForm):
     """Build costs of a depot site, without its charging points."""
 
-    useful_life = TcoIntegerField(
-        min_value=1,
-        unit=gettext_lazy("Jahre"),
-        label=gettext_lazy("Lebensdauer"),
-        help_text=gettext_lazy("Durchschnittliche Lebensdauer eines Depotstandorts"),
-    )
     procurement_cost = TcoFloatField(
         min_value=0,
         unit=gettext_lazy("€"),
@@ -725,12 +748,6 @@ class DepotInfrastructureTcoForm(ChargingInfrastructureTcoForm):
 class StationInfrastructureTcoForm(ChargingInfrastructureTcoForm):
     """Build costs of an on-route charging site, without its charging points."""
 
-    useful_life = TcoIntegerField(
-        min_value=1,
-        unit=gettext_lazy("Jahre"),
-        label=gettext_lazy("Lebensdauer"),
-        help_text=gettext_lazy("Durchschnittliche Lebensdauer eines Ladestandorts an der Strecke"),
-    )
     procurement_cost = TcoFloatField(
         min_value=0,
         unit=gettext_lazy("€"),

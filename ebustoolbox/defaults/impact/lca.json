@@ -18,7 +18,13 @@
     "lifecycle phase and summed into one production+EoL vector.",
     "",
     "Values that vary per vehicle type or per charging point live in lca_overrides.json,",
-    "not here."
+    "not here.",
+    "",
+    "'battery.lifetime_years' is inert. OpenLCAData.from_json_lca requires the key, so",
+    "it cannot be removed, but ensure_lca_parameters overwrites the value it produces",
+    "with tco.json's 'lifetimes.battery' -- the single source both calculations read.",
+    "The 8 below is the study's figure and is kept for the record; the TCO wrote off a",
+    "battery over 7 years, and eflips-impact warned about the mismatch on every run."
   ],
   "metadata": {
     "ecoinvent_version": "3.9.1",

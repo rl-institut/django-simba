@@ -1519,6 +1519,7 @@ class LcaDefaultsTest(SimpleTestCase):
         data = impact.load_lca_defaults()
         overrides = impact.load_lca_overrides()
         year = overrides["year"]
+        lifetimes = impact.lifetime_defaults()
 
         for name, energy_source in [
             ("vehicle_type_default", EnumEnergySource.BATTERY_ELECTRIC),
@@ -1526,7 +1527,7 @@ class LcaDefaultsTest(SimpleTestCase):
         ]:
             with self.subTest(defaults=name):
                 vehicle_type = VehicleType(name_short=None, energy_source=energy_source)
-                built = impact._lca_vehicle_type_overrides(vehicle_type)
+                built = impact._lca_vehicle_type_overrides(vehicle_type, lifetimes)
                 # __post_init__ raises if a field contradicts the energy source.
                 if energy_source == EnumEnergySource.DIESEL:
                     parameters = data.make_vehicle_type_lca_parameters_diesel(built)
@@ -1536,17 +1537,47 @@ class LcaDefaultsTest(SimpleTestCase):
 
     def test_charging_point_type_parameters_differ_by_type(self):
         data = impact.load_lca_defaults()
+        lifetimes = impact.lifetime_defaults()
 
         depot = data.make_charging_point_type_lca_parameters(
-            impact._lca_charging_point_type_overrides(impact.DEPOT_CPT_NAME_SHORT)
+            impact._lca_charging_point_type_overrides(impact.DEPOT_CPT_NAME_SHORT, lifetimes)
         ).to_dict()
         opportunity = data.make_charging_point_type_lca_parameters(
-            impact._lca_charging_point_type_overrides(impact.OPPORTUNITY_CPT_NAME_SHORT)
+            impact._lca_charging_point_type_overrides(impact.OPPORTUNITY_CPT_NAME_SHORT, lifetimes)
         ).to_dict()
 
         # An indoor depot charger has no concrete foundation; a terminal one does.
         self.assertEqual(depot["foundation_volume_per_point_m3"], 0.0)
         self.assertGreater(opportunity["foundation_volume_per_point_m3"], 0.0)
+
+    def test_lifetimes_are_the_same_for_tco_and_lca(self):
+        """The reason the block exists: one number per thing, not two.
+
+        These used to come from three different files and had drifted -- 14 against
+        12 for a vehicle, 7 against 8 for a battery. eflips-impact checks the battery
+        pair itself and warned on every LCA run.
+        """
+        data = impact.load_lca_defaults()
+        lifetimes = impact.lifetime_defaults()
+
+        vehicle_type = VehicleType(name_short=None, energy_source=EnumEnergySource.BATTERY_ELECTRIC)
+        built = data.make_vehicle_type_lca_parameters_beb(
+            impact.load_lca_overrides()["year"],
+            impact._lca_vehicle_type_overrides(vehicle_type, lifetimes),
+        ).to_dict()
+        self.assertEqual(built["vehicle_lifetime_years"], lifetimes["vehicle"])
+
+        point = data.make_charging_point_type_lca_parameters(
+            impact._lca_charging_point_type_overrides(impact.DEPOT_CPT_NAME_SHORT, lifetimes)
+        ).to_dict()
+        self.assertEqual(point["infrastructure_lifetime_years"], lifetimes["charging_point"])
+
+        # The battery one is not threaded through a builder -- load_lca_defaults() is
+        # cached and shared, so ensure_lca_parameters overwrites it on the dict. Guard
+        # that lca.json's own figure is not what reaches the database.
+        self.assertEqual(
+            set(lifetimes), {"vehicle", "battery", "charging_point"}, "LIFETIME_LCA_KEYS drifted"
+        )
 
     def test_battery_chemistry_selects_the_emission_factors(self):
         data = impact.load_lca_defaults()

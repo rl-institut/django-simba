@@ -24,9 +24,15 @@ The scenario the user edits in the wizard is not the scenario that is simulated:
 
 The LCA calculation reuses all four steps: it needs the same fleet topology, the same
 foreign keys, and the same annualisation. Only the parameters are its own, and they
-live in a column of their own, ``lca_parameters``. :func:`ensure_lca_parameters` fills
-those from ``defaults/impact/lca.json``, and :func:`calculate_lca` runs the
-calculation.
+live in a column of their own, ``lca_parameters``.
+:func:`ensure_lca_parameters` fills it from ``defaults/impact/lca.json``, and
+:func:`calculate_lca` runs the calculation.
+
+Most of what it writes is an openLCA emission factor and not something a user could
+sensibly type. The three lifetimes are the exception: the TCO amortises over them too,
+so the two calculations have to agree on them (:func:`lifetime_parameters`). They are
+an input on the costs page and are stored on the scenario, not on the rows, because
+the columns they end up in are rewritten from scratch on every run.
 """
 
 import json
@@ -87,12 +93,27 @@ WEBUS_KEY = "_webus"
 VEHICLE_COMMON_KEY = "vehicle_common"
 VEHICLE_OVERRIDES_KEY = "vehicle_overrides"
 BATTERY_KEY = "battery"
+LIFETIMES_KEY = "lifetimes"
 
 # The fields the shared vehicle block covers. Deliberately not derived from
 # ebustoolbox.forms: this module is imported by the toolchain, which has no business
 # depending on the form layer. Keep in step with VehicleTypeTcoForm, which is the only
 # thing that writes them.
-VEHICLE_COMMON_FIELDS = ("useful_life", "procurement_cost", "cost_escalation")
+#
+# useful_life is not among them. Lifetimes are fleet-wide and shared with the LCA, so
+# they are their own block; see lifetime_parameters().
+VEHICLE_COMMON_FIELDS = ("procurement_cost", "cost_escalation")
+
+# Where each lifetime lands. The TCO reads "useful_life" from every one of these
+# tables, the LCA reads a differently named key from three of them, and the two used
+# to be filled from separate files that had drifted apart. Keeping the mapping in one
+# table is what makes "the TCO and the LCA amortise over the same number" something
+# that can be checked by reading rather than by running both calculations.
+LIFETIME_LCA_KEYS = {
+    "vehicle": "vehicle_lifetime_years",
+    "battery": "battery_lifetime_years",
+    "charging_point": "infrastructure_lifetime_years",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -205,11 +226,20 @@ def scenario_tco_defaults() -> dict:
     return deepcopy(load_tco_defaults()["scenario"])
 
 
-def _lca_vehicle_type_overrides(vehicle_type: VehicleType) -> VehicleTypeOverrides:
+def lifetime_defaults() -> dict:
+    """Return the default lifetimes, keyed as :data:`LIFETIME_LCA_KEYS`."""
+    return deepcopy(load_tco_defaults()[LIFETIMES_KEY])
+
+
+def _lca_vehicle_type_overrides(vehicle_type: VehicleType, lifetimes: dict) -> VehicleTypeOverrides:
     """Return the per-vehicle-type LCA values that are not openLCA emission factors.
 
     Split by energy source only, matching :func:`vehicle_type_tco_defaults`; there is
     no per-model lookup here either.
+
+    The lifetime is not read from ``lca_overrides.json`` beside the rest: it is shared
+    with the TCO and comes from :func:`lifetime_parameters`, which is why it is passed
+    in rather than looked up.
 
     Consumption is left at its default of zero here and written in after the
     simulation by :func:`_write_lca_consumption`.
@@ -222,13 +252,15 @@ def _lca_vehicle_type_overrides(vehicle_type: VehicleType) -> VehicleTypeOverrid
 
     return VehicleTypeOverrides(
         motor_rated_power_kw=float(entry["motor_rated_power_kw"]),
-        vehicle_lifetime_years=float(entry["vehicle_lifetime_years"]),
+        vehicle_lifetime_years=float(lifetimes["vehicle"]),
         motor_power_to_weight_ratio_kw_per_kg=entry.get("motor_power_to_weight_ratio_kw_per_kg"),
         diesel_consumption_kg_per_km=entry.get("diesel_consumption_kg_per_km"),
     )
 
 
-def _lca_charging_point_type_overrides(name_short: str | None) -> ChargingPointTypeOverrides:
+def _lca_charging_point_type_overrides(
+    name_short: str | None, lifetimes: dict
+) -> ChargingPointTypeOverrides:
     """Return the LCA values for one charging point type.
 
     Split by depot versus opportunity, which eflips-impact's own writer does not do:
@@ -239,7 +271,7 @@ def _lca_charging_point_type_overrides(name_short: str | None) -> ChargingPointT
     entries = load_lca_overrides()["charging_point_types"]
     entry = entries["depot"] if name_short == DEPOT_CPT_NAME_SHORT else entries["opportunity"]
     return ChargingPointTypeOverrides(
-        infrastructure_lifetime_years=float(entry["infrastructure_lifetime_years"]),
+        infrastructure_lifetime_years=float(lifetimes["charging_point"]),
         foundation_volume_per_point_m3=float(entry["foundation_volume_per_point_m3"]),
     )
 
@@ -299,6 +331,10 @@ def ensure_fleet_topology(scenario: Scenario) -> None:
     _apply_vehicle_common(scenario)
     _ensure_charging_point_types(scenario)
     _ensure_station_parameters(scenario)
+    # Last, and over everything the steps above wrote: the lifetimes are one
+    # fleet-wide set rather than a per-row value, and every row that needs one takes
+    # it from there.
+    _apply_lifetimes(scenario)
 
 
 def _seed_from_json(json_defaults: dict) -> dict:
@@ -490,14 +526,19 @@ def _webus(scenario: Scenario) -> dict:
     return (scenario.tco_parameters or {}).get(WEBUS_KEY) or {}
 
 
-def webus_block(common: dict, overrides) -> dict:
+def webus_block(common: dict, overrides, lifetimes: dict) -> dict:
     """Build the value to store under :data:`WEBUS_KEY`.
 
     :param common: The shared vehicle values, with the battery ones nested under
         :data:`BATTERY_KEY`.
     :param overrides: Keys of the vehicle types that carry their own values.
+    :param lifetimes: The fleet-wide lifetimes, as :func:`lifetime_parameters`.
     """
-    return {VEHICLE_COMMON_KEY: common, VEHICLE_OVERRIDES_KEY: sorted(overrides)}
+    return {
+        VEHICLE_COMMON_KEY: common,
+        VEHICLE_OVERRIDES_KEY: sorted(overrides),
+        LIFETIMES_KEY: lifetimes,
+    }
 
 
 def vehicle_common_parameters(scenario: Scenario) -> dict:
@@ -530,6 +571,70 @@ def vehicle_common_parameters(scenario: Scenario) -> dict:
     common = {**defaults, **{k: v for k, v in stored.items() if k != BATTERY_KEY}}
     common[BATTERY_KEY] = {**defaults[BATTERY_KEY], **(stored.get(BATTERY_KEY) or {})}
     return common
+
+
+def lifetime_parameters(scenario: Scenario) -> dict:
+    """Return the lifetimes this scenario amortises over, in years.
+
+    The one set of numbers both calculations use. The TCO writes each of them to a
+    ``useful_life`` and the LCA to the key :data:`LIFETIME_LCA_KEYS` names, but there
+    is a single value behind each pair and a single input for it on the costs page.
+
+    Before this existed the two halves were filled from different files and had
+    drifted: ``tco.json`` wrote a bus off over 14 years and ``lca_overrides.json`` over
+    12, a battery over 7 against ``lca.json``'s 8. eflips-impact checks the battery
+    pair itself (``lca/calculation.py:196``) and warned on every LCA run.
+
+    Same overlay as :func:`vehicle_common_parameters`: the JSON defaults until the
+    user has saved the costs page, then the defaults with the stored block laid over
+    them, so a key added to ``tco.json`` afterwards still resolves.
+
+    Stored inside :data:`WEBUS_KEY` rather than in a column of its own. There is no
+    ``Scenario.lca_parameters`` to put a shared value in, adding one would be a schema
+    change, and everything already in that key rides the mutation carry-over and the
+    deepcopy onto the simulated scenarios for free.
+
+    :returns: ``{vehicle, battery, charging_point}``, all in years.
+    """
+    defaults = lifetime_defaults()
+    if not tco_parameters_edited(scenario):
+        return defaults
+
+    stored = _webus(scenario).get(LIFETIMES_KEY) or {}
+    return {**defaults, **{k: v for k, v in stored.items() if k in defaults}}
+
+
+def _apply_lifetimes(scenario: Scenario) -> None:
+    """Write the scenario's lifetimes onto every row that needs one.
+
+    The last step of :func:`ensure_fleet_topology`, and the only writer of
+    ``useful_life`` on these three tables. It runs whether or not the user has saved,
+    because the blocks in ``tco.json`` no longer carry a ``useful_life`` of their own:
+    :func:`_seed_from_json` replaces a row wholesale, so without this every seeded row
+    would reach eflips-impact a key short and raise.
+
+    Merged rather than assigned, like :func:`_apply_vehicle_common`, so the prices
+    just seeded beside it survive.
+
+    Stations are not touched. Their ``useful_life`` is the life of the site rather
+    than of any hardware the LCA models, it has nothing to agree with, and
+    :func:`charging_infrastructure_parameters` still carries it.
+    """
+    lifetimes = lifetime_parameters(scenario)
+
+    def stamp(row, years) -> None:
+        wanted = {**(row.tco_parameters or {}), "useful_life": years}
+        if wanted != row.tco_parameters:
+            row.tco_parameters = wanted
+            row.save(update_fields=["tco_parameters"])
+
+    for vehicle_type in VehicleType.objects.filter(scenario=scenario):
+        stamp(vehicle_type, lifetimes["vehicle"])
+        if vehicle_type.battery_type_id is not None:
+            stamp(vehicle_type.battery_type, lifetimes["battery"])
+
+    for charging_point_type in ChargingPointType.objects.filter(scenario=scenario):
+        stamp(charging_point_type, lifetimes["charging_point"])
 
 
 def vehicle_overrides(scenario: Scenario) -> set:
@@ -948,9 +1053,10 @@ def ensure_lca_parameters(scenario: Scenario) -> None:
     """
     data = load_lca_defaults()
     year = int(load_lca_overrides()["year"])
+    lifetimes = lifetime_parameters(scenario)
 
     for vehicle_type in VehicleType.objects.filter(scenario=scenario):
-        overrides = _lca_vehicle_type_overrides(vehicle_type)
+        overrides = _lca_vehicle_type_overrides(vehicle_type, lifetimes)
         if vehicle_type.energy_source == EnumEnergySource.DIESEL:
             parameters = data.make_vehicle_type_lca_parameters_diesel(overrides)
         else:
@@ -961,14 +1067,17 @@ def ensure_lca_parameters(scenario: Scenario) -> None:
     for battery_type in BatteryType.objects.filter(scenario=scenario):
         # chemistry picks the emission factors: anything starting with "NMC" is NMC,
         # everything else is treated as LFP.
-        battery_type.lca_parameters = data.make_battery_type_lca_parameters(
-            battery_type.chemistry
-        ).to_dict()
+        parameters = data.make_battery_type_lca_parameters(battery_type.chemistry).to_dict()
+        # Overwritten on the dict rather than on `data`, which load_lca_defaults()
+        # caches and hands to every scenario: setting the attribute there would leak
+        # one scenario's lifetime into the next.
+        parameters[LIFETIME_LCA_KEYS["battery"]] = float(lifetimes["battery"])
+        battery_type.lca_parameters = parameters
         battery_type.save(update_fields=["lca_parameters"])
 
     for charging_point_type in ChargingPointType.objects.filter(scenario=scenario):
         charging_point_type.lca_parameters = data.make_charging_point_type_lca_parameters(
-            _lca_charging_point_type_overrides(charging_point_type.name_short)
+            _lca_charging_point_type_overrides(charging_point_type.name_short, lifetimes)
         ).to_dict()
         charging_point_type.save(update_fields=["lca_parameters"])
 

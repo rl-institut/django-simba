@@ -88,6 +88,38 @@
           </button>
         </div>
 
+        <!-- 0 - The lifetimes both calculations share. Above the cost panels and       -->
+        <!-- outside them on purpose: these are the only inputs the Ökobilanz reads too, -->
+        <!-- and a lifetime entered twice is a lifetime that can disagree with itself.   -->
+        <div id="acc-lifetime" class="rounded-lg bg-white shadow accordion-container" data-value="lifetime">
+          <div class="border-b border-slate-200">
+            <button type="button" onclick="toggleAccordion(this)"
+                    class="w-full flex justify-between items-center py-5 text-slate-800 bg-emerald-200 accordion-header">
+              <span class="w-max text-base font-bold px-2">{% translate 'Nutzungsdauer' %}</span>
+              <span id="acc-icon-lifetime" class="accordion-cost-icon text-slate-800 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
+                  <path fill-rule="evenodd" d="M11.78 9.78a.75.75 0 0 1-1.06 0L8 7.06 5.28 9.78a.75.75 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                </svg>
+              </span>
+            </button>
+            <div id="acc-content-lifetime" class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
+              <div class="accordion-cost-content">
+                <p class="pb-4 text-sm text-slate-500">
+                  {% blocktranslate %}
+                    Diese Werte gelten für die gesamte Flotte und werden sowohl für die
+                    Kostenrechnung als auch für die Ökobilanz verwendet.
+                  {% endblocktranslate %}
+                </p>
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-3">
+                  {% include "ebustoolbox/partials/tco_field.html" with field=lifetime_form.vehicle %}
+                  {% include "ebustoolbox/partials/tco_field.html" with field=lifetime_form.battery %}
+                  {% include "ebustoolbox/partials/tco_field.html" with field=lifetime_form.charging_point %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 1 - Scenario-wide settings. Wartung lives here because eflips-impact keeps -->
         <!-- both maintenance figures at scenario level; see CostsView._general_groups.  -->
         <div id="acc-general" class="rounded-lg bg-white shadow accordion-container" data-value="general">
@@ -137,15 +169,13 @@
                     Diese Werte gelten für alle Elektrofahrzeugtypen, die nicht abweichen.
                   {% endblocktranslate %}
                 </p>
-                <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-3">
-                  {% include "ebustoolbox/partials/tco_field.html" with field=common_form.useful_life %}
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
                   {% include "ebustoolbox/partials/tco_field.html" with field=common_form.procurement_cost %}
                   {% include "ebustoolbox/partials/tco_field.html" with field=common_form.cost_escalation %}
                 </div>
                 <fieldset class="pt-4">
                   <legend class="text-sm font-semibold text-slate-700">{% translate 'Batterie' %}</legend>
-                  <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-3">
-                    {% include "ebustoolbox/partials/tco_field.html" with field=common_battery_form.useful_life %}
+                  <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
                     {% include "ebustoolbox/partials/tco_field.html" with field=common_battery_form.procurement_cost %}
                     {% include "ebustoolbox/partials/tco_field.html" with field=common_battery_form.cost_escalation %}
                   </div>
@@ -183,7 +213,6 @@
                   {% endif %}
                   <div class="vt-fields {% if row.can_follow and not row.deviates %}hidden{% endif %}">
                   <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                    {% include "ebustoolbox/partials/tco_field.html" with field=row.form.useful_life %}
                     {% include "ebustoolbox/partials/tco_field.html" with field=row.form.procurement_cost %}
                     {% include "ebustoolbox/partials/tco_field.html" with field=row.form.cost_escalation %}
                     {# No electricity consumption input: the toolchain measures it on the #}
@@ -196,8 +225,7 @@
                   {% if row.battery_form %}
                     <fieldset class="pt-4">
                       <legend class="text-sm font-semibold text-slate-700">{% translate 'Batterie' %}</legend>
-                      <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-3">
-                        {% include "ebustoolbox/partials/tco_field.html" with field=row.battery_form.useful_life %}
+                      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
                         {% include "ebustoolbox/partials/tco_field.html" with field=row.battery_form.procurement_cost %}
                         {% include "ebustoolbox/partials/tco_field.html" with field=row.battery_form.cost_escalation %}
                       </div>
@@ -228,8 +256,7 @@
                   {% if category.point_form %}
                     <fieldset class="pb-4">
                       <legend class="text-sm font-semibold text-slate-700">{% translate 'Ladepunkt' %}</legend>
-                      <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-3">
-                        {% include "ebustoolbox/partials/tco_field.html" with field=category.point_form.useful_life %}
+                      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
                         {% include "ebustoolbox/partials/tco_field.html" with field=category.point_form.procurement_cost %}
                         {% include "ebustoolbox/partials/tco_field.html" with field=category.point_form.cost_escalation %}
                       </div>
@@ -237,8 +264,7 @@
                   {% endif %}
                   <fieldset>
                     <legend class="text-sm font-semibold text-slate-700">{{ category.site_title }}</legend>
-                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-3">
-                      {% include "ebustoolbox/partials/tco_field.html" with field=category.site_form.useful_life %}
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
                       {% include "ebustoolbox/partials/tco_field.html" with field=category.site_form.procurement_cost %}
                       {% include "ebustoolbox/partials/tco_field.html" with field=category.site_form.cost_escalation %}
                     </div>

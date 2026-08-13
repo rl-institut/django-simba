@@ -6,7 +6,8 @@ a blocker for the committed code; all of it is known and deferred.
 Status as of 2026-08-13. Committed: `4d79867e` `4f42a3ef` `68aabb72` `54f5ab6e`
 (TCO steps 1–4 + eflips-model 11.2.0), `518373ea` (Celery guard), `8c52cf61` (LCA).
 
-Fixed since the list was written: **A12** below.
+Fixed since the list was written: **A2** (one lifetime block now feeds both
+calculations, `impact.lifetime_parameters`) and **A12** below.
 
 ---
 

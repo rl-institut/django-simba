@@ -1106,6 +1106,19 @@ class CostsView(ScenarioMixIn, TemplateView):
             initial=forms.ScenarioTcoForm.initial_from(scenario.tco_parameters, scenario_defaults),
         ).mark_defaults(scenario_defaults)
 
+        # The one set of lifetimes both calculations amortise over. Its own block
+        # above the cost panels rather than a field on each of them, because a vehicle
+        # written off over 14 years by the TCO and 12 by the LCA is never what anyone
+        # means. See impact.lifetime_parameters.
+        lifetime_defaults = impact.lifetime_defaults()
+        lifetime_form = forms.LifetimeForm(
+            data=data,
+            prefix="lifetime",
+            initial=forms.LifetimeForm.initial_from(
+                impact.lifetime_parameters(scenario), lifetime_defaults
+            ),
+        ).mark_defaults(lifetime_defaults)
+
         # The values every battery-electric vehicle type follows unless its own card
         # says otherwise. Battery values are nested one level down; the two forms are
         # separate because they write to two different tables.
@@ -1210,6 +1223,7 @@ class CostsView(ScenarioMixIn, TemplateView):
         return {
             "scenario_form": scenario_form,
             "general_groups": self._general_groups(scenario_form),
+            "lifetime_form": lifetime_form,
             "common_form": common_form,
             "common_battery_form": common_battery_form,
             "vehicle_rows": vehicle_rows,
@@ -1326,6 +1340,13 @@ class CostsView(ScenarioMixIn, TemplateView):
                 impact.scenario_tco_defaults(),
             )
 
+            collect(
+                forms.LifetimeForm,
+                "lifetime",
+                impact.lifetime_parameters(other_scenario),
+                values,
+            )
+
             other_common = impact.vehicle_common_parameters(other_scenario)
             collect(forms.VehicleTypeTcoForm, "vt-common", other_common, values)
             collect(
@@ -1376,6 +1397,7 @@ class CostsView(ScenarioMixIn, TemplateView):
         """
         all_forms = [
             context["scenario_form"],
+            context["lifetime_form"],
             context["common_form"],
             context["common_battery_form"],
             *context["infrastructure_forms"].values(),
@@ -1505,7 +1527,9 @@ class CostsView(ScenarioMixIn, TemplateView):
                     key: form.to_tco_parameters()
                     for key, form in context["infrastructure_forms"].items()
                 },
-                impact.WEBUS_KEY: impact.webus_block(common, overrides),
+                impact.WEBUS_KEY: impact.webus_block(
+                    common, overrides, context["lifetime_form"].to_tco_parameters()
+                ),
             }
         )
         scenario.save(update_fields=["tco_parameters"])

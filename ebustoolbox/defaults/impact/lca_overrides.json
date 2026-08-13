@@ -26,26 +26,29 @@
     "Consumption is deliberately absent. eflips-impact reads it from these parameters,",
     "but ebustoolbox.impact writes it in from the simulated driving events after the",
     "run, the same value the TCO calculation uses. A number here would only be a",
-    "second, unused source for it."
+    "second, unused source for it.",
+    "",
+    "Lifetimes are absent for the same reason. 'vehicle_lifetime_years' and",
+    "'infrastructure_lifetime_years' are still required by the eflips-impact",
+    "dataclasses, but ensure_lca_parameters now fills them from tco.json's 'lifetimes'",
+    "block -- the single source both calculations read -- so that a bus is not written",
+    "off over one number by the TCO and a different one by the LCA. They were 12.0 and",
+    "20.0 here against 14 and 20 in tco.json."
   ],
   "year": 2025,
   "vehicle_type_default": {
     "motor_rated_power_kw": 200.0,
-    "motor_power_to_weight_ratio_kw_per_kg": 1.5,
-    "vehicle_lifetime_years": 12.0
+    "motor_power_to_weight_ratio_kw_per_kg": 1.5
   },
   "vehicle_type_default_diesel": {
     "motor_rated_power_kw": 200.0,
-    "vehicle_lifetime_years": 12.0,
     "diesel_consumption_kg_per_km": 0.449
   },
   "charging_point_types": {
     "depot": {
-      "infrastructure_lifetime_years": 20.0,
       "foundation_volume_per_point_m3": 0.0
     },
     "opportunity": {
-      "infrastructure_lifetime_years": 20.0,
       "foundation_volume_per_point_m3": 3.96
     }
   }

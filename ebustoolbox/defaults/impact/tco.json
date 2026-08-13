@@ -13,7 +13,20 @@
     "and the costs page is where a fleet that needs per-type numbers sets them.",
     "",
     "'scenario' mirrors the db_default of Scenario.tco_parameters plus 'eta_avail',",
-    "which eflips.impact.tco.TCOCalculator reads unconditionally."
+    "which eflips.impact.tco.TCOCalculator reads unconditionally.",
+    "",
+    "'lifetimes' is the only place a vehicle, battery or charging point lifetime is",
+    "written, for either calculation. The blocks below therefore carry no",
+    "'useful_life' of their own: ebustoolbox.impact._apply_lifetimes stamps it onto",
+    "every row after they are seeded, and ensure_lca_parameters feeds the same three",
+    "numbers to the LCA. They used to be duplicated here and in lca_overrides.json /",
+    "lca.json, and had drifted apart -- a bus was written off over 14 years by the TCO",
+    "and 12 by the LCA, a battery over 7 and 8. eflips-impact noticed the second one",
+    "and warned about it on every single LCA run.",
+    "",
+    "'charging_infrastructure' is the exception and keeps its useful_life: it is the",
+    "cost of the site itself, has no LCA counterpart to agree with, and is not",
+    "editable on the costs page."
   ],
    "scenario": {
     "project_duration": 20,
@@ -35,31 +48,31 @@
     "taxes": 278.0,
     "eta_avail": 1.0
   },
+  "lifetimes": {
+    "vehicle": 14,
+    "battery": 7,
+    "charging_point": 20
+  },
   "vehicle_type_default": {
-    "useful_life": 14,
     "procurement_cost": 550000.0,
     "cost_escalation": 0.02,
     "average_electricity_consumption": 1.48
   },
   "vehicle_type_default_diesel": {
-    "useful_life": 14,
     "procurement_cost": 250000.0,
     "cost_escalation": 0.02,
     "average_diesel_consumption": 0.449
   },
   "battery_type_default": {
-    "useful_life": 7,
     "procurement_cost": 190.0,
     "cost_escalation": -0.03
   },
   "charging_point_types": {
     "depot": {
-      "useful_life": 20,
       "procurement_cost": 119899.5,
       "cost_escalation": 0.02
     },
     "opportunity": {
-      "useful_life": 20,
       "procurement_cost": 299748.74,
       "cost_escalation": 0.02
     }
