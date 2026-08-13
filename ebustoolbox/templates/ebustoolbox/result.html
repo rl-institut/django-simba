@@ -1924,6 +1924,10 @@
             "OTHER": "Sonstiges"
         };
 
+        // Money is always shown with exactly two decimals. minimumFractionDigits on its own
+        // leaves the maximum at three, which is where the stray third digit came from.
+        const formatEuro = (value) => formatNumber(value, 2);
+
         const categories = Object.keys(result);
         const translatedCategories = categories.map(key => labelMapping[key] || key);
 
@@ -1935,7 +1939,7 @@
             tooltip: {
                 trigger: 'item',
                 formatter: (params) => {
-                    const val = params.value.toLocaleString('de-DE', { minimumFractionDigits: 2 });
+                    const val = formatEuro(params.value);
                     return `
                         <div style="font-weight: bold; border-bottom: 1px solid #ccc; margin-bottom: 5px;">
                             ${params.name}
@@ -1972,7 +1976,7 @@
                     show: true,
                     position: 'inside',
                     // Only show value if it's large enough to fit inside the segment
-                    formatter: (params) => params.value > 0.02 ? params.value.toFixed(2) + ' €/km' : ''
+                    formatter: (params) => params.value > 0.02 ? formatEuro(params.value) + ' €/km' : ''
                 },
                 data: [result[key]]
             })),
@@ -1986,7 +1990,7 @@
                     show: true,
                     position: 'top',
                     distance: 15,
-                    formatter: () => `{title|Gesamt}\n{value|${totalCost.toLocaleString('de-DE', { minimumFractionDigits: 2 })} €/km}`,
+                    formatter: () => `{title|Gesamt}\n{value|${formatEuro(totalCost)} €/km}`,
                     rich: {
                         title: { fontSize: 12, color: '#666', align: 'center' },
                         value: { fontSize: 16, fontWeight: 'bold', color: '#333', align: 'center', lineHeight: 25 }
