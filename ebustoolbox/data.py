@@ -5,6 +5,7 @@ This way data should be easily swappable, while the dash_layout allows for swapp
 
 import logging
 import datetime
+import itertools
 
 import numpy as np
 import sqlalchemy
@@ -162,9 +163,10 @@ def get_vehicle_display_names(scenario_id: int) -> dict[int, dict]:
     """Short, descriptive labels for the vehicles of a scenario.
 
     Database ids carry no meaning outside the database, so the result charts label a vehicle with
-    its vehicle type, the depot it is stationed at, and a counter. The counter restarts at 1 for
-    every (vehicle type, depot) pair within the scenario and is handed out in order of first
-    activity, which is the order the Gantt charts already stack their rows in.
+    its vehicle type and a number. Vehicles are sorted by type (and, within a type, by order of
+    first activity) and then numbered via a row number over that sorted list, restarting at 1 for
+    every vehicle type. Computing this once here, rather than separately per chart, is what keeps
+    every chart's labels for the same vehicle in agreement.
 
     :param scenario_id: The id of the scenario the vehicles belong to.
     :return: ``{vehicle_id: {"name", "vehicle_type", "depot", "number"}}``
@@ -173,7 +175,8 @@ def get_vehicle_display_names(scenario_id: int) -> dict[int, dict]:
 
     # A vehicle is stationed wherever it parks, which is the depot owning its area events. In
     # practice that is a single depot per vehicle; if it ever is not, take the first by name so
-    # the label stays stable between requests.
+    # the label stays stable between requests. Informational only - it does not factor into the
+    # numbering below, which is keyed on vehicle type alone.
     depot_by_vehicle: dict[int, str] = {}
     depot_rows = sorted(
         Event.objects.filter(scenario_id=scenario_id)
@@ -194,36 +197,31 @@ def get_vehicle_display_names(scenario_id: int) -> dict[int, dict]:
         .annotate(first_start=Min("time_start"))
     }
 
-    def sort_key(vehicle: Vehicle):
+    def type_name_of(vehicle: Vehicle) -> str:
         vt = vehicle.vehicle_type
+        return str(vt.name_short or vt.name)
+
+    def sort_key(vehicle: Vehicle):
         started = first_activity.get(vehicle.id)
         return (
-            str(vt.name_short or vt.name),
-            depot_by_vehicle.get(vehicle.id, ""),
+            type_name_of(vehicle),
             # Vehicles without a single event sort last, but still deterministically
             (started is None, started or datetime.datetime.min),
             vehicle.id,
         )
 
     display_names: dict[int, dict] = {}
-    counters: dict[tuple[str, str], int] = {}
-    for vehicle in sorted(vehicles, key=sort_key):
-        vt = vehicle.vehicle_type
-        type_name = str(vt.name_short or vt.name)
-        depot_name = depot_by_vehicle.get(vehicle.id, "")
-
-        key = (type_name, depot_name)
-        counters[key] = counters.get(key, 0) + 1
-        number = counters[key]
-
-        parts = [part for part in (type_name, depot_name) if part]
-        parts.append(str(number))
-        display_names[vehicle.id] = {
-            "name": " ".join(parts),
-            "vehicle_type": type_name,
-            "depot": depot_name,
-            "number": number,
-        }
+    for type_name, vehicles_of_type in itertools.groupby(
+        sorted(vehicles, key=sort_key), key=type_name_of
+    ):
+        # Row number over the sorted list, restarting at 1 for every vehicle type
+        for number, vehicle in enumerate(vehicles_of_type, start=1):
+            display_names[vehicle.id] = {
+                "name": f"{type_name} {number}",
+                "vehicle_type": type_name,
+                "depot": depot_by_vehicle.get(vehicle.id, ""),
+                "number": number,
+            }
 
     return display_names
 
@@ -916,8 +914,15 @@ def get_binned_soc(task_id: str) -> pd.DataFrame:
     # drop initial hours where we never had a reading
     df_filled = df_filled.dropna(subset=["soc_end"])
 
-    # extract hour‐of‐day and bucket into 10% SOC bins
-    df_filled["hour"] = df_filled["timestamp"].dt.hour
+    # Restrict to the simulation window, the same one the depot occupancy chart uses. The events
+    # span more than the schedule itself, because eflips simulates a period before and after it to
+    # reach a steady state, and those padding days are not a result worth plotting. The resample
+    # and ffill above deliberately run on the full range, so a vehicle whose last reading predates
+    # the window still carries its SOC into it.
+    time_start, time_end = get_start_end_time(scenario)
+    df_filled = df_filled[
+        df_filled["timestamp"].between(pd.Timestamp(time_start).floor("h"), pd.Timestamp(time_end))
+    ].copy()
 
     def soc_bin(soc):
         if soc < 0:
@@ -927,10 +932,14 @@ def get_binned_soc(task_id: str) -> pd.DataFrame:
 
     df_filled["soc_bin"] = df_filled["soc_end"].apply(soc_bin)
 
-    # build the histogram: one count per vehicle‐hour in its lowest‐SOC bin
-    heatmap_data = df_filled.groupby(["hour", "soc_bin"]).size().reset_index(name="count")
+    # The reindex above puts every vehicle on exactly one row per hour, so each count is a number
+    # of vehicles. Hours stay absolute instead of being folded onto a 24h axis, which keeps this
+    # comparable to the depot occupancy chart and stops the ~03:00 start of the operating day from
+    # wrapping the night onto both edges of the plot.
+    heatmap_data = df_filled.groupby(["timestamp", "soc_bin"]).size().reset_index(name="count")
+    heatmap_data["time"] = heatmap_data["timestamp"].apply(lambda t: t.isoformat())
 
-    return heatmap_data
+    return heatmap_data[["time", "soc_bin", "count"]]
 
 
 def get_power_draw(request, task_id: str) -> list:
@@ -1695,7 +1704,8 @@ def get_cumulative_energy(task_id: str) -> dict:
 
 
 def get_rotation_table_data(task_id: str) -> pd.DataFrame:
-    rotations = Rotation.objects.filter(scenario__task_id=task_id).annotate(
+    scenario = Scenario.objects.get(task_id=task_id)
+    rotations = Rotation.objects.filter(scenario=scenario).annotate(
         max_soc=Max("trip__event__soc_start"),
         min_soc=Min("trip__event__soc_end"),
         cap=Max("vehicle_type__battery_capacity"),
@@ -1703,6 +1713,9 @@ def get_rotation_table_data(task_id: str) -> pd.DataFrame:
         start_t=Min("trip__departure_time"),
         end_t=Max("trip__arrival_time"),
     )
+
+    # Same name the Gantt charts use for a vehicle, so a bus reads the same way in both places
+    display_names = get_vehicle_display_names(scenario.id)
 
     rows = []
     for r in rotations:
@@ -1720,11 +1733,15 @@ def get_rotation_table_data(task_id: str) -> pd.DataFrame:
         if r.start_t and r.end_t:
             duration_h = (r.end_t - r.start_t).total_seconds() / 3600.0
 
+        vehicle_type_name = r.vehicle_type.name_short or r.vehicle_type.name
+        # A rotation isn't assigned to a specific vehicle until after simulation
+        vehicle_name = display_names.get(r.vehicle_id, {}).get("name", vehicle_type_name)
+
         rows.append(
             {
                 "id": r.id,
                 "name": r.name or f"ID: {r.id}",
-                "vehicle": r.vehicle_type.name_short or r.vehicle_type.name,
+                "vehicle": vehicle_name,
                 "distance": round(dist_km, 2),
                 "consumption": round(energy_kwh, 2),
                 "efficiency": round(efficiency, 3),
