@@ -1397,10 +1397,22 @@ class ScenarioToCostTest(TestCase):
         # The two scenarios are deepcopies, so the same vehicle type has a different
         # id in each; only the name carries across.
         sizing_vt = VehicleType.objects.create(
-            scenario=self.sizing, name="Gelenkbus", name_short="AB", consumption=1.5
+            scenario=self.sizing,
+            name="Gelenkbus",
+            name_short="AB",
+            consumption=1.5,
+            opportunity_charging_capable=True,
+            battery_capacity=350,
+            charging_curve=[[0.0, 150], [1.0, 150]],
         )
         default_vt = VehicleType.objects.create(
-            scenario=self.default, name="Gelenkbus", name_short="AB", consumption=1.2
+            scenario=self.default,
+            name="Gelenkbus",
+            name_short="AB",
+            consumption=1.2,
+            opportunity_charging_capable=True,
+            battery_capacity=350,
+            charging_curve=[[0.0, 150], [1.0, 150]],
         )
         self.assertNotEqual(sizing_vt.id, default_vt.id)
 
