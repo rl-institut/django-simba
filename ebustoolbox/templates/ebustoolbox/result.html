@@ -2264,8 +2264,6 @@
     }
 
     let rotationData = [];
-    let sortDirection = 1;
-    let currentSortColumn = '';
 
     function formatDuration(decimalHours) {
         const totalMinutes = Math.floor(decimalHours * 60);
@@ -2300,34 +2298,10 @@
         `).join('');
     }
     function sortTable(column) {
-        if (currentSortColumn === column) {
-            sortDirection *= -1;
-        } else {
-            sortDirection = 1;
-            currentSortColumn = column;
-        }
-
-        document.querySelectorAll('th.sortable').forEach(th => {
-            th.classList.remove('asc', 'desc');
-            if (th.dataset.column === column) {
-                th.classList.add(sortDirection === 1 ? 'asc' : 'desc');
-            }
+        sortTableBy('rotationTable', column, rotationData, sorted => {
+            rotationData = sorted;
+            renderTable(rotationData);
         });
-
-        rotationData.sort((a, b) => {
-            let valA = a[column];
-            let valB = b[column];
-
-            if (valA == null) return 1;
-            if (valB == null) return -1;
-
-            if (typeof valA === 'string') {
-                return valA.localeCompare(valB) * sortDirection;
-            }
-            return (valA - valB) * sortDirection;
-        });
-
-        renderTable(rotationData);
     }
 
 
