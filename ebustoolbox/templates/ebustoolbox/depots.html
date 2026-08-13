@@ -18,7 +18,7 @@ function addHTMX(button_id) {
   {% translate "WeBus - Depots" %}
 {% endblock title %}
 {% block wizard_navigation %}
-  {% with wiz_idx=7 %}{{ block.super }}{% endwith %}
+  {% with wiz_idx=6 %}{{ block.super }}{% endwith %}
 {% endblock wizard_navigation %}
 {% block wizard_content %}
   <main class="flex flex-col items-center flex-grow">
@@ -67,7 +67,7 @@ function addHTMX(button_id) {
   <div class="hidden bg-emerald-200"></div>
 {% endblock wizard_content %}
 {% block wizard_buttons %}
-  {% url 'simba:lca' scenario.task_id as prev_url %}
+  {% url 'simba:costs' scenario.task_id as prev_url %}
   {% with "submitButton" as buttonId %}{{ block.super }}{% endwith %}
 {% endblock wizard_buttons %}
 {% block script %}

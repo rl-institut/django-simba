@@ -24,15 +24,18 @@ The scenario the user edits in the wizard is not the scenario that is simulated:
 
 The LCA calculation reuses all four steps: it needs the same fleet topology, the same
 foreign keys, and the same annualisation. Only the parameters are its own, and they
-live in a column of their own, ``lca_parameters``.
-:func:`ensure_lca_parameters` fills it from ``defaults/impact/lca.json``, and
+live in a column of their own, ``lca_parameters`` -- plus ``BatteryType.specific_mass``,
+which is a column rather than a key but is an LCA input all the same.
+:func:`ensure_lca_parameters` fills both from ``defaults/impact/lca.json``, and
 :func:`calculate_lca` runs the calculation.
 
 Most of what it writes is an openLCA emission factor and not something a user could
-sensibly type. The three lifetimes are the exception: the TCO amortises over them too,
-so the two calculations have to agree on them (:func:`lifetime_parameters`). They are
-an input on the costs page and are stored on the scenario, not on the rows, because
-the columns they end up in are rewritten from scratch on every run.
+sensibly type. Four values are not: the three lifetimes, which the TCO amortises over
+too and which therefore have to agree (:func:`lifetime_parameters`), and the motor rated
+power and specific mass, which describe the fleet physically
+(:func:`vehicle_lca_parameters`). All four are inputs on the costs page and are stored
+on the scenario, not on the rows, because the columns they end up in are rewritten from
+scratch on every run.
 """
 
 import json
@@ -94,6 +97,18 @@ VEHICLE_COMMON_KEY = "vehicle_common"
 VEHICLE_OVERRIDES_KEY = "vehicle_overrides"
 BATTERY_KEY = "battery"
 LIFETIMES_KEY = "lifetimes"
+LCA_COMMON_KEY = "lca_common"
+LCA_OVERRIDES_KEY = "lca_vehicle_values"
+
+# The LCA inputs the user may edit, alongside the lifetimes above. Kept in
+# Scenario.tco_parameters rather than beside the emission factors they belong with,
+# because the columns that hold those are rewritten from scratch on every run --
+# ensure_lca_parameters replaces lca_parameters wholesale, and specific_mass is not in
+# a JSONB column at all. A value stored on the row would not survive either. The
+# scenario block is the source; both are materialised from it. See
+# vehicle_lca_parameters().
+MOTOR_POWER_KEY = "motor_rated_power_kw"
+SPECIFIC_MASS_KEY = "specific_mass"
 
 # The fields the shared vehicle block covers. Deliberately not derived from
 # ebustoolbox.forms: this module is imported by the toolchain, which has no business
@@ -231,15 +246,63 @@ def lifetime_defaults() -> dict:
     return deepcopy(load_tco_defaults()[LIFETIMES_KEY])
 
 
-def _lca_vehicle_type_overrides(vehicle_type: VehicleType, lifetimes: dict) -> VehicleTypeOverrides:
+def vehicle_lca_defaults(vehicle_type: VehicleType) -> dict:
+    """Return the editable LCA values a vehicle type falls back on.
+
+    The counterpart of :func:`vehicle_type_tco_defaults` for the Ökobilanz half of the
+    costs page. Two values, from two different files, because that is where each of
+    them already lived:
+
+    - ``motor_rated_power_kw`` from ``lca_overrides.json``, split by energy source.
+      Motor mass is derived from it as power / power-to-weight-ratio, so it drives the
+      production emissions of the motor.
+    - ``specific_mass`` from ``fleet.json``, in kg per kWh of gross capacity. Multiplied
+      by ``VehicleType.battery_capacity`` it gives the battery mass, and with it both
+      the battery's production emissions and — by subtraction from the empty mass —
+      the chassis's.
+
+    Nested under :data:`BATTERY_KEY` for the same reason the TCO block is: the two
+    values land in different tables.
+
+    :returns: ``{motor_rated_power_kw, battery: {specific_mass}}``, without the battery
+        entry for a diesel vehicle type, which has none.
+    """
+    overrides = load_lca_overrides()
+    is_diesel = vehicle_type.energy_source == EnumEnergySource.DIESEL
+    key = "vehicle_type_default_diesel" if is_diesel else "vehicle_type_default"
+
+    defaults = {MOTOR_POWER_KEY: float(overrides[key][MOTOR_POWER_KEY])}
+    if not is_diesel:
+        defaults[BATTERY_KEY] = {SPECIFIC_MASS_KEY: _fleet_battery_defaults()[SPECIFIC_MASS_KEY]}
+    return defaults
+
+
+def vehicle_lca_defaults_beb() -> dict:
+    """Return the battery-electric LCA defaults, the baseline of the shared block.
+
+    As :func:`vehicle_type_tco_defaults_beb` is for the cost values: the shared block
+    belongs to no single vehicle type, so it takes no argument.
+    """
+    overrides = load_lca_overrides()["vehicle_type_default"]
+    return {
+        MOTOR_POWER_KEY: float(overrides[MOTOR_POWER_KEY]),
+        BATTERY_KEY: {SPECIFIC_MASS_KEY: _fleet_battery_defaults()[SPECIFIC_MASS_KEY]},
+    }
+
+
+def _lca_vehicle_type_overrides(
+    vehicle_type: VehicleType, lifetimes: dict, values: dict
+) -> VehicleTypeOverrides:
     """Return the per-vehicle-type LCA values that are not openLCA emission factors.
 
     Split by energy source only, matching :func:`vehicle_type_tco_defaults`; there is
     no per-model lookup here either.
 
-    The lifetime is not read from ``lca_overrides.json`` beside the rest: it is shared
-    with the TCO and comes from :func:`lifetime_parameters`, which is why it is passed
-    in rather than looked up.
+    Neither the lifetime nor the motor power is read from ``lca_overrides.json`` beside
+    the rest. Both are editable, so both are passed in: the lifetime from
+    :func:`lifetime_parameters` and the rest of the block from
+    :func:`vehicle_lca_parameters`, which has already resolved it against the shared
+    values and the file.
 
     Consumption is left at its default of zero here and written in after the
     simulation by :func:`_write_lca_consumption`.
@@ -251,7 +314,7 @@ def _lca_vehicle_type_overrides(vehicle_type: VehicleType, lifetimes: dict) -> V
         entry = overrides["vehicle_type_default"]
 
     return VehicleTypeOverrides(
-        motor_rated_power_kw=float(entry["motor_rated_power_kw"]),
+        motor_rated_power_kw=float(values[MOTOR_POWER_KEY]),
         vehicle_lifetime_years=float(lifetimes["vehicle"]),
         motor_power_to_weight_ratio_kw_per_kg=entry.get("motor_power_to_weight_ratio_kw_per_kg"),
         diesel_consumption_kg_per_km=entry.get("diesel_consumption_kg_per_km"),
@@ -439,7 +502,7 @@ def _ensure_battery_types(scenario: Scenario) -> None:
             fleet_defaults = _fleet_battery_defaults()
             battery_type = BatteryType.objects.create(
                 scenario=scenario,
-                specific_mass=fleet_defaults["specific_mass"],
+                specific_mass=fleet_defaults[SPECIFIC_MASS_KEY],
                 chemistry=fleet_defaults["chemistry"],
                 tco_parameters=battery_type_tco_defaults(),
             )
@@ -526,18 +589,33 @@ def _webus(scenario: Scenario) -> dict:
     return (scenario.tco_parameters or {}).get(WEBUS_KEY) or {}
 
 
-def webus_block(common: dict, overrides, lifetimes: dict) -> dict:
+def webus_block(
+    common: dict,
+    overrides,
+    lifetimes: dict,
+    lca_common: dict,
+    lca_values: dict,
+) -> dict:
     """Build the value to store under :data:`WEBUS_KEY`.
 
-    :param common: The shared vehicle values, with the battery ones nested under
+    :param common: The shared vehicle cost values, with the battery ones nested under
         :data:`BATTERY_KEY`.
-    :param overrides: Keys of the vehicle types that carry their own values.
+    :param overrides: Keys of the vehicle types that carry their own values. One set,
+        not one per calculation: a card that deviates deviates in both its cost and its
+        Ökobilanz values, so the page has one checkbox for it rather than two.
     :param lifetimes: The fleet-wide lifetimes, as :func:`lifetime_parameters`.
+    :param lca_common: The shared Ökobilanz values, shaped like ``common``; see
+        :func:`vehicle_lca_defaults`.
+    :param lca_values: ``{vehicle key: block}`` for the vehicle types that deviate,
+        shaped as ``lca_common``. Unlike their cost counterparts these cannot live on
+        the row -- see :data:`MOTOR_POWER_KEY`.
     """
     return {
         VEHICLE_COMMON_KEY: common,
         VEHICLE_OVERRIDES_KEY: sorted(overrides),
         LIFETIMES_KEY: lifetimes,
+        LCA_COMMON_KEY: lca_common,
+        LCA_OVERRIDES_KEY: lca_values,
     }
 
 
@@ -694,6 +772,59 @@ def _apply_vehicle_common(scenario: Scenario) -> None:
         if wanted != battery_type.tco_parameters:
             battery_type.tco_parameters = wanted
             battery_type.save(update_fields=["tco_parameters"])
+
+
+def _merge_lca_block(defaults: dict, stored: dict) -> dict:
+    """Lay a stored Ökobilanz block over its defaults, one level of nesting deep."""
+    merged = {**defaults, **{k: v for k, v in stored.items() if k != BATTERY_KEY}}
+    if BATTERY_KEY in defaults:
+        merged[BATTERY_KEY] = {**defaults[BATTERY_KEY], **(stored.get(BATTERY_KEY) or {})}
+    return merged
+
+
+def lca_common_parameters(scenario: Scenario) -> dict:
+    """Return the Ökobilanz values every battery-electric vehicle type follows.
+
+    The counterpart of :func:`vehicle_common_parameters` for the environmental half of
+    the costs page, with the same overlay over :func:`vehicle_lca_defaults_beb`.
+
+    Only battery-electric types can follow it, for the same reason as there: a diesel
+    bus has no battery, so half the block would be meaningless for it. Diesel types
+    always carry their own motor power. See :func:`follows_common`.
+
+    :returns: ``{motor_rated_power_kw, battery: {specific_mass}}``.
+    """
+    defaults = vehicle_lca_defaults_beb()
+    if not tco_parameters_edited(scenario):
+        return defaults
+    return _merge_lca_block(defaults, _webus(scenario).get(LCA_COMMON_KEY) or {})
+
+
+def vehicle_lca_parameters(scenario: Scenario, vehicle_type: VehicleType) -> dict:
+    """Return the Ökobilanz values one vehicle type is calculated with.
+
+    The single resolver behind both editable LCA inputs: the shared block for a type
+    that follows it, its own stored block otherwise, and the JSON defaults underneath
+    either. Everything that writes an LCA value reads it from here, so the number on
+    the costs page and the number in the calculation cannot come apart.
+
+    Deviating values are read from the scenario rather than from the row, which is
+    where the cost values of a deviating type live. Neither of these two could survive
+    there: :func:`ensure_lca_parameters` replaces ``lca_parameters`` wholesale on every
+    run, and ``specific_mass`` is a plain column that the same function overwrites.
+
+    :returns: ``{motor_rated_power_kw, battery: {specific_mass}}``, without the battery
+        entry for a diesel vehicle type.
+    """
+    if follows_common(vehicle_type, vehicle_overrides(scenario)):
+        return lca_common_parameters(scenario)
+
+    defaults = vehicle_lca_defaults(vehicle_type)
+    if not tco_parameters_edited(scenario):
+        return defaults
+
+    stored = (_webus(scenario).get(LCA_OVERRIDES_KEY) or {}).get(vehicle_key(vehicle_type)) or {}
+    return _merge_lca_block(defaults, stored)
 
 
 def _ensure_station_parameters(scenario: Scenario) -> None:
@@ -1046,8 +1177,17 @@ def ensure_lca_parameters(scenario: Scenario) -> None:
     opportunity charging points be told apart, which ``init_lca_params`` does not do.
 
     Values are replaced rather than merged: the JSON file is meant to be the only
-    source of them. Nothing here preserves a stored value, because nothing can edit
-    these -- unlike the TCO parameters, they have no form behind them.
+    source of them. What is not taken from the file is what the user can edit on the
+    costs page -- the three lifetimes, from :func:`lifetime_parameters`, and the motor
+    power and specific mass, from :func:`vehicle_lca_parameters`. Those are read from
+    the scenario, which is why replacing the rest is safe: nothing a user typed is
+    stored in the columns this overwrites.
+
+    ``BatteryType.specific_mass`` is written here too although it is an ordinary column
+    rather than part of ``lca_parameters``. It is an LCA input like any other -- mass
+    times the emission factor per kg is the battery's production impact -- it is
+    resolved from the same block, and this is the last thing to run before the
+    calculation, so it is the one place that can keep the two in step.
 
     :param scenario: The scenario to parameterise, after ``ensure_fleet_topology``.
     """
@@ -1056,13 +1196,23 @@ def ensure_lca_parameters(scenario: Scenario) -> None:
     lifetimes = lifetime_parameters(scenario)
 
     for vehicle_type in VehicleType.objects.filter(scenario=scenario):
-        overrides = _lca_vehicle_type_overrides(vehicle_type, lifetimes)
+        values = vehicle_lca_parameters(scenario, vehicle_type)
+        overrides = _lca_vehicle_type_overrides(vehicle_type, lifetimes, values)
         if vehicle_type.energy_source == EnumEnergySource.DIESEL:
             parameters = data.make_vehicle_type_lca_parameters_diesel(overrides)
         else:
             parameters = data.make_vehicle_type_lca_parameters_beb(year, overrides)
         vehicle_type.lca_parameters = parameters.to_dict()
         vehicle_type.save(update_fields=["lca_parameters"])
+
+        battery = values.get(BATTERY_KEY)
+        if vehicle_type.battery_type_id is None or battery is None:
+            continue
+        battery_type = vehicle_type.battery_type
+        wanted = float(battery[SPECIFIC_MASS_KEY])
+        if battery_type.specific_mass != wanted:
+            battery_type.specific_mass = wanted
+            battery_type.save(update_fields=["specific_mass"])
 
     for battery_type in BatteryType.objects.filter(scenario=scenario):
         # chemistry picks the emission factors: anything starting with "NMC" is NMC,

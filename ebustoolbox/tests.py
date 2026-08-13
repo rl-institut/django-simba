@@ -1527,7 +1527,9 @@ class LcaDefaultsTest(SimpleTestCase):
         ]:
             with self.subTest(defaults=name):
                 vehicle_type = VehicleType(name_short=None, energy_source=energy_source)
-                built = impact._lca_vehicle_type_overrides(vehicle_type, lifetimes)
+                built = impact._lca_vehicle_type_overrides(
+                    vehicle_type, lifetimes, impact.vehicle_lca_defaults(vehicle_type)
+                )
                 # __post_init__ raises if a field contradicts the energy source.
                 if energy_source == EnumEnergySource.DIESEL:
                     parameters = data.make_vehicle_type_lca_parameters_diesel(built)
@@ -1563,7 +1565,9 @@ class LcaDefaultsTest(SimpleTestCase):
         vehicle_type = VehicleType(name_short=None, energy_source=EnumEnergySource.BATTERY_ELECTRIC)
         built = data.make_vehicle_type_lca_parameters_beb(
             impact.load_lca_overrides()["year"],
-            impact._lca_vehicle_type_overrides(vehicle_type, lifetimes),
+            impact._lca_vehicle_type_overrides(
+                vehicle_type, lifetimes, impact.vehicle_lca_defaults(vehicle_type)
+            ),
         ).to_dict()
         self.assertEqual(built["vehicle_lifetime_years"], lifetimes["vehicle"])
 
@@ -1578,6 +1582,50 @@ class LcaDefaultsTest(SimpleTestCase):
         self.assertEqual(
             set(lifetimes), {"vehicle", "battery", "charging_point"}, "LIFETIME_LCA_KEYS drifted"
         )
+
+    def test_editable_lca_values_reach_the_built_parameters(self):
+        """The motor power on the costs page is the one the calculation uses.
+
+        ``_lca_vehicle_type_overrides`` takes it from the resolved block rather than
+        from ``lca_overrides.json``, so a value entered for one vehicle type has to
+        override the file rather than sit beside it.
+        """
+        data = impact.load_lca_defaults()
+        lifetimes = impact.lifetime_defaults()
+
+        for energy_source in (EnumEnergySource.BATTERY_ELECTRIC, EnumEnergySource.DIESEL):
+            with self.subTest(energy_source=energy_source):
+                vehicle_type = VehicleType(name_short=None, energy_source=energy_source)
+                values = impact.vehicle_lca_defaults(vehicle_type)
+                values[impact.MOTOR_POWER_KEY] = 275.0
+
+                built = impact._lca_vehicle_type_overrides(vehicle_type, lifetimes, values)
+                self.assertEqual(built.motor_rated_power_kw, 275.0)
+
+        # Only a battery-electric type has a battery block to edit.
+        self.assertIn(
+            impact.BATTERY_KEY,
+            impact.vehicle_lca_defaults(
+                VehicleType(name_short=None, energy_source=EnumEnergySource.BATTERY_ELECTRIC)
+            ),
+        )
+        self.assertNotIn(
+            impact.BATTERY_KEY,
+            impact.vehicle_lca_defaults(
+                VehicleType(name_short=None, energy_source=EnumEnergySource.DIESEL)
+            ),
+        )
+
+    def test_specific_mass_default_comes_from_fleet_json(self):
+        """The shared block and the row creation must agree on the starting value.
+
+        ``_ensure_battery_types`` creates a row from ``fleet.json`` and
+        ``ensure_lca_parameters`` then writes the resolved value over it. If the two
+        read different files, every new battery would be silently rewritten.
+        """
+        common = impact.vehicle_lca_defaults_beb()[impact.BATTERY_KEY][impact.SPECIFIC_MASS_KEY]
+        self.assertEqual(common, impact._fleet_battery_defaults()[impact.SPECIFIC_MASS_KEY])
+        self.assertGreater(common, 0)
 
     def test_battery_chemistry_selects_the_emission_factors(self):
         data = impact.load_lca_defaults()

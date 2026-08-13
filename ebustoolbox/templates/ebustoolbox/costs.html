@@ -180,6 +180,15 @@
                     {% include "ebustoolbox/partials/tco_field.html" with field=common_battery_form.cost_escalation %}
                   </div>
                 </fieldset>
+                {# The former Ökobilanz step. Grouped rather than mixed in above because #}
+                {# these two describe the fleet physically and never reach the costs.    #}
+                <fieldset class="pt-4">
+                  <legend class="text-sm font-semibold text-slate-700">{% translate 'Ökobilanz' %}</legend>
+                  <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                    {% include "ebustoolbox/partials/tco_field.html" with field=lca_common_form.motor_rated_power_kw %}
+                    {% include "ebustoolbox/partials/tco_field.html" with field=lca_common_battery_form.specific_mass %}
+                  </div>
+                </fieldset>
               </div>
             </div>
           </div>
@@ -231,6 +240,17 @@
                       </div>
                     </fieldset>
                   {% endif %}
+                  {# Same checkbox as the cost values above: a type that deviates       #}
+                  {# deviates in everything, so there is one toggle per card, not two.  #}
+                  <fieldset class="pt-4">
+                    <legend class="text-sm font-semibold text-slate-700">{% translate 'Ökobilanz' %}</legend>
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                      {% include "ebustoolbox/partials/tco_field.html" with field=row.lca_form.motor_rated_power_kw %}
+                      {% if row.lca_battery_form %}
+                        {% include "ebustoolbox/partials/tco_field.html" with field=row.lca_battery_form.specific_mass %}
+                      {% endif %}
+                    </div>
+                  </fieldset>
                   </div>
                 </div>
               </div>

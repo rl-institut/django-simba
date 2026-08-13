@@ -612,6 +612,55 @@ class LifetimeForm(TcoFormBase):
     )
 
 
+class VehicleTypeLcaForm(TcoFormBase):
+    """The editable Ökobilanz values of a vehicle type.
+
+    The environmental counterpart of :class:`VehicleTypeTcoForm`, rendered in the same
+    card and governed by the same "abweichen" checkbox, because a fleet is described
+    once and then costed and assessed — not configured twice.
+
+    Everything else the LCA needs is an openLCA emission factor from
+    ``defaults/impact/lca.json`` and not something a user can sensibly type. The
+    exception used to be the lifetimes, which are now on :class:`LifetimeForm`.
+
+    Not a ``tco_parameters`` form despite the base class, which only supplies the
+    percent handling and the ``data-default`` marking; see
+    :func:`ebustoolbox.impact.vehicle_lca_parameters` for where the values are kept.
+    """
+
+    motor_rated_power_kw = TcoFloatField(
+        min_value=1,
+        unit=gettext_lazy("kW"),
+        label=gettext_lazy("Motornennleistung"),
+        help_text=gettext_lazy(
+            "Nennleistung des Antriebsmotors. Daraus wird die Masse des Motors "
+            "abgeleitet und damit dessen Herstellungsemissionen. Geht nicht in die "
+            "Kostenrechnung ein"
+        ),
+    )
+
+
+class BatteryTypeLcaForm(TcoFormBase):
+    """The editable Ökobilanz values of a battery — ``BatteryType.specific_mass``.
+
+    One field, and the only one on this page that is not stored in a JSON column but
+    in a column of its own. It is written by
+    :func:`ebustoolbox.impact.ensure_lca_parameters` all the same, so that the mass
+    used in the calculation is the mass shown here.
+    """
+
+    specific_mass = TcoFloatField(
+        min_value=0,
+        unit=gettext_lazy("kg/kWh"),
+        label=gettext_lazy("Spezifische Batteriemasse"),
+        help_text=gettext_lazy(
+            "Masse der Batterie je kWh Bruttokapazität. Mal der Batteriekapazität "
+            "ergibt sich die Masse der Batterie, aus der ihre Herstellungsemissionen "
+            "berechnet werden. Geht nicht in die Kostenrechnung ein"
+        ),
+    )
+
+
 class VehicleTypeTcoForm(TcoFormBase):
     """Per-vehicle-type parameters — ``VehicleType.tco_parameters``.
 

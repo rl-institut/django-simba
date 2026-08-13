@@ -9,7 +9,6 @@ from ebustoolbox.views import (
     progress_scenario,
     StationsView,
     CostsView,
-    LcaView,
     FilterView,
     DepotsView,
     SummaryView,
@@ -38,11 +37,6 @@ urlpatterns = [
         name="costs",
     ),
     path("dashboard/", get_dashboard, name="dashboard"),
-    path(
-        "lca/<uuid:task_id>/",
-        LcaView.as_view(),
-        name="lca",
-    ),
     path(
         "depots/<uuid:task_id>/",
         DepotsView.as_view(),

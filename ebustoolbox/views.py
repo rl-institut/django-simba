@@ -1084,7 +1084,7 @@ class StationsView(ScenarioMixIn, TemplateView):
 
 
 class CostsView(ScenarioMixIn, TemplateView):
-    success_name = "simba:lca"
+    success_name = "simba:depots"
     template_name = "ebustoolbox/costs.html"
 
     def _build_tco_forms(self, data):
@@ -1135,6 +1135,25 @@ class CostsView(ScenarioMixIn, TemplateView):
             initial=forms.BatteryTypeTcoForm.initial_from(common_battery),
         ).mark_defaults(impact.battery_type_tco_defaults())
 
+        # The Ökobilanz half of the same shared block. Same split into a vehicle and a
+        # battery form, for the same reason: two tables, and one of these is not even a
+        # JSON column. The Ökobilanz step used to be a page of its own with nothing on
+        # it but a "take the defaults" button; these are the two values on it worth
+        # editing, so they moved in beside the cost values they describe the same fleet
+        # with.
+        lca_common = impact.lca_common_parameters(scenario)
+        lca_common_defaults = impact.vehicle_lca_defaults_beb()
+        lca_common_form = forms.VehicleTypeLcaForm(
+            data=data,
+            prefix="vt-lca-common",
+            initial=forms.VehicleTypeLcaForm.initial_from(lca_common),
+        ).mark_defaults(lca_common_defaults)
+        lca_common_battery_form = forms.BatteryTypeLcaForm(
+            data=data,
+            prefix="bt-lca-common",
+            initial=forms.BatteryTypeLcaForm.initial_from(lca_common.get(impact.BATTERY_KEY)),
+        ).mark_defaults(lca_common_defaults[impact.BATTERY_KEY])
+
         stored_overrides = impact.vehicle_overrides(scenario)
         vehicle_rows = []
         for vehicle_type in scenario.vehicletype_set.order_by("id"):
@@ -1148,6 +1167,12 @@ class CostsView(ScenarioMixIn, TemplateView):
             # otherwise its own JSON defaults. A deviating electric type is measured
             # against what it would have had by following, not against tco.json.
             baseline = impact.vehicle_type_tco_defaults(vehicle_type) if is_diesel else common
+
+            # Already resolved against the shared block or the JSON defaults, so this
+            # is what the type is actually calculated with either way.
+            lca_values = impact.vehicle_lca_parameters(scenario, vehicle_type)
+            lca_baseline = impact.vehicle_lca_defaults(vehicle_type) if is_diesel else lca_common
+
             row = {
                 "vehicle_type": vehicle_type,
                 "form": form_class(
@@ -1158,7 +1183,13 @@ class CostsView(ScenarioMixIn, TemplateView):
                         impact.vehicle_type_tco_defaults(vehicle_type),
                     ),
                 ).mark_defaults(baseline),
+                "lca_form": forms.VehicleTypeLcaForm(
+                    data=data,
+                    prefix=f"vt-lca-{vehicle_type.id}",
+                    initial=forms.VehicleTypeLcaForm.initial_from(lca_values),
+                ).mark_defaults(lca_baseline),
                 "battery_form": None,
+                "lca_battery_form": None,
                 # Diesel types cannot follow the shared block: tco.json prices them
                 # differently, so there is nothing sensible for them to inherit.
                 "can_follow": not is_diesel,
@@ -1186,6 +1217,16 @@ class CostsView(ScenarioMixIn, TemplateView):
                         impact.battery_type_tco_defaults(),
                     ),
                 ).mark_defaults(battery_baseline)
+
+                # A diesel type has no battery block to resolve, so there is nothing to
+                # show even on the rare row that carries a BatteryType anyway.
+                lca_battery = lca_values.get(impact.BATTERY_KEY)
+                if lca_battery is not None:
+                    row["lca_battery_form"] = forms.BatteryTypeLcaForm(
+                        data=data,
+                        prefix=f"bt-lca-{battery_type.id}",
+                        initial=forms.BatteryTypeLcaForm.initial_from(lca_battery),
+                    ).mark_defaults(lca_baseline.get(impact.BATTERY_KEY))
             vehicle_rows.append(row)
 
         charging_point_rows = []
@@ -1226,6 +1267,8 @@ class CostsView(ScenarioMixIn, TemplateView):
             "lifetime_form": lifetime_form,
             "common_form": common_form,
             "common_battery_form": common_battery_form,
+            "lca_common_form": lca_common_form,
+            "lca_common_battery_form": lca_common_battery_form,
             "vehicle_rows": vehicle_rows,
             "charging_point_rows": charging_point_rows,
             "charging_categories": self._charging_categories(
@@ -1356,6 +1399,15 @@ class CostsView(ScenarioMixIn, TemplateView):
                 values,
             )
 
+            other_lca_common = impact.lca_common_parameters(other_scenario)
+            collect(forms.VehicleTypeLcaForm, "vt-lca-common", other_lca_common, values)
+            collect(
+                forms.BatteryTypeLcaForm,
+                "bt-lca-common",
+                other_lca_common.get(impact.BATTERY_KEY),
+                values,
+            )
+
             other_vehicle_types = {
                 vehicle_type.name_short or vehicle_type.name: vehicle_type
                 for vehicle_type in other_scenario.vehicletype_set.all()
@@ -1381,6 +1433,16 @@ class CostsView(ScenarioMixIn, TemplateView):
                         impact.battery_type_tco_defaults(),
                     )
 
+                source_lca = impact.vehicle_lca_parameters(other_scenario, source)
+                collect(forms.VehicleTypeLcaForm, row["lca_form"].prefix, source_lca, values)
+                if row["lca_battery_form"] is not None:
+                    collect(
+                        forms.BatteryTypeLcaForm,
+                        row["lca_battery_form"].prefix,
+                        source_lca.get(impact.BATTERY_KEY),
+                        values,
+                    )
+
             other_infrastructure = impact.charging_infrastructure_parameters(other_scenario)
             for key, form in context["infrastructure_forms"].items():
                 collect(form.__class__, form.prefix, other_infrastructure[key], values)
@@ -1400,6 +1462,8 @@ class CostsView(ScenarioMixIn, TemplateView):
             context["lifetime_form"],
             context["common_form"],
             context["common_battery_form"],
+            context["lca_common_form"],
+            context["lca_common_battery_form"],
             *context["infrastructure_forms"].values(),
         ]
         all_forms += [row["form"] for row in context["charging_point_rows"]]
@@ -1407,8 +1471,11 @@ class CostsView(ScenarioMixIn, TemplateView):
             if not row["deviates"]:
                 continue
             all_forms.append(row["form"])
+            all_forms.append(row["lca_form"])
             if row["battery_form"] is not None:
                 all_forms.append(row["battery_form"])
+            if row["lca_battery_form"] is not None:
+                all_forms.append(row["lca_battery_form"])
         return all_forms
 
     def get_context_data(self, **kwargs):
@@ -1485,12 +1552,16 @@ class CostsView(ScenarioMixIn, TemplateView):
         # Dropped rather than left behind: while the marker is clear nothing reads it,
         # so a stale block here would only look authoritative to the next reader. That
         # includes the shared vehicle block, whose absence puts every vehicle type back
-        # on the JSON defaults.
+        # on the JSON defaults, and the Ökobilanz blocks beside it.
         parameters.pop(impact.CHARGING_INFRASTRUCTURE_KEY, None)
         parameters.pop(impact.WEBUS_KEY, None)
         scenario.tco_parameters = parameters
         scenario.save(update_fields=["tco_parameters"])
         impact.ensure_fleet_topology(scenario)
+        # Puts the specific mass back as well. It is the one value on this page kept in
+        # a column of its own rather than in a tco_parameters block, so dropping the
+        # block above is not on its own enough to release it.
+        impact.ensure_lca_parameters(scenario)
         logger.info(f"S.ID:{scenario.id}:TCO parameters reset to the defaults")
 
     @atomic()
@@ -1516,6 +1587,21 @@ class CostsView(ScenarioMixIn, TemplateView):
             if row["can_follow"] and row["deviates"]
         }
 
+        lca_common = context["lca_common_form"].to_tco_parameters()
+        lca_common[impact.BATTERY_KEY] = context["lca_common_battery_form"].to_tco_parameters()
+        # Unlike the cost values of a deviating type, these are kept on the scenario
+        # rather than on the row: ensure_lca_parameters rewrites both columns they end
+        # up in from scratch on every run, so a row is not somewhere they could
+        # survive. Diesel types are in here too -- they never follow the shared block.
+        lca_values = {}
+        for row in context["vehicle_rows"]:
+            if not row["deviates"]:
+                continue
+            block = row["lca_form"].to_tco_parameters()
+            if row["lca_battery_form"] is not None:
+                block[impact.BATTERY_KEY] = row["lca_battery_form"].to_tco_parameters()
+            lca_values[impact.vehicle_key(row["vehicle_type"])] = block
+
         # Marked as the user's: ebustoolbox.impact stops re-seeding these rows from
         # defaults/impact/tco.json. Has to be set before the ensure_fleet_topology
         # call below, which would otherwise undo everything this method just wrote.
@@ -1528,7 +1614,11 @@ class CostsView(ScenarioMixIn, TemplateView):
                     for key, form in context["infrastructure_forms"].items()
                 },
                 impact.WEBUS_KEY: impact.webus_block(
-                    common, overrides, context["lifetime_form"].to_tco_parameters()
+                    common,
+                    overrides,
+                    context["lifetime_form"].to_tco_parameters(),
+                    lca_common,
+                    lca_values,
                 ),
             }
         )
@@ -1562,6 +1652,11 @@ class CostsView(ScenarioMixIn, TemplateView):
 
         # Station rows are derived from the two scenario-level sets just saved.
         impact.ensure_fleet_topology(scenario)
+        # And the Ökobilanz columns from the block above. The toolchain seeds them
+        # again before it calculates, so this is not what makes them reach the run --
+        # it is what makes the motor power and the specific mass just entered visible
+        # on the rows straight away, the way every cost value already is.
+        impact.ensure_lca_parameters(scenario)
 
 
 class DepotsView(ScenarioMixIn, TemplateView):
@@ -2685,52 +2780,10 @@ def get_rotation_table_data(request, task_id: str):
     return HttpResponse(status=400)
 
 
-class LcaView(ScenarioMixIn, TemplateView):
-    """The Ökobilanz wizard step, between Kosten and Depots.
-
-    A placeholder: the LCA parameters are not editable yet, so the only action is
-    taking the defaults from ``defaults/impact/lca.json``. The table on the page shows
-    which rows they reached.
-
-    Seeding here writes to the scenario the wizard edits, so the values are in place
-    before the simulation and travel to the simulated scenario with the rows that hold
-    them. The toolchain seeds again on its own, so skipping this step costs nothing --
-    it only makes the values visible and the moment repeatable.
-    """
-
-    success_name = "simba:depots"
-    template_name = "ebustoolbox/lca.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        scenario = self.scenario
-
-        # Reached through the reverse managers rather than the model classes, so this
-        # view needs no import the rest of the module does not already have.
-        context["vehicle_types"] = scenario.vehicletype_set.order_by("id")
-        context["battery_types"] = scenario.batterytype_set.order_by("id")
-        context["charging_point_types"] = scenario.chargingpointtype_set.order_by("id")
-        context["lca_rows"] = [
-            *context["vehicle_types"],
-            *context["battery_types"],
-            *context["charging_point_types"],
-        ]
-        return context
-
-    def get(self, request, *args, **kwargs):
-        return self.render_to_response(self.get_context_data(**kwargs))
-
-    def post(self, request, *args, **kwargs):
-        from ebustoolbox import impact
-
-        # Two submits land here: the defaults button, which stays on the step so its
-        # effect can be seen, and the wizard's "Weiter", which carries no name.
-        if "lca_defaults" not in request.POST:
-            return redirect(reverse(self.success_name, args=[kwargs["task_id"]]))
-
-        scenario = self.scenario
-        # The rows have to exist before they can be parameterised, and a scenario that
-        # never went through the costs page has none.
-        impact.ensure_fleet_topology(scenario)
-        impact.ensure_lca_parameters(scenario)
-        return redirect(reverse("simba:lca", args=[kwargs["task_id"]]))
+# The Ökobilanz wizard step used to sit here, between Kosten and Depots. It was a
+# placeholder with one button on it -- take the defaults from defaults/impact/lca.json
+# -- and a table showing which rows they had reached, because none of the parameters
+# were editable. The two that are worth editing, the motor rated power and the
+# battery's specific mass, are now inputs on the costs page beside the cost values
+# that describe the same fleet, so the step had nothing left to offer and was
+# removed. Seeding is still done from there, and by calculate_lca before it runs.
