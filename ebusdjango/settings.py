@@ -280,6 +280,8 @@ UPLOAD_PATH = "uploads/"
 MEDIA_ROOT = env.str("DJANGO_MEDIA_ROOT", "media/")
 
 # Optional: maximum allowed file size for uploads.
+# Given in KB, stored in Bytes. Default 64 MB.
+MAX_FILE_SIZE_B = env.int("DJANGO_MAX_FILE_SIZE_KB", 64000) << 10
 
 # The maximum number of files per uploaded zip file
 MAX_ZIP_FILES_NR = env.int("DJANGO_MAX_ZIP_FILES_NR", 100)
