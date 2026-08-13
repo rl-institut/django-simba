@@ -24,6 +24,7 @@ from .import_export import visit_all_scenario_queries, ScenarioJSONImporterExpor
 from . import tasks
 from .forms import UploadFileForm
 from .models import (
+    BatteryType,
     DepotConfigurationWish,
     Notification,
     Route,
@@ -1422,6 +1423,69 @@ class ScenarioToCostTest(TestCase):
         impact._write_energy_consumption(self.sizing, consumption)
         sizing_vt.refresh_from_db()
         self.assertEqual(sizing_vt.tco_parameters["average_electricity_consumption"], 1.2)
+
+
+class FleetTopologyTest(TestCase):
+    """What ``ensure_fleet_topology`` does with rows it did not create itself."""
+
+    def test_a_foreign_battery_type_is_adopted(self):
+        """A row belonging to another scenario is copied in, not written to.
+
+        A vehicle type taken from the public fleet keeps that fleet's
+        ``battery_type_id``. Left alone, two things go wrong: an edit on this
+        scenario's costs page reaches every other scenario using the same model, and
+        ``apply_tco_mutation`` cannot map the row when the scenario is simulated, so
+        the vehicle type arrives there with no battery at all.
+        """
+        public = Scenario.objects.create(
+            name="public fleet", task_id=get_unique_task_id(), scenario_type=EnumScenarioType.SOURCE
+        )
+        shared = BatteryType.objects.create(scenario=public, specific_mass=2.5, chemistry="lfp")
+
+        mine = Scenario.objects.create(
+            name="mine", task_id=get_unique_task_id(), scenario_type=EnumScenarioType.MUTATION
+        )
+        vehicle_type = VehicleType.objects.create(
+            scenario=mine,
+            name="Gelenkbus",
+            name_short="AB",
+            battery_type=shared,
+            opportunity_charging_capable=True,
+            battery_capacity=350,
+            charging_curve=[[0.0, 150], [1.0, 150]],
+            energy_source=EnumEnergySource.BATTERY_ELECTRIC,
+        )
+
+        impact.ensure_fleet_topology(mine)
+
+        vehicle_type.refresh_from_db()
+        self.assertNotEqual(vehicle_type.battery_type_id, shared.id)
+        self.assertEqual(vehicle_type.battery_type.scenario_id, mine.id)
+        # The other scenario's row is left exactly as it was.
+        shared.refresh_from_db()
+        self.assertEqual(shared.scenario_id, public.id)
+        self.assertEqual(shared.specific_mass, 2.5)
+
+    def test_an_owned_battery_type_is_left_alone(self):
+        """Adoption must not run twice and leave a trail of copies behind."""
+        scenario = Scenario.objects.create(
+            name="mine", task_id=get_unique_task_id(), scenario_type=EnumScenarioType.MUTATION
+        )
+        VehicleType.objects.create(
+            scenario=scenario,
+            name="Gelenkbus",
+            name_short="AB",
+            opportunity_charging_capable=True,
+            battery_capacity=350,
+            charging_curve=[[0.0, 150], [1.0, 150]],
+            energy_source=EnumEnergySource.BATTERY_ELECTRIC,
+        )
+
+        impact.ensure_fleet_topology(scenario)
+        created = BatteryType.objects.filter(scenario=scenario).get()
+        impact.ensure_fleet_topology(scenario)
+
+        self.assertEqual(BatteryType.objects.filter(scenario=scenario).get().id, created.id)
 
 
 class LcaDefaultsTest(SimpleTestCase):

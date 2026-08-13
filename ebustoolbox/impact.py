@@ -349,12 +349,43 @@ def _ensure_scenario_parameters(scenario: Scenario) -> None:
         scenario.save(update_fields=["tco_parameters"])
 
 
+def _adopt_battery_type(battery_type: BatteryType, scenario: Scenario) -> BatteryType:
+    """Copy a BatteryType belonging to another scenario into this one.
+
+    A vehicle type taken from the public fleet keeps that fleet's ``battery_type_id``,
+    so the row it points at is shared with every other scenario that picked the same
+    model. Two things go wrong with that, and both are fixed by owning a copy:
+
+    - Everything on this page writes to the row it is shown: prices, and now the
+      specific mass. On a shared row one scenario's edit would silently become
+      everyone's.
+    - :func:`apply_tco_mutation` remaps ``battery_type_id`` through the rows it copies
+      out of the mutation, and a row belonging to a third scenario is not among them.
+      ``battery_type_map.get()`` then returns ``None`` and the simulated vehicle type
+      is left with no battery at all -- no battery cost, no battery emissions, and no
+      error. Three simulated scenarios in this database are in exactly that state.
+
+    Values are copied as they stand rather than re-seeded, so adopting a row changes
+    nothing by itself; the steps after this one decide what it should hold.
+    """
+    clone = BatteryType.objects.get(id=battery_type.id)
+    clone.id = None
+    clone.scenario = scenario
+    clone.save()
+    logger.info(
+        f"S.ID:{scenario.id}:Adopted BatteryType {battery_type.id} from "
+        f"S.ID:{battery_type.scenario_id} as {clone.id}"
+    )
+    return clone
+
+
 def _ensure_battery_types(scenario: Scenario) -> None:
     """Create and assign a BatteryType for every BEB vehicle type that lacks one.
 
     One row per vehicle type rather than one shared row: eflips-impact prices a
     battery as ``procurement_cost * VehicleType.battery_capacity``, so the parameters
-    are only meaningful per vehicle type.
+    are only meaningful per vehicle type. A row that already exists but belongs to
+    another scenario is copied in for the same reason; see :func:`_adopt_battery_type`.
     """
     seed_parameters = not tco_parameters_edited(scenario)
 
@@ -382,14 +413,20 @@ def _ensure_battery_types(scenario: Scenario) -> None:
                 f"S.ID:{scenario.id}:Created BatteryType {battery_type.id} "
                 f"for VehicleType {vehicle_type.id} ({vehicle_type.name_short})"
             )
-        elif seed_parameters and vehicle_type.battery_type_id is not None:
-            # An existing row is re-seeded too, otherwise a battery created under an
-            # older tco.json would keep those prices for good.
+        elif vehicle_type.battery_type_id is not None:
             battery_type = vehicle_type.battery_type
-            wanted = _seed_from_json(battery_type_tco_defaults())
-            if wanted != battery_type.tco_parameters:
-                battery_type.tco_parameters = wanted
-                battery_type.save(update_fields=["tco_parameters"])
+            if battery_type.scenario_id != scenario.id:
+                battery_type = _adopt_battery_type(battery_type, scenario)
+                vehicle_type.battery_type = battery_type
+                update_fields.append("battery_type")
+
+            if seed_parameters:
+                # An existing row is re-seeded too, otherwise a battery created under an
+                # older tco.json would keep those prices for good.
+                wanted = _seed_from_json(battery_type_tco_defaults())
+                if wanted != battery_type.tco_parameters:
+                    battery_type.tco_parameters = wanted
+                    battery_type.save(update_fields=["tco_parameters"])
 
         if update_fields:
             vehicle_type.save(update_fields=update_fields)
