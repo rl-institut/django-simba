@@ -81,7 +81,7 @@
   {% for form in form_dict.area_information %}
 
   <div class="mb-2 mt-4">
-      <h1.5 class="block text-sm font-semibold text-slate-800">Fläche für Fahrzeugtyp: {{form.instance.vehicle_type.name}}</h1>
+      <h1.5 class="block text-sm font-semibold text-slate-800">{% translate 'Fläche für Fahrzeugtyp: ' %}{{form.instance.vehicle_type.name}}</h1>
   </div>
     <!-- Use alpine js to toggle values of the block length. First we define a variable which can be used in the scope of the div. disable reflects if the block_length in put should be disabled -->
     <div class="grid grid-cols-1 gap-6" id="pointsContainer_{{ depot.id }}" data-depot-id="{{ depot.id }}" x-data="{timer: null, capacity: '', selected: '',prev_block_length: '1', block_length: '', get disable() {return this.selected !=='LINE'}}"

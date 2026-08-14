@@ -97,8 +97,8 @@
                     </template>
                     <template x-if="!loading && data !=null && data.quantile != undefined">
                       <div class="w-full inline">
-                      Die ausgewählte Temperatur liegt im <span x-text='parseFloat(data.quantile).toFixed(2)'></span> Quantil. Der Mittelwert der Messtation liegt bei <span x-text='parseFloat(data.air_temperature_avg).toFixed(2)'></span>&deg;C
-                      </div>
+                        {% blocktranslate trimmed %}Die ausgewählte Temperatur liegt im <span x-text='parseFloat(data.quantile).toFixed(2)'></span> Quantil. Der Mittelwert der Messtation liegt bei <span x-text='parseFloat(data.air_temperature_avg).toFixed(2)'></span>&deg;C
+                        {% endblocktranslate %}</div>
                     </template>
                     <div class="px-2 relative inline-block">
                       <!-- Info Icon -->
@@ -183,8 +183,8 @@
                     </template>
                     <template x-if="!loading && data !=null && data.quantile != undefined">
                       <div class="w-full inline">
-                      Die ausgewählte Temperatur liegt im <span x-text='parseFloat(data.quantile).toFixed(2)'></span> Quantil. Der Mittelwert der Messtation liegt bei <span x-text='parseFloat(data.air_temperature_avg).toFixed(2)'></span>&deg;C
-                      </div>
+                        {% blocktranslate  trimmed %}Die ausgewählte Temperatur liegt im <span x-text='parseFloat(data.quantile).toFixed(2)'></span> Quantil. Der Mittelwert der Messtation liegt bei <span x-text='parseFloat(data.air_temperature_avg).toFixed(2)'></span>&deg;C
+                        {% endblocktranslate %}</div>
                     </template>
                     <div class="px-2 relative inline-block">
                       <!-- Info Icon -->

@@ -93,11 +93,31 @@
                  class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
               <div class="accordion-cost-content">
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Zeithorizont" tooltip="Berechnungsdauer für die TCO. Gesamtsystemkosten und jährliche Kosten werden innerhalb dieses Zeitraums berechnet" unit="Jahre" input=costs_manual.project_duration|widget_attrs initial=scenario.tco_parameters.project_duration|default:costs_manual.project_duration.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Personalkosten" tooltip="Personalkosten pro Betriebsstunde für ein Fahrzeug. Üblicherweise Arbeitgeberkosten für die Busfahrer:in, evtl. zzgl. Schaffner:in" unit="€/h" input=costs_manual.staff_cost|widget_attrs initial=scenario.tco_parameters.staff_cost|default:costs_manual.staff_cost.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Stromkosten" tooltip="Stromkosten pro kWh inklusive aller Gebühren" unit="€/kWh" input=costs_manual.energy_cost|widget_attrs initial=scenario.tco_parameters.fuel_cost.electricity|default:costs_manual.energy_cost.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten E-Fahrzeug" tooltip="Wartungskosten für ein Elektrofahrzeug, pro Fahrzeugkilometer" unit="€/km" input=costs_manual.maint_cost|widget_attrs initial=scenario.tco_parameters.vehicle_maint_cost.electricity|default:costs_manual.maint_cost.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Wartungskosten Ladeinfrastruktur" tooltip="Durchschnittliche Wartungskosten für eine Ladesäule über ein Jahr" unit="€/a" input=costs_manual.maint_infr_cost|widget_attrs initial=scenario.tco_parameters.infra_maint_cost|default:costs_manual.maint_infr_cost.initial %}
+
+                  {% translate "Zeithorizont" as label %}
+                  {% translate "Berechnungsdauer für die TCO. Gesamtsystemkosten und jährliche Kosten werden innerhalb dieses Zeitraums berechnet" as tooltip %}
+                  {% translate "Jahre" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit input=costs_manual.project_duration|widget_attrs initial=scenario.tco_parameters.project_duration|default:costs_manual.project_duration.initial %}
+
+                  {% translate "Zeithorizont" as label %}
+                  {% translate "Personalkosten pro Betriebsstunde für ein Fahrzeug. Üblicherweise Arbeitgeberkosten für die Busfahrer:in, evtl. zzgl. Schaffner:in" as tooltip %}
+                  {% translate "€/h" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit input=costs_manual.staff_cost|widget_attrs initial=scenario.tco_parameters.staff_cost|default:costs_manual.staff_cost.initial %}
+
+                  {% translate "Stromkosten" as label %}
+                  {% translate "Stromkosten pro kWh inklusive aller Gebühren" as tooltip %}
+                  {% translate "€/kwh" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit input=costs_manual.energy_cost|widget_attrs initial=scenario.tco_parameters.fuel_cost.electricity|default:costs_manual.energy_cost.initial %}
+
+                  {% translate "Wartungskosten E-Fahrzeug" as label %}
+                  {% translate "Wartungskosten für ein Elektrofahrzeug, pro Fahrzeugkilometer" as tooltip %}
+                  {% translate "€/km" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit input=costs_manual.maint_cost|widget_attrs initial=scenario.tco_parameters.vehicle_maint_cost.electricity|default:costs_manual.maint_cost.initial %}
+
+                  {% translate "Wartungskosten Ladeinfrastruktur" as label %}
+                  {% translate "Durchschnittliche Wartungskosten für eine Ladesäule über ein Jahr" as tooltip %}
+                  {% translate "€/a" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit input=costs_manual.maint_infr_cost|widget_attrs initial=scenario.tco_parameters.infra_maint_cost|default:costs_manual.maint_infr_cost.initial %}
                 </div>
               </div>
             </div>
@@ -128,10 +148,22 @@
                  class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
               <div class="accordion-cost-content">
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Lebensdauer Depot-Ladepunkt" tooltip="Durchschnittliche Lebensdauer für einen Depot-Ladepunkt" unit="Jahre" input=costs_manual.useful_life_chargepoint_depot|widget_attrs initial=scenario.tco_parameters.useful_life_chargepoint_depot|default:costs_manual.useful_life_chargepoint_depot.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Depot-Ladepunkt" tooltip="Durchschnittlicher Kaufpreis für einen Depot-Ladepunkt, inklusive anteiliger Leistungselektronik und anteiligem Netzanschluss. Bitte gib einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst." unit="€" input=costs_manual.procurement_cost_chargepoint_depot|widget_attrs initial=scenario.tco_parameters.procurement_cost_chargepoint_depot|default:costs_manual.procurement_cost_chargepoint_depot.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Lebensdauer Opportunity-Ladepunkt" tooltip="Durchschnittliche Lebensdauer für einen Opportunity-Ladepunkt." unit="Jahre" input=costs_manual.useful_life_chargepoint_opp|widget_attrs initial=scenario.tco_parameters.useful_life_chargepoint_opp|default:costs_manual.useful_life_chargepoint_opp.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Opportunity-Ladepunkt" tooltip="Durchschnittlicher Kaufpreis für einen Opportunity-Ladepunkt, inklusive anteiliger Leistungselektronik und anteiligem Netzanschluss. Bitte gib einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst." unit="€" input=costs_manual.procurement_cost_chargepoint_opp|widget_attrs initial=scenario.tco_parameters.procurement_cost_chargepoint_opp|default:costs_manual.procurement_cost_chargepoint_opp.initial %}
+                  {% translate "Lebensdauer Depot-Ladepunkt" as label %}
+                  {% translate "Durchschnittliche Lebensdauer für einen Depot-Ladepunkt" as tooltip %}
+                  {% translate "Jahre" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit input=costs_manual.useful_life_chargepoint_depot|widget_attrs initial=scenario.tco_parameters.useful_life_chargepoint_depot|default:costs_manual.useful_life_chargepoint_depot.initial %}
+                  {% translate "Kaufpreis Depot-Ladepunkt" as label %}
+                  {% translate "Durchschnittlicher Kaufpreis für einen Depot-Ladepunkt, inklusive anteiliger Leistungselektronik und anteiligem Netzanschluss. Bitte gib einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst." as tooltip %}
+                  {% translate "€" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit input=costs_manual.procurement_cost_chargepoint_depot|widget_attrs initial=scenario.tco_parameters.procurement_cost_chargepoint_depot|default:costs_manual.procurement_cost_chargepoint_depot.initial %}
+                  {% translate "Lebensdauer Opportunity-Ladepunkt" as label %}
+                  {% translate "Durchschnittliche Lebensdauer für einen Opportunity-Ladepunkt." as tooltip %}
+                  {% translate "Jahre" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit input=costs_manual.useful_life_chargepoint_opp|widget_attrs initial=scenario.tco_parameters.useful_life_chargepoint_opp|default:costs_manual.useful_life_chargepoint_opp.initial %}
+                  {% translate "Kaufpreis Opportunity-Ladepunkt" as label %}
+                  {% translate "Durchschnittlicher Kaufpreis für einen Opportunity-Ladepunkt, inklusive anteiliger Leistungselektronik und anteiligem Netzanschluss. Bitte gib einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst." as tooltip %}
+                  {% translate "€" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit input=costs_manual.procurement_cost_chargepoint_opp|widget_attrs initial=scenario.tco_parameters.procurement_cost_chargepoint_opp|default:costs_manual.procurement_cost_chargepoint_opp.initial %}
                 </div>
               </div>
             </div>
@@ -196,11 +228,26 @@
                    class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
                 <div class="accordion-cost-content">
                   <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                    {% include "ebustoolbox/partials/cost_input.html" with label="Fahrzeuglebensdauer" tooltip="Durchschnittliche Lebensdauer für ein Fahrzeug dieses Fahrzeugtyps" unit="Jahre" name=vehicle_type.name input=costs_manual.useful_life_bus|widget_attrs initial=vehicle_type.tco_parameters.useful_life|default:costs_manual.useful_life_bus.initial %}
-                    {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis" tooltip="Durchschnittlicher Kaufpreis für ein Fahrzeug dieses Typs. Bitte gib einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst" unit="€" name=vehicle_type.name input=costs_manual.procurement_cost_bus|widget_attrs initial=vehicle_type.tco_parameters.procurement_cost|default:costs_manual.procurement_cost_bus.initial %}
-                    {% include "ebustoolbox/partials/cost_input.html" with label="Batterielebensdauer" tooltip="Durchschnittliche Lebensdauer für eine Batterie dieses Typs" unit="Jahre" name=vehicle_type.name input=costs_manual.useful_life_battery|widget_attrs initial=vehicle_type.battery_type.tco_parameters.useful_life|default:costs_manual.procurement_cost_battery.initial %}
-                    {% include "ebustoolbox/partials/cost_input.html" with label="Kaufpreis Batterie" tooltip="Durchschnittlicher Kaufpreis für eine Batterie dieses Typs, angegeben pro kWh. Wenn unbekannt, Fahrzeugkaufpreis inkl. Batterie angeben und hier 0 (dann kann ein Batterietausch aber nicht abgebildet werden)" unit="€/kWh"  name=vehicle_type.name input=costs_manual.procurement_cost_battery|widget_attrs initial=vehicle_type.battery_type.tco_parameters.procurement_cost|default:costs_manual.procurement_cost_battery.initial %}
-                    {% include "ebustoolbox/partials/cost_input.html" with hidden=True label="Kaufpreis (Dieselbus)" tooltip="Durchschnittlicher Kaufpreis für einen äquivalenten Dieselbus" unit="€" name=vehicle_type.name input=costs_manual.procurement_cost_diesel|widget_attrs initial=vehicle_type.tco_parameters.procurement_cost_diesel|default:costs_manual.procurement_cost_diesel.initial %}
+                  {% translate "Fahrzeuglebensdauer" as label %}
+                  {% translate "Durchschnittliche Lebensdauer für ein Fahrzeug dieses Fahrzeugtyps" as tooltip %}
+                  {% translate "Jahre" as unit %}
+                    {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit name=vehicle_type.name input=costs_manual.useful_life_bus|widget_attrs initial=vehicle_type.tco_parameters.useful_life|default:costs_manual.useful_life_bus.initial %}
+                  {% translate "Kaufpreis" as label %}
+                  {% translate "Durchschnittlicher Kaufpreis für ein Fahrzeug dieses Typs. Bitte gib einen Wert zu Beginn des Zeithorizonts an, für Ersatzkäufe wird der Preis automatisch entprechend der Preiseskalation angepasst" as tooltip %}
+                  {% translate "€" as unit %}
+                    {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit name=vehicle_type.name input=costs_manual.procurement_cost_bus|widget_attrs initial=vehicle_type.tco_parameters.procurement_cost|default:costs_manual.procurement_cost_bus.initial %}
+                  {% translate "Batterielebensdauer" as label %}
+                  {% translate "Durchschnittliche Lebensdauer für eine Batterie dieses Typs" as tooltip %}
+                  {% translate "Jahre" as unit %}
+                    {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit name=vehicle_type.name input=costs_manual.useful_life_battery|widget_attrs initial=vehicle_type.battery_type.tco_parameters.useful_life|default:costs_manual.procurement_cost_battery.initial %}
+                  {% translate "Kaufpreis Batterie" as label %}
+                  {% translate "Durchschnittlicher Kaufpreis für eine Batterie dieses Typs, angegeben pro kWh. Wenn unbekannt, Fahrzeugkaufpreis inkl. Batterie angeben und hier 0 (dann kann ein Batterietausch aber nicht abgebildet werden)" as tooltip %}
+                  {% translate "€/kWh" as unit %}
+                    {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit  name=vehicle_type.name input=costs_manual.procurement_cost_battery|widget_attrs initial=vehicle_type.battery_type.tco_parameters.procurement_cost|default:costs_manual.procurement_cost_battery.initial %}
+                  {% translate "Kaufpreis (Dieselbus)" as label %}
+                  {% translate "Durchschnittlicher Kaufpreis für einen äquivalenten Dieselbus" as tooltip %}
+                  {% translate "€" as unit %}
+                    {% include "ebustoolbox/partials/cost_input.html" with hidden=True label=label tooltip=tooltip unit=unit name=vehicle_type.name input=costs_manual.procurement_cost_diesel|widget_attrs initial=vehicle_type.tco_parameters.procurement_cost_diesel|default:costs_manual.procurement_cost_diesel.initial %}
                   </div>
                 </div>
               </div>
@@ -232,23 +279,59 @@
                  class="max-h-0 overflow-hidden transition-transform duration-300 ease-in-out">
               <div class="accordion-cost-content">
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Zinssatz" unit="%" tooltip="Zinssatz für Investitionen und Kredite" input=costs_manual.interest_rate|widget_attrs initial=scenario.tco_parameters.interest_rate|default:costs_manual.interest_rate.initial|multiply:100 %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Inflation" unit="%" tooltip="Inflationsrate, Teuerung aller Güter bei gleichbleibendem Wert" input=costs_manual.inflation_rate|widget_attrs initial=scenario.tco_parameters.inflation_rate|default:costs_manual.inflation_rate.initial|multiply:100 %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Kfz-Steuer" tooltip="Durchschnittliche Kraftfahrzeugsteuer pro Jahr" unit="€" input=costs_manual.taxes|widget_attrs initial=scenario.tco_parameters.taxes|default:costs_manual.taxes.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Versicherung für Fahrzeug" tooltip="Durchschnittliche jährliche Versicherungskosten, pro Fahrzeug" unit="€/a" input=costs_manual.insurance|widget_attrs initial=scenario.tco_parameters.insurance|default:costs_manual.insurance.initial %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – allgemein" tooltip="Generelle Preissteigerung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_general|widget_attrs initial=scenario.tco_parameters.cost_escalation_rate.general|default:costs_manual.pef_general.initial|multiply:100 %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Arbeitslohn" tooltip="Preissteigerung für Arbeitslohn pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_wages|widget_attrs initial=scenario.tco_parameters.cost_escalation_rate.staff|default:costs_manual.pef_wages.initial|multiply:100 %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Strom" tooltip="Preissteigerung für Stromkosten pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_energy|widget_attrs initial=scenario.tco_parameters.cost_escalation_rate.electricity|default:costs_manual.pef_energy.initial|multiply:100 %}
-                  {% include "ebustoolbox/partials/cost_input.html" with hidden=True label="Preiseskalation – Diesel" tooltip="Preissteigerung für Dieselkosten pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant." unit="%" input=costs_manual.pef_fuel|widget_attrs initial=scenario.tco_parameters.cost_escalation_rate.diesel|default:costs_manual.pef_fuel.initial|multiply:100 %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation – Versicherung" tooltip="Preissteigerung für Versicherung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" unit="%" input=costs_manual.pef_insurance|widget_attrs initial=scenario.tco_parameters.cost_escalation_rate.insurance|default:costs_manual.pef_insurance.initial|multiply:100 %}
-                  {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Ladepunkt" tooltip="Preissteigerung für Ladepunkt dieses Typs pro Jahr. Dient der Anpassung der Preise für Ersatzladepunkte im Betrachtungszeitraum" unit="%" input=costs_manual.cost_escalation_chargepoint|widget_attrs initial=scenario.tco_parameters.cost_escalation_chargepoint|default:costs_manual.cost_escalation_chargepoint.initial|default:costs_manual.cost_escalation_chargepoint.initial|multiply:100 %}
+                  {% translate "Zinssatz" as label %}
+                  {% translate "Zinssatz für Investitionen und Kredite" as tooltip %}
+                  {% translate "%" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label unit=unit tooltip=tooltip input=costs_manual.interest_rate|widget_attrs initial=scenario.tco_parameters.interest_rate|default:costs_manual.interest_rate.initial|multiply:100 %}
+                  {% translate "Inflation" as label %}
+                  {% translate "Inflationsrate, Teuerung aller Güter bei gleichbleibendem Wert" as tooltip %}
+                  {% translate "%" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label unit=unit tooltip=tooltip input=costs_manual.inflation_rate|widget_attrs initial=scenario.tco_parameters.inflation_rate|default:costs_manual.inflation_rate.initial|multiply:100 %}
+                  {% translate "Kfz-Steuer" as label %}
+                  {% translate "Durchschnittliche Kraftfahrzeugsteuer pro Jahr" as tooltip %}
+                  {% translate "€" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit input=costs_manual.taxes|widget_attrs initial=scenario.tco_parameters.taxes|default:costs_manual.taxes.initial %}
+                  {% translate "Versicherung für Fahrzeug" as label %}
+                  {% translate "Durchschnittliche jährliche Versicherungskosten, pro Fahrzeug" as tooltip %}
+                  {% translate "€/a" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit input=costs_manual.insurance|widget_attrs initial=scenario.tco_parameters.insurance|default:costs_manual.insurance.initial %}
+                  {% translate "Preiseskalation – allgemein" as label %}
+                  {% translate "Generelle Preissteigerung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" as tooltip %}
+                  {% translate "%" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit input=costs_manual.pef_general|widget_attrs initial=scenario.tco_parameters.cost_escalation_rate.general|default:costs_manual.pef_general.initial|multiply:100 %}
+                  {% translate "Preiseskalation – Arbeitslohn" as label %}
+                  {% translate "Preissteigerung für Arbeitslohn pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" as tooltip %}
+                  {% translate "%" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit input=costs_manual.pef_wages|widget_attrs initial=scenario.tco_parameters.cost_escalation_rate.staff|default:costs_manual.pef_wages.initial|multiply:100 %}
+                  {% translate "Preiseskalation – Strom" as label %}
+                  {% translate "Preissteigerung für Stromkosten pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" as tooltip %}
+                  {% translate "%" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit input=costs_manual.pef_energy|widget_attrs initial=scenario.tco_parameters.cost_escalation_rate.electricity|default:costs_manual.pef_energy.initial|multiply:100 %}
+                  {% translate "Preiseskalation – Diesel" as label %}
+                  {% translate "Preissteigerung für Dieselkosten pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant." as tooltip %}
+                  {% translate "%" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with hidden=True label=label tooltip=tooltip unit=unit input=costs_manual.pef_fuel|widget_attrs initial=scenario.tco_parameters.cost_escalation_rate.diesel|default:costs_manual.pef_fuel.initial|multiply:100 %}
+                  {% translate "Preiseskalation – Versicherung" as label %}
+                  {% translate "Preissteigerung für Versicherung pro Jahr. Der Wert ist nicht relativ zur Inflation, d. h. bei einer Preiseskalation gleich der Inflation bleibt der Wert konstant" as tooltip %}
+                  {% translate "%" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit input=costs_manual.pef_insurance|widget_attrs initial=scenario.tco_parameters.cost_escalation_rate.insurance|default:costs_manual.pef_insurance.initial|multiply:100 %}
+                  {% translate "Preiseskalation - Ladepunkt" as label %}
+                  {% translate "Preissteigerung für Ladepunkt dieses Typs pro Jahr. Dient der Anpassung der Preise für Ersatzladepunkte im Betrachtungszeitraum" as tooltip %}
+                  {% translate "%" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit input=costs_manual.cost_escalation_chargepoint|widget_attrs initial=scenario.tco_parameters.cost_escalation_chargepoint|default:costs_manual.cost_escalation_chargepoint.initial|default:costs_manual.cost_escalation_chargepoint.initial|multiply:100 %}
                 </div>
                 {% for vehicle_type in vehicle_types %}
                   <fieldset>
                     <legend>{% translate 'Fahrzeugtyp' %} {{ vehicle_type.name }}</legend>
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-                      {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Fahrzeug" tooltip="Preissteigerung für Fahrzeuge pro Jahr. Dient der Anpassung der Preise für Ersatzfahrzeuge im Betrachtungszeitraum" unit="%" name=vehicle_type.name input=costs_manual.cost_escalation_bus|widget_attrs initial=vehicle_type.tco_parameters.cost_escalation|default:costs_manual.cost_escalation_bus.initial|multiply:100 %}
-                      {% include "ebustoolbox/partials/cost_input.html" with label="Preiseskalation - Batterie" tooltip="Preissteigerung für Batterie pro Jahr. Dient der Anpassung der Preise für Ersatzbatterien im Betrachtungszeitraum" unit="%" name=vehicle_type.name input=costs_manual.cost_escalation_battery|widget_attrs initial=vehicle_type.battery_type.tco_parameters.cost_escalation|default:costs_manual.cost_escalation_battery.initial|multiply:100 %}
+                  {% translate "Preiseskalation - Fahrzeug" as label %}
+                  {% translate "Preissteigerung für Fahrzeuge pro Jahr. Dient der Anpassung der Preise für Ersatzfahrzeuge im Betrachtungszeitraum" as tooltip %}
+                  {% translate "%" as unit %}
+                      {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit name=vehicle_type.name input=costs_manual.cost_escalation_bus|widget_attrs initial=vehicle_type.tco_parameters.cost_escalation|default:costs_manual.cost_escalation_bus.initial|multiply:100 %}
+                  {% translate "Preiseskalation - Batterie" as label %}
+                  {% translate "Preissteigerung für Batterie pro Jahr. Dient der Anpassung der Preise für Ersatzbatterien im Betrachtungszeitraum" as tooltip %}
+                  {% translate "%" as unit %}
+                      {% include "ebustoolbox/partials/cost_input.html" with label=label tooltip=tooltip unit=unit name=vehicle_type.name input=costs_manual.cost_escalation_battery|widget_attrs initial=vehicle_type.battery_type.tco_parameters.cost_escalation|default:costs_manual.cost_escalation_battery.initial|multiply:100 %}
                     </div>
                   </fieldset>
                 {% endfor %}
