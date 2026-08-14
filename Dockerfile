@@ -17,6 +17,8 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 ENV PYTHONDONTWRITEBYTECODE=1
 # Explicitly set Matplotlib's cache directory to a writable location
 ENV MPLCONFIGDIR=/tmp
+# Force UTF-8 regardless of system locale
+ENV PYTHONUTF8=1
 
 # Install GDAL as root
 RUN apt-get update &&\

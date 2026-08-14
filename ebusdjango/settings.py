@@ -228,6 +228,7 @@ LOGGING = {
             "filename": BASE_DIR
             / "logs/info.log",  # Adjust the path based on  your project structure
             "formatter": "simple",
+            "encoding": "utf-8",
         },
     },
     "root": {
@@ -283,7 +284,7 @@ MEDIA_ROOT = env.str("DJANGO_MEDIA_ROOT", "media/")
 MAX_FILE_SIZE_B = env.int("DJANGO_MAX_FILE_SIZE_KB", 64000) << 10
 
 # The maximum number of files per uploaded zip file
-MAX_FILE_SIZE_B = env.int("DJANGO_MAX_ZIP_FILES_NR,", 100)
+MAX_ZIP_FILES_NR = env.int("DJANGO_MAX_ZIP_FILES_NR", 100)
 
 
 # while the above line checks all the app folders for static folders the below one can be a list of

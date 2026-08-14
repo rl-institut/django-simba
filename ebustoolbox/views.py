@@ -2,6 +2,7 @@ import datetime
 import dateutil.parser as parser
 import logging
 import traceback
+import zipfile
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
@@ -46,7 +47,7 @@ from .forms import (
     VehicleTypeSelectionForm,
     ManualTcoForm,
 )
-from .tasks import deepcopy_scenario, merge_scenario
+from .tasks import deepcopy_scenario, merge_scenario, migrate_legacy_tco_forward
 from .import_export import ScenarioJSONImporterExporter, visit_all_scenario_queries
 
 from .util import get_unique_task_id, to_zip
@@ -448,10 +449,36 @@ class TripsView(FormView):
                     task_id=progress_id,
                 )
             elif file_suffix == "zip":
-                async_result = tasks.init_db_with_trips.apply_async(
-                    (scenario.id, 3, {"x10_zip_file": files["data_file"]}, {}, progress.id),
-                    task_id=progress_id,
-                )
+                # Distinguish VDV (.x10 inside) from BVG-XML (.xml inside) by sniffing the
+                # uploaded zip's entry names.
+                zip_path = files["data_file"][0]
+                try:
+                    with zipfile.ZipFile(zip_path) as zf:
+                        names = [n.lower() for n in zf.namelist()]
+                except zipfile.BadZipFile:
+                    names = []
+                has_x10 = any(n.endswith(".x10") for n in names)
+                has_xml = any(n.endswith(".xml") for n in names)
+                if has_x10:
+                    async_result = tasks.init_db_with_trips.apply_async(
+                        (scenario.id, 3, {"x10_zip_file": files["data_file"]}, {}, progress.id),
+                        task_id=progress_id,
+                    )
+                elif has_xml:
+                    async_result = tasks.init_db_with_trips.apply_async(
+                        (scenario.id, 4, {"xml_zip_file": files["data_file"]}, {}, progress.id),
+                        task_id=progress_id,
+                    )
+                else:
+                    progress.success = False
+                    progress.running = False
+                    progress.errors.append(
+                        _(
+                            "Das Zip-Archiv enthält weder .x10- (VDV 451/452) noch "
+                            ".xml-Dateien (BVG-XML Linienfahrplan)."
+                        )
+                    )
+                    progress.save()
             else:
                 progress.success = False
                 progress.running = False
@@ -1151,6 +1178,12 @@ class CostsView(ScenarioMixIn, TemplateView):
                         self.scenario.tco_parameters[param] = form_data[param] * scale
                     except KeyError:
                         logger.warning(f"TCO Scenario: Parameter {param} not found")
+                # the scenario parameters are now in the legacy format
+                # transform them using the migration feature
+                new_params = migrate_legacy_tco_forward(self.scenario.tco_parameters)
+                if new_params is not None:
+                    self.scenario.tco_parameters = new_params
+
                 self.scenario.save(update_fields=["tco_parameters"])
 
                 # Station TCO
@@ -1857,6 +1890,9 @@ def usergroups(request):
 
 def get_critical_rotations(request, task_id: str):
     """Returns data about rotations (critical vs. non-critical)"""
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
     s = Scenario.objects.get(task_id=task_id)
     df = data.get_critical_rotations_as_dataframe(s.id, None)
@@ -1872,6 +1908,9 @@ def get_critical_rotations(request, task_id: str):
 
 def get_bustype(request, task_id: str):
     """Returns data about vehicle type distribution"""
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
     s = Scenario.objects.get(task_id=task_id)
     df = data.get_vehicle_types(s.id, None)
@@ -1886,6 +1925,9 @@ def get_soc_data(request, task_id: str):
     """
     Returns SOC (State of Charge) data over time.
     """
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
     s = Scenario.objects.get(task_id=task_id)
 
@@ -1902,6 +1944,9 @@ def get_binned_soc_data(request, task_id: str):
     Returns binned SOC histogram data over time, forward-filled to hourly resolution,
     ensuring one (the lowest) SOC entry per vehicle per hour.
     """
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
     df = data.get_binned_soc(task_id)
     if file_format == "json":
@@ -1915,17 +1960,26 @@ def get_power_draw(request, task_id: str):
     """
     Returns power draw data over time by station ID for selected buses.
     """
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     response_data = data.get_power_draw(request, task_id)
 
     return JsonResponse({"data": response_data})
 
 
 def get_stats(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     response_data = data.get_stats(task_id)
     return JsonResponse(response_data)
 
 
 def get_speed_hist(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
     df = data.get_speed_hist(task_id)
     if file_format == "json":
@@ -1936,6 +1990,9 @@ def get_speed_hist(request, task_id: str):
 
 
 def get_dist_hist(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "").lower()
     response_data = data.get_dist_hist(task_id)
     if not file_format:
@@ -1946,8 +2003,11 @@ def get_dist_hist(request, task_id: str):
 
 
 def get_power_draw_and_occ(request, task_id: str, depot_id: int | None = None):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "").lower()
-    response_data = data.get_power_draw_and_occ(task_id)
+    response_data = data.get_power_draw_and_occ(task_id, depot_id)
     if not file_format:
         response_data["data"] = response_data["data"].to_dict(orient="records")
         return JsonResponse(response_data, safe=True)
@@ -1960,6 +2020,9 @@ def get_power_draw_and_occ(request, task_id: str, depot_id: int | None = None):
 
 
 def get_gantt(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
     scenario = Scenario.objects.get(task_id=task_id)
     df = data.recent_memoizer(data.get_gantt, scenario.id)(scenario.id)
@@ -1971,6 +2034,9 @@ def get_gantt(request, task_id: str):
 
 
 def get_tco(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
     tco = data.get_tco(task_id)  # tco_result JSON field from Scenario
     if file_format == "json":
@@ -1981,6 +2047,9 @@ def get_tco(request, task_id: str):
 
 
 def get_piecharts(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
 
     # Get the two DataFrames
@@ -2283,11 +2352,17 @@ def delete_scenario(request, task_id):
 
 
 def get_cumulative_energy(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     response_data = data.get_cumulative_energy(task_id)
     return JsonResponse(response_data)
 
 
 def get_rotation_table_data(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
     file_format = request.GET.get("format", "json").lower()
     df = data.get_rotation_table_data(task_id)
     if file_format == "json":

@@ -187,18 +187,18 @@ class Scenario(models.Model):
             "interest_rate": 0.04,
             "inflation_rate": 0.02,
             "staff_cost": 30.0,
-            "energy_cost": 0.18,
-            "fuel_cost": 1.5,
-            "maint_cost": 0.07,
-            "maint_cost_diesel": 0.14,
-            "maint_infr_cost": 1000.0,
+            "fuel_cost": {"electricity": 0.18, "diesel": 1.5},
+            "vehicle_maint_cost": {"electricity": 0.07, "diesel": 0.14},
+            "infra_maint_cost": 1000.0,
             "taxes": 0.0,
             "insurance": 0.0,
-            "pef_general": 0.02,
-            "pef_wages": 0.02,
-            "pef_energy": 0.02,
-            "pef_fuel": 0.02,
-            "pef_insurance": 0.02,
+            "cost_escalation_rate": {
+                "general": 0.02,
+                "staff": 0.02,
+                "electricity": 0.02,
+                "diesel": 0.02,
+                "insurance": 0.02,
+            },
         },
         blank=True,
     )
@@ -423,9 +423,9 @@ class VehicleType(models.Model):
     max_consumption = models.FloatField(default=None, null=True, blank=True)
 
     # Shape of the vehicle in the form of length, width, height.
-    length = models.FloatField(default=None, null=False)
-    width = models.FloatField(default=None, null=False)
-    height = models.FloatField(default=None, null=False)
+    length = models.FloatField(default=None, null=True, blank=True)
+    width = models.FloatField(default=None, null=True, blank=True)
+    height = models.FloatField(default=None, null=True, blank=True)
 
     # Including battery and driver, no passengers
     empty_mass = models.FloatField(default=None, null=True)
@@ -877,16 +877,16 @@ def get_shortest_distance_rotation(filter_dict: dict) -> Rotation:
 
 
 class EnumVoltageLevel(models.TextChoices):
-    VOLTAGE_HV = "HV"
-    VOLTAGE_HV_MV = "HV_MV"
-    VOLTAGE_MV = "MV"
-    VOLTAGE_MV_LV = "MV_LV"
-    VOLTAGE_LV = "LV"
+    VOLTAGE_HV = "HV", _("Hochspannung")
+    VOLTAGE_HV_MV = "HV_MV", _("Hoch-/Mittelspannung")
+    VOLTAGE_MV = "MV", _("Mittelspannung")
+    VOLTAGE_MV_LV = "MV_LV", _("Mittel-/Niederspannung")
+    VOLTAGE_LV = "LV", _("Niederspannung")
 
 
 class EnumChargeType(models.TextChoices):
-    DEPOT = "depb"
-    OPPORTUNITY = "oppb"
+    DEPOT = "depb", _("Depotladung")
+    OPPORTUNITY = "oppb", _("Gelegenheitsladung")
 
 
 def charge_type_from_simba_to_db(charge_type: str) -> str:
@@ -1134,7 +1134,11 @@ class CountBusServices(Func):
         # We override the as_sql method to generate our custom SQL
         # Get the SQL representation of the first source expression, which is F('id')
         expression_sql, expression_params = self.source_expressions[0].as_sql(compiler, connection)
-        sql = f'(SELECT COUNT(*) FROM public."Route" WHERE arrival_station_id = {expression_sql})'
+        sql = (
+            '(SELECT COUNT(*) FROM public."Trip" '
+            'INNER JOIN public."Route" ON "Trip"."route_id" = "Route"."id" '
+            f'WHERE "Route"."arrival_station_id" = {expression_sql})'
+        )
 
         return sql, expression_params
 
@@ -1285,6 +1289,8 @@ class Station(models.Model):
         obj = cls.objects.annotate(**cls.annotations).get(id=id)
         data = vars(obj)
         data["title"] = obj.name_short or obj.name
+        data["charge_type"] = obj.get_charge_type_display()
+        data["voltage_level"] = obj.get_voltage_level_display()
         plot = get_charge_chart(obj)
         if plot:
             data["plot"] = plot
@@ -2064,6 +2070,7 @@ class EnumNotificationLevels(models.TextChoices):
 class EnumNotificationType(models.TextChoices):
     """Definitions for notification types which define where the message is shown"""
 
+    DELETED_INCONSISTENT_ROTATION = "deleted_inconsistent_rotation"
     MULTIPLE_DEPOT_TRIPS_IN_BLOCK_WARNING = "multi_dep_trips_in_block"
     MERGED_STATIONS_FOR_INCONSISTENT_TRIPS = "merged_station_trips_and_routes"
     INTERMEDIATE_DEPOT_STOPS_TRANSFORMED = "transformed_depot_stop_to_opp_station"

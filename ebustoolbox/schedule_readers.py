@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone as tz
 from enum import Enum
 import logging
 import inspect
+import traceback
 from pathlib import Path
 from random import random
 
@@ -22,6 +23,7 @@ from django.contrib.gis.db import models
 
 import eflips
 from eflips.ingest import DummyIngester, AbstractIngester
+from eflips.ingest.bvgxml import BvgxmlIngester
 from eflips.ingest.dummy import BusType
 from eflips.ingest.vdv import VdvIngester
 from sqlalchemy import create_engine
@@ -55,6 +57,8 @@ def get_options_form(reader_num: int):
             return EflipsIngestScheduleReaderDummy.get_options_form(DummyIngester)
         case 3:
             return EflipsIngestScheduleReaderVDV.get_options_form(VdvIngester)
+        case 4:
+            return EflipsIngestScheduleReaderBVGXML.get_options_form(BvgxmlIngester)
     raise NotImplementedError
 
 
@@ -126,6 +130,8 @@ def get_schedule_reader_factory(reader_num: int) -> type(ScheduleReader):
             return EflipsIngestScheduleReaderDummy
         case 3:
             return EflipsIngestScheduleReaderVDV
+        case 4:
+            return EflipsIngestScheduleReaderBVGXML
 
     raise NotImplementedError(f"Schedule Reader with {reader_num} not found")
 
@@ -596,7 +602,12 @@ class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
 
         """
 
-        validation_result, uuid_or_errors = self._ingester.prepare(**self._kwargs)
+        try:
+            validation_result, uuid_or_errors = self._ingester.prepare(**self._kwargs)
+        except Exception:
+            self._errors = [traceback.format_exc()]
+            return False
+
         if not validation_result:
             assert isinstance(uuid_or_errors, dict)
             self._errors = [f"{key}: {value}" for key, value in uuid_or_errors.items()]
@@ -606,6 +617,8 @@ class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
 
         engine = create_engine(self._database_url)
         with Session(engine) as session:
+            django_assigned_task_id = None
+            scenario = None
             try:
                 scenario = (
                     session.query(eflips.model.Scenario)
@@ -621,14 +634,15 @@ class EflipsIngestScheduleReaderBase(ScheduleReader, ABC):
                 self._ingester.ingest(uuid_or_errors, self._progress_callback)
 
                 scenario.task_id = django_assigned_task_id
-            except Exception as e:
-                self._errors = [str(e)]
+            except Exception:
+                self._errors = [traceback.format_exc()]
                 session.rollback()
                 return False
             finally:
                 # In any case, we need to set the task_id back to what it was before
-                scenario.task_id = django_assigned_task_id
-                session.commit()
+                if scenario is not None:
+                    scenario.task_id = django_assigned_task_id
+                    session.commit()
 
         return True
 
@@ -774,6 +788,27 @@ class EflipsIngestScheduleReaderVDV(EflipsIngestScheduleReaderBase):
 
         self._kwargs = {
             "x10_zip_file": x10_zip_file,
+            "progress_callback": None,
+        }
+
+
+class EflipsIngestScheduleReaderBVGXML(EflipsIngestScheduleReaderBase):
+    """
+    Shim for the eflips-ingest BvgxmlIngester. Consumes a zip archive containing one or more
+    BVG-XML Linienfahrplan files.
+    """
+
+    def __init__(
+        self,
+        xml_zip_file: str,
+    ):
+        super().__init__()
+        self._ingester = BvgxmlIngester(self._database_url)
+
+        xml_zip_file = Path(xml_zip_file)
+
+        self._kwargs = {
+            "xml_zip_file": xml_zip_file,
             "progress_callback": None,
         }
 
