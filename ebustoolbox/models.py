@@ -192,6 +192,9 @@ class Scenario(models.Model):
             "infra_maint_cost": 1000.0,
             "taxes": 0.0,
             "insurance": 0.0,
+            # Technical availability. eflips.impact.tco.TCOCalculator reads this
+            # unconditionally and sizes the fleet as ceil(n_ready / eta_avail).
+            "eta_avail": 0.9,
             "cost_escalation_rate": {
                 "general": 0.02,
                 "staff": 0.02,
@@ -203,6 +206,10 @@ class Scenario(models.Model):
         blank=True,
     )
     tco_result = models.JSONField(default=None, null=True, blank=True)
+    # Nested, unlike tco_result's flat {category: value}: see
+    # ebustoolbox.impact.lca_result_to_dict. A django-simba column with no counterpart
+    # in eflips-model, which is why it has no server_default to answer to.
+    lca_result = models.JSONField(default=None, null=True, blank=True)
 
     manager = models.ForeignKey(
         User, on_delete=models.SET_NULL, default=None, null=True, blank=True, related_name="+"
@@ -297,8 +304,10 @@ class BatteryType(models.Model):
         scenario (Scenario): The scenario to which the battery type is associated. Foreign key to the Scenario model.
         specific_mass (float): The specific mass of the battery relative to gross capacity.
                               Cannot be null, but can be blank.
-        chemistry (dict): The chemistry of the battery, defined in eFLIPS-LCA.
-                          Defaults to an empty dictionary.
+        chemistry (str): The cell chemistry, e.g. "LFP" or "NMC622". eflips-impact
+                         selects the production and end-of-life emission factors from
+                         it, matching "NMC" case-insensitively on the prefix and
+                         treating everything else as LFP.
 
     Meta:
         db_table (str): The name of the database table for this model (set to "BatteryType").
@@ -307,7 +316,7 @@ class BatteryType(models.Model):
         To create a new BatteryType instance and associate it with a scenario:
         >>> scenario_instance = Scenario.objects.get(id=1)
         >>> battery_type_instance = BatteryType(scenario=scenario_instance,
-        ... specific_mass=2.5, chemistry={"type": "Li-ion"})
+        ... specific_mass=2.5, chemistry="LFP")
         >>> battery_type_instance.save()
     """
 
@@ -318,13 +327,18 @@ class BatteryType(models.Model):
 
     # relative to gross capacity
     specific_mass = models.FloatField(null=False, blank=True)
-    # defined in eFLIPS-LCA
-    chemistry = models.JSONField(null=False, default=dict)
+    # A plain string since eflips-model 11.2.0; it was JSONB before.
+    chemistry = models.TextField(null=False, blank=True, default="")
     tco_parameters = models.JSONField(
         null=True,
         blank=True,
         db_default={"useful_life": 7, "procurement_cost": 0, "cost_escalation": 0.01},
     )
+    # Written by ebustoolbox.impact from defaults/impact/lca.json. No db_default, unlike
+    # tco_parameters: eflips-model declares a server_default for this column, so a row
+    # inserted through its mapping is populated either way, and a second set of numbers
+    # in the migration files would be one more thing to keep in step with the JSON.
+    lca_parameters = models.JSONField(null=True, blank=True)
 
 
 class AssocVehicleTypeVehicleClass(models.Model):
@@ -441,6 +455,8 @@ class VehicleType(models.Model):
             "cost_escalation": 0.02,
         },
     )
+    # See BatteryType.lca_parameters.
+    lca_parameters = models.JSONField(null=True, blank=True)
     vehicle_classes = models.ManyToManyField("VehicleClass", through="AssocVehicleTypeVehicleClass")
     """Vehicle classes this vehicle type belongs to."""
     energy_source = models.CharField(
@@ -537,6 +553,8 @@ class ChargingPointType(models.Model):
         null=True,
         db_default={"useful_life": 20, "procurement_cost": 0, "cost_escalation": 0.02},
     )
+    # See BatteryType.lca_parameters.
+    lca_parameters = models.JSONField(null=True, blank=True)
 
 
 class VehicleClass(models.Model):

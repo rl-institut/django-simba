@@ -1,4 +1,5 @@
 import time
+import warnings
 from copy import copy
 from datetime import datetime, timedelta
 from typing import Iterable
@@ -28,6 +29,7 @@ from .import_export import visit_all_scenario_queries, ScenarioJSONImporterExpor
 from . import tasks
 from .forms import UploadFileForm
 from .models import (
+    BatteryType,
     DepotConfigurationWish,
     Notification,
     Route,
@@ -45,7 +47,12 @@ from .models import (
     VehicleClass,
     EnumVoltageLevel,
     EnumChargeType,
+    EnumEnergySource,
+    EnumScenarioType,
+    EnumSimulationType,
+    SimulationType,
 )
+from . import impact
 from .tasks import run_simba_scenario
 from .util import get_unique_task_id, validate_zip, ZipFileException
 
@@ -1447,3 +1454,385 @@ class ZipValidationTest(SimpleTestCase):
                 validate_zip(z, allowed_file_nr, allowed_size - 1, allowed_nesting)
             with self.assertRaises(ZipFileException):
                 validate_zip(z, allowed_file_nr, allowed_size, allowed_nesting - 1)
+
+
+class ScenarioToCostTest(TestCase):
+    """Which scenario a finished simulation pass costs, and with whose energy.
+
+    The pairing is the whole point: hardware quantities come from the sizing run and
+    the use phase from the default one, because neither scenario alone describes what
+    the operator buys and then spends. Getting it wrong is not visible in the result --
+    it just produces a plausible number that is off by roughly the difference between
+    the two runs.
+    """
+
+    def setUp(self):
+        self.source = Scenario.objects.create(
+            name="source", task_id=get_unique_task_id(), scenario_type=EnumScenarioType.SOURCE
+        )
+        self.sizing = Scenario.objects.create(
+            name="sizing",
+            task_id=get_unique_task_id(),
+            parent=self.source,
+            scenario_type=EnumScenarioType.SIMULATION,
+        )
+        self.default = Scenario.objects.create(
+            name="default",
+            task_id=get_unique_task_id(),
+            parent=self.source,
+            scenario_type=EnumScenarioType.SIMULATION,
+        )
+        SimulationType.objects.create(scenario=self.sizing, sim_type=EnumSimulationType.SIZING)
+        SimulationType.objects.create(scenario=self.default, sim_type=EnumSimulationType.DEFAULT)
+
+    def test_sizing_pass_costs_nothing(self):
+        # It runs first, before the default scenario has been deepcopied from it, so
+        # its energy is not available yet. Skipping is also what keeps a second,
+        # extreme-weather result from sitting unread next to the one the page shows.
+        costed, consumption = tasks._scenario_to_cost(self.sizing)
+        self.assertIsNone(costed)
+        self.assertIsNone(consumption)
+
+    def test_default_pass_costs_the_sizing_sibling(self):
+        costed, consumption = tasks._scenario_to_cost(self.default)
+        self.assertEqual(costed, self.sizing)
+        # Measured on the default scenario even though the sizing one is costed.
+        self.assertIsNotNone(consumption)
+
+    def test_scenario_without_a_sibling_costs_itself(self):
+        # run_toolchain_from_scenario simulates one scenario on its own; there is no
+        # sizing run to borrow a fleet from, so it is costed entirely on itself.
+        lone = Scenario.objects.create(
+            name="lone",
+            task_id=get_unique_task_id(),
+            parent=self.source,
+            scenario_type=EnumScenarioType.SIMULATION,
+        )
+        costed, consumption = tasks._scenario_to_cost(lone)
+        self.assertEqual(costed, lone)
+        # None means "measure on the scenario being costed", which is this one.
+        self.assertIsNone(consumption)
+
+    def test_vehicle_types_are_matched_across_scenarios_by_name(self):
+        # The two scenarios are deepcopies, so the same vehicle type has a different
+        # id in each; only the name carries across.
+        sizing_vt = VehicleType.objects.create(
+            scenario=self.sizing,
+            name="Gelenkbus",
+            name_short="AB",
+            consumption=1.5,
+            opportunity_charging_capable=True,
+            battery_capacity=350,
+            charging_curve=[[0.0, 150], [1.0, 150]],
+        )
+        default_vt = VehicleType.objects.create(
+            scenario=self.default,
+            name="Gelenkbus",
+            name_short="AB",
+            consumption=1.2,
+            opportunity_charging_capable=True,
+            battery_capacity=350,
+            charging_curve=[[0.0, 150], [1.0, 150]],
+        )
+        self.assertNotEqual(sizing_vt.id, default_vt.id)
+
+        consumption = impact.measured_consumption(self.default)
+        self.assertEqual(consumption, {"AB": 1.2})
+        # And it reaches the sizing scenario's row, which is what gets costed.
+        impact._write_energy_consumption(self.sizing, consumption)
+        sizing_vt.refresh_from_db()
+        self.assertEqual(sizing_vt.tco_parameters["average_electricity_consumption"], 1.2)
+
+
+class FleetTopologyTest(TestCase):
+    """What ``ensure_fleet_topology`` does with rows it did not create itself."""
+
+    def test_a_foreign_battery_type_is_adopted(self):
+        """A row belonging to another scenario is copied in, not written to.
+
+        A vehicle type taken from the public fleet keeps that fleet's
+        ``battery_type_id``. Left alone, two things go wrong: an edit on this
+        scenario's costs page reaches every other scenario using the same model, and
+        ``apply_tco_mutation`` cannot map the row when the scenario is simulated, so
+        the vehicle type arrives there with no battery at all.
+        """
+        public = Scenario.objects.create(
+            name="public fleet", task_id=get_unique_task_id(), scenario_type=EnumScenarioType.SOURCE
+        )
+        shared = BatteryType.objects.create(scenario=public, specific_mass=2.5, chemistry="lfp")
+
+        mine = Scenario.objects.create(
+            name="mine", task_id=get_unique_task_id(), scenario_type=EnumScenarioType.MUTATION
+        )
+        vehicle_type = VehicleType.objects.create(
+            scenario=mine,
+            name="Gelenkbus",
+            name_short="AB",
+            battery_type=shared,
+            opportunity_charging_capable=True,
+            battery_capacity=350,
+            charging_curve=[[0.0, 150], [1.0, 150]],
+            energy_source=EnumEnergySource.BATTERY_ELECTRIC,
+        )
+
+        impact.ensure_fleet_topology(mine)
+
+        vehicle_type.refresh_from_db()
+        self.assertNotEqual(vehicle_type.battery_type_id, shared.id)
+        self.assertEqual(vehicle_type.battery_type.scenario_id, mine.id)
+        # The other scenario's row is left exactly as it was.
+        shared.refresh_from_db()
+        self.assertEqual(shared.scenario_id, public.id)
+        self.assertEqual(shared.specific_mass, 2.5)
+
+    def test_an_owned_battery_type_is_left_alone(self):
+        """Adoption must not run twice and leave a trail of copies behind."""
+        scenario = Scenario.objects.create(
+            name="mine", task_id=get_unique_task_id(), scenario_type=EnumScenarioType.MUTATION
+        )
+        VehicleType.objects.create(
+            scenario=scenario,
+            name="Gelenkbus",
+            name_short="AB",
+            opportunity_charging_capable=True,
+            battery_capacity=350,
+            charging_curve=[[0.0, 150], [1.0, 150]],
+            energy_source=EnumEnergySource.BATTERY_ELECTRIC,
+        )
+
+        impact.ensure_fleet_topology(scenario)
+        created = BatteryType.objects.filter(scenario=scenario).get()
+        impact.ensure_fleet_topology(scenario)
+
+        self.assertEqual(BatteryType.objects.filter(scenario=scenario).get().id, created.id)
+
+
+class LcaDefaultsTest(SimpleTestCase):
+    """Guard the two LCA JSON files against drifting out of eflips-impact's schema.
+
+    Neither file is validated anywhere at import time: eflips-impact indexes into them
+    by key and the dataclasses validate cross-field consistency only once a whole
+    parameter set is built. A missing or misspelled key therefore surfaces as a
+    KeyError or a ValueError at the end of a simulation that has already run, which is
+    the most expensive moment to find out.
+    """
+
+    def test_lca_json_parses(self):
+        data = impact.load_lca_defaults()
+
+        self.assertGreater(data.eta_avail, 0)
+        self.assertGreater(data.battery_lifetime_years, 0)
+        self.assertGreater(data.diesel_motor_mass_kg, 0)
+        # The grid mix drives the whole use phase of a battery-electric fleet.
+        self.assertTrue(data.electricity_per_kwh.data, "no electricity years in lca.json")
+
+    def test_overrides_cover_the_year_in_the_electricity_series(self):
+        overrides = impact.load_lca_overrides()
+        years = sorted(impact.load_lca_defaults().electricity_per_kwh.data)
+        # Outside this range the series is clamped, with a warning, and the result
+        # stops responding to the year at all.
+        self.assertGreaterEqual(overrides["year"], years[0])
+        self.assertLessEqual(overrides["year"], years[-1])
+
+    def test_vehicle_type_parameters_build_for_both_energy_sources(self):
+        data = impact.load_lca_defaults()
+        overrides = impact.load_lca_overrides()
+        year = overrides["year"]
+        lifetimes = impact.lifetime_defaults()
+
+        for name, energy_source in [
+            ("vehicle_type_default", EnumEnergySource.BATTERY_ELECTRIC),
+            ("vehicle_type_default_diesel", EnumEnergySource.DIESEL),
+        ]:
+            with self.subTest(defaults=name):
+                vehicle_type = VehicleType(name_short=None, energy_source=energy_source)
+                built = impact._lca_vehicle_type_overrides(
+                    vehicle_type, lifetimes, impact.vehicle_lca_defaults(vehicle_type)
+                )
+                # __post_init__ raises if a field contradicts the energy source.
+                if energy_source == EnumEnergySource.DIESEL:
+                    parameters = data.make_vehicle_type_lca_parameters_diesel(built)
+                else:
+                    parameters = data.make_vehicle_type_lca_parameters_beb(year, built)
+                self.assertIn("chassis_emission_factors_per_kg", parameters.to_dict())
+
+    def test_charging_point_type_parameters_differ_by_type(self):
+        data = impact.load_lca_defaults()
+        lifetimes = impact.lifetime_defaults()
+
+        depot = data.make_charging_point_type_lca_parameters(
+            impact._lca_charging_point_type_overrides(impact.DEPOT_CPT_NAME_SHORT, lifetimes)
+        ).to_dict()
+        opportunity = data.make_charging_point_type_lca_parameters(
+            impact._lca_charging_point_type_overrides(impact.OPPORTUNITY_CPT_NAME_SHORT, lifetimes)
+        ).to_dict()
+
+        # An indoor depot charger has no concrete foundation; a terminal one does.
+        self.assertEqual(depot["foundation_volume_per_point_m3"], 0.0)
+        self.assertGreater(opportunity["foundation_volume_per_point_m3"], 0.0)
+
+    def test_lifetimes_are_the_same_for_tco_and_lca(self):
+        """The reason the block exists: one number per thing, not two.
+
+        These used to come from three different files and had drifted -- 14 against
+        12 for a vehicle, 7 against 8 for a battery. eflips-impact checks the battery
+        pair itself and warned on every LCA run.
+        """
+        data = impact.load_lca_defaults()
+        lifetimes = impact.lifetime_defaults()
+
+        vehicle_type = VehicleType(name_short=None, energy_source=EnumEnergySource.BATTERY_ELECTRIC)
+        built = data.make_vehicle_type_lca_parameters_beb(
+            impact.load_lca_overrides()["year"],
+            impact._lca_vehicle_type_overrides(
+                vehicle_type, lifetimes, impact.vehicle_lca_defaults(vehicle_type)
+            ),
+        ).to_dict()
+        self.assertEqual(built["vehicle_lifetime_years"], lifetimes["vehicle"])
+
+        point = data.make_charging_point_type_lca_parameters(
+            impact._lca_charging_point_type_overrides(impact.DEPOT_CPT_NAME_SHORT, lifetimes)
+        ).to_dict()
+        self.assertEqual(point["infrastructure_lifetime_years"], lifetimes["charging_point"])
+
+        # The battery one is not threaded through a builder -- load_lca_defaults() is
+        # cached and shared, so ensure_lca_parameters overwrites it on the dict. Guard
+        # that lca.json's own figure is not what reaches the database.
+        self.assertEqual(
+            set(lifetimes), {"vehicle", "battery", "charging_point"}, "LIFETIME_LCA_KEYS drifted"
+        )
+
+    def test_editable_lca_values_reach_the_built_parameters(self):
+        """The motor power on the costs page is the one the calculation uses.
+
+        ``_lca_vehicle_type_overrides`` takes it from the resolved block rather than
+        from ``lca_overrides.json``, so a value entered for one vehicle type has to
+        override the file rather than sit beside it.
+        """
+        lifetimes = impact.lifetime_defaults()
+
+        for energy_source in (EnumEnergySource.BATTERY_ELECTRIC, EnumEnergySource.DIESEL):
+            with self.subTest(energy_source=energy_source):
+                vehicle_type = VehicleType(name_short=None, energy_source=energy_source)
+                values = impact.vehicle_lca_defaults(vehicle_type)
+                values[impact.MOTOR_POWER_KEY] = 275.0
+
+                built = impact._lca_vehicle_type_overrides(vehicle_type, lifetimes, values)
+                self.assertEqual(built.motor_rated_power_kw, 275.0)
+
+        # Only a battery-electric type has a battery block to edit.
+        self.assertIn(
+            impact.BATTERY_KEY,
+            impact.vehicle_lca_defaults(
+                VehicleType(name_short=None, energy_source=EnumEnergySource.BATTERY_ELECTRIC)
+            ),
+        )
+        self.assertNotIn(
+            impact.BATTERY_KEY,
+            impact.vehicle_lca_defaults(
+                VehicleType(name_short=None, energy_source=EnumEnergySource.DIESEL)
+            ),
+        )
+
+    def test_specific_mass_default_comes_from_fleet_json(self):
+        """The shared block and the row creation must agree on the starting value.
+
+        ``_ensure_battery_types`` creates a row from ``fleet.json`` and
+        ``ensure_lca_parameters`` then writes the resolved value over it. If the two
+        read different files, every new battery would be silently rewritten.
+        """
+        common = impact.vehicle_lca_defaults_beb()[impact.BATTERY_KEY][impact.SPECIFIC_MASS_KEY]
+        self.assertEqual(common, impact._fleet_battery_defaults()[impact.SPECIFIC_MASS_KEY])
+        self.assertGreater(common, 0)
+
+    def test_electricity_defaults_are_the_year_the_calculation_samples(self):
+        """The vector on the costs page is the one an untouched scenario is run with.
+
+        The file holds a series of years and eflips-impact samples it exactly once, at
+        ``analysis_year``. If the page resolved the series differently -- the earliest
+        year, say, or the raw per-MJ figures -- the number shown would not be the
+        number used, and editing it would silently change the result by a factor.
+        """
+        data = impact.load_lca_defaults()
+        sampled = data.electricity_per_kwh.at_year(impact.analysis_year()).to_dict()
+        defaults = impact.electricity_defaults()
+
+        self.assertEqual(set(defaults), set(sampled))
+        for category, value in defaults.items():
+            # Six significant digits of the sampled value, not some other year's: the
+            # tightest bound that survives rounding is 5e-6 relative, when the leading
+            # digit is a 1.
+            self.assertAlmostEqual(value, sampled[category], delta=abs(sampled[category]) * 1e-5)
+            self.assertLessEqual(len(repr(value)), 14, f"{category} is not rounded: {value!r}")
+        # Per kWh, not the per-MJ figures in the file: the loader multiplies by 3.6.
+        self.assertGreater(defaults["gwp"], 0.2)
+
+    def test_edited_electricity_replaces_the_whole_series(self):
+        """A stored vector reaches the built parameters, and nothing else survives.
+
+        The one-entry series has to be keyed at the year that is then asked for, or
+        ``at_year`` clamps to it with a warning instead of returning it -- same value
+        here, but only by luck of there being nothing else to clamp to.
+        """
+        scenario = Scenario(
+            tco_parameters=impact.mark_tco_parameters_edited(
+                {impact.WEBUS_KEY: {impact.ELECTRICITY_KEY: {"gwp": 0.05}}}
+            )
+        )
+
+        resolved = impact.electricity_parameters(scenario)
+        self.assertEqual(resolved["gwp"], 0.05)
+        # The seven the user left alone still come from the file.
+        self.assertEqual(resolved["water"], impact.electricity_defaults()["water"])
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")  # a clamp here would mean the key is wrong
+            data = impact._lca_data_for(scenario)
+            built = data.make_vehicle_type_lca_parameters_beb(
+                impact.analysis_year(),
+                impact._lca_vehicle_type_overrides(
+                    VehicleType(name_short=None, energy_source=EnumEnergySource.BATTERY_ELECTRIC),
+                    impact.lifetime_defaults(),
+                    impact.vehicle_lca_defaults_beb(),
+                ),
+            ).to_dict()
+        self.assertEqual(built["electricity_emission_factors_per_kwh"]["gwp"], 0.05)
+
+        # The cached dataset every other scenario is built from is untouched.
+        self.assertEqual(len(impact.load_lca_defaults().electricity_per_kwh.data), 3)
+
+    def test_unedited_scenario_keeps_the_shipped_electricity_factors(self):
+        """Adding the input must not move an existing result by anything visible.
+
+        Not identical to what the code produced before: the defaults are rounded to
+        six significant digits so that the page can render them. Bounded here, because
+        a rounding is the only difference this feature is allowed to make to a scenario
+        nobody has edited.
+        """
+        scenario = Scenario(tco_parameters={})
+        built = impact._lca_data_for(scenario).electricity_per_kwh.at_year(impact.analysis_year())
+        shipped = impact.load_lca_defaults().electricity_per_kwh.at_year(impact.analysis_year())
+
+        self.assertEqual(built.to_dict().keys(), shipped.to_dict().keys())
+        for category, value in built.to_dict().items():
+            self.assertAlmostEqual(
+                value, shipped.to_dict()[category], delta=abs(shipped.to_dict()[category]) * 1e-5
+            )
+
+    def test_battery_chemistry_selects_the_emission_factors(self):
+        data = impact.load_lca_defaults()
+
+        lfp = data.make_battery_type_lca_parameters("lfp").to_dict()
+        nmc = data.make_battery_type_lca_parameters("NMC622").to_dict()
+
+        # A quoted string -- what a naive jsonb::text migration would leave behind --
+        # fails the "NMC" prefix test and silently falls back to LFP.
+        self.assertNotEqual(
+            lfp["emission_factors_per_kg"]["gwp"], nmc["emission_factors_per_kg"]["gwp"]
+        )
+        self.assertEqual(
+            data.make_battery_type_lca_parameters('"NMC622"').to_dict()["emission_factors_per_kg"][
+                "gwp"
+            ],
+            lfp["emission_factors_per_kg"]["gwp"],
+        )

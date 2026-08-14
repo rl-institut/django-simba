@@ -38,9 +38,15 @@ from eflips.depot.api import (  # noqa
     simulate_scenario,
     generate_optimal_depot_layout,
 )
-from eflips.tco import calculate_tco
-
 import core.deepcopy
+from ebustoolbox.impact import (
+    apply_tco_mutation,
+    attach_charging_point_types,
+    calculate_lca,
+    calculate_tco,
+    ensure_fleet_topology,
+    measured_consumption,
+)
 from ebusdjango.util import get_static_file_path
 import ebustoolbox.util
 import simba.optimizer_util
@@ -1951,6 +1957,10 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     apply_vehicle_mutation(mutation, child, stack)
     apply_station_mutation(mutation, child, stack)
     apply_depot_and_area_wishes(mutation, child, stack)
+    # Must run after apply_vehicle_mutation and apply_station_mutation: those copy
+    # whole rows, so the child's battery_type_id / charging_point_type_id still point
+    # at the mutation's rows until this repoints them.
+    apply_tco_mutation(mutation, child, stack)
 
     child.save()
     return child
@@ -1984,7 +1994,7 @@ def create_station_mutations(scenario):
 
 
 @shared_task(bind=True)
-def _run_ebus_toolchain(self, task_id, progress_id=None):
+def _run_ebus_toolchain(self, task_id, progress_id=None):  # noqa: C901
     """Run the tool chain"""
     db_scenario: Scenario = Scenario.objects.get(task_id=task_id)
     assert is_consistent(db_scenario)
@@ -2158,13 +2168,48 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
         progress.save()
 
         # Calculate TCO. Needs vehicle (driving events) to be set.
-        logger.info(f"S.ID:{db_scenario.id}:Running eFLIPS TCO {datetime.now()}")
+        #
+        # Costed once per pair of simulations rather than once per simulation, because
+        # neither scenario on its own describes what the operator pays for. The
+        # hardware has to come from the sizing run, simulated at the extreme
+        # temperature, because that is the fleet and the charging capacity that has to
+        # exist; the energy has to come from the default run, because a year is not
+        # spent at the extreme temperature. On the reference scenario the sizing run
+        # needed 9 vehicles at 4.22 kWh/km and the default run 6 at 1.84 -- costing
+        # either alone is wrong by about 13% of the total, in opposite directions.
+        #
+        # So the SIZING pass skips this entirely and the DEFAULT pass costs its
+        # sibling, storing the result here, on the scenario the result page reads.
         progress.current_work += 1
-        progress.status = _("Berechne TCO")
-        progress.save()
-        tco_result = eflips_calculate_tco(db_scenario)  # on error: all values 1
-        db_scenario.tco_result = tco_result
-        db_scenario.save(update_fields=["tco_result"])
+        costed_scenario, consumption = _scenario_to_cost(db_scenario)
+        if costed_scenario is None:
+            logger.info(f"S.ID:{db_scenario.id}:Sizing run, costed by the default run")
+            progress.save()
+        else:
+            logger.info(
+                f"S.ID:{db_scenario.id}:Running eFLIPS TCO on S.ID:{costed_scenario.id} "
+                f"{datetime.now()}"
+            )
+            progress.status = _("Berechne TCO")
+            progress.save()
+
+            tco_result = eflips_calculate_tco(costed_scenario, consumption)
+            db_scenario.tco_result = tco_result
+            db_scenario.save(update_fields=["tco_result"])
+
+            # After the TCO, which is what attaches the charging point types the LCA
+            # reads off the Areas and Stations. A failure here is logged and swallowed:
+            # the LCA is a secondary result, and losing a finished simulation over it
+            # would be a poor trade. The result page renders the section only when
+            # there is something in it.
+            logger.info(f"S.ID:{db_scenario.id}:Running eFLIPS LCA {datetime.now()}")
+            progress.status = _("Berechne Ökobilanz")
+            progress.save()
+            try:
+                db_scenario.lca_result = calculate_lca(costed_scenario, consumption)
+                db_scenario.save(update_fields=["lca_result"])
+            except Exception:
+                logger.error(f"S.ID:{db_scenario.id}:LCA failed\n{traceback.format_exc()}")
 
         check_event_soc_consistency(db_scenario)
         db_scenario.refresh_from_db()
@@ -2493,25 +2538,61 @@ def run_eflips(scenario, delete_existing_depot, progress) -> None:
     )
 
 
-def eflips_calculate_tco(scenario: Scenario):
-    db_url = create_db_url()
-    # get vehicle type energy consumptions
-    for vt in scenario.vehicletype_set.all():
-        if vt.consumption is not None:
-            # consumption set directly
-            vt.tco_parameters["const_energy_consumption"] = vt.consumption
-        else:
-            # vehicle type consumption not set: calculate from driving events
-            energy_kwh = sum(
-                [
-                    e.get_energy_delta()
-                    for e in Event.objects.filter(vehicle_type=vt, event_type="DRIVING")
-                ]
-            )
-            distance = vt.get_total_distance_km
-            vt.tco_parameters["const_energy_consumption"] = -energy_kwh / distance  # [kWh / km]
-        vt.save(update_fields=["tco_parameters"])
-    return calculate_tco(scenario.id, db_url)
+def _scenario_to_cost(scenario: Scenario) -> tuple[Scenario | None, dict | None]:
+    """Decide which scenario a finished simulation pass should cost, and with what.
+
+    Three cases, keyed off this scenario's ``SimulationType``:
+
+    - **SIZING** -- ``(None, None)``. Nothing is costed. The sizing pass runs first
+      (``run_and_merge_scenarios``), before the default scenario has been deepcopied
+      from it, so its energy is not available yet; the default pass costs this
+      scenario afterwards. Not storing a result here is also what stops a second,
+      extreme-weather figure sitting unread next to the one the page shows.
+    - **DEFAULT with a sizing sibling** -- ``(sibling, this scenario's consumption)``.
+      The costed hardware is the sibling's, the costed energy is this scenario's.
+    - **anything else** -- ``(scenario, None)``. A scenario simulated on its own, via
+      ``run_toolchain_from_scenario``, has no sibling to borrow either half from and
+      is costed entirely on itself, as before.
+
+    :param scenario: The scenario whose simulation has just finished.
+    :returns: ``(scenario to cost or None, consumption map or None)``.
+    """
+    sim_type = (
+        SimulationType.objects.filter(scenario=scenario).values_list("sim_type", flat=True).first()
+    )
+    if sim_type == EnumSimulationType.SIZING:
+        return None, None
+
+    sizing_scenario = scenario.get_sizing_scenario()
+    if sim_type != EnumSimulationType.DEFAULT or sizing_scenario is None:
+        return scenario, None
+
+    return sizing_scenario, measured_consumption(scenario)
+
+
+def eflips_calculate_tco(scenario: Scenario, consumption: dict | None = None) -> dict:
+    """Complete the fleet topology of a simulated scenario and calculate its TCO.
+
+    The fleet rows and their parameters were created before the simulation and
+    carried onto this scenario by ``apply_tco_mutation``; ``ensure_fleet_topology``
+    is only a fallback for scenarios that never went through the costs page. The
+    charging point types can only be attached now, because the Areas and the
+    opportunity-charging Events they are attached to are products of the simulation.
+
+    The LCA parameters are deliberately not seeded here, even though both
+    calculations share this topology: ``calculate_lca`` seeds its own, and doing it
+    in both places rewrote every vehicle, battery and charging point type twice per
+    run. What the LCA does depend on from here is ``attach_charging_point_types``,
+    which is why it still has to run before it.
+
+    :param scenario: A simulated scenario, after ``apply_depot_strategy``.
+    :param consumption: Consumption measured on another scenario, from
+        ``impact.measured_consumption``. ``None`` measures on ``scenario`` itself.
+    :returns: ``{cost_category: EUR per revenue-km}`` for ``Scenario.tco_result``.
+    """
+    ensure_fleet_topology(scenario)
+    attach_charging_point_types(scenario)
+    return calculate_tco(scenario, consumption)
 
 
 def create_db_url():

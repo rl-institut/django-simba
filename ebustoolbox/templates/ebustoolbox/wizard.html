@@ -4,7 +4,12 @@
 {% block wizard_navigation %}
   <nav aria-label="Progress" class="bg-white">
     <ol role="list" class="divide-y divide-slate-300 border-b border-slate-200 md:flex md:divide-y-0">
-{% translate 'Umlaufplan' as umlaufplan %} {% translate 'Simulationsfilter' as filter_scenario %} {% translate 'Fahrzeuge' as fahrzeuge %} {% translate 'Endhaltestellen' as endhaltestelle %} {% translate 'Kosten' as kosten %} {% translate 'Depots' as depots %} {% translate 'Zusammenfassung' as zusammenfassung %} {% translate 'Simulation' as simlation %}
+{% translate 'Umlaufplan' as umlaufplan %} {% translate 'Simulationsfilter' as filter_scenario %} {% translate 'Fahrzeuge' as fahrzeuge %} {% translate 'Endhaltestellen' as endhaltestelle %} {% translate 'Kosten und Ökobilanz' as kosten %} {% translate 'Depots' as depots %} {% translate 'Zusammenfassung' as zusammenfassung %} {% translate 'Simulation' as simlation %}
+      {# The loop is one shorter than the cycles: the last entry (Simulation) has never #}
+      {# been rendered as a step. Adding or removing a step therefore means resizing the #}
+      {# loop as well, and shifting every wiz_idx after it. Ökobilanz used to sit        #}
+      {# between Kosten and Depots; its editable values are a band of the costs page     #}
+      {# now, so the step is gone and the ones after it moved back down.                 #}
       {% for i in '1234567' %}
         {% cycle  umlaufplan filter_scenario fahrzeuge endhaltestelle kosten depots zusammenfassung simlation as wiz_text silent %}
         {% url 'simba:trips' task_id as url_trips %}

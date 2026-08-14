@@ -47,12 +47,18 @@ tqdm = "^4.66.1"
 charset-normalizer = "^3.4.2"
 django-widget-tweaks = "^1.5.0"
 
-eflips-depot = "^4.18.3"
+eflips-depot = "^4.18.5"
 eflips-eval = "^1.7.3"
 eflips-ingest = "^2.2.0"
+# Declared directly, although it only arrives as a dependency of the four packages
+# above: the Django models in ebustoolbox mirror its tables column for column, so a
+# resolver free to pick an older 11.x would leave our migrations describing a schema
+# eflips-model no longer maps. 11.2.0 is the floor for lca_parameters.
+eflips-model = "^11.2.0"
 gunicorn = "^23.0.0"
 whitenoise = "^6.11.0"
-eflips-tco = {git = "https://github.com/mpm-tu-berlin/eflips-tco.git", branch = "feature/revenue-km"}
+#eflips-tco = {git = "https://github.com/mpm-tu-berlin/eflips-tco.git", branch = "feature/revenue-km"}
+eflips-impact = "^2.1.0"
 
 [tool.poetry.group.dev]
 optional = true
