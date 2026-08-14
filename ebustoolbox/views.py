@@ -2263,9 +2263,7 @@ def loadTester(request, task_id: str):
                 )
             except Exception:
                 progress.errors.append(
-                    _(
-                        "Ein unerwarteter Fehler ist aufgetreten. Wende dich an deinen Administrator"
-                    )
+                    _("Ein unerwarteter Fehler ist aufgetreten. Wende dich an deinen Administrator")
                 )
                 progress.set_failed()
                 logger.error(traceback.format_exc())
